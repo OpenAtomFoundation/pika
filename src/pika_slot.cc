@@ -25,17 +25,17 @@ void SlotsInfoCmd::DoInitial() {
 }
 
 void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!table_ptr) {
+  std::shared_ptr<DB> db_ptr = g_pika_server->GetDB(g_pika_conf->default_db());
+  if (!db_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsInfo);
     return;
   }
-  table_ptr->KeyScan();
+  db_ptr->KeyScan();
   // this get will get last time scan info
-  KeyScanInfo key_scan_info = table_ptr->GetKeyScanInfo();
+  KeyScanInfo key_scan_info = db_ptr->GetKeyScanInfo();
 
   std::map<uint32_t, KeyScanInfo> infos;
-  Status s = table_ptr->GetSlotsKeyScanInfo(&infos);
+  Status s = db_ptr->GetSlotsKeyScanInfo(&infos);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsInfo);
     return;
@@ -65,12 +65,12 @@ void SlotsHashKeyCmd::DoInitial() {
 
 void SlotsHashKeyCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendArrayLen(argv_.size() - 1);
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!table_ptr) {
+  std::shared_ptr<DB> db_ptr = g_pika_server->GetDB(g_pika_conf->default_db());
+  if (!db_ptr) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsHashKey);
     return;
   }
-  uint32_t slot_num = table_ptr->SlotNum();
+  uint32_t slot_num = db_ptr->SlotNum();
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
@@ -127,8 +127,8 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
   std::string str_slot_num = *it++;
 
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (table == nullptr) {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (db == nullptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
@@ -154,9 +154,9 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   // proxy retry cached request in new node
   bool is_exist = true;
   std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_num_));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_num_));
   if (!master_slot) {
-    LOG(WARNING) << "Sync Master Slot: " << table_name_ << ":" << slot_num_ << ", NotFound";
+    LOG(WARNING) << "Sync Master Slot: " << db_name_ << ":" << slot_num_ << ", NotFound";
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
@@ -213,12 +213,12 @@ void SlotsScanCmd::DoInitial() {
 }
 
 void SlotsScanCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!table_ptr) {
+  std::shared_ptr<DB> db_ptr = g_pika_server->GetDB(g_pika_conf->default_db());
+  if (!db_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
     return;
   }
-  std::shared_ptr<Slot> cur_slot = table_ptr->GetSlotById(slotnum_);
+  std::shared_ptr<Slot> cur_slot = db_ptr->GetSlotById(slotnum_);
   if (!cur_slot) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
     return;
@@ -262,18 +262,18 @@ void SlotsDelCmd::DoInitial() {
 }
 
 void SlotsDelCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!table_ptr) {
+  std::shared_ptr<DB> db_ptr = g_pika_server->GetDB(g_pika_conf->default_db());
+  if (!db_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsDel);
     return;
   }
-  if (table_ptr->IsKeyScaning()) {
+  if (db_ptr->IsKeyScaning()) {
     res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     return;
   }
   std::vector<uint32_t> successed_slots;
   for (auto& slotnum : slots_) {
-    std::shared_ptr<Slot> cur_slot = table_ptr->GetSlotById(slotnum);
+    std::shared_ptr<Slot> cur_slot = db_ptr->GetSlotById(slotnum);
     if (!cur_slot) {
       continue;
     }

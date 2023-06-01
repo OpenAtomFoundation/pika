@@ -48,10 +48,10 @@ struct BgSaveInfo {
 
 class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
  public:
-  Slot(const std::string& table_name, uint32_t slot_id, const std::string& table_db_path);
+  Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path);
   virtual ~Slot();
 
-  std::string GetTableName() const;
+  std::string GetDBName() const;
   uint32_t GetSlotId() const;
   std::string GetSlotName() const;
   std::shared_ptr<storage::Storage> db() const;
@@ -86,7 +86,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   KeyScanInfo GetKeyScanInfo();
 
  private:
-  std::string table_name_;
+  std::string db_name_;
   uint32_t slot_id_ = 0;
 
   std::string db_path_;

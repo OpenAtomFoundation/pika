@@ -32,7 +32,7 @@
 
 class SyncSlot {
  public:
-  SyncSlot(const std::string& table_name, uint32_t slot_id);
+  SyncSlot(const std::string& db_name, uint32_t slot_id);
   virtual ~SyncSlot() = default;
 
   SlotInfo& SyncSlotInfo() { return slot_info_; }
@@ -45,7 +45,7 @@ class SyncSlot {
 
 class SyncMasterSlot : public SyncSlot {
  public:
-  SyncMasterSlot(const std::string& table_name, uint32_t slot_id);
+  SyncMasterSlot(const std::string& db_name, uint32_t slot_id);
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
 
@@ -80,7 +80,7 @@ class SyncMasterSlot : public SyncSlot {
   std::string ToStringStatus();
 
   int32_t GenSessionId();
-  bool CheckSessionId(const std::string& ip, int port, const std::string& table_name, uint64_t slot_id,
+  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id,
                       int session_id);
 
   // consensus use
@@ -126,7 +126,7 @@ class SyncMasterSlot : public SyncSlot {
 
 class SyncSlaveSlot : public SyncSlot {
  public:
-  SyncSlaveSlot(const std::string& table_name, uint32_t slot_id);
+  SyncSlaveSlot(const std::string& db_name, uint32_t slot_id);
 
   void Activate(const RmNode& master, const ReplState& repl_state);
   void Deactivate();
@@ -181,14 +181,14 @@ class PikaReplicaManager {
   pstd::Status RemoveSyncSlot(const std::set<SlotInfo>& p_infos);
   pstd::Status ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state);
   pstd::Status DeactivateSyncSlaveSlot(const SlotInfo& p_info);
-  pstd::Status SyncTableSanityCheck(const std::string& table_name);
-  pstd::Status DelSyncTable(const std::string& table_name);
+  pstd::Status SyncDBSanityCheck(const std::string& db_name);
+  pstd::Status DelSyncDB(const std::string& db_name);
 
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
   pstd::Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t slot_id);
-  pstd::Status SendSlotTrySyncRequest(const std::string& table_name, size_t slot_id);
-  pstd::Status SendSlotDBSyncRequest(const std::string& table_name, size_t slot_id);
+  pstd::Status SendSlotTrySyncRequest(const std::string& db_name, size_t slot_id);
+  pstd::Status SendSlotDBSyncRequest(const std::string& db_name, size_t slot_id);
   pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id, const LogOffset& ack_start,
                                            const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
@@ -236,7 +236,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                std::shared_ptr<net::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& table_name,
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
                            uint32_t slot_id);
 
   void ReplServerRemoveClientConn(int fd);

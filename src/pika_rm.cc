@@ -27,17 +27,17 @@ extern PikaServer* g_pika_server;
 
 /* SyncSlot */
 
-SyncSlot::SyncSlot(const std::string& table_name, uint32_t slot_id)
-    : slot_info_(table_name, slot_id) {}
+SyncSlot::SyncSlot(const std::string& db_name, uint32_t slot_id)
+    : slot_info_(db_name, slot_id) {}
 
 std::string SyncSlot::SlotName() {
-  return slot_info_.table_name_;
+  return slot_info_.db_name_;
 }
 
 /* SyncMasterSlot*/
 
-SyncMasterSlot::SyncMasterSlot(const std::string& table_name, uint32_t slot_id)
-    : SyncSlot(table_name, slot_id),  coordinator_(table_name, slot_id) {}
+SyncMasterSlot::SyncMasterSlot(const std::string& db_name, uint32_t slot_id)
+    : SyncSlot(db_name, slot_id),  coordinator_(db_name, slot_id) {}
 
 int SyncMasterSlot::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
@@ -170,7 +170,7 @@ Status SyncMasterSlot::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slav
 
     slave_ptr->sync_win.Push(SyncWinItem(sent_offset, msg.size()));
     slave_ptr->SetLastSendTime(pstd::NowMicros());
-    RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->SlotId(),
+    RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SlotId(),
                    slave_ptr->SessionId());
     WriteTask task(rm_node, BinlogChip(sent_offset, msg), slave_ptr->sent_offset);
     tasks.push_back(task);
@@ -370,7 +370,7 @@ Status SyncMasterSlot::CheckSyncTimeout(uint64_t now) {
     } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now &&
                slave_ptr->sent_offset == slave_ptr->acked_offset) {
       std::vector<WriteTask> task;
-      RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->SlotId(),
+      RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SlotId(),
                      slave_ptr->SessionId());
       WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""), LogOffset());
       task.push_back(empty_task);
@@ -455,18 +455,18 @@ int32_t SyncMasterSlot::GenSessionId() {
   return session_id_++;
 }
 
-bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::string& table_name,
+bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::string& db_name,
                                          uint64_t slot_id, int session_id) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
-    LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << table_name << "_"
+    LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << db_name << "_"
                  << slot_id;
     return false;
   }
 
   std::lock_guard l(slave_ptr->slave_mu);
   if (session_id != slave_ptr->SessionId()) {
-    LOG(WARNING) << "Check SessionId Mismatch: " << ip << ":" << port << ", " << table_name << "_" << slot_id
+    LOG(WARNING) << "Check SessionId Mismatch: " << ip << ":" << port << ", " << db_name << "_" << slot_id
                  << " expected_session: " << session_id << ", actual_session:" << slave_ptr->SessionId();
     return false;
   }
@@ -506,7 +506,7 @@ void SyncMasterSlot::CommitPreviousLogs(const uint32_t& term) {
   std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);
   PikaCmdArgsType args;
   args.push_back(kCmdDummy);
-  dummy_ptr->Initial(args, SyncSlotInfo().table_name_);
+  dummy_ptr->Initial(args, SyncSlotInfo().db_name_);
   dummy_ptr->SetStage(Cmd::kBinlogStage);
   dummy_ptr->Execute();
   dummy_ptr->SetStage(Cmd::kExecuteStage);
@@ -532,8 +532,8 @@ Status SyncMasterSlot::ConsensusFollowerNegotiate(const std::vector<LogOffset>& 
 Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return coordinator_.Reset(applied_offset); }
 
 /* SyncSlaveSlot */
-SyncSlaveSlot::SyncSlaveSlot(const std::string& table_name, uint32_t slot_id)
-    : SyncSlot(table_name, slot_id),  repl_state_(kNoConnect) {
+SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
+    : SyncSlot(db_name, slot_id),  repl_state_(kNoConnect) {
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 
@@ -681,14 +681,14 @@ bool PikaReplicaManager::CheckMasterSyncFinished() {
 }
 
 void PikaReplicaManager::InitSlot() {
-  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-  for (const auto& table : table_structs) {
-    const std::string& table_name = table.table_name;
-    for (const auto& slot_id : table.slot_ids) {
-      sync_master_slots_[SlotInfo(table_name, slot_id)] =
-          std::make_shared<SyncMasterSlot>(table_name, slot_id);
-      sync_slave_slots_[SlotInfo(table_name, slot_id)] =
-          std::make_shared<SyncSlaveSlot>(table_name, slot_id);
+  std::vector<DBStruct> db_structs = g_pika_conf->db_structs();
+  for (const auto& db : db_structs) {
+    const std::string& db_name = db.db_name;
+    for (const auto& slot_id : db.slot_ids) {
+      sync_master_slots_[SlotInfo(db_name, slot_id)] =
+          std::make_shared<SyncMasterSlot>(db_name, slot_id);
+      sync_slave_slots_[SlotInfo(db_name, slot_id)] =
+          std::make_shared<SyncSlaveSlot>(db_name, slot_id);
     }
   }
 }
@@ -788,8 +788,8 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db_slot,
 }
 
 void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
-                                             const std::string& table_name, uint32_t slot_id) {
-  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, offset, table_name, slot_id);
+                                             const std::string& db_name, uint32_t slot_id) {
+  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, offset, db_name, slot_id);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) { pika_repl_server_->RemoveClientConn(fd); }
@@ -881,15 +881,15 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::CheckSlotRole(const std::string& table, uint32_t slot_id, int* role) {
+Status PikaReplicaManager::CheckSlotRole(const std::string& db, uint32_t slot_id, int* role) {
   std::shared_lock l(slots_rw_);
   *role = 0;
-  SlotInfo p_info(table, slot_id);
+  SlotInfo p_info(db, slot_id);
   if (sync_master_slots_.find(p_info) == sync_master_slots_.end()) {
-    return Status::NotFound(table + std::to_string(slot_id) + " not found");
+    return Status::NotFound(db + std::to_string(slot_id) + " not found");
   }
   if (sync_slave_slots_.find(p_info) == sync_slave_slots_.end()) {
-    return Status::NotFound(table + std::to_string(slot_id) + " not found");
+    return Status::NotFound(db + std::to_string(slot_id) + " not found");
   }
   if (sync_master_slots_[p_info]->GetNumberOfSlaveNode() != 0 ||
       (sync_master_slots_[p_info]->GetNumberOfSlaveNode() == 0 &&
@@ -903,20 +903,20 @@ Status PikaReplicaManager::CheckSlotRole(const std::string& table, uint32_t slot
   return Status::OK();
 }
 
-Status PikaReplicaManager::GetSlotInfo(const std::string& table, uint32_t slot_id, std::string* info) {
+Status PikaReplicaManager::GetSlotInfo(const std::string& db, uint32_t slot_id, std::string* info) {
   int role = 0;
   std::string tmp_res;
-  Status s = CheckSlotRole(table, slot_id, &role);
+  Status s = CheckSlotRole(db, slot_id, &role);
   if (!s.ok()) {
     return s;
   }
 
   bool add_divider_line = (((role & PIKA_ROLE_MASTER) != 0) && ((role & PIKA_ROLE_SLAVE) != 0));
   std::shared_lock l(slots_rw_);
-  SlotInfo p_info(table, slot_id);
+  SlotInfo p_info(db, slot_id);
   if ((role & PIKA_ROLE_MASTER) != 0) {
     if (sync_master_slots_.find(p_info) == sync_master_slots_.end()) {
-      return Status::NotFound(table + std::to_string(slot_id) + " not found");
+      return Status::NotFound(db + std::to_string(slot_id) + " not found");
     }
     Status s = sync_master_slots_[p_info]->GetInfo(info);
     if (!s.ok()) {
@@ -928,7 +928,7 @@ Status PikaReplicaManager::GetSlotInfo(const std::string& table, uint32_t slot_i
   }
   if ((role & PIKA_ROLE_SLAVE) != 0) {
     if (sync_slave_slots_.find(p_info) == sync_slave_slots_.end()) {
-      return Status::NotFound(table + std::to_string(slot_id) + " not found");
+      return Status::NotFound(db + std::to_string(slot_id) + " not found");
     }
     Status s = sync_slave_slots_[p_info]->GetInfo(info);
     if (!s.ok()) {
@@ -998,15 +998,15 @@ Status PikaReplicaManager::SendMetaSyncRequest() {
   return s;
 }
 
-Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& table, uint32_t slot_id) {
+Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& db, uint32_t slot_id) {
   pstd::Status s;
   std::shared_lock l(slots_rw_);
-  SlotInfo p_info(table, slot_id);
+  SlotInfo p_info(db, slot_id);
   if (sync_slave_slots_.find(p_info) == sync_slave_slots_.end()) {
     return Status::NotFound("Sync Slave Slot " + p_info.ToString());
   } else {
     std::shared_ptr<SyncSlaveSlot> s_slot = sync_slave_slots_[p_info];
-    s = pika_repl_client_->SendRemoveSlaveNode(s_slot->MasterIp(), s_slot->MasterPort(), table, slot_id,
+    s = pika_repl_client_->SendRemoveSlaveNode(s_slot->MasterIp(), s_slot->MasterPort(), db, slot_id,
                                                s_slot->LocalIp());
     if (s.ok()) {
       s_slot->SetReplState(ReplState::kDBNoConnect);
@@ -1014,29 +1014,29 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& table, 
   }
 
   if (s.ok()) {
-    LOG(INFO) << "SlaveNode (" << table << ":" << slot_id << "), stop sync success";
+    LOG(INFO) << "SlaveNode (" << db << ":" << slot_id << "), stop sync success";
   } else {
-    LOG(WARNING) << "SlaveNode (" << table << ":" << slot_id << "), stop sync faild, " << s.ToString();
+    LOG(WARNING) << "SlaveNode (" << db << ":" << slot_id << "), stop sync faild, " << s.ToString();
   }
   return s;
 }
 
-Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& table_name, size_t slot_id) {
+Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& db_name, size_t slot_id) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDBSlotBinlogOffset(table_name, slot_id, &boffset)) {
-    LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << ",  Get Slot binlog offset failed";
+  if (!g_pika_server->GetDBSlotBinlogOffset(db_name, slot_id, &boffset)) {
+    LOG(WARNING) << "Slot: " << db_name << ":" << slot_id << ",  Get Slot binlog offset failed";
     return Status::Corruption("Slot get binlog offset error");
   }
 
   std::shared_ptr<SyncSlaveSlot> slave_slot =
-      GetSyncSlaveSlotByName(SlotInfo(table_name, slot_id));
+      GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
-    LOG(WARNING) << "Slave Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
 
   Status status =
-      pika_repl_client_->SendSlotTrySync(slave_slot->MasterIp(), slave_slot->MasterPort(), table_name,
+      pika_repl_client_->SendSlotTrySync(slave_slot->MasterIp(), slave_slot->MasterPort(), db_name,
                                               slot_id, boffset, slave_slot->LocalIp());
 
   if (status.ok()) {
@@ -1048,29 +1048,29 @@ Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& table_name,
   return status;
 }
 
-Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& table_name, size_t slot_id) {
+Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name, size_t slot_id) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDBSlotBinlogOffset(table_name, slot_id, &boffset)) {
-    LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << ",  Get slot binlog offset failed";
+  if (!g_pika_server->GetDBSlotBinlogOffset(db_name, slot_id, &boffset)) {
+    LOG(WARNING) << "Slot: " << db_name << ":" << slot_id << ",  Get slot binlog offset failed";
     return Status::Corruption("Slot get binlog offset error");
   }
 
-  std::shared_ptr<Slot> slot = g_pika_server->GetTableSlotById(table_name, slot_id);
+  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   if (!slot) {
-    LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Slot: " << db_name << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slot not found");
   }
   slot->PrepareRsync();
 
   std::shared_ptr<SyncSlaveSlot> slave_slot =
-      GetSyncSlaveSlotByName(SlotInfo(table_name, slot_id));
+      GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
-    LOG(WARNING) << "Slave Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
 
   Status status = pika_repl_client_->SendSlotDBSync(slave_slot->MasterIp(), slave_slot->MasterPort(),
-                                                         table_name, slot_id, boffset, slave_slot->LocalIp());
+                                                    db_name, slot_id, boffset, slave_slot->LocalIp());
 
   Status s;
   if (status.ok()) {
@@ -1085,15 +1085,15 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& table_name, 
   return status;
 }
 
-Status PikaReplicaManager::SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id,
+Status PikaReplicaManager::SendSlotBinlogSyncAckRequest(const std::string& db, uint32_t slot_id,
                                                              const LogOffset& ack_start, const LogOffset& ack_end,
                                                              bool is_first_send) {
-  std::shared_ptr<SyncSlaveSlot> slave_slot = GetSyncSlaveSlotByName(SlotInfo(table, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = GetSyncSlaveSlotByName(SlotInfo(db, slot_id));
   if (!slave_slot) {
-    LOG(WARNING) << "Slave Slot: " << table << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Slave Slot: " << db << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
-  return pika_repl_client_->SendSlotBinlogSync(slave_slot->MasterIp(), slave_slot->MasterPort(), table,
+  return pika_repl_client_->SendSlotBinlogSync(slave_slot->MasterIp(), slave_slot->MasterPort(), db,
                                                     slot_id, ack_start, ack_end, slave_slot->LocalIp(),
                                                     is_first_send);
 }
@@ -1129,18 +1129,18 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
     SlotInfo p_info = item.first;
     std::shared_ptr<SyncSlaveSlot> s_slot = item.second;
     if (s_slot->State() == ReplState::kTryConnect) {
-      SendSlotTrySyncRequest(p_info.table_name_, p_info.slot_id_);
+      SendSlotTrySyncRequest(p_info.db_name_, p_info.slot_id_);
     } else if (s_slot->State() == ReplState::kTryDBSync) {
-      SendSlotDBSyncRequest(p_info.table_name_, p_info.slot_id_);
+      SendSlotDBSyncRequest(p_info.db_name_, p_info.slot_id_);
     } else if (s_slot->State() == ReplState::kWaitReply) {
       continue;
     } else if (s_slot->State() == ReplState::kWaitDBSync) {
       std::shared_ptr<Slot> slot =
-          g_pika_server->GetTableSlotById(p_info.table_name_, p_info.slot_id_);
+          g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
       if (slot) {
         slot->TryUpdateMasterOffset();
       } else {
-        LOG(WARNING) << "Slot not found, Table Name: " << p_info.table_name_
+        LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_
                      << " Slot Id: " << p_info.slot_id_;
       }
     } else if (s_slot->State() == ReplState::kConnected || s_slot->State() == ReplState::kNoConnect ||
@@ -1171,8 +1171,8 @@ Status PikaReplicaManager::AddSyncSlot(const std::set<SlotInfo>& p_infos) {
 
   std::lock_guard l(slots_rw_);
   for (const auto& p_info : p_infos) {
-    sync_master_slots_[p_info] = std::make_shared<SyncMasterSlot>(p_info.table_name_, p_info.slot_id_);
-    sync_slave_slots_[p_info] = std::make_shared<SyncSlaveSlot>(p_info.table_name_, p_info.slot_id_);
+    sync_master_slots_[p_info] = std::make_shared<SyncMasterSlot>(p_info.db_name_, p_info.slot_id_);
+    sync_slave_slots_[p_info] = std::make_shared<SyncSlaveSlot>(p_info.db_name_, p_info.slot_id_);
   }
   return Status::OK();
 }
@@ -1217,16 +1217,16 @@ Status PikaReplicaManager::RemoveSyncSlot(const std::set<SlotInfo>& p_infos) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::SyncTableSanityCheck(const std::string& table_name) {
+Status PikaReplicaManager::SyncDBSanityCheck(const std::string& db_name) {
   std::shared_lock l(slots_rw_);
   for (const auto& master_slot : sync_master_slots_) {
-    if (master_slot.first.table_name_ == table_name) {
+    if (master_slot.first.db_name_ == db_name) {
       LOG(WARNING) << "sync slot: " << master_slot.first.ToString() << " exist";
       return Status::Corruption("sync slot " + master_slot.first.ToString() + " exist");
     }
   }
   for (const auto& slave_slot : sync_slave_slots_) {
-    if (slave_slot.first.table_name_ == table_name) {
+    if (slave_slot.first.db_name_ == db_name) {
       LOG(WARNING) << "sync slot: " << slave_slot.first.ToString() << " exist";
       return Status::Corruption("sync slot " + slave_slot.first.ToString() + " exist");
     }
@@ -1234,19 +1234,19 @@ Status PikaReplicaManager::SyncTableSanityCheck(const std::string& table_name) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::DelSyncTable(const std::string& table_name) {
-  Status s = SyncTableSanityCheck(table_name);
+Status PikaReplicaManager::DelSyncDB(const std::string& db_name) {
+  Status s = SyncDBSanityCheck(db_name);
   if (!s.ok()) {
     return s;
   }
-  std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name;
-  std::string table_log_path_tmp = table_log_path + "_deleting/";
-  if (pstd::RenameFile(table_log_path, table_log_path_tmp) != 0) {
+  std::string db_log_path = g_pika_conf->log_path() + "log_" + db_name;
+  std::string db_log_path_tmp = db_log_path + "_deleting/";
+  if (pstd::RenameFile(db_log_path, db_log_path_tmp) != 0) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
     return Status::Corruption("Failed to move log to trash");
   }
-  g_pika_server->PurgeDir(table_log_path_tmp);
-  LOG(WARNING) << "Slot StableLog: " << table_name << " move to trash success";
+  g_pika_server->PurgeDir(db_log_path_tmp);
+  LOG(WARNING) << "Slot StableLog: " << db_name << " move to trash success";
   return Status::OK();
 }
 

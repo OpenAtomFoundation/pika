@@ -498,7 +498,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
 }
 
-Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
+Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
   auto it = cmd_table.find(opt);
   if (it != cmd_table.end()) {
     return it->second.get();
@@ -506,9 +506,9 @@ Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
   return nullptr;
 }
 
-void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& table_name) {
+void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
   argv_ = argv;
-  table_name_ = table_name;
+  db_name_ = db_name;
   res_.clear();  // Clear res content
   Clear();       // Clear cmd, Derived class can has own implement
   DoInitial();
@@ -533,18 +533,18 @@ void Cmd::Execute() {
 }
 
 void Cmd::ProcessFlushDBCmd() {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    if (table->IsKeyScaning()) {
+    if (db->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(table->slots_rw_);
+      std::lock_guard l_prw(db->slots_rw_);
       std::lock_guard s_prw(g_pika_rm->slots_rw_);
-      for (const auto& slot_item : table->slots_) {
+      for (const auto& slot_item : db->slots_) {
         std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetTableName(), slot->GetSlotId());
+        SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
         if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
           res_.SetRes(CmdRes::kErrOther, "Slot not found");
           return;
@@ -557,20 +557,20 @@ void Cmd::ProcessFlushDBCmd() {
 }
 
 void Cmd::ProcessFlushAllCmd() {
-  std::lock_guard l_trw(g_pika_server->tables_rw_);
-  for (const auto& table_item : g_pika_server->tables_) {
-    if (table_item.second->IsKeyScaning()) {
+  std::lock_guard l_trw(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    if (db_item.second->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
       return;
     }
   }
 
-  for (const auto& table_item : g_pika_server->tables_) {
-    std::lock_guard l_prw(table_item.second->slots_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    std::lock_guard l_prw(db_item.second->slots_rw_);
     std::lock_guard s_prw(g_pika_rm->slots_rw_);
-    for (const auto& slot_item : table_item.second->slots_) {
+    for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetTableName(), slot->GetSlotId());
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
       if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -583,7 +583,7 @@ void Cmd::ProcessFlushAllCmd() {
 
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(table_name_);
+  slot = g_pika_server->GetSlotByDBName(db_name_);
 
   if (!slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
@@ -591,7 +591,7 @@ void Cmd::ProcessSingleSlotCmd() {
   }
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetTableName(), slot->GetSlotId()));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
   if (!sync_slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
@@ -684,25 +684,25 @@ void Cmd::ProcessMultiSlotCmd() {
   int hint = 0;
   std::unordered_map<uint32_t, ProcessArg> process_map;
   // split cur_key into slots
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kErrOther, "Table not found");
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kErrOther, "DB not found");
     return;
   }
 
   CmdStage current_stage = stage_;
   for (auto& key : cur_key) {
     // in sharding mode we select slot by key
-    uint32_t slot_id = g_pika_cmd_table_manager->DistributeKey(key, table->SlotNum());
+    uint32_t slot_id = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
     auto iter = process_map.find(slot_id);
     if (iter == process_map.end()) {
-      std::shared_ptr<Slot> slot = table->GetSlotById(slot_id);
+      std::shared_ptr<Slot> slot = db->GetSlotById(slot_id);
       if (!slot) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
       std::shared_ptr<SyncMasterSlot> sync_slot = g_pika_rm->GetSyncMasterSlotByName(
-          SlotInfo(slot->GetTableName(), slot->GetSlotId()));
+          SlotInfo(slot->GetDBName(), slot->GetSlotId()));
       if (!sync_slot) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -745,7 +745,7 @@ bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) co
 std::string Cmd::name() const { return name_; }
 CmdRes& Cmd::res() { return res_; }
 
-std::string Cmd::table_name() const { return table_name_; }
+std::string Cmd::db_name() const { return db_name_; }
 
 const PikaCmdArgsType& Cmd::argv() const { return argv_; }
 

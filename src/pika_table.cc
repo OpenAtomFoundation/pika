@@ -16,17 +16,17 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-std::string TablePath(const std::string& path, const std::string& table_name) {
+std::string DBPath(const std::string& path, const std::string& db_name) {
   char buf[100];
-  snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  snprintf(buf, sizeof(buf), "%s/", db_name.data());
   return path + buf;
 }
 
-Table::Table(std::string  table_name, uint32_t slot_num, const std::string& db_path,
+DB::DB(std::string  db_name, uint32_t slot_num, const std::string& db_path,
              const std::string& log_path)
-    : table_name_(std::move(table_name)), slot_num_(slot_num) {
-  db_path_ = TablePath(db_path, table_name_);
-  log_path_ = TablePath(log_path, "log_" + table_name_);
+    : db_name_(std::move(db_name)), slot_num_(slot_num) {
+  db_path_ = DBPath(db_path, db_name_);
+  log_path_ = DBPath(log_path, "log_" + db_name_);
 
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
@@ -34,28 +34,28 @@ Table::Table(std::string  table_name, uint32_t slot_num, const std::string& db_p
   binlog_io_error_.store(false);
 }
 
-Table::~Table() {
+DB::~DB() {
   StopKeyScan();
   slots_.clear();
 }
 
-std::string Table::GetTableName() { return table_name_; }
+std::string DB::GetDBName() { return db_name_; }
 
-void Table::BgSaveTable() {
+void DB::BgSaveDB() {
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     item.second->BgSaveSlot();
   }
 }
 
-void Table::CompactTable(const storage::DataType& type) {
+void DB::CompactDB(const storage::DataType& type) {
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Compact(type);
   }
 }
 
-bool Table::FlushSlotDB() {
+bool DB::FlushSlotDB() {
   std::shared_lock l(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
@@ -67,7 +67,7 @@ bool Table::FlushSlotDB() {
   return true;
 }
 
-bool Table::FlushSlotSubDB(const std::string& db_name) {
+bool DB::FlushSlotSubDB(const std::string& db_name) {
   std::shared_lock l(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
@@ -79,13 +79,13 @@ bool Table::FlushSlotSubDB(const std::string& db_name) {
   return true;
 }
 
-void Table::SetBinlogIoError() { return binlog_io_error_.store(true); }
+void DB::SetBinlogIoError() { return binlog_io_error_.store(true); }
 
-bool Table::IsBinlogIoError() { return binlog_io_error_.load(); }
+bool DB::IsBinlogIoError() { return binlog_io_error_.load(); }
 
-uint32_t Table::SlotNum() { return slot_num_; }
+uint32_t DB::SlotNum() { return slot_num_; }
 
-Status Table::AddSlots(const std::set<uint32_t>& slot_ids) {
+Status DB::AddSlots(const std::set<uint32_t>& slot_ids) {
   std::lock_guard l(slots_rw_);
   for (const uint32_t& id : slot_ids) {
     if (id >= slot_num_) {
@@ -96,12 +96,12 @@ Status Table::AddSlots(const std::set<uint32_t>& slot_ids) {
   }
 
   for (const uint32_t& id : slot_ids) {
-    slots_.emplace(id, std::make_shared<Slot>(table_name_, id, db_path_));
+    slots_.emplace(id, std::make_shared<Slot>(db_name_, id, db_path_));
   }
   return Status::OK();
 }
 
-Status Table::RemoveSlots(const std::set<uint32_t>& slot_ids) {
+Status DB::RemoveSlots(const std::set<uint32_t>& slot_ids) {
   std::lock_guard l(slots_rw_);
   for (const uint32_t& id : slot_ids) {
     if (slots_.find(id) == slots_.end()) {
@@ -116,14 +116,14 @@ Status Table::RemoveSlots(const std::set<uint32_t>& slot_ids) {
   return Status::OK();
 }
 
-void Table::GetAllSlots(std::set<uint32_t>& slot_ids) {
+void DB::GetAllSlots(std::set<uint32_t>& slot_ids) {
   std::shared_lock l(slots_rw_);
   for (const auto& iter : slots_) {
     slot_ids.insert(iter.first);
   }
 }
 
-void Table::KeyScan() {
+void DB::KeyScan() {
   std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return;
@@ -133,16 +133,16 @@ void Table::KeyScan() {
   key_scan_info_.duration = -2;  // duration -2 mean the task in waiting status,
                                  // has not been scheduled for exec
   auto bg_task_arg = new BgTaskArg();
-  bg_task_arg->table = shared_from_this();
+  bg_task_arg->db = shared_from_this();
   g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
 }
 
-bool Table::IsKeyScaning() {
+bool DB::IsKeyScaning() {
   std::lock_guard ml(key_scan_protector_);
   return key_scan_info_.key_scaning_;
 }
 
-void Table::RunKeyScan() {
+void DB::RunKeyScan() {
   Status s;
   std::vector<storage::KeyInfo> new_key_infos(5);
 
@@ -171,7 +171,7 @@ void Table::RunKeyScan() {
   key_scan_info_.key_scaning_ = false;
 }
 
-void Table::StopKeyScan() {
+void DB::StopKeyScan() {
   std::shared_lock rwl(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
 
@@ -184,7 +184,7 @@ void Table::StopKeyScan() {
   key_scan_info_.key_scaning_ = false;
 }
 
-void Table::ScanDatabase(const storage::DataType& type) {
+void DB::ScanDatabase(const storage::DataType& type) {
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     printf("\n\nslot name : %s\n", item.second->GetSlotName().c_str());
@@ -192,7 +192,7 @@ void Table::ScanDatabase(const storage::DataType& type) {
   }
 }
 
-Status Table::GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
+Status DB::GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
   std::shared_lock l(slots_rw_);
   for (const auto& [id, slot] : slots_) {
     (*infos)[id] = slot->GetKeyScanInfo();
@@ -200,24 +200,24 @@ Status Table::GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
   return Status::OK();
 }
 
-KeyScanInfo Table::GetKeyScanInfo() {
+KeyScanInfo DB::GetKeyScanInfo() {
   std::lock_guard lm(key_scan_protector_);
   return key_scan_info_;
 }
 
-void Table::Compact(const storage::DataType& type) {
+void DB::Compact(const storage::DataType& type) {
   std::lock_guard rwl(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Compact(type);
   }
 }
 
-void Table::DoKeyScan(void* arg) {
+void DB::DoKeyScan(void* arg) {
   std::unique_ptr <BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
-  bg_task_arg->table->RunKeyScan();
+  bg_task_arg->db->RunKeyScan();
 }
 
-void Table::InitKeyScan() {
+void DB::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
@@ -225,7 +225,7 @@ void Table::InitKeyScan() {
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
-void Table::LeaveAllSlot() {
+void DB::LeaveAllSlot() {
   std::lock_guard l(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Leave();
@@ -233,7 +233,7 @@ void Table::LeaveAllSlot() {
   slots_.clear();
 }
 
-std::set<uint32_t> Table::GetSlotIds() {
+std::set<uint32_t> DB::GetSlotIds() {
   std::set<uint32_t> ids;
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
@@ -242,13 +242,13 @@ std::set<uint32_t> Table::GetSlotIds() {
   return ids;
 }
 
-std::shared_ptr<Slot> Table::GetSlotById(uint32_t slot_id) {
+std::shared_ptr<Slot> DB::GetSlotById(uint32_t slot_id) {
   std::shared_lock l(slots_rw_);
   auto iter = slots_.find(slot_id);
   return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
-std::shared_ptr<Slot> Table::GetSlotByKey(const std::string& key) {
+std::shared_ptr<Slot> DB::GetSlotByKey(const std::string& key) {
   assert(slot_num_ != 0);
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, slot_num_);
   std::shared_lock l(slots_rw_);
@@ -256,19 +256,19 @@ std::shared_ptr<Slot> Table::GetSlotByKey(const std::string& key) {
   return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
-bool Table::TableIsEmpty() {
+bool DB::DBIsEmpty() {
   std::shared_lock l(slots_rw_);
   return slots_.empty();
 }
 
-Status Table::Leave() {
-  if (!TableIsEmpty()) {
-    return Status::Corruption("Table have slots!");
+Status DB::Leave() {
+  if (!DBIsEmpty()) {
+    return Status::Corruption("DB have slots!");
   }
   return MovetoToTrash(db_path_);
 }
 
-Status Table::MovetoToTrash(const std::string& path) {
+Status DB::MovetoToTrash(const std::string& path) {
   std::string path_tmp = path;
   if (path_tmp[path_tmp.length() - 1] == '/') {
     path_tmp.erase(path_tmp.length() - 1);

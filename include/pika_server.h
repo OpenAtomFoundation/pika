@@ -148,7 +148,7 @@ class PikaServer : public pstd::noncopyable {
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
-  bool ConsensusCheck(const std::string& table_name, const std::string& key);
+  bool ConsensusCheck(const std::string& db_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -159,19 +159,19 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Table use
    */
-  void InitTableStruct();
-  pstd::Status AddTableStruct(const std::string& table_name, uint32_t num);
-  pstd::Status DelTableStruct(const std::string& table_name);
-  std::shared_ptr<Table> GetTable(const std::string& table_name);
-  std::set<uint32_t> GetTableSlotIds(const std::string& table_name);
+  void InitDBStruct();
+  pstd::Status AddDBStruct(const std::string& db_name, uint32_t num);
+  pstd::Status DelDBStruct(const std::string& db_name);
+  std::shared_ptr<DB> GetDB(const std::string& db_name);
+  std::set<uint32_t> GetDBSlotIds(const std::string& db_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
-  bool IsTableExist(const std::string& table_name);
-  bool IsTableSlotExist(const std::string& table_name, uint32_t slot_id);
+  bool IsDBExist(const std::string& db_name);
+  bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsCommandSupport(const std::string& command);
-  bool IsTableBinlogIoError(const std::string& table_name);
-  pstd::Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
+  bool IsDBBinlogIoError(const std::string& db_name);
+  pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
 
   /*
    * Partition use
@@ -179,10 +179,10 @@ class PikaServer : public pstd::noncopyable {
   void PrepareSlotTrySync();
   void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetDBSlotBinlogOffset(const std::string& table_name, uint32_t slot_id, BinlogOffset* boffset);
+  bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
-  std::shared_ptr<Slot> GetTableSlotById(const std::string& table_name, uint32_t slot_id);
-  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& table_name, const std::string& key);
+  std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
+  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& db_name, const std::string& key);
   pstd::Status DoSameThingEverySlot(const TaskType& type);
 
   /*
@@ -193,7 +193,7 @@ class PikaServer : public pstd::noncopyable {
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
-  bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<TableStruct>& table_structs);
+  bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& table_structs);
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
@@ -246,10 +246,10 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DBSync used
    */
-  void DBSync(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
+  void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
 
   /*
    * Keyscan used
@@ -288,10 +288,10 @@ class PikaServer : public pstd::noncopyable {
   uint64_t accumulative_connections();
   void incr_accumulative_connections();
   void ResetLastSecQuerynum();
-  void UpdateQueryNumAndExecCountTable(const std::string& table_name, const std::string& command, bool is_write);
-  std::unordered_map<std::string, uint64_t> ServerExecCountTable();
-  QpsStatistic ServerTableStat(const std::string& table_name);
-  std::unordered_map<std::string, QpsStatistic> ServerAllTableStat();
+  void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
+  std::unordered_map<std::string, uint64_t> ServerExecCountDB();
+  QpsStatistic ServerDBStat(const std::string& db_name);
+  std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
   /*
    * Slave to Master communication used
    */
@@ -327,8 +327,8 @@ class PikaServer : public pstd::noncopyable {
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
   friend class PkClusterDelSlotsCmd;
-  friend class PkClusterAddTableCmd;
-  friend class PkClusterDelTableCmd;
+  friend class PkClusterAddDBCmd;
+  friend class PkClusterDelDBCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
@@ -356,8 +356,8 @@ class PikaServer : public pstd::noncopyable {
    * Table used
    */
   std::atomic<SlotState> slot_state_;
-  std::shared_mutex tables_rw_;
-  std::map<std::string, std::shared_ptr<Table>> tables_;
+  std::shared_mutex dbs_rw_;
+  std::map<std::string, std::shared_ptr<DB>> dbs_;
 
   /*
    * CronTask used

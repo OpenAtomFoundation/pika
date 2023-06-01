@@ -49,7 +49,7 @@ class SyncProgress {
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
   std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
-  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id,
+  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
                       int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   pstd::Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
@@ -109,7 +109,7 @@ class MemLog {
 
 class ConsensusCoordinator {
  public:
-  ConsensusCoordinator(const std::string& table_name, uint32_t slot_id);
+  ConsensusCoordinator(const std::string& db_name, uint32_t slot_id);
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
   void Init();
@@ -213,7 +213,7 @@ class ConsensusCoordinator {
   std::shared_mutex term_rwlock_;
   uint32_t term_ = 0;
 
-  std::string table_name_;
+  std::string db_name_;
   uint32_t slot_id_ = 0;
 
   SyncProgress sync_pros_;
