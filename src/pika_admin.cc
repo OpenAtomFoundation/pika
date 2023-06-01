@@ -632,6 +632,7 @@ const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kDataSection = "data";
+const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 
 void InfoCmd::DoInitial() {
@@ -697,6 +698,8 @@ void InfoCmd::DoInitial() {
     return;
   } else if (strcasecmp(argv_[1].data(), kDataSection.data()) == 0) {
     info_section_ = kInfoData;
+  } else if (strcasecmp(argv_[1].data(), kRocksDBSection.data()) == 0) {
+    info_section_ = kInfoRocksDB;
   } else if (strcasecmp(argv_[1].data(), kDebugSection.data()) == 0) {
     info_section_ = kInfoDebug;
   } else {
@@ -724,6 +727,8 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
+      info.append("\r\n");
+      InfoRocksDB(info);
       break;
     case kInfoAll:
       InfoServer(info);
@@ -741,6 +746,8 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
+      info.append("\r\n");
+      InfoRocksDB(info);
       break;
     case kInfoServer:
       InfoServer(info);
@@ -765,6 +772,9 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       break;
     case kInfoData:
       InfoData(info);
+      break;
+    case kInfoRocksDB:
+      InfoRocksDB(info);
       break;
     case kInfoDebug:
       InfoDebug(info);
@@ -1053,7 +1063,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
     tmp_stream << "# Start async statistics"
                << "\r\n";
   } else {  // command => `info keyspace` or `info`
-    tmp_stream << "# Use `info keyspace 1` do async statistics"
+    tmp_stream << "# Use \"info keyspace 1\" do async statistics"
                << "\r\n";
   }
 
@@ -1114,7 +1124,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::map<std::string, uint64_t> type_result;
+  std::map<std::string, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t memtable_usage = 0;
@@ -1122,21 +1132,24 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t table_reader_usage = 0;
   std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
+    if (!table_item.second) {
+        continue;
+    }
     std::shared_lock partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& patition_item : table_item.second->partitions_) {
-      type_result.clear();
+    for (const auto& partition_item : table_item.second->partitions_) {
+      background_errors.clear();
       memtable_usage = table_reader_usage = 0;
-      patition_item.second->DbRWLockReader();
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
-      patition_item.second->DbRWUnLock();
+      partition_item.second->DbRWLockReader();
+      partition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
+      partition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
+      partition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
+      partition_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
-      for (const auto& item : type_result) {
+      for (const auto& item : background_errors) {
         if (item.second != 0) {
           db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
-          db_fatal_msg_stream << patition_item.second->GetPartitionName() << "/" << item.first;
+          db_fatal_msg_stream << partition_item.second->GetPartitionName() << "/" << item.first;
           total_background_errors += item.second;
         }
       }
@@ -1151,6 +1164,30 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "nullptr") << "\r\n";
 
   info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoRocksDB(std::string &info) {
+    std::stringstream tmp_stream;
+
+    tmp_stream << "# RocksDB"
+               << "\r\n";
+
+    std::shared_lock table_rwl(g_pika_server->tables_rw_);
+    for (const auto& table_item : g_pika_server->tables_) {
+        if (!table_item.second) {
+            continue;
+        }
+        std::shared_lock partition_rwl(table_item.second->partitions_rw_);
+        for (const auto& partition_item : table_item.second->partitions_) {
+            std::string rocksdb_info;
+            partition_item.second->DbRWLockReader();
+            partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
+            partition_item.second->DbRWUnLock();
+            tmp_stream << rocksdb_info;
+        }
+    }
+
+    info.append(tmp_stream.str());
 }
 
 void InfoCmd::InfoDebug(std::string& info) {

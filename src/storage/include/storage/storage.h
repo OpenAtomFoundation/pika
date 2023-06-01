@@ -29,8 +29,8 @@ namespace storage {
 inline constexpr double ZSET_SCORE_MAX = std::numeric_limits<double>::max();
 inline constexpr double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
 
-inline const std::string PROPERTY_TYPE_ROCKSDB_MEMTABLE = "rocksdb.cur-size-all-mem-tables";
-inline const std::string PROPERTY_TYPE_ROCKSDB_TABLE_READER = "rocksdb.estimate-table-readers-mem";
+inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES = "rocksdb.cur-size-all-mem-tables";
+inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM = "rocksdb.estimate-table-readers-mem";
 inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
 
 inline const std::string ALL_DB = "all";
@@ -1019,6 +1019,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
+  void GetRocksDBInfo(std::string &info);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
