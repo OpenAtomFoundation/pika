@@ -163,7 +163,20 @@ int PikaConf::Load() {
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_.store(swe == "yes");
+  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
+
+  // slot migrate
+  std::string smgrt = "no";
+  GetConfStr("slotmigrate", &smgrt);
+  slotmigrate_ =  (smgrt == "yes") ? true : false;
+
+  int binlog_writer_num = 1 ;
+  GetConfInt("binlog-writer-num", &binlog_writer_num);
+  if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
+    binlog_writer_num_ = 1;
+  } else {
+    binlog_writer_num_ = binlog_writer_num;
+  }
 
   int tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
