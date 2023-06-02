@@ -28,6 +28,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
+#include "rocksdb/options.h"
+#include "rocksdb/table.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -58,8 +60,6 @@ PikaServer::PikaServer()
   if (!ServerInit()) {
     LOG(FATAL) << "ServerInit iotcl error";
   }
-
-  InitStorageOptions();
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
@@ -326,9 +326,11 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
   pika_dispatch_thread_->SetQueueLimit(queue_limit);
 }
 
+// It's better to use stack StorageOptions instead of heap StorageOptions,
+// becase we don't want to main two config info(one is g_pika_conf, one is heap StorageOptions) in memory 
+// and it's difficult to mantain the consistence between two memory config info
 storage::StorageOptions PikaServer::storage_options() {
-  std::shared_lock rwl(storage_options_rw_);
-  return storage_options_;
+  return g_pika_conf->InitStorageOptions();
 }
 
 void PikaServer::InitDBStruct() {
@@ -1501,88 +1503,8 @@ void PikaServer::AutoUpdateNetworkMetric() {
                                     current_time, factor);
 }
 
-void PikaServer::InitStorageOptions() {
-  std::lock_guard rwl(storage_options_rw_);
-
-  // For rocksdb::Options
-  storage_options_.options.create_if_missing = true;
-  storage_options_.options.keep_log_file_num = 10;
-  storage_options_.options.max_manifest_file_size = 64 * 1024 * 1024;
-  storage_options_.options.max_log_file_size = 512 * 1024 * 1024;
-
-  storage_options_.options.write_buffer_size = g_pika_conf->write_buffer_size();
-  storage_options_.options.arena_block_size = g_pika_conf->arena_block_size();
-  storage_options_.options.write_buffer_manager =
-      std::make_shared<rocksdb::WriteBufferManager>(g_pika_conf->max_write_buffer_size());
-  storage_options_.options.max_write_buffer_number = g_pika_conf->max_write_buffer_number();
-  storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
-  storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
-  storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
-  storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
-  storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
-  storage_options_.options.optimize_filters_for_hits = g_pika_conf->optimize_filters_for_hits();
-  storage_options_.options.level_compaction_dynamic_level_bytes = g_pika_conf->level_compaction_dynamic_level_bytes();
-
-  storage_options_.options.compression = PikaConf::GetCompression(g_pika_conf->compression());
-  storage_options_.options.compression_per_level = g_pika_conf->compression_per_level();
-
-  // default l0 l1 noCompression l2 and more use `compression` option
-  if (storage_options_.options.compression_per_level.empty() &&
-      storage_options_.options.compression != rocksdb::kNoCompression) {
-    storage_options_.options.compression_per_level.push_back(rocksdb::kNoCompression);
-    storage_options_.options.compression_per_level.push_back(rocksdb::kNoCompression);
-    storage_options_.options.compression_per_level.push_back(storage_options_.options.compression);
-  }
-
-  // For rocksdb::BlockBasedDBOptions
-  storage_options_.table_options.block_size = g_pika_conf->block_size();
-  storage_options_.table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
-  storage_options_.block_cache_size = g_pika_conf->block_cache();
-  storage_options_.share_block_cache = g_pika_conf->share_block_cache();
-
-  storage_options_.table_options.pin_l0_filter_and_index_blocks_in_cache =
-      g_pika_conf->pin_l0_filter_and_index_blocks_in_cache();
-
-  if (storage_options_.block_cache_size == 0) {
-    storage_options_.table_options.no_block_cache = true;
-  } else if (storage_options_.share_block_cache) {
-    storage_options_.table_options.block_cache =
-        rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
-  }
-
-  storage_options_.options.rate_limiter =
-    std::shared_ptr<rocksdb::RateLimiter>(
-      rocksdb::NewGenericRateLimiter(
-        g_pika_conf->rate_limiter_bandwidth(),
-        g_pika_conf->rate_limiter_refill_period_us(),
-        static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
-        rocksdb::RateLimiter::Mode::kWritesOnly,
-        g_pika_conf->rate_limiter_auto_tuned()
-      ));
-
-  // For Storage small compaction
-  storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
-  storage_options_.small_compaction_threshold = g_pika_conf->small_compaction_threshold();
-
-  // rocksdb blob
-  if (g_pika_conf->enable_blob_files()) {
-    storage_options_.options.enable_blob_files = g_pika_conf->enable_blob_files();
-    storage_options_.options.min_blob_size = g_pika_conf->min_blob_size();
-    storage_options_.options.blob_file_size = g_pika_conf->blob_file_size();
-    storage_options_.options.blob_compression_type = PikaConf::GetCompression(g_pika_conf->blob_compression_type());
-    storage_options_.options.enable_blob_garbage_collection = g_pika_conf->enable_blob_garbage_collection();
-    storage_options_.options.blob_garbage_collection_age_cutoff = g_pika_conf->blob_garbage_collection_age_cutoff();
-    storage_options_.options.blob_garbage_collection_force_threshold =
-        g_pika_conf->blob_garbage_collection_force_threshold();
-    if (g_pika_conf->block_cache() > 0) {  // blob cache less than 0，not open cache
-      storage_options_.options.blob_cache =
-          rocksdb::NewLRUCache(g_pika_conf->block_cache(), static_cast<int>(g_pika_conf->blob_num_shard_bits()));
-    }
-  }
-}
-
-storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
-                                                  const std::unordered_map<std::string, std::string>& options_map) {
+storage::Status PikaServer::UpdateDBOptions(const storage::OptionType& option_type,
+                                            const std::unordered_map<std::string, std::string>& options_map) {
   storage::Status s;
   for (const auto& db_item : dbs_) {
     std::lock_guard slot_rwl(db_item.second->slots_rw_);
@@ -1595,8 +1517,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
       }
     }
   }
-  std::lock_guard rwl(storage_options_rw_);
-  s = storage_options_.ResetOptions(option_type, options_map);
+
   return s;
 }
 

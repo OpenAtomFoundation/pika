@@ -9,16 +9,24 @@
 
 #include <strings.h>
 #include <algorithm>
+#include <memory>
 
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
+#include "rocksdb/options.h"
 
 using pstd::Status;
 
 PikaConf::PikaConf(const std::string& path)
-    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
+    : pstd::BaseConf(path),
+      conf_path_(path),
+      local_meta_(std::make_unique<PikaMeta>()),
+      rocksdb_write_buffer_manager_(nullptr),
+      rocksdb_rate_limiter_(nullptr),
+      rocksdb_blob_cache_(nullptr),
+      rocksdb_block_cache_(nullptr) {}
 
 Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
   int32_t db_index = -1;
@@ -584,7 +592,25 @@ int PikaConf::Load() {
   GetConfInt64("blob-cache", &block_cache_);
   GetConfInt64("blob-num-shard-bits", &blob_num_shard_bits_);
 
+  InitSharedObject();
+
   return ret;
+}
+
+void PikaConf::InitSharedObject() {
+  rocksdb_write_buffer_manager_ = std::make_shared<rocksdb::WriteBufferManager>(max_write_buffer_size_);
+
+  rocksdb_rate_limiter_ = std::shared_ptr<rocksdb::RateLimiter>(
+      rocksdb::NewGenericRateLimiter(rate_limiter_bandwidth_, rate_limiter_refill_period_us_, rate_limiter_fairness_,
+                                     rocksdb::RateLimiter::Mode::kWritesOnly, rate_limiter_auto_tuned_));
+
+  if (enable_blob_files_ && blob_cache_ > 0) {
+    rocksdb_blob_cache_ = rocksdb::NewLRUCache(blob_cache_, static_cast<int>(blob_num_shard_bits_));
+  }
+
+  if(block_cache_ > 0 && share_block_cache_){
+    rocksdb_block_cache_ = rocksdb::NewLRUCache(block_cache_, static_cast<int>(num_shard_bits_));
+  }
 }
 
 void PikaConf::TryPushDiffCommands(const std::string& command, const std::string& value) {
@@ -632,6 +658,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);
   SetConfInt64("slotmigrate", slotmigrate_);
+  SetConfInt64("target-file-size-base", target_file_size_base_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 
@@ -669,7 +696,6 @@ rocksdb::CompressionType PikaConf::GetCompression(const std::string& value) {
 }
 
 std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
-  std::shared_lock l(rwlock_);
   std::vector<rocksdb::CompressionType> types;
   if (compression_per_level_.empty()) {
     return types;
@@ -686,4 +712,88 @@ std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
     types.push_back(GetCompression(pstd::StringTrim(item)));
   }
   return types;
+}
+
+rocksdb::Options PikaConf::InitRocksDBOptionsUnlocked(){
+  rocksdb::Options options;
+
+  options.create_if_missing = true;
+  options.keep_log_file_num = 10;
+  options.max_manifest_file_size = 64 * 1024 * 1024;
+  options.max_log_file_size = 512 * 1024 * 1024;
+
+  options.write_buffer_size = write_buffer_size_;
+  options.arena_block_size = arena_block_size_;
+  options.max_write_buffer_number = max_write_buffer_num_;
+  options.target_file_size_base = target_file_size_base_;
+  options.max_background_flushes = max_background_flushes_;
+  options.max_background_compactions = max_background_compactions_;
+  options.max_open_files = max_cache_files_;
+  options.max_bytes_for_level_multiplier = max_bytes_for_level_multiplier_;
+  options.optimize_filters_for_hits = optimize_filters_for_hits_;
+  options.level_compaction_dynamic_level_bytes = level_compaction_dynamic_level_bytes_;
+
+  options.compression = GetCompression(compression_);
+  options.compression_per_level = compression_per_level();
+
+  // default l0 l1 noCompression l2 and more use `compression` option
+  if (options.compression_per_level.empty() && options.compression != rocksdb::kNoCompression) {
+    options.compression_per_level.push_back(rocksdb::kNoCompression);
+    options.compression_per_level.push_back(rocksdb::kNoCompression);
+    options.compression_per_level.push_back(options.compression);
+  }
+
+  assert(rocksdb_write_buffer_manager_ != nullptr);
+  options.write_buffer_manager = rocksdb_write_buffer_manager_;
+
+  assert(rocksdb_rate_limiter_ != nullptr);
+  options.rate_limiter = rocksdb_rate_limiter_;
+
+  // rocksdb blob
+  if (enable_blob_files_) {
+    options.enable_blob_files = enable_blob_files_;
+    options.min_blob_size = min_blob_size_;
+    options.blob_file_size = blob_file_size_;
+    options.blob_compression_type = GetCompression(compression_);
+    options.enable_blob_garbage_collection = enable_blob_garbage_collection_;
+    options.blob_garbage_collection_age_cutoff = blob_garbage_collection_age_cutoff_;
+    options.blob_garbage_collection_force_threshold = blob_garbage_collection_force_threshold();
+    options.blob_cache = rocksdb_blob_cache_;
+  }
+
+  return options;
+}
+
+rocksdb::BlockBasedTableOptions PikaConf::InitBlockBasedTableOptionsUnlocked() {
+  rocksdb::BlockBasedTableOptions table_options;
+
+  table_options.block_size = block_size_;
+  table_options.cache_index_and_filter_blocks = cache_index_and_filter_blocks_;
+  table_options.pin_l0_filter_and_index_blocks_in_cache = pin_l0_filter_and_index_blocks_in_cache_;
+
+  if (block_cache_ == 0) {
+    table_options.no_block_cache = true;
+  } else if (share_block_cache_) {
+    assert(rocksdb_block_cache_ != nullptr);
+    table_options.block_cache = rocksdb_block_cache_;
+  }
+
+  return table_options;
+}
+
+storage::StorageOptions PikaConf::InitStorageOptions(){
+  storage::StorageOptions storage_options;
+
+  std::shared_lock l(rwlock_);
+  storage_options.options = InitRocksDBOptionsUnlocked();
+  storage_options.table_options = InitBlockBasedTableOptionsUnlocked();
+
+  storage_options.block_cache_size = block_cache_;
+  storage_options.share_block_cache = share_block_cache_;
+
+  // For Storage small compaction
+  storage_options.statistics_max_size = max_cache_statistic_keys_;
+  storage_options.small_compaction_threshold = small_compaction_threshold_;
+
+  return storage_options;
 }

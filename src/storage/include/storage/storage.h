@@ -66,7 +66,6 @@ struct StorageOptions {
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
-  Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
 };
 
 struct KeyValue {

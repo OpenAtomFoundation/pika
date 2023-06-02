@@ -1882,6 +1882,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "write-buffer-size");
     EncodeString(&ret, "max-write-buffer-num");
     EncodeString(&ret, "arena-block-size");
+    EncodeString(&ret, "target_file_size_base");
     return;
   }
   long int ival;
@@ -2105,7 +2106,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"max_open_files", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
       return;
@@ -2118,7 +2119,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"max_background_compactions", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
       return;
@@ -2131,7 +2132,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"write_buffer_size", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
       return;
@@ -2144,7 +2145,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"max_write_buffer_number", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
       return;
@@ -2157,12 +2158,25 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"arena_block_size", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
       return;
     }
     g_pika_conf->SetArenaBlockSize(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "target-file-size-base"){
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'target-file-size-base'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"target_file_size_base", value}};
+    storage::Status s = g_pika_server->UpdateDBOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set target-file-size-base wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetTargetFileSizeBase(ival);
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";

@@ -23,32 +23,6 @@
 
 namespace storage {
 
-Status StorageOptions::ResetOptions(const OptionType& option_type,
-                                    const std::unordered_map<std::string, std::string>& options_map) {
-  std::unordered_map<std::string, MemberTypeInfo>& options_member_type_info = mutable_cf_options_member_type_info;
-  char* opt = reinterpret_cast<char*>(static_cast<rocksdb::ColumnFamilyOptions*>(&options));
-  if (option_type == OptionType::kDB) {
-    options_member_type_info = mutable_db_options_member_type_info;
-    opt = reinterpret_cast<char*>(static_cast<rocksdb::DBOptions*>(&options));
-  }
-  for (const auto& option_member : options_map) {
-    try {
-      auto iter = options_member_type_info.find(option_member.first);
-      if (iter == options_member_type_info.end()) {
-        return Status::InvalidArgument("Unsupport option member: " + option_member.first);
-      }
-      const auto& member_info = iter->second;
-      if (!ParseOptionMember(member_info.type, option_member.second, opt + member_info.offset)) {
-        return Status::InvalidArgument("Error parsing option member " + option_member.first);
-      }
-    } catch (std::exception& e) {
-      return Status::InvalidArgument("Error parsing option member " + option_member.first + ":" +
-                                     std::string(e.what()));
-    }
-  }
-  return Status::OK();
-}
-
 Storage::Storage() {
   cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);

@@ -7,6 +7,7 @@
 #define PIKA_SERVER_H_
 
 #include <shared_mutex>
+#include "rocksdb/table.h"
 #if defined(__APPLE__)
 #  include <sys/mount.h>
 #  include <sys/param.h>
@@ -477,17 +478,15 @@ class PikaServer : public pstd::noncopyable {
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
 
-
   /*
-   * StorageOptions used
+   * update rocksdb options
    */
-  storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
-                                        const std::unordered_map<std::string, std::string>& options);
+  storage::Status UpdateDBOptions(const storage::OptionType& option_type,
+                                  const std::unordered_map<std::string, std::string>& options);
  /*
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
-
 
  /*
   * Instantaneous Metric used
@@ -513,10 +512,6 @@ class PikaServer : public pstd::noncopyable {
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
-
-  std::shared_mutex storage_options_rw_;
-  storage::StorageOptions storage_options_;
-  void InitStorageOptions();
 
   std::atomic<bool> exit_;
   std::timed_mutex  exit_mutex_;

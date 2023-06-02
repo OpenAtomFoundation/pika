@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <unordered_set>
+#include <vector>
 
 #include "pstd/include/base_conf.h"
 #include "pstd/include/pstd_mutex.h"
@@ -18,6 +19,12 @@
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
 #include "rocksdb/compression_type.h"
+#include "rocksdb/options.h"
+#include "rocksdb/rate_limiter.h"
+#include "rocksdb/table.h"
+#include "rocksdb/write_buffer_manager.h"
+#include "rocksdb/advanced_cache.h"
+#include "storage/storage.h"
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
@@ -223,18 +230,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return block_size_;
   }
-  int64_t block_cache() {
-    std::shared_lock l(rwlock_);
-    return block_cache_;
-  }
-  int64_t num_shard_bits() {
-    std::shared_lock l(rwlock_);
-    return num_shard_bits_;
-  }
-  bool share_block_cache() {
-    std::shared_lock l(rwlock_);
-    return share_block_cache_;
-  }
   bool cache_index_and_filter_blocks() {
     std::shared_lock l(rwlock_);
     return cache_index_and_filter_blocks_;
@@ -289,22 +284,16 @@ class PikaConf : public pstd::BaseConf {
   int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
   int consensus_level() { return consensus_level_.load(); }
   int replication_num() { return replication_num_.load(); }
-  int64_t rate_limiter_bandwidth() {
-    std::shared_lock l(rwlock_);
-    return rate_limiter_bandwidth_;
-  }
-  int64_t rate_limiter_refill_period_us() {
-    std::shared_lock l(rwlock_);
-    return rate_limiter_refill_period_us_;
-  }
-  int64_t rate_limiter_fairness() {
-    std::shared_lock l(rwlock_);
-    return rate_limiter_fairness_;
-  }
-  bool rate_limiter_auto_tuned() {
-    std::shared_lock l(rwlock_);
-    return rate_limiter_auto_tuned_;
-  }
+
+  // **** BEGIN Immutable config items, we don't use lock. ****//
+  int64_t block_cache() { return block_cache_; }
+  int64_t num_shard_bits() { return num_shard_bits_; }
+  bool share_block_cache() { return share_block_cache_; }
+
+  int64_t rate_limiter_bandwidth() { return rate_limiter_bandwidth_; }
+  int64_t rate_limiter_refill_period_us() { return rate_limiter_refill_period_us_; }
+  int64_t rate_limiter_fairness() { return rate_limiter_fairness_; }
+  bool rate_limiter_auto_tuned() { return rate_limiter_auto_tuned_; }
 
   bool enable_blob_files() { return enable_blob_files_; }
   int64_t min_blob_size() { return min_blob_size_; }
@@ -316,7 +305,6 @@ class PikaConf : public pstd::BaseConf {
   int64_t blob_cache() { return blob_cache_; }
   int64_t blob_num_shard_bits() { return blob_num_shard_bits_; }
 
-  // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
   int binlog_file_size() { return binlog_file_size_; }
@@ -324,6 +312,7 @@ class PikaConf : public pstd::BaseConf {
   std::vector<rocksdb::CompressionType> compression_per_level();
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
+  // **** END Immutable config items, we don't use lock. ****//
 
   // Setter
   void SetPort(const int value) {
@@ -517,6 +506,12 @@ class PikaConf : public pstd::BaseConf {
     log_level_ = value;
   }
 
+  void SetTargetFileSizeBase(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("target-file-size-base", std::to_string(value));
+    target_file_size_base_ = value;
+  }
+
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -529,8 +524,16 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
 
+  storage::StorageOptions InitStorageOptions();
+
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
+
+  void InitSharedObject();
+
+  rocksdb::Options InitRocksDBOptionsUnlocked();
+
+  rocksdb::BlockBasedTableOptions InitBlockBasedTableOptionsUnlocked();
 
   int port_ = 0;
   std::string slaveof_;
@@ -636,6 +639,11 @@ class PikaConf : public pstd::BaseConf {
   std::unique_ptr<PikaMeta> local_meta_;
 
   std::shared_mutex rwlock_;
+
+  std::shared_ptr<rocksdb::WriteBufferManager> rocksdb_write_buffer_manager_;
+  std::shared_ptr<rocksdb::RateLimiter> rocksdb_rate_limiter_;
+  std::shared_ptr<rocksdb::Cache> rocksdb_blob_cache_;
+  std::shared_ptr<rocksdb::Cache> rocksdb_block_cache_;
 };
 
 #endif
