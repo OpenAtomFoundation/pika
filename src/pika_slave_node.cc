@@ -59,9 +59,9 @@ int SyncWindow::Remaining() {
 
 /* SlaveNode */
 
-SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id,
+SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
                      int session_id)
-    : RmNode(ip, port, table_name, partition_id, session_id),
+    : RmNode(ip, port, db_name, slot_id, session_id),
       slave_state(kSlaveNotSync),
       b_state(kNotSync)
       {}

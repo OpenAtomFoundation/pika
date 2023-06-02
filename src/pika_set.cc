@@ -19,9 +19,9 @@ void SAddCmd::DoInitial() {
   members_.assign(iter, argv_.end());
 }
 
-void SAddCmd::Do(std::shared_ptr<Partition> partition) {
+void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->SAdd(key_, members_, &count);
+  rocksdb::Status s = slot->db()->SAdd(key_, members_, &count);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -53,9 +53,9 @@ void SPopCmd::DoInitial() {
   }
 }
 
-void SPopCmd::Do(std::shared_ptr<Partition> partition) {
+void SPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = partition->db()->SPop(key_, &members, count_);
+  rocksdb::Status s = slot->db()->SPop(key_, &members, count_);
   if (s.ok()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -77,9 +77,9 @@ void SCardCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void SCardCmd::Do(std::shared_ptr<Partition> partition) {
+void SCardCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t card = 0;
-  rocksdb::Status s = partition->db()->SCard(key_, &card);
+  rocksdb::Status s = slot->db()->SCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -95,9 +95,9 @@ void SMembersCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void SMembersCmd::Do(std::shared_ptr<Partition> partition) {
+void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = partition->db()->SMembers(key_, &members);
+  rocksdb::Status s = slot->db()->SMembers(key_, &members);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -147,10 +147,10 @@ void SScanCmd::DoInitial() {
   }
 }
 
-void SScanCmd::Do(std::shared_ptr<Partition> partition) {
+void SScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  rocksdb::Status s = partition->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -179,9 +179,9 @@ void SRemCmd::DoInitial() {
   members_.assign(++iter, argv_.end());
 }
 
-void SRemCmd::Do(std::shared_ptr<Partition> partition) {
+void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->SRem(key_, members_, &count);
+  rocksdb::Status s = slot->db()->SRem(key_, members_, &count);
   res_.AppendInteger(count);
 }
 
@@ -194,9 +194,9 @@ void SUnionCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SUnionCmd::Do(std::shared_ptr<Partition> partition) {
+void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  partition->db()->SUnion(keys_, &members);
+  slot->db()->SUnion(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -215,9 +215,9 @@ void SUnionstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SUnionstoreCmd::Do(std::shared_ptr<Partition> partition) {
+void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->SUnionstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SUnionstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -234,9 +234,9 @@ void SInterCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SInterCmd::Do(std::shared_ptr<Partition> partition) {
+void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  partition->db()->SInter(keys_, &members);
+  slot->db()->SInter(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -255,9 +255,9 @@ void SInterstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SInterstoreCmd::Do(std::shared_ptr<Partition> partition) {
+void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->SInterstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SInterstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -274,9 +274,9 @@ void SIsmemberCmd::DoInitial() {
   member_ = argv_[2];
 }
 
-void SIsmemberCmd::Do(std::shared_ptr<Partition> partition) {
+void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t is_member = 0;
-  partition->db()->SIsmember(key_, member_, &is_member);
+  slot->db()->SIsmember(key_, member_, &is_member);
   if (is_member != 0) {
     res_.AppendContent(":1");
   } else {
@@ -293,9 +293,9 @@ void SDiffCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SDiffCmd::Do(std::shared_ptr<Partition> partition) {
+void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  partition->db()->SDiff(keys_, &members);
+  slot->db()->SDiff(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -314,9 +314,9 @@ void SDiffstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SDiffstoreCmd::Do(std::shared_ptr<Partition> partition) {
+void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->SDiffstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SDiffstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -334,9 +334,9 @@ void SMoveCmd::DoInitial() {
   member_ = argv_[3];
 }
 
-void SMoveCmd::Do(std::shared_ptr<Partition> partition) {
+void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t res = 0;
-  rocksdb::Status s = partition->db()->SMove(src_key_, dest_key_, member_, &res);
+  rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
   } else {
@@ -363,9 +363,9 @@ void SRandmemberCmd::DoInitial() {
   }
 }
 
-void SRandmemberCmd::Do(std::shared_ptr<Partition> partition) {
+void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = partition->db()->SRandmember(key_, count_, &members);
+  rocksdb::Status s = slot->db()->SRandmember(key_, count_, &members);
   if (s.ok() || s.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLen(members[0].size());

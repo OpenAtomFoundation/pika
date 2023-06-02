@@ -17,7 +17,7 @@ void PikaMeta::SetPath(const std::string& path) { local_meta_path_ = path; }
  * |   <Version>   |   <Meta Size>   |      <Meta>      |
  *      4 Bytes          4 Bytes        meta size Bytes
  */
-Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
+Status PikaMeta::StableSave(const std::vector<DBStruct>& db_structs) {
   std::lock_guard l(rwlock_);
   if (local_meta_path_.empty()) {
     LOG(WARNING) << "Local meta file path empty";
@@ -36,12 +36,12 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   }
 
   InnerMessage::PikaMeta meta;
-  for (const auto& ts : table_structs) {
-    InnerMessage::TableInfo* table_info = meta.add_table_infos();
-    table_info->set_table_name(ts.table_name);
-    table_info->set_partition_num(ts.partition_num);
-    for (const auto& id : ts.partition_ids) {
-      table_info->add_partition_ids(id);
+  for (const auto& ts : db_structs) {
+    InnerMessage::DBInfo* db_info = meta.add_db_infos();
+    db_info->set_db_name(ts.db_name);
+    db_info->set_slot_num(ts.slot_num);
+    for (const auto& id : ts.slot_ids) {
+      db_info->add_slot_ids(id);
     }
   }
 
@@ -67,7 +67,7 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   return Status::OK();
 }
 
-Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
+Status PikaMeta::ParseMeta(std::vector<DBStruct>* const db_structs) {
   std::shared_lock l(rwlock_);
   std::string local_meta_file = local_meta_path_ + kPikaMeta;
   if (!pstd::FileExists(local_meta_file)) {
@@ -101,14 +101,14 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("parse meta string failed");
   }
 
-  table_structs->clear();
-  for (int idx = 0; idx < meta.table_infos_size(); ++idx) {
-    const InnerMessage::TableInfo& ti = meta.table_infos(idx);
-    std::set<uint32_t> partition_ids;
-    for (int sidx = 0; sidx < ti.partition_ids_size(); ++sidx) {
-      partition_ids.insert(ti.partition_ids(sidx));
+  db_structs->clear();
+  for (int idx = 0; idx < meta.db_infos_size(); ++idx) {
+    const InnerMessage::DBInfo& ti = meta.db_infos(idx);
+    std::set<uint32_t> slot_ids;
+    for (int sidx = 0; sidx < ti.slot_ids_size(); ++sidx) {
+      slot_ids.insert(ti.slot_ids(sidx));
     }
-    table_structs->emplace_back(ti.table_name(), ti.partition_num(), partition_ids);
+    db_structs->emplace_back(ti.db_name(), ti.slot_num(), slot_ids);
   }
   return Status::OK();
 }

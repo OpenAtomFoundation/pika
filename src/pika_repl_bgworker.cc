@@ -23,8 +23,8 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size) : bg_thread_(queue_size) {
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
   redis_parser_.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   redis_parser_.data = this;
-  table_name_ = g_pika_conf->default_table();
-  partition_id_ = 0;
+  db_name_ = g_pika_conf->default_db();
+  slot_id_ = 0;
 }
 
 int PikaReplBgWorker::StartThread() { return bg_thread_.StartThread(); }
@@ -55,8 +55,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     delete task_arg;
   };
 
-  std::string table_name;
-  uint32_t partition_id = 0;
+  std::string db_name;
+  uint32_t slot_id = 0;
   LogOffset pb_begin;
   LogOffset pb_end;
   bool only_keepalive = false;
@@ -65,8 +65,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     if (i == 0) {
-      table_name = binlog_res.partition().table_name();
-      partition_id = binlog_res.partition().partition_id();
+      db_name = binlog_res.slot().db_name();
+      slot_id = binlog_res.slot().slot_id();
     }
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_begin);
@@ -94,45 +94,45 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     ack_start = pb_begin;
   }
 
-  // table_name and partition_id in the vector are same in the bgworker,
+  // db_name and slot_id in the vector are same in the bgworker,
   // because DispatchBinlogRes() have been order them.
-  worker->table_name_ = table_name;
-  worker->partition_id_ = partition_id;
+  worker->db_name_ = db_name;
+  worker->slot_id_ = slot_id;
 
-  std::shared_ptr<SyncMasterPartition> partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (!partition) {
-    LOG(WARNING) << "Partition " << table_name << "_" << partition_id << " Not Found";
+  std::shared_ptr<SyncMasterSlot> slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  if (!slot) {
+    LOG(WARNING) << "Slot " << db_name << "_" << slot_id << " Not Found";
     return;
   }
 
-  std::shared_ptr<SyncSlavePartition> slave_partition =
-      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name, partition_id));
-  if (!slave_partition) {
-    LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
+  std::shared_ptr<SyncSlaveSlot> slave_slot =
+      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  if (!slave_slot) {
+    LOG(WARNING) << "Slave Slot " << db_name << "_" << slot_id << " Not Found";
     return;
   }
 
   if (res->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
-    if (meta.term() > partition->ConsensusTerm()) {
-      LOG(INFO) << "Update " << table_name << "_" << partition_id << " term from " << partition->ConsensusTerm()
+    if (meta.term() > slot->ConsensusTerm()) {
+      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from " << slot->ConsensusTerm()
                 << " to " << meta.term();
-      partition->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync response " << table_name << "_" << partition_id
-                   << " recv term: " << meta.term() << " local term: " << partition->ConsensusTerm();
+      slot->ConsensusUpdateTerm(meta.term());
+    } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
+      LOG(WARNING) << "Drop outdated binlog sync response " << db_name << "_" << slot_id
+                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
       return;
     }
     if (!only_keepalive) {
-      LogOffset last_offset = partition->ConsensusLastIndex();
+      LogOffset last_offset = slot->ConsensusLastIndex();
       LogOffset prev_offset;
       ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
       if (last_offset.l_offset.index != 0 &&
           (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
         LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
                      << prev_offset.ToString();
-        slave_partition->SetReplState(ReplState::kTryConnect);
+        slave_slot->SetReplState(ReplState::kTryConnect);
         return;
       }
     }
@@ -140,21 +140,21 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
-    // if pika are not current a slave or partition not in
+    // if pika are not current a slave or Slot not in
     // BinlogSync state, we drop remain write binlog task
     if (((g_pika_server->role() & PIKA_ROLE_SLAVE) == 0) ||
-        ((slave_partition->State() != ReplState::kConnected) && (slave_partition->State() != ReplState::kWaitDBSync))) {
+        ((slave_slot->State() != ReplState::kConnected) && (slave_slot->State() != ReplState::kWaitDBSync))) {
       return;
     }
 
-    if (slave_partition->MasterSessionId() != binlog_res.session_id()) {
-      LOG(WARNING) << "Check SessionId Mismatch: " << slave_partition->MasterIp() << ":"
-                   << slave_partition->MasterPort() << ", " << slave_partition->SyncPartitionInfo().ToString()
+    if (slave_slot->MasterSessionId() != binlog_res.session_id()) {
+      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp() << ":"
+                   << slave_slot->MasterPort() << ", " << slave_slot->SyncSlotInfo().ToString()
                    << " expected_session: " << binlog_res.session_id()
-                   << ", actual_session:" << slave_partition->MasterSessionId();
-      LOG(WARNING) << "Check Session failed " << binlog_res.partition().table_name() << "_"
-                   << binlog_res.partition().partition_id();
-      slave_partition->SetReplState(ReplState::kTryConnect);
+                   << ", actual_session:" << slave_slot->MasterSessionId();
+      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name() << "_"
+                   << binlog_res.slot().slot_id();
+      slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
 
@@ -164,7 +164,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
-      slave_partition->SetReplState(ReplState::kTryConnect);
+      slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
     const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
@@ -174,7 +174,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
         worker->redis_parser_.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
     if (ret != net::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
-      slave_partition->SetReplState(ReplState::kTryConnect);
+      slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
   }
@@ -183,7 +183,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     LogOffset leader_commit;
     ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
     // Update follower commit && apply
-    partition->ConsensusProcessLocalUpdate(leader_commit);
+    slot->ConsensusProcessLocalUpdate(leader_commit);
   }
 
   LogOffset ack_end;
@@ -192,14 +192,14 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   } else {
     LogOffset productor_status;
     // Reply Ack to master immediately
-    std::shared_ptr<Binlog> logger = partition->Logger();
+    std::shared_ptr<Binlog> logger = slot->Logger();
     logger->GetProducerStatus(&productor_status.b_offset.filenum, &productor_status.b_offset.offset,
                               &productor_status.l_offset.term, &productor_status.l_offset.index);
     ack_end = productor_status;
     ack_end.l_offset.term = pb_end.l_offset.term;
   }
 
-  g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
+  g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, ack_start, ack_end);
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
@@ -209,9 +209,9 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
-    std::string table_name = worker->table_name_.substr(2);
+    std::string db_name = worker->db_name_.substr(2);
     std::string monitor_message =
-        std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + worker->ip_port_ + "]";
+        std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
       monitor_message += " " + pstd::ToRead(item);
     }
@@ -220,25 +220,25 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
-    LOG(WARNING) << "Command " << opt << " not in the command table";
+    LOG(WARNING) << "Command " << opt << " not in the command db";
     return -1;
   }
   // Initial
-  c_ptr->Initial(argv, worker->table_name_);
+  c_ptr->Initial(argv, worker->db_name_);
   if (!c_ptr->res().ok()) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
     return -1;
   }
 
-  g_pika_server->UpdateQueryNumAndExecCountTable(worker->table_name_, opt, c_ptr->is_write());
+  g_pika_server->UpdateQueryNumAndExecCountDB(worker->db_name_, opt, c_ptr->is_write());
 
-  std::shared_ptr<SyncMasterPartition> partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(worker->table_name_, worker->partition_id_));
-  if (!partition) {
-    LOG(WARNING) << worker->table_name_ << worker->partition_id_ << "Not found.";
+  std::shared_ptr<SyncMasterSlot> slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(worker->db_name_, worker->slot_id_));
+  if (!slot) {
+    LOG(WARNING) << worker->db_name_ << worker->slot_id_ << "Not found.";
   }
 
-  partition->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_);
+  slot->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_);
   return 0;
 }
 
@@ -247,23 +247,23 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
-  std::string table_name = task_arg->table_name;
-  uint32_t partition_id = task_arg->partition_id;
+  std::string db_name = task_arg->db_name;
+  uint32_t slot_id = task_arg->slot_id;
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   // Add read lock for no suspend command
   if (!c_ptr->is_suspend()) {
-    partition->DbRWLockReader();
+    slot->DbRWLockReader();
   }
 
-  c_ptr->Do(partition);
+  c_ptr->Do(slot);
 
   if (!c_ptr->is_suspend()) {
-    partition->DbRWUnLock();
+    slot->DbRWUnLock();
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -279,12 +279,12 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
 
 
   if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<SyncMasterPartition> partition =
-        g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-    if (!partition) {
-      LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
+    std::shared_ptr<SyncMasterSlot> slot =
+        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+    if (!slot) {
+      LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
       return;
     }
-    partition->ConsensusUpdateAppliedIndex(offset);
+    slot->ConsensusUpdateAppliedIndex(offset);
   }
 }

@@ -10,8 +10,8 @@ const std::string kTagEnd = "}";
 
 void HashModulo::Init() {}
 
-uint32_t HashModulo::Distribute(const std::string& str, uint32_t partition_num) {
-  return std::hash<std::string>()(str) % partition_num;
+uint32_t HashModulo::Distribute(const std::string& str, uint32_t slot_num) {
+  return std::hash<std::string>()(str) % slot_num;
 }
 
 void Crc32::Init() { Crc32TableInit(IEEE_POLY); }
@@ -32,11 +32,11 @@ void Crc32::Crc32TableInit(uint32_t poly) {
   }
 }
 
-uint32_t Crc32::Distribute(const std::string& str, uint32_t partition_num) {
+uint32_t Crc32::Distribute(const std::string& str, uint32_t slot_num) {
   std::string key = GetHashkey(str);
   uint32_t crc = Crc32Update(0, key.data(), static_cast<int>(key.size()));
-  assert(partition_num != 0);
-  return crc % partition_num;
+  assert(slot_num != 0);
+  return crc % slot_num;
 }
 
 uint32_t Crc32::Crc32Update(uint32_t crc, const char* buf, int len) {

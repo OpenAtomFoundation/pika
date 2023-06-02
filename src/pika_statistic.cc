@@ -75,45 +75,45 @@ ServerStatistic::~ServerStatistic() = default;
 /* Statistic */
 
 Statistic::Statistic() {
-  pthread_rwlockattr_t table_stat_rw_attr;
-  pthread_rwlockattr_init(&table_stat_rw_attr);
+  pthread_rwlockattr_t db_stat_rw_attr;
+  pthread_rwlockattr_init(&db_stat_rw_attr);
 }
 
-QpsStatistic Statistic::TableStat(const std::string& table_name) {
-  std::shared_lock l(table_stat_rw);
-  return table_stat[table_name];
+QpsStatistic Statistic::DBStat(const std::string& db_name) {
+  std::shared_lock l(db_stat_rw);
+  return db_stat[db_name];
 }
 
-std::unordered_map<std::string, QpsStatistic> Statistic::AllTableStat() {
-  std::shared_lock l(table_stat_rw);
-  return table_stat;
+std::unordered_map<std::string, QpsStatistic> Statistic::AllDBStat() {
+  std::shared_lock l(db_stat_rw);
+  return db_stat;
 }
 
-void Statistic::UpdateTableQps(const std::string& table_name, const std::string& command, bool is_write) {
-  bool table_exist = true;
+void Statistic::UpdateDBQps(const std::string& db_name, const std::string& command, bool is_write) {
+  bool db_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {
-    std::shared_lock l(table_stat_rw);
-    auto search = table_stat.find(table_name);
-    if (search == table_stat.end()) {
-      table_exist = false;
+    std::shared_lock l(db_stat_rw);
+    auto search = db_stat.find(db_name);
+    if (search == db_stat.end()) {
+      db_exist = false;
     } else {
       iter = search;
     }
   }
-  if (table_exist) {
+  if (db_exist) {
     iter->second.IncreaseQueryNum(is_write);
   } else {
     {
-      std::lock_guard l(table_stat_rw);
-      table_stat[table_name].IncreaseQueryNum(is_write);
+      std::lock_guard l(db_stat_rw);
+      db_stat[db_name].IncreaseQueryNum(is_write);
     }
   }
 }
 
-void Statistic::ResetTableLastSecQuerynum() {
-  std::shared_lock l(table_stat_rw);
-  for (auto& stat : table_stat) {
+void Statistic::ResetDBLastSecQuerynum() {
+  std::shared_lock l(db_stat_rw);
+  for (auto& stat : db_stat) {
     stat.second.ResetLastSecQuerynum();
   }
 }

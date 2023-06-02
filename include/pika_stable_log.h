@@ -13,7 +13,7 @@
 
 class StableLog : public std::enable_shared_from_this<StableLog> {
  public:
-  StableLog(std::string table_name, uint32_t partition_id, std::string log_path);
+  StableLog(std::string table_name, uint32_t slot_id, std::string log_path);
   ~StableLog();
   std::shared_ptr<Binlog> Logger() { return stable_logger_; }
   void Leave();
@@ -45,8 +45,8 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   bool PurgeFiles(uint32_t to, bool manual);
   std::atomic<bool> purging_;
 
-  std::string table_name_;
-  uint32_t partition_id_ = 0;
+  std::string db_name_;
+  uint32_t slot_id_ = 0;
   std::string log_path_;
   std::shared_ptr<Binlog> stable_logger_;
 

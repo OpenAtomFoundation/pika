@@ -29,19 +29,19 @@ message Node {
   required int32  port = 2;
 }
 
-message Partition {
-  required string table_name   = 1;
-  required uint32 partition_id = 2;
+message Slot {
+  required string db_name   = 1;
+  required uint32 slot_id = 2;
 }
 
-message TableInfo {
-  required string table_name    = 1;
-  required uint32 partition_num = 2;
-  repeated uint32 partition_ids = 3;
+message DBInfo {
+  required string db_name    = 1;
+  required uint32 slot_num = 2;
+  repeated uint32 slot_ids = 3;
 }
 
 message PikaMeta {
-  repeated TableInfo table_infos = 1;
+  repeated DBInfo db_infos = 1;
 }
 
 message ConsensusMeta {
@@ -65,21 +65,21 @@ message InnerRequest {
   // slave to master
   message TrySync {
     required Node         node           = 1;
-    required Partition    partition      = 2;
+    required Slot            slot      = 2;
     required BinlogOffset binlog_offset  = 3;
   }
 
   // slave to master
   message DBSync {
     required Node         node           = 1;
-    required Partition    partition      = 2;
+    required Slot         slot           = 2;
     required BinlogOffset binlog_offset  = 3;
   }
 
   message BinlogSync {
     required Node         node            = 1;
-    required string       table_name      = 2;
-    required uint32       partition_id    = 3;
+    required string       db_name      = 2;
+    required uint32       slot_id    = 3;
     required BinlogOffset ack_range_start = 4;
     required BinlogOffset ack_range_end   = 5;
     required int32        session_id      = 6;
@@ -88,7 +88,7 @@ message InnerRequest {
 
   message RemoveSlaveNode {
     required Node         node            = 1;
-    required Partition    partition       = 2;
+    required Slot         slot            = 2;
   }
 
   required Type            type              = 1;
@@ -100,8 +100,8 @@ message InnerRequest {
   optional ConsensusMeta   consensus_meta    = 7;
 }
 
-message PartitionInfo {
-  required uint32 partition_id = 1;
+message SlotInfo {
+  required uint32 slot_id = 1;
   required Node   master       = 2;
   repeated Node   slaves       = 3;
 }
@@ -110,12 +110,12 @@ message PartitionInfo {
 message InnerResponse {
   // master to slave
   message MetaSync {
-    message TableInfo {
-      required string        table_name    = 1;
-      required int32         partition_num = 2;
+    message DBInfo {
+      required string        db_name    = 1;
+      required int32         slot_num = 2;
     }
     required bool      classic_mode = 1;
-    repeated TableInfo tables_info  = 2;
+    repeated DBInfo    dbs_info  = 2;
   }
 
   // master to slave
@@ -127,27 +127,27 @@ message InnerResponse {
       kError             = 4;
     }
     required ReplyCode    reply_code      = 1;
-    required Partition    partition       = 2;
+    required Slot         slot            = 2;
     optional BinlogOffset binlog_offset   = 3;
     optional int32        session_id      = 4;
   }
 
   message DBSync {
-    required Partition    partition       = 1;
+    required Slot         slot            = 1;
     required int32        session_id      = 2;
   }
 
   // master to slave
   message BinlogSync {
-    required Partition      partition     = 1;
+    required Slot           slot          = 1;
     required BinlogOffset   binlog_offset = 2;
     required bytes          binlog        = 3;
     required int32          session_id    = 4;
   }
 
   message RemoveSlaveNode {
-    required Node         node            = 1;
-    required Partition    partition       = 2;
+    required Node            node            = 1;
+    required Slot            slot       = 2;
   }
 
   required Type            type              = 1;

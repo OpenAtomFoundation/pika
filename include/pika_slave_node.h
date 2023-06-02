@@ -59,7 +59,7 @@ class SyncWindow {
 // role master use
 class SlaveNode : public RmNode {
  public:
-  SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int session_id);
+  SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int session_id);
   ~SlaveNode() override;
   void Lock() { slave_mu.lock(); }
   void Unlock() { slave_mu.unlock(); }

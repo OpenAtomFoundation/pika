@@ -38,7 +38,7 @@ void PublishCmd::DoInitial() {
   msg_ = argv_[2];
 }
 
-void PublishCmd::Do(std::shared_ptr<Partition> partition) {
+void PublishCmd::Do(std::shared_ptr<Slot> slot) {
   int receivers = g_pika_server->Publish(channel_, msg_);
   res_.AppendInteger(receivers);
 }
@@ -50,7 +50,7 @@ void SubscribeCmd::DoInitial() {
   }
 }
 
-void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void SubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
@@ -86,7 +86,7 @@ void UnSubscribeCmd::DoInitial() {
   }
 }
 
-void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void UnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
@@ -127,7 +127,7 @@ void PSubscribeCmd::DoInitial() {
   }
 }
 
-void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void PSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
@@ -163,7 +163,7 @@ void PUnSubscribeCmd::DoInitial() {
   }
 }
 
-void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void PUnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
@@ -212,7 +212,7 @@ void PubSubCmd::DoInitial() {
   }
 }
 
-void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
+void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
   if (strcasecmp(subcommand_.data(), "channels") == 0) {
     std::string pattern;
     std::vector<std::string> result;

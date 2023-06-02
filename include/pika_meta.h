@@ -21,8 +21,8 @@ class PikaMeta : public pstd::noncopyable {
 
   void SetPath(const std::string& path);
 
-  pstd::Status StableSave(const std::vector<TableStruct>& table_structs);
-  pstd::Status ParseMeta(std::vector<TableStruct>* table_structs);
+  pstd::Status StableSave(const std::vector<DBStruct>& db_structs);
+  pstd::Status ParseMeta(std::vector<DBStruct>* db_structs);
 
  private:
   std::shared_mutex rwlock_;

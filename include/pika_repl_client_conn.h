@@ -14,8 +14,8 @@
 #include "include/pika_conf.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterPartition;
-class SyncSlavePartition;
+class SyncMasterSlot;
+class SyncSlaveSlot;
 
 class PikaReplClientConn : public net::PbConn {
  public:
@@ -29,10 +29,10 @@ class PikaReplClientConn : public net::PbConn {
   static void HandleRemoveSlaveNodeResponse(void* arg);
 
   static pstd::Status TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                      const std::shared_ptr<SyncMasterPartition>& partition,
-                                      const std::shared_ptr<SyncSlavePartition>& slave_partition);
-  static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
-                                      const std::vector<TableStruct>& expect_tables);
+                                      const std::shared_ptr<SyncMasterSlot>& slot,
+                                      const std::shared_ptr<SyncSlaveSlot>& slave_slot);
+  static bool IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
+                                      const std::vector<DBStruct>& expect_tables);
   int DealMessage() override;
 
  private:
