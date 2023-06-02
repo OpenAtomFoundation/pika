@@ -532,9 +532,12 @@ int string2d(const char* s, size_t slen, double* dval) {
  * sure that it is either a different instance or it was restarted. */
 std::string getRandomHexChars(size_t len) {
   FILE* fp = fopen("/dev/urandom", "r");
-  if (fp) {
-    DEFER { fclose(fp); };
-  }
+  DEFER {
+    if (fp) {
+      fclose(fp);
+      fp = nullptr;
+    }
+  };
 
   char charset[] = "0123456789abcdef";
   unsigned int j;
