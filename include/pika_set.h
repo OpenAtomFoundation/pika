@@ -7,7 +7,7 @@
 #define PIKA_SET_H_
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
 /*
  * set

@@ -1,4 +1,4 @@
-// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// Copyright (c) 2018-present, Qihoo, Inc.  All rights reserved.
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
@@ -6,183 +6,128 @@
 #ifndef PIKA_SLOT_H_
 #define PIKA_SLOT_H_
 
-#include "include/pika_command.h"
+#include <shared_mutex>
 
-class SlotsInfoCmd : public Cmd {
- public:
-  SlotsInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsInfoCmd(*this); }
+#include "pstd/include/scope_record_lock.h"
 
- private:
-  virtual void DoInitial() override;
+#include "storage/backupable.h"
+#include "storage/storage.h"
+
+#include "include/pika_binlog.h"
+
+class Cmd;
+
+/*
+ *Keyscan used
+ */
+struct KeyScanInfo {
+  time_t start_time = 0;
+  std::string s_start_time;
+  int32_t duration = -3;
+  std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
+  bool key_scaning_ = false;
+  KeyScanInfo() :
+        s_start_time("0"),
+        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
+        {}
 };
 
-class SlotsHashKeyCmd : public Cmd {
- public:
-  SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtSlotAsyncCmd : public Cmd {
- public:
-  SlotsMgrtSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtSlotAsyncCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtTagSlotAsyncCmd : public Cmd {
- public:
-  SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), dest_port_(0), slot_num_(-1) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-  std::string dest_ip_;
-  int64_t dest_port_ = 0;
-  int64_t slot_num_ = -1;
-  virtual void Clear() {
-    dest_ip_.clear();
-    dest_port_ = 0;
-    slot_num_ = -1;
+struct BgSaveInfo {
+  bool bgsaving = false;
+  time_t start_time = 0;
+  std::string s_start_time;
+  std::string path;
+  LogOffset offset;
+  BgSaveInfo() = default;
+  void Clear() {
+    bgsaving = false;
+    path.clear();
+    offset = LogOffset();
   }
 };
 
-class SlotsScanCmd : public Cmd {
+class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
  public:
-  SlotsScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsScanCmd(*this); }
+  Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path);
+  virtual ~Slot();
+
+  std::string GetDBName() const;
+  uint32_t GetSlotId() const;
+  std::string GetSlotName() const;
+  std::shared_ptr<storage::Storage> db() const;
+
+  void Compact(const storage::DataType& type);
+
+  void DbRWLockWriter();
+  void DbRWLockReader();
+  void DbRWUnLock();
+
+  std::shared_ptr<pstd::lock::LockMgr> LockMgr();
+
+  void PrepareRsync();
+  bool TryUpdateMasterOffset();
+  bool ChangeDb(const std::string& new_path);
+
+  void Leave();
+  void Close();
+  void MoveToTrash();
+
+  // BgSave use;
+  bool IsBgSaving();
+  void BgSaveSlot();
+  BgSaveInfo bgsave_info();
+
+  // FlushDB & FlushSubDB use
+  bool FlushDB();
+  bool FlushSubDB(const std::string& db_name);
+
+  // key scan info use
+  pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
+  KeyScanInfo GetKeyScanInfo();
+
+  /*
+   * SlotsMgrt used
+   */
+  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
 
  private:
-  int64_t cursor_ = 0;
-  uint32_t slotnum_ = 0;
-  std::string pattern_ = "*";
-  int64_t count_ = 10;
-  virtual void DoInitial() override;
-  virtual void Clear() {
-    pattern_ = "*";
-    count_ = 10;
-  }
+  std::string db_name_;
+  uint32_t slot_id_ = 0;
+
+  std::string db_path_;
+  std::string bgsave_sub_path_;
+  std::string dbsync_path_;
+  std::string slot_name_;
+
+  bool opened_ = false;
+
+  std::shared_mutex db_rwlock_;
+  // class may be shared, using shared_ptr would be a better choice
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
+  std::shared_ptr<storage::Storage> db_;
+
+  bool full_sync_ = false;
+
+  pstd::Mutex key_info_protector_;
+  KeyScanInfo key_scan_info_;
+
+  /*
+   * BgSave use
+   */
+  static void DoBgSave(void* arg);
+  bool RunBgsaveEngine();
+  bool InitBgsaveEnv();
+  bool InitBgsaveEngine();
+  void ClearBgsave();
+  void FinishBgsave();
+  BgSaveInfo bgsave_info_;
+  pstd::Mutex bgsave_protector_;
+  std::shared_ptr<storage::BackupEngine> bgsave_engine_;
+
+  // key scan info use
+  void InitKeyScan();
+
 };
 
-class SlotsDelCmd : public Cmd {
- public:
-  SlotsDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsDelCmd(*this); }
+#endif
 
- private:
-  std::vector<uint32_t> slots_;
-  virtual void DoInitial() override;
-  virtual void Clear() { slots_.clear(); }
-};
-
-class SlotsMgrtExecWrapperCmd : public Cmd {
- public:
-  SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtExecWrapperCmd(*this); }
-
- private:
-  std::string key_;
-  virtual void DoInitial() override;
-  virtual void Clear() { key_.clear(); }
-};
-
-class SlotsMgrtAsyncStatusCmd : public Cmd {
- public:
-  SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtAsyncStatusCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtAsyncCancelCmd : public Cmd {
- public:
-  SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtAsyncCancelCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtSlotCmd : public Cmd {
- public:
-  SlotsMgrtSlotCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtSlotCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtTagSlotCmd : public Cmd {
- public:
-  SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtOneCmd : public Cmd {
- public:
-  SlotsMgrtOneCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtOneCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-class SlotsMgrtTagOneCmd : public Cmd {
- public:
-  SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
-};
-
-#endif  // PIKA_SLOT_H_
