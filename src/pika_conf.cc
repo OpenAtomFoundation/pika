@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include "pstd/include/env.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
 
@@ -148,6 +149,12 @@ int PikaConf::Load() {
     server_id_ = "1";
   } else if (PIKA_SERVER_ID_MAX < std::stoull(server_id_)) {
     server_id_ = "PIKA_SERVER_ID_MAX";
+  }
+  GetConfStr("run-id", &run_id_);
+  if (run_id_.empty()) {
+    run_id_ = pstd::getRandomHexChars(configRunIdSize);
+  } else if (run_id_.length() != configRunIdSize) {
+    LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIdSize;
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);

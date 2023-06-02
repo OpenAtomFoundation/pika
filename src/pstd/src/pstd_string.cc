@@ -33,19 +33,12 @@
  */
 #include "pstd/include/pstd_string.h"
 
-#include <arpa/inet.h>
-#include <dirent.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <cctype>
-#include <cerrno>
 #include <cfloat>
 #include <climits>
 #include <cmath>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -53,7 +46,7 @@
 
 #include <algorithm>
 
-#include "pstd/include/fmacros.h"
+#include "pstd/include/pstd_defer.h"
 
 namespace pstd {
 
@@ -537,10 +530,18 @@ int string2d(const char* s, size_t slen, double* dval) {
  * given execution of Redis, so that if you are talking with an instance
  * having run_id == A, and you reconnect and it has run_id == B, you can be
  * sure that it is either a different instance or it was restarted. */
-void getRandomHexChars(char* p, unsigned int len) {
+std::string getRandomHexChars(size_t len) {
   FILE* fp = fopen("/dev/urandom", "r");
+  DEFER {
+    if (fp) {
+      fclose(fp);
+      fp = nullptr;
+    }
+  };
+
   char charset[] = "0123456789abcdef";
   unsigned int j;
+  char p[len];
 
   if (!fp || !fread(p, len, 1, fp)) {
     /* If we can't read from /dev/urandom, do some reasonable effort
@@ -578,9 +579,7 @@ void getRandomHexChars(char* p, unsigned int len) {
   for (j = 0; j < len; j++) {
     p[j] = charset[p[j] & 0x0F];
   }
-  if (fp) {
-    fclose(fp);
-  }
+  return std::string(p, len);
 }
 
 std::vector<std::string>& StringSplit(const std::string& s, char delim, std::vector<std::string>& elems) {

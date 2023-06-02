@@ -815,6 +815,7 @@ void InfoCmd::InfoServer(std::string& info) {
              << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
   tmp_stream << "server_id:" << g_pika_conf->server_id() << "\r\n";
+  tmp_stream << "run_id:" << g_pika_conf->run_id() << "\r\n";
 
   info.append(tmp_stream.str());
 }
