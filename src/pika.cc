@@ -17,6 +17,7 @@
 #include "include/pika_version.h"
 #include "pstd/include/env.h"
 
+
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
 PikaServer* g_pika_server;
@@ -108,7 +109,6 @@ static void PikaSignalSetup() {
   signal(SIGPIPE, SIG_IGN);
   signal(SIGINT, &IntSigHandle);
   signal(SIGQUIT, &IntSigHandle);
-  signal(SIGABRT, &IntSigHandle);
   signal(SIGTERM, &IntSigHandle);
 }
 
