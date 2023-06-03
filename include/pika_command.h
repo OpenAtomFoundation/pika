@@ -443,6 +443,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
+  virtual void ProcessFlushDBCmd();
+  virtual void ProcessFlushAllCmd();
   virtual void ProcessSingleSlotCmd();
   virtual void ProcessMultiSlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;

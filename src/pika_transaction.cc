@@ -8,7 +8,7 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 
-void MultiCmd::Do(std::shared_ptr<Partition> partition) {
+void MultiCmd::Do(std::shared_ptr<Slot> partition) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (conn == nullptr || client_conn == nullptr) {
@@ -17,6 +17,7 @@ void MultiCmd::Do(std::shared_ptr<Partition> partition) {
   }
   if (client_conn->IsInTxn()) {
     res_.SetRes(CmdRes::kErrOther, "ERR MULTI calls can not be nested");
+    return;
   }
   client_conn->SetTxnState(PikaClientConn::TxnState::Start);
   res_.SetRes(CmdRes::kOk);
@@ -27,11 +28,10 @@ void MultiCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, name());
     return;
   }
-  res_.SetRes(CmdRes::kOk);
 }
 
 
-void ExecCmd::Do(std::shared_ptr<Partition> partition) {
+void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
@@ -45,49 +45,63 @@ void ExecCmd::Do(std::shared_ptr<Partition> partition) {
 
   if (client_conn->IsTxnInitFailed()) {
     res_.SetRes(CmdRes::kErrOther, "EXECABORT Transaction discarded because of previous errors.");
-    client_conn->RemoveWatchedKeys();
-    client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//    client_conn->RemoveWatchedKeys();
+//    client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//    client_conn->ClearTxnCmdQue();
+    client_conn->ExitTxn();
     return;
   }
   if (client_conn->IsTxnWatchFailed()) {
     res_.AppendStringLen(-1);
-    client_conn->RemoveWatchedKeys();
-    client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//    client_conn->RemoveWatchedKeys();
+//    client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//    client_conn->ClearTxnCmdQue();
+    client_conn->ExitTxn();
     return;
   }
-  //! TODO(lee) : 这里应该加锁，原子地执行下面的所有指令
-  // 这里不用管，因为已经加锁了，但是是记录锁，只是给某几个记录加锁了。
-  // InternalProcessCommand函数中
-  // 所以这里还得斟酌一下，看看是加表锁还是加记录锁
   auto cmd_res = client_conn->ExecTxnCmds();
-
   if (cmd_res.empty()) {
     res_.AppendStringLen(-1);
+    client_conn->ExitTxn();
     return;
   }
   auto ret_string = std::string{};
   res_.AppendArrayLen(cmd_res.size());
   for (auto & cmd_re : cmd_res) {
     res_.AppendStringRaw(cmd_re.message());
-//    const auto &ret = cmd_res[i];
-//    ret_string.append(std::to_string(i) + ") "+ ret.message());
   }
-
-//  res_.SetRes(CmdRes::CmdRet::kOk, ret_string);
+//  client_conn->RemoveWatchedKeys();
+//  client_conn->SetTxnState(PikaClientConn::TxnState::None);
+  client_conn->ExitTxn();
 }
 
+//! 在这里还没法得到涉及到的key，因为
 void ExecCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, name());
     return;
   }
+  auto conn = GetConn();
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn == nullptr) {
+    res_.SetRes(CmdRes::kErrOther, name());
+    return;
+  }
 }
 
+std::vector<std::string> ExecCmd::GetInvolvedSlots() {
+  auto conn = GetConn();
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn == nullptr) {
+    res_.SetRes(CmdRes::kErrOther, name());
+    return {};
+  }
+  return client_conn->GetTxnInvolvedDbs();
+}
 
-
-void WatchCmd::Do(std::shared_ptr<Partition> partition) {
+void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto mp = std::map<storage::DataType, storage::Status>{};
-  partition->db()->Exists(keys_, &mp);
+  slot->db()->Exists(keys_, &mp);
   if (mp.size() > 1) {
     // 说明一个key里面有多种类型
     res_.SetRes(CmdRes::CmdRet::kErrOther, "watch key must be unique");
@@ -98,6 +112,10 @@ void WatchCmd::Do(std::shared_ptr<Partition> partition) {
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
     res_.SetRes(CmdRes::kErrOther, name());
+    return;
+  }
+  if (client_conn->IsInTxn()) {
+    res_.SetRes(CmdRes::CmdRet::kErrOther, "ERR WATCH inside MULTI is not allowed");
     return;
   }
   client_conn->AddKeysToWatch(table_keys_);
@@ -114,11 +132,15 @@ void WatchCmd::DoInitial() {
   size_t pos = 1;
   while (pos < argv_.size()) {
     keys_.emplace_back(argv_[pos]);
-    table_keys_.push_back(table_name() + argv_[pos++]);
+    table_keys_.push_back(db_name() + argv_[pos++]);
   }
 }
 
-void UnwatchCmd::Do(std::shared_ptr<Partition> partition) {
+//NOTE(leeHao): 在redis中，如果unwatch出现在队列之中，其实不会生效
+//TODO(leeHao): 得给TxnState变成位运算的操作，因为错误可以有两个，init fail或者是watch fail，并存，
+//并且，unwatch的时候，如果当前不在exec当中，所以，TxnState还得加一个，exec当中，
+// 如果不在exec当中，执行的unwatch，那么之前如果被设置成为了watch fail，现在得将其的这个watch fail标志给删除。
+void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
@@ -133,6 +155,9 @@ void UnwatchCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   client_conn->RemoveWatchedKeys();
+//  if (client_conn->IsTxnInitFailed()) {
+//    client_conn->SetTxnState(PikaClientConn::TxnState::);
+//  }
   res_.SetRes(CmdRes::CmdRet::kOk);
 }
 
@@ -150,7 +175,7 @@ void DiscardCmd::DoInitial() {
   }
 }
 
-void DiscardCmd::Do(std::shared_ptr<Partition> partition) {
+void DiscardCmd::Do(std::shared_ptr<Slot> partition) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
@@ -161,7 +186,9 @@ void DiscardCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, "DISCARD without MULTI");
     return;
   }
-  client_conn->RemoveWatchedKeys();
-  client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//  client_conn->RemoveWatchedKeys();
+//  client_conn->SetTxnState(PikaClientConn::TxnState::None);
+//  client_conn->ClearTxnCmdQue();
+  client_conn->ExitTxn();
   res_.SetRes(CmdRes::CmdRet::kOk);
 }

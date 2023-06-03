@@ -777,8 +777,17 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
   }
 }
 
+//NOTE 这里会加锁
+// 这不是一个override的函数
 void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
   if (!is_suspend()) {
+    auto cli_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
+    if (cli_conn != nullptr) {
+      if (cli_conn->IsInTxn()) {
+        Do(slot);
+        return ;
+      }
+    }
     slot->DbRWLockReader();
   }
 
@@ -816,6 +825,7 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   }
 }
 
+//NOTE 虽然这里multiSlot，但是好像只能针对于一个db,所以这里无法在exec中使用
 void Cmd::ProcessMultiSlotCmd() {
   std::shared_ptr<Slot> slot;
   std::vector<std::string> cur_key = current_key();

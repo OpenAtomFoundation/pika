@@ -210,6 +210,15 @@ std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::
   return involved_conns;
 }
 
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetAllTxns() {
+  std::lock_guard lg(watch_keys_mu_);
+  auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+  for(auto &[client_conn, _] : conn_keys_map_) {
+    involved_conns.emplace_back(client_conn);
+  }
+  return involved_conns;
+}
+
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                                        int queue_limit, const ServerHandle* handle) {
   return new DispatchThread(port, work_num, conn_factory, cron_interval, queue_limit, handle);

@@ -7,16 +7,15 @@
 #define PIKA_TRANSACTION_H_
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
 #include "net/include/redis_conn.h"
 #include "storage/storage.h"
 
 class MultiCmd : public Cmd {
  public:
   MultiCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new MultiCmd(*this); }
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {}
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
  private:
   void DoInitial() override;
@@ -26,22 +25,24 @@ class MultiCmd : public Cmd {
 class ExecCmd : public Cmd {
  public:
   ExecCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new ExecCmd(*this); }
 //  void Execute() override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {}
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
   std::vector<std::string> current_key() const override { return {}; }
+  std::vector<std::string> GetInvolvedSlots();
+
  private:
   void DoInitial() override;
-
+  std::vector<std::string> keys_;
 };
 class DiscardCmd : public Cmd {
  public:
   DiscardCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new DiscardCmd(*this); }
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {}
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
  private:
   void DoInitial() override;
@@ -53,8 +54,8 @@ class WatchCmd : public Cmd {
  public:
   WatchCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
 
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   Cmd* Clone() override { return new WatchCmd(*this); }
   void Merge() override {}
   std::vector<std::string> current_key() const override { return keys_; }
@@ -68,9 +69,9 @@ class UnwatchCmd : public Cmd {
  public:
   UnwatchCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
 
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new UnwatchCmd(*this); }
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {}
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
  private:
   void DoInitial() override;

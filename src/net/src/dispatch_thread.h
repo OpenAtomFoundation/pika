@@ -61,6 +61,7 @@ class DispatchThread : public ServerThread {
   void RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn);
 
   std::vector<std::shared_ptr<NetConn>> GetInvolvedTxn(const std::vector<std::string> &keys);
+  std::vector<std::shared_ptr<NetConn>> GetAllTxns();
 
  private:
   /*

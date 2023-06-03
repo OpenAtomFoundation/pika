@@ -13,6 +13,7 @@
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -73,19 +74,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
     return c_ptr;
   }
-  if (IsInTxn() && opt != kCmdNameDiscard && opt != kCmdNameExec) {
-    if (opt == kCmdNameWatch) {
-      c_ptr->res().SetRes(CmdRes::kInvaildTranscation);
-      return c_ptr;
-    }
-    if (!IsTxnFailed()) {
-      PushCmdToQue(c_ptr);
-    }
-//    c_ptr->SetStage(Cmd::CmdStage::kQueueStage);
+  if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
+    PushCmdToQue(c_ptr);
     c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
   }
-
+  //! 更新一下qps之类的
   g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
 
   // PubSub connection
@@ -123,8 +117,11 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;
     }
+    //! 这里有个问题，就是exec这个命令应该算是write的，那么该如何得到他的key呢
+    // 所以我在下面的这里加了opt != exec,因为exec没法得到key,
+    //TODO(leeHao): 这里还是看看吧
     std::vector<std::string> cur_key = c_ptr->current_key();
-    if (cur_key.empty()) {
+    if (cur_key.empty() && opt != kCmdNameExec) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
@@ -144,14 +141,17 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
 
-  //! 这里不需要判断是否是exec，因为exec没有key，但是得小心，watch之类的
-  if (c_ptr->res().ok() && c_ptr->is_write() && !IsInTxn()) {
-    // TODO
-    auto table_keys = c_ptr->current_key();
-    for (auto& key : table_keys) {
-      key = c_ptr->table_name() + key;
+  //NOTE(leeHao): exec命令的话，会在ExecTxnCmds函数中去设置，因为可能部分成功，部分不成功，并且里面可能还会有select命令
+  if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
+    if (c_ptr->name() == kCmdNameFlushdb || c_ptr->name() == kCmdNameFlushall) {
+
+    } else {
+      auto table_keys = c_ptr->current_key();
+      for (auto& key : table_keys) {
+        key = c_ptr->db_name().append(key);
+      }
+      SetTxnFailedFromKeys(table_keys);
     }
-    SetTxnFailedFromKeys(table_keys);
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -298,7 +298,7 @@ void PikaClientConn::TryWriteResp() {
 void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
   txn_cmd_que_.push(cmd);
   cmd->SetResp(std::make_shared<std::string>());
-  txn_exec_tables_.emplace_back(cmd->table_name());
+  txn_exec_dbs_.emplace_back(cmd->db_name());
 }
 
 
@@ -328,34 +328,20 @@ bool PikaClientConn::IsTxnWatchFailed() {
 
 std::vector<CmdRes> PikaClientConn::ExecTxnCmds() {
   auto ret_res = std::vector<CmdRes>{};
-  for (const auto &table_name : txn_exec_tables_) {
-    auto partition = g_pika_server->GetPartitionByDbName(table_name);
-    if (table_name == current_table_) {
-      continue;
-    }
-    //TODO(lee): 这种有没有可能会得到一个空指针，比如某个db没有创建
-    partition->DbRWLockWriter();
-  }
   while (!txn_cmd_que_.empty()) {
     auto cmd = txn_cmd_que_.front();
     txn_cmd_que_.pop();
     cmd->res().SetRes(CmdRes::CmdRet::kNone);
-    cmd->ProcessSinglePartitionCmd();
+    cmd->ProcessSingleSlotCmd();
     if (cmd->res().ok() && cmd->is_write()) {
-      //TODO
-//      SetTxnFailedFromKeys({cmd->table_name() + cmd->current_key()});
+      auto db_keys = cmd->current_key();
+      for (auto& item : db_keys) {
+        item = cmd->db_name().append(item);
+      }
+      SetTxnFailedFromKeys(db_keys);
     }
     ret_res.emplace_back(cmd->res());
   }
-  for (const auto &table_name : txn_exec_tables_) {
-    auto partition = g_pika_server->GetPartitionByDbName(table_name);
-    if (table_name == current_table_) {
-      continue;
-    }
-    partition->DbRWUnLock();
-  }
-  RemoveWatchedKeys();
-  SetTxnState(TxnState::None);
   return ret_res;
 }
 std::shared_ptr<Cmd> PikaClientConn::PopCmdFromQue() {
@@ -366,16 +352,19 @@ std::shared_ptr<Cmd> PikaClientConn::PopCmdFromQue() {
   txn_cmd_que_.pop();
   return ret;
 }
+void PikaClientConn::ClearTxnCmdQue() {
+  txn_cmd_que_ = std::queue<std::shared_ptr<Cmd>>{};
+}
 
 
-void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &table_keys) {
-  for (const auto &it : table_keys) {
-    watched_table_keys_.emplace(it);
+void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &db_keys) {
+  for (const auto &it : db_keys) {
+    watched_db_keys_.emplace(it);
   }
 
   auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
   if (dispatcher != nullptr) {
-    dispatcher->AddWatchKeys(table_keys, shared_from_this());
+    dispatcher->AddWatchKeys(db_keys, shared_from_this());
   }
 }
 
@@ -383,7 +372,7 @@ void PikaClientConn::RemoveWatchedKeys() {
   auto worker_thread = dynamic_cast<net::WorkerThread *>(server_thread());
   if (worker_thread != nullptr) {
     auto dispatcher = dynamic_cast<net::DispatchThread *>(worker_thread->GetServerThread());
-    watched_table_keys_.clear();
+    watched_db_keys_.clear();
     dispatcher->RemoveWatchKeys(shared_from_this());
   }
 }
@@ -394,9 +383,14 @@ void PikaClientConn::RemoveWatchedKeys() {
 void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &table_keys) {
   auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
   if (dispatcher != nullptr) {
-    auto involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+    auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+    if (table_keys.empty()) {
+      involved_conns = dispatcher->GetAllTxns();
+    } else {
+      involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+    }
     for (auto &conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
         c->SetTxnState(TxnState::WatchFailed);
       }
     }

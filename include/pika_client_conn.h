@@ -66,13 +66,23 @@ class PikaClientConn : public net::RedisConn {
   void SetTxnState(TxnState state);
   std::vector<CmdRes> ExecTxnCmds();
   std::shared_ptr<Cmd> PopCmdFromQue();
+  void ClearTxnCmdQue();
   bool IsInTxn();
   bool IsTxnFailed();
   bool IsTxnInitFailed();
   bool IsTxnWatchFailed();
-  void AddKeysToWatch(const std::vector<std::string> &keys);
+  void AddKeysToWatch(const std::vector<std::string> &db_keys);
   void RemoveWatchedKeys();
-  void SetTxnFailedFromKeys(const std::vector<std::string> &table_keys);
+  void SetTxnFailedFromKeys(const std::vector<std::string> &table_keys = {});
+  std::vector<std::string> GetTxnInvolvedDbs() { return txn_exec_dbs_; }
+  std::mutex& GetTxnDbMutex() { return txn_db_mu_; }
+  void ExitTxn() {
+    if (IsInTxn()) {
+      RemoveWatchedKeys();
+      ClearTxnCmdQue();
+      SetTxnState(TxnState::None);
+    }
+  }
 
   net::ServerThread* server_thread() { return server_thread_; }
 
@@ -88,9 +98,10 @@ class PikaClientConn : public net::RedisConn {
   bool is_pubsub_ = false;
   std::queue<std::shared_ptr<Cmd>> txn_cmd_que_; // redis事务的队列
   TxnState txn_state_{TxnState::None};  // 事务的状态
-  std::unordered_set<std::string> watched_table_keys_;
-  std::vector<std::string> txn_exec_tables_;
+  std::unordered_set<std::string> watched_db_keys_;
+  std::vector<std::string> txn_exec_dbs_;
   std::mutex txn_mu_;
+  std::mutex txn_db_mu_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
