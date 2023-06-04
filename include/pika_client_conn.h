@@ -26,7 +26,13 @@ class PikaClientConn : public net::RedisConn {
   //! InitCmdFailed指的是初始化某个任务的时候失败了
   // WatchFailed指的是在watch之后，某个客户端修改了此事务watch的key
   //!值得注意的是，watch的key是有db之分的
-  enum class TxnState { None, Start, InitCmdFailed, WatchFailed };
+  class TxnStateBitMask {
+   public:
+    static constexpr uint8_t Start = 0;
+    static constexpr uint8_t InitCmdFailed = 1;
+    static constexpr uint8_t WatchFailed = 2;
+    static constexpr uint8_t Execing = 3;  // exec执行中
+  };
 
   // Auth related
   class AuthStat {
@@ -46,9 +52,7 @@ class PikaClientConn : public net::RedisConn {
 
   PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
-   ~PikaClientConn() override {
-    LOG(INFO) << "lee : " << __FUNCTION__ << " " << String();
-  }
+   ~PikaClientConn() override {}
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                 std::string* response) override;
@@ -62,8 +66,9 @@ class PikaClientConn : public net::RedisConn {
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentDb(const std::string& db_name) { current_db_ = db_name; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
+
+  // Txn
   void PushCmdToQue(std::shared_ptr<Cmd> cmd);
-  void SetTxnState(TxnState state);
   std::vector<CmdRes> ExecTxnCmds();
   std::shared_ptr<Cmd> PopCmdFromQue();
   void ClearTxnCmdQue();
@@ -71,18 +76,16 @@ class PikaClientConn : public net::RedisConn {
   bool IsTxnFailed();
   bool IsTxnInitFailed();
   bool IsTxnWatchFailed();
+  void SetTxnWatchFailState(bool is_failed);
+  void SetTxnInitFailState(bool is_failed);
+  void SetTxnStartState(bool is_start);
+
   void AddKeysToWatch(const std::vector<std::string> &db_keys);
   void RemoveWatchedKeys();
   void SetTxnFailedFromKeys(const std::vector<std::string> &table_keys = {});
   std::vector<std::string> GetTxnInvolvedDbs() { return txn_exec_dbs_; }
   std::mutex& GetTxnDbMutex() { return txn_db_mu_; }
-  void ExitTxn() {
-    if (IsInTxn()) {
-      RemoveWatchedKeys();
-      ClearTxnCmdQue();
-      SetTxnState(TxnState::None);
-    }
-  }
+  void ExitTxn();
 
   net::ServerThread* server_thread() { return server_thread_; }
 
@@ -97,11 +100,12 @@ class PikaClientConn : public net::RedisConn {
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
   std::queue<std::shared_ptr<Cmd>> txn_cmd_que_; // redis事务的队列
-  TxnState txn_state_{TxnState::None};  // 事务的状态
+  std::bitset<16> txn_state_;  // class TxnStateBitMask
   std::unordered_set<std::string> watched_db_keys_;
   std::vector<std::string> txn_exec_dbs_;
-  std::mutex txn_mu_;
-  std::mutex txn_db_mu_;
+  std::mutex txn_state_mu_;  // 用于锁事务状态
+  std::mutex txn_db_mu_;  // 在执行事务的时候，采用加db锁的方式加锁，那么就会有多个db被加锁，那么就会有加锁顺序的问题，所以加了这把大锁
+  // 在void Cmd::ProcessExecCmd();中使用这把锁
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);

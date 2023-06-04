@@ -19,7 +19,7 @@ void MultiCmd::Do(std::shared_ptr<Slot> partition) {
     res_.SetRes(CmdRes::kErrOther, "ERR MULTI calls can not be nested");
     return;
   }
-  client_conn->SetTxnState(PikaClientConn::TxnState::Start);
+  client_conn->SetTxnStartState(true);
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -39,23 +39,17 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "EXECABORT Transaction discarded because of previous errors.");
+    res_.SetRes(CmdRes::kErrOther, "ERR EXEC without MULTI");
     return;
   }
 
   if (client_conn->IsTxnInitFailed()) {
-    res_.SetRes(CmdRes::kErrOther, "EXECABORT Transaction discarded because of previous errors.");
-//    client_conn->RemoveWatchedKeys();
-//    client_conn->SetTxnState(PikaClientConn::TxnState::None);
-//    client_conn->ClearTxnCmdQue();
+    res_.SetRes(CmdRes::kErrOther, "EXEC ABORT Transaction discarded because of previous errors.");
     client_conn->ExitTxn();
     return;
   }
   if (client_conn->IsTxnWatchFailed()) {
     res_.AppendStringLen(-1);
-//    client_conn->RemoveWatchedKeys();
-//    client_conn->SetTxnState(PikaClientConn::TxnState::None);
-//    client_conn->ClearTxnCmdQue();
     client_conn->ExitTxn();
     return;
   }
@@ -70,12 +64,10 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto & cmd_re : cmd_res) {
     res_.AppendStringRaw(cmd_re.message());
   }
-//  client_conn->RemoveWatchedKeys();
-//  client_conn->SetTxnState(PikaClientConn::TxnState::None);
   client_conn->ExitTxn();
 }
 
-//! 在这里还没法得到涉及到的key，因为
+//! 在这里还没法得到涉及到的key，因为客户端连接对象中有一些的key他们的db不一样
 void ExecCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, name());
@@ -104,7 +96,7 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   slot->db()->Exists(keys_, &mp);
   if (mp.size() > 1) {
     // 说明一个key里面有多种类型
-    res_.SetRes(CmdRes::CmdRet::kErrOther, "watch key must be unique");
+    res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
     return;
   }
 
@@ -137,9 +129,6 @@ void WatchCmd::DoInitial() {
 }
 
 //NOTE(leeHao): 在redis中，如果unwatch出现在队列之中，其实不会生效
-//TODO(leeHao): 得给TxnState变成位运算的操作，因为错误可以有两个，init fail或者是watch fail，并存，
-//并且，unwatch的时候，如果当前不在exec当中，所以，TxnState还得加一个，exec当中，
-// 如果不在exec当中，执行的unwatch，那么之前如果被设置成为了watch fail，现在得将其的这个watch fail标志给删除。
 void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -155,9 +144,9 @@ void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   client_conn->RemoveWatchedKeys();
-//  if (client_conn->IsTxnInitFailed()) {
-//    client_conn->SetTxnState(PikaClientConn::TxnState::);
-//  }
+  if (client_conn->IsTxnWatchFailed()) {
+    client_conn->SetTxnWatchFailState(false);
+  }
   res_.SetRes(CmdRes::CmdRet::kOk);
 }
 
@@ -183,12 +172,9 @@ void DiscardCmd::Do(std::shared_ptr<Slot> partition) {
     return;
   }
   if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "DISCARD without MULTI");
+    res_.SetRes(CmdRes::kErrOther, "ERR DISCARD without MULTI");
     return;
   }
-//  client_conn->RemoveWatchedKeys();
-//  client_conn->SetTxnState(PikaClientConn::TxnState::None);
-//  client_conn->ClearTxnCmdQue();
   client_conn->ExitTxn();
   res_.SetRes(CmdRes::CmdRet::kOk);
 }

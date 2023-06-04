@@ -464,6 +464,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_multi_slot() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  void SetDbName(const std::string& db_name) {
+    db_name_ = db_name;
+  }
 
   std::string name() const;
   CmdRes& res();

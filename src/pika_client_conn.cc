@@ -42,7 +42,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
     if (IsInTxn()) {
-      SetTxnState(TxnState::InitCmdFailed);  // 本次事务就算是失败了
+      SetTxnInitFailState(true);  // 本次事务就算是失败了
     }
     return tmp_ptr;
   }
@@ -70,7 +70,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
     if (IsInTxn()) {
-      SetTxnState(TxnState::InitCmdFailed);  // 本次事务就算是失败了
+      SetTxnInitFailState(true);  // 本次事务就算是失败了
     }
     return c_ptr;
   }
@@ -301,30 +301,38 @@ void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
   txn_exec_dbs_.emplace_back(cmd->db_name());
 }
 
-
-void PikaClientConn::SetTxnState(TxnState state) {
-  std::lock_guard<std::mutex> lg(txn_mu_);
-  txn_state_ = state;
-}
-
 bool PikaClientConn::IsInTxn() {
-  std::lock_guard<std::mutex> lg(txn_mu_);
-  return txn_state_ != TxnState::None;
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::Start];
 }
 
 bool PikaClientConn::IsTxnFailed() {
-  std::lock_guard<std::mutex> lg(txn_mu_);
-  return txn_state_ == TxnState::InitCmdFailed || txn_state_ == TxnState::WatchFailed;
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::WatchFailed] | txn_state_[TxnStateBitMask::InitCmdFailed];
 }
 bool PikaClientConn::IsTxnInitFailed() {
-  std::lock_guard<std::mutex> lg(txn_mu_);
-  return txn_state_ == TxnState::InitCmdFailed;
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::InitCmdFailed];
 }
 
 bool PikaClientConn::IsTxnWatchFailed() {
-  std::lock_guard<std::mutex> lg(txn_mu_);
-  return txn_state_ == TxnState::WatchFailed;
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::WatchFailed];
 }
+void PikaClientConn::SetTxnWatchFailState(bool is_failed) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::WatchFailed] = is_failed;
+}
+void PikaClientConn::SetTxnInitFailState(bool is_failed) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::InitCmdFailed] = is_failed;
+}
+
+void PikaClientConn::SetTxnStartState(bool is_start) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::Start] = is_start;
+}
+
 
 std::vector<CmdRes> PikaClientConn::ExecTxnCmds() {
   auto ret_res = std::vector<CmdRes>{};
@@ -332,6 +340,7 @@ std::vector<CmdRes> PikaClientConn::ExecTxnCmds() {
     auto cmd = txn_cmd_que_.front();
     txn_cmd_que_.pop();
     cmd->res().SetRes(CmdRes::CmdRet::kNone);
+    cmd->SetDbName(current_db_);
     cmd->ProcessSingleSlotCmd();
     if (cmd->res().ok() && cmd->is_write()) {
       auto db_keys = cmd->current_key();
@@ -391,9 +400,17 @@ void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &table_
     }
     for (auto &conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
-        c->SetTxnState(TxnState::WatchFailed);
+        c->SetTxnWatchFailState(true);
       }
     }
+  }
+}
+void PikaClientConn::ExitTxn() {
+  if (IsInTxn()) {
+    RemoveWatchedKeys();
+    ClearTxnCmdQue();
+    std::lock_guard<std::mutex> lg(txn_state_mu_);
+    txn_state_.reset();
   }
 }
 
