@@ -80,11 +80,11 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
 typedef struct {
   std::string key;
   std::string curr_db;
-  std::shared_ptr<Partition> partition;
+  std::shared_ptr<Slot> slot;
   net::DispatchThread* dispatchThread;
 } BlrPopUnblockTaskArgs;
 
-void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Partition> partition) {
+void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(curr_conn->thread());
 
@@ -102,14 +102,14 @@ void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shar
   auto* args = new BlrPopUnblockTaskArgs();
   args->key = key;
   args->dispatchThread = dispatchThread;
-  args->partition = std::move(partition);
+  args->slot = std::move(slot);
   args->curr_db = curr_conn->GetCurrentTable();
   g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args);
 }
 void BPopServeCmd::ServeAndUnblockConns(void* args) {
   auto bg_args = std::unique_ptr<BlrPopUnblockTaskArgs>(static_cast<BlrPopUnblockTaskArgs*>(args));
   net::DispatchThread* dispatchThread = bg_args->dispatchThread;
-  std::shared_ptr<Partition> partition = std::move(bg_args->partition);
+  std::shared_ptr<Slot> slot = std::move(bg_args->slot);
   std::string key = std::move(bg_args->key);
   auto& map_from_keys_to_conns_for_blrpop = dispatchThread->GetMapFromKeysToConnsForBlrpop();
   net::BlrPopKey blrPop_key{std::move(bg_args->curr_db), key};
@@ -126,9 +126,9 @@ void BPopServeCmd::ServeAndUnblockConns(void* args) {
   CmdRes res;
   for (auto conn_blocked = waitting_list_of_this_key->begin(); conn_blocked != waitting_list_of_this_key->end();) {
     if (conn_blocked->GetBlockType() == net::BlockPopType::Blpop) {
-      s = partition->db()->LPop(key, &value);
+      s = slot->db()->LPop(key, &value);
     } else {  // BlockPopType is Brpop
-      s = partition->db()->RPop(key, &value);
+      s = slot->db()->RPop(key, &value);
     }
 
     if (s.ok()) {
@@ -172,7 +172,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  TryToServeBLrPopWithThisKey(key_, partition);
+  TryToServeBLrPopWithThisKey(key_, slot);
 }
 
 void BLRPopBaseCmd::BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type) {
@@ -229,10 +229,10 @@ void BLRPopBaseCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BLPopCmd::Do(std::shared_ptr<Partition> partition) {
+void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::string value;
-    rocksdb::Status s = partition->db()->LPop(this_key, &value);
+    rocksdb::Status s = slot->db()->LPop(this_key, &value);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -395,10 +395,10 @@ void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BRPopCmd::Do(std::shared_ptr<Partition> partition) {
+void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::string value;
-    rocksdb::Status s = partition->db()->RPop(this_key, &value);
+    rocksdb::Status s = slot->db()->RPop(this_key, &value);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -460,7 +460,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  TryToServeBLrPopWithThisKey(receiver_, partition);
+  TryToServeBLrPopWithThisKey(receiver_, slot);
 }
 
 void RPushCmd::DoInitial() {
@@ -482,7 +482,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  TryToServeBLrPopWithThisKey(key_, partition);
+  TryToServeBLrPopWithThisKey(key_, slot);
 }
 
 void RPushxCmd::DoInitial() {

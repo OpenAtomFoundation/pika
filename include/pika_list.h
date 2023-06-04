@@ -90,8 +90,8 @@ class BLPopCmd : public BLRPopBaseCmd {
     std::vector<std::string> res = keys_;
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
 };
@@ -117,7 +117,7 @@ class LPopCmd : public Cmd {
 class BPopServeCmd : public Cmd {
  public:
   BPopServeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Partition> partition);
+  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
   static void ServeAndUnblockConns(void* args);
 };
 
@@ -247,8 +247,8 @@ class BRPopCmd : public BLRPopBaseCmd {
     std::vector<std::string> res = keys_;
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
 
