@@ -136,14 +136,13 @@ void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
   }
-  if (client_conn->IsInTxn()) {
-    if (client_conn->IsTxnFailed()) {
-      return;
-    }
-    res_.AppendInteger(-1);
-    return;
+  if (client_conn->IsTxnExecing()) {
+    res_.SetRes(CmdRes::CmdRet::kOk);
+    return ;
   }
   client_conn->RemoveWatchedKeys();
+  // 这里是因为其他客户端连接的时候会修改这个watch了的客户端连接，状态设置为WatchFailed
+  // 那么这里得将WatchFailed状态设置为未失败
   if (client_conn->IsTxnWatchFailed()) {
     client_conn->SetTxnWatchFailState(false);
   }

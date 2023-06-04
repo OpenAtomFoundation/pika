@@ -30,6 +30,7 @@ class ExecCmd : public Cmd {
 //  void Execute() override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
+  //NOTE(leeHao): 这个命令的key无法确定，因为每个key的db可能不一样
   std::vector<std::string> current_key() const override { return {}; }
   std::vector<std::string> GetInvolvedSlots();
 

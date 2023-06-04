@@ -319,6 +319,12 @@ bool PikaClientConn::IsTxnWatchFailed() {
   std::lock_guard<std::mutex> lg(txn_state_mu_);
   return txn_state_[TxnStateBitMask::WatchFailed];
 }
+
+bool PikaClientConn::IsTxnExecing() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::Execing] && txn_state_[TxnStateBitMask::Start];
+}
+
 void PikaClientConn::SetTxnWatchFailState(bool is_failed) {
   std::lock_guard<std::mutex> lg(txn_state_mu_);
   txn_state_[TxnStateBitMask::WatchFailed] = is_failed;
