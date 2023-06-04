@@ -85,9 +85,6 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
 
   // Slots related
-  //migrate slot
-
-  // Slots related
   std::unique_ptr<Cmd> slotsinfoptr = std::make_unique<SlotsInfoCmd>(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsInfo, std::move(slotsinfoptr)));
   std::unique_ptr<Cmd> slotmgrttagslotasyncptr =
@@ -101,6 +98,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncCancel, std::move(slotmgrtasynccancel)));
   std::unique_ptr<Cmd> slotmgrttagoneptr = std::make_unique<SlotsMgrtTagOneCmd>(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagOne, std::move(slotmgrttagoneptr)));
+  std::unique_ptr<Cmd> slotmgrttagslotptr =
+      std::make_unique<SlotsMgrtTagSlotCmd>(kCmdNameSlotsMgrtTagSlot, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlot, std::move(slotmgrttagslotptr)));
 
   // Kv
   ////SetCmd
