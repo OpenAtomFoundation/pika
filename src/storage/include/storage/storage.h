@@ -971,6 +971,9 @@ class Storage {
   // if single is true, the query will return the first one
   Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
 
+  // Reutrns the data all type of the key
+  Status Type(const std::string& key, std::vector<std::string>& types);
+
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 
   // Iterate through all the data in the database.
