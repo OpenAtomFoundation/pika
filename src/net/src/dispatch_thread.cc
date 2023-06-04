@@ -192,8 +192,11 @@ void DispatchThread::RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn
       continue;
     }
     key_conns_map_[key].erase(client_conn);
+    if (key_conns_map_[key].empty()) {
+      key_conns_map_.erase(key);
+    }
   }
-  keys.clear();
+  conn_keys_map_.erase(client_conn);
 }
 
 std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::vector<std::string> &keys) {

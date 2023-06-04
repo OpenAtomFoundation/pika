@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "include/pika_command.h"
-//TODO(leeHao): 将一个超时关闭的连接所watch的key给从全局的那个变量里面给清除掉
 class PikaClientConn : public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
