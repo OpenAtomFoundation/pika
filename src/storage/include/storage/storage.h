@@ -131,8 +131,7 @@ struct BGTask {
   Operation operation;
   std::string argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
-         std::string  _argv = "")
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
       : type(_type), operation(_opeation), argv(std::move(_argv)) {}
 };
 
@@ -424,7 +423,7 @@ class Storage {
 
   // Removes and returns several random elements specified by count from the set value store at key.
   Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
-  
+
   // When called with just the key argument, return a random element from the
   // set value stored at key.
   // when called with the additional count argument, return an array of count
@@ -971,6 +970,9 @@ class Storage {
   // Reutrns the data type of the key
   Status Type(const std::string& key, std::string* type);
 
+  // Reutrns the data all type of the key
+  Status Type(const std::string& key, std::vector<std::string>& types);
+
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 
   // Iterate through all the data in the database.
@@ -1019,7 +1021,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
-  void GetRocksDBInfo(std::string &info);
+  void GetRocksDBInfo(std::string& info);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
