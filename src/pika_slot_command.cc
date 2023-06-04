@@ -919,11 +919,17 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
                                                  error_(false),
                                                  is_migrating_(false) {
   cli_ = net::NewRedisCli();
+  /*pthread_rwlockattr_t attr;
+pthread_rwlockattr_init(&attr);
+pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+pthread_rwlock_init(&rwlock_db_, &attr);
+pthread_rwlock_init(&rwlock_batch_, &attr);
+pthread_rwlock_init(&rwlock_ones_, &attr);*/
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
-  std::lock_guard ld(rwlock_db_);
-  std::lock_guard lb(rwlock_batch_);
-  std::lock_guard lo(rwlock_ones_);
+  //std::lock_guard ld(rwlock_db_);
+  //std::lock_guard lb(rwlock_batch_);
+  //std::lock_guard lo(rwlock_ones_);
 }
 
 SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
@@ -934,6 +940,10 @@ SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
   if (is_running()) {
     StopThread();
   }
+
+  /*pthread_rwlock_destroy(&rwlock_db_);
+pthread_rwlock_destroy(&rwlock_batch_);
+pthread_rwlock_destroy(&rwlock_ones_);*/
 
   delete cli_;
   LOG(INFO) << "SlotsMgrtSender thread " << thread_id() << " exit!";
@@ -1047,7 +1057,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
 }
 
 bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remained){
-  std::lock_guard lm(monitor_mutex_protector_);
+  std::lock_guard lm(slotsmgrt_cond_mutex_);
   *moved = moved_keys_num_;
   *remained = remained_keys_num_;
   if (*remained <= 0){
@@ -1061,7 +1071,9 @@ bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remai
 
 void SlotsMgrtSenderThread::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating,
                                                      int64_t *moved, int64_t *remained){
-  std::lock_guard lm(migrate_send_mutex_);
+  std::lock_guard ld(rwlock_db_);
+  std::lock_guard lb(rwlock_batch_);
+  std::lock_guard lo(rwlock_ones_);
   *ip = dest_ip_;
   *port = dest_port_;
   *slot = slot_num_;
@@ -1071,7 +1083,7 @@ void SlotsMgrtSenderThread::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *p
 }
 
 bool SlotsMgrtSenderThread::SlotsMigrateAsyncCancel() {
-  std::lock_guard lm(migrate_send_mutex_);
+  std::lock_guard ld(rwlock_db_);
   dest_ip_ = "none";
   dest_port_ = -1;
   timeout_ms_ = 3000;
@@ -1170,8 +1182,7 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
       std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
       std::vector<std::pair<const char, std::string>>::const_iterator iter;
       while (is_migrating_) {
-        std::lock_guard lx(slotsmgrt_cond_mutex_);
-        std::lock_guard l(mutex_);
+        std::lock_guard lm(slotsmgrt_cond_mutex_);
         {
           std::lock_guard lb(rwlock_batch_);
           std::lock_guard lo(rwlock_ones_);
@@ -1189,7 +1200,7 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
         iter = migrating_batch_.begin();
         while (iter != migrating_batch_.end()) {
           size_t j = 0;
-          std::lock_guard l(rwlock_);
+          std::lock_guard lb(rwlock_batch_);
           for (int r; iter != migrating_batch_.end() && (j < asyncRecvsNum); iter++) {
             if ((r = MigrateOneKey(cli_, iter->second, iter->first, true, slot)) < 0){
               LOG(WARNING) << "Migrate batch key: " << iter->second << " error: ";
@@ -1228,7 +1239,7 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
         }
 
         {
-          std::lock_guard l(rwlock_);
+          std::lock_guard lb(rwlock_batch_);
           std::vector<std::pair<const char, std::string>>().swap(migrating_batch_);
         }
 
