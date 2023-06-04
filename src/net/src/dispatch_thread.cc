@@ -50,14 +50,12 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
   }
 }
 
-DispatchThread::~DispatchThread() {
-
-}
+DispatchThread::~DispatchThread() = default;
 
 int DispatchThread::StartThread() {
   for (int i = 0; i < work_num_; i++) {
     int ret = handle_->CreateWorkerSpecificData(&(worker_thread_[i]->private_data_));
-    if (ret != 0) {
+    if (ret) {
       return ret;
     }
 
@@ -65,7 +63,7 @@ int DispatchThread::StartThread() {
       worker_thread_[i]->set_thread_name("WorkerThread");
     }
     ret = worker_thread_[i]->StartThread();
-    if (ret != 0) {
+    if (ret) {
       return ret;
     }
   }
@@ -78,12 +76,12 @@ int DispatchThread::StopThread() {
   }
   for (int i = 0; i < work_num_; i++) {
     int ret = worker_thread_[i]->StopThread();
-    if (ret != 0) {
+    if (ret) {
       return ret;
     }
-    if (worker_thread_[i]->private_data_ != nullptr) {
+    if (worker_thread_[i]->private_data_) {
       ret = handle_->DeleteWorkerSpecificData(worker_thread_[i]->private_data_);
-      if (ret != 0) {
+      if (ret) {
         return ret;
       }
       worker_thread_[i]->private_data_ = nullptr;
@@ -118,7 +116,7 @@ std::vector<ServerThread::ConnInfo> DispatchThread::conns_info() const {
 std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int fd) {
   for (int i = 0; i < work_num_; ++i) {
     std::shared_ptr<NetConn> conn = worker_thread_[i]->MoveConnOut(fd);
-    if (conn != nullptr) {
+    if (conn) {
       return conn;
     }
   }

@@ -33,7 +33,9 @@ class BaseConfTest : public ::testing::Test {
 
     std::unique_ptr<WritableFile> write_file;
     Status ret = NewWritableFile(test_conf_, write_file);
-    if (!ret.ok()) return ret;
+    if (!ret.ok()) {
+      return ret;
+    }
     for (std::string& item : sample_conf) {
       write_file->Append(item);
     }

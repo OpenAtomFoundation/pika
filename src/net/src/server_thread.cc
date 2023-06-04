@@ -25,36 +25,36 @@ using pstd::Status;
 
 class DefaultServerHandle : public ServerHandle {
  public:
-  virtual void CronHandle() const override {}
-  virtual void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
+  void CronHandle() const override {}
+  void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
-  virtual void FdClosedHandle(int fd, const std::string& ip_port) const override {
+  void FdClosedHandle(int fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
-  virtual bool AccessHandle(std::string& ip) const override {
+  bool AccessHandle(std::string& ip) const override {
     UNUSED(ip);
     return true;
   }
-  virtual bool AccessHandle(int fd, std::string& ip) const override {
+  bool AccessHandle(int fd, std::string& ip) const override {
     UNUSED(fd);
     UNUSED(ip);
     return true;
   }
-  virtual int CreateWorkerSpecificData(void** data) const override {
+  int CreateWorkerSpecificData(void** data) const override {
     UNUSED(data);
     return 0;
   }
-  virtual int DeleteWorkerSpecificData(void* data) const override {
+  int DeleteWorkerSpecificData(void* data) const override {
     UNUSED(data);
     return 0;
   }
 };
 
 static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
-  if (raw_handle == nullptr) {
+  if (!raw_handle) {
     return new DefaultServerHandle();
   }
   return raw_handle;
@@ -111,7 +111,6 @@ ServerThread::~ServerThread() {
     EVP_cleanup();
   }
 #endif
-
   if (own_handle_) {
     delete handle_;
   }
@@ -125,7 +124,9 @@ int ServerThread::SetTcpNoDelay(int connfd) {
 int ServerThread::StartThread() {
   int ret = 0;
   ret = InitHandle();
-  if (ret != kSuccess) return ret;
+  if (ret != kSuccess) {
+    return ret;
+  }
   return Thread::StartThread();
 }
 
@@ -136,10 +137,11 @@ int ServerThread::InitHandle() {
     ips_.clear();
     ips_.insert("0.0.0.0");
   }
-  for (std::set<std::string>::iterator iter = ips_.begin(); iter != ips_.end(); ++iter) {
+
+  for (const auto & ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
-    ret = socket_p->Listen(*iter);
+    ret = socket_p->Listen(ip);
     if (ret != kSuccess) {
       return ret;
     }
@@ -161,7 +163,8 @@ void* ServerThread::ThreadMain() {
   Status s;
   struct sockaddr_in cliaddr;
   socklen_t clilen = sizeof(struct sockaddr);
-  int fd, connfd;
+  int fd;
+  int connfd;
 
   struct timeval when;
   gettimeofday(&when, nullptr);
@@ -219,8 +222,8 @@ void* ServerThread::ThreadMain() {
        * Handle server event
        */
       if (server_fds_.find(fd) != server_fds_.end()) {
-        if (pfe->mask & kReadable) {
-          connfd = accept(fd, (struct sockaddr*)&cliaddr, &clilen);
+        if ((pfe->mask & kReadable) != 0) {
+          connfd = accept(fd, reinterpret_cast<struct sockaddr*>(&cliaddr), &clilen);
           if (connfd == -1) {
             LOG(WARNING) << "accept error, errno numberis " << errno << ", error reason " << strerror(errno);
             continue;
@@ -252,7 +255,7 @@ void* ServerThread::ThreadMain() {
            */
           HandleNewConn(connfd, ip_port);
 
-        } else if (pfe->mask & kErrorEvent) {
+        } else if ((pfe->mask & kErrorEvent) != 0) {
           /*
            * this branch means there is error on the listen fd
            */

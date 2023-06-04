@@ -26,14 +26,14 @@ struct TimerItem {
 
 class BGThread final : public Thread {
  public:
-  explicit BGThread(int full = 100000) : Thread::Thread(), full_(full) {}
+  explicit BGThread(int full = 100000) :  full_(full) {}
 
-  virtual ~BGThread() {
+  ~BGThread() override {
     // call virtual in destructor, BGThread must be final
     StopThread();
   }
 
-  virtual int StopThread() override {
+  int StopThread() override {
     should_stop_ = true;
     rsignal_.notify_one();
     wsignal_.notify_one();
@@ -65,7 +65,7 @@ class BGThread final : public Thread {
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
-  virtual void* ThreadMain() override;
+  void* ThreadMain() override;
 };
 
 }  // namespace net

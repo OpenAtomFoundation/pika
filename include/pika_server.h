@@ -14,6 +14,7 @@
 #  include <sys/statfs.h>
 #endif
 #include <memory>
+#include <set>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_pubsub.h"
@@ -28,17 +29,13 @@
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
 #include "include/pika_conf.h"
+#include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_monitor_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
 #include "include/pika_statistic.h"
-#include "include/pika_table.h"
-
-using pstd::Slice;
-using pstd::Status;
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -127,8 +124,7 @@ enum TaskType {
   kBgSave,
 };
 
-
-class PikaServer {
+class PikaServer : public pstd::noncopyable {
  public:
   PikaServer();
   ~PikaServer();
@@ -150,7 +146,7 @@ class PikaServer {
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
-  bool ConsensusCheck(const std::string& table_name, const std::string& key);
+  bool ConsensusCheck(const std::string& db_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -161,31 +157,31 @@ class PikaServer {
   /*
    * Table use
    */
-  void InitTableStruct();
-  Status AddTableStruct(std::string table_name, uint32_t num);
-  Status DelTableStruct(std::string table_name);
-  std::shared_ptr<Table> GetTable(const std::string& table_name);
-  std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
+  void InitDBStruct();
+  pstd::Status AddDBStruct(const std::string& db_name, uint32_t num);
+  pstd::Status DelDBStruct(const std::string& db_name);
+  std::shared_ptr<DB> GetDB(const std::string& db_name);
+  std::set<uint32_t> GetDBSlotIds(const std::string& db_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
-  bool IsTableExist(const std::string& table_name);
-  bool IsTablePartitionExist(const std::string& table_name, uint32_t partition_id);
+  bool IsDBExist(const std::string& db_name);
+  bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsCommandSupport(const std::string& command);
-  bool IsTableBinlogIoError(const std::string& table_name);
-  Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
+  bool IsDBBinlogIoError(const std::string& db_name);
+  pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
 
   /*
    * Partition use
    */
-  void PreparePartitionTrySync();
-  void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
-  void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetTablePartitionBinlogOffset(const std::string& table_name, uint32_t partition_id, BinlogOffset* const boffset);
-  std::shared_ptr<Partition> GetPartitionByDbName(const std::string& db_name);
-  std::shared_ptr<Partition> GetTablePartitionById(const std::string& table_name, uint32_t partition_id);
-  std::shared_ptr<Partition> GetTablePartitionByKey(const std::string& table_name, const std::string& key);
-  Status DoSameThingEveryPartition(const TaskType& type);
+  void PrepareSlotTrySync();
+  void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
+  void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
+  std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
+  std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
+  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& db_name, const std::string& key);
+  pstd::Status DoSameThingEverySlot(const TaskType& type);
 
   /*
    * Master use
@@ -195,7 +191,7 @@ class PikaServer {
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
-  bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<TableStruct>& table_structs);
+  bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& table_structs);
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
@@ -213,9 +209,9 @@ class PikaServer {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  bool AllPartitionConnectSuccess();
-  bool LoopPartitionStateMachine();
-  void SetLoopPartitionStateMachine(bool need_loop);
+  bool AllSlotConnectSuccess();
+  bool LoopSlotStateMachine();
+  void SetLoopSlotStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   bool IsFirstMetaSync();
@@ -248,10 +244,10 @@ class PikaServer {
   /*
    * DBSync used
    */
-  void DBSync(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
+  void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
 
   /*
    * Keyscan used
@@ -268,7 +264,7 @@ class PikaServer {
   /*
    * Monitor used
    */
-  bool HasMonitorClients();
+  bool HasMonitorClients() const;
   void AddMonitorMessage(const std::string& monitor_message);
   void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
 
@@ -290,16 +286,16 @@ class PikaServer {
   uint64_t accumulative_connections();
   void incr_accumulative_connections();
   void ResetLastSecQuerynum();
-  void UpdateQueryNumAndExecCountTable(const std::string& table_name, const std::string& command, bool is_write);
-  std::unordered_map<std::string, uint64_t> ServerExecCountTable();
-  QpsStatistic ServerTableStat(const std::string& table_name);
-  std::unordered_map<std::string, QpsStatistic> ServerAllTableStat();
+  void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
+  std::unordered_map<std::string, uint64_t> ServerExecCountDB();
+  QpsStatistic ServerDBStat(const std::string& db_name);
+  std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
   /*
    * Slave to Master communication used
    */
   int SendToPeer();
   void SignalAuxiliary();
-  Status TriggerSendBinlogSync();
+  pstd::Status TriggerSendBinlogSync();
 
   /*
    * PubSub used
@@ -307,14 +303,14 @@ class PikaServer {
   int PubSubNumPat();
   int Publish(const std::string& channel, const std::string& msg);
   void EnablePublish(int fd);
-  int UnSubscribe(std::shared_ptr<net::NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
+  int UnSubscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
                   std::vector<std::pair<std::string, int>>* result);
-  void Subscribe(std::shared_ptr<net::NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
+  void Subscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
                  std::vector<std::pair<std::string, int>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
 
-  Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
+  pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 
   // info debug use
   void ServerStatus(std::string* info);
@@ -325,14 +321,12 @@ class PikaServer {
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
 
-
-
   friend class Cmd;
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
   friend class PkClusterDelSlotsCmd;
-  friend class PkClusterAddTableCmd;
-  friend class PkClusterDelTableCmd;
+  friend class PkClusterAddDBCmd;
+  friend class PkClusterDelDBCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
@@ -360,9 +354,8 @@ class PikaServer {
    * Table used
    */
   std::atomic<SlotState> slot_state_;
-  std::shared_mutex tables_rw_;
-  std::map<std::string, std::shared_ptr<Table>> tables_;
-
+  std::shared_mutex dbs_rw_;
+  std::map<std::string, std::shared_ptr<DB>> dbs_;
 
   /*
    * CronTask used
@@ -381,15 +374,15 @@ class PikaServer {
    * Slave used
    */
   std::string master_ip_;
-  int master_port_ = 0;
-  int repl_state_ = PIKA_REPL_NO_CONNECT;
+  int master_port_  = 0;
+  int repl_state_  = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
-  bool loop_partition_state_machine_ = false;
+  bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;
-  bool leader_protected_mode_ = false;  // reject request after master slave sync done
-  std::shared_mutex state_protector_;   // protect below, use for master-slave mode
+  bool leader_protected_mode_ = false;        // reject request after master slave sync done
+  std::shared_mutex state_protector_;         // protect below, use for master-slave mode
 
   /*
    * Bgsave used
@@ -415,7 +408,8 @@ class PikaServer {
   /*
    * Monitor used
    */
-  std::unique_ptr<PikaMonitorThread> pika_monitor_thread_;
+  mutable pstd::Mutex monitor_mutex_protector_;
+  std::set<std::weak_ptr<PikaClientConn>, std::owner_less<std::weak_ptr<PikaClientConn>>> pika_monitor_clients_;
 
   /*
    * Rsync used
@@ -444,8 +438,6 @@ class PikaServer {
    */
   Statistic statistic_;
 
-  PikaServer(PikaServer& ps);
-  void operator=(const PikaServer& ps);
 };
 
 #endif

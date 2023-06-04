@@ -5,10 +5,10 @@
 
 // #include <glog/logging.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <csignal>
 #include <random>
 
 #include <glog/logging.h>
@@ -47,7 +47,8 @@ static void createPidFile(const char* file) {
 }
 
 static void daemonize() {
-  if (fork() != 0) exit(0); /* parent exits */
+  if (fork() != 0) { exit(0); /* parent exits */
+}
   setsid();                 /* create a new session */
 }
 
@@ -158,7 +159,7 @@ int main(int argc, char* argv[]) {
       case 'p':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.local_port = int(num);
+        g_conf.local_port = static_cast<int>(num);
         break;
       case 'i':
         snprintf(buf, 1024, "%s", optarg);
@@ -167,7 +168,7 @@ int main(int argc, char* argv[]) {
       case 'o':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.master_port = int(num);
+        g_conf.master_port = static_cast<int>(num);
         break;
       case 'm':
         snprintf(buf, 1024, "%s", optarg);
@@ -176,12 +177,12 @@ int main(int argc, char* argv[]) {
       case 'n':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.forward_port = int(num);
+        g_conf.forward_port = static_cast<int>(num);
         break;
       case 'x':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.forward_thread_num = int(num);
+        g_conf.forward_thread_num = static_cast<int>(num);
         break;
       case 'y':
         snprintf(buf, 1024, "%s", optarg);
@@ -190,18 +191,18 @@ int main(int argc, char* argv[]) {
       case 'z':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.wait_bgsave_timeout = time_t(num);
+        g_conf.wait_bgsave_timeout = static_cast<time_t>(num);
         break;
 
       case 'f':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.filenum = (size_t)(num);
+        g_conf.filenum = static_cast<size_t>(num);
         break;
       case 's':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.offset = (size_t)(num);
+        g_conf.offset = static_cast<size_t>(num);
         break;
       case 'w':
         snprintf(buf, 1024, "%s", optarg);
@@ -225,7 +226,7 @@ int main(int argc, char* argv[]) {
       case 'b':
         snprintf(buf, 1024, "%s", optarg);
         pstd::string2int(buf, strlen(buf), &(num));
-        g_conf.sync_batch_num = (size_t)(num);
+        g_conf.sync_batch_num = static_cast<size_t>(num);
         break;
       case 'e':
         g_conf.exit_if_dbsync = true;

@@ -21,7 +21,7 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   for (uint32_t i = 0; i < m_; ++i) {
     register_[i] = 0;
   }
-  if (origin_register != "") {
+  if (!origin_register.empty()) {
     for (uint32_t i = 0; i < m_; ++i) {
       register_[i] = origin_register[i];
     }
@@ -35,7 +35,8 @@ std::string HyperLogLog::Add(const char* value, uint32_t len) {
   MurmurHash3_x86_32(value, len, HLL_HASH_SEED, static_cast<void*>(&hash_value));
   int32_t index = hash_value & ((1 << b_) - 1);
   uint8_t rank = Nctz((hash_value >> b_), 32 - b_);
-  if (rank > register_[index]) register_[index] = rank;
+  if (rank > register_[index]) { register_[index] = rank;
+}
   std::string result(m_, 0);
   for (uint32_t i = 0; i < m_; ++i) {
     result[i] = register_[i];
@@ -57,7 +58,8 @@ double HyperLogLog::Estimate() const {
 }
 
 double HyperLogLog::FirstEstimate() const {
-  double estimate, sum = 0.0;
+  double estimate;
+  double sum = 0.0;
   for (uint32_t i = 0; i < m_; i++) {
     sum += 1.0 / (1 << register_[i]);
   }
@@ -107,6 +109,6 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
 }
 
 // ::__builtin_ctz(x): 返回右起第一个‘1’之后的0的个数
-uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return (uint8_t)std::min(b, ::__builtin_ctz(x)) + 1; }
+uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
 
 }  // namespace storage

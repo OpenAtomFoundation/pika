@@ -44,7 +44,7 @@ class ParsedStringsValue : public ParsedInternalValue {
   }
 
   void StripSuffix() override {
-    if (value_ != nullptr) {
+    if (value_) {
       value_->erase(value_->size() - kStringsValueSuffixLength, kStringsValueSuffixLength);
     }
   }
@@ -53,7 +53,7 @@ class ParsedStringsValue : public ParsedInternalValue {
   void SetVersionToValue() override {}
 
   void SetTimestampToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kStringsValueSuffixLength;
       EncodeFixed32(dst, timestamp_);
     }

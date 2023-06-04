@@ -109,7 +109,7 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
 ```
   rm -fr output
   cmake -B output -DCMAKE_BUILD_TYPE=Debug
-  cd ouput && make
+  cd output && make
 ```
 
 ## 使用
@@ -124,6 +124,39 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
 
   1. 执行 cd output && make clean来清空pika的编译内容
   2. 执行 rm -fr output 重新生成cmkae（一般用于彻底重新编译）
+```
+
+## 容器化
+
+### 使用docker运行
+
+```bash
+docker run -d \
+  --restart=always \
+  -p 9221:9221 \
+  -v <log_dir>:/pika/log \
+  -v <db_dir>:/pika/db \
+  -v <dump_dir>:/pika/dump \
+  -v <dbsync_dir>:/pika/dbsync \
+  pikadb/pika:v3.3.6 
+
+redis-cli -p 9221 "info"
+```
+
+### 构建镜像
+如果你想自己构建镜像，我们提供了一个脚本 `build_docker.sh` 来简化这个过程。
+
+脚本接受几个可选参数：
+
+- `-t tag`: 指定镜像的Docker标签。默认情况下，标签是 `pikadb/pika:<git tag>`。
+- `-p platform`: 指定Docker镜像的平台。默认使用当前 docker 的 platform 设置 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
+- `--proxy`: 使用代理下载 package 以加快构建过程，构建时会使用阿里云的镜像源。
+- `--help`: 显示帮助信息。
+
+这是脚本的一个示例使用：
+  
+```bash
+./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
 
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
@@ -354,8 +387,12 @@ Pika与Redis的极限QPS对比。
 
 <img src="https://deep011.github.io/public/images/pika_benchmark/pika_vs_redis_qps.png" height = "60%" width = "60%" alt="1"/>
 
+## 可观测性
+
+1. [指标 Metrics](tools/pika_exporter/README.md)
+
 ## 文档
-1. [doc](docs/catalogue.md)
+1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)
 
 ## 联系方式
 

@@ -21,12 +21,13 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
+#define configRunIdSize 40
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
  public:
   PikaConf(const std::string& path);
-  ~PikaConf(){};
+  ~PikaConf() override {}
 
   // Getter
   int port() {
@@ -109,6 +110,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return server_id_;
   }
+  std::string run_id() {
+    std::shared_lock l(rwlock_);
+    return run_id_;
+  }
   std::string requirepass() {
     std::shared_lock l(rwlock_);
     return requirepass_;
@@ -133,7 +138,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return userpass_;
   }
-  const std::string suser_blacklist() {
+  std::string suser_blacklist() {
     std::shared_lock l(rwlock_);
     return pstd::StringConcat(user_blacklist_, COMMA);
   }
@@ -150,13 +155,13 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return default_slot_num_;
   }
-  const std::vector<TableStruct>& table_structs() {
+  const std::vector<DBStruct>& db_structs() {
     std::shared_lock l(rwlock_);
-    return table_structs_;
+    return db_structs_;
   }
-  std::string default_table() {
+  std::string default_db() {
     std::shared_lock l(rwlock_);
-    return default_table_;
+    return default_db_;
   }
   std::string compression() {
     std::shared_lock l(rwlock_);
@@ -313,7 +318,7 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
-  void SetSlaveof(const std::string value) {
+  void SetSlaveof(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
@@ -326,7 +331,7 @@ class PikaConf : public pstd::BaseConf {
   void SetWriteBinlog(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-binlog", value);
-    write_binlog_ = (value == "yes") ? true : false;
+    write_binlog_ = value == "yes";
   }
   void SetMaxCacheStatisticKeys(const int value) {
     std::lock_guard l(rwlock_);
@@ -405,7 +410,7 @@ class PikaConf : public pstd::BaseConf {
   }
   void SetSlowlogWriteErrorlog(const bool value) {
     std::lock_guard l(rwlock_);
-    TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
+    TryPushDiffCommands("slowlog-write-errorlog", value ? "yes" : "no");
     slowlog_write_errorlog_.store(value);
   }
   void SetSlowlogSlowerThan(const int value) {
@@ -467,20 +472,20 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
-  Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
+  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
-  Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  Status AddTable(const std::string& table_name, uint32_t slot_num);
-  Status AddTableSanityCheck(const std::string& table_name);
-  Status DelTable(const std::string& table_name);
-  Status DelTableSanityCheck(const std::string& table_name);
+  pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
+  pstd::Status AddDBSanityCheck(const std::string& db_name);
+  pstd::Status DelDB(const std::string& db_name);
+  pstd::Status DelDBSanityCheck(const std::string& db_name);
 
   int Load();
   int ConfigRewrite();
 
  private:
-  Status InternalGetTargetTable(const std::string& table_name, uint32_t* const target);
+  pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
   int port_ = 0;
   std::string slaveof_;
@@ -503,6 +508,7 @@ class PikaConf : public pstd::BaseConf {
   bool daemonize_ = false;
   int timeout_ = 0;
   std::string server_id_;
+  std::string run_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
@@ -510,8 +516,8 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;
-  std::vector<TableStruct> table_structs_;
-  std::string default_table_;
+  std::vector<DBStruct> db_structs_;
+  std::string default_db_;
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;

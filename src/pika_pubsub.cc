@@ -11,20 +11,20 @@ extern PikaServer* g_pika_server;
 
 static std::string ConstructPubSubResp(const std::string& cmd, const std::vector<std::pair<std::string, int>>& result) {
   std::stringstream resp;
-  if (result.size() == 0) {
+  if (result.empty()) {
     resp << "*3\r\n"
          << "$" << cmd.length() << "\r\n"
          << cmd << "\r\n"
          << "$" << -1 << "\r\n"
          << ":" << 0 << "\r\n";
   }
-  for (auto it = result.begin(); it != result.end(); it++) {
+  for (const auto & it : result) {
     resp << "*3\r\n"
          << "$" << cmd.length() << "\r\n"
          << cmd << "\r\n"
-         << "$" << it->first.length() << "\r\n"
-         << it->first << "\r\n"
-         << ":" << it->second << "\r\n";
+         << "$" << it.first.length() << "\r\n"
+         << it.first << "\r\n"
+         << ":" << it.second << "\r\n";
   }
   return resp.str();
 }
@@ -38,10 +38,9 @@ void PublishCmd::DoInitial() {
   msg_ = argv_[2];
 }
 
-void PublishCmd::Do(std::shared_ptr<Partition> partition) {
+void PublishCmd::Do(std::shared_ptr<Slot> slot) {
   int receivers = g_pika_server->Publish(channel_, msg_);
   res_.AppendInteger(receivers);
-  return;
 }
 
 void SubscribeCmd::DoInitial() {
@@ -51,7 +50,7 @@ void SubscribeCmd::DoInitial() {
   }
 }
 
-void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void SubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
@@ -87,7 +86,7 @@ void UnSubscribeCmd::DoInitial() {
   }
 }
 
-void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void UnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
@@ -128,7 +127,7 @@ void PSubscribeCmd::DoInitial() {
   }
 }
 
-void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void PSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
@@ -164,7 +163,7 @@ void PUnSubscribeCmd::DoInitial() {
   }
 }
 
-void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+void PUnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
@@ -204,8 +203,8 @@ void PubSubCmd::DoInitial() {
     return;
   }
   subcommand_ = argv_[1];
-  if (strcasecmp(subcommand_.data(), "channels") && strcasecmp(subcommand_.data(), "numsub") &&
-      strcasecmp(subcommand_.data(), "numpat")) {
+  if (strcasecmp(subcommand_.data(), "channels") != 0 && strcasecmp(subcommand_.data(), "numsub") != 0 &&
+      strcasecmp(subcommand_.data(), "numpat") != 0) {
     res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
   }
   for (size_t i = 2; i < argv_.size(); i++) {
@@ -213,9 +212,9 @@ void PubSubCmd::DoInitial() {
   }
 }
 
-void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
-  if (!strcasecmp(subcommand_.data(), "channels")) {
-    std::string pattern = "";
+void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
+  if (strcasecmp(subcommand_.data(), "channels") == 0) {
+    std::string pattern;
     std::vector<std::string> result;
     if (arguments_.size() == 1) {
       pattern = arguments_[0];
@@ -227,23 +226,22 @@ void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
     g_pika_server->PubSubChannels(pattern, &result);
 
     res_.AppendArrayLen(result.size());
-    for (auto it = result.begin(); it != result.end(); ++it) {
-      res_.AppendStringLen((*it).length());
-      res_.AppendContent(*it);
+    for (auto &it : result) {
+      res_.AppendStringLen(it.length());
+      res_.AppendContent(it);
     }
-  } else if (!strcasecmp(subcommand_.data(), "numsub")) {
+  } else if (strcasecmp(subcommand_.data(), "numsub") == 0) {
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->PubSubNumSub(arguments_, &result);
     res_.AppendArrayLen(result.size() * 2);
-    for (auto it = result.begin(); it != result.end(); ++it) {
-      res_.AppendStringLen(it->first.length());
-      res_.AppendContent(it->first);
-      res_.AppendInteger(it->second);
+    for (auto &it : result) {
+      res_.AppendStringLen(it.first.length());
+      res_.AppendContent(it.first);
+      res_.AppendInteger(it.second);
     }
     return;
-  } else if (!strcasecmp(subcommand_.data(), "numpat")) {
+  } else if (strcasecmp(subcommand_.data(), "numpat") == 0) {
     int subscribed = g_pika_server->PubSubNumPat();
     res_.AppendInteger(subscribed);
   }
-  return;
 }

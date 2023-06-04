@@ -17,22 +17,20 @@ void HDelCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  PikaCmdArgsType::iterator iter = argv_.begin();
+  auto iter = argv_.begin();
   iter++;
   iter++;
   fields_.assign(iter, argv_.end());
-  return;
 }
 
-void HDelCmd::Do(std::shared_ptr<Partition> partition) {
+void HDelCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t num = 0;
-  rocksdb::Status s = partition->db()->HDel(key_, fields_, &num);
+  rocksdb::Status s = slot->db()->HDel(key_, fields_, &num);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(num);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HSetCmd::DoInitial() {
@@ -43,18 +41,16 @@ void HSetCmd::DoInitial() {
   key_ = argv_[1];
   field_ = argv_[2];
   value_ = argv_[3];
-  return;
 }
 
-void HSetCmd::Do(std::shared_ptr<Partition> partition) {
+void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t ret = 0;
-  rocksdb::Status s = partition->db()->HSet(key_, field_, value_, &ret);
+  rocksdb::Status s = slot->db()->HSet(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HGetCmd::DoInitial() {
@@ -64,12 +60,11 @@ void HGetCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  return;
 }
 
-void HGetCmd::Do(std::shared_ptr<Partition> partition) {
+void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->HGet(key_, field_, &value);
+  rocksdb::Status s = slot->db()->HGet(key_, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -86,12 +81,12 @@ void HGetallCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
-void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
+void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t total_fv = 0;
-  int64_t cursor = 0, next_cursor = 0;
+  int64_t cursor = 0;
+  int64_t next_cursor = 0;
   size_t raw_limit = g_pika_conf->max_client_response_size();
   std::string raw;
   rocksdb::Status s;
@@ -99,7 +94,7 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
 
   do {
     fvs.clear();
-    s = partition->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
+    s = slot->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
     if (!s.ok()) {
       raw.clear();
       total_fv = 0;
@@ -126,7 +121,6 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HExistsCmd::DoInitial() {
@@ -136,11 +130,10 @@ void HExistsCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  return;
 }
 
-void HExistsCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->HExists(key_, field_);
+void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->HExists(key_, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -157,16 +150,15 @@ void HIncrbyCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  if (argv_[3].find(" ") != std::string::npos || !pstd::string2int(argv_[3].data(), argv_[3].size(), &by_)) {
+  if (argv_[3].find(' ') != std::string::npos || (pstd::string2int(argv_[3].data(), argv_[3].size(), &by_) == 0)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
 }
 
-void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
+void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t new_value;
-  rocksdb::Status s = partition->db()->HIncrby(key_, field_, by_, &new_value);
+  rocksdb::Status s = slot->db()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
@@ -176,7 +168,6 @@ void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HIncrbyfloatCmd::DoInitial() {
@@ -187,12 +178,11 @@ void HIncrbyfloatCmd::DoInitial() {
   key_ = argv_[1];
   field_ = argv_[2];
   by_ = argv_[3];
-  return;
 }
 
-void HIncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
+void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   std::string new_value;
-  rocksdb::Status s = partition->db()->HIncrbyfloat(key_, field_, by_, &new_value);
+  rocksdb::Status s = slot->db()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
@@ -203,7 +193,6 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HKeysCmd::DoInitial() {
@@ -212,12 +201,11 @@ void HKeysCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
-void HKeysCmd::Do(std::shared_ptr<Partition> partition) {
+void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> fields;
-  rocksdb::Status s = partition->db()->HKeys(key_, &fields);
+  rocksdb::Status s = slot->db()->HKeys(key_, &fields);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(fields.size());
     for (const auto& field : fields) {
@@ -226,7 +214,6 @@ void HKeysCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HLenCmd::DoInitial() {
@@ -235,18 +222,16 @@ void HLenCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
-void HLenCmd::Do(std::shared_ptr<Partition> partition) {
+void HLenCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
-  rocksdb::Status s = partition->db()->HLen(key_, &len);
+  rocksdb::Status s = slot->db()->HLen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hlen");
   }
-  return;
 }
 
 void HMgetCmd::DoInitial() {
@@ -255,16 +240,15 @@ void HMgetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  PikaCmdArgsType::iterator iter = argv_.begin();
+  auto iter = argv_.begin();
   iter++;
   iter++;
   fields_.assign(iter, argv_.end());
-  return;
 }
 
-void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
+void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
-  rocksdb::Status s = partition->db()->HMGet(key_, fields_, &vss);
+  rocksdb::Status s = slot->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -278,7 +262,6 @@ void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HMsetCmd::DoInitial() {
@@ -297,17 +280,15 @@ void HMsetCmd::DoInitial() {
   for (; index < argc; index += 2) {
     fvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  return;
 }
 
-void HMsetCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->HMSet(key_, fvs_);
+void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HSetnxCmd::DoInitial() {
@@ -318,12 +299,11 @@ void HSetnxCmd::DoInitial() {
   key_ = argv_[1];
   field_ = argv_[2];
   value_ = argv_[3];
-  return;
 }
 
-void HSetnxCmd::Do(std::shared_ptr<Partition> partition) {
+void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t ret = 0;
-  rocksdb::Status s = partition->db()->HSetnx(key_, field_, value_, &ret);
+  rocksdb::Status s = slot->db()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
   } else {
@@ -338,18 +318,16 @@ void HStrlenCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  return;
 }
 
-void HStrlenCmd::Do(std::shared_ptr<Partition> partition) {
+void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
-  rocksdb::Status s = partition->db()->HStrlen(key_, field_, &len);
+  rocksdb::Status s = slot->db()->HStrlen(key_, field_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hstrlen");
   }
-  return;
 }
 
 void HValsCmd::DoInitial() {
@@ -358,12 +336,11 @@ void HValsCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
-void HValsCmd::Do(std::shared_ptr<Partition> partition) {
+void HValsCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
-  rocksdb::Status s = partition->db()->HVals(key_, &values);
+  rocksdb::Status s = slot->db()->HVals(key_, &values);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -373,7 +350,6 @@ void HValsCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HScanCmd::DoInitial() {
@@ -382,23 +358,24 @@ void HScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  size_t index = 3, argc = argv_.size();
+  size_t index = 3;
+  size_t argc = argv_.size();
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -412,13 +389,12 @@ void HScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  return;
 }
 
-void HScanCmd::Do(std::shared_ptr<Partition> partition) {
+void HScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
+  rocksdb::Status s = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -435,7 +411,6 @@ void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void HScanxCmd::DoInitial() {
@@ -446,18 +421,19 @@ void HScanxCmd::DoInitial() {
   key_ = argv_[1];
   start_field_ = argv_[2];
 
-  size_t index = 3, argc = argv_.size();
+  size_t index = 3;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -471,13 +447,12 @@ void HScanxCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  return;
 }
 
-void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
+void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -492,7 +467,6 @@ void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void PKHScanRangeCmd::DoInitial() {
@@ -504,18 +478,19 @@ void PKHScanRangeCmd::DoInitial() {
   field_start_ = argv_[2];
   field_end_ = argv_[3];
 
-  size_t index = 4, argc = argv_.size();
+  size_t index = 4;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -525,14 +500,13 @@ void PKHScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  return;
 }
 
-void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
+void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      partition->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -546,7 +520,6 @@ void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }
 
 void PKHRScanRangeCmd::DoInitial() {
@@ -558,18 +531,19 @@ void PKHRScanRangeCmd::DoInitial() {
   field_start_ = argv_[2];
   field_end_ = argv_[3];
 
-  size_t index = 4, argc = argv_.size();
+  size_t index = 4;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -579,14 +553,13 @@ void PKHRScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  return;
 }
 
-void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
+void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      partition->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -600,5 +573,4 @@ void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
 }

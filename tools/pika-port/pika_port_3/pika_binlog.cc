@@ -5,21 +5,22 @@
 
 #include "pika_binlog.h"
 
-#include <signal.h>
-#include <stdint.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <csignal>
+#include <cstdint>
 #include <iostream>
 #include <string>
+#include <utility>
 
 #include <glog/logging.h>
 
 #include "pstd/include/pstd_mutex.h"
 
-std::string NewFileName(const std::string name, const uint32_t current) {
+std::string NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
-  return std::string(buf);
+  return {buf};
 }
 
 /*
@@ -46,10 +47,10 @@ Status Version::StableSave() {
 
 Status Version::Init() {
   Status s;
-  if (save_->GetData() != nullptr) {
-    memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
-    memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
-    memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+  if (save_->GetData()) {
+    memcpy(reinterpret_cast<char*>(&pro_num_), save_->GetData(), sizeof(uint32_t));
+    memcpy(reinterpret_cast<char*>(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy(reinterpret_cast<char*>(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
     // memcpy((char*)(&double_master_recv_num_), save_->GetData() + 20, sizeof(uint32_t));
     // memcpy((char*)(&double_master_recv_offset_), save_->GetData() + 24, sizeof(uint64_t));
     return Status::OK();
@@ -61,7 +62,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const std::string& binlog_path, const int file_size)
+Binlog::Binlog(std::string  binlog_path, const int file_size)
     : consumer_num_(0),
       version_(nullptr),
       queue_(nullptr),
@@ -69,7 +70,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
       pro_num_(0),
       pool_(nullptr),
       exit_all_consume_(false),
-      binlog_path_(binlog_path),
+      binlog_path_(std::move(binlog_path)),
       file_size_(file_size) {
   // To intergrate with old version, we don't set mmap file size to 100M;
   // pstd::SetMmapBoundSize(file_size);
@@ -146,7 +147,7 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
-  if (logic_id != nullptr) {
+  if (logic_id) {
     *logic_id = version_->logic_id_;
   }
 
@@ -286,7 +287,7 @@ Status Binlog::AppendBlank(pstd::WritableFile* file, uint64_t len) {
   if (len % kBlockSize < kHeaderSize) {
     n = 0;
   } else {
-    n = (uint32_t)((len % kBlockSize) - kHeaderSize);
+    n = static_cast<uint32_t>((len % kBlockSize) - kHeaderSize);
   }
 
   char buf[kBlockSize];

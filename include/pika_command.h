@@ -7,15 +7,17 @@
 #define PIKA_COMMAND_H_
 
 #include <unordered_map>
+#include <utility>
 #include <memory>
+
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
 
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
-class SyncMasterPartition;
-class SyncSlavePartition;
+class SyncMasterSlot;
+class SyncSlaveSlot;
 
 // Constant for command name
 // Admin
@@ -193,7 +195,7 @@ const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 const std::string kClusterPrefix = "pkcluster";
-typedef net::RedisCmdArgsType PikaCmdArgsType;
+using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
@@ -203,7 +205,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskPartition = 1536
+  kCmdFlagsMaskSlot = 1536
 };
 
 enum CmdFlags {
@@ -228,8 +230,8 @@ enum CmdFlags {
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
-  kCmdFlagsSinglePartition = 512,
-  kCmdFlagsMultiPartition = 1024
+  kCmdFlagsSingleSlot = 512,
+  kCmdFlagsMultiSlot = 1024
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -260,12 +262,12 @@ class CmdRes {
     kWrongNum,
     kInvalidIndex,
     kInvalidDbType,
-    kInvalidTable,
+    kInvalidDB,
     kInconsistentHashTag,
     kErrOther
   };
 
-  CmdRes() : ret_(kNone) {}
+  CmdRes() = default;
 
   bool none() const { return ret_ == kNone && message_.empty(); }
   bool ok() const { return ret_ == kOk || ret_ == kNone; }
@@ -329,8 +331,8 @@ class CmdRes {
         break;
       case kInconsistentHashTag:
         return "-ERR parameters hashtag is inconsistent\r\n";
-      case kInvalidTable:
-        result = "-ERR invalid Table for '";
+      case kInvalidDB:
+        result = "-ERR invalid DB for '";
         result.append(message_);
         result.append("'\r\n");
         break;
@@ -355,7 +357,7 @@ class CmdRes {
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
-  void SetRes(CmdRet _ret, const std::string content = "") {
+  void SetRes(CmdRet _ret, const std::string& content = "") {
     ret_ = _ret;
     if (!content.empty()) {
       message_ = content;
@@ -371,7 +373,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  public:
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
-    HintKeys() {}
+    HintKeys() = default;
     void Push(const std::string& key, int hint) {
       keys.push_back(key);
       hints.push_back(hint);
@@ -381,55 +383,54 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::vector<int> hints;
   };
   struct ProcessArg {
-    ProcessArg() {}
-    ProcessArg(std::shared_ptr<Partition> _partition, std::shared_ptr<SyncMasterPartition> _sync_partition,
+    ProcessArg() = default;
+    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot,
                HintKeys _hint_keys)
-        : partition(_partition), sync_partition(_sync_partition), hint_keys(_hint_keys) {}
-    std::shared_ptr<Partition> partition;
-    std::shared_ptr<SyncMasterPartition> sync_partition;
+        : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
+    std::shared_ptr<Slot> slot;
+    std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(const std::string& name, int arity, uint16_t flag)
-      : name_(name), arity_(arity), flag_(flag), stage_(kNone), do_duration_(0) {}
-  virtual ~Cmd() {}
+  Cmd(std::string  name, int arity, uint16_t flag)
+      : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
   virtual void ProcessFlushDBCmd();
   virtual void ProcessFlushAllCmd();
-  virtual void ProcessSinglePartitionCmd();
-  virtual void ProcessMultiPartitionCmd();
-  virtual void ProcessDoNotSpecifyPartitionCmd();
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
+  virtual void ProcessSingleSlotCmd();
+  virtual void ProcessMultiSlotCmd();
+  virtual void ProcessDoNotSpecifySlotCmd();
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) = 0;
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
-  void Initial(const PikaCmdArgsType& argv, const std::string& table_name);
+  void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_write() const;
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
-  bool is_single_partition() const;
-  bool is_multi_partition() const;
-  bool is_classic_mode() const;
+  bool is_single_slot() const;
+  bool is_multi_slot() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
   std::string name() const;
   CmdRes& res();
-  std::string table_name() const;
+  std::string db_name() const;
   BinlogOffset binlog_offset() const;
   const PikaCmdArgsType& argv() const;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
 
-  void SetConn(const std::shared_ptr<net::NetConn> conn);
+  void SetConn(const std::shared_ptr<net::NetConn>& conn);
   std::shared_ptr<net::NetConn> GetConn();
 
-  void SetResp(const std::shared_ptr<std::string> resp);
+  void SetResp(const std::shared_ptr<std::string>& resp);
   std::shared_ptr<std::string> GetResp();
 
   void SetStage(CmdStage stage);
@@ -437,12 +438,12 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<SyncMasterPartition> sync_partition,
+  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<SyncMasterPartition> sync_partition,
+  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
-  void DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_key);
-  void DoBinlog(std::shared_ptr<SyncMasterPartition> partition);
+  void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
   bool CheckArg(int num) const;
   void LogCommand() const;
 
@@ -452,7 +453,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   CmdRes res_;
   PikaCmdArgsType argv_;
-  std::string table_name_;
+  std::string db_name_;
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;
@@ -466,11 +467,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-typedef std::unordered_map<std::string, std::unique_ptr<Cmd>> CmdTable;
+using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);
-Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
+Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table);
 
 void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

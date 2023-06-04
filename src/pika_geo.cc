@@ -24,13 +24,14 @@ void GeoAddCmd::DoInitial() {
   key_ = argv_[1];
   pos_.clear();
   struct GeoPoint point;
-  double longitude, latitude;
+  double longitude;
+  double latitude;
   for (size_t index = 2; index < argc; index += 3) {
-    if (!pstd::string2d(argv_[index].data(), argv_[index].size(), &longitude)) {
+    if (pstd::string2d(argv_[index].data(), argv_[index].size(), &longitude) == 0) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    if (!pstd::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude)) {
+    if (pstd::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude) == 0) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
@@ -39,10 +40,9 @@ void GeoAddCmd::DoInitial() {
     point.latitude = latitude;
     pos_.push_back(point);
   }
-  return;
 }
 
-void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
+void GeoAddCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
   for (const auto& geo_point : pos_) {
     // Convert coordinates to geohash
@@ -56,14 +56,13 @@ void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
     score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->ZAdd(key_, score_members, &count);
+  rocksdb::Status s = slot->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void GeoPosCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -78,14 +77,14 @@ void GeoPosCmd::DoInitial() {
   }
 }
 
-void GeoPosCmd::Do(std::shared_ptr<Partition> partition) {
+void GeoPosCmd::Do(std::shared_ptr<Slot> slot) {
   double score;
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
-    rocksdb::Status s = partition->db()->ZScore(key_, member, &score);
+    rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
-      GeoHashBits hash = {.bits = (uint64_t)score, .step = GEO_STEP_MAX};
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
 
       res_.AppendArrayLen(2);
@@ -124,11 +123,7 @@ static double length_converter(double meters, const std::string& unit) {
 }
 
 static bool check_unit(const std::string& unit) {
-  if (unit == "m" || unit == "km" || unit == "ft" || unit == "mi") {
-    return true;
-  } else {
-    return false;
-  }
+  return unit == "m" || unit == "km" || unit == "ft" || unit == "mi";
 }
 
 void GeoDistCmd::DoInitial() {
@@ -157,11 +152,14 @@ void GeoDistCmd::DoInitial() {
   }
 }
 
-void GeoDistCmd::Do(std::shared_ptr<Partition> partition) {
-  double first_score, second_score, first_xy[2], second_xy[2];
-  rocksdb::Status s = partition->db()->ZScore(key_, first_pos_, &first_score);
+void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
+  double first_score;
+  double second_score;
+  double first_xy[2];
+  double second_xy[2];
+  rocksdb::Status s = slot->db()->ZScore(key_, first_pos_, &first_score);
   if (s.ok()) {
-    GeoHashBits hash = {.bits = (uint64_t)first_score, .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(first_score), .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, first_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
@@ -171,9 +169,9 @@ void GeoDistCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  s = partition->db()->ZScore(key_, second_pos_, &second_score);
+  s = slot->db()->ZScore(key_, second_pos_, &second_score);
   if (s.ok()) {
-    GeoHashBits hash = {.bits = (uint64_t)second_score, .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(second_score), .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, second_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
@@ -204,15 +202,15 @@ void GeoHashCmd::DoInitial() {
   }
 }
 
-void GeoHashCmd::Do(std::shared_ptr<Partition> partition) {
+void GeoHashCmd::Do(std::shared_ptr<Slot> slot) {
   const char* geoalphabet = "0123456789bcdefghjkmnpqrstuvwxyz";
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
     double score;
-    rocksdb::Status s = partition->db()->ZScore(key_, member, &score);
+    rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
-      GeoHashBits hash = {.bits = (uint64_t)score, .step = GEO_STEP_MAX};
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
       GeoHashRange r[2];
       GeoHashBits encode_hash;
@@ -250,9 +248,11 @@ static bool sort_distance_desc(const NeighborPoint& pos1, const NeighborPoint& p
   return pos1.distance > pos2.distance;
 }
 
-static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string& key, GeoRange& range, CmdRes& res) {
+static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key, GeoRange& range, CmdRes& res) {
   rocksdb::Status s;
-  double longitude = range.longitude, latitude = range.latitude, distance = range.distance;
+  double longitude = range.longitude;
+  double latitude = range.latitude;
+  double distance = range.distance;
   int count_limit = 0;
   // Convert other units to meters
   if (range.unit == "m") {
@@ -284,32 +284,36 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string& k
   std::vector<NeighborPoint> result;
   int last_processed = 0;
   for (size_t i = 0; i < sizeof(neighbors) / sizeof(*neighbors); i++) {
-    GeoHashFix52Bits min, max;
-    if (HASHISZERO(neighbors[i])) continue;
+    GeoHashFix52Bits min;
+    GeoHashFix52Bits max;
+    if (HASHISZERO(neighbors[i])) {
+      continue;
+    }
     min = geohashAlign52Bits(neighbors[i]);
     neighbors[i].bits++;
     max = geohashAlign52Bits(neighbors[i]);
     // When a huge Radius (in the 5000 km range or more) is used,
     // adjacent neighbors can be the same, so need to remove duplicated elements
-    if (last_processed && neighbors[i].bits == neighbors[last_processed].bits &&
+    if ((last_processed != 0) && neighbors[i].bits == neighbors[last_processed].bits &&
         neighbors[i].step == neighbors[last_processed].step) {
       continue;
     }
     std::vector<storage::ScoreMember> score_members;
-    s = partition->db()->ZRangebyscore(key, (double)min, (double)max, true, true, &score_members);
+    s = slot->db()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
     if (!s.ok() && !s.IsNotFound()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
     // Insert into result only if the point is within the search area.
-    for (size_t i = 0; i < score_members.size(); ++i) {
-      double xy[2], real_distance;
-      GeoHashBits hash = {.bits = (uint64_t)score_members[i].score, .step = GEO_STEP_MAX};
+    for (auto & score_member : score_members) {
+      double xy[2];
+      double real_distance;
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score_member.score), .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
-      if (geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1], distance, &real_distance)) {
+      if (geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1], distance, &real_distance) != 0) {
         NeighborPoint item;
-        item.member = score_members[i].member;
-        item.score = score_members[i].score;
+        item.member = score_member.member;
+        item.score = score_member.score;
         item.distance = real_distance;
         result.push_back(item);
       }
@@ -339,7 +343,7 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string& k
       score_members.push_back({score, result[i].member});
     }
     int32_t count = 0;
-    s = partition->db()->ZAdd(range.storekey, score_members, &count);
+    s = slot->db()->ZAdd(range.storekey, score_members, &count);
     if (!s.ok()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -362,7 +366,7 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string& k
       // If using withdist option
       if (range.withdist) {
         double xy[2];
-        GeoHashBits hash = {.bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX};
+        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score), .step = GEO_STEP_MAX};
         geohashDecodeToLongLatWGS84(hash, xy);
         double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
         distance = length_converter(distance, range.unit);
@@ -379,7 +383,7 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string& k
       if (range.withcoord) {
         res.AppendArrayLen(2);
         double xy[2];
-        GeoHashBits hash = {.bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX};
+        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score), .step = GEO_STEP_MAX};
         geohashDecodeToLongLatWGS84(hash, xy);
 
         char longitude[32];
@@ -412,16 +416,16 @@ void GeoRadiusCmd::DoInitial() {
   }
   size_t pos = 6;
   while (pos < argv_.size()) {
-    if (!strcasecmp(argv_[pos].c_str(), "withdist")) {
+    if (strcasecmp(argv_[pos].c_str(), "withdist") == 0) {
       range_.withdist = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "withhash")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "withhash") == 0) {
       range_.withhash = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "withcoord")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "withcoord") == 0) {
       range_.withcoord = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "count")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "count") == 0) {
       range_.count = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -429,29 +433,29 @@ void GeoRadiusCmd::DoInitial() {
       }
       std::string str_count = argv_[++pos];
       for (auto s : str_count) {
-        if (!isdigit(s)) {
+        if (isdigit(s) == 0) {
           res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
           return;
         }
       }
       range_.count_limit = std::stoi(str_count);
-    } else if (!strcasecmp(argv_[pos].c_str(), "store")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "store") == 0) {
       range_.store = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       range_.storekey = argv_[++pos];
-    } else if (!strcasecmp(argv_[pos].c_str(), "storedist")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "storedist") == 0) {
       range_.storedist = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       range_.storekey = argv_[++pos];
-    } else if (!strcasecmp(argv_[pos].c_str(), "asc")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "asc") == 0) {
       range_.sort = Asc;
-    } else if (!strcasecmp(argv_[pos].c_str(), "desc")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "desc") == 0) {
       range_.sort = Desc;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
@@ -466,7 +470,7 @@ void GeoRadiusCmd::DoInitial() {
   }
 }
 
-void GeoRadiusCmd::Do(std::shared_ptr<Partition> partition) { GetAllNeighbors(partition, key_, range_, this->res_); }
+void GeoRadiusCmd::Do(std::shared_ptr<Slot> slot) { GetAllNeighbors(slot, key_, range_, this->res_); }
 
 void GeoRadiusByMemberCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -483,16 +487,16 @@ void GeoRadiusByMemberCmd::DoInitial() {
   }
   size_t pos = 5;
   while (pos < argv_.size()) {
-    if (!strcasecmp(argv_[pos].c_str(), "withdist")) {
+    if (strcasecmp(argv_[pos].c_str(), "withdist") == 0) {
       range_.withdist = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "withhash")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "withhash") == 0) {
       range_.withhash = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "withcoord")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "withcoord") == 0) {
       range_.withcoord = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv_[pos].c_str(), "count")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "count") == 0) {
       range_.count = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -500,29 +504,29 @@ void GeoRadiusByMemberCmd::DoInitial() {
       }
       std::string str_count = argv_[++pos];
       for (auto s : str_count) {
-        if (!isdigit(s)) {
+        if (isdigit(s) == 0) {
           res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
           return;
         }
       }
       range_.count_limit = std::stoi(str_count);
-    } else if (!strcasecmp(argv_[pos].c_str(), "store")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "store") == 0) {
       range_.store = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       range_.storekey = argv_[++pos];
-    } else if (!strcasecmp(argv_[pos].c_str(), "storedist")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "storedist") == 0) {
       range_.storedist = true;
       if (argv_.size() < (pos + 2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       range_.storekey = argv_[++pos];
-    } else if (!strcasecmp(argv_[pos].c_str(), "asc")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "asc") == 0) {
       range_.sort = Asc;
-    } else if (!strcasecmp(argv_[pos].c_str(), "desc")) {
+    } else if (strcasecmp(argv_[pos].c_str(), "desc") == 0) {
       range_.sort = Desc;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
@@ -537,15 +541,15 @@ void GeoRadiusByMemberCmd::DoInitial() {
   }
 }
 
-void GeoRadiusByMemberCmd::Do(std::shared_ptr<Partition> partition) {
+void GeoRadiusByMemberCmd::Do(std::shared_ptr<Slot> slot) {
   double score;
-  rocksdb::Status s = partition->db()->ZScore(key_, range_.member, &score);
+  rocksdb::Status s = slot->db()->ZScore(key_, range_.member, &score);
   if (s.ok()) {
     double xy[2];
-    GeoHashBits hash = {.bits = (uint64_t)score, .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, xy);
     range_.longitude = xy[0];
     range_.latitude = xy[1];
   }
-  GetAllNeighbors(partition, key_, range_, this->res_);
+  GetAllNeighbors(slot, key_, range_, this->res_);
 }

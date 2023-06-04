@@ -31,7 +31,7 @@ class WorkerThread : public Thread {
  public:
   explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval = 0);
 
-  virtual ~WorkerThread();
+  ~WorkerThread() override;
 
   void set_keepalive_timeout(int timeout) { keepalive_timeout_ = timeout; }
 
@@ -41,7 +41,7 @@ class WorkerThread : public Thread {
 
   std::shared_ptr<NetConn> MoveConnOut(int fd);
 
-  bool MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type, bool force);
+  bool MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type, bool force);
 
   bool MoveConnIn(const NetItem& it, bool force);
 
@@ -65,14 +65,14 @@ class WorkerThread : public Thread {
 
   std::atomic<int> keepalive_timeout_;  // keepalive second
 
-  virtual void* ThreadMain() override;
+  void* ThreadMain() override;
   void DoCronTask();
 
   pstd::Mutex killer_mutex_;
   std::set<std::string> deleting_conn_ipport_;
 
   // clean conns
-  void CloseFd(std::shared_ptr<NetConn> conn);
+  void CloseFd(const std::shared_ptr<NetConn>& conn);
   void Cleanup();
 };  // class WorkerThread
 

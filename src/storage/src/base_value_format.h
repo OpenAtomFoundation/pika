@@ -18,7 +18,7 @@ namespace storage {
 class InternalValue {
  public:
   explicit InternalValue(const rocksdb::Slice& user_value)
-      : start_(nullptr), user_value_(user_value), version_(0), timestamp_(0) {}
+      :  user_value_(user_value) {}
   virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;
@@ -36,7 +36,7 @@ class InternalValue {
   }
   void set_version(int32_t version = 0) { version_ = version; }
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2;
-  virtual const rocksdb::Slice Encode() {
+  virtual rocksdb::Slice Encode() {
     size_t usize = user_value_.size();
     size_t needed = usize + kDefaultValueSuffixLength;
     char* dst;
@@ -69,13 +69,13 @@ class ParsedInternalValue {
   // Use this constructor after rocksdb::DB::Get(), since we use this in
   // the implement of user interfaces and may need to modify the
   // original value suffix, so the value_ must point to the string
-  explicit ParsedInternalValue(std::string* value) : value_(value), version_(0), timestamp_(0) {}
+  explicit ParsedInternalValue(std::string* value) : value_(value) {}
 
   // Use this constructor in rocksdb::CompactionFilter::Filter(),
   // since we use this in Compaction process, all we need to do is parsing
   // the rocksdb::Slice, so don't need to modify the original value, value_ can be
   // set to nullptr
-  explicit ParsedInternalValue(const rocksdb::Slice& value) : value_(nullptr), version_(0), timestamp_(0) {}
+  explicit ParsedInternalValue(const rocksdb::Slice& value)  {}
 
   virtual ~ParsedInternalValue() = default;
 

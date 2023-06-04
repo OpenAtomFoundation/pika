@@ -36,13 +36,13 @@ std::string PortBinlogItem::ToString() const {
   str.append(",filenum: " + std::to_string(filenum_));
   str.append(",offset: " + std::to_string(offset_));
   str.append("\ncontent: ");
-  for (size_t idx = 0; idx < content_.size(); ++idx) {
-    if (content_[idx] == '\n') {
+  for (char idx : content_) {
+    if (idx == '\n') {
       str.append("\\n");
-    } else if (content_[idx] == '\r') {
+    } else if (idx == '\r') {
       str.append("\\r");
     } else {
-      str.append(1, content_[idx]);
+      str.append(1, idx);
     }
   }
   str.append("\n");

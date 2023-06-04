@@ -13,7 +13,7 @@
 
 class WriteThread : public net::Thread {
  public:
-  WriteThread(const std::string& file_name);
+  WriteThread(std::string  file_name);
   void Load(const std::string& data);
   void Stop();
 

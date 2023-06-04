@@ -14,12 +14,12 @@ using namespace storage;
 
 class StringsTest : public ::testing::Test {
  public:
-  StringsTest() {}
-  virtual ~StringsTest() {}
+  StringsTest() = default;
+  ~StringsTest() override = default;
 
   void SetUp() override {
     std::string path = "./db/strings";
-    if (access(path.c_str(), F_OK)) {
+    if (access(path.c_str(), F_OK) != 0) {
       mkdir(path.c_str(), 0755);
     }
     storage_options.options.create_if_missing = true;
@@ -31,8 +31,8 @@ class StringsTest : public ::testing::Test {
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -42,7 +42,7 @@ class StringsTest : public ::testing::Test {
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
-  if (!ret || !type_status[storage::DataType::kStrings].ok()) {
+  if ((ret == 0) || !type_status[storage::DataType::kStrings].ok()) {
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -691,7 +691,8 @@ TEST_F(StringsTest, SetnxTest) {
 
 // Setvx
 TEST_F(StringsTest, SetvxTest) {
-  int32_t ret, ttl;
+  int32_t ret;
+  int32_t ttl;
   std::string value;
   // ***************** Group 1 Test *****************
   s = db.Set("GP1_SETVX_KEY", "GP1_SETVX_VALUE");
@@ -784,7 +785,8 @@ TEST_F(StringsTest, SetvxTest) {
 
 // Delvx
 TEST_F(StringsTest, DelvxTest) {
-  int32_t ret, ttl;
+  int32_t ret;
+  int32_t ttl;
   std::string value;
   // ***************** Group 1 Test *****************
   s = db.Set("GP1_DELVX_KEY", "GP1_DELVX_VALUE");

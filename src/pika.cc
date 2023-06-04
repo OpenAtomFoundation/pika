@@ -4,8 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
-#include <signal.h>
 #include <sys/resource.h>
+#include <csignal>
 
 #include "include/build_version.h"
 #include "include/pika_cmd_table_manager.h"
@@ -64,7 +64,9 @@ static void PikaGlogInit() {
 }
 
 static void daemonize() {
-  if (fork() != 0) exit(0); /* parent exits */
+  if (fork()) {
+    exit(0); /* parent exits */
+  }
   setsid();                 /* create a new session */
 }
 
@@ -78,7 +80,7 @@ static void close_std() {
   }
 }
 
-static void create_pid_file(void) {
+static void create_pid_file() {
   /* Try to write the pid file in a best-effort way. */
   std::string path(g_pika_conf->pidfile());
 
@@ -92,7 +94,7 @@ static void create_pid_file(void) {
 
   FILE* fp = fopen(path.c_str(), "w");
   if (fp) {
-    fprintf(fp, "%d\n", (int)getpid());
+    fprintf(fp, "%d\n", static_cast<int>(getpid()));
     fclose(fp);
   }
 }
@@ -149,7 +151,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (path_opt == false) {
+  if (!path_opt) {
     fprintf(stderr, "Please specify the conf file path\n");
     usage();
     exit(-1);

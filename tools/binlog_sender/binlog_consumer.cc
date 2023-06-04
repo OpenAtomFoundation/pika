@@ -21,7 +21,7 @@ BinlogConsumer::~BinlogConsumer() {
 std::string BinlogConsumer::NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
-  return std::string(buf);
+  return {buf};
 }
 
 bool BinlogConsumer::Init() {
@@ -37,11 +37,7 @@ bool BinlogConsumer::Init() {
   current_filenum_ = first_filenum_;
   profile = NewFileName(filename_, current_filenum_);
   pstd::Status s = pstd::NewSequentialFile(profile, queue_);
-  if (!s.ok()) {
-    return false;
-  } else {
-    return true;
-  }
+  return s.ok();
 }
 
 bool BinlogConsumer::trim() {
@@ -63,7 +59,7 @@ bool BinlogConsumer::trim() {
       break;
     }
     offset = get_next(&is_error);
-    if (is_error == true) {
+    if (is_error) {
       return false;
     }
     res += offset;

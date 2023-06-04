@@ -208,7 +208,11 @@ func (p *timeParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 				log.Warnf("timeParser::Parse not found value. metricName:%s valueName:%s", m.Name, m.ValueName)
 				return
 			} else {
-				metric.Value = float64(converTimeToUnix(v))
+				t, err := convertTimeToUnix(v)
+				if err != nil {
+                    log.Warnf("time is '0' and cannot be parsed", err)
+				}
+				metric.Value = float64(t)
 			}
 		}
 
@@ -257,10 +261,10 @@ func mustNewVersionConstraint(version string) *semver.Constraints {
 	return c
 }
 
-func converTimeToUnix(ts string) int64 {
-	t, err := time.Parse("2006-01-02 15:04:05", ts)
+func convertTimeToUnix(ts string) (int64, error) {
+	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
-	return t.Unix()
+	return t.Unix(), nil
 }

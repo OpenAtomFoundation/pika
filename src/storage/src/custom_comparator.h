@@ -16,7 +16,7 @@ namespace storage {
 
 class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
  public:
-  ListsDataKeyComparatorImpl() {}
+  ListsDataKeyComparatorImpl() = default;
 
   // keep compatible with blackwidow
   const char* Name() const override { return "blackwidow.ListsDataKeyComparator"; }
@@ -25,8 +25,8 @@ class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
     assert(!a.empty() && !b.empty());
     const char* ptr_a = a.data();
     const char* ptr_b = b.data();
-    int32_t a_size = static_cast<int32_t>(a.size());
-    int32_t b_size = static_cast<int32_t>(b.size());
+    auto a_size = static_cast<int32_t>(a.size());
+    auto b_size = static_cast<int32_t>(b.size());
     int32_t key_a_len = DecodeFixed32(ptr_a);
     int32_t key_b_len = DecodeFixed32(ptr_b);
     ptr_a += sizeof(int32_t);
@@ -72,7 +72,7 @@ class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
     }
   }
 
-  bool Equal(const rocksdb::Slice& a, const rocksdb::Slice& b) const override { return !Compare(a, b); }
+  bool Equal(const rocksdb::Slice& a, const rocksdb::Slice& b) const override { return Compare(a, b) == 0; }
 
   void FindShortestSeparator(std::string* start, const rocksdb::Slice& limit) const override {}
 
@@ -95,8 +95,8 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
 
     const char* ptr_a = a.data();
     const char* ptr_b = b.data();
-    int32_t a_size = static_cast<int32_t>(a.size());
-    int32_t b_size = static_cast<int32_t>(b.size());
+    auto a_size = static_cast<int32_t>(a.size());
+    auto b_size = static_cast<int32_t>(b.size());
     int32_t key_a_len = DecodeFixed32(ptr_a);
     int32_t key_b_len = DecodeFixed32(ptr_b);
     rocksdb::Slice key_a_prefix(ptr_a, key_a_len + 2 * sizeof(int32_t));
@@ -104,7 +104,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     ptr_a += key_a_len + 2 * sizeof(int32_t);
     ptr_b += key_b_len + 2 * sizeof(int32_t);
     int ret = key_a_prefix.compare(key_b_prefix);
-    if (ret) {
+     if (ret) {
       return ret;
     }
 
@@ -129,7 +129,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
         rocksdb::Slice key_a_member(ptr_a, a_size - (ptr_a - a.data()));
         rocksdb::Slice key_b_member(ptr_b, b_size - (ptr_b - b.data()));
         ret = key_a_member.compare(key_b_member);
-        if (ret) {
+         if (ret) {
           return ret;
         }
       }
@@ -137,7 +137,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     return 0;
   }
 
-  bool Equal(const rocksdb::Slice& a, const rocksdb::Slice& b) const override { return !Compare(a, b); }
+  bool Equal(const rocksdb::Slice& a, const rocksdb::Slice& b) const override { return Compare(a, b) == 0; }
 
   void ParseAndPrintZSetsScoreKey(const std::string& from, const std::string& str) {
     const char* ptr = str.data();
@@ -181,7 +181,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     rocksdb::Slice key_limit_prefix(ptr_limit, key_limit_len + 2 * sizeof(int32_t));
     ptr_start += key_start_len + 2 * sizeof(int32_t);
     ptr_limit += key_limit_len + 2 * sizeof(int32_t);
-    if (key_start_prefix.compare(key_limit_prefix)) {
+    if (key_start_prefix.compare(key_limit_prefix) != 0) {
       return;
     }
 
@@ -217,8 +217,8 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     if (diff_index >= min_length) {
       // Do not shorten if one string is a prefix of the other
     } else {
-      uint8_t key_start_member_byte = static_cast<uint8_t>(key_start_member[diff_index]);
-      uint8_t key_limit_member_byte = static_cast<uint8_t>(key_limit_member[diff_index]);
+      auto key_start_member_byte = static_cast<uint8_t>(key_start_member[diff_index]);
+      auto key_limit_member_byte = static_cast<uint8_t>(key_limit_member[diff_index]);
       if (key_start_member_byte >= key_limit_member_byte) {
         // Cannot shorten since limit is smaller than start or start is
         // already the shortest possible.

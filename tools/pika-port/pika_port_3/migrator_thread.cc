@@ -18,10 +18,10 @@
 
 const int64_t MAX_BATCH_NUM = 30000;
 
-MigratorThread::~MigratorThread() {}
+MigratorThread::~MigratorThread() = default;
 
 void MigratorThread::MigrateStringsDB() {
-  storage::RedisStrings* db = (storage::RedisStrings*)(db_);
+  auto db = static_cast<storage::RedisStrings*>(db_);
 
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
@@ -39,7 +39,7 @@ void MigratorThread::MigrateStringsDB() {
   for (iter->SeekToFirst(); !should_exit_ && iter->Valid(); iter->Next()) {
     storage::ParsedStringsValue parsed_strings_value(iter->value());
     int32_t ttl = 0;
-    int64_t ts = (int64_t)(parsed_strings_value.timestamp());
+    auto ts = static_cast<int64_t>(parsed_strings_value.timestamp());
     if (ts != 0) {
       int64_t diff = ts - curtime;
       ttl = diff > 0 ? diff : -1;
@@ -76,7 +76,7 @@ void MigratorThread::MigrateStringsDB() {
 }
 
 void MigratorThread::MigrateListsDB() {
-  storage::RedisLists* db = (storage::RedisLists*)(db_);
+  auto db = static_cast<storage::RedisLists*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -97,12 +97,12 @@ void MigratorThread::MigrateListsDB() {
     fin = db->Scan(start_key, pattern, &keys, &count, &next_key);
     // LOG(INFO) << "batch count: " << count << ", fin: " << fin << ", keys.size(): " << keys.size() << ", next_key: "
     // << next_key;
-    if (fin && keys.size() == 0) {
+    if (fin && keys.empty()) {
       break;
     }
     start_key = next_key;
 
-    for (auto k : keys) {
+    for (const auto& k : keys) {
       if (should_exit_) {
         break;
       }
@@ -122,7 +122,7 @@ void MigratorThread::MigrateListsDB() {
 
         argv.push_back("RPUSH");
         argv.push_back(k);
-        for (auto e : list) {
+        for (const auto& e : list) {
           // PlusNum();
           argv.push_back(e);
         }
@@ -159,7 +159,7 @@ void MigratorThread::MigrateListsDB() {
 }
 
 void MigratorThread::MigrateHashesDB() {
-  storage::RedisHashes* db = (storage::RedisHashes*)(db_);
+  auto db = static_cast<storage::RedisHashes*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -177,12 +177,12 @@ void MigratorThread::MigrateHashesDB() {
     int64_t count = batch_count;
     std::vector<std::string> keys;
     fin = db->Scan(start_key, pattern, &keys, &count, &next_key);
-    if (fin && keys.size() == 0) {
+    if (fin && keys.empty()) {
       break;
     }
     start_key = next_key;
 
-    for (auto k : keys) {
+    for (const auto& k : keys) {
       if (should_exit_) {
         break;
       }
@@ -230,7 +230,7 @@ void MigratorThread::MigrateHashesDB() {
 }
 
 void MigratorThread::MigrateSetsDB() {
-  storage::RedisSets* db = (storage::RedisSets*)(db_);
+  auto db = static_cast<storage::RedisSets*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -248,12 +248,12 @@ void MigratorThread::MigrateSetsDB() {
     int64_t count = batch_count;
     std::vector<std::string> keys;
     fin = db->Scan(start_key, pattern, &keys, &count, &next_key);
-    if (fin && keys.size() == 0) {
+    if (fin && keys.empty()) {
       break;
     }
     start_key = next_key;
 
-    for (auto k : keys) {
+    for (const auto& k : keys) {
       if (should_exit_) {
         break;
       }
@@ -298,7 +298,7 @@ void MigratorThread::MigrateSetsDB() {
 }
 
 void MigratorThread::MigrateZsetsDB() {
-  storage::RedisZSets* db = (storage::RedisZSets*)(db_);
+  auto db = static_cast<storage::RedisZSets*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -316,12 +316,12 @@ void MigratorThread::MigrateZsetsDB() {
     int64_t count = batch_count;
     std::vector<std::string> keys;
     fin = db->Scan(start_key, pattern, &keys, &count, &next_key);
-    if (fin && keys.size() == 0) {
+    if (fin && keys.empty()) {
       break;
     }
     start_key = next_key;
 
-    for (auto k : keys) {
+    for (const auto& k : keys) {
       if (should_exit_) {
         break;
       }
@@ -368,28 +368,28 @@ void MigratorThread::MigrateZsetsDB() {
 }
 
 void MigratorThread::MigrateDB() {
-  switch (int(type_)) {
-    case int(storage::kStrings): {
+  switch (static_cast<int>(type_)) {
+    case static_cast<int>(storage::kStrings): {
       MigrateStringsDB();
       break;
     }
 
-    case int(storage::kLists): {
+    case static_cast<int>(storage::kLists): {
       MigrateListsDB();
       break;
     }
 
-    case int(storage::kHashes): {
+    case static_cast<int>(storage::kHashes): {
       MigrateHashesDB();
       break;
     }
 
-    case int(storage::kSets): {
+    case static_cast<int>(storage::kSets): {
       MigrateSetsDB();
       break;
     }
 
-    case int(storage::kZSets): {
+    case static_cast<int>(storage::kZSets): {
       MigrateZsetsDB();
       break;
     }
@@ -404,7 +404,7 @@ void MigratorThread::MigrateDB() {
 void MigratorThread::DispatchKey(const std::string& command, const std::string& key) {
   thread_index_ = (thread_index_ + 1) % thread_num_;
   size_t idx = thread_index_;
-  if (key.size()) {  // no empty
+  if (!key.empty()) {  // no empty
     idx = std::hash<std::string>()(key) % thread_num_;
   }
   (*senders_)[idx]->LoadKey(command);
