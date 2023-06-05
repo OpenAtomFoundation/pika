@@ -17,7 +17,6 @@
 #include "include/pika_version.h"
 #include "pstd/include/env.h"
 
-
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
 PikaServer* g_pika_server;
@@ -67,7 +66,7 @@ static void daemonize() {
   if (fork()) {
     exit(0); /* parent exits */
   }
-  setsid();                 /* create a new session */
+  setsid();  /* create a new session */
 }
 
 static void close_std() {
@@ -120,6 +119,7 @@ static void usage() {
           "usage: pika [-hv] [-c conf/file]\n"
           "\t-h               -- show this help\n"
           "\t-c conf/file     -- config file \n"
+          "\t-v               -- show version\n"
           "  example: ./output/bin/pika -c ./conf/pika.conf\n",
           version);
 }
