@@ -49,6 +49,7 @@ void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->HSet(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
+    SlotKeyAdd("h", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -162,6 +163,7 @@ void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
+    SlotKeyAdd("h", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -187,6 +189,7 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
+    SlotKeyAdd("h", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
@@ -287,6 +290,7 @@ void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    SlotKeyAdd("h", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -307,6 +311,7 @@ void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
+    SlotKeyAdd("h", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
