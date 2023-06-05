@@ -349,6 +349,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
+  std::timed_mutex  exit_mutex_;
 
   /*
    * Table used
