@@ -10,6 +10,7 @@
 #include "include/pika_slot.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
+const std::string SlotTagPrefix = "_internal:4migrate:slottag:";
 const size_t MaxKeySendSize = 10 * 1024;
 const int asyncRecvsNum = 64;
 

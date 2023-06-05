@@ -330,6 +330,23 @@ static int listGetall(const std::string key, std::vector<std::string> *values, s
   return 1;
 }
 
+// check slotkey remaind keys number
+static void SlotKeyLenCheck(const std::string slotKey, CmdRes& res, std::shared_ptr<Slot>slot){
+  int32_t card = 0;
+  rocksdb::Status s = slot->db()->SCard(slotKey, &card);
+  if (!(s.ok() || s.IsNotFound())){
+    res.SetRes(CmdRes::kErrOther, "migrate slot kv error");
+    res.AppendArrayLen(2);
+    res.AppendInteger(1);
+    res.AppendInteger(1);
+    return;
+  }
+  res.AppendArrayLen(2);
+  res.AppendInteger(1);
+  res.AppendInteger(card);
+  return;
+}
+
 // migrate one list key
 static int migrateList(net::NetCli *cli, const std::string key, bool async, std::shared_ptr<Slot>slot){
   int r, ret = 0;
@@ -537,23 +554,6 @@ static int MigrateOneKey(net::NetCli *cli, const std::string key, const char key
   return ret;
 }
 
-// check slotkey remaind keys number
-static void SlotKeyLenCheck(const std::string slotKey, CmdRes& res, std::shared_ptr<Slot>slot){
-  int32_t card = 0;
-  rocksdb::Status s = slot->db()->SCard(slotKey, &card);
-  if (!(s.ok() || s.IsNotFound())){
-    res.SetRes(CmdRes::kErrOther, "migrate slot kv error");
-    res.AppendArrayLen(2);
-    res.AppendInteger(1);
-    res.AppendInteger(1);
-    return;
-  }
-  res.AppendArrayLen(2);
-  res.AppendInteger(1);
-  res.AppendInteger(card);
-  return;
-}
-
 void SlotsMgrtTagSlotCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlot);
@@ -587,31 +587,10 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
   }
 }
 
-// pop one key from slotkey
-int SlotsMgrtTagSlotCmd::SlotKeyPop(std::shared_ptr<Slot>slot){
-  std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
-  std::vector<std::string> member;
-  rocksdb::Status s = slot->db()->SPop(slotKey, &member , 512);
-  if (!s.ok()) {
-    LOG(WARNING) << "Migrate slot: " << slot_num_ << " error: " << s.ToString();
-    res_.AppendArrayLen(2);
-    res_.AppendInteger(0);
-    res_.AppendInteger(0);
-    return -1;
-  }
-
-  //key_type_ = &member;
-  //key_.insert(key_.begin(), member.begin(), member.end());
-  //key_.erase(key_.begin());
-
-  return 0;
-}
-
 void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot>slot) {
   if (SlotKeyPop(slot) < 0){
     return;
   }
-
   net::NetCli *cli = net::NewRedisCli();
   cli->set_connect_timeout(timeout_ms_);
   if ((cli->Connect(dest_ip_, dest_port_, "")).ok()) {
@@ -645,6 +624,26 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot>slot) {
   return;
 }
 
+
+// pop one key from slotkey
+int SlotsMgrtTagSlotCmd::SlotKeyPop(std::shared_ptr<Slot>slot){
+  std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
+  std::vector<std::string> member;
+  rocksdb::Status s = slot->db()->SPop(slotKey, &member, 2);
+  if (!s.ok()) {
+    LOG(WARNING) << "Migrate slot: " << slot_num_ << " error: " << s.ToString();
+    res_.AppendArrayLen(2);
+    res_.AppendInteger(0);
+    res_.AppendInteger(0);
+    return -1;
+  }
+
+  //key_type_ = &member;
+  //key_.insert(key_.begin(), member.begin(), member.end());
+  //key_.erase(key_.begin());
+
+  return 0;
+}
 void SlotsMgrtTagOneCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagOne);
