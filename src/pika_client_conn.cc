@@ -97,7 +97,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
-  if (c_ptr->is_write()) {
+  if (c_ptr->is_write() || c_ptr->is_may_defer_write()) {
     if (g_pika_server->IsDBBinlogIoError(current_db_)) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;

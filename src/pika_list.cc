@@ -3,12 +3,17 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <utility>
-#include "include/pika_data_distribution.h"
 #include "include/pika_list.h"
+#include <utility>
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_data_distribution.h"
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_string.h"
+
 extern PikaServer* g_pika_server;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
@@ -86,6 +91,10 @@ typedef struct {
 
 void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
+  if(!curr_conn){
+    //current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
+    return;
+  }
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(curr_conn->thread());
 
   {
@@ -201,7 +210,28 @@ void BLRPopBaseCmd::BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type
   // construct a list of keys and insert into this map as value(while key of the map is conn_fd)
   map_from_conns_to_keys_for_blrpop.emplace(
       conn_to_block->fd(), std::make_unique<std::list<net::BlrPopKey>>(blrpop_keys.begin(), blrpop_keys.end()));
+
+  //------------code for testing---------------
+  std::cout << "-------------db name:" << conn_to_block->GetCurrentTable() << "-------------" << std::endl;
+  std::cout << "from key to conn:" << std::endl;
+  for (auto& pair : map_from_keys_to_conns_for_blrpop) {
+    std::cout << "key:<" << pair.first.db_name << "," << pair.first.key << ">  list of it:" << std::endl;
+    for (auto& it : *pair.second) {
+      it.SelfPrint();
+    }
+  }
+
+  std::cout << "\n\nfrom conn to key:" << std::endl;
+  for (auto& pair : map_from_conns_to_keys_for_blrpop) {
+    std::cout << "fd:" << pair.first << "  related keys:" << std::endl;
+    for (auto& it : *pair.second) {
+      std::cout << " <" << it.db_name << "," << it.key << "> " << std::endl;
+    }
+  }
+  std::cout << "-----------end------------------" << std::endl;
+  //------------code for testing---------------
 }
+
 void BLRPopBaseCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBLPop);
@@ -237,6 +267,22 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(value);
+
+      //write an binlog of lpop
+      std::shared_ptr<Cmd> pop_cmd = g_pika_cmd_table_manager->GetCmd(kCmdNameLPop);
+      PikaCmdArgsType args;
+      args.push_back(kCmdNameLPop);
+      args.push_back(this_key);
+      pop_cmd->Initial(args, db_name_);
+      std::shared_ptr<SyncMasterSlot> sync_slot =
+          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+      if (!sync_slot) {
+        LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
+      }else{
+        pop_cmd->SetConn(GetConn());
+        pop_cmd->SetResp(GetResp());
+        pop_cmd->DoBinlog(sync_slot);
+      }
       return;
     } else if (s.IsNotFound()) {
       continue;

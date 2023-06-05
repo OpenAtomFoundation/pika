@@ -77,6 +77,7 @@ class BLRPopBaseCmd : public Cmd {
  public:
   BLRPopBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type);
+//  void WriteAnBinlogOfPop()
  protected:
   void DoInitial() override;
   std::vector<std::string> keys_;

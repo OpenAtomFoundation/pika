@@ -218,6 +218,13 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
+  std::cout << "comsume binlog: ";
+  std::string  str;
+  for (const auto& item : argv) {
+    str += " " + pstd::ToRead(item);
+  }
+  std::cout << str << std::endl;
+
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command db";

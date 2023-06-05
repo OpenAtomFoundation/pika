@@ -39,7 +39,9 @@ struct BlrPopKeyHash {
 
 class BlockedPopConnNode {
  public:
-  virtual ~BlockedPopConnNode() {}
+  virtual ~BlockedPopConnNode() {
+    std::cout << "BlockedPopConnNode: fd-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
+  }
   BlockedPopConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockPopType block_type)
       : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
   bool IsExpired() {
@@ -55,6 +57,12 @@ class BlockedPopConnNode {
   }
   std::shared_ptr<RedisConn>& GetConnBlocked() { return conn_blocked_; }
   BlockPopType GetBlockType() const { return block_type_; }
+
+  // TO DO: delete this fun when testing is done
+  void SelfPrint() {
+    std::cout << "fd:" << conn_blocked_->fd() << ", expire_time:" << expire_time_ << ", blockType: " << block_type_
+              << std::endl;
+  }
 
  private:
   int64_t expire_time_;

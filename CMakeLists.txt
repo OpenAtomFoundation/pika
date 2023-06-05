@@ -10,6 +10,14 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
+# 在 CMakeLists.txt 文件中添加以下行
+set(CMAKE_BUILD_TYPE "Debug")  # 确保以调试模式构建
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+
+
+
+
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # using Clang
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")

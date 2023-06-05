@@ -205,7 +205,8 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskSlot = 1536
+  kCmdFlagsMaskSlot = 1536,
+  kCmdFlagsMaskMayDfferWrite = 2048
 };
 
 enum CmdFlags {
@@ -231,7 +232,8 @@ enum CmdFlags {
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
   kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024
+  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsMayDfferWrite = 2048
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -411,6 +413,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_write() const;
+  bool is_may_defer_write() const;
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
@@ -435,6 +438,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -443,7 +447,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
   bool CheckArg(int num) const;
   void LogCommand() const;
 
