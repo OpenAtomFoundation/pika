@@ -8,6 +8,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_conf.h"
+#include "include/pika_slot_command.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
