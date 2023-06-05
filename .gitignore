@@ -40,6 +40,7 @@ output/
 # DB
 db/
 dump/
+src/dbsync/
 
 # third party
 gdb.txt
