@@ -150,9 +150,8 @@ class SlotsMgrtSenderThread: public net::Thread {
   pstd::Mutex rwlock_ones_;
   pstd::Mutex slotsmgrt_cond_mutex_;
   pstd::Mutex mutex_;
-  std::atomic<bool> is_migrating_;
-  pstd::Mutex monitor_mutex_protector_;
-  pstd::Mutex migrate_send_mutex_;
+  std::atomic<bool> is_migrating_ = false;
+  pstd::CondVar slotsmgrt_cond_;
 
   bool ElectMigrateKeys(std::shared_ptr<Slot>slot);
   virtual void* ThreadMain(std::shared_ptr<Slot>slot);

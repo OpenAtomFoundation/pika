@@ -917,19 +917,14 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
                                                  moved_keys_all_(-1),
                                                  remained_keys_num_(-1),
                                                  error_(false),
+                                                 slotsmgrt_cond_(),
                                                  is_migrating_(false) {
   cli_ = net::NewRedisCli();
-  /*pthread_rwlockattr_t attr;
-pthread_rwlockattr_init(&attr);
-pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-pthread_rwlock_init(&rwlock_db_, &attr);
-pthread_rwlock_init(&rwlock_batch_, &attr);
-pthread_rwlock_init(&rwlock_ones_, &attr);*/
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
-  //std::lock_guard ld(rwlock_db_);
-  //std::lock_guard lb(rwlock_batch_);
-  //std::lock_guard lo(rwlock_ones_);
+  std::lock_guard ld(rwlock_db_);
+  std::lock_guard lb(rwlock_batch_);
+  std::lock_guard lo(rwlock_ones_);
 }
 
 SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
@@ -1020,7 +1015,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key, std::shared_p
 
 bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots,
                                               int64_t keys_num, std::shared_ptr<Slot>slot){
-   std::lock_guard lb(slotsmgrt_cond_mutex_);
+  std::lock_guard lb(slotsmgrt_cond_mutex_);
   // if is_migrating_, does some check and prepare the keys to be migrated
   if (is_migrating_){
     if (!(dest_ip_==ip && dest_port_==port && slot_num_==slots)) {

@@ -390,6 +390,10 @@ class PikaConf : public pstd::BaseConf {
       pstd::StringToLower(item);
     }
   }
+  void SetSlotMigrate(const std::string &value) {
+    std::lock_guard l(rwlock_);
+    slotmigrate_ =  (value == "yes") ? true : false;
+  }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
