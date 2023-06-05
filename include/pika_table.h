@@ -11,7 +11,7 @@
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
 class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
  public:
