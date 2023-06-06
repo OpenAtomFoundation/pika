@@ -184,7 +184,9 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void DelCmd::Merge() { res_.AppendInteger(split_res_); }
+void DelCmd::Merge() {
+  res_.AppendInteger(split_res_);
+}
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1308,7 +1310,8 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s =
+      slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
