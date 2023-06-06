@@ -804,7 +804,9 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
+void ExistsCmd::Merge() {
+  res_.AppendInteger(split_res_);
+}
 
 void ExpireCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
