@@ -111,12 +111,11 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       }
 
       // Do delete
-      pstd::Status s = pstd::DeleteFile(log_path_ + it->second);
-      if (s.ok()) {
+      if (pstd::DeleteFile(log_path_ + it->second)) {
         ++delete_num;
         --remain_expire_num;
       } else {
-        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second) << " failed! error:" << s.ToString();
+        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second) << " failed! error: delete file failed";
       }
     } else {
       // Break when face the first one not satisfied
@@ -209,11 +208,11 @@ Status StableLog::PurgeFileAfter(uint32_t filenum) {
   for (auto& it : binlogs) {
     if (it.first > filenum) {
       // Do delete
-      Status s = pstd::DeleteFile(log_path_ + it.second);
-      if (!s.ok()) {
-        return s;
+      auto filename = log_path_ + it.second;
+      if (!pstd::DeleteFile(filename)) {
+        return Status::IOError("pstd::DeleteFile faield, filename = " + filename);
       }
-      LOG(WARNING) << "Delete file " << log_path_ + it.second;
+      LOG(WARNING) << "Delete file " << filename;
     }
   }
   return Status::OK();
