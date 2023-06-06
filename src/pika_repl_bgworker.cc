@@ -250,7 +250,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
-  auto task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
+  std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
