@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_zset.h"
+#include "include/pika_slot_command.h"
 
 #include <cstdint>
 
@@ -37,6 +38,7 @@ void ZAddCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
+    SlotKeyAdd("z", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -143,6 +145,7 @@ void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
+    SlotKeyAdd("z", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -445,6 +448,7 @@ void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->ZRem(key_, members_, &count);
   if (s.ok() || s.IsNotFound()) {
+    SlotKeyAdd("z", key_, slot);
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -522,6 +526,7 @@ void ZUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
+    SlotKeyAdd("z", dest_key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

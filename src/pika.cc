@@ -15,6 +15,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+#include "include/pika_slot_command.h"
 #include "pstd/include/env.h"
 
 
@@ -184,6 +185,7 @@ int main(int argc, char* argv[]) {
 
   PikaGlogInit();
   PikaSignalSetup();
+  InitCRC32Table();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();

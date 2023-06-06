@@ -10,6 +10,7 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 #include "include/pika_data_distribution.h"
+#include "storage/include/storage/storage.h"
 
 #define min(a, b)  (((a) > (b)) ? (b) : (a))
 
@@ -63,6 +64,49 @@ void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<S
   rocksdb::Status s = slot->db()->SAdd(slotKey, members, &count);
   if (!s.ok()) {
     LOG(WARNING) << "SAdd key: " << key << " to slotKey, error: " << s.ToString();
+  }
+}
+
+//check key exists
+void KeyNotExistsRem(const std::string type, const std::string key, std::shared_ptr<Slot>slot) {
+  if (g_pika_conf->slotmigrate() != true){
+    return;
+  }
+  std::vector<std::string> vkeys;
+  vkeys.push_back(key);
+//  std::map<storage::DataType, Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  int64_t res = slot->db()->Exists(vkeys, &type_status);
+  if (res == 0) {
+    std::string slotKey = SlotKeyPrefix + std::to_string(SlotNum(key));
+    std::vector<std::string> members(1, type + key);
+    int32_t count = 0;
+    rocksdb::Status s =slot->db()->SRem(slotKey, members, &count);
+    if (!s.ok()) {
+      LOG(WARNING) << "Zrem key: " << key << " from slotKey, error: " << s.ToString();
+      return;
+    }
+  }
+  return;
+}
+
+//del key from slotkey
+void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot) {
+  if (g_pika_conf->slotmigrate() != true){
+    return;
+  }
+  std::string type;
+  if (KeyType(key, type, slot) < 0){
+    LOG(WARNING) << "SRem key: " << key << " from slotKey error";
+    return;
+  }
+  std::string slotKey = SlotKeyPrefix + std::to_string(SlotNum(key));
+  int32_t count = 0;
+  std::vector<std::string> members(1, type + key);
+  rocksdb::Status s = slot->db()->SRem(slotKey, members, &count);
+  if (!s.ok()) {
+    LOG(WARNING) << "SRem key: " << key << " from slotKey, error: " << s.ToString();
+    return;
   }
 }
 
