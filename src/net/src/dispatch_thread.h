@@ -12,6 +12,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <glog/logging.h>
 
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
@@ -108,12 +109,17 @@ class DispatchThread : public ServerThread {
    */
   void CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
     // removed all the waiting info of this conn/ doing cleaning work
-    auto& blpop_keys_list = map_from_conns_to_keys_for_blrpop.find(conn_unblocked->fd())->second;
+    auto pair = map_from_conns_to_keys_for_blrpop.find(conn_unblocked->fd());
+    if(pair == map_from_conns_to_keys_for_blrpop.end()){
+      LOG(WARNING) << "blocking info of blpop/brpop went wrong, blpop/brpop can't working correctly";
+      return;
+    }
+    auto& blpop_keys_list = pair->second;
     for (auto& blpop_key : *blpop_keys_list) {
       auto& wait_list_of_this_key = map_from_keys_to_conns_for_blrpop.find(blpop_key)->second;
       for (auto conn = wait_list_of_this_key->begin(); conn != wait_list_of_this_key->end();) {
         if (conn->GetConnBlocked()->fd() == conn_unblocked->fd()) {
-          wait_list_of_this_key->erase(conn);
+          conn = wait_list_of_this_key->erase(conn);
           break;
         }
         conn++;

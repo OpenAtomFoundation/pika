@@ -271,8 +271,8 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLSet, std::move(lsetptr)));
   std::unique_ptr<Cmd> ltrimptr = std::make_unique<LTrimCmd>(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLTrim, std::move(ltrimptr)));
-  std::unique_ptr<Cmd> brpopptr = std::make_unique<BRPopCmd>(kCmdNameBrpop, -3, kCmdFlagsMayDfferWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBrpop, std::move(brpopptr)));
+  std::unique_ptr<Cmd> brpopptr = std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsMayDfferWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr = std::make_unique<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));
   std::unique_ptr<Cmd> rpoplpushptr = std::make_unique<RPopLPushCmd>(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
