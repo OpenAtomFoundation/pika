@@ -29,6 +29,8 @@ extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
 int SlotNum(const std::string &str);
 int KeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot);
 void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
+void KeyNotExistsRem(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
+void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot);
 int  KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot>slot);
 
 class SlotsMgrtTagSlotCmd : public Cmd {
