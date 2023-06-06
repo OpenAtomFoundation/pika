@@ -36,6 +36,7 @@
 #include "include/pika_rsync_service.h"
 #include "include/pika_statistic.h"
 #include "include/pika_table.h"
+#include "include/pika_slot_command.h"
 
 
 
@@ -318,6 +319,15 @@ class PikaServer : public pstd::noncopyable {
   void ServerStatus(std::string* info);
 
   /*
+   * SlotsMgrt used
+   */
+  void SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot);
+  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots,int64_t keys_num, std::shared_ptr<Slot>slot);
+  bool GetSlotsMigrateResult(int64_t *moved, int64_t *remained);
+  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+  bool SlotsMigrateAsyncCancel();
+
+  /*
    * StorageOptions used
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
@@ -427,6 +437,11 @@ class PikaServer : public pstd::noncopyable {
    * Communication used
    */
   std::unique_ptr<PikaAuxiliaryThread> pika_auxiliary_thread_;
+
+  /*
+   * SlotsMgrt use
+   */
+  std::unique_ptr<SlotsMgrtSenderThread> slotsmgrt_sender_thread_;
 
   /*
    * Slowlog used

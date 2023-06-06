@@ -15,7 +15,6 @@
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
-std::unique_ptr<SlotsMgrtSenderThread> slotsmgrt_sender_thread_;
 
 uint32_t crc32tab[256];
 void CRC32TableInit(uint32_t poly) {
@@ -851,7 +850,13 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 }
 
 void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot>slot) {
-  bool ret = slotsmgrt_sender_thread_->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_num_, keys_num_, slot);
+  // check whether open slotmigrate
+  if (!g_pika_conf->slotmigrate()) {
+    res_.SetRes(CmdRes::kErrOther, "please open slotmigrate and reload slot");
+    return;
+  }
+
+  bool ret = g_pika_server -> SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_num_, keys_num_, slot);
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
     res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error");
@@ -859,7 +864,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot>slot) {
   }
 
   int64_t moved = 0, remained = 0;
-  ret = slotsmgrt_sender_thread_->GetSlotsMigrateResult(&moved, &remained);
+  ret = g_pika_server->GetSlotsMigrateResult(&moved, &remained);
   if (ret){
     res_.AppendArrayLen(2);
     res_.AppendInteger(moved);
@@ -884,7 +889,7 @@ void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Slot>slot) {
   std::string ip;
   int64_t port, slots, moved, remained;
   bool migrating;
-  slotsmgrt_sender_thread_->GetSlotsMgrtSenderStatus(&ip, &port, &slots, &migrating, &moved, &remained);
+  g_pika_server -> GetSlotsMgrtSenderStatus(&ip, &port, &slots, &migrating, &moved, &remained);
   std::string mstatus = migrating ? "yes" : "no";
   res_.AppendArrayLen(5);
   status = "dest server: " + ip + ":" + std::to_string(port);
@@ -1023,7 +1028,8 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
     }
     timeout_ms_ = time_out;
     keys_num_ = keys_num;
-    bool ret = ElectMigrateKeys(slot);
+    slot_ = slot;
+    bool ret = ElectMigrateKeys(slot_);
     if (!ret) {
       LOG(WARNING) << "Slots migrating sender get batch keys error";
       is_migrating_ = false;
@@ -1040,10 +1046,12 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
     slot_num_ = slots;
     keys_num_ = keys_num;
     is_migrating_ = true;
+    slot_ = slot;
     if (error_) {
       StopThread();
     }
     error_ = false;
+    // 启动迁移的线程
     StartThread();
     LOG(INFO) << "Migrate batch slot: " << slot;
   }
@@ -1144,7 +1152,7 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(std::shared_ptr<Slot>slot){
   return true;
 }
 
-void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
+void* SlotsMgrtSenderThread::ThreadMain() {
   LOG(INFO) << "SlotsMgrtSender thread " << thread_id() << " for slot:" << slot_num_ << " start!";
   pstd::Status result;
   cli_->set_connect_timeout(timeout_ms_);
@@ -1162,7 +1170,8 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
         break;
       }
 
-      bool ret = ElectMigrateKeys(slot);
+      // 收集一批需要进行迁移的key，放到 migrating_batch_ 数组中
+      bool ret = ElectMigrateKeys(slot_);
       if (!ret) {
         LOG(WARNING) << "Slots migrating sender get batch keys error";
         is_migrating_ = false;
@@ -1175,13 +1184,16 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
 
       std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
       std::vector<std::pair<const char, std::string>>::const_iterator iter;
+
+      // 循环进行迁移
       while (is_migrating_) {
         std::lock_guard lm(slotsmgrt_cond_mutex_);
         {
           std::lock_guard lb(rwlock_batch_);
           std::lock_guard lo(rwlock_ones_);
           int32_t card = 0;
-          rocksdb::Status s = slot->db()->SCard(slotKey, &card);
+          // 返回集合中的元素数量
+          rocksdb::Status s = slot_->db()->SCard(slotKey, &card);
           remained_keys_num_ = card + migrating_batch_.size() + migrating_ones_.size();
           // add ones to batch end; empty ones
           std::copy (migrating_ones_.begin(), migrating_ones_.end(), std::back_inserter(migrating_batch_));
@@ -1196,7 +1208,8 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
           size_t j = 0;
           std::lock_guard lb(rwlock_batch_);
           for (int r; iter != migrating_batch_.end() && (j < asyncRecvsNum); iter++) {
-            if ((r = MigrateOneKey(cli_, iter->second, iter->first, true, slot)) < 0){
+            // 逐个 key 进行迁移
+            if ((r = MigrateOneKey(cli_, iter->second, iter->first, true, slot_)) < 0){
               LOG(WARNING) << "Migrate batch key: " << iter->second << " error: ";
               is_migrating_ = false;
               set_should_stop();
@@ -1224,12 +1237,13 @@ void* SlotsMgrtSenderThread::ThreadMain(std::shared_ptr<Slot>slot) {
             }
           }
         }
+
         if (error_) {
           break;
         }
 
         for (const auto& item : migrating_batch_) {
-          KeyDelete(item.second, item.first, slot);
+          KeyDelete(item.second, item.first, slot_);
         }
 
         {
@@ -1270,7 +1284,7 @@ void SlotsMgrtAsyncCancelCmd::DoInitial() {
 }
 
 void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Slot>slot) {
-  bool ret = slotsmgrt_sender_thread_->SlotsMigrateAsyncCancel();
+  bool ret = g_pika_server->SlotsMigrateAsyncCancel();
   if (!ret) {
     res_.SetRes(CmdRes::kErrOther, "slotsmgrt-async-cancel error");
   }
