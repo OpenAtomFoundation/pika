@@ -85,7 +85,7 @@ int PikaReplClientConn::DealMessage() {
 }
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
-  auto task_arg = static_cast<ReplClientTaskArg*>(arg);
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 

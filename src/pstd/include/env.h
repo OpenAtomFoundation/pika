@@ -44,7 +44,7 @@ uint64_t Du(const std::string& filename);
  */
 bool FileExists(const std::string& path);
 
-Status DeleteFile(const std::string& fname);
+bool DeleteFile(const std::string& fname);
 
 int RenameFile(const std::string& oldname, const std::string& newname);
 
@@ -57,11 +57,8 @@ class FileLock : public pstd::noncopyable {
   std::string name_;
 };
 
-Status LockFile(const std::string& f, FileLock** l);
-Status UnlockFile(FileLock* l);
-
 int GetChildren(const std::string& dir, std::vector<std::string>& result);
-bool GetDescendant(const std::string& dir, std::vector<std::string>& result);
+void GetDescendant(const std::string& dir, std::vector<std::string>& result);
 
 uint64_t NowMicros();
 void SleepForMicroseconds(int micros);
