@@ -6,6 +6,7 @@
 #ifndef PIKA_DATA_DISTRIBUTION_H_
 #define PIKA_DATA_DISTRIBUTION_H_
 
+#include <cstdint>
 #include "pstd/include/pstd_status.h"
 
 // polynomial reserved Crc32 magic num

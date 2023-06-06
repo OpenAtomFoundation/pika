@@ -43,6 +43,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <cstdint>  
 
 #include <algorithm>
 
