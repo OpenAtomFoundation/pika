@@ -32,6 +32,7 @@ void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<S
 void KeyNotExistsRem(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
 void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot);
 int  KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot>slot);
+std::string GetSlotsSlotKey(int slot);
 
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:

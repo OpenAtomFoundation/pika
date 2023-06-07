@@ -196,25 +196,37 @@ static int kvGet(const std::string key, std::string &value, std::shared_ptr<Slot
   return 0;
 }
 
+std::string GetSlotsSlotKey(int slot) { return SlotKeyPrefix + std::to_string(slot); }
 
 // delete key from db
-int KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot>slot){
-  std::map<const char, storage::DataType> map = {
-      {'k', storage::kStrings},
-      {'h', storage::kHashes},
-      {'l', storage::kLists},
-      {'s', storage::kSets},
-      {'z', storage::kZSets},
-  };
-  std::vector<std::string> keys(1, key);
-  int64_t count = slot->db()->DelByType(keys, map[key_type]);
-  if (count == 0) {
-    LOG(WARNING) << "Del key: " << key << " at slot " << SlotNum(key) << " not found ";
-    return 0;
-  } else if (count < 0) {
+int KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot> slot) {
+  int32_t res = 0;
+  std::string slotKey = GetSlotsSlotKey(SlotNum(key));
+
+  // delete key from slot
+  std::vector<std::string> members;
+  members.push_back(key_type + key);
+  rocksdb::Status s = slot->db()->SRem(slotKey, members, &res);
+  if (!s.ok()) {
+    if (s.IsNotFound()) {
+      LOG(INFO) << "Del key Srem key " << key << " not found";
+      return 0;
+    } else {
+      LOG(WARNING) << "Del key Srem key: " << key << " from slotKey, error: " << strerror(errno);
+      return -1;
+    }
+  }
+
+  // delete key from db
+  members.clear();
+  members.push_back(key);
+  std::map<storage::DataType, storage::Status> type_status;
+  int64_t del_nums = slot->db()->Del(members, &type_status);
+  if (0 > del_nums) {
     LOG(WARNING) << "Del key: " << key << " at slot " << SlotNum(key) << " error";
     return -1;
   }
+
   return 1;
 }
 
@@ -903,7 +915,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot>slot) {
   bool ret = g_pika_server -> SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_num_, keys_num_, slot);
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
-    res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error");
+    res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error, may be currently migrating");
     return;
   }
 
