@@ -401,6 +401,8 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, std:
   return ret;
 }
 
+std::string GetSlotsSlotKey(int slot) { return SlotKeyPrefix + std::to_string(slot); }
+
 // do migrate key to dest pika server
 static int DoMigrate(net::NetCli *cli, std::string send_str) {
   pstd::Status s;

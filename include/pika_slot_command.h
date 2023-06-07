@@ -25,6 +25,7 @@ void CRC32TableInit(uint32_t poly);
 extern void InitCRC32Table();
 
 extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
+extern uint32_t CRC32CheckSum(const char *buf, int len);
 
 int SlotNum(const std::string &str);
 int KeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot);
@@ -125,6 +126,31 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
  private:
   virtual void DoInitial();
 };
+
+class SlotsDelCmd : public Cmd {
+ public:
+  SlotsDelCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Slot>slot);
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SlotsDelCmd(*this); }
+ private:
+  std::vector<std::string> slots_;
+  virtual void DoInitial();
+};
+
+class SlotsHashKeyCmd : public Cmd {
+ public:
+  SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Slot>slot);
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
+ private:
+  std::vector<std::string> keys_;
+  virtual void DoInitial();
+};
+
 
 class SlotsMgrtSenderThread: public net::Thread {
  public:
