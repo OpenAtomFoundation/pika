@@ -348,6 +348,18 @@ int PikaConf::Load() {
     arena_block_size_ = write_buffer_size_ >> 3;  // 1/8 of the write_buffer_size_
   }
 
+  // arena_block_size
+  GetConfInt64Human("slotmigrate-thread-num_", &slotmigrate_thread_num_);
+  if (slotmigrate_thread_num_ < 1 || slotmigrate_thread_num_ > 24) {
+    slotmigrate_thread_num_ = 8;  // 1/8 of the write_buffer_size_
+  }
+
+  // arena_block_size
+  GetConfInt64Human("thread-migrate-keys-num", &thread_migrate_keys_num_);
+  if (thread_migrate_keys_num_ < 64 || thread_migrate_keys_num_ > 128) {
+    thread_migrate_keys_num_ = 64;  // 1/8 of the write_buffer_size_
+  }
+
   // max_write_buffer_size
   GetConfInt64Human("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
