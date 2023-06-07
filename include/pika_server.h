@@ -37,6 +37,7 @@
 #include "include/pika_statistic.h"
 #include "include/pika_table.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_migrate_thread.h"
 
 
 
@@ -442,6 +443,8 @@ class PikaServer : public pstd::noncopyable {
    * SlotsMgrt use
    */
   std::unique_ptr<SlotsMgrtSenderThread> slotsmgrt_sender_thread_;
+
+  std::unique_ptr<PikaMigrateThread> pika_migrate_thread_;
 
   /*
    * Slowlog used

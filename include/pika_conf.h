@@ -89,6 +89,14 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return arena_block_size_;
   }
+  int64_t slotmigrate_thread_num() {
+    std::shared_lock l(rwlock_);
+    return slotmigrate_thread_num_;
+  }
+  int64_t thread_migrate_keys_num() {
+    std::shared_lock l(rwlock_);
+    return thread_migrate_keys_num_;
+  }
   int64_t max_write_buffer_size() {
     std::shared_lock l(rwlock_);
     return max_write_buffer_size_;
@@ -508,6 +516,8 @@ class PikaConf : public pstd::BaseConf {
   std::string compact_interval_;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
+  int64_t slotmigrate_thread_num_ = 0;
+  int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
   int max_write_buffer_num_ = 0;
   int64_t max_client_response_size_ = 0;
