@@ -179,7 +179,7 @@ void PikaServer::Start() {
   while (!exit_) {
     DoTimingTask();
     // wake up every 5 seconds
-    if (exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
+    if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
       exit_mutex_.unlock();
     }
   }
