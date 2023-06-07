@@ -86,27 +86,27 @@ class PikaMigrateThread : public net::Thread {
 
   bool request_migrate_;
   pstd::CondVar request_migrate_cond_;
-  std::unique_lock<std::mutex> request_migrate_mutex_;
+  std::mutex request_migrate_mutex_;
 
   int32_t workers_num_;
   std::vector<PikaParseSendThread *> workers_;
 
   std::atomic<int32_t> working_thread_num_;
   pstd::CondVar workers_cond_;
-  std::unique_lock<std::mutex> workers_mutex_;
+  std::mutex workers_mutex_;
 
   std::deque<std::pair<const char, std::string>> mgrtone_queue_;
-  std::unique_lock<std::mutex> mgrtone_queue_mutex_;
+  std::mutex mgrtone_queue_mutex_;
 
   int64_t cursor_;
   std::deque<std::pair<const char, std::string>> mgrtkeys_queue_;
   pstd::CondVar mgrtkeys_cond_;
-  std::unique_lock<std::mutex> mgrtkeys_queue_mutex_;
+  std::mutex mgrtkeys_queue_mutex_;
 
   std::map<std::pair<const char, std::string>, std::string> mgrtkeys_map_;
-  std::unique_lock<std::mutex> mgrtkeys_map_mutex_;
+  std::mutex mgrtkeys_map_mutex_;
 
-  std::unique_lock<std::mutex> migrator_mutex_;
+  std::mutex migrator_mutex_;
 
   friend class PikaParseSendThread;
 };

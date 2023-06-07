@@ -1540,8 +1540,7 @@ void PikaServer::ServerStatus(std::string* info) {
 }
 
 bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, std::shared_ptr<Slot>slot) {
-//  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
-  return slotsmgrt_sender_thread_->SlotsMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
+  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
 }
 
 bool PikaServer::GetSlotsMigrateResult(int64_t *moved, int64_t *remained) {
