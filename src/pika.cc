@@ -15,11 +15,13 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+
 #include "pstd/include/env.h"
+#include "pstd/include/pstd_defer.h"
 
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
-PikaServer* g_pika_server;
+PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
@@ -194,6 +196,15 @@ int main(int argc, char* argv[]) {
     close_std();
   }
 
+  DEFER {
+    delete g_pika_server;
+    g_pika_server = nullptr;
+    g_pika_rm.reset();
+    g_pika_cmd_table_manager.reset();
+    ::google::ShutdownGoogleLogging();
+    g_pika_conf.reset();
+  };
+
   g_pika_rm->Start();
   g_pika_server->Start();
 
@@ -204,9 +215,6 @@ int main(int argc, char* argv[]) {
   // stop PikaReplicaManager first，avoid internal threads
   // may references to dead PikaServer
   g_pika_rm->Stop();
-
-  delete g_pika_server;
-  ::google::ShutdownGoogleLogging();
 
   return 0;
 }
