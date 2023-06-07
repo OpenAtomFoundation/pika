@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <algorithm>
+#include <vector>
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
@@ -46,10 +47,58 @@ uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
   return ~crc;
 }
 
+//get slot tag
+static const char* GetSlotsTag(const std::string &str, int *plen) {
+  const char *s = str.data();
+  int i, j, n = str.length();
+  for (i = 0; i < n && s[i] != '{'; i ++) {}
+  if (i == n) {
+    return NULL;
+  }
+  i ++;
+  for (j = i; j < n && s[j] != '}'; j ++) {}
+  if (j == n) {
+    return NULL;
+  }
+  if (plen != NULL) {
+    *plen = j - i;
+  }
+  return s + i;
+}
+
+
 // get key slot number
 int SlotNum(const std::string &str) {
   uint32_t crc = CRC32Update(0, str.data(), (int)str.size());
   return (int)(crc & HASH_SLOTS_MASK);
+}
+
+
+// get the slot number by key
+int GetSlotsNum(const std::string &str, uint32_t *pcrc, int *phastag) {
+  const char *s = str.data();
+  int taglen;
+  int hastag = 0;
+  const char *tag = GetSlotsTag(str, &taglen);
+  if (tag == NULL) {
+    tag = s, taglen = str.length();
+  } else {
+    hastag = 1;
+  }
+  uint32_t crc = CRC32CheckSum(tag, taglen);
+  if (pcrc != NULL) {
+    *pcrc = crc;
+  }
+  if (phastag != NULL) {
+    *phastag = hastag;
+  }
+  return (int)(crc & HASH_SLOTS_MASK);
+}
+
+
+uint32_t CRC32CheckSum(const char *buf, int len)
+{
+  return CRC32Update(0, buf, len);
 }
 
 // add key to slotkey
@@ -1333,5 +1382,55 @@ void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Slot>slot) {
     res_.SetRes(CmdRes::kErrOther, "slotsmgrt-async-cancel error");
   }
   res_.SetRes(CmdRes::kOk);
+  return;
+}
+
+void SlotsDelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsDel);
+  }
+  slots_.assign(argv_.begin(), argv_.end());
+  return;
+}
+
+void SlotsDelCmd::Do(std::shared_ptr<Slot>slot) {
+  std::vector<std::string> keys;
+  std::vector<std::string>::const_iterator iter;
+  for (iter = slots_.begin(); iter != slots_.end(); iter++){
+    keys.push_back(SlotKeyPrefix + *iter);
+  }
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  int64_t count = slot->db()->Del(keys, &type_status);
+  if (count >= 0) {
+    res_.AppendInteger(count);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "SlotsDel error");
+  }
+  return;
+}
+
+
+/* *
+ * slotshashkey [key1 key2...]
+ * */
+void SlotsHashKeyCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
+    return;
+  }
+
+  std::vector<std::string>::const_iterator iter = argv_.begin();
+  keys_.assign(argv_.begin(), argv_.end());
+  return;
+}
+
+void SlotsHashKeyCmd::Do(std::shared_ptr<Slot>slot) {
+  std::vector<std::string>::const_iterator keys_it;
+
+  res_.AppendArrayLen(keys_.size());
+  for (keys_it = keys_.begin(); keys_it != keys_.end(); ++keys_it) {
+    res_.AppendInteger(GetSlotsNum(*keys_it, NULL, NULL));;
+  }
+
   return;
 }
