@@ -673,7 +673,7 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot>slot) {
 int SlotsMgrtTagSlotCmd::SlotKeyPop(std::shared_ptr<Slot>slot){
   std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
   std::vector<std::string> member;
-  rocksdb::Status s = slot->db()->SPop(slotKey, &member, 2);
+  rocksdb::Status s = slot->db()->SPop(slotKey, &member, 1);
   if (!s.ok()) {
     LOG(WARNING) << "Migrate slot: " << slot_num_ << " error: " << s.ToString();
     res_.AppendArrayLen(2);
@@ -682,9 +682,9 @@ int SlotsMgrtTagSlotCmd::SlotKeyPop(std::shared_ptr<Slot>slot){
     return -1;
   }
 
-  //key_type_ = &member;
-  //key_.insert(key_.begin(), member.begin(), member.end());
-  //key_.erase(key_.begin());
+  key_type_ = member[0].at(0);
+  key_ = member[0];
+  key_.erase(key_.begin());
 
   return 0;
 }
