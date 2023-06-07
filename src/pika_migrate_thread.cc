@@ -936,7 +936,6 @@ void *PikaMigrateThread::ThreadMain() {
     {
       std::unique_lock<std::mutex> lm(request_migrate_mutex_);
       while (!request_migrate_) {
-        LOG(INFO) << "request_migrate_cond_ 进入等待新的迁移工作！";
         request_migrate_cond_.wait(lm);
       }
       request_migrate_ = false;
