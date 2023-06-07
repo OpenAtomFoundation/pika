@@ -155,9 +155,11 @@ class SlotsMgrtSenderThread: public net::Thread {
   pstd::Mutex mutex_;
   std::atomic<bool> is_migrating_ = false;
   pstd::CondVar slotsmgrt_cond_;
+  std::shared_ptr<Slot>slot_;
+
+  void* ThreadMain() override;
 
   bool ElectMigrateKeys(std::shared_ptr<Slot>slot);
-  virtual void* ThreadMain(std::shared_ptr<Slot>slot);
 };
 
 

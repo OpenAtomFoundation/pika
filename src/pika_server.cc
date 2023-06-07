@@ -74,6 +74,7 @@ PikaServer::PikaServer()
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
+  slotsmgrt_sender_thread_ = std::make_unique<SlotsMgrtSenderThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
 }
@@ -93,6 +94,7 @@ PikaServer::~PikaServer() {
   }
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
+  slotsmgrt_sender_thread_->StopThread();
 
   dbs_.clear();
 
@@ -1533,4 +1535,24 @@ void PikaServer::ServerStatus(std::string* info) {
   size_t q_size = ClientProcessorThreadPoolCurQueueSize();
   tmp_stream << "Client Processor thread-pool queue size: " << q_size << "\r\n";
   info->append(tmp_stream.str());
+}
+
+bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots,int64_t keys_num, std::shared_ptr<Slot>slot) {
+  return slotsmgrt_sender_thread_->SlotsMigrateBatch(ip, port, time_out, slots, keys_num, slot);
+}
+
+bool PikaServer::GetSlotsMigrateResult(int64_t *moved, int64_t *remained) {
+  return slotsmgrt_sender_thread_->GetSlotsMigrateResult(moved, remained);
+}
+
+void PikaServer:: GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained){
+  return slotsmgrt_sender_thread_->GetSlotsMgrtSenderStatus(ip, port, slot, migrating, moved, remained);
+}
+
+void PikaServer:: SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot) {
+  slotsmgrt_sender_thread_->SlotsMigrateOne(key, slot);
+}
+
+bool PikaServer::SlotsMigrateAsyncCancel() {
+  return slotsmgrt_sender_thread_->SlotsMigrateAsyncCancel();
 }
