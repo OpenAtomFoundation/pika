@@ -31,6 +31,7 @@ aux_source_directory(./src  DIR_SRCS)
 add_library(pstd STATIC ${DIR_SRCS})
 
 add_dependencies(pstd
+  rocksdb
   glog
   gflags
   fmt
