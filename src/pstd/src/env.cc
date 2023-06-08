@@ -185,13 +185,28 @@ bool DeleteDirIfExist(const std::string& path) {
   return !(IsDir(path) == 0 && DeleteDir(path) != 0);
 }
 
-uint64_t Du(const std::string& filename) {
+uint64_t Du(const std::string& path) {
   uint64_t sum = 0;
-  for (auto& de : filesystem::recursive_directory_iterator(filename)) {
-    sum += de.file_size();
+  try {
+    if (filesystem::is_symlink(path)) {
+      filesystem::path symlink_path = filesystem::read_symlink(path);
+      sum = Du(symlink_path);  
+    } else if (filesystem::is_directory(path)) {
+      for (const auto& entry : filesystem::directory_iterator(path)) {
+        if (entry.is_symlink()) {
+          sum += Du(filesystem::read_symlink(entry.path()));
+        } else if (entry.is_directory()) {
+          sum += Du(entry.path());  
+        } else if (entry.is_regular_file()) {
+          sum += entry.file_size();
+        }
+      }
+    } else if (filesystem::is_regular_file(path)) {
+      sum = filesystem::file_size(path);   
+    }
+  } catch (const filesystem::filesystem_error& ex) {
+    LOG(WARNING) << "Error accessing path: " << ex.what() << std::endl;
   }
-  return sum;
-}
 
 uint64_t NowMicros() {
   auto now = std::chrono::system_clock::now();
