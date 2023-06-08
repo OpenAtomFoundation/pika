@@ -45,7 +45,7 @@ void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
-    SlotKeyAdd("k", key_, slot);
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

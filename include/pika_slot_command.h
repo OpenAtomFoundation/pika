@@ -27,13 +27,13 @@ extern void InitCRC32Table();
 extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
 extern uint32_t CRC32CheckSum(const char *buf, int len);
 
-int SlotNum(const std::string &str);
-int KeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot);
-void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
-void KeyNotExistsRem(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
-void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot);
-int  KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot>slot);
-std::string GetSlotsSlotKey(int slot);
+int GetSlotNum(const std::string &str);
+int GetKeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot);
+void AddSlotKey(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
+void RemKeyNotExists(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
+void RemSlotKey(const std::string key, std::shared_ptr<Slot>slot);
+int DeleteKey(const std::string key, const char key_type, std::shared_ptr<Slot>slot);
+std::string GetSlotKey(int slot);
 
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:

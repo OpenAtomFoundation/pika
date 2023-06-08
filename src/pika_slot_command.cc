@@ -68,7 +68,7 @@ static const char* GetSlotsTag(const std::string &str, int *plen) {
 
 
 // get key slot number
-int SlotNum(const std::string &str) {
+int GetSlotNum(const std::string &str) {
   uint32_t crc = CRC32Update(0, str.data(), (int)str.size());
   return (int)(crc & HASH_SLOTS_MASK);
 }
@@ -102,13 +102,13 @@ uint32_t CRC32CheckSum(const char *buf, int len)
 }
 
 // add key to slotkey
-void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<Slot>slot) {
+void AddSlotKey(const std::string type, const std::string key, std::shared_ptr<Slot>slot) {
   if (g_pika_conf->slotmigrate() != true){
     return;
   }
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
-  std::string slotKey = SlotKeyPrefix + std::to_string(SlotNum(key));
+  std::string slotKey = SlotKeyPrefix + std::to_string(GetSlotNum(key));
   rocksdb::Status s = slot->db()->SAdd(slotKey, members, &count);
   if (!s.ok()) {
     LOG(WARNING) << "SAdd key: " << key << " to slotKey, error: " << s.ToString();
@@ -116,7 +116,7 @@ void SlotKeyAdd(const std::string type, const std::string key, std::shared_ptr<S
 }
 
 //check key exists
-void KeyNotExistsRem(const std::string type, const std::string key, std::shared_ptr<Slot>slot) {
+void RemKeyNotExists(const std::string type, const std::string key, std::shared_ptr<Slot>slot) {
   if (g_pika_conf->slotmigrate() != true){
     return;
   }
@@ -126,7 +126,7 @@ void KeyNotExistsRem(const std::string type, const std::string key, std::shared_
   std::map<storage::DataType, rocksdb::Status> type_status;
   int64_t res = slot->db()->Exists(vkeys, &type_status);
   if (res == 0) {
-    std::string slotKey = SlotKeyPrefix + std::to_string(SlotNum(key));
+    std::string slotKey = SlotKeyPrefix + std::to_string(GetSlotNum(key));
     std::vector<std::string> members(1, type + key);
     int32_t count = 0;
     rocksdb::Status s =slot->db()->SRem(slotKey, members, &count);
@@ -139,16 +139,16 @@ void KeyNotExistsRem(const std::string type, const std::string key, std::shared_
 }
 
 //del key from slotkey
-void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot) {
+void RemSlotKey(const std::string key, std::shared_ptr<Slot>slot) {
   if (g_pika_conf->slotmigrate() != true){
     return;
   }
   std::string type;
-  if (KeyType(key, type, slot) < 0){
+  if (GetKeyType(key, type, slot) < 0){
     LOG(WARNING) << "SRem key: " << key << " from slotKey error";
     return;
   }
-  std::string slotKey = SlotKeyPrefix + std::to_string(SlotNum(key));
+  std::string slotKey = SlotKeyPrefix + std::to_string(GetSlotNum(key));
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
   rocksdb::Status s = slot->db()->SRem(slotKey, members, &count);
@@ -158,7 +158,7 @@ void SlotKeyRem(const std::string key, std::shared_ptr<Slot>slot) {
   }
 }
 
-int KeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot) {
+int GetKeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot) {
   std::string type_str;
   rocksdb::Status s = slot->db()->Type(key, &type_str);
   if (!s.ok()) {
@@ -245,12 +245,12 @@ static int kvGet(const std::string key, std::string &value, std::shared_ptr<Slot
   return 0;
 }
 
-std::string GetSlotsSlotKey(int slot) { return SlotKeyPrefix + std::to_string(slot); }
+std::string GetSlotKey(int slot) { return SlotKeyPrefix + std::to_string(slot); }
 
 // delete key from db
-int KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot> slot) {
+int DeleteKey(const std::string key, const char key_type, std::shared_ptr<Slot> slot) {
   int32_t res = 0;
-  std::string slotKey = GetSlotsSlotKey(SlotNum(key));
+  std::string slotKey = GetSlotKey(GetSlotNum(key));
 
   // delete key from slot
   std::vector<std::string> members;
@@ -272,7 +272,7 @@ int KeyDelete(const std::string key, const char key_type, std::shared_ptr<Slot> 
   std::map<storage::DataType, storage::Status> type_status;
   int64_t del_nums = slot->db()->Del(members, &type_status);
   if (0 > del_nums) {
-    LOG(WARNING) << "Del key: " << key << " at slot " << SlotNum(key) << " error";
+    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotNum(key) << " error";
     return -1;
   }
 
@@ -353,7 +353,7 @@ static int migrateKv(net::NetCli *cli, const std::string key, bool async, std::s
   }
 
   if (!async) {
-    KeyDelete(key, 'k', slot); //key already been migrated successfully, del error doesn't matter
+    DeleteKey(key, 'k', slot); //key already been migrated successfully, del error doesn't matter
   }
   return ret;
 }
@@ -414,7 +414,7 @@ static int migrateHash(net::NetCli *cli, const std::string key, bool async, std:
   }
 
   if (!async) {
-    KeyDelete(key, 'h', slot); //key already been migrated successfully, del error doesn't matter
+    DeleteKey(key, 'h', slot); //key already been migrated successfully, del error doesn't matter
   }
   return ret;
 }
@@ -491,7 +491,7 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, std:
   }
 
   if (!async) {
-    KeyDelete(key, 'l', slot); //key already been migrated successfully, del error doesn't matter
+    DeleteKey(key, 'l', slot); //key already been migrated successfully, del error doesn't matter
   }
   return ret;
 }
@@ -551,7 +551,7 @@ static int migrateSet(net::NetCli *cli, const std::string key, bool async, std::
   }
 
   if (!async) {
-    KeyDelete(key, 's', slot); //key already been migrated successfully, del error doesn't matter
+    DeleteKey(key, 's', slot); //key already been migrated successfully, del error doesn't matter
   }
   return ret;
 }
@@ -612,7 +612,7 @@ static int migrateZset(net::NetCli *cli, const std::string key, bool async, std:
   }
 
   if (!async) {
-    KeyDelete(key, 'z', slot);
+    DeleteKey(key, 'z', slot);
   }
   return ret;
 }
@@ -623,31 +623,31 @@ static int MigrateOneKey(net::NetCli *cli, const std::string key, const char key
   switch (key_type) {
     case 'k':
       if ((ret = migrateKv(cli, key, async, slot)) < 0){
-        SlotKeyAdd("k", key, slot);
+        AddSlotKey("k", key, slot);
         return -1;
       }
       break;
     case 'h':
       if ((ret = migrateHash(cli, key, async, slot)) < 0){
-        SlotKeyAdd("h", key, slot);
+        AddSlotKey("h", key, slot);
         return -1;
       }
       break;
     case 'l':
       if ((ret = migrateList(cli, key, async, slot)) < 0){
-        SlotKeyAdd("l", key, slot);
+        AddSlotKey("l", key, slot);
         return -1;
       }
       break;
     case 's':
       if ((ret = migrateSet(cli, key, async, slot)) < 0){
-        SlotKeyAdd("s", key, slot);
+        AddSlotKey("s", key, slot);
         return -1;
       }
       break;
     case 'z':
       if ((ret = migrateZset(cli, key, async, slot)) < 0){
-        SlotKeyAdd("z", key, slot);
+        AddSlotKey("z", key, slot);
         return -1;
       }
       break;
@@ -777,7 +777,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
   key_ = *it++;
   pstd::StringToLower(key_);
 
-  slot_num_ = SlotNum(key_);
+  slot_num_ = GetSlotNum(key_);
 }
 
 // check key type
@@ -1058,7 +1058,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key, std::shared_p
   std::lock_guard ld(rwlock_db_);
   std::lock_guard lb(rwlock_batch_);
   std::lock_guard lo(rwlock_ones_);
-  int slot_num = SlotNum(key);
+  int slot_num = GetSlotNum(key);
   std::string type_str;
   char key_type;
   rocksdb::Status s = slot->db()->Type(key, &type_str);
@@ -1348,7 +1348,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
         }
 
         for (const auto& item : migrating_batch_) {
-          KeyDelete(item.second, item.first, slot_);
+          DeleteKey(item.second, item.first, slot_);
         }
 
         {

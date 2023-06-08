@@ -72,7 +72,7 @@ class PikaMigrateThread : public net::Thread {
   std::string dest_ip_;
   int64_t dest_port_;
   int64_t timeout_ms_;
-  int64_t slot_num_;
+  int64_t slot_id_;
   int64_t keys_num_;
   std::shared_ptr<Slot> slot_;
   std::atomic<bool> is_migrating_;

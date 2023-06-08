@@ -55,7 +55,7 @@ void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -94,7 +94,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -112,7 +112,7 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    SlotKeyAdd("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -133,7 +133,7 @@ void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -188,7 +188,7 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
-    KeyNotExistsRem("l", key_, slot);
+    RemKeyNotExists("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -211,7 +211,7 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LSet(key_, index_, value_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    SlotKeyAdd("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
@@ -259,7 +259,7 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    KeyNotExistsRem("l", key_, slot);
+    RemKeyNotExists("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -306,7 +306,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
-    KeyNotExistsRem("l", key_, slot);
+    RemKeyNotExists("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -325,7 +325,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    KeyNotExistsRem("l", key_, slot);
+    RemKeyNotExists("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
