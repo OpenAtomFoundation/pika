@@ -259,8 +259,18 @@ void BlockingBaseCmd::BlockThisClientToWaitLRPush(net::BlockPopType block_pop_ty
   std::cout << "-----------end------------------" << std::endl;
   //------------code for testing---------------
 }
+void BlockingBaseCmd::removeDuplicates(std::vector<std::string>& keys_) {
+  std::unordered_set<std::string> seen;
+  std::vector<std::string> unique_keys;
+  unique_keys.reserve(keys_.size());
 
-
+  for(const auto& key : keys_){
+    if(seen.insert(key).second){
+      unique_keys.emplace_back(key);
+    }
+  }
+  keys_ = std::move(unique_keys);
+}
 
 void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
@@ -296,6 +306,7 @@ void BLPopCmd::DoInitial() {
 
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
+  removeDuplicates(keys_);
   int64_t timeout;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -493,6 +504,7 @@ void BRPopCmd::DoInitial() {
 
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
+  removeDuplicates(keys_);
   int64_t timeout;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);

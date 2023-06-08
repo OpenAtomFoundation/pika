@@ -177,7 +177,7 @@ class TimedTaskManager {
   }
   /**
    * @param task_name name of the timed task
-   * @param interval  exec time interval of the timed task
+   * @param interval  exec time interval of the timed task, unit in [ms]
    * @param f addr of a function whose exec is the task itself
    * @param args parameters of the function
    * @return fd that related with the task, return -1 if the interval is invalid

@@ -20,7 +20,7 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit),
-      timedTaskManager(net_multiplexer_->GetMultiplexer()) {
+      timedTaskManager_(net_multiplexer_->GetMultiplexer()) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -32,7 +32,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit),
-      timedTaskManager(net_multiplexer_->GetMultiplexer()){
+      timedTaskManager_(net_multiplexer_->GetMultiplexer()){
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -44,7 +44,7 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit),
-      timedTaskManager(net_multiplexer_->GetMultiplexer()){
+      timedTaskManager_(net_multiplexer_->GetMultiplexer()){
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }

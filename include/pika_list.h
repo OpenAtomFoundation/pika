@@ -91,6 +91,7 @@ class BlockingBaseCmd : public Cmd {
   void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
   static void ServeAndUnblockConns(void* args);
   static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);
+  void removeDuplicates(std::vector<std::string> & keys_);
   //blpop/brpop used functions end
 };
 
