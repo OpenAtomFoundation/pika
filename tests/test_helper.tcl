@@ -18,10 +18,10 @@ set ::all_tests {
     # unit/basic
     # unit/scan
     # unit/type/list
-    # unit/type/list-2
-    # unit/type/list-3
+    unit/type/list-2
+    unit/type/list-3
     unit/type/set
-    # unit/type/zset
+    unit/type/zset
     # unit/type/hash
     # unit/sort
     # unit/expire
