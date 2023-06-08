@@ -3,7 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "pstd/include/pstd_status.h"
-#include <cstdint>  
+#include <cstdint>
 #include <cstdio>
 
 namespace pstd {
