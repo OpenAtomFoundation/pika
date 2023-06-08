@@ -30,9 +30,6 @@ endif()
 
 # [Notice] AddressSanitizer and ThreadSanitizer can not be enabled at the same time.
 
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-# [Notice] address sanitizer and thread sanitizer can not be enabled at the same time.
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
 # Uncomment the following two lines to enable ThreadSanitizer to detect data race and other thread-related issue.
 #set(CMAKE_BUILD_TYPE "Debug")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
