@@ -146,7 +146,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return user_blacklist_;
   }
-  bool classic_mode() { return classic_mode_.load(); }
   int databases() {
     std::shared_lock l(rwlock_);
     return databases_;
@@ -513,7 +512,6 @@ class PikaConf : public pstd::BaseConf {
   std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
-  std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;
   std::vector<DBStruct> db_structs_;

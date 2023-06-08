@@ -1457,7 +1457,7 @@ void PikaServer::InitStorageOptions() {
     storage_options_.options.compression_per_level.push_back(storage_options_.options.compression);
   }
 
-  // For rocksdb::BlockBasedTableOptions
+  // For rocksdb::BlockBasedDBOptions
   storage_options_.table_options.block_size = g_pika_conf->block_size();
   storage_options_.table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
   storage_options_.block_cache_size = g_pika_conf->block_cache();
