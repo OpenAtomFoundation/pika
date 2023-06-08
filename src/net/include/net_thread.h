@@ -38,6 +38,7 @@ class Thread : public pstd::noncopyable {
 
  protected:
   std::atomic<bool> should_stop_;
+  // todo Is there a better way?
   void set_is_running(bool is_running) {
     std::lock_guard l(running_mu_);
     running_ = is_running;
