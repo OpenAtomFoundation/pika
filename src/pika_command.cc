@@ -590,8 +590,6 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot,
     record_lock.Lock(current_key());
   }
 
-  std::cout << name_ <<"   is may deffer write:" << is_may_defer_write() << std::endl;
-
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();

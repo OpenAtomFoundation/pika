@@ -10,14 +10,6 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
-# 在 CMakeLists.txt 文件中添加以下行
-set(CMAKE_BUILD_TYPE "Debug")  # 确保以调试模式构建
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-
-
-
-
-
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # using Clang
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
@@ -30,6 +22,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
+
 ############# You should enable sanitizer if you are developing pika #############
 # Uncomment the following two lines to enable AddressSanitizer to detect memory leaks and other memory-related bugs.
 #set(CMAKE_BUILD_TYPE "Debug")
@@ -37,6 +30,9 @@ endif()
 
 # [Notice] AddressSanitizer and ThreadSanitizer can not be enabled at the same time.
 
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+# [Notice] address sanitizer and thread sanitizer can not be enabled at the same time.
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
 # Uncomment the following two lines to enable ThreadSanitizer to detect data race and other thread-related issue.
 #set(CMAKE_BUILD_TYPE "Debug")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
