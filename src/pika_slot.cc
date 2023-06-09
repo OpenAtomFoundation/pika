@@ -82,8 +82,7 @@ void Slot::Close() {
   opened_ = false;
 }
 
-// Before call this function, should
-// close db and log first
+// Before call this function, you should close db and log firstly
 void Slot::MoveToTrash() {
   if (opened_) {
     return;
