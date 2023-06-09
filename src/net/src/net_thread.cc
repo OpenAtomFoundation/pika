@@ -24,6 +24,9 @@ void* Thread::RunThread(void* arg) {
 }
 
 int Thread::StartThread() {
+  if (!should_stop_ && running_) {
+    return 0;
+  }
   std::lock_guard l(running_mu_);
   should_stop_ = false;
   if (!running_) {
@@ -34,6 +37,9 @@ int Thread::StartThread() {
 }
 
 int Thread::StopThread() {
+  if (should_stop_ && !running_) {
+    return 0;
+  }
   std::lock_guard l(running_mu_);
   should_stop_ = true;
   if (running_) {
