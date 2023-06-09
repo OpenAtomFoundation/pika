@@ -151,6 +151,23 @@ class SlotsHashKeyCmd : public Cmd {
   virtual void DoInitial();
 };
 
+/* *
+* SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$arg1 ...]
+* SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$key1 $arg1 ...]
+* SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$key1 $arg1 ...] [$key2 $arg2 ...]
+* */
+class SlotsMgrtExecWrapperCmd : public Cmd {
+ public:
+  SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Slot>slot);
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SlotsMgrtExecWrapperCmd(*this); }
+ private:
+  std::string key_;
+  std::vector<std::string> args;
+  virtual void DoInitial();
+};
 
 class SlotsMgrtSenderThread: public net::Thread {
  public:

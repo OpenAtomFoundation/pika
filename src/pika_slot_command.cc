@@ -1446,3 +1446,33 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Slot>slot) {
 
   return;
 }
+
+void SlotsMgrtExecWrapperCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
+  }
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
+  key_ = *it++;
+  pstd::StringToLower(key_);
+  return;
+}
+
+void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
+  res_.AppendArrayLen(2);
+  int ret = g_pika_server->SlotsMigrateOne(key_, slot);
+  switch (ret) {
+    case 0:
+      res_.AppendInteger(0);
+      res_.AppendInteger(0);
+      return;
+    case 1:
+      res_.AppendInteger(1);
+      res_.AppendInteger(1);
+      return;
+    default:
+      res_.AppendInteger(-1);
+      res_.AppendInteger(-1);
+      return;
+  }
+  return;
+}
