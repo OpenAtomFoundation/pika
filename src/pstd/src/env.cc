@@ -8,14 +8,22 @@
 #include <sys/time.h>
 #include <cassert>
 
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <utility>
+#include <thread>
 #include <vector>
 
-#include <glog/logging.h>
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace filesystem = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+namespace filesystem = std::experimental::filesystem;
+#endif
 
-#include "pstd/include/xdebug.h"
+#include <glog/logging.h>
 
 namespace pstd {
 
@@ -66,39 +74,38 @@ static Status IOError(const std::string& context, int err_number) {
 }
 
 int CreateDir(const std::string& path) {
-  int res = 0;
-
-  if ((res = mkdir(path.c_str(), 0755)) != 0) {
-    LOG(WARNING) << "mkdir error is " << strerror(errno);
+  try {
+    if (filesystem::create_directory(path)) {
+      return 0;
+    }
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
   }
-  return res;
+  return -1;
 }
 
-bool FileExists(const std::string& path) { return access(path.c_str(), F_OK) == 0; }
-
-Status DeleteFile(const std::string& fname) {
-  Status result;
-  if (unlink(fname.c_str()) != 0) {
-    result = IOError(fname, errno);
+bool FileExists(const std::string& path) {
+  try {
+    return filesystem::exists(path);
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
   }
-  return result;
+  return false;
 }
 
-int DoCreatePath(const char* path, mode_t mode) {
-  struct stat st;
-  int status = 0;
-
-  if (stat(path, &st) != 0) {
-    /* Directory does not exist. EEXIST for race
-     * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST) { status = -1;
-}
-  } else if (!S_ISDIR(st.st_mode)) {
-    errno = ENOTDIR;
-    status = -1;
+bool DeleteFile(const std::string& fname) {
+  try {
+    return filesystem::remove(fname);
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
   }
-
-  return (status);
+  return false;
 }
 
 /**
@@ -108,213 +115,108 @@ int DoCreatePath(const char* path, mode_t mode) {
  ** the last element and working backwards.
  */
 int CreatePath(const std::string& path, mode_t mode) {
-  char* pp;
-  char* sp;
-  int status;
-  char* copypath = strdup(path.c_str());
-
-  status = 0;
-  pp = copypath;
-  while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
-    if (sp != pp) {
-      /* Neither root nor double pstd in path */
-      *sp = '\0';
-      status = DoCreatePath(copypath, mode);
-      *sp = '/';
+  try {
+    if (!filesystem::create_directories(path)) {
+      return -1;
     }
-    pp = sp + 1;
+    filesystem::permissions(path, static_cast<filesystem::perms>(mode));
+    return 0;
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
   }
-  if (status == 0) {
-    status = DoCreatePath(path.c_str(), mode);
-  }
-  free(copypath);
-  return (status);
-}
 
-static int LockOrUnlock(int fd, bool lock) {
-  errno = 0;
-  struct flock f;
-  memset(&f, 0, sizeof(f));
-  f.l_type = (lock ? F_WRLCK : F_UNLCK);
-  f.l_whence = SEEK_SET;
-  f.l_start = 0;
-  f.l_len = 0;  // Lock/unlock entire file
-  return fcntl(fd, F_SETLK, &f);
-}
-
-Status LockFile(const std::string& fname, FileLock** lock) {
-  *lock = nullptr;
-  Status result;
-  int fd = open(fname.c_str(), O_RDWR | O_CREAT, 0644);
-  if (fd < 0) {
-    result = IOError(fname, errno);
-  } else if (LockOrUnlock(fd, true) == -1) {
-    result = IOError("lock " + fname, errno);
-    close(fd);
-  } else {
-    auto my_lock = new FileLock;
-    my_lock->fd_ = fd;
-    my_lock->name_ = fname;
-    *lock = my_lock;
-  }
-  return result;
-}
-
-Status UnlockFile(FileLock* lock) {
-  Status result;
-  if (LockOrUnlock(lock->fd_, false) == -1) {
-    result = IOError("unlock", errno);
-  }
-  close(lock->fd_);
-  delete lock;
-  return result;
+  return -1;
 }
 
 int GetChildren(const std::string& dir, std::vector<std::string>& result) {
-  int res = 0;
   result.clear();
-  DIR* d = opendir(dir.c_str());
-  if (!d) {
-    return errno;
+  for (auto& de : filesystem::directory_iterator(dir)) {
+    result.emplace_back(de.path());
   }
-  struct dirent* entry;
-  while ((entry = readdir(d)) != nullptr) {
-    if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
-      continue;
-    }
-    result.emplace_back(entry->d_name);
-  }
-  closedir(d);
-  return res;
+  return 0;
 }
 
-bool GetDescendant(const std::string& dir, std::vector<std::string>& result) {
-  DIR* d = opendir(dir.c_str());
-  if (!d) {
-    return false;
+void GetDescendant(const std::string& dir, std::vector<std::string>& result) {
+  result.clear();
+  for (auto& de : filesystem::recursive_directory_iterator(dir)) {
+    result.emplace_back(de.path());
   }
-  struct dirent* entry;
-  std::string fname;
-  while ((entry = readdir(d)) != nullptr) {
-    if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
-      continue;
-    }
-    fname = dir + "/" + entry->d_name;
-    if (0 == IsDir(fname)) {
-      if (!GetDescendant(fname, result)) {
-        return false;
-      }
-    } else {
-      result.push_back(fname);
-    }
-  }
-  closedir(d);
-  return true;
 }
 
 int RenameFile(const std::string& oldname, const std::string& newname) {
-  return rename(oldname.c_str(), newname.c_str());
+  try {
+    filesystem::rename(oldname, newname);
+    return 0;
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
+  }
+  return -1;
 }
 
 int IsDir(const std::string& path) {
-  struct stat buf;
-  int ret = stat(path.c_str(), &buf);
-  if (0 == ret) {
-    if ((buf.st_mode & S_IFDIR) != 0) {
-      // folder
-      return 0;
-    } else {
-      // file
-      return 1;
-    }
+  std::error_code ec;
+  if (filesystem::is_directory(path, ec)) {
+    return 0;
+  } else if (filesystem::is_regular_file(path, ec)) {
+    return 1;
   }
   return -1;
 }
 
 int DeleteDir(const std::string& path) {
-  char chBuf[256];
-  DIR* dir = nullptr;
-  struct dirent* ptr;
-  int ret = 0;
-  dir = opendir(path.c_str());
-  if (nullptr == dir) {
-    return -1;
-  }
-  while ((ptr = readdir(dir)) != nullptr) {
-    ret = strcmp(ptr->d_name, ".");
-    if (0 == ret) {
-      continue;
+  try {
+    if (filesystem::remove_all(path) == 0) {
+      return -1;
     }
-    ret = strcmp(ptr->d_name, "..");
-    if (0 == ret) {
-      continue;
-    }
-    snprintf(chBuf, 256, "%s/%s", path.c_str(), ptr->d_name);
-    ret = IsDir(chBuf);
-    if (0 == ret) {
-      // is dir
-      ret = DeleteDir(chBuf);
-      if (0 != ret) {
-        return -1;
-      }
-    } else if (1 == ret) {
-      // is file
-      ret = remove(chBuf);
-      if (0 != ret) {
-        return -1;
-      }
-    }
+    return 0;
+  } catch (const filesystem::filesystem_error& e) {
+    LOG(WARNING) << e.what();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << e.what();
   }
-  (void)closedir(dir);
-  ret = remove(path.c_str());
-  if (0 != ret) {
-    return -1;
-  }
-  return 0;
+  return -1;
 }
 
 bool DeleteDirIfExist(const std::string& path) {
   return !(IsDir(path) == 0 && DeleteDir(path) != 0);
 }
 
-uint64_t Du(const std::string& filename) {
-  struct stat statbuf;
-  uint64_t sum;
-  if (lstat(filename.c_str(), &statbuf) != 0) {
-    return 0;
-  }
-  if (S_ISLNK(statbuf.st_mode) && stat(filename.c_str(), &statbuf) != 0) {
-    return 0;
-  }
-  sum = statbuf.st_size;
-  if (S_ISDIR(statbuf.st_mode)) {
-    DIR* dir = nullptr;
-    struct dirent* entry;
-    std::string newfile;
-
-    dir = opendir(filename.c_str());
-    if (!dir) {
-      return sum;
-    }
-    while ((entry = readdir(dir)) != nullptr) {
-      if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
-        continue;
+uint64_t Du(const std::string& path) {
+  uint64_t sum = 0;
+  try {
+    if (filesystem::is_symlink(path)) {
+      filesystem::path symlink_path = filesystem::read_symlink(path);
+      sum = Du(symlink_path);
+    } else if (filesystem::is_directory(path)) {
+      for (const auto& entry : filesystem::directory_iterator(path)) {
+        if (entry.is_symlink()) {
+          sum += Du(filesystem::read_symlink(entry.path()));
+        } else if (entry.is_directory()) {
+          sum += Du(entry.path());
+        } else if (entry.is_regular_file()) {
+          sum += entry.file_size();
+        }
       }
-      newfile = filename + "/" + entry->d_name;
-      sum += Du(newfile);
+    } else if (filesystem::is_regular_file(path)) {
+      sum = filesystem::file_size(path);
     }
-    closedir(dir);
+  } catch (const filesystem::filesystem_error& ex) {
+    LOG(WARNING) << "Error accessing path: " << ex.what() << std::endl;
   }
+
   return sum;
 }
 
 uint64_t NowMicros() {
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
+  auto now = std::chrono::system_clock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
 
-void SleepForMicroseconds(int micros) { usleep(micros); }
+void SleepForMicroseconds(int micros) { std::this_thread::sleep_for(std::chrono::microseconds(micros)); }
 
 SequentialFile::~SequentialFile() = default;
 

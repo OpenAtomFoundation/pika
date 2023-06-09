@@ -632,6 +632,7 @@ const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kDataSection = "data";
+const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 
 void InfoCmd::DoInitial() {
@@ -697,6 +698,8 @@ void InfoCmd::DoInitial() {
     return;
   } else if (strcasecmp(argv_[1].data(), kDataSection.data()) == 0) {
     info_section_ = kInfoData;
+  } else if (strcasecmp(argv_[1].data(), kRocksDBSection.data()) == 0) {
+    info_section_ = kInfoRocksDB;
   } else if (strcasecmp(argv_[1].data(), kDebugSection.data()) == 0) {
     info_section_ = kInfoDebug;
   } else {
@@ -724,6 +727,8 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
+      info.append("\r\n");
+      InfoRocksDB(info);
       break;
     case kInfoAll:
       InfoServer(info);
@@ -741,6 +746,8 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
+      info.append("\r\n");
+      InfoRocksDB(info);
       break;
     case kInfoServer:
       InfoServer(info);
@@ -765,6 +772,9 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       break;
     case kInfoData:
       InfoData(info);
+      break;
+    case kInfoRocksDB:
+      InfoRocksDB(info);
       break;
     case kInfoDebug:
       InfoDebug(info);
@@ -805,13 +815,14 @@ void InfoCmd::InfoServer(std::string& info) {
              << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
   tmp_stream << "server_id:" << g_pika_conf->server_id() << "\r\n";
+  tmp_stream << "run_id:" << g_pika_conf->run_id() << "\r\n";
 
   info.append(tmp_stream.str());
 }
 
 void InfoCmd::InfoClients(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Clients\r\n";
+  tmp_stream << "# Clients" << "\r\n";
   tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
 
   info.append(tmp_stream.str());
@@ -819,7 +830,7 @@ void InfoCmd::InfoClients(std::string& info) {
 
 void InfoCmd::InfoStats(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Stats\r\n";
+  tmp_stream << "# Stats" << "\r\n";
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
@@ -852,7 +863,7 @@ void InfoCmd::InfoCPU(std::string& info) {
   getrusage(RUSAGE_SELF, &self_ru);
   getrusage(RUSAGE_CHILDREN, &c_ru);
   std::stringstream tmp_stream;
-  tmp_stream << "# CPU\r\n";
+  tmp_stream << "# CPU" << "\r\n";
   tmp_stream << "used_cpu_sys:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
              << static_cast<float>(self_ru.ru_stime.tv_sec) + static_cast<float>(self_ru.ru_stime.tv_usec) / 1000000 << "\r\n";
   tmp_stream << "used_cpu_user:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
@@ -930,7 +941,7 @@ void InfoCmd::InfoReplication(std::string& info) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
@@ -1015,7 +1026,7 @@ void InfoCmd::InfoReplication(std::string& info) {
     std::shared_lock slot_rwl(t_item.second->slots_rw_);
     for (const auto& p_item : t_item.second->slots_) {
       std::string db_name = p_item.second->GetDBName();
-      uint32_t slot_id = p_item.second->GetSlotId();
+      uint32_t slot_id = p_item.second->GetSlotID();
       master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
       if (!master_slot) {
         LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
@@ -1047,14 +1058,12 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   int32_t duration;
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
-  tmp_stream << "# Keyspace\r\n";
+  tmp_stream << "# Keyspace" << "\r\n";
 
   if (argv_.size() == 3) {  // command => `info keyspace 1`
-    tmp_stream << "# Start async statistics"
-               << "\r\n";
+    tmp_stream << "# Start async statistics" << "\r\n";
   } else {  // command => `info keyspace` or `info`
-    tmp_stream << "# Use `info keyspace 1` do async statistics"
-               << "\r\n";
+    tmp_stream << "# Use \"info keyspace 1\" do async statistics" << "\r\n";
   }
 
   std::shared_lock rwl(g_pika_server->dbs_rw_);
@@ -1070,14 +1079,11 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       }
       tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
       if (duration == -2) {
-        tmp_stream << "# Duration: "
-                   << "In Waiting\r\n";
+        tmp_stream << "# Duration: " << "In Waiting\r\n";
       } else if (duration == -1) {
-        tmp_stream << "# Duration: "
-                   << "In Processing\r\n";
+        tmp_stream << "# Duration: " << "In Processing\r\n";
       } else if (duration >= 0) {
-        tmp_stream << "# Duration: " << std::to_string(duration) + "s"
-                   << "\r\n";
+        tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
       }
 
       tmp_stream << db_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires
@@ -1104,8 +1110,7 @@ void InfoCmd::InfoData(std::string& info) {
   std::stringstream db_fatal_msg_stream;
 
   int64_t db_size = pstd::Du(g_pika_conf->db_path());
-  tmp_stream << "# Data"
-             << "\r\n";
+  tmp_stream << "# Data" << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
   int64_t log_size = pstd::Du(g_pika_conf->log_path());
@@ -1114,7 +1119,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::map<std::string, uint64_t> type_result;
+  std::map<std::string, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t memtable_usage = 0;
@@ -1122,18 +1127,21 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t table_reader_usage = 0;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
+    if (!db_item.second) {
+        continue;
+    }
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
-      type_result.clear();
+      background_errors.clear();
       memtable_usage = table_reader_usage = 0;
       slot_item.second->DbRWLockReader();
-      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
-      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
       slot_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
-      for (const auto& item : type_result) {
+      for (const auto& item : background_errors) {
         if (item.second != 0) {
           db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
           db_fatal_msg_stream << slot_item.second->GetSlotName() << "/" << item.first;
@@ -1153,16 +1161,39 @@ void InfoCmd::InfoData(std::string& info) {
   info.append(tmp_stream.str());
 }
 
+void InfoCmd::InfoRocksDB(std::string &info) {
+    std::stringstream tmp_stream;
+
+    tmp_stream << "# RocksDB" << "\r\n";
+
+    std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+    for (const auto& table_item : g_pika_server->dbs_) {
+        if (!table_item.second) {
+            continue;
+        }
+        std::shared_lock partition_rwl(table_item.second->slots_rw_);
+        for (const auto& partition_item : table_item.second->slots_) {
+            std::string rocksdb_info;
+            partition_item.second->DbRWLockReader();
+            partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
+            partition_item.second->DbRWUnLock();
+            tmp_stream << rocksdb_info;
+        }
+    }
+
+    info.append(tmp_stream.str());
+}
+
 void InfoCmd::InfoDebug(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Synchronization Status"
-             << "\r\n";
+  tmp_stream << "# Synchronization Status"<< "\r\n";
+
   info.append(tmp_stream.str());
   g_pika_rm->RmStatus(&info);
 
   tmp_stream.str(std::string());
-  tmp_stream << "# Running Status "
-             << "\r\n";
+  tmp_stream << "# Running Status " << "\r\n";
+
   info.append(tmp_stream.str());
   g_pika_server->ServerStatus(&info);
 }

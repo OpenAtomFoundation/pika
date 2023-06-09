@@ -184,11 +184,13 @@ Here is an example usage of the script:
 
 More details on [Performance](docs/benchmark/performance.md).
 
+## Observability
+
+1. [Metrics](tools/pika_exporter/README.md)
 
 ## Documents
 
-1. [doc](docs/catalogue.md)
-
+1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)
 
 ## Contact Us
 

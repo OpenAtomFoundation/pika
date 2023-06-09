@@ -14,7 +14,7 @@
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
 
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
 class SyncMasterSlot;
 class SyncSlaveSlot;

@@ -84,38 +84,6 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> quitptr = std::make_unique<QuitCmd>(kCmdNameQuit, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
 
-  // Slots related
-  std::unique_ptr<Cmd> slotsinfoptr = std::make_unique<SlotsInfoCmd>(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsInfo, std::move(slotsinfoptr)));
-  std::unique_ptr<Cmd> slotshashkeyptr = std::make_unique<SlotsHashKeyCmd>(kCmdNameSlotsHashKey, -2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsHashKey, std::move(slotshashkeyptr)));
-  std::unique_ptr<Cmd> slotmgrtslotasyncptr = std::make_unique<SlotsMgrtSlotAsyncCmd>(kCmdNameSlotsMgrtSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtSlotAsync, std::move(slotmgrtslotasyncptr)));
-  std::unique_ptr<Cmd> slotmgrttagslotasyncptr =
-      std::make_unique<SlotsMgrtTagSlotAsyncCmd>(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlotAsync, std::move(slotmgrttagslotasyncptr)));
-  std::unique_ptr<Cmd> slotsdelptr = std::make_unique<SlotsDelCmd>(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string,  std::unique_ptr<Cmd>>(kCmdNameSlotsDel, std::move(slotsdelptr)));
-  std::unique_ptr<Cmd> slotsscanptr = std::make_unique<SlotsScanCmd>(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsScan, std::move(slotsscanptr)));
-  std::unique_ptr<Cmd> slotmgrtexecwrapper =
-      std::make_unique<SlotsMgrtExecWrapperCmd>(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtExecWrapper, std::move(slotmgrtexecwrapper)));
-  std::unique_ptr<Cmd> slotmgrtasyncstatus =
-      std::make_unique<SlotsMgrtAsyncStatusCmd>(kCmdNameSlotsMgrtAsyncStatus, 1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncStatus, std::move(slotmgrtasyncstatus)));
-  std::unique_ptr<Cmd> slotmgrtasynccancel =
-      std::make_unique<SlotsMgrtAsyncCancelCmd>(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncCancel, std::move(slotmgrtasynccancel)));
-  std::unique_ptr<Cmd> slotmgrtslotptr = std::make_unique<SlotsMgrtSlotCmd>(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtSlot, std::move(slotmgrtslotptr)));
-  std::unique_ptr<Cmd> slotmgrttagslotptr = std::make_unique<SlotsMgrtTagSlotCmd>(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlot, std::move(slotmgrttagslotptr)));
-  std::unique_ptr<Cmd> slotmgrtoneptr = std::make_unique<SlotsMgrtOneCmd>(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtOne, std::move(slotmgrtoneptr)));
-  std::unique_ptr<Cmd> slotmgrttagoneptr = std::make_unique<SlotsMgrtTagOneCmd>(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagOne, std::move(slotmgrttagoneptr)));
-
   // Kv
   ////SetCmd
   std::unique_ptr<Cmd> setptr = std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
@@ -544,7 +512,7 @@ void Cmd::ProcessFlushDBCmd() {
       std::lock_guard s_prw(g_pika_rm->slots_rw_);
       for (const auto& slot_item : db->slots_) {
         std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+        SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
         if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
           res_.SetRes(CmdRes::kErrOther, "Slot not found");
           return;
@@ -570,7 +538,7 @@ void Cmd::ProcessFlushAllCmd() {
     std::lock_guard s_prw(g_pika_rm->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
       if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -591,7 +559,7 @@ void Cmd::ProcessSingleSlotCmd() {
   }
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
   if (!sync_slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
@@ -702,7 +670,7 @@ void Cmd::ProcessMultiSlotCmd() {
         return;
       }
       std::shared_ptr<SyncMasterSlot> sync_slot = g_pika_rm->GetSyncMasterSlotByName(
-          SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+          SlotInfo(slot->GetDBName(), slot->GetSlotID()));
       if (!sync_slot) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;

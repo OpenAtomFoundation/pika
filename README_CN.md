@@ -387,8 +387,12 @@ Pika与Redis的极限QPS对比。
 
 <img src="https://deep011.github.io/public/images/pika_benchmark/pika_vs_redis_qps.png" height = "60%" width = "60%" alt="1"/>
 
+## 可观测性
+
+1. [指标 Metrics](tools/pika_exporter/README.md)
+
 ## 文档
-1. [doc](docs/catalogue.md)
+1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)
 
 ## 联系方式
 

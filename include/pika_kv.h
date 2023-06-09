@@ -9,7 +9,7 @@
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
 /*
  * kv

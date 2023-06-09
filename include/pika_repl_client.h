@@ -17,9 +17,9 @@
 
 #include "include/pika_binlog_reader.h"
 #include "include/pika_define.h"
-#include "include/pika_partition.h"
 #include "include/pika_repl_bgworker.h"
 #include "include/pika_repl_client_thread.h"
+#include "include/pika_slot.h"
 
 #include "net/include/thread_pool.h"
 #include "pika_inner_message.pb.h"

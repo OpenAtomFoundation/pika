@@ -29,15 +29,13 @@
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
 #include "include/pika_conf.h"
+#include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
 #include "include/pika_statistic.h"
-#include "include/pika_table.h"
-
-
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -351,6 +349,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
+  std::timed_mutex  exit_mutex_;
 
   /*
    * Table used

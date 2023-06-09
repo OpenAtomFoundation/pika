@@ -5,7 +5,7 @@
 
 #include <utility>
 
-#include "include/pika_table.h"
+#include "include/pika_db.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
@@ -233,7 +233,7 @@ void DB::LeaveAllSlot() {
   slots_.clear();
 }
 
-std::set<uint32_t> DB::GetSlotIds() {
+std::set<uint32_t> DB::GetSlotIDs() {
   std::set<uint32_t> ids;
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
