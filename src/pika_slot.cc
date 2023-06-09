@@ -105,7 +105,7 @@ void Slot::MoveToTrash() {
 
 std::string Slot::GetDBName() const { return db_name_; }
 
-uint32_t Slot::GetSlotId() const { return slot_id_; }
+uint32_t Slot::GetSlotID() const { return slot_id_; }
 
 std::string Slot::GetSlotName() const { return slot_name_; }
 
