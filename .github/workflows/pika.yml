@@ -107,3 +107,4 @@ jobs:
           cd ${{github.workspace}}/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
+
