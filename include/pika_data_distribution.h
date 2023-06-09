@@ -7,7 +7,7 @@
 #define PIKA_DATA_DISTRIBUTION_H_
 
 #include <cstdint>
-#include "pstd/include/pstd_status.h"
+#include <string>
 
 // polynomial reserved Crc32 magic num
 const uint32_t IEEE_POLY = 0xedb88320;
