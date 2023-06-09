@@ -50,7 +50,7 @@ set ::all_tests {
     # unit/hyperloglog
 }
 
-# becourse the comment not works in tcl list, use regsub to ignore the item starting with '#'
+# because the comment not works in tcl list, use regsub to ignore the item starting with '#'
 regsub -all {#.*?\n} $::all_tests {} ::all_tests
 
 
