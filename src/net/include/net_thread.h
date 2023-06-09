@@ -37,7 +37,7 @@ class Thread : public pstd::noncopyable {
   void set_thread_name(const std::string& name) { thread_name_ = name; }
 
  protected:
-  std::atomic<bool> should_stop_;
+  std::atomic_bool should_stop_;
   void set_is_running(bool is_running) {
     std::lock_guard l(running_mu_);
     running_ = is_running;
@@ -48,7 +48,7 @@ class Thread : public pstd::noncopyable {
   virtual void* ThreadMain() = 0;
 
   pstd::Mutex running_mu_;
-  std::atomic<bool> running_;
+  std::atomic_bool running_;
   pthread_t thread_id_{};
   std::string thread_name_;
 };
