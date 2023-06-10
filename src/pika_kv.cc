@@ -1063,10 +1063,10 @@ void TypeCmd::DoInitial() {
 }
 
 void TypeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string res;
-  rocksdb::Status s = slot->db()->Type(key_, &res);
+  std::vector<std::string> types(1);
+  rocksdb::Status s = slot->db()->GetType(key_, types);
   if (s.ok()) {
-    res_.AppendContent("+" + res);
+    res_.AppendContent("+" + types[0]);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -1082,7 +1082,7 @@ void PTypeCmd::DoInitial() {
 
 void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> types(5);
-  rocksdb::Status s = slot->db()->Type(key_, types);
+  rocksdb::Status s = slot->db()->GetType(key_, types);
 
   if (s.ok()) {
     res_.AppendArrayLen(types.size());

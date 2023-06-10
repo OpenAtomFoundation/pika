@@ -1233,61 +1233,7 @@ std::map<DataType, int64_t> Storage::TTL(const Slice& key, std::map<DataType, St
   return ret;
 }
 
-// the sequence is kv, hash, list, zset, set
-Status Storage::Type(const std::string& key, std::string* type) {
-  type->clear();
-
-  Status s;
-  std::string value;
-  s = strings_db_->Get(key, &value);
-  if (s.ok()) {
-    *type = "string";
-    return s;
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-
-  int32_t hashes_len = 0;
-  s = hashes_db_->HLen(key, &hashes_len);
-  if (s.ok() && hashes_len != 0) {
-    *type = "hash";
-    return s;
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-
-  uint64_t lists_len = 0;
-  s = lists_db_->LLen(key, &lists_len);
-  if (s.ok() && lists_len != 0) {
-    *type = "list";
-    return s;
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-
-  int32_t zsets_size = 0;
-  s = zsets_db_->ZCard(key, &zsets_size);
-  if (s.ok() && zsets_size != 0) {
-    *type = "zset";
-    return s;
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-
-  int32_t sets_size = 0;
-  s = sets_db_->SCard(key, &sets_size);
-  if (s.ok() && sets_size != 0) {
-    *type = "set";
-    return s;
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-
-  *type = "none";
-  return Status::OK();
-}
-
-Status Storage::Type(const std::string& key, std::vector<std::string>& types) {
+Status Storage::GetType(const std::string& key, std::vector<std::string>& types) {
   types.clear();
 
   Status s;
@@ -1298,12 +1244,18 @@ Status Storage::Type(const std::string& key, std::vector<std::string>& types) {
   } else if (!s.IsNotFound()) {
     return s;
   }
+  if (types.capacity() == 1 && !types.empty()) {
+    return s;
+  }
 
   int32_t hashes_len = 0;
   s = hashes_db_->HLen(key, &hashes_len);
   if (s.ok() && hashes_len != 0) {
     types.emplace_back("hash");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (types.capacity() == 1 && !types.empty()) {
     return s;
   }
 
@@ -1314,12 +1266,18 @@ Status Storage::Type(const std::string& key, std::vector<std::string>& types) {
   } else if (!s.IsNotFound()) {
     return s;
   }
+  if (types.capacity() == 1 && !types.empty()) {
+    return s;
+  }
 
   int32_t zsets_size = 0;
   s = zsets_db_->ZCard(key, &zsets_size);
   if (s.ok() && zsets_size != 0) {
     types.emplace_back("zset");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (types.capacity() == 1 && !types.empty()) {
     return s;
   }
 
@@ -1329,6 +1287,9 @@ Status Storage::Type(const std::string& key, std::vector<std::string>& types) {
     types.emplace_back("set");
   } else if (!s.IsNotFound()) {
     return s;
+  }
+  if (types.capacity() == 1 && types.empty()) {
+    types.emplace_back("none");
   }
   return Status::OK();
 }
