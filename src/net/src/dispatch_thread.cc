@@ -168,6 +168,93 @@ void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port)
   }
 }
 
+bool BlockConnNode::IsExpired() {
+  if (expire_time_ == 0) {
+    return false;
+  }
+  auto now = std::chrono::system_clock::now();
+  int64_t now_in_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+  if (expire_time_ <= now_in_ms) {
+    return true;
+  }
+  return false;
+}
+
+std::shared_ptr<RedisConn>& BlockConnNode::GetConnBlocked() { return conn_blocked_; }
+BlockKeyType BlockConnNode::GetBlockType() const { return block_type_; }
+
+void DispatchThread::CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
+  // removed all the waiting info of this conn/ doing cleaning work
+  auto pair = conn_to_keys_.find(conn_unblocked->fd());
+  if(pair == conn_to_keys_.end()){
+    LOG(WARNING) << "blocking info of blpop/brpop went wrong, blpop/brpop can't working correctly";
+    return;
+  }
+  auto& blpop_keys_list = pair->second;
+  for (auto& blpop_key : *blpop_keys_list) {
+    auto& wait_list_of_this_key = key_to_conns_.find(blpop_key)->second;
+    for (auto conn = wait_list_of_this_key->begin(); conn != wait_list_of_this_key->end();) {
+      if (conn->GetConnBlocked()->fd() == conn_unblocked->fd()) {
+        conn = wait_list_of_this_key->erase(conn);
+        break;
+      }
+      conn++;
+    }
+  }
+  conn_to_keys_.erase(conn_unblocked->fd());
+}
+
+void DispatchThread::CleanKeysAfterWaitNodeCleaned() {
+  // after wait info of a conn is cleaned, some wait list of keys might be empty, must erase them from the map
+  std::vector<BlockKey> keys_to_erase;
+  for (auto& pair : key_to_conns_) {
+    if (pair.second->empty()) {
+      // wait list of this key is empty, just erase this key
+      keys_to_erase.emplace_back(pair.first);
+    }
+  }
+  for (auto& blrpop_key : keys_to_erase) {
+    key_to_conns_.erase(blrpop_key);
+  }
+}
+
+void DispatchThread::ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close) {
+  if (!conn_to_close) {
+    // dynamic pointer cast failed, it's not an instance of RedisConn, no need of the process below
+    return;
+  }
+  std::lock_guard l(block_mtx_);
+  if (conn_to_keys_.find(conn_to_close->fd()) == conn_to_keys_.end()) {
+    // this conn_to_close is not disconnected from blocking state cause by "blpop/brpop"
+    return;
+  }
+  CleanWaitNodeOfUnBlockedBlrConn(conn_to_close);
+  CleanKeysAfterWaitNodeCleaned();
+}
+
+void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
+  std::lock_guard latch(block_mtx_);
+  for (auto& pair : key_to_conns_) {
+    auto& conns_list = pair.second;
+    for (auto conn_node = conns_list->begin(); conn_node != conns_list->end();) {
+      if (conn_node->IsExpired()) {
+        std::shared_ptr conn_ptr = conn_node->GetConnBlocked();
+        conn_ptr->WriteResp("$-1\r\n");
+        conn_ptr->NotifyEpoll(true);
+        conn_node = conns_list->erase(conn_node);
+        CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
+      }else{
+        conn_node++;
+      }
+    }
+  }
+  CleanKeysAfterWaitNodeCleaned();
+}
+
+
+
+
+
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,

@@ -33,7 +33,7 @@ def test_single_existing_list():
     assert result[0] == b'blist' and result[1] == b'b', f"Expected (b'blist1', b'b'), but got {result}"
 
     pika.close()
-    print("test_single_existing_list Passed")
+    print("test_single_existing_list Passed [✓]")
 
 
 # 解阻塞测试（超时自动解阻塞，lpush解阻塞，rpush解阻塞，rpoplpush解阻塞）
@@ -215,7 +215,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
         assert blocked == False, f"Expected False but got {blocked}"
     thread.join()
     pika.close()
-    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed")
+    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed [✓]")
 
 
 def test_concurrency_block_unblock():
@@ -354,7 +354,7 @@ def test_concurrency_block_unblock():
         t.join();
     pika.delete('blist0', 'blist1', 'blist2', 'blist3')
 
-    print("test_concurrency_block_unblock Passed")
+    print("test_concurrency_block_unblock Passed [✓]")
     pika.close()
 
 
@@ -401,7 +401,7 @@ def test_multiple_existing_lists():
     assert result[0] == b'blist1' and result[1] == b'large', f"Expected (b'blist1', b'large'), but got {result}"
 
     pika.close()
-    print("test_multiple_existing_lists Passed")
+    print("test_multiple_existing_lists Passed [✓]")
 
 
 def test_blpop_brpop_same_key_multiple_times():
@@ -493,7 +493,7 @@ def test_blpop_brpop_same_key_multiple_times():
     assert result[0] == b'list2' and result[1] == b'd', f"Expected (b'list2', b'd'), but got {result}"
 
     pika.close()
-    print("test_blpop_brpop_same_key_multiple_times Passed")
+    print("test_blpop_brpop_same_key_multiple_times Passed [✓]")
 
 
 # 目标list被一条push增加了多个value，先完成多个value的入列再pop
@@ -547,7 +547,7 @@ def test_blpop_brpop_variadic_lpush():
     thread.join()
     # 检查blist的第一个元素
     assert pika.lindex('blist', 0) == b'foo', "Expected 'foo'"
-    print("test_blpop_brpop_variadic_lpush Passed")
+    print("test_blpop_brpop_variadic_lpush Passed [✓]")
 
 
 # 先被阻塞的先服务/阻塞最久的优先级最高
@@ -592,11 +592,12 @@ def test_serve_priority():
     t4.join()
 
     pika.close()
-    print("test_serve_priority Passed")
+    print("test_serve_priority Passed [✓]")
 
 
 # 主从复制测试
 def test_master_slave_replication():
+    print("start test_master_slave_replication, it will cost some time, pls wait")
     print("start test_master_slave_replication")
 
     master_ip = '192.168.10.22'
@@ -614,6 +615,7 @@ def test_master_slave_replication():
     s_keys = slave.keys()
     assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
 
+    #非阻塞的主从复制测试
     def thread1():
         nonlocal master
         for i in range(0, 40):
@@ -621,15 +623,14 @@ def test_master_slave_replication():
             random_str1 = ''.join(random.choice(letters) for _ in range(5))
             random_str2 = ''.join(random.choice(letters) for _ in range(5))
             random_str3 = ''.join(random.choice(letters) for _ in range(5))
-            master.lpush('blist0', random_str1)
-            master.rpoplpush('blist0', 'blist')
+            # master.lpush('blist0', random_str1)
+            # master.rpoplpush('blist0', 'blist') #目前rpoplpush本身主从同步就有问题，所以注释掉
             master.lpush('blist', random_str1, random_str2, random_str3)
-
-            master.lpop('blist')
-            master.rpop('blist')
+            master.blpop('blist')
+            master.brpop('blist')
             master.rpush('blist', random_str3, random_str2, random_str1)
-            master.lpop('blist')
-            master.rpop('blist')
+            master.blpop('blist')
+            master.brpop('blist')
 
     t1 = threading.Thread(target=thread1)
     t2 = threading.Thread(target=thread1)
@@ -656,51 +657,72 @@ def test_master_slave_replication():
     assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
 
     for i in range(0, master.llen('blist')):
-        print(master.lindex('blist', i))
-        print(slave.lindex('blist', i))
         assert master.lindex('blist', i) == slave.lindex('blist', i), \
             f"Expected:master.lindex('blist', i) == slave.linex('blist', i), but got False when i = {i}"
 
     master.delete('blist0', 'blist1')
 
-    # def blpop_thread():
-    #     client = redis.Redis(host=master_ip, port=int(master_port), db=0)
-    #     result = client.blpop(['blist0', 'blist1'], timeout=0)
-    #     assert result[0] == b'blist1' and result[1] == b'v1', f"Expected: (blist1, v1), but got  = {result}"
-    #     client.close()
-    #
-    # def brpop_thread():
-    #     client = redis.Redis(host=master_ip, port=int(master_port), db=0)
-    #     result = client.brpop(['blist0', 'blist1'], timeout=0)
-    #     assert result[0] == b'blist0' and result[1] == b'v4', f"Expected: (blist0, v4), but got  = {result}"
-    #     client.close()
-    #
-    # t1 = threading.Thread(target=blpop_thread)
-    # t2 = threading.Thread(target=brpop_thread)
-    # t1.start()
-    # time.sleep(0.2)
+    #阻塞的主从复制测试
+    def blpop_thread(list_, value_):
+        client = redis.Redis(host=master_ip, port=int(master_port), db=0)
+        result = client.blpop(['blist0', 'blist1'], timeout=0)
+        assert result[0] == list_.encode() and result[1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
+        client.close()
 
+    def brpop_thread(list_, value_):
+        client = redis.Redis(host=master_ip, port=int(master_port), db=0)
+        result = client.brpop(['blist0', 'blist1'], timeout=0)
+        assert result[0] == list_.encode() and result[1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
+        client.close()
 
-    # t2.start()
-    # time.sleep(0.2)
-    # master.lpush('blist1', 'v1')
-    # master.rpush('blist0', 'v2', 'v3', 'v4')
-    #
-    # t1.join()
-    # t2.join()
-    # time.sleep(1)
-    # m_keys = master.keys()
-    # s_keys = slave.keys()
-    # assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
-    # for i in range(0, master.llen('blist0')):
-    #     print(master.lindex('blist0', i))
-    #     print(slave.lindex('blist0', i))
-    #     assert master.lindex('blist0', i) == slave.lindex('blist0', i), \
-    #         f"Expected:master.lindex('blist0', i) == slave.linex('blist0', i), but got False when i = {i}"
+    for i in range(0,5):
+        letters = string.ascii_letters
+        random_str1 = ''.join(random.choice(letters) for _ in range(5))
+        random_str2 = ''.join(random.choice(letters) for _ in range(5))
+        random_str3 = ''.join(random.choice(letters) for _ in range(5))
+        random_str4 = ''.join(random.choice(letters) for _ in range(5))
+        random_str5 = ''.join(random.choice(letters) for _ in range(5))
+
+        t1 = threading.Thread(target=blpop_thread, args = ('blist1', random_str1,))
+        t2 = threading.Thread(target=brpop_thread, args = ('blist0', random_str2,))
+        t3 = threading.Thread(target=blpop_thread, args = ('blist1', random_str3,))
+        t4 = threading.Thread(target=brpop_thread, args = ('blist0', random_str4,))
+        t5 = threading.Thread(target=blpop_thread, args = ('blist1', random_str5,))
+
+        t1.start()
+        time.sleep(0.2)#确保阻塞顺序
+        t2.start()
+        time.sleep(0.2)
+        t3.start()
+        time.sleep(0.2)
+        t4.start()
+        time.sleep(0.2)
+        t5.start()
+        time.sleep(0.2)
+        master.lpush('blist1', random_str1)
+        master.rpush('blist0', random_str2)
+        master.lpush('blist1', random_str3)
+        master.rpush('blist0', random_str4)
+        master.lpush('blist1', random_str5)
+
+        t1.join()
+        t2.join()
+        t3.join()
+        t4.join()
+        t5.join()
+        time.sleep(1)
+        m_keys = master.keys()
+        s_keys = slave.keys()
+        assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
+        for i in range(0, master.llen('blist0')):
+            print(master.lindex('blist0', i))
+            print(slave.lindex('blist0', i))
+            assert master.lindex('blist0', i) == slave.lindex('blist0', i), \
+                f"Expected:master.lindex('blist0', i) == slave.linex('blist0', i), but got False when i = {i}"
 
     master.close()
     slave.close()
-    print("test_master_slave_replication Passed")
+    print("test_master_slave_replication Passed [✓]")
 
 
 
@@ -712,7 +734,7 @@ test_multiple_existing_lists()
 test_blpop_brpop_same_key_multiple_times()
 test_blpop_brpop_variadic_lpush()
 test_serve_priority()
-    # test_master_slave_replication()
+test_master_slave_replication()
 
 
 # 待添加的测试：

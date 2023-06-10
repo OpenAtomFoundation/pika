@@ -79,15 +79,15 @@ class BlockingBaseCmd : public Cmd {
 
   //blpop/brpop used start
   struct WriteBinlogOfPopArgs{
-    net::BlockPopType block_type;
+    BlockKeyType block_type;
     const std::string key;
     std::shared_ptr<Slot> slot;
     std::shared_ptr<net::NetConn> conn;
-    WriteBinlogOfPopArgs(net::BlockPopType block_type_, const std::string& key_,
+    WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
                          std::shared_ptr<Slot> slot_, std::shared_ptr<net::NetConn> conn_)
         : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
   };
-  void BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
+  void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
   void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
   static void ServeAndUnblockConns(void* args);
   static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);

@@ -184,7 +184,7 @@ void* ServerThread::ThreadMain() {
   net::DispatchThread* dispatch_ptr = nullptr;
   if (dispatcher_ != nullptr) {
     dispatch_ptr = dynamic_cast<net::DispatchThread*>(dispatcher_);
-    dispatch_ptr->GetTimedTaskManager().AddTimedTask("blrpop_blocking_info_scan", 200,
+    dispatch_ptr->GetTimedTaskManager()->AddTimedTask("blrpop_blocking_info_scan", 200,
                                    [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop(); });
   }
 
@@ -209,7 +209,7 @@ void* ServerThread::ThreadMain() {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (dispatch_ptr != nullptr && pfe->mask == kReadable && dispatch_ptr->GetTimedTaskManager().TryToExecTimedTask(pfe->fd, EPOLLIN)) {
+      if (dispatch_ptr != nullptr && pfe->mask == kReadable && dispatch_ptr->GetTimedTaskManager()->TryToExecTimedTask(pfe->fd, EPOLLIN)) {
         continue;
       }
 

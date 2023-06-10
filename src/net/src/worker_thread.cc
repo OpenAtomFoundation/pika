@@ -252,10 +252,10 @@ void WorkerThread::DoCronTask() {
       // Check keepalive timeout connection
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         auto dispatchThread = dynamic_cast<net::DispatchThread*>(server_thread_);
-        std::shared_lock blrpop_map_latch(dispatchThread->GetBLRPopBlockingMapLatch());
+        std::shared_lock blrpop_map_latch(dispatchThread->GetBlockMtx());
         // check if this conn is blocked by blpop/brpop
-        if (dispatchThread->GetMapFromConnsToKeysForBlrpop().find(conn->fd()) !=
-            dispatchThread->GetMapFromConnsToKeysForBlrpop().end()) {
+        if (dispatchThread->GetMapFromConnToKeys().find(conn->fd()) !=
+            dispatchThread->GetMapFromConnToKeys().end()) {
           //this conn is blocked, prolong it's life time.
           conn->set_last_interaction(now);
         } else {
