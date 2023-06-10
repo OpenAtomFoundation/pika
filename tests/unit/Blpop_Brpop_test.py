@@ -11,6 +11,7 @@ pika_instance_port = '9221'
 
 # 单个list不阻塞时的出列顺序测试（行为应当和lpop/rpop一样）
 def test_single_existing_list():
+    print("start test_single_existing_list")
     # 创建Redis客户端
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
@@ -37,6 +38,7 @@ def test_single_existing_list():
 
 # 解阻塞测试（超时自动解阻塞，lpush解阻塞，rpush解阻塞，rpoplpush解阻塞）
 def test_blpop_brpop_unblock_lrpush_rpoplpush():
+    print("start test_blpop_brpop_unblock_lrpush_rpoplpush")
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
     # 超时自动解阻塞测试(blpop)
@@ -247,7 +249,7 @@ def test_concurrency_block_unblock():
     lists = ['blist0', 'blist1', 'blist2', 'blist3']
     # 先增加一些阻塞连接作为干扰
     t_threads = []
-    for i in range(0, 3):
+    for i in range(0, 25):
         t1 = threading.Thread(target=blpop_thread, args=(['blist100', 'blist101', 'blist102', 'blist103'], 30))
         t2 = threading.Thread(target=brpop_thread, args=(['blist100', 'blist101', 'blist102', 'blist103'], 30))
         t1.start()
@@ -359,6 +361,7 @@ def test_concurrency_block_unblock():
 
 # blpop/brpop多个list不阻塞时,从左到右选择第一个有元素的list进行pop
 def test_multiple_existing_lists():
+    print("start test_multiple_existing_lists")
     # 创建Redis客户端
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
@@ -402,6 +405,7 @@ def test_multiple_existing_lists():
 
 
 def test_blpop_brpop_same_key_multiple_times():
+    print("start test_blpop_brpop_same_key_multiple_times")
     # 创建Redis客户端
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
@@ -494,6 +498,8 @@ def test_blpop_brpop_same_key_multiple_times():
 
 # 目标list被一条push增加了多个value，先完成多个value的入列再pop
 def test_blpop_brpop_variadic_lpush():
+    print("start test_blpop_brpop_variadic_lpush")
+
     # 创建Redis客户端
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
@@ -546,6 +552,8 @@ def test_blpop_brpop_variadic_lpush():
 
 # 先被阻塞的先服务/阻塞最久的优先级最高
 def test_serve_priority():
+    print("start test_serve_priority")
+
     pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
 
     pika.delete('blist')
@@ -589,6 +597,8 @@ def test_serve_priority():
 
 # 主从复制测试
 def test_master_slave_replication():
+    print("start test_master_slave_replication")
+
     master_ip = '192.168.10.22'
     master_port = '9221'
     slave_ip = '192.168.10.22'
@@ -694,14 +704,14 @@ def test_master_slave_replication():
 
 
 
-for i in range(0, 20):
-    test_single_existing_list()
-    test_blpop_brpop_unblock_lrpush_rpoplpush()
-    test_concurrency_block_unblock()
-    test_multiple_existing_lists()
-    test_blpop_brpop_same_key_multiple_times()
-    test_blpop_brpop_variadic_lpush()
-    test_serve_priority()
+
+test_single_existing_list()
+test_blpop_brpop_unblock_lrpush_rpoplpush()
+test_concurrency_block_unblock()
+test_multiple_existing_lists()
+test_blpop_brpop_same_key_multiple_times()
+test_blpop_brpop_variadic_lpush()
+test_serve_priority()
     # test_master_slave_replication()
 
 
