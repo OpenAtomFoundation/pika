@@ -67,6 +67,7 @@ fi
 
 if [ $? -ne 0 ]; then
     echo "pika tests failed"
+    cleanup
     exit 1
 fi
 cleanup
