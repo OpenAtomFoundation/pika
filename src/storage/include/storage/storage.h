@@ -968,8 +968,8 @@ class Storage {
   std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
 
   // Reutrns the data all type of the key
-  // if types.capacity is 1, get single type
-  Status GetType(const std::string& key, std::vector<std::string>& types);
+  // if single is true, the query will return the first one
+  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
 
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 

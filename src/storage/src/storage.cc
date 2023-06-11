@@ -1233,7 +1233,7 @@ std::map<DataType, int64_t> Storage::TTL(const Slice& key, std::map<DataType, St
   return ret;
 }
 
-Status Storage::GetType(const std::string& key, std::vector<std::string>& types) {
+Status Storage::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
   types.clear();
 
   Status s;
@@ -1244,7 +1244,7 @@ Status Storage::GetType(const std::string& key, std::vector<std::string>& types)
   } else if (!s.IsNotFound()) {
     return s;
   }
-  if (types.capacity() == 1 && !types.empty()) {
+  if (single && !types.empty()) {
     return s;
   }
 
@@ -1255,7 +1255,7 @@ Status Storage::GetType(const std::string& key, std::vector<std::string>& types)
   } else if (!s.IsNotFound()) {
     return s;
   }
-  if (types.capacity() == 1 && !types.empty()) {
+  if (single && !types.empty()) {
     return s;
   }
 
@@ -1266,7 +1266,7 @@ Status Storage::GetType(const std::string& key, std::vector<std::string>& types)
   } else if (!s.IsNotFound()) {
     return s;
   }
-  if (types.capacity() == 1 && !types.empty()) {
+  if (single && !types.empty()) {
     return s;
   }
 
@@ -1277,7 +1277,7 @@ Status Storage::GetType(const std::string& key, std::vector<std::string>& types)
   } else if (!s.IsNotFound()) {
     return s;
   }
-  if (types.capacity() == 1 && !types.empty()) {
+  if (single && !types.empty()) {
     return s;
   }
 
@@ -1288,7 +1288,7 @@ Status Storage::GetType(const std::string& key, std::vector<std::string>& types)
   } else if (!s.IsNotFound()) {
     return s;
   }
-  if (types.capacity() == 1 && types.empty()) {
+  if (single && types.empty()) {
     types.emplace_back("none");
   }
   return Status::OK();
