@@ -1480,8 +1480,8 @@ void SlotsHashKeyCmd::DoInitial() {
     return;
   }
 
-  std::vector<std::string>::const_iterator iter = argv_.begin();
-  keys_.assign(argv_.begin(), argv_.end());
+  auto iter = argv_.begin();
+  keys_.assign(++iter, argv_.end());
   return;
 }
 
