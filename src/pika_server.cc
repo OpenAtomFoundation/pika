@@ -1551,8 +1551,8 @@ void PikaServer:: GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64
   return slotsmgrt_sender_thread_->GetSlotsMgrtSenderStatus(ip, port, slot, migrating, moved, remained);
 }
 
-void PikaServer:: SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot) {
-  slotsmgrt_sender_thread_->SlotsMigrateOne(key, slot);
+int PikaServer:: SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot) {
+  return slotsmgrt_sender_thread_->SlotsMigrateOne(key, slot);
 }
 
 bool PikaServer::SlotsMigrateAsyncCancel() {
