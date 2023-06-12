@@ -38,10 +38,10 @@ std::string GetSlotKey(int slot);
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:
   SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
  private:
   std::string dest_ip_;
   int64_t dest_port_;
@@ -51,17 +51,17 @@ class SlotsMgrtTagSlotCmd : public Cmd {
   char key_type_;
   int64_t slot_;
 
-  virtual void DoInitial();
+  void DoInitial() override;
   int SlotKeyPop(std::shared_ptr<Slot>slot);
 };
 
 class SlotsMgrtTagSlotAsyncCmd : public Cmd {
  public:
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge(){};
+  Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
  private:
   std::string dest_ip_;
   int64_t dest_port_;
@@ -71,16 +71,16 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   int64_t slot_num_;
   int64_t keys_num_;
 
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class SlotsMgrtTagOneCmd : public Cmd {
  public:
   SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
  private:
   std::string dest_ip_;
   int64_t dest_port_;
@@ -88,67 +88,87 @@ class SlotsMgrtTagOneCmd : public Cmd {
   std::string key_;
   int64_t slot_num_;
   char key_type_;
-  virtual void DoInitial();
-  int KeyTypeCheck(std::shared_ptr<Slot>slot);
+  void DoInitial() override;
   int SlotKeyRemCheck(std::shared_ptr<Slot>slot);
+  int KeyTypeCheck(std::shared_ptr<Slot>slot);
 };
 
 class SlotsMgrtAsyncStatusCmd : public Cmd {
  public:
   SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtAsyncStatusCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsMgrtAsyncStatusCmd(*this); }
 
  private:
-  virtual void DoInitial() override;
+  void DoInitial() override;
 };
 
 class SlotsInfoCmd : public Cmd {
  public:
   SlotsInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsInfoCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsInfoCmd(*this); }
  private:
-  virtual void DoInitial();
+  void DoInitial() override;
+
+  int64_t begin_;
+  int64_t end_ = 1024;
 };
 
 class SlotsMgrtAsyncCancelCmd : public Cmd {
  public:
   SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsMgrtAsyncCancelCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsMgrtAsyncCancelCmd(*this); }
  private:
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class SlotsDelCmd : public Cmd {
  public:
   SlotsDelCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsDelCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsDelCmd(*this); }
  private:
   std::vector<std::string> slots_;
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class SlotsHashKeyCmd : public Cmd {
  public:
   SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Slot>slot);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial();
+  void DoInitial() override;
+};
+
+class SlotsScanCmd : public Cmd {
+ public:
+  SlotsScanCmd(const std::string& name, int arity, uint16_t flag):Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot>slot) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsScanCmd(*this); }
+ private:
+  std::string key_, pattern_;
+  int64_t cursor_, count_;
+  void DoInitial()  override;
+  void Clear() override {
+    pattern_ = "*";
+    count_ = 10;
+  }
 };
 
 /* *
