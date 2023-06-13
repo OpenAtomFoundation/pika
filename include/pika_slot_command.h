@@ -1,16 +1,16 @@
 #ifndef PIKA_SLOT_COMMAND_H_
 #define PIKA_SLOT_COMMAND_H_
 
-#include "net/include/net_thread.h"
-#include "net/include/net_cli.h"
-#include "include/pika_command.h"
 #include "include/pika_client_conn.h"
+#include "include/pika_command.h"
+#include "include/pika_slot.h"
+#include "net/include/net_cli.h"
+#include "net/include/net_thread.h"
 #include "storage/storage.h"
 #include "strings.h"
-#include "include/pika_slot.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
-const std::string SlotTagPrefix = "_internal:4migrate:slottag:";
+const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 const size_t MaxKeySendSize = 10 * 1024;
 const int asyncRecvsNum = 64;
 
@@ -27,13 +27,60 @@ extern void InitCRC32Table();
 extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
 extern uint32_t CRC32CheckSum(const char *buf, int len);
 
-int GetSlotNum(const std::string &str);
-int GetKeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot>slot);
-void AddSlotKey(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
-void RemKeyNotExists(const std::string type, const std::string key, std::shared_ptr<Slot>slot);
-void RemSlotKey(const std::string key, std::shared_ptr<Slot>slot);
-int DeleteKey(const std::string key, const char key_type, std::shared_ptr<Slot>slot);
+int GetSlotID(const std::string &str);
+int GetKeyType(const std::string key, std::string &key_type, std::shared_ptr<Slot> slot);
+void AddSlotKey(const std::string type, const std::string key, std::shared_ptr<Slot> slot);
+void RemKeyNotExists(const std::string type, const std::string key, std::shared_ptr<Slot> slot);
+void RemSlotKey(const std::string key, std::shared_ptr<Slot> slot);
+int DeleteKey(const std::string key, const char key_type, std::shared_ptr<Slot> slot);
 std::string GetSlotKey(int slot);
+std::string GetSlotsTagKey(uint32_t crc);
+int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
+void SlotKeyRemByType(const std::string &type, const std::string &key, std::shared_ptr<Slot> slot);
+
+class PikaMigrate {
+ public:
+  PikaMigrate();
+  virtual ~PikaMigrate();
+
+  int MigrateKey(const std::string &host, const int port, int db, int timeout, const std::string &key, const char type,
+                 std::string &detail, std::shared_ptr<Slot> slot);
+  void CleanMigrateClient();
+
+  void Lock() {
+    LOG(INFO) << "migrate lock";
+    mutex_.lock();
+  }
+  int Trylock() {
+    LOG(INFO) << "migrate trylock";
+    return mutex_.try_lock();
+  }
+  void Unlock() {
+    LOG(INFO) << "migrate unlock";
+    mutex_.unlock();
+  }
+  net::NetCli *GetMigrateClient(const std::string &host, const int port, int timeout);
+
+ private:
+  std::map<std::string, void *> migrate_clients_;
+  pstd::Mutex mutex_;
+
+  void KillMigrateClient(net::NetCli *migrate_cli);
+  void KillAllMigrateClient();
+
+  int MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
+                  std::shared_ptr<Slot> slot);
+  bool MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::string &detail);
+
+  int ParseKey(const std::string &key, const char type, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  int64_t TTLByType(const char key_type, const std::string &key, std::shared_ptr<Slot> slot);
+  int ParseKKey(const std::string &key, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  int ParseZKey(const std::string &key, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  int ParseSKey(const std::string &key, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  int ParseHKey(const std::string &key, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  int ParseLKey(const std::string &key, std::string &wbuf_str, std::shared_ptr<Slot> slot);
+  bool SetTTL(const std::string &key, std::string &wbuf_str, int64_t ttl);
+};
 
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:
@@ -46,10 +93,9 @@ class SlotsMgrtTagSlotCmd : public Cmd {
   std::string dest_ip_;
   int64_t dest_port_;
   int64_t timeout_ms_;
-  int64_t slot_num_;
+  int64_t slot_id_;
   std::basic_string<char, std::char_traits<char>, std::allocator<char>> key_;
   char key_type_;
-  int64_t slot_;
 
   void DoInitial() override;
   int SlotKeyPop(std::shared_ptr<Slot>slot);
@@ -86,7 +132,7 @@ class SlotsMgrtTagOneCmd : public Cmd {
   int64_t dest_port_;
   int64_t timeout_ms_;
   std::string key_;
-  int64_t slot_num_;
+  int64_t slot_id_;
   char key_type_;
   void DoInitial() override;
   int SlotKeyRemCheck(std::shared_ptr<Slot>slot);
@@ -188,6 +234,7 @@ class SlotsMgrtExecWrapperCmd : public Cmd {
   std::vector<std::string> args;
   virtual void DoInitial();
 };
+
 
 class SlotsMgrtSenderThread: public net::Thread {
  public:

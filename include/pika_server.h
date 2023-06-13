@@ -199,6 +199,11 @@ class PikaServer : public pstd::noncopyable {
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
+  /**
+   * Sotsmgrt use
+   */
+  std::unique_ptr<PikaMigrate> pika_migrate_;
+
   /*
    * Slave use
    */
@@ -320,11 +325,10 @@ class PikaServer : public pstd::noncopyable {
   void ServerStatus(std::string* info);
 
   /*
-   * SlotsMgrt used
+   * * Async migrate used
    */
   int SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot);
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots,int64_t keys_num, std::shared_ptr<Slot>slot);
-  bool GetSlotsMigrateResult(int64_t *moved, int64_t *remained);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
 
@@ -440,10 +444,8 @@ class PikaServer : public pstd::noncopyable {
   std::unique_ptr<PikaAuxiliaryThread> pika_auxiliary_thread_;
 
   /*
-   * SlotsMgrt use
+   * Async slotsMgrt use
    */
-  std::unique_ptr<SlotsMgrtSenderThread> slotsmgrt_sender_thread_;
-
   std::unique_ptr<PikaMigrateThread> pika_migrate_thread_;
 
   /*
