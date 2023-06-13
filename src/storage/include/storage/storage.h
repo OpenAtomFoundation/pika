@@ -11,6 +11,7 @@
 #include <map>
 #include <queue>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "rocksdb/convenience.h"
@@ -28,8 +29,8 @@ namespace storage {
 inline constexpr double ZSET_SCORE_MAX = std::numeric_limits<double>::max();
 inline constexpr double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
 
-inline const std::string PROPERTY_TYPE_ROCKSDB_MEMTABLE = "rocksdb.cur-size-all-mem-tables";
-inline const std::string PROPERTY_TYPE_ROCKSDB_TABLE_READER = "rocksdb.estimate-table-readers-mem";
+inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES = "rocksdb.cur-size-all-mem-tables";
+inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM = "rocksdb.estimate-table-readers-mem";
 inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
 
 inline const std::string ALL_DB = "all";
@@ -131,8 +132,8 @@ struct BGTask {
   std::string argv;
 
   BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
-         const std::string& _argv = "")
-      : type(_type), operation(_opeation), argv(_argv) {}
+         std::string  _argv = "")
+      : type(_type), operation(_opeation), argv(std::move(_argv)) {}
 };
 
 class Storage {
@@ -153,7 +154,7 @@ class Storage {
   Status Set(const Slice& key, const Slice& value);
 
   // Set key to hold the string value. if key exist
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
 
   // Get the value of key. If the key does not exist
   // the special value nil is returned
@@ -181,7 +182,7 @@ class Storage {
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
 
   // Sets the given keys to their respective values.
   // MSETNX will not perform any operation at all even
@@ -192,7 +193,7 @@ class Storage {
   // return 1 if the key currently hold the give value And override success
   // return 0 if the key doesn't exist And override fail
   // return -1 if the key currently does not hold the given value And override fail
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, const int32_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);
 
   // delete the key that holds a given value
   // return 1 if the key currently hold the give value And delete success
@@ -216,7 +217,7 @@ class Storage {
   // Count the number of set bits (population counting) in a string.
   // return the number of bits set to 1
   // note: if need to specified offset, set have_range to true
-  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_offset);
+  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
@@ -340,7 +341,7 @@ class Storage {
   // Iterate over a Hash table of fields
   // return next_field that the user need to use as the start_field argument
   // in the next call
-  Status HScanx(const Slice& key, const std::string start_field, const std::string& pattern, int64_t count,
+  Status HScanx(const Slice& key, const std::string& start_field, const std::string& pattern, int64_t count,
                 std::vector<FieldValue>* field_values, std::string* next_field);
 
   // Iterate over a Hash table of fields by specified range
@@ -570,14 +571,14 @@ class Storage {
   // set less than count, it will pop out the total number of sorted set. If two
   // ScoreMember's score were the same, the lexicographic predominant elements will
   // be pop out.
-  Status ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMember>* score_members);
+  Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
 
   // Pop the minimum count score_members which have less score in the sorted set.
   // And return the result in the score_members,If the total number of the sorted
   // set less than count, it will pop out the total number of sorted set. If two
   // ScoreMember's score were the same, the lexicographic predominant elements will
   // not be pop out.
-  Status ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMember>* score_members);
+  Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
 
   // Adds all the specified members with the specified scores to the sorted set
   // stored at key. It is possible to specify multiple score / member pairs. If
@@ -737,7 +738,7 @@ class Storage {
   // existing members are ignored.
   //
   // An error is returned when key exists and does not hold a sorted set.
-  Status ZRem(const Slice& key, std::vector<std::string> members, int32_t* ret);
+  Status ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
 
   // Removes all elements in the sorted set stored at key with rank between
   // start and stop. Both start and stop are 0 -based indexes with 0 being the
@@ -818,7 +819,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     const AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, int32_t* ret);
 
   // Computes the intersection of numkeys sorted sets given by the specified
   // keys, and stores the result in destination. It is mandatory to provide the
@@ -835,7 +836,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     const AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command returns all the
@@ -1007,8 +1008,8 @@ class Storage {
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
 
   std::string GetCurrentTaskType();
-  Status GetUsage(const std::string& property, uint64_t* const result);
-  Status GetUsage(const std::string& property, std::map<std::string, uint64_t>* const type_result);
+  Status GetUsage(const std::string& property, uint64_t* result);
+  Status GetUsage(const std::string& property, std::map<std::string, uint64_t>* type_result);
   uint64_t GetProperty(const std::string& db_type, const std::string& property);
 
   Status GetKeyNum(std::vector<KeyInfo>* key_infos);
@@ -1018,6 +1019,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
+  void GetRocksDBInfo(std::string &info);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;

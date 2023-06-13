@@ -17,7 +17,7 @@ class PikaSender : public net::Thread {
  public:
   PikaSender(std::string ip, int64_t port, std::string password);
   virtual ~PikaSender();
-  void LoadKey(const std::string& cmd);
+  void LoadKey(const std::string& key);
   void Stop();
 
   int64_t elements() { return elements_; }

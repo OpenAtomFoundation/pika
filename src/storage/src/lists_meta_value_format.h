@@ -42,7 +42,7 @@ class ListsMetaValue : public InternalValue {
 
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2 + sizeof(int64_t) * 2;
 
-  const rocksdb::Slice Encode() override {
+  rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
     size_t needed = usize + kDefaultValueSuffixLength;
     char* dst;
@@ -84,7 +84,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
   explicit ParsedListsMetaValue(std::string* internal_value_str)
-      : ParsedInternalValue(internal_value_str), count_(0), left_index_(0), right_index_(0) {
+      : ParsedInternalValue(internal_value_str) {
     assert(internal_value_str->size() >= kListsMetaValueSuffixLength);
     if (internal_value_str->size() >= kListsMetaValueSuffixLength) {
       user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kListsMetaValueSuffixLength);
@@ -100,7 +100,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   // Use this constructor in rocksdb::CompactionFilter::Filter();
   explicit ParsedListsMetaValue(const rocksdb::Slice& internal_value_slice)
-      : ParsedInternalValue(internal_value_slice), count_(0), left_index_(0), right_index_(0) {
+      : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
       user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kListsMetaValueSuffixLength);
@@ -115,27 +115,27 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   }
 
   void StripSuffix() override {
-    if (value_ != nullptr) {
+    if (value_) {
       value_->erase(value_->size() - kListsMetaValueSuffixLength, kListsMetaValueSuffixLength);
     }
   }
 
   void SetVersionToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kListsMetaValueSuffixLength;
       EncodeFixed32(dst, version_);
     }
   }
 
   void SetTimestampToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int32_t) - 2 * sizeof(int64_t);
       EncodeFixed32(dst, timestamp_);
     }
   }
 
   void SetIndexToValue() {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
       dst += sizeof(int64_t);
@@ -157,7 +157,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void set_count(uint64_t count) {
     count_ = count;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed64(dst, count_);
     }
@@ -165,7 +165,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void ModifyCount(uint64_t delta) {
     count_ += delta;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed64(dst, count_);
     }
@@ -187,7 +187,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void set_left_index(uint64_t index) {
     left_index_ = index;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
     }
@@ -195,7 +195,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void ModifyLeftIndex(uint64_t index) {
     left_index_ -= index;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
     }
@@ -205,7 +205,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void set_right_index(uint64_t index) {
     right_index_ = index;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
       EncodeFixed64(dst, right_index_);
     }
@@ -213,7 +213,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   void ModifyRightIndex(uint64_t index) {
     right_index_ += index;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
       EncodeFixed64(dst, right_index_);
     }

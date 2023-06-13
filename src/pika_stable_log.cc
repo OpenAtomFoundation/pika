@@ -7,18 +7,22 @@
 
 #include <glog/logging.h>
 
+#include <memory>
+#include <utility>
+
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
 #include "pstd/include/env.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
+using pstd::Status;
+
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
-    : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {
+StableLog::StableLog(std::string db_name, uint32_t slot_id, std::string log_path)
+    : purging_(false), db_name_(std::move(db_name)), slot_id_(slot_id), log_path_(std::move(log_path)) {
   stable_logger_ = std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
@@ -29,7 +33,7 @@ StableLog::StableLog(const std::string table_name, uint32_t partition_id, const 
   }
 }
 
-StableLog::~StableLog() {}
+StableLog::~StableLog() = default;
 
 void StableLog::Leave() {
   Close();
@@ -44,13 +48,13 @@ void StableLog::RemoveStableLogDir() {
     logpath.erase(logpath.length() - 1);
   }
   logpath.append("_deleting/");
-  if (pstd::RenameFile(log_path_, logpath.c_str())) {
+  if (pstd::RenameFile(log_path_, logpath) != 0) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
     return;
   }
   g_pika_server->PurgeDir(logpath);
 
-  LOG(WARNING) << "Partition StableLog: " << table_name_ << ":" << partition_id_ << " move to trash success";
+  LOG(WARNING) << "Slot StableLog: " << db_name_ << ":" << slot_id_ << " move to trash success";
 }
 
 bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
@@ -60,7 +64,7 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
     LOG(WARNING) << "purge process already exist";
     return false;
   }
-  PurgeStableLogArg* arg = new PurgeStableLogArg();
+  auto arg = new PurgeStableLogArg();
   arg->to = to;
   arg->manual = manual;
   arg->logger = shared_from_this();
@@ -86,7 +90,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
   int delete_num = 0;
   struct stat file_stat;
   int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
-  std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
+  std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
   std::map<uint32_t, std::string>::iterator it;
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to)           // Manual purgelogsto
@@ -95,24 +99,23 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
             && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
             file_stat.st_mtime < time(nullptr) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
-      master_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
-      if (!master_partition) {
-        LOG(WARNING) << "Partition: " << table_name_ << ":" << partition_id_ << " Not Found";
+      master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
+      if (!master_slot) {
+        LOG(WARNING) << "Slot: " << db_name_ << ":" << slot_id_ << " Not Found";
         return false;
       }
 
-      if (!master_partition->BinlogCloudPurge(it->first)) {
+      if (!master_slot->BinlogCloudPurge(it->first)) {
         LOG(WARNING) << log_path_ << " Could not purge " << (it->first) << ", since it is already be used";
         return false;
       }
 
       // Do delete
-      pstd::Status s = pstd::DeleteFile(log_path_ + it->second);
-      if (s.ok()) {
+      if (pstd::DeleteFile(log_path_ + it->second)) {
         ++delete_num;
         --remain_expire_num;
       } else {
-        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second) << " failed! error:" << s.ToString();
+        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second) << " failed! error: delete file failed";
       }
     } else {
       // Break when face the first one not satisfied
@@ -120,7 +123,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       break;
     }
   }
-  if (delete_num) {
+  if (delete_num != 0) {
     std::map<uint32_t, std::string> binlogs;
     if (!GetBinlogFiles(&binlogs)) {
       LOG(WARNING) << log_path_ << " Could not get binlog files!";
@@ -131,7 +134,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       UpdateFirstOffset(it->first);
     }
   }
-  if (delete_num) {
+  if (delete_num != 0) {
     LOG(INFO) << log_path_ << " Success purge " << delete_num << " binlog file";
   }
   return true;
@@ -140,7 +143,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
   int ret = pstd::GetChildren(log_path_, children);
-  if (ret != 0) {
+   if (ret) {
     LOG(WARNING) << log_path_ << " Get all files in log path failed! error:" << ret;
     return false;
   }
@@ -163,14 +166,14 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
 void StableLog::UpdateFirstOffset(uint32_t filenum) {
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_, filenum, 0);
-  if (res) {
+  if (res != 0) {
     LOG(WARNING) << "Binlog reader init failed";
     return;
   }
 
   BinlogItem item;
   BinlogOffset offset;
-  while (1) {
+  while (true) {
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(offset.filenum), &(offset.offset));
     if (s.IsEndFile()) {
@@ -205,11 +208,11 @@ Status StableLog::PurgeFileAfter(uint32_t filenum) {
   for (auto& it : binlogs) {
     if (it.first > filenum) {
       // Do delete
-      Status s = pstd::DeleteFile(log_path_ + it.second);
-      if (!s.ok()) {
-        return s;
+      auto filename = log_path_ + it.second;
+      if (!pstd::DeleteFile(filename)) {
+        return Status::IOError("pstd::DeleteFile faield, filename = " + filename);
       }
-      LOG(WARNING) << "Delete file " << log_path_ + it.second;
+      LOG(WARNING) << "Delete file " << filename;
     }
   }
   return Status::OK();

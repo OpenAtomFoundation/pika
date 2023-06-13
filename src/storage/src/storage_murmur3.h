@@ -3,7 +3,7 @@
 
 //-----------------------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
+// domain. The autohor hereby disclaims copyright to this source code.
 
 // Note - The x86 and x64 versions do _not_ produce the same results, as the
 // algorithms are optimized for their respective platforms. You can still
@@ -15,8 +15,6 @@
 
 // Microsoft Visual Studio
 
-namespace storage {
-
 #if defined(_MSC_VER)
 
 typedef unsigned char uint8_t;
@@ -27,9 +25,11 @@ typedef unsigned __int64 uint64_t;
 
 #else  // defined(_MSC_VER)
 
-#  include <stdint.h>
+#  include <cstdint>
 
 #endif  // !defined(_MSC_VER)
+
+namespace storage {
 
 #define FORCE_INLINE __attribute__((always_inline))
 
@@ -65,7 +65,7 @@ inline uint32_t rotl32(uint32_t x, uint8_t r) { return (x << r) | (x >> (32 - r)
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-#define getblock(p, i) BYTESWAP(p[i])
+#define getblock(p, i) BYTESWAP((p)[i])
 
 //-----------------------------------------------------------------------------
 // Finalization mix - force all bits of a hash block to avalanche
@@ -89,7 +89,7 @@ extern
 #endif
     void
     MurmurHash3_x86_32(const void* key, int len, uint32_t seed, void* out) {
-  const uint8_t* data = (const uint8_t*)key;
+  const auto data = (const uint8_t*)key;
   const int nblocks = len / 4;
   int i;
 
@@ -101,9 +101,9 @@ extern
   //----------
   // body
 
-  const uint32_t* blocks = (const uint32_t*)(data + nblocks * 4);
+  const auto blocks = (const uint32_t*)(data + nblocks * 4);
 
-  for (i = -nblocks; i; i++) {
+  for (i = -nblocks; i != 0; i++) {
     uint32_t k1 = getblock(blocks, i);
 
     k1 *= c1;
@@ -118,7 +118,7 @@ extern
   //----------
   // tail
   {
-    const uint8_t* tail = (const uint8_t*)(data + nblocks * 4);
+    const auto tail = (data + nblocks * 4);
 
     uint32_t k1 = 0;
 

@@ -10,8 +10,8 @@
 #ifndef __PSTD_CODING_H__
 #define __PSTD_CODING_H__
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 #include <string>
 
 #include "pstd/include/pstd_slice.h"
@@ -54,9 +54,9 @@ extern int VarintLength(uint64_t v);
 
 // Lower-level versions of Put... that write directly into a character buffer
 // REQUIRES: dst has enough space for the value being written
-extern void EncodeFixed16(char* dst, uint16_t value);
-extern void EncodeFixed32(char* dst, uint32_t value);
-extern void EncodeFixed64(char* dst, uint64_t value);
+extern void EncodeFixed16(char* buf, uint16_t value);
+extern void EncodeFixed32(char* buf, uint32_t value);
+extern void EncodeFixed64(char* buf, uint64_t value);
 
 // Lower-level versions of Put... that write directly into a character buffer
 // and return a pointer just past the last byte written.
@@ -89,37 +89,49 @@ inline uint64_t DecodeFixed64(const char* ptr) {
 }
 
 inline void GetFixed16(std::string* dst, uint16_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed16(dst->data());
   dst->erase(0, sizeof(uint16_t));
 }
 
 inline void GetFixed32(std::string* dst, uint32_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed32(dst->data());
   dst->erase(0, sizeof(uint32_t));
 }
 
 inline void GetFixed64(std::string* dst, uint64_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed64(dst->data());
   dst->erase(0, sizeof(uint64_t));
 }
 
 inline void GetFixed16(Slice* dst, uint16_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed16(dst->data());
   dst->remove_prefix(sizeof(uint16_t) / sizeof(char));
 }
 
 inline void GetFixed32(Slice* dst, uint32_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed32(dst->data());
   dst->remove_prefix(sizeof(uint32_t) / sizeof(char));
 }
 
 inline void GetFixed64(Slice* dst, uint64_t* value) {
-  if (!dst || !value) return;
+  if (!dst || !value) {
+    return;
+  }
   *value = DecodeFixed64(dst->data());
   dst->remove_prefix(sizeof(uint64_t) / sizeof(char));
 }

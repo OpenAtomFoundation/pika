@@ -11,7 +11,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
+using pstd::Status;
+
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
@@ -97,17 +98,17 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
     }
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
-    InnerMessage::Partition* partition = binlog_sync->mutable_partition();
-    partition->set_table_name(task.rm_node_.TableName());
-    partition->set_partition_id(task.rm_node_.PartitionId());
+    InnerMessage::Slot* slot = binlog_sync->mutable_slot();
+    slot->set_db_name(task.rm_node_.DBName());
+    slot->set_slot_id(task.rm_node_.SlotId());
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
     BuildBinlogOffset(task.binlog_chip_.offset_, boffset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
   }
   if (g_pika_conf->consensus_level() > 0) {
-    PartitionInfo p_info;
+    SlotInfo p_info;
     if (!tasks.empty()) {
-      p_info = tasks[0].rm_node_.NodePartitionInfo();
+      p_info = tasks[0].rm_node_.NodeSlotInfo();
     } else {
       LOG(WARNING) << "Task size is zero";
       return;
@@ -119,15 +120,15 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
     BuildBinlogOffset(prev_offset, last_log);
     // commit
     LogOffset committed_index;
-    std::shared_ptr<SyncMasterPartition> partition = g_pika_rm->GetSyncMasterPartitionByName(p_info);
-    if (!partition) {
-      LOG(WARNING) << "SyncPartition " << p_info.ToString() << " Not Found.";
+    std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(p_info);
+    if (!slot) {
+      LOG(WARNING) << "SyncSlot " << p_info.ToString() << " Not Found.";
       return;
     }
-    committed_index = partition->ConsensusCommittedIndex();
+    committed_index = slot->ConsensusCommittedIndex();
     InnerMessage::BinlogOffset* committed = consensus_meta->mutable_commit();
     BuildBinlogOffset(committed_index, committed);
-    consensus_meta->set_term(partition->ConsensusTerm());
+    consensus_meta->set_term(slot->ConsensusTerm());
   }
 }
 
@@ -139,7 +140,7 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
   }
   int fd = client_conn_map_[ip_port];
   std::shared_ptr<net::PbConn> conn = std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
-  if (conn == nullptr) {
+  if (!conn) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
 
@@ -160,7 +161,7 @@ void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
 
 void PikaReplServer::RemoveClientConn(int fd) {
   std::lock_guard l(client_conn_rwlock_);
-  std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
+  auto iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {
       iter = client_conn_map_.erase(iter);

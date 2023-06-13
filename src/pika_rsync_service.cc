@@ -7,6 +7,7 @@
 
 #include <glog/logging.h>
 #include <fstream>
+#include <utility>
 
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
@@ -42,12 +43,12 @@ int PikaRsyncService::StartRsync() {
     auth = g_pika_conf->masterauth();
   }
   ret = pstd::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_, auth);
-  if (ret != 0) {
+  if (ret) {
     LOG(WARNING) << "Failed to start rsync, path:" << raw_path_ << " error : " << ret;
     return -1;
   }
   ret = CreateSecretFile();
-  if (ret != 0) {
+  if (ret) {
     LOG(WARNING) << "Failed to create secret file";
     return -1;
   }

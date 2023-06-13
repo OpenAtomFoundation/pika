@@ -44,8 +44,8 @@ class WorkerThread;
  */
 class ServerHandle {
  public:
-  ServerHandle() {}
-  virtual ~ServerHandle() {}
+  ServerHandle() = default;
+  virtual ~ServerHandle() = default;
 
   /*
    *  CronHandle() will be invoked on every cron_interval elapsed.
@@ -131,7 +131,7 @@ class ServerThread : public Thread {
    * StartThread will return the error code as pthread_create
    * Return 0 if success
    */
-  virtual int StartThread() override;
+  int StartThread() override;
 
   virtual void set_keepalive_timeout(int timeout) = 0;
 
@@ -156,7 +156,7 @@ class ServerThread : public Thread {
 
   virtual void SetQueueLimit(int queue_limit) {}
 
-  virtual ~ServerThread();
+  ~ServerThread() override;
 
  protected:
   /*
@@ -192,7 +192,7 @@ class ServerThread : public Thread {
   std::set<int32_t> server_fds_;
 
   virtual int InitHandle();
-  virtual void* ThreadMain() override;
+  void* ThreadMain() override;
   /*
    * The server event handle
    */

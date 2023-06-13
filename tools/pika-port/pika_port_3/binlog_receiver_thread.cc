@@ -14,7 +14,7 @@
 
 extern PikaPort* g_pika_port;
 
-BinlogReceiverThread::BinlogReceiverThread(std::string host, int port, int cron_interval)
+BinlogReceiverThread::BinlogReceiverThread(const std::string& host, int port, int cron_interval)
     : conn_factory_(this), handles_(this) {
   // thread_rep_ = net::NewHolyThread(port, &conn_factory_,
   //                                  cron_interval, &handles_);

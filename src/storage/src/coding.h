@@ -20,7 +20,7 @@
 #ifndef STORAGE_PLATFORM_IS_LITTLE_ENDIAN
 #  define STORAGE_PLATFORM_IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
 #endif
-#include <string.h>
+#include <cstring>
 
 namespace storage {
 static const bool kLittleEndian = STORAGE_PLATFORM_IS_LITTLE_ENDIAN;

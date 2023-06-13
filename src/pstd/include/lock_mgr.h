@@ -10,6 +10,7 @@
 #include <string>
 
 #include "pstd/include/mutex.h"
+#include "pstd/include/noncopyable.h"
 
 namespace pstd {
 
@@ -17,9 +18,9 @@ namespace lock {
 struct LockMap;
 struct LockMapStripe;
 
-class LockMgr {
+class LockMgr : public pstd::noncopyable {
  public:
-  LockMgr(size_t default_num_stripes, int64_t max_num_locks, std::shared_ptr<MutexFactory> factory);
+  LockMgr(size_t default_num_stripes, int64_t max_num_locks, const std::shared_ptr<MutexFactory>& factory);
 
   ~LockMgr();
 
@@ -32,7 +33,7 @@ class LockMgr {
 
  private:
   // Default number of lock map stripes
-  const size_t default_num_stripes_;
+  const size_t default_num_stripes_[[maybe_unused]];
 
   // Limit on number of keys locked per column family
   const int64_t max_num_locks_;
@@ -49,9 +50,6 @@ class LockMgr {
 
   void UnLockKey(const std::string& key, std::shared_ptr<LockMapStripe> stripe);
 
-  // No copying allowed
-  LockMgr(const LockMgr&);
-  void operator=(const LockMgr&);
 };
 
 }  //  namespace lock

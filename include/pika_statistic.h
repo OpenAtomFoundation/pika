@@ -15,7 +15,7 @@ class QpsStatistic {
  public:
   QpsStatistic();
   QpsStatistic(const QpsStatistic& other);
-  ~QpsStatistic();
+  ~QpsStatistic() = default;
 
   void IncreaseQueryNum(bool is_write);
 
@@ -38,25 +38,25 @@ struct ServerStatistic {
   ~ServerStatistic();
 
   std::atomic<uint64_t> accumulative_connections;
-  std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_table;
+  std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_db;
   QpsStatistic qps;
 };
 
 struct Statistic {
   Statistic();
 
-  QpsStatistic TableStat(const std::string& table_name);
-  std::unordered_map<std::string, QpsStatistic> AllTableStat();
+  QpsStatistic DBStat(const std::string& db_name);
+  std::unordered_map<std::string, QpsStatistic> AllDBStat();
 
-  void UpdateTableQps(const std::string& table_name, const std::string& command, bool is_write);
-  void ResetTableLastSecQuerynum();
+  void UpdateDBQps(const std::string& db_name, const std::string& command, bool is_write);
+  void ResetDBLastSecQuerynum();
 
   // statistic shows accumulated data of all tables
   ServerStatistic server_stat;
 
   // statistic shows accumulated data of every single table
-  std::shared_mutex table_stat_rw;
-  std::unordered_map<std::string, QpsStatistic> table_stat;
+  std::shared_mutex db_stat_rw;
+  std::unordered_map<std::string, QpsStatistic> db_stat;
 };
 
 #endif  // PIKA_STATISTIC_H_

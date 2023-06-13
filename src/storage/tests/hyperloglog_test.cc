@@ -14,25 +14,25 @@ using namespace storage;
 
 class HyperLogLogTest : public ::testing::Test {
  public:
-  HyperLogLogTest() {}
-  virtual ~HyperLogLogTest() {}
+  HyperLogLogTest() = default;
+  ~HyperLogLogTest() override = default;
 
-  void SetUp() {
+  void SetUp() override {
     std::string path = "./db/hyperloglog";
-    if (access(path.c_str(), F_OK)) {
+    if (access(path.c_str(), F_OK) != 0) {
       mkdir(path.c_str(), 0755);
     }
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
 
-  void TearDown() {
+  void TearDown() override {
     std::string path = "./db/hyperloglog";
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -62,18 +62,18 @@ TEST_F(HyperLogLogTest, PfaddTest) {
 
   // PFADD the return value is true when at least 1 reg was modified
   values.clear();
-  values.push_back("A");
-  values.push_back("B");
-  values.push_back("C");
+  values.emplace_back("A");
+  values.emplace_back("B");
+  values.emplace_back("C");
   s = db.PfAdd("HLL", values, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
 
   // PFADD the return value is false when no reg was modified
   values.clear();
-  values.push_back("A");
-  values.push_back("B");
-  values.push_back("C");
+  values.emplace_back("A");
+  values.emplace_back("B");
+  values.emplace_back("C");
   update = false;
   s = db.PfAdd("HLL", values, &update);
   ASSERT_TRUE(s.ok());
@@ -83,7 +83,7 @@ TEST_F(HyperLogLogTest, PfaddTest) {
 
   // PFADD works with empty string (regression)
   values.clear();
-  values.push_back("");
+  values.emplace_back("");
   s = db.PfAdd("HLL", values, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);

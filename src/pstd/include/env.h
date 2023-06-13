@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+
 #include "pstd/include/pstd_status.h"
+#include "pstd/include/noncopyable.h"
 
 namespace pstd {
 
@@ -34,7 +36,7 @@ int DeleteDir(const std::string& path);
 bool DeleteDirIfExist(const std::string& path);
 int CreateDir(const std::string& path);
 int CreatePath(const std::string& path, mode_t mode = 0755);
-uint64_t Du(const std::string& path);
+uint64_t Du(const std::string& filename);
 
 /*
  * Whether the file is exist
@@ -42,29 +44,21 @@ uint64_t Du(const std::string& path);
  */
 bool FileExists(const std::string& path);
 
-Status DeleteFile(const std::string& fname);
+bool DeleteFile(const std::string& fname);
 
 int RenameFile(const std::string& oldname, const std::string& newname);
 
-class FileLock {
+class FileLock : public pstd::noncopyable {
  public:
-  FileLock() {}
-  virtual ~FileLock(){};
+  FileLock() = default;
+  virtual ~FileLock()= default;;
 
   int fd_ = -1;
   std::string name_;
-
- private:
-  // No copying allowed
-  FileLock(const FileLock&);
-  void operator=(const FileLock&);
 };
 
-Status LockFile(const std::string& f, FileLock** l);
-Status UnlockFile(FileLock* l);
-
 int GetChildren(const std::string& dir, std::vector<std::string>& result);
-bool GetDescendant(const std::string& dir, std::vector<std::string>& result);
+void GetDescendant(const std::string& dir, std::vector<std::string>& result);
 
 uint64_t NowMicros();
 void SleepForMicroseconds(int micros);
@@ -84,9 +78,9 @@ Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& 
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
 // at a time to the file.
-class WritableFile {
+class WritableFile : public pstd::noncopyable {
  public:
-  WritableFile() {}
+  WritableFile() = default;
   virtual ~WritableFile();
 
   virtual Status Append(const Slice& data) = 0;
@@ -95,17 +89,12 @@ class WritableFile {
   virtual Status Sync() = 0;
   virtual Status Trim(uint64_t offset) = 0;
   virtual uint64_t Filesize() = 0;
-
- private:
-  // No copying allowed
-  WritableFile(const WritableFile&);
-  void operator=(const WritableFile&);
 };
 
 // A abstract for the sequential readable file
 class SequentialFile {
  public:
-  SequentialFile(){};
+  SequentialFile()= default;;
   virtual ~SequentialFile();
   // virtual Status Read(size_t n, char *&result, char *scratch) = 0;
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;
@@ -114,23 +103,18 @@ class SequentialFile {
   virtual char* ReadLine(char* buf, int n) = 0;
 };
 
-class RWFile {
+class RWFile : public pstd::noncopyable {
  public:
-  RWFile() {}
+  RWFile() = default;
   virtual ~RWFile();
   virtual char* GetData() = 0;
-
- private:
-  // No copying allowed
-  RWFile(const RWFile&);
-  void operator=(const RWFile&);
 };
 
 // A file abstraction for random reading and writing.
-class RandomRWFile {
+class RandomRWFile : public pstd::noncopyable {
  public:
-  RandomRWFile() {}
-  virtual ~RandomRWFile() {}
+  RandomRWFile() = default;
+  virtual ~RandomRWFile() = default;
 
   // Write data from Slice data to file starting from offset
   // Returns IOError on failure, but does not guarantee
@@ -167,11 +151,6 @@ class RandomRWFile {
     (void)len;
     return Status::OK();
   }
-
- private:
-  // No copying allowed
-  RandomRWFile(const RandomRWFile&);
-  void operator=(const RandomRWFile&);
 };
 
 }  // namespace pstd

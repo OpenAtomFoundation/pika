@@ -61,20 +61,20 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   }
 
   void StripSuffix() override {
-    if (value_ != nullptr) {
+    if (value_) {
       value_->erase(value_->size() - kBaseMetaValueSuffixLength, kBaseMetaValueSuffixLength);
     }
   }
 
   void SetVersionToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kBaseMetaValueSuffixLength;
       EncodeFixed32(dst, version_);
     }
   }
 
   void SetTimestampToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int32_t);
       EncodeFixed32(dst, timestamp_);
     }
@@ -91,7 +91,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
   void set_count(int32_t count) {
     count_ = count;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed32(dst, count_);
     }
@@ -99,7 +99,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
   void ModifyCount(int32_t delta) {
     count_ += delta;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed32(dst, count_);
     }
@@ -121,12 +121,12 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   int32_t count_ = 0;
 };
 
-typedef BaseMetaValue HashesMetaValue;
-typedef ParsedBaseMetaValue ParsedHashesMetaValue;
-typedef BaseMetaValue SetsMetaValue;
-typedef ParsedBaseMetaValue ParsedSetsMetaValue;
-typedef BaseMetaValue ZSetsMetaValue;
-typedef ParsedBaseMetaValue ParsedZSetsMetaValue;
+using HashesMetaValue = BaseMetaValue;
+using ParsedHashesMetaValue = ParsedBaseMetaValue;
+using SetsMetaValue = BaseMetaValue;
+using ParsedSetsMetaValue = ParsedBaseMetaValue;
+using ZSetsMetaValue = BaseMetaValue;
+using ParsedZSetsMetaValue = ParsedBaseMetaValue;
 
 }  //  namespace storage
 #endif  // SRC_BASE_META_VALUE_FORMAT_H_

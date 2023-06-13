@@ -1,7 +1,8 @@
 #ifndef __PSTD_INCLUDE_RANDOM_H__
 #define __PSTD_INCLUDE_RANDOM_H__
 
-#include <time.h>
+#include <ctime>
+#include <cstdint>
 
 namespace pstd {
 

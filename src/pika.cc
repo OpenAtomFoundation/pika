@@ -4,8 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
-#include <signal.h>
 #include <sys/resource.h>
+#include <csignal>
 
 #include "include/build_version.h"
 #include "include/pika_cmd_table_manager.h"
@@ -15,12 +15,13 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
-#include "pstd/include/env.h"
 
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_defer.h"
 
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
-PikaServer* g_pika_server;
+PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
@@ -64,8 +65,10 @@ static void PikaGlogInit() {
 }
 
 static void daemonize() {
-  if (fork() != 0) exit(0); /* parent exits */
-  setsid();                 /* create a new session */
+  if (fork()) {
+    exit(0); /* parent exits */
+  }
+  setsid();  /* create a new session */
 }
 
 static void close_std() {
@@ -78,7 +81,7 @@ static void close_std() {
   }
 }
 
-static void create_pid_file(void) {
+static void create_pid_file() {
   /* Try to write the pid file in a best-effort way. */
   std::string path(g_pika_conf->pidfile());
 
@@ -92,7 +95,7 @@ static void create_pid_file(void) {
 
   FILE* fp = fopen(path.c_str(), "w");
   if (fp) {
-    fprintf(fp, "%d\n", (int)getpid());
+    fprintf(fp, "%d\n", static_cast<int>(getpid()));
     fclose(fp);
   }
 }
@@ -118,6 +121,7 @@ static void usage() {
           "usage: pika [-hv] [-c conf/file]\n"
           "\t-h               -- show this help\n"
           "\t-c conf/file     -- config file \n"
+          "\t-v               -- show version\n"
           "  example: ./output/bin/pika -c ./conf/pika.conf\n",
           version);
 }
@@ -149,7 +153,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (path_opt == false) {
+  if (!path_opt) {
     fprintf(stderr, "Please specify the conf file path\n");
     usage();
     exit(-1);
@@ -192,6 +196,15 @@ int main(int argc, char* argv[]) {
     close_std();
   }
 
+  DEFER {
+    delete g_pika_server;
+    g_pika_server = nullptr;
+    g_pika_rm.reset();
+    g_pika_cmd_table_manager.reset();
+    ::google::ShutdownGoogleLogging();
+    g_pika_conf.reset();
+  };
+
   g_pika_rm->Start();
   g_pika_server->Start();
 
@@ -202,9 +215,6 @@ int main(int argc, char* argv[]) {
   // stop PikaReplicaManager first，avoid internal threads
   // may references to dead PikaServer
   g_pika_rm->Stop();
-
-  delete g_pika_server;
-  ::google::ShutdownGoogleLogging();
 
   return 0;
 }

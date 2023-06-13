@@ -9,30 +9,36 @@ Pika-Exporter is based on [Redis-Exporter](https://github.com/oliver006/redis_ex
 **Build and run locally:**
 
 To start using `pika_exporter`, install `Go` and run go get
-```
+```shell
 $ go get github.com/OpenAtomFoundation/pika/tools/pika_exporter
 $ cd $GOPATH/src/github.com/OpenAtomFoundation/pika/tools/pika_exporter
 $ make
 $ ./bin/pika_exporter <flags>
 ```
 
+For example:
+```shell
+$ nohup ./bin/pika_exporter -pika.addr 127.0.0.1:9221 &
+```
+
 
 **Prometheus Configuration:**
 
 Add a block to the scrape_configs of your prometheus.yml config file:
-```
+```yml
 scrape_configs:
+  - job_name: pika
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['127.0.0.1:9121']
+        labels:
+          group: 'test'
+```
 
-...
+Run prometheus:
 
-- job_name: pika
-  scrape_interval: 15s
-  static_configs:
-  - targets: ['XXXXXX:9121']
-    labels:
-      group: 'test'
-
-...
+```shell
+prometheus --config.file=./grafana/prometheus.yml
 ```
 
 ## Flags ##
@@ -136,8 +142,36 @@ scrape_configs:
 
 ### Rocksdb Metrics
 
+| Serial Number | Metric | Meaning |
+| ------------- | ------ | ------- |
+| 11 | rocksdb.num-immutable-mem-table | Number of immutable memtables not yet flushed. |
+| 12 | rocksdb.num-immutable-mem-table-flushed | Number of immutable memtables that have been flushed. |
+| 13 | rocksdb.mem-table-flush-pending | Returns 1 if there is a pending memtable flush; otherwise returns 0. |
+| 14 | rocksdb.num-running-flushes | Number of currently running flush operations. |
+| 15 | rocksdb.compaction-pending | Returns 1 if at least one compaction operation is pending; otherwise returns 0. |
+| 16 | rocksdb.num-running-compactions | Number of running compactions. |
+| 17 | rocksdb.background-errors | Total number of background errors. |
+| 18 | rocksdb.cur-size-active-mem-table | Approximate size, in bytes, of the active memtable. |
+| 19 | rocksdb.cur-size-all-mem-tables | Total size in bytes of memtables not yet flushed, including the current active memtable and the unflushed immutable memtables. |
+| 20 | rocksdb.size-all-mem-tables | Total size in bytes of all memtables, including the active memtable, unflushed immutable memtables, and pinned immutable memtables. |
+| 25 | rocksdb.estimate-num-keys | Estimated number of keys in active memtable, unflushed immutable memtables, and flushed SST files. |
+| 26 | rocksdb.estimate-table-readers-mem | Estimated memory size used for reading SST files, excluding block cache (such as filter and index blocks). |
+| 28 | rocksdb.num-snapshots | Number of unreleased snapshots in the database. |
+| 31 | rocksdb.num-live-versions | Number of current versions. More current versions usually indicate more SST files being used by iterators or incomplete compactions. |
+| 32 | rocksdb.current-super-version-number | Current number of the LSM version. It is a uint64_t integer that increments after any changes in the LSM tree. This number is not preserved after restarting the database and starts from 0 after a database restart. |
+| 33 | rocksdb.estimate-live-data-size | Estimated size of the activity data in bytes.For BlobDB, it also includes the actual live bytes in the version's blob file. |
+| 36 | rocksdb.total-sst-files-size | Total size (in bytes) of all SST files.Note: If there are too many files, it may slow down the online query. |
+| 37 | rocksdb.live-sst-files-size | Total size in bytes of all SST files belonging to the latest LSM tree. |
+| 47 | rocksdb.block-cache-capacity | The capacity of the block cache. |
+| 48 | rocksdb.block-cache-usage | Memory size occupied by entries in the block cache. |
+| 49 | rocksdb.block-cache-pinned-usage | Memory size occupied by pinned entries in the block cache. |
+| 51 | rocksdb.num-blob-files | The number of blob files in the current version. |
+| 52 | rocksdb.blob-stats | The total and size of all blob files, and the total amount of garbage (in bytes) in blob files in the current version. |
+| 53 | rocksdb.total-blob-file-size | The total size of all blob files across all versions. |
+| 54 | rocksdb.live-blob-file-size | The total size of all blob files in the current version. |
+
 ## Grafana Dashboard ##
-See [here](./contrib/grafana_prometheus_pika_dashboard.json)
+See [here](./grafana/grafana_prometheus_pika_dashboard.json)
 
 Screenshots:
 ![Overview](./contrib/overview.png)
@@ -150,3 +184,5 @@ Screenshots:
 ![TimeConsumingOperation](./contrib/time_consuming_operation.png)
 
 ![KeysMetrics](./contrib/keys_metrics.png)
+
+![RocksDB](./contrib/rocksdb.png)

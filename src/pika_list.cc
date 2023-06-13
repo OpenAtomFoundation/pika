@@ -15,14 +15,13 @@ void LIndexCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2int(index.data(), index.size(), &index_)) {
+  if (pstd::string2int(index.data(), index.size(), &index_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  return;
-}
-void LIndexCmd::Do(std::shared_ptr<Partition> partition) {
+  }
+void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->LIndex(key_, index_, &value);
+  rocksdb::Status s = slot->db()->LIndex(key_, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -39,9 +38,9 @@ void LInsertCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string dir = argv_[2];
-  if (!strcasecmp(dir.data(), "before")) {
+  if (strcasecmp(dir.data(), "before") == 0) {
     dir_ = storage::Before;
-  } else if (!strcasecmp(dir.data(), "after")) {
+  } else if (strcasecmp(dir.data(), "after") == 0) {
     dir_ = storage::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
@@ -50,9 +49,9 @@ void LInsertCmd::DoInitial() {
   pivot_ = argv_[3];
   value_ = argv_[4];
 }
-void LInsertCmd::Do(std::shared_ptr<Partition> partition) {
+void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t llen = 0;
-  rocksdb::Status s = partition->db()->LInsert(key_, dir_, pivot_, value_, &llen);
+  rocksdb::Status s = slot->db()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -67,9 +66,9 @@ void LLenCmd::DoInitial() {
   }
   key_ = argv_[1];
 }
-void LLenCmd::Do(std::shared_ptr<Partition> partition) {
+void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = partition->db()->LLen(key_, &llen);
+  rocksdb::Status s = slot->db()->LLen(key_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -88,9 +87,9 @@ void LPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
-void LPushCmd::Do(std::shared_ptr<Partition> partition) {
+void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = partition->db()->LPush(key_, values_, &llen);
+  rocksdb::Status s = slot->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
   } else {
@@ -105,9 +104,9 @@ void LPopCmd::DoInitial() {
   }
   key_ = argv_[1];
 }
-void LPopCmd::Do(std::shared_ptr<Partition> partition) {
+void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->LPop(key_, &value);
+  rocksdb::Status s = slot->db()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -125,9 +124,9 @@ void LPushxCmd::DoInitial() {
   key_ = argv_[1];
   value_ = argv_[2];
 }
-void LPushxCmd::Do(std::shared_ptr<Partition> partition) {
+void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = partition->db()->LPushx(key_, value_, &llen);
+  rocksdb::Status s = slot->db()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -142,19 +141,18 @@ void LRangeCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string left = argv_[2];
-  if (!pstd::string2int(left.data(), left.size(), &left_)) {
+  if (pstd::string2int(left.data(), left.size(), &left_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string right = argv_[3];
-  if (!pstd::string2int(right.data(), right.size(), &right_)) {
+  if (pstd::string2int(right.data(), right.size(), &right_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  return;
-}
-void LRangeCmd::Do(std::shared_ptr<Partition> partition) {
+  }
+void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
-  rocksdb::Status s = partition->db()->LRange(key_, left_, right_, &values);
+  rocksdb::Status s = slot->db()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -174,15 +172,15 @@ void LRemCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string count = argv_[2];
-  if (!pstd::string2int(count.data(), count.size(), &count_)) {
+  if (pstd::string2int(count.data(), count.size(), &count_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
 }
-void LRemCmd::Do(std::shared_ptr<Partition> partition) {
+void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t res = 0;
-  rocksdb::Status s = partition->db()->LRem(key_, count_, value_, &res);
+  rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
   } else {
@@ -197,20 +195,20 @@ void LSetCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2int(index.data(), index.size(), &index_)) {
+  if (pstd::string2int(index.data(), index.size(), &index_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
 }
-void LSetCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
+void LSetCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->LSet(key_, index_, value_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
-    // TODO refine return value
+    // TODO(): refine return value
     res_.SetRes(CmdRes::kOutOfRange);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -224,18 +222,17 @@ void LTrimCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string start = argv_[2];
-  if (!pstd::string2int(start.data(), start.size(), &start_)) {
+  if (pstd::string2int(start.data(), start.size(), &start_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string stop = argv_[3];
-  if (!pstd::string2int(stop.data(), stop.size(), &stop_)) {
+  if (pstd::string2int(stop.data(), stop.size(), &stop_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  return;
-}
-void LTrimCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->LTrim(key_, start_, stop_);
+  }
+void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -250,9 +247,9 @@ void RPopCmd::DoInitial() {
   }
   key_ = argv_[1];
 }
-void RPopCmd::Do(std::shared_ptr<Partition> partition) {
+void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->RPop(key_, &value);
+  rocksdb::Status s = slot->db()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -273,9 +270,9 @@ void RPopLPushCmd::DoInitial() {
     res_.SetRes(CmdRes::kInconsistentHashTag);
   }
 }
-void RPopLPushCmd::Do(std::shared_ptr<Partition> partition) {
+void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->RPoplpush(source_, receiver_, &value);
+  rocksdb::Status s = slot->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -296,9 +293,9 @@ void RPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
-void RPushCmd::Do(std::shared_ptr<Partition> partition) {
+void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = partition->db()->RPush(key_, values_, &llen);
+  rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
   } else {
@@ -314,9 +311,9 @@ void RPushxCmd::DoInitial() {
   key_ = argv_[1];
   value_ = argv_[2];
 }
-void RPushxCmd::Do(std::shared_ptr<Partition> partition) {
+void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = partition->db()->RPushx(key_, value_, &llen);
+  rocksdb::Status s = slot->db()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {

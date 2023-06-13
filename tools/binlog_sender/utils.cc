@@ -8,17 +8,13 @@
 bool Exists(const std::string& base, const std::string& pattern) {
   std::string::size_type n;
   n = base.find(pattern);
-  if (n == std::string::npos) {
-    return false;
-  } else {
-    return true;
-  }
+  return n != std::string::npos;
 }
 
 bool CheckFilesStr(const std::string& files_str) {
   int32_t neg_count = 0;
   for (const auto& c : files_str) {
-    if (isdigit(c)) {
+    if (isdigit(c) != 0) {
       continue;
     } else if (c == NEG_CHAR) {
       neg_count++;
@@ -26,13 +22,13 @@ bool CheckFilesStr(const std::string& files_str) {
       return false;
     }
   }
-  return neg_count <= 1 ? true : false;
+  return neg_count <= 1;
 }
 
 bool GetFileList(const std::string& files_str, std::vector<uint32_t>* files) {
   std::string::size_type pos;
   if (Exists(files_str, NEG_STR)) {
-    pos = files_str.find(NEG_STR);
+    pos = files_str.find('-');
     uint32_t start_file = atoi(files_str.substr(0, pos).data());
     uint32_t end_file = atoi(files_str.substr(pos + 1).data());
     for (uint32_t file_num = start_file; file_num <= end_file; ++file_num) {
@@ -46,8 +42,8 @@ bool GetFileList(const std::string& files_str, std::vector<uint32_t>* files) {
 
 bool CheckBinlogExists(const std::string& binlog_path, const std::vector<uint32_t>& files) {
   std::string filename = binlog_path + WRITE2FILE;
-  for (size_t idx = 0; idx < files.size(); ++idx) {
-    std::string binlog_file = filename + std::to_string(files[idx]);
+  for (unsigned int file : files) {
+    std::string binlog_file = filename + std::to_string(file);
     if (!pstd::FileExists(binlog_file)) {
       return false;
     }

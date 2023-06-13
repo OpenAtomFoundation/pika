@@ -14,7 +14,7 @@ namespace storage {
 class ListsDataKey {
  public:
   ListsDataKey(const rocksdb::Slice& key, int32_t version, uint64_t index)
-      : start_(nullptr), key_(key), version_(version), index_(index) {}
+      :  key_(key), version_(version), index_(index) {}
 
   ~ListsDataKey() {
     if (start_ != space_) {
@@ -22,7 +22,7 @@ class ListsDataKey {
     }
   }
 
-  const rocksdb::Slice Encode() {
+  rocksdb::Slice Encode() {
     size_t usize = key_.size();
     size_t needed = usize + sizeof(int32_t) * 2 + sizeof(uint64_t);
     char* dst;

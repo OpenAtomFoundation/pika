@@ -72,6 +72,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "pstd/include/pstd_hash.h"
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -80,9 +81,9 @@ namespace pstd {
 
 class SHA256 {
  protected:
-  typedef unsigned char uint8;
-  typedef unsigned int uint32;
-  typedef unsigned long long uint64;
+  using uint8 = unsigned char;
+  using uint32 = unsigned int;
+  using uint64 = uint64_t;
 
   const static uint32 sha256_k[];
   static const unsigned int SHA224_256_BLOCK_SIZE = (512 / 8);
@@ -101,11 +102,11 @@ class SHA256 {
   uint32 m_h[8];
 };
 
-#define SHA2_SHFR(x, n) (x >> n)
-#define SHA2_ROTR(x, n) ((x >> n) | (x << ((sizeof(x) << 3) - n)))
-#define SHA2_ROTL(x, n) ((x << n) | (x >> ((sizeof(x) << 3) - n)))
-#define SHA2_CH(x, y, z) ((x & y) ^ (~x & z))
-#define SHA2_MAJ(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
+#define SHA2_SHFR(x, n) ((x) >> (n))
+#define SHA2_ROTR(x, n) (((x) >> (n)) | ((x) << ((sizeof(x) << 3) - (n))))
+#define SHA2_ROTL(x, n) (((x) << (n)) | ((x) >> ((sizeof(x) << 3) - (n))))
+#define SHA2_CH(x, y, z) (((x) & (y)) ^ (~(x) & (z)))
+#define SHA2_MAJ(x, y, z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
 #define SHA256_F1(x) (SHA2_ROTR(x, 2) ^ SHA2_ROTR(x, 13) ^ SHA2_ROTR(x, 22))
 #define SHA256_F2(x) (SHA2_ROTR(x, 6) ^ SHA2_ROTR(x, 11) ^ SHA2_ROTR(x, 25))
 #define SHA256_F3(x) (SHA2_ROTR(x, 7) ^ SHA2_ROTR(x, 18) ^ SHA2_SHFR(x, 3))
@@ -135,21 +136,21 @@ class SHA256 {
 // assumes that char is 8 bit and int is 32 bit
 class MD5 {
  public:
-  typedef unsigned int size_type;  // must be 32bit
+  using size_type = unsigned int;  // must be 32bit
 
   MD5();
   MD5(const std::string& text);
-  void update(const unsigned char* buf, size_type length);
-  void update(const char* buf, size_type length);
+  void update(const unsigned char* input, size_type length);
+  void update(const char* input, size_type length);
   MD5& finalize();
   std::string hexdigest() const;
   std::string rawdigest() const;
-  friend std::ostream& operator<<(std::ostream&, MD5 md5);
+  friend std::ostream& operator<<(std::ostream& /*out*/, MD5 md5);
 
  private:
   void init();
-  typedef unsigned char uint1;  //  8bit
-  typedef unsigned int uint4;   // 32bit
+  using uint1 = unsigned char;  //  8bit
+  using uint4 = unsigned int;   // 32bit
   enum { blocksize = 64 };      // VC6 won't eat a const static int here
 
   void transform(const uint1 block[blocksize]);
@@ -187,11 +188,12 @@ const unsigned int SHA256::sha256_k[64] = {  // UL = uint32
 void SHA256::transform(const unsigned char* message, unsigned int block_nb) {
   uint32 w[64];
   uint32 wv[8];
-  uint32 t1, t2;
+  uint32 t1;
+  uint32 t2;
   const unsigned char* sub_block;
   int i;
   int j;
-  for (i = 0; i < (int)block_nb; i++) {
+  for (i = 0; i < static_cast<int>(block_nb); i++) {
     sub_block = message + (i << 6);
     for (j = 0; j < 16; j++) {
       SHA2_PACK32(&sub_block[j << 2], &w[j]);
@@ -235,7 +237,9 @@ void SHA256::init() {
 
 void SHA256::update(const unsigned char* message, unsigned int len) {
   unsigned int block_nb;
-  unsigned int new_len, rem_len, tmp_len;
+  unsigned int new_len;
+  unsigned int rem_len;
+  unsigned int tmp_len;
   const unsigned char* shifted_message;
   tmp_len = SHA224_256_BLOCK_SIZE - m_len;
   rem_len = len < tmp_len ? len : tmp_len;
@@ -260,7 +264,7 @@ void SHA256::final(unsigned char* digest) {
   unsigned int pm_len;
   unsigned int len_b;
   int i;
-  block_nb = (1 + ((SHA224_256_BLOCK_SIZE - 9) < (m_len % SHA224_256_BLOCK_SIZE)));
+  block_nb = (1 + static_cast<int>((SHA224_256_BLOCK_SIZE - 9) < (m_len % SHA224_256_BLOCK_SIZE)));
   len_b = (m_tot_len + m_len) << 3;
   pm_len = block_nb << 6;
   memset(m_block + m_len, 0, pm_len - m_len);
@@ -278,20 +282,22 @@ std::string sha256(const std::string& input, bool raw) {
 
   SHA256 ctx = SHA256();
   ctx.init();
-  ctx.update((unsigned char*)input.c_str(), input.length());
+  ctx.update((unsigned char*)input.c_str(), input.length());  // NOLINT
   ctx.final(digest);
 
   if (raw) {
     std::string res;
-    for (unsigned int i = 0; i < SHA256::DIGEST_SIZE; ++i) {
-      res.append(1, digest[i]);
+    for (unsigned char i : digest) {
+      res.append(1, i);
     }
     return res;
   }
   char buf[2 * SHA256::DIGEST_SIZE + 1];
   buf[2 * SHA256::DIGEST_SIZE] = 0;
-  for (size_t i = 0; i < SHA256::DIGEST_SIZE; i++) sprintf(buf + i * 2, "%02x", digest[i]);
-  return std::string(buf);
+  for (size_t i = 0; i < SHA256::DIGEST_SIZE; i++) {
+    sprintf(buf + i * 2, "%02x", digest[i]);
+  }
+  return {buf};
 }
 
 // MD5 hash function
@@ -379,9 +385,10 @@ void MD5::init() {
 
 // decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
 void MD5::decode(uint4 output[], const uint1 input[], size_type len) {
-  for (unsigned int i = 0, j = 0; j < len; i++, j += 4)
-    output[i] = ((uint4)input[j]) | (((uint4)input[j + 1]) << 8) | (((uint4)input[j + 2]) << 16) |
-                (((uint4)input[j + 3]) << 24);
+  for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
+    output[i] = (static_cast<uint4>(input[j])) | ((static_cast<uint4>(input[j + 1])) << 8) |
+                ((static_cast<uint4>(input[j + 2])) << 16) | ((static_cast<uint4>(input[j + 3])) << 24);
+  }
 }
 
 //////////////////////////////
@@ -401,7 +408,11 @@ void MD5::encode(uint1 output[], const uint4 input[], size_type len) {
 
 // apply MD5 algo on a block
 void MD5::transform(const uint1 block[blocksize]) {
-  uint4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+  uint4 a = state[0];
+  uint4 b = state[1];
+  uint4 c = state[2];
+  uint4 d = state[3];
+  uint4 x[16];
   decode(x, block, blocksize);
 
   /* Round 1 */
@@ -494,7 +505,9 @@ void MD5::update(const unsigned char input[], size_type length) {
   size_type index = count[0] / 8 % blocksize;
 
   // Update number of bits
-  if ((count[0] += (length << 3)) < (length << 3)) count[1]++;
+  if ((count[0] += (length << 3)) < (length << 3)) {
+    count[1]++;
+  }
   count[1] += (length >> 29);
 
   // number of bytes we need to fill in buffer
@@ -509,11 +522,14 @@ void MD5::update(const unsigned char input[], size_type length) {
     transform(buffer);
 
     // transform chunks of blocksize (64 bytes)
-    for (i = firstpart; i + blocksize <= length; i += blocksize) transform(&input[i]);
+    for (i = firstpart; i + blocksize <= length; i += blocksize) {
+      transform(&input[i]);
+    }
 
     index = 0;
-  } else
+  } else {
     i = 0;
+  }
 
   // buffer remaining input
   memcpy(&buffer[index], &input[i], length - i);
@@ -522,7 +538,9 @@ void MD5::update(const unsigned char input[], size_type length) {
 //////////////////////////////
 
 // for convenience provide a verson with signed char
-void MD5::update(const char input[], size_type length) { update((const unsigned char*)input, length); }
+void MD5::update(const char input[], size_type length) {
+  update(reinterpret_cast<const unsigned char*>(input), length);
+}
 
 //////////////////////////////
 
@@ -563,20 +581,26 @@ MD5& MD5::finalize() {
 
 // return hex representation of digest as string
 std::string MD5::hexdigest() const {
-  if (!finalized) return "";
+  if (!finalized) {
+    return "";
+  }
 
   char buf[33];
-  for (int i = 0; i < 16; i++) sprintf(buf + i * 2, "%02x", digest[i]);
+  for (int i = 0; i < 16; i++) {
+    sprintf(buf + i * 2, "%02x", digest[i]);
+  }
   buf[32] = 0;
 
-  return std::string(buf);
+  return {buf};
 }
 
 std::string MD5::rawdigest() const {
-  if (!finalized) return "";
+  if (!finalized) {
+    return "";
+  }
   std::string res;
-  for (unsigned int i = 0; i < 16; ++i) {
-    res.append(1, digest[i]);
+  for (unsigned char i : digest) {
+    res.append(1, i);
   }
   return res;
 }

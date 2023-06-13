@@ -5,7 +5,7 @@
 
 #include "net/include/net_thread.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 
 #include "gmock/gmock.h"

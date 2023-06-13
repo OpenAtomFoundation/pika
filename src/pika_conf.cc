@@ -11,130 +11,132 @@
 #include <algorithm>
 
 #include "pstd/include/env.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
+
+using pstd::Status;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
-
-Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
-  int32_t table_index = -1;
-  for (size_t idx = 0; idx < table_structs_.size(); ++idx) {
-    if (table_structs_[idx].table_name == table_name) {
-      table_index = idx;
+Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
+  int32_t db_index = -1;
+  for (size_t idx = 0; idx < db_structs_.size(); ++idx) {
+    if (db_structs_[idx].db_name == db_name) {
+      db_index = idx;
       break;
     }
   }
-  if (table_index == -1) {
-    return Status::NotFound("table : " + table_name + " not found");
+  if (db_index == -1) {
+    return Status::NotFound("db : " + db_name + " not found");
   }
-  *target = table_index;
+  *target = db_index;
   return Status::OK();
 }
 
-Status PikaConf::TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
+Status PikaConf::DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                             bool is_add) {
   std::shared_lock l(rwlock_);
-  uint32_t table_index = 0;
-  Status s = InternalGetTargetTable(table_name, &table_index);
+  uint32_t db_index = 0;
+  Status s = InternalGetTargetDB(db_name, &db_index);
   if (!s.ok()) {
     return s;
   }
   // Sanity Check
-  for (const auto& id : partition_ids) {
-    if (id >= table_structs_[table_index].partition_num) {
-      return Status::Corruption("partition index out of range");
-    } else if (is_add && table_structs_[table_index].partition_ids.count(id) != 0) {
-      return Status::Corruption("partition : " + std::to_string(id) + " exist");
-    } else if (!is_add && table_structs_[table_index].partition_ids.count(id) == 0) {
-      return Status::Corruption("partition : " + std::to_string(id) + " not exist");
+  for (const auto& id : slot_ids) {
+    if (id >= db_structs_[db_index].slot_num) {
+      return Status::Corruption("slot index out of range");
+    } else if (is_add && db_structs_[db_index].slot_ids.count(id) != 0) {
+      return Status::Corruption("slot : " + std::to_string(id) + " exist");
+    } else if (!is_add && db_structs_[db_index].slot_ids.count(id) == 0) {
+      return Status::Corruption("slot : " + std::to_string(id) + " not exist");
     }
   }
   return Status::OK();
 }
 
-Status PikaConf::AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids) {
-  Status s = TablePartitionsSanityCheck(table_name, partition_ids, true);
+Status PikaConf::AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids) {
+  Status s = DBSlotsSanityCheck(db_name, slot_ids, true);
   if (!s.ok()) {
     return s;
   }
 
   std::lock_guard l(rwlock_);
   uint32_t index = 0;
-  s = InternalGetTargetTable(table_name, &index);
+  s = InternalGetTargetDB(db_name, &index);
   if (s.ok()) {
-    for (const auto& id : partition_ids) {
-      table_structs_[index].partition_ids.insert(id);
+    for (const auto& id : slot_ids) {
+      db_structs_[index].slot_ids.insert(id);
     }
-    s = local_meta_->StableSave(table_structs_);
+    s = local_meta_->StableSave(db_structs_);
   }
   return s;
 }
 
-Status PikaConf::RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids) {
-  Status s = TablePartitionsSanityCheck(table_name, partition_ids, false);
+Status PikaConf::RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids) {
+  Status s = DBSlotsSanityCheck(db_name, slot_ids, false);
   if (!s.ok()) {
     return s;
   }
 
   std::lock_guard l(rwlock_);
   uint32_t index = 0;
-  s = InternalGetTargetTable(table_name, &index);
+  s = InternalGetTargetDB(db_name, &index);
   if (s.ok()) {
-    for (const auto& id : partition_ids) {
-      table_structs_[index].partition_ids.erase(id);
+    for (const auto& id : slot_ids) {
+      db_structs_[index].slot_ids.erase(id);
     }
-    s = local_meta_->StableSave(table_structs_);
+    s = local_meta_->StableSave(db_structs_);
   }
   return s;
 }
 
-Status PikaConf::AddTable(const std::string& table_name, const uint32_t slot_num) {
-  Status s = AddTableSanityCheck(table_name);
+Status PikaConf::AddDB(const std::string& db_name, const uint32_t slot_num) {
+  Status s = AddDBSanityCheck(db_name);
   if (!s.ok()) {
     return s;
   }
   std::lock_guard l(rwlock_);
-  table_structs_.push_back({table_name, slot_num, {}});
-  s = local_meta_->StableSave(table_structs_);
+  db_structs_.push_back({db_name, slot_num, {}});
+  s = local_meta_->StableSave(db_structs_);
   return s;
 }
 
-Status PikaConf::DelTable(const std::string& table_name) {
-  Status s = DelTableSanityCheck(table_name);
+Status PikaConf::DelDB(const std::string& db_name) {
+  Status s = DelDBSanityCheck(db_name);
   if (!s.ok()) {
     return s;
   }
   std::lock_guard l(rwlock_);
-  for (auto iter = table_structs_.begin(); iter != table_structs_.end(); iter++) {
-    if (iter->table_name == table_name) {
-      table_structs_.erase(iter);
+  for (auto iter = db_structs_.begin(); iter != db_structs_.end(); iter++) {
+    if (iter->db_name == db_name) {
+      db_structs_.erase(iter);
       break;
     }
   }
-  return local_meta_->StableSave(table_structs_);
+  return local_meta_->StableSave(db_structs_);
 }
 
-Status PikaConf::AddTableSanityCheck(const std::string& table_name) {
+Status PikaConf::AddDBSanityCheck(const std::string& db_name) {
   std::shared_lock l(rwlock_);
-  uint32_t table_index = 0;
-  Status s = InternalGetTargetTable(table_name, &table_index);
+  uint32_t db_index = 0;
+  Status s = InternalGetTargetDB(db_name, &db_index);
   if (!s.IsNotFound()) {
-    return Status::Corruption("table: " + table_name + " already exist");
+    return Status::Corruption("db: " + db_name + " already exist");
   }
   return Status::OK();
 }
 
-Status PikaConf::DelTableSanityCheck(const std::string& table_name) {
+Status PikaConf::DelDBSanityCheck(const std::string& db_name) {
   std::shared_lock l(rwlock_);
-  uint32_t table_index = 0;
-  return InternalGetTargetTable(table_name, &table_index);
+  uint32_t db_index = 0;
+  return InternalGetTargetDB(db_name, &db_index);
 }
 
 int PikaConf::Load() {
   int ret = LoadConf();
-  if (ret != 0) {
+  if (ret) {
     return ret;
   }
 
@@ -147,6 +149,12 @@ int PikaConf::Load() {
     server_id_ = "1";
   } else if (PIKA_SERVER_ID_MAX < std::stoull(server_id_)) {
     server_id_ = "PIKA_SERVER_ID_MAX";
+  }
+  GetConfStr("run-id", &run_id_);
+  if (run_id_.empty()) {
+    run_id_ = pstd::getRandomHexChars(configRunIdSize);
+  } else if (run_id_.length() != configRunIdSize) {
+    LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIdSize;
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
@@ -162,7 +170,7 @@ int PikaConf::Load() {
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
+  slowlog_write_errorlog_.store(swe == "yes");
 
   int tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
@@ -250,10 +258,10 @@ int PikaConf::Load() {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
-      table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+      db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
     }
   }
-  default_table_ = table_structs_[0].table_name;
+  default_db_ = db_structs_[0].db_name;
 
   int tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
@@ -278,13 +286,14 @@ int PikaConf::Load() {
 
   compact_cron_ = "";
   GetConfStr("compact-cron", &compact_cron_);
-  if (compact_cron_ != "") {
+  if (!compact_cron_.empty()) {
     bool have_week = false;
-    std::string compact_cron, week_str;
+    std::string compact_cron;
+    std::string week_str;
     int slash_num = count(compact_cron_.begin(), compact_cron_.end(), '/');
     if (slash_num == 2) {
       have_week = true;
-      std::string::size_type first_slash = compact_cron_.find("/");
+      std::string::size_type first_slash = compact_cron_.find('/');
       week_str = compact_cron_.substr(0, first_slash);
       compact_cron = compact_cron_.substr(first_slash + 1);
     } else {
@@ -292,8 +301,8 @@ int PikaConf::Load() {
     }
 
     std::string::size_type len = compact_cron.length();
-    std::string::size_type colon = compact_cron.find("-");
-    std::string::size_type underline = compact_cron.find("/");
+    std::string::size_type colon = compact_cron.find('-');
+    std::string::size_type underline = compact_cron.find('/');
     if (colon == std::string::npos || underline == std::string::npos || colon >= underline || colon + 1 >= len ||
         colon + 1 == underline || underline + 1 >= len) {
       compact_cron_ = "";
@@ -311,9 +320,9 @@ int PikaConf::Load() {
 
   compact_interval_ = "";
   GetConfStr("compact-interval", &compact_interval_);
-  if (compact_interval_ != "") {
+  if (!compact_interval_.empty()) {
     std::string::size_type len = compact_interval_.length();
-    std::string::size_type slash = compact_interval_.find("/");
+    std::string::size_type slash = compact_interval_.find('/');
     if (slash == std::string::npos || slash + 1 >= len) {
       compact_interval_ = "";
     } else {
@@ -363,7 +372,7 @@ int PikaConf::Load() {
 
   std::string at;
   GetConfStr("rate-limiter-auto-tuned", &at);
-  rate_limiter_auto_tuned_ = (at == "yes" || at.empty()) ? true : false;
+  rate_limiter_auto_tuned_ = at == "yes" || at.empty();
 
   // max_write_buffer_num
   max_write_buffer_num_ = 2;
@@ -442,33 +451,33 @@ int PikaConf::Load() {
 
   std::string sbc;
   GetConfStr("share-block-cache", &sbc);
-  share_block_cache_ = (sbc == "yes") ? true : false;
+  share_block_cache_ = sbc == "yes";
 
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
-  cache_index_and_filter_blocks_ = (ciafb == "yes") ? true : false;
+  cache_index_and_filter_blocks_ = ciafb == "yes";
 
   std::string plfaibic;
   GetConfStr("pin_l0_filter_and_index_blocks_in_cache", &plfaibic);
-  pin_l0_filter_and_index_blocks_in_cache_ = (plfaibic == "yes") ? true : false;
+  pin_l0_filter_and_index_blocks_in_cache_ = plfaibic == "yes";
 
   std::string offh;
   GetConfStr("optimize-filters-for-hits", &offh);
-  optimize_filters_for_hits_ = (offh == "yes") ? true : false;
+  optimize_filters_for_hits_ = offh == "yes";
 
   std::string lcdlb;
   GetConfStr("level-compaction-dynamic-level-bytes", &lcdlb);
-  level_compaction_dynamic_level_bytes_ = (lcdlb == "yes") ? true : false;
+  level_compaction_dynamic_level_bytes_ = lcdlb == "yes";
 
   // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
-  daemonize_ = (dmz == "yes") ? true : false;
+  daemonize_ = dmz == "yes";
 
   // binlog
   std::string wb;
   GetConfStr("write-binlog", &wb);
-  write_binlog_ = (wb == "no") ? false : true;
+  write_binlog_ = wb != "no";
   GetConfIntHuman("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;  // 100M
@@ -601,7 +610,7 @@ int PikaConf::ConfigRewrite() {
     }
     diff_commands_.clear();
   }
-  return WriteBack();
+  return static_cast<int>(WriteBack());
 }
 
 rocksdb::CompressionType PikaConf::GetCompression(const std::string& value) {

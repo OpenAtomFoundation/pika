@@ -9,7 +9,7 @@ namespace pstd {
 class Status {
  public:
   // Create a success status.
-  Status() : state_(nullptr) {}
+  Status() = default;
   ~Status() { delete[] state_; }
 
   // Copy the specified status.
@@ -17,14 +17,14 @@ class Status {
   void operator=(const Status& s);
 
   // Return a success status.
-  static Status OK() { return Status(); }
+  static Status OK() { return {}; }
 
   // Return error status of an appropriate type.
   static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotFound, msg, msg2); }
   static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kCorruption, msg, msg2); }
   static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotSupported, msg, msg2); }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kInvalidArgument, msg, msg2);
+    return {kInvalidArgument, msg, msg2};
   }
   static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIOError, msg, msg2); }
   static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kEndFile, msg, msg2); }
@@ -40,7 +40,7 @@ class Status {
   static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
   // Returns true if the status indicates success.
-  bool ok() const { return (state_ == nullptr); }
+  bool ok() const { return !state_; }
 
   // Returns true if the status indicates a NotFound error.
   bool IsNotFound() const { return code() == kNotFound; }
@@ -85,7 +85,7 @@ class Status {
   //    state_[0..3] == length of message
   //    state_[4]    == code
   //    state_[5..]  == message
-  const char* state_;
+  const char* state_{nullptr};
 
   enum Code {
     kOk = 0,
@@ -102,19 +102,19 @@ class Status {
     kBusy = 11
   };
 
-  Code code() const { return (state_ == nullptr) ? kOk : static_cast<Code>(state_[4]); }
+  Code code() const { return !state_ ? kOk : static_cast<Code>(state_[4]); }
 
   Status(Code code, const Slice& msg, const Slice& msg2);
   static const char* CopyState(const char* s);
 };
 
-inline Status::Status(const Status& s) { state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_); }
+inline Status::Status(const Status& s) { state_ = !s.state_ ? nullptr : CopyState(s.state_); }
 inline void Status::operator=(const Status& s) {
   // The following condition catches both aliasing (when this == &s),
   // and the common case where both s and *this are ok.
   if (state_ != s.state_) {
     delete[] state_;
-    state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_);
+    state_ = !s.state_ ? nullptr : CopyState(s.state_);
   }
 }
 

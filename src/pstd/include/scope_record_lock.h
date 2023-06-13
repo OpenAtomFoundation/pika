@@ -10,16 +10,15 @@
 #include <string>
 #include <vector>
 
+#include "pstd/include/noncopyable.h"
 #include "pstd/include/lock_mgr.h"
 #include "rocksdb/slice.h"
 
-namespace pstd {
-
-namespace lock {
+namespace pstd::lock {
 
 using Slice = rocksdb::Slice;
 
-class ScopeRecordLock {
+class ScopeRecordLock final : public pstd::noncopyable {
  public:
   ScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
     lock_mgr_->TryLock(key_.ToString());
@@ -29,11 +28,9 @@ class ScopeRecordLock {
  private:
   std::shared_ptr<LockMgr> const lock_mgr_;
   Slice key_;
-  ScopeRecordLock(const ScopeRecordLock&);
-  void operator=(const ScopeRecordLock&);
 };
 
-class MultiScopeRecordLock {
+class MultiScopeRecordLock final : public pstd::noncopyable {
  public:
   MultiScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const std::vector<std::string>& keys);
   ~MultiScopeRecordLock();
@@ -41,23 +38,18 @@ class MultiScopeRecordLock {
  private:
   std::shared_ptr<LockMgr> const lock_mgr_;
   std::vector<std::string> keys_;
-  MultiScopeRecordLock(const MultiScopeRecordLock&);
-  void operator=(const MultiScopeRecordLock&);
 };
 
-class MultiRecordLock {
+class MultiRecordLock : public noncopyable {
  public:
   explicit MultiRecordLock(std::shared_ptr<LockMgr> lock_mgr) : lock_mgr_(lock_mgr) {}
-  ~MultiRecordLock() {}
+  ~MultiRecordLock() = default;
+
   void Lock(const std::vector<std::string>& keys);
   void Unlock(const std::vector<std::string>& keys);
-
  private:
   std::shared_ptr<LockMgr> const lock_mgr_;
-  MultiRecordLock(const MultiRecordLock&);
-  void operator=(const MultiRecordLock&);
 };
 
-}  // namespace lock
-}  // namespace pstd
+}  // namespace pstd::lock
 #endif  // __SRC_SCOPE_RECORD_LOCK_H__

@@ -66,7 +66,7 @@ os:Linux 3.10.0-1062.9.1.el7.x86_64 x86_64`
 func Benchmark_Parse(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			info := test.V320MasterInfo
+			info := test.V342PikaInfo
 
 			version, extracts, err := parseInfo(info)
 			if err != nil {

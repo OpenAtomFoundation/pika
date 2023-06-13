@@ -25,7 +25,7 @@ using Slice = rocksdb::Slice;
 
 class Redis {
  public:
-  Redis(Storage* const storage, const DataType& type);
+  Redis(Storage* storage, const DataType& type);
   virtual ~Redis();
 
   rocksdb::DB* GetDB() { return db_; }
@@ -54,6 +54,7 @@ class Redis {
 
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(size_t small_compaction_threshold);
+  void GetRocksDBInfo(std::string &info, const char *prefix);
 
  protected:
   Storage* const storage_;

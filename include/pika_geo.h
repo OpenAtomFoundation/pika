@@ -7,7 +7,7 @@
 #define PIKA_GEO_H_
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
 /*
  * zset
@@ -51,91 +51,91 @@ struct GeoRange {
 class GeoAddCmd : public Cmd {
  public:
   GeoAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const {
+  std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoAddCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoAddCmd(*this); }
 
  private:
   std::string key_;
   std::vector<GeoPoint> pos_;
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class GeoPosCmd : public Cmd {
  public:
   GeoPosCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const {
+  std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoPosCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoPosCmd(*this); }
 
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class GeoDistCmd : public Cmd {
  public:
   GeoDistCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const {
+  std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoDistCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoDistCmd(*this); }
 
  private:
   std::string key_, first_pos_, second_pos_, unit_;
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class GeoHashCmd : public Cmd {
  public:
   GeoHashCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const {
+  std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoHashCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoHashCmd(*this); }
 
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial();
+  void DoInitial() override;
 };
 
 class GeoRadiusCmd : public Cmd {
  public:
   GeoRadiusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoRadiusCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoRadiusCmd(*this); }
 
  private:
   std::string key_;
   GeoRange range_;
-  virtual void DoInitial();
-  virtual void Clear() {
+  void DoInitial() override;
+  void Clear() override {
     range_.withdist = false;
     range_.withcoord = false;
     range_.withhash = false;
@@ -151,16 +151,16 @@ class GeoRadiusCmd : public Cmd {
 class GeoRadiusByMemberCmd : public Cmd {
  public:
   GeoRadiusByMemberCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new GeoRadiusByMemberCmd(*this); }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new GeoRadiusByMemberCmd(*this); }
 
  private:
   std::string key_;
   GeoRange range_;
-  virtual void DoInitial();
-  virtual void Clear() {
+  void DoInitial() override;
+  void Clear() override {
     range_.withdist = false;
     range_.withcoord = false;
     range_.withhash = false;

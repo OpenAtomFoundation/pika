@@ -14,25 +14,25 @@
 #include "include/pika_define.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterPartition;
+class SyncMasterSlot;
 
 class PikaReplServerConn : public net::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
+  PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                      net::NetMultiplexer* mpx);
-  virtual ~PikaReplServerConn();
+  ~PikaReplServerConn() override;
 
   static void HandleMetaSyncRequest(void* arg);
   static void HandleTrySyncRequest(void* arg);
 
-  static bool TrySyncOffsetCheck(const std::shared_ptr<SyncMasterPartition>& partition,
+  static bool TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot>& slot,
                                  const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                  InnerMessage::InnerResponse::TrySync* try_sync_response);
-  static bool TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterPartition>& partition,
+  static bool TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterSlot>& slot,
                                           const InnerMessage::ConsensusMeta& meta,
                                           InnerMessage::InnerResponse* response,
                                           InnerMessage::InnerResponse::TrySync* try_sync_response);
-  static bool TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterPartition>& partition,
+  static bool TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterSlot>& slot,
                                      const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                      const std::shared_ptr<net::PbConn>& conn,
                                      InnerMessage::InnerResponse::TrySync* try_sync_response);
@@ -43,7 +43,7 @@ class PikaReplServerConn : public net::PbConn {
   static void HandleBinlogSyncRequest(void* arg);
   static void HandleRemoveSlaveNodeRequest(void* arg);
 
-  int DealMessage();
+  int DealMessage() override;
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_
