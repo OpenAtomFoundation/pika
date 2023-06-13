@@ -12,6 +12,13 @@
 
 #include "net/include/redis_cli.h"
 
+/*
+ * TTL type
+ */
+#define PIKA_TTL_ZERO     0
+#define PIKA_TTL_NONE     -1
+#define PIKA_TTL_STALE    -2
+
 #define PIKA_SYNC_BUFFER_SIZE 1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 #define PIKA_REPL_SERVER_TP_SIZE 3

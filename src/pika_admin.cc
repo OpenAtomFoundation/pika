@@ -1387,6 +1387,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->daemonize() ? "yes" : "no");
   }
 
+  if (pstd::stringmatch(pattern.data(), "slotmigrate", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "slotmigrate");
+    EncodeString(&config_body, g_pika_conf->slotmigrate() ? "yes" : "no");
+  }
+
   if (pstd::stringmatch(pattern.data(), "dump-path", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "dump-path");
@@ -1676,6 +1682,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
+    EncodeString(&ret, "slotmigrate");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
@@ -1724,7 +1731,10 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "userpass") {
     g_pika_conf->SetUserPass(value);
     ret = "+OK\r\n";
-  } else if (set_item == "userblacklist") {
+  } else if (set_item == "slotmigrate") {
+    g_pika_conf->SetSlotMigrate(value);
+    ret = "+OK\r\n";
+  }else if (set_item == "userblacklist") {
     g_pika_conf->SetUserBlackList(value);
     ret = "+OK\r\n";
   } else if (set_item == "dump-prefix") {
