@@ -39,12 +39,12 @@ struct BlockKeyHash {
   }
 };
 
-class BlockConnNode {
+class BlockedConnNode {
  public:
-  virtual ~BlockConnNode() {
+  virtual ~BlockedConnNode() {
     std::cout << "BlockConnNoded-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
   }
-  BlockConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockKeyType block_type)
+  BlockedConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockKeyType block_type)
       : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
   bool IsExpired();
   std::shared_ptr<RedisConn>& GetConnBlocked();
@@ -107,11 +107,11 @@ class DispatchThread : public ServerThread {
 
   void ScanExpiredBlockedConnsOfBlrpop();
 
-  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
-    return key_to_conns_;
+  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
+    return key_to_blocked_conns_;
   }
   std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>>& GetMapFromConnToKeys() {
-    return conn_to_keys_;
+    return blocked_conn_to_keys_;
   }
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
 
@@ -140,17 +140,17 @@ class DispatchThread : public ServerThread {
   /*
    *  Blpop/BRpop used
    */
-  /*  key_to_conns_:
+  /*  key_to_blocked_conns_:
    *  mapping from "Blockkey"(eg. "<db0, list1>") to a list that stored the nodes of client connctions that
    *  were blocked by command blpop/brpop with key (eg. "list1").
    */
-  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockConnNode>>, BlockKeyHash> key_to_conns_;
+  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash> key_to_blocked_conns_;
 
   /*
-   *  conn_to_keys_:
+   *  blocked_conn_to_keys_:
    *  mapping from conn(fd) to a list of keys that the client is waiting for.
    */
-  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>> conn_to_keys_;
+  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>> blocked_conn_to_keys_;
 
   /*
    * latch of the two maps above.

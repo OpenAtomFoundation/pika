@@ -227,7 +227,7 @@ void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, s
     auto it = key_to_conns.find(blrpop_key);
     if (it == key_to_conns.end()) {
       // no waiting info found, means no other clients are waiting for the list related with this key right now
-      key_to_conns.emplace(blrpop_key, std::make_unique<std::list<net::BlockConnNode>>());
+      key_to_conns.emplace(blrpop_key, std::make_unique<std::list<net::BlockedConnNode>>());
       it = key_to_conns.find(blrpop_key);
     }
     auto& wait_list_of_this_key = it->second;
