@@ -52,7 +52,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   virtual ~Slot();
 
   std::string GetDBName() const;
-  uint32_t GetSlotId() const;
+  uint32_t GetSlotID() const;
   std::string GetSlotName() const;
   std::shared_ptr<storage::Storage> db() const;
 
