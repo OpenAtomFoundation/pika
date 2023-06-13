@@ -297,7 +297,8 @@ start_server {
             create_set myset $contents
             unset -nocomplain myset
             array set myset {}
-            for {set i 0} {$i < 100} {incr i} {
+            for {set i 0} {$i < 500} {incr i} {
+                sleep 10
                 set myset([r srandmember myset]) 1
             }
             assert_equal $contents [lsort [array names myset]]
@@ -358,7 +359,7 @@ start_server {
             set iterations 1000
             while {$iterations != 0} {
                 incr iterations -1
-                set res [r srandmember myset -10]
+                set res [r srandmember myset -20]
                 foreach ele $res {
                     set auxset($ele) 1
                 }
@@ -366,6 +367,7 @@ start_server {
                     [lsort [array names auxset]]} {
                     break;
                 }
+                sleep 15
             }
             assert {$iterations != 0}
 
@@ -402,7 +404,7 @@ start_server {
                 set iterations 1000
                 while {$iterations != 0} {
                     incr iterations -1
-                    set res [r srandmember myset -10]
+                    set res [r srandmember myset -20]
                     foreach ele $res {
                         set auxset($ele) 1
                     }
@@ -410,6 +412,7 @@ start_server {
                         [lsort [array names auxset]]} {
                         break;
                     }
+                    sleep 15
                 }
                 assert {$iterations != 0}
             }

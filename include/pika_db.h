@@ -3,8 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef PIKA_TABLE_H_
-#define PIKA_TABLE_H_
+#ifndef PIKA_DB_H_
+#define PIKA_DB_H_
 
 #include <shared_mutex>
 
@@ -50,7 +50,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void Compact(const storage::DataType& type);
 
   void LeaveAllSlot();
-  std::set<uint32_t> GetSlotIds();
+  std::set<uint32_t> GetSlotIDs();
   std::shared_ptr<Slot> GetSlotById(uint32_t slot_id);
   std::shared_ptr<Slot> GetSlotByKey(const std::string& key);
   bool DBIsEmpty();

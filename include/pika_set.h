@@ -9,7 +9,7 @@
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
 
-/*
+ /*
  * set
  */
 class SAddCmd : public Cmd {

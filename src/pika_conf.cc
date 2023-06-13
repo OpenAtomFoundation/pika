@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include "pstd/include/env.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
 
@@ -149,6 +150,12 @@ int PikaConf::Load() {
   } else if (PIKA_SERVER_ID_MAX < std::stoull(server_id_)) {
     server_id_ = "PIKA_SERVER_ID_MAX";
   }
+  GetConfStr("run-id", &run_id_);
+  if (run_id_.empty()) {
+    run_id_ = pstd::getRandomHexChars(configRunIdSize);
+  } else if (run_id_.length() != configRunIdSize) {
+    LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIdSize;
+  }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
   GetConfStr("userpass", &userpass_);
@@ -254,12 +261,18 @@ int PikaConf::Load() {
     sync_thread_num_ = 24;
   }
 
-  GetConfInt("databases", &databases_);
-  if (databases_ < 1 || databases_ > 8) {
-    LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
-  }
-  for (int idx = 0; idx < databases_; ++idx) {
-    db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+  std::string instance_mode;
+  GetConfStr("instance-mode", &instance_mode);
+  classic_mode_.store(instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
+
+  if (classic_mode_.load()) {
+    GetConfInt("databases", &databases_);
+    if (databases_ < 1 || databases_ > 8) {
+      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
+    }
+    for (int idx = 0; idx < databases_; ++idx) {
+      db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+    }
   }
   default_db_ = db_structs_[0].db_name;
 
@@ -279,9 +292,7 @@ int PikaConf::Load() {
                << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
-  //todo:the log should be delete
-  consensus_level_.store(tmp_consensus_level); 
-  if ((consensus_level_.load() != 0 || replication_num_.load() != 0)) {
+  if (classic_mode_.load() && (consensus_level_.load() != 0 || replication_num_.load() != 0)) {
     LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
                << " set it to be 0 if you are using classic mode";
   }

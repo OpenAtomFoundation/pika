@@ -4,7 +4,8 @@
 
 # export PATH := $(PATH):$(GOPATH)/bin
 
-# for mac 
+UNAME := $(shell uname)
+# for mac
 BRANCH			:= $(shell git branch | sed  's/* \(.*\)/\1/p')
 # for Linux
 # BRANCH			:= $(shell git branch | sed --quiet 's/* \(.*\)/\1/p')
@@ -62,7 +63,11 @@ export TEST_COVER
 all: build 
 
 build: deps
+ifeq ($(UNAME), Linux)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$(PROJNAME)
+else ifeq ($(UNAME), Darwin)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/$(PROJNAME)
+endif
 
 deps: generateVer
 	@mkdir -p bin

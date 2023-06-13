@@ -6,9 +6,10 @@
 #ifndef SRC_REDIS_HYPERLOGLOG_H_
 #define SRC_REDIS_HYPERLOGLOG_H_
 
+#include <cstdint>
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace storage {
 

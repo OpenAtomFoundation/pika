@@ -29,6 +29,7 @@
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
 #include "include/pika_conf.h"
+#include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_repl_client.h"
@@ -366,6 +367,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
+  std::timed_mutex  exit_mutex_;
 
   /*
    * Table used
