@@ -5,15 +5,14 @@
 
 #include "include/pika_slot_command.h"
 #include <algorithm>
-#include <vector>
 #include <string>
+#include <vector>
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 #include "storage/include/storage/storage.h"
-#include "include/pika_migrate_thread.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
@@ -196,8 +195,8 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
   int send_command_num = -1;
 
   net::NetCli *migrate_cli = GetMigrateClient(host, port, timeout);
-  if (NULL == migrate_cli) {
-    detail = "GetMigrateClient failed";
+  if (!migrate_cli) {
+    detail = "IOERR error or timeout connecting to the client";
     LOG(INFO) << "GetMigrateClient failed, key: " << key;
     return -1;
   }
@@ -221,7 +220,7 @@ int PikaMigrate::MigrateSend(net::NetCli *migrate_cli, const std::string &key, c
   int command_num = -1;
 
   // chech the client is alive
-  if (NULL == migrate_cli) {
+  if (!migrate_cli) {
     return -1;
   }
 
@@ -687,14 +686,14 @@ void SlotKeyRemByType(const std::string &type, const std::string &key, std::shar
   }
 }
 
-
 /* *
  * do migrate mutli key-value(s) for {slotsmgrt/slotsmgrtone}with tag commands
  * return value:
  *    -1 - error happens
  *   >=0 - # of success migration
  * */
-static int SlotsMgrtTag(const std::string &host, const int port, int timeout, const std::string &key, const char type, std::string &detail, std::shared_ptr<Slot> slot) {
+static int SlotsMgrtTag(const std::string &host, const int port, int timeout, const std::string &key, const char type,
+                        std::string &detail, std::shared_ptr<Slot> slot) {
   int count = 0;
   uint32_t crc;
   int hastag;
@@ -713,7 +712,7 @@ static int SlotsMgrtTag(const std::string &host, const int port, int timeout, co
   std::string tag_key = GetSlotsTagKey(crc);
   std::vector<std::string> members;
 
-  //get all key that has the same crc
+  // get all key that has the same crc
   rocksdb::Status s = slot->db()->SMembers(tag_key, &members);
   if (!s.ok()) {
     return -1;
@@ -726,13 +725,13 @@ static int SlotsMgrtTag(const std::string &host, const int port, int timeout, co
     key.erase(key.begin());
     int ret = SlotsMgrtOne(host, port, timeout, key, type, detail, slot);
 
-    //the key is migrated to target
-    if (ret == 1){
+    // the key is migrated to target
+    if (ret == 1) {
       count++;
       continue;
     }
 
-    if (ret == 0){
+    if (ret == 0) {
       LOG(WARNING) << "slots migrate tag failed, key: " << key << ", detail: " << detail;
       continue;
     }
@@ -742,7 +741,6 @@ static int SlotsMgrtTag(const std::string &host, const int port, int timeout, co
 
   return count;
 }
-
 
 // get slot tag
 static const char *GetSlotsTag(const std::string &str, int *plen) {
@@ -765,7 +763,7 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
   return s + i;
 }
 
-std::string GetSlotKey(int slot){
+std::string GetSlotKey(int slot) {
   return SlotKeyPrefix + std::to_string(slot);
 }
 
@@ -927,7 +925,6 @@ static int doAuth(net::NetCli *cli) {
   }
   return 0;
 }
-
 
 // rocksdb namespace function
 std::string GetSlotsTagKey(uint32_t crc) { return SlotTagPrefix + std::to_string(crc); }
@@ -1139,8 +1136,8 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
   }
   if (len >= 0 && ret >= 0) {
     res_.AppendArrayLen(2);
-    res_.AppendInteger(ret);    // the number of keys migrated
-    res_.AppendInteger(len-ret);  // the number of keys remained
+    res_.AppendInteger(ret);        // the number of keys migrated
+    res_.AppendInteger(len - ret);  // the number of keys remained
   } else {
     res_.SetRes(CmdRes::kErrOther, detail);
   }
@@ -1245,7 +1242,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
 }
 
 void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
-  if (g_pika_conf->slotmigrate() != true){
+  if (g_pika_conf->slotmigrate() != true) {
     LOG(WARNING) << "Not in slotmigrate mode";
     res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
     return;
@@ -1253,39 +1250,43 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
 
   int64_t ret = 0;
   int32_t len = 0;
-  int     hastag = 0;
+  int hastag = 0;
   uint32_t crc;
   std::string detail;
   rocksdb::Status s;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
-  //check if need migrate key, if the key is not exist, return
+  // check if need migrate key, if the key is not exist, return
   GetSlotsID(key_, &crc, &hastag);
   if (!hastag) {
     std::vector<std::string> keys;
     keys.push_back(key_);
 
-    //check the key is not exist
+    // check the key is not exist
     ret = slot->db()->Exists(keys, &type_status);
 
-    //when the key is not exist, ret = 0
-    if ( ret == -1 ){
+    // when the key is not exist, ret = 0
+    if (ret == -1) {
       res_.SetRes(CmdRes::kErrOther, "exists internal error");
       return;
     }
 
-    if( ret == 0 ) {
+    if (ret == 0) {
       res_.AppendInteger(0);
       return;
     }
 
-    //else need to migrate
-  }else{
-    //key is tag_key, check the number of the tag_key
+    // else need to migrate
+  } else {
+    // key is tag_key, check the number of the tag_key
     std::string tag_key = GetSlotsTagKey(crc);
     s = slot->db()->SCard(tag_key, &len);
+    if (s.IsNotFound()) {
+      res_.AppendInteger(0);
+      return;
+    }
     if (!s.ok() || len == -1) {
-      res_.SetRes(CmdRes::kErrOther, "cont get the mumber of tag_key");
+      res_.SetRes(CmdRes::kErrOther, "can't get the mumber of tag_key");
       return;
     }
 
@@ -1294,24 +1295,24 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
       return;
     }
 
-    //else need to migrate
+    // else need to migrate
   }
 
-  //lock batch migrate, dont do slotsmgrttagslot when do slotsmgrttagone
-  //g_pika_server->mgrttagslot_mutex_.Lock();
-  //pika_server thread exit(~PikaMigrate) and dispatch thread do CronHandle nead lock()
+  // lock batch migrate, dont do slotsmgrttagslot when do slotsmgrttagone
+  // g_pika_server->mgrttagslot_mutex_.Lock();
+  // pika_server thread exit(~PikaMigrate) and dispatch thread do CronHandle nead lock()
   g_pika_server->pika_migrate_->Lock();
 
-  //check if need migrate key, if the key is not exist, return
-  //GetSlotsNum(key_, &crc, &hastag);
+  // check if need migrate key, if the key is not exist, return
+  // GetSlotsNum(key_, &crc, &hastag);
   if (!hastag) {
     std::vector<std::string> keys;
     keys.push_back(key_);
-    //the key may be deleted by other thread
+    // the key may be deleted by other thread
     std::map<storage::DataType, rocksdb::Status> type_status;
     ret = slot->db()->Exists(keys, &type_status);
 
-    //when the key is not exist, ret = 0
+    // when the key is not exist, ret = 0
     if (ret == -1) {
       detail = s.ToString();
     } else if (KeyTypeCheck(slot) != 0) {
@@ -1321,21 +1322,18 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
       ret = SlotsMgrtTag(dest_ip_, dest_port_, timeout_ms_, key_, key_type_, detail, slot);
     }
   } else {
-    //key maybe not exist, the key is tag key, migrate the same tag key
+    // key maybe not exist, the key is tag key, migrate the same tag key
     ret = SlotsMgrtTag(dest_ip_, dest_port_, timeout_ms_, key_, 0, detail, slot);
   }
 
-  //unlock the record lock
-  //g_pika_server->mutex_record_.Unlock(key_);
-
-  //unlock
+  // unlock the record lock
+  // g_pika_server->mutex_record_.Unlock(key_);
   g_pika_server->pika_migrate_->Unlock();
 
-
-  if(ret >= 0){
+  if (ret >= 0) {
     res_.AppendInteger(ret);
-  }else{
-    if(detail.size() == 0){
+  } else {
+    if (detail.size() == 0) {
       detail = "Unknown Error";
     }
     res_.SetRes(CmdRes::kErrOther, detail);
@@ -1353,7 +1351,7 @@ void SlotsInfoCmd::DoInitial() {
     return;
   }
 
-  if(argv_.size() >= 2){
+  if (argv_.size() >= 2) {
     if (!pstd::string2int(argv_[1].data(), argv_[1].size(), &begin_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
@@ -1366,7 +1364,7 @@ void SlotsInfoCmd::DoInitial() {
     }
   }
 
-  if(argv_.size() >= 3){
+  if (argv_.size() >= 3) {
     int64_t count = 0;
     if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &count)) {
       res_.SetRes(CmdRes::kInvalidInt);
@@ -1390,7 +1388,7 @@ void SlotsInfoCmd::DoInitial() {
   }
 }
 
-void SlotsInfoCmd::Do(std::shared_ptr<Slot>slot) {
+void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   int slots_slot[HASH_SLOTS_SIZE] = {0};
   int slots_size[HASH_SLOTS_SIZE] = {0};
   int n = 0;
@@ -1398,7 +1396,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot>slot) {
   int32_t len = 0;
   std::string slot_key;
 
-  for (i = begin_; i < end_; i ++) {
+  for (i = begin_; i < end_; i++) {
     slot_key = GetSlotKey(i);
     len = 0;
     rocksdb::Status s = slot->db()->SCard(slot_key, &len);
@@ -1412,7 +1410,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot>slot) {
   }
 
   res_.AppendArrayLen(n);
-  for (i = 0; i < n; i ++) {
+  for (i = 0; i < n; i++) {
     res_.AppendArrayLen(2);
     res_.AppendInteger(slots_slot[i]);
     res_.AppendInteger(slots_size[i]);
@@ -1467,7 +1465,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   }
 
   std::string str_keys_num = *it++;
-  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0){
+  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1640,7 +1638,7 @@ void SlotsScanCmd::DoInitial() {
   return;
 }
 
-void SlotsScanCmd::Do(std::shared_ptr<Slot>slot) {
+void SlotsScanCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &cursor_);
 
@@ -1692,4 +1690,3 @@ void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
   }
   return;
 }
-
