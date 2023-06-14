@@ -15,6 +15,8 @@
 #  include "storage/storage.h"
 #  include "strings.h"
 
+static int DoMigrate(net::NetCli *cli, std::string send_str);
+
 class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
  public:

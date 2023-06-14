@@ -113,7 +113,7 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   int64_t timeout_ms_;
   int64_t max_bulks_;
   int64_t max_bytes_;
-  int64_t slot_num_;
+  int64_t slot_id_;
   int64_t keys_num_;
 
   void DoInitial() override;

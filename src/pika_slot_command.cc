@@ -1036,12 +1036,12 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
 
   std::string str_dest_port = *it++;
   if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_)) {
-    std::string detail = "invalid port nummber = " + dest_port_;
+    std::string detail = "invalid port nummber " + std::to_string(dest_port_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
   if (dest_port_ < 0 || dest_port_ > 65535) {
-    std::string detail = "invalid port nummber = " + dest_port_;
+    std::string detail = "invalid port nummber " + std::to_string(dest_port_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
@@ -1057,7 +1057,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
     return;
   }
   if (timeout_ms_ < 0) {
-    std::string detail = "invalid timeout nummber = " + timeout_ms_;
+    std::string detail = "invalid timeout nummber " + std::to_string(timeout_ms_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
@@ -1071,7 +1071,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
     return;
   }
   if (slot_id_ < 0 || slot_id_ >= HASH_SLOTS_SIZE) {
-    std::string detail = "invalid slot nummber = " + slot_id_;
+    std::string detail = "invalid slot nummber " + std::to_string(slot_id_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
@@ -1172,12 +1172,12 @@ void SlotsMgrtTagOneCmd::DoInitial() {
 
   std::string str_dest_port = *it++;
   if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_)) {
-    std::string detail = "invalid port nummber = " + dest_port_;
+    std::string detail = "invalid port nummber " + std::to_string(dest_port_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
   if (dest_port_ < 0 || dest_port_ > 65535) {
-    std::string detail = "invalid port nummber = " + dest_port_;
+    std::string detail = "invalid port nummber " + std::to_string(dest_port_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
@@ -1193,7 +1193,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
     return;
   }
   if (timeout_ms_ < 0) {
-    std::string detail = "invalid timeout nummber = " + timeout_ms_;
+    std::string detail = "invalid timeout nummber " + timeout_ms_;
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }
@@ -1403,32 +1403,32 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   }
 
   std::string str_timeout_ms = *it++;
-  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+  if (!pstd::string2int(str_timeout_ms.data(), str_timeout_ms.size(), &timeout_ms_) || timeout_ms_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_max_bulks = *it++;
-  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+  if (!pstd::string2int(str_max_bulks.data(), str_max_bulks.size(), &max_bulks_) || max_bulks_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_max_bytes_ = *it++;
-  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+  if (!pstd::string2int(str_max_bytes_.data(), str_max_bytes_.size(), &max_bytes_) || max_bytes_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_slot_num = *it++;
-  if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_num_) || slot_num_ < 0 ||
-      slot_num_ >= HASH_SLOTS_SIZE) {
+  if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_id_) || slot_id_ < 0 ||
+      slot_id_ >= HASH_SLOTS_SIZE) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_keys_num = *it++;
-  if (!pstd::string2int(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+  if (!pstd::string2int(str_keys_num.data(), str_keys_num.size(), &keys_num_) || keys_num_ < 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1442,7 +1442,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_num_, keys_num_, slot);
+  bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_id_, keys_num_, slot);
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
     res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error, may be currently migrating");
@@ -1450,7 +1450,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   int32_t remained = 0;
-  std::string slotKey = GetSlotKey(slot_num_);
+  std::string slotKey = GetSlotKey(slot_id_);
   storage::Status status = slot->db()->SCard(slotKey, &remained);
   if (status.ok()) {
     res_.AppendArrayLen(2);

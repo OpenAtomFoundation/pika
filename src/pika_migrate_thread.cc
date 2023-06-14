@@ -134,195 +134,206 @@ static int zsetGetall(const std::string key, std::vector<storage::ScoreMember> *
   return 1;
 }
 
-// migrate zset key
-static int migrateZset(net::NetCli *cli, const std::string key, bool async, std::shared_ptr<Slot> slot) {
-  int r, ret = 0;
-  std::vector<storage::ScoreMember> score_members;
-  if (zsetGetall(key, &score_members, slot) < 0) {
-    return -1;
-  }
-  size_t keySize = score_members.size();
-  if (keySize == 0) {
-    return 0;
-  }
-
-  net::RedisCmdArgsType argv;
-  std::string send_str;
-  for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
-    if (i > 0) {
-      LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
-    }
-    argv.clear();
-    send_str = "";
-    argv.push_back("zadd");
-    argv.push_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.push_back(std::to_string(score_members[j].score));
-      argv.push_back(score_members[j].member);
-    }
-    net::SerializeRedisCommand(argv, &send_str);
-    if (doMigrate(cli, send_str) < 0) {
-      return -1;
-    } else {
-      ret++;
-    }
-  }
-
-  if ((r = migrateKeyTTl(cli, key, storage::kZSets, slot)) < 0) {
-    return -1;
-  } else {
-    ret += r;
-  }
-
-  if (!async) {
-    DeleteKey(key, 'z', slot);
-  }
-  return ret;
-}
-
-// migrate one kv key
-static int migrateKv(net::NetCli *cli, const std::string key, bool async, std::shared_ptr<Slot> slot) {
-  int r, ret = 0;
+static int MigrateKv(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
   std::string value;
-  if (kvGet(key, value, slot) < 0) {
-    return -1;
-  }
-  if (value == "") {
-    return 0;
+  rocksdb::Status s = slot->db()->Get(key, &value);
+  if (!s.ok()) {
+    if (s.IsNotFound()) {
+      LOG(WARNING) << "Get kv key: " << key << " not found ";
+      return 0;
+    } else {
+      LOG(WARNING) << "Get kv key: " << key << " error: " << strerror(errno);
+      return -1;
+    }
   }
 
   net::RedisCmdArgsType argv;
   std::string send_str;
-  argv.push_back("set");
+  argv.push_back("SET");
   argv.push_back(key);
   argv.push_back(value);
   net::SerializeRedisCommand(argv, &send_str);
 
+  int send_num = 0;
   if (doMigrate(cli, send_str) < 0) {
     return -1;
   } else {
-    ret++;
+    ++send_num;
   }
 
-  if ((r = migrateKeyTTl(cli, key, storage::kStrings, slot)) < 0) {
+  int r;
+  if (0 > (r = migrateKeyTTl(cli, key, storage::kStrings, slot))) {
     return -1;
   } else {
-    ret += r;
+    send_num += r;
   }
 
-  if (!async) {
-    DeleteKey(key, 'k', slot);  // key already been migrated successfully, del error doesn't matter
-  }
-  return ret;
+  return send_num;
 }
 
-// get all hash field and values
-static int hashGetall(const std::string key, std::vector<storage::FieldValue> *fvs, std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->HGetall(key, fvs);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "HGetall key: " << key << " not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "HGetall key: " << key << " error: " << s.ToString();
+static int MigrateHash(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
+  int send_num = 0;
+  int64_t cursor = 0;
+  std::vector<storage::FieldValue> field_values;
+  rocksdb::Status s;
+
+  do {
+    s = slot->db()->HScan(key, cursor, "*", MAX_MEMBERS_NUM, &field_values, &cursor);
+    if (s.ok() && field_values.size() > 0) {
+      net::RedisCmdArgsType argv;
+      std::string send_str;
+      argv.push_back("HMSET");
+      argv.push_back(key);
+      for (const auto &field_value : field_values) {
+        argv.push_back(field_value.field);
+        argv.push_back(field_value.value);
+      }
+      net::SerializeRedisCommand(argv, &send_str);
+      if (doMigrate(cli, send_str) < 0) {
+        return -1;
+      } else {
+        ++send_num;
+      }
+    }
+  } while (cursor != 0 && s.ok());
+
+  if (send_num > 0) {
+    int r;
+    if ((r = migrateKeyTTl(cli, key, storage::kHashes, slot)) < 0) {
       return -1;
+    } else {
+      send_num += r;
     }
   }
-  return 1;
+
+  return send_num;
 }
 
-// migrate one hash key
-static int migrateHash(net::NetCli *cli, const std::string key, bool async, std::shared_ptr<Slot> slot) {
-  int r, ret = 0;
-  std::vector<storage::FieldValue> fvs;
-  if (hashGetall(key, &fvs, slot) < 0) {
-    return -1;
-  }
-  size_t keySize = fvs.size();
-  if (keySize == 0) {
-    return 0;
-  }
-
+static int MigrateList(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
+  // del old key, before migrate list; prevent redo when failed
+  int send_num = 0;
   net::RedisCmdArgsType argv;
   std::string send_str;
-  for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
-    if (i > 0) {
-      LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
-    }
-    argv.clear();
-    send_str = "";
-    argv.push_back("hmset");
-    argv.push_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.push_back(fvs[j].field);
-      argv.push_back(fvs[j].value);
-    }
-    net::SerializeRedisCommand(argv, &send_str);
-    if (doMigrate(cli, send_str) < 0) {
-      return -1;
-    } else {
-      ret++;
-    }
-  }
-
-  if ((r = migrateKeyTTl(cli, key, storage::kHashes, slot)) < 0) {
+  argv.push_back("DEL");
+  argv.push_back(key);
+  net::SerializeRedisCommand(argv, &send_str);
+  if (doMigrate(cli, send_str) < 0) {
     return -1;
   } else {
-    ret += r;
+    ++send_num;
   }
 
-  if (!async) {
-    DeleteKey(key, 'h', slot);  // key already been migrated successfully, del error doesn't matter
+  std::vector<std::string> values;
+  rocksdb::Status s = slot->db()->LRange(key, 0, -1, &values);
+  if (s.ok()) {
+    auto iter = values.begin();
+    while (iter != values.end()) {
+      net::RedisCmdArgsType argv;
+      std::string send_str;
+      argv.push_back("RPUSH");
+      argv.push_back(key);
+
+      for (int i = 0; iter != values.end() && i < MAX_MEMBERS_NUM; ++iter, ++i) {
+        argv.push_back(*iter);
+      }
+
+      net::SerializeRedisCommand(argv, &send_str);
+      if (doMigrate(cli, send_str) < 0) {
+        return -1;
+      } else {
+        ++send_num;
+      }
+    }
   }
-  return ret;
+
+  // has send del key command
+  if (send_num > 1) {
+    int r;
+    if (0 > (r = migrateKeyTTl(cli, key, storage::kLists, slot))) {
+      return -1;
+    } else {
+      send_num += r;
+    }
+  }
+
+  return send_num;
 }
 
-// migrate one set key
-static int migrateSet(net::NetCli *cli, const std::string key, bool async, std::shared_ptr<Slot> slot) {
-  int r, ret = 0;
+static int MigrateSet(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
+  int send_num = 0;
+  int64_t cursor = 0;
   std::vector<std::string> members;
-  if (setGetall(key, &members, slot) < 0) {
-    return -1;
-  }
-  size_t keySize = members.size();
-  if (keySize == 0) {
-    return 0;
-  }
+  rocksdb::Status s;
 
-  net::RedisCmdArgsType argv;
-  std::string send_str;
-  for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
-    if (i > 0) {
-      LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+  do {
+    s = slot->db()->SScan(key, cursor, "*", MAX_MEMBERS_NUM, &members, &cursor);
+    if (s.ok() && members.size() > 0) {
+      net::RedisCmdArgsType argv;
+      std::string send_str;
+      argv.push_back("SADD");
+      argv.push_back(key);
+
+      for (const auto &member : members) {
+        argv.push_back(member);
+      }
+      net::SerializeRedisCommand(argv, &send_str);
+      if (doMigrate(cli, send_str) < 0) {
+        return -1;
+      } else {
+        ++send_num;
+      }
     }
-    argv.clear();
-    send_str = "";
-    argv.push_back("sadd");
-    argv.push_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.push_back(members[j]);
-    }
-    net::SerializeRedisCommand(argv, &send_str);
-    if (doMigrate(cli, send_str) < 0) {
+  } while (cursor != 0 && s.ok());
+
+  if (0 < send_num) {
+    int r;
+    if (0 > (r = migrateKeyTTl(cli, key, storage::kSets, slot))) {
       return -1;
     } else {
-      ret++;
+      send_num += r;
     }
   }
 
-  if ((r = migrateKeyTTl(cli, key, storage::kSets, slot)) < 0) {
-    return -1;
-  } else {
-    ret += r;
+  return send_num;
+}
+
+static int MigrateZset(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
+  int send_num = 0;
+  int64_t cursor = 0;
+  std::vector<storage::ScoreMember> score_members;
+  rocksdb::Status s;
+
+  do {
+    s = slot->db()->ZScan(key, cursor, "*", MAX_MEMBERS_NUM, &score_members, &cursor);
+    if (s.ok() && score_members.size() > 0) {
+      net::RedisCmdArgsType argv;
+      std::string send_str;
+      argv.push_back("ZADD");
+      argv.push_back(key);
+
+      for (const auto &score_member : score_members) {
+        argv.push_back(std::to_string(score_member.score));
+        argv.push_back(score_member.member);
+      }
+      net::SerializeRedisCommand(argv, &send_str);
+      if (doMigrate(cli, send_str) < 0) {
+        return -1;
+      } else {
+        ++send_num;
+      }
+    }
+  } while (cursor != 0 && s.ok());
+
+  if (send_num > 0) {
+    int r;
+    if ((r = migrateKeyTTl(cli, key, storage::kZSets, slot)) < 0) {
+      return -1;
+    } else {
+      send_num += r;
+    }
   }
 
-  if (!async) {
-    DeleteKey(key, 's', slot);  // key already been migrated successfully, del error doesn't matter
-  }
-  return ret;
+  return send_num;
 }
 
 // get list key all values
@@ -386,17 +397,6 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, std:
   return ret;
 }
 
-// do migrate key to dest pika server
-static int DoMigrate(net::NetCli *cli, std::string send_str) {
-  pstd::Status s;
-  s = cli->Send(&send_str);
-  if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate Send error: " << strerror(errno);
-    return -1;
-  }
-  return 1;
-}
-
 PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, std::shared_ptr<Slot> slot)
     : dest_ip_("none"),
       dest_port_(-1),
@@ -450,35 +450,30 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
 void PikaParseSendThread::ExitThread(void) { should_exit_ = true; }
 
 int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async) {
-  int ret;
+  int send_num;
   switch (key_type) {
     case 'k':
-      if ((ret = migrateKv(cli, key, async, slot_)) < 0) {
-        AddSlotKey("k", key, slot_);
+      if (0 > (send_num = MigrateKv(cli_, key, slot_))) {
         return -1;
       }
       break;
     case 'h':
-      if ((ret = migrateHash(cli, key, async, slot_)) < 0) {
-        AddSlotKey("h", key, slot_);
+      if (0 > (send_num = MigrateHash(cli_, key, slot_))) {
         return -1;
       }
       break;
     case 'l':
-      if ((ret = migrateList(cli, key, async, slot_)) < 0) {
-        AddSlotKey("l", key, slot_);
+      if (0 > (send_num = MigrateList(cli_, key, slot_))) {
         return -1;
       }
       break;
     case 's':
-      if ((ret = migrateSet(cli, key, async, slot_)) < 0) {
-        AddSlotKey("s", key, slot_);
+      if (0 > (send_num = MigrateSet(cli_, key, slot_))) {
         return -1;
       }
       break;
     case 'z':
-      if ((ret = migrateZset(cli, key, async, slot_)) < 0) {
-        AddSlotKey("z", key, slot_);
+      if (0 > (send_num = MigrateZset(cli_, key, slot_))) {
         return -1;
       }
       break;
@@ -486,7 +481,7 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key, 
       return -1;
       break;
   }
-  return ret;
+  return send_num;
 }
 
 void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys,
@@ -692,8 +687,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, std::shared_ptr<Slo
   }
 
   if (slot_id != slot_id_) {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id
-                 << " is not the migrating slot:" << slot_id_;
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
     return -1;
   }
 
