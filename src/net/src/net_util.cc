@@ -70,5 +70,4 @@ void TimedTaskManager::EraseTask(int task_fd) {
   close(task_fd);
 }
 
-
 }  // namespace net

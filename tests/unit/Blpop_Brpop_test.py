@@ -6,14 +6,14 @@ import string
 
 # 全局变量
 pika_instance_ip = '192.168.10.22'
-pika_instance_port = '9221'
+pika_instance_port = '9231'
 
 
 # 单个list不阻塞时的出列顺序测试（行为应当和lpop/rpop一样）
-def test_single_existing_list():
-    print("start test_single_existing_list")
+def test_single_existing_list(db_):
+    print("start test_single_existing_list, db:db%d" % (db_))
     # 创建Redis客户端
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     # 清空测试环境
     pika.delete('blist')
@@ -33,13 +33,13 @@ def test_single_existing_list():
     assert result[0] == b'blist' and result[1] == b'b', f"Expected (b'blist1', b'b'), but got {result}"
 
     pika.close()
-    print("test_single_existing_list Passed [✓]")
+    print("test_single_existing_list Passed [✓], db:db%d" % (db_))
 
 
 # 解阻塞测试（超时自动解阻塞，lpush解阻塞，rpush解阻塞，rpoplpush解阻塞）
-def test_blpop_brpop_unblock_lrpush_rpoplpush():
-    print("start test_blpop_brpop_unblock_lrpush_rpoplpush")
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+def test_blpop_brpop_unblock_lrpush_rpoplpush(db_):
+    print("start test_blpop_brpop_unblock_lrpush_rpoplpush, db:db%d" % (db_))
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     # 超时自动解阻塞测试(blpop)
     blocked = True
@@ -48,7 +48,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def blpop_thread1(timeout_):
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=timeout_)
         with blocked_lock:
             blocked = False
@@ -68,7 +68,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def brpop_thread2(timeout_):
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=timeout_)
         with blocked_lock:
             blocked = False
@@ -88,7 +88,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def brpop_thread3():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -110,7 +110,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def blpop_thread31():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -132,7 +132,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def blpop_thread4():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -154,7 +154,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def brpop_thread41():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -177,7 +177,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def blpop_thread5():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -200,7 +200,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
 
     def brpop_thread51():
         nonlocal blocked
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=0)
         with blocked_lock:
             blocked = False
@@ -215,31 +215,31 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush():
         assert blocked == False, f"Expected False but got {blocked}"
     thread.join()
     pika.close()
-    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed [✓]")
+    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed [✓], db:db%d" % (db_))
 
 
-def test_concurrency_block_unblock():
-    print("start test_concurrency_block_unblock, it will cost some time, pls wait")
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+def test_concurrency_block_unblock(db_):
+    print("start test_concurrency_block_unblock, it will cost some time, pls wait, db:db%d" % (db_))
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
     pika.delete('blist0', 'blist1', 'blist2', 'blist3')
 
     def blpop_thread(list, timeout_):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop(list, timeout=timeout_)
         client.close()
 
     def brpop_thread(list, timeout_):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
-        result = client.blpop(list, timeout=timeout_)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
+        result = client.brpop(list, timeout=timeout_)
         client.close()
 
     def lpush_thread(list_, value_):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         client.lpush(list_, value_)
         client.close()
 
     def rpush_thread(list_, value_):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         client.rpush(list_, value_)
         client.close()
 
@@ -257,7 +257,6 @@ def test_concurrency_block_unblock():
         t_threads.append(t1)
         t_threads.append(t2)
 
-
     # 并发超时测试
     threads = []
     # 添加100个线程执行blpop/brpop,同时被阻塞,并且应当2s后超时自动解阻塞
@@ -269,7 +268,7 @@ def test_concurrency_block_unblock():
         threads.append(t1)
         threads.append(t2)
     # 线程结束需要一些时间
-    time.sleep(4)
+    time.sleep(6)
     for t in threads:
         if t.is_alive():
             assert False, "Error: this thread is still running, means conn didn't got unblocked in time"
@@ -301,7 +300,7 @@ def test_concurrency_block_unblock():
         t3.start()
         t4.start()
     # 100个线程结束需要时间
-    time.sleep(3)
+    time.sleep(4)
     for t in threads:
         if t.is_alive():
             assert False, "Error: this thread is still running, means conn didn't got unblocked in time"
@@ -326,7 +325,7 @@ def test_concurrency_block_unblock():
         threads.append(t1)
         threads.append(t2)
 
-    #确保blpop/brpop都执行完了，并且其中50个conn马上要开始超时解除阻塞
+    # 确保blpop/brpop都执行完了，并且其中50个conn马上要开始超时解除阻塞
     time.sleep(2.7)
 
     # 并发push 100条数据，确保能解除前面50个conn的阻塞
@@ -349,21 +348,19 @@ def test_concurrency_block_unblock():
             pass
             # print("conn unblocked, OK")
 
-
     for t in t_threads:
-        t.join();
+        t.join()
     pika.delete('blist0', 'blist1', 'blist2', 'blist3')
 
-    print("test_concurrency_block_unblock Passed [✓]")
+    print("test_concurrency_block_unblock Passed [✓], db:db%d" % (db_))
     pika.close()
 
 
-
 # blpop/brpop多个list不阻塞时,从左到右选择第一个有元素的list进行pop
-def test_multiple_existing_lists():
-    print("start test_multiple_existing_lists")
+def test_multiple_existing_lists(db_):
+    print("start test_multiple_existing_lists, db:db%d" % (db_))
     # 创建Redis客户端
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     # 清空测试环境
     pika.delete('blist1', 'large', 'large', 'blist2')
@@ -401,19 +398,19 @@ def test_multiple_existing_lists():
     assert result[0] == b'blist1' and result[1] == b'large', f"Expected (b'blist1', b'large'), but got {result}"
 
     pika.close()
-    print("test_multiple_existing_lists Passed [✓]")
+    print("test_multiple_existing_lists Passed [✓], db:db%d" % (db_))
 
 
-def test_blpop_brpop_same_key_multiple_times():
-    print("start test_blpop_brpop_same_key_multiple_times")
+def test_blpop_brpop_same_key_multiple_times(db_):
+    print("start test_blpop_brpop_same_key_multiple_times, db:db%d" % (db_))
     # 创建Redis客户端
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     # 清空测试环境
     pika.delete('list1', 'list2')
 
     def blpop_thread1():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop(['list1', 'list2', 'list2', 'list1'], timeout=0)
         assert result[0] == b'list1' and result[1] == b'a', f"Expected (b'list1', b'a'), but got {result}"
         client.close()
@@ -428,7 +425,7 @@ def test_blpop_brpop_same_key_multiple_times():
     thread.join()
 
     def blpop_thread2():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop(['list1', 'list2', 'list2', 'list1'], timeout=0)
         assert result[0] == b'list2' and result[1] == b'b', f"Expected (b'list2', b'b'), but got {result}"
         client.close()
@@ -455,7 +452,7 @@ def test_blpop_brpop_same_key_multiple_times():
     pika.delete('list1', 'list2')
 
     def brpop_thread1():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop(['list1', 'list2', 'list2', 'list1'], timeout=0)
         assert result[0] == b'list1' and result[1] == b'a', f"Expected (b'list1', b'a'), but got {result}"
         client.close()
@@ -470,7 +467,7 @@ def test_blpop_brpop_same_key_multiple_times():
     thread.join()
 
     def brpop_thread2():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop(['list1', 'list2', 'list2', 'list1'], timeout=0)
         assert result[0] == b'list2' and result[1] == b'b', f"Expected (b'list2', b'b'), but got {result}"
         client.close()
@@ -493,21 +490,21 @@ def test_blpop_brpop_same_key_multiple_times():
     assert result[0] == b'list2' and result[1] == b'd', f"Expected (b'list2', b'd'), but got {result}"
 
     pika.close()
-    print("test_blpop_brpop_same_key_multiple_times Passed [✓]")
+    print("test_blpop_brpop_same_key_multiple_times Passed [✓], db:db%d" % (db_))
 
 
 # 目标list被一条push增加了多个value，先完成多个value的入列再pop
-def test_blpop_brpop_variadic_lpush():
-    print("start test_blpop_brpop_variadic_lpush")
+def test_blpop_brpop_variadic_lpush(db_):
+    print("start test_blpop_brpop_variadic_lpush, db:db%d" % (db_))
 
     # 创建Redis客户端
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     # 清空测试环境
     pika.delete('blist')
 
     def blpop_thread():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=0)
         assert result[0] == b'blist' and result[1] == b'bar', f"Expected (b'blist', b'bar'), but got {result}"
         client.close()
@@ -530,7 +527,7 @@ def test_blpop_brpop_variadic_lpush():
     pika.delete('blist')
 
     def brpop_thread():
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=0)
         assert result[0] == b'blist' and result[1] == b'bar', f"Expected (b'blist', b'bar'), but got {result}"
         client.close()
@@ -547,24 +544,24 @@ def test_blpop_brpop_variadic_lpush():
     thread.join()
     # 检查blist的第一个元素
     assert pika.lindex('blist', 0) == b'foo', "Expected 'foo'"
-    print("test_blpop_brpop_variadic_lpush Passed [✓]")
+    print("test_blpop_brpop_variadic_lpush Passed [✓], db:db%d" % (db_))
 
 
 # 先被阻塞的先服务/阻塞最久的优先级最高
-def test_serve_priority():
-    print("start test_serve_priority")
+def test_serve_priority(db_):
+    print("start test_serve_priority, db:db%d" % (db_))
 
-    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+    pika = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
 
     pika.delete('blist')
 
     def blpop_thread(expect):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.blpop('blist', timeout=0)
         assert result[0] == b'blist' and result[1] == expect, f"Expected (b'blist', {expect}), but got {result}"
 
     def brpop_thread(expect):
-        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=0)
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
         result = client.brpop('blist', timeout=0)
         assert result[0] == b'blist' and result[1] == expect, f"Expected (b'blist', {expect}), but got {result}"
 
@@ -592,33 +589,32 @@ def test_serve_priority():
     t4.join()
 
     pika.close()
-    print("test_serve_priority Passed [✓]")
+    print("test_serve_priority Passed [✓], db:db%d" % (db_))
 
 
 # 主从复制测试
-def test_master_slave_replication():
-    print("start test_master_slave_replication, it will cost some time, pls wait")
-    print("start test_master_slave_replication")
+def test_master_slave_replication(db_):
+    print("start test_master_slave_replication, it will cost some time, pls wait, db:db%d" % (db_))
 
     master_ip = '192.168.10.22'
-    master_port = '9221'
+    master_port = '9231'
     slave_ip = '192.168.10.22'
-    slave_port = '9231'
+    slave_port = '9221'
 
-    master = redis.Redis(host=master_ip, port=int(master_port), db=0)
-    slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+    master = redis.Redis(host=master_ip, port=int(master_port), db=db_)
+    slave = redis.Redis(host=slave_ip, port=int(slave_port), db=db_)
     slave.slaveof(master_ip, master_port)
     master.delete('blist0', 'blist1', 'blist')
 
-    time.sleep(1)
+    time.sleep(3)
     m_keys = master.keys()
     s_keys = slave.keys()
     assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
 
-    #非阻塞的主从复制测试
+    # 非阻塞的主从复制测试
     def thread1():
         nonlocal master
-        for i in range(0, 40):
+        for i in range(0, 25):
             letters = string.ascii_letters
             random_str1 = ''.join(random.choice(letters) for _ in range(5))
             random_str2 = ''.join(random.choice(letters) for _ in range(5))
@@ -662,20 +658,32 @@ def test_master_slave_replication():
 
     master.delete('blist0', 'blist1')
 
-    #阻塞的主从复制测试
+    # 阻塞的主从复制测试
     def blpop_thread(list_, value_):
-        client = redis.Redis(host=master_ip, port=int(master_port), db=0)
+        client = redis.Redis(host=master_ip, port=int(master_port), db=db_)
         result = client.blpop(['blist0', 'blist1'], timeout=0)
-        assert result[0] == list_.encode() and result[1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
+        assert result[0] == list_.encode() and result[
+            1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
+        client.close()
+
+    def blpop_thread1():
+        client = redis.Redis(host=master_ip, port=int(master_port), db=db_)
+        result = client.blpop(['blist0', 'blist1'], timeout=0)
         client.close()
 
     def brpop_thread(list_, value_):
-        client = redis.Redis(host=master_ip, port=int(master_port), db=0)
+        client = redis.Redis(host=master_ip, port=int(master_port), db=db_)
         result = client.brpop(['blist0', 'blist1'], timeout=0)
-        assert result[0] == list_.encode() and result[1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
+        assert result[0] == list_.encode() and result[
+            1] == value_.encode(), f"Expected: ({list_}, {value_}), but got  = {result}"
         client.close()
 
-    for i in range(0,5):
+    def brpop_thread1():
+        client = redis.Redis(host=master_ip, port=int(master_port), db=db_)
+        result = client.brpop(['blist0', 'blist1'], timeout=0)
+        client.close()
+
+    for i in range(0, 5):
         letters = string.ascii_letters
         random_str1 = ''.join(random.choice(letters) for _ in range(5))
         random_str2 = ''.join(random.choice(letters) for _ in range(5))
@@ -683,14 +691,14 @@ def test_master_slave_replication():
         random_str4 = ''.join(random.choice(letters) for _ in range(5))
         random_str5 = ''.join(random.choice(letters) for _ in range(5))
 
-        t1 = threading.Thread(target=blpop_thread, args = ('blist1', random_str1,))
-        t2 = threading.Thread(target=brpop_thread, args = ('blist0', random_str2,))
-        t3 = threading.Thread(target=blpop_thread, args = ('blist1', random_str3,))
-        t4 = threading.Thread(target=brpop_thread, args = ('blist0', random_str4,))
-        t5 = threading.Thread(target=blpop_thread, args = ('blist1', random_str5,))
+        t1 = threading.Thread(target=blpop_thread, args=('blist1', random_str1,))
+        t2 = threading.Thread(target=brpop_thread, args=('blist0', random_str2,))
+        t3 = threading.Thread(target=blpop_thread, args=('blist1', random_str3,))
+        t4 = threading.Thread(target=brpop_thread, args=('blist0', random_str4,))
+        t5 = threading.Thread(target=blpop_thread, args=('blist1', random_str5,))
 
         t1.start()
-        time.sleep(0.2)#确保阻塞顺序
+        time.sleep(0.2)  # 确保阻塞顺序
         t2.start()
         time.sleep(0.2)
         t3.start()
@@ -720,21 +728,120 @@ def test_master_slave_replication():
             assert master.lindex('blist0', i) == slave.lindex('blist0', i), \
                 f"Expected:master.lindex('blist0', i) == slave.linex('blist0', i), but got False when i = {i}"
 
+    # 解阻塞过程中高频pop/push, 看binlog是否会乱
+    threads1 = []
+    for i in range(0, 30):
+        t1 = threading.Thread(target=blpop_thread1)
+        t2 = threading.Thread(target=brpop_thread1)
+        t1.start()
+        t2.start()
+        threads1.append(t1)
+        threads1.append(t2)
+
+    # 此时针对blist0,blist1有60个阻塞，接下来对blist0连续push多次元素(解除阻塞)，同时高频pop同被阻塞的client竞争
+    def lpop_thread(list):
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
+        result = client.lpop(list)
+        client.close()
+
+    def rpop_thread(list):
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
+        result = client.lpop(list)
+        client.close()
+
+    def lpush_thread(list_, value1_, value2_, value3_, value4_, value5_):
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
+        client.lpush(list_, value1_, value2_, value3_, value4_, value5_)
+        client.close()
+
+    def rpush_thread(list_, value_, value2_, value3_, value4_, value5_):
+        client = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
+        client.rpush(list_, value_, value2_, value3_, value4_, value5_)
+        client.close()
+
+    threads2 = []
+    for i in range(0, 30):  # 每轮push进15个元素，最多pop了9个元素，最少剩下6个元素，所以循环至少要有10次，否则前面的线程不能全部被解阻塞
+        letters = string.ascii_letters
+        random_str1 = ''.join(random.choice(letters) for _ in range(5))
+        random_str2 = ''.join(random.choice(letters) for _ in range(5))
+        random_str3 = ''.join(random.choice(letters) for _ in range(5))
+        random_str4 = ''.join(random.choice(letters) for _ in range(5))
+        random_str5 = ''.join(random.choice(letters) for _ in range(5))
+        random_str6 = ''.join(random.choice(letters) for _ in range(5))
+        random_str7 = ''.join(random.choice(letters) for _ in range(5))
+        random_str8 = ''.join(random.choice(letters) for _ in range(5))
+        random_str9 = ''.join(random.choice(letters) for _ in range(5))
+        t1 = threading.Thread(target=lpush_thread,
+                              args=('blist0', random_str1, random_str2, random_str3, random_str4, random_str5))
+        t2 = threading.Thread(target=lpop_thread, args=('blist0',))
+        t3 = threading.Thread(target=lpop_thread, args=('blist0',))
+        t4 = threading.Thread(target=lpop_thread, args=('blist0',))
+        t5 = threading.Thread(target=rpush_thread,
+                              args=('blist0', random_str9, random_str8, random_str7, random_str6, random_str5))
+        t6 = threading.Thread(target=rpop_thread, args=('blist0',))
+        t7 = threading.Thread(target=rpop_thread, args=('blist0',))
+        t8 = threading.Thread(target=rpop_thread, args=('blist0',))
+        t9 = threading.Thread(target=rpush_thread,
+                              args=('blist0', random_str7, random_str8, random_str9, random_str1, random_str2))
+        t10 = threading.Thread(target=lpop_thread, args=('blist0',))
+        t11 = threading.Thread(target=lpop_thread, args=('blist0',))
+        t12 = threading.Thread(target=lpop_thread, args=('blist0',))
+
+        threads2.append(t1)
+        threads2.append(t2)
+        threads2.append(t3)
+        threads2.append(t4)
+        threads2.append(t5)
+        threads2.append(t6)
+        threads2.append(t7)
+        threads2.append(t8)
+        threads2.append(t9)
+        threads2.append(t10)
+        threads2.append(t11)
+        threads2.append(t12)
+
+    for t in threads2:
+        t.start()
+
+    for t in threads1:
+        t.join()
+    time.sleep(5)
+    m_keys = master.keys()
+    s_keys = slave.keys()
+    assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
+    for i in range(0, master.llen('blist0')):
+        assert master.lindex('blist0', i) == slave.lindex('blist0', i), \
+            f"Expected:master.lindex('blist0', i) == slave.linex('blist0', i), but got False when i = {i}"
+
     master.close()
     slave.close()
-    print("test_master_slave_replication Passed [✓]")
+    print("test_master_slave_replication Passed [✓], db:db%d" % (db_))
+
+def test_with_db(db_id):
+    start_time = time.time()
+    test_single_existing_list(db_id)
+    test_blpop_brpop_unblock_lrpush_rpoplpush(db_id)
+    test_concurrency_block_unblock(db_id)
+    test_multiple_existing_lists(db_id)
+    test_blpop_brpop_same_key_multiple_times(db_id)
+    test_blpop_brpop_variadic_lpush(db_id)
+    test_serve_priority(db_id)
+    test_master_slave_replication(db_id)
+    end_time = time.time()
+    print(f"this set of tests costed: {end_time - start_time} seconds")
 
 
+#请给主从节点都开启2个db，否则注释掉db1_t相关的行，只做单db测试
+#如果不做主从复制测试，把test_master_slave_replication(db_id)注释掉
+db0_t = threading.Thread(target=test_with_db, args=(0,))
+db1_t = threading.Thread(target=test_with_db, args=(1,))
 
+db0_t.start()
+db1_t.start()
 
-test_single_existing_list()
-test_blpop_brpop_unblock_lrpush_rpoplpush()
-test_concurrency_block_unblock()
-test_multiple_existing_lists()
-test_blpop_brpop_same_key_multiple_times()
-test_blpop_brpop_variadic_lpush()
-test_serve_priority()
-test_master_slave_replication()
+db0_t.join()
+db1_t.join()
+
 
 
 # 待添加的测试：

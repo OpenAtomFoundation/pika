@@ -6,18 +6,18 @@
 #ifndef NET_SRC_DISPATCH_THREAD_H_
 #define NET_SRC_DISPATCH_THREAD_H_
 
+#include <glog/logging.h>
 #include <list>
 #include <map>
 #include <queue>
 #include <set>
 #include <string>
 #include <vector>
-#include <glog/logging.h>
 
-#include "net/src/net_util.h"
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
 #include "net/include/server_thread.h"
+#include "net/src/net_util.h"
 #include "pstd/include/env.h"
 #include "pstd/include/xdebug.h"
 
@@ -41,20 +41,12 @@ struct BlockKeyHash {
 
 class BlockedConnNode {
  public:
-  virtual ~BlockedConnNode() {
-    std::cout << "BlockConnNoded-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
-  }
+  virtual ~BlockedConnNode() {}
   BlockedConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockKeyType block_type)
       : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
   bool IsExpired();
   std::shared_ptr<RedisConn>& GetConnBlocked();
   BlockKeyType GetBlockType() const;
-
-  // TO DO: delete this fun when testing is done
-  void SelfPrint() {
-    std::cout << "fd:" << conn_blocked_->fd() << ", expire_time:" << expire_time_ << ", blockType: " << block_type_
-              << std::endl;
-  }
 
  private:
   int64_t expire_time_;
@@ -118,7 +110,6 @@ class DispatchThread : public ServerThread {
   net::TimedTaskManager* GetTimedTaskManager() { return &timedTaskManager_; }
   // BlPop/BrPop used end
 
-
  private:
   /*
    * Here we used auto poll to find the next work thread,
@@ -135,14 +126,12 @@ class DispatchThread : public ServerThread {
 
   void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
 
-
-
   /*
    *  Blpop/BRpop used
    */
   /*  key_to_blocked_conns_:
-   *  mapping from "Blockkey"(eg. "<db0, list1>") to a list that stored the nodes of client connctions that
-   *  were blocked by command blpop/brpop with key (eg. "list1").
+   *  mapping from "Blockkey"(eg. "<db0, list1>") to a list that stored the nodes of client-connections that
+   *  were blocked by command blpop/brpop with key.
    */
   std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash> key_to_blocked_conns_;
 

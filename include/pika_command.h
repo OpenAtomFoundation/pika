@@ -205,8 +205,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskSlot = 1536,
-  kCmdFlagsMaskMayDfferWrite = 2048
+  kCmdFlagsMaskSlot = 1536
 };
 
 enum CmdFlags {
@@ -232,8 +231,7 @@ enum CmdFlags {
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
   kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsMayDfferWrite = 2048
+  kCmdFlagsMultiSlot = 1024
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -413,7 +411,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_write() const;
-  bool is_may_defer_write() const;
+
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
@@ -438,7 +436,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
+  virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);

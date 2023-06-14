@@ -32,7 +32,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit),
-      timedTaskManager_(net_multiplexer_->GetMultiplexer()){
+      timedTaskManager_(net_multiplexer_->GetMultiplexer()) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -44,7 +44,7 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit),
-      timedTaskManager_(net_multiplexer_->GetMultiplexer()){
+      timedTaskManager_(net_multiplexer_->GetMultiplexer()) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -186,7 +186,7 @@ BlockKeyType BlockedConnNode::GetBlockType() const { return block_type_; }
 void DispatchThread::CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
   // removed all the waiting info of this conn/ doing cleaning work
   auto pair = blocked_conn_to_keys_.find(conn_unblocked->fd());
-  if(pair == blocked_conn_to_keys_.end()){
+  if (pair == blocked_conn_to_keys_.end()) {
     LOG(WARNING) << "blocking info of blpop/brpop went wrong, blpop/brpop can't working correctly";
     return;
   }
@@ -223,11 +223,14 @@ void DispatchThread::ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> c
     // dynamic pointer cast failed, it's not an instance of RedisConn, no need of the process below
     return;
   }
-  std::lock_guard l(block_mtx_);
-  if (blocked_conn_to_keys_.find(conn_to_close->fd()) == blocked_conn_to_keys_.end()) {
-    // this conn_to_close is not disconnected from blocking state cause by "blpop/brpop"
-    return;
+  {
+    std::shared_lock l(block_mtx_);
+    if (blocked_conn_to_keys_.find(conn_to_close->fd()) == blocked_conn_to_keys_.end()) {
+      // this conn_to_close is not disconnected from blocking state cause by "blpop/brpop"
+      return;
+    }
   }
+  std::lock_guard l(block_mtx_);
   CleanWaitNodeOfUnBlockedBlrConn(conn_to_close);
   CleanKeysAfterWaitNodeCleaned();
 }
@@ -243,17 +246,13 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
         conn_ptr->NotifyEpoll(true);
         conn_node = conns_list->erase(conn_node);
         CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
-      }else{
+      } else {
         conn_node++;
       }
     }
   }
   CleanKeysAfterWaitNodeCleaned();
 }
-
-
-
-
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 

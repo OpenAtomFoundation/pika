@@ -255,7 +255,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLInsert, std::move(linsertptr)));
   std::unique_ptr<Cmd> llenptr = std::make_unique<LLenCmd>(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLLen, std::move(llenptr)));
-  std::unique_ptr<Cmd> blpopptr = std::make_unique<BLPopCmd>(kCmdNameBLPop, -3, kCmdFlagsMayDfferWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  std::unique_ptr<Cmd> blpopptr = std::make_unique<BLPopCmd>(kCmdNameBLPop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBLPop, std::move(blpopptr)));
   std::unique_ptr<Cmd> lpopptr = std::make_unique<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
@@ -271,7 +271,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLSet, std::move(lsetptr)));
   std::unique_ptr<Cmd> ltrimptr = std::make_unique<LTrimCmd>(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLTrim, std::move(ltrimptr)));
-  std::unique_ptr<Cmd> brpopptr = std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsMayDfferWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  std::unique_ptr<Cmd> brpopptr = std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr = std::make_unique<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));
@@ -586,7 +586,7 @@ void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_pt
 void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot,
                                  const std::shared_ptr<SyncMasterSlot>& sync_slot, const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
-  if (is_write() || is_may_defer_write()) {
+  if (is_write()) {
     record_lock.Lock(current_key());
   }
 
@@ -599,11 +599,10 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot,
     do_duration_ += pstd::NowMicros() - start_us;
   }
 
-  if(!is_may_defer_write()) {
     DoBinlog(sync_slot);
-  }
 
-  if (is_write() || is_may_defer_write()) {
+
+  if (is_write()) {
     record_lock.Unlock(current_key());
   }
 }
@@ -621,7 +620,7 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
 }
 
 void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if (res().ok() && (is_write() || is_may_defer_write()) && g_pika_conf->write_binlog()) {
+  if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
@@ -704,7 +703,6 @@ void Cmd::ProcessMultiSlotCmd() {
 void Cmd::ProcessDoNotSpecifySlotCmd() { Do(); }
 
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
-bool Cmd::is_may_defer_write() const { return ((flag_ & kCmdFlagsMayDfferWrite) == kCmdFlagsMayDfferWrite); }
 bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
 // Others need to be suspended when a suspend command run
 bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }

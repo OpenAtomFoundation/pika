@@ -5,14 +5,12 @@
 
 #include "include/pika_list.h"
 #include <utility>
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_string.h"
 
 extern PikaServer* g_pika_server;
-extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -24,7 +22,7 @@ void LIndexCmd::DoInitial() {
   if (pstd::string2int(index.data(), index.size(), &index_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->LIndex(key_, index_, &value);
@@ -82,18 +80,18 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-struct BlrPopUnblockTaskArgs{
+struct BlrPopUnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
   net::DispatchThread* dispatchThread;
-  BlrPopUnblockTaskArgs(std::string  key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_){}
+  BlrPopUnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
 };
 
 void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
-  if(!curr_conn){
-    //current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
+  if (!curr_conn) {
+    // current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
     return;
   }
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(curr_conn->thread());
@@ -120,12 +118,13 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto& key_to_conns_ = dispatchThread->GetMapFromKeyToConns();
   net::BlockKey blrPop_key{slot->GetDBName(), key};
 
+  slot->LockMgr()->TryLock(key);  // do not change the sequence of these two lock, or deadlock will happen
   std::unique_lock latch(dispatchThread->GetBlockMtx());
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
+    slot->LockMgr()->UnLock(key);
     return;
   }
-
   CmdRes res;
   std::vector<WriteBinlogOfPopArgs> pop_binlog_args;
   auto& waitting_list_of_this_key = it->second;
@@ -161,18 +160,21 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   dispatchThread->CleanKeysAfterWaitNodeCleaned();
   latch.unlock();
   WriteBinlogOfPop(pop_binlog_args);
+  slot->LockMgr()->UnLock(key);
 }
 void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args) {
-  //write binlog of l/rpop
-  for(auto& pop_arg : pop_args) {
+  // write binlog of l/rpop
+  for (auto& pop_arg : pop_args) {
+    std::shared_ptr<Cmd> pop_cmd;
     std::string pop_type;
-    if(pop_arg.block_type == BlockKeyType::Blpop){
+    if (pop_arg.block_type == BlockKeyType::Blpop) {
       pop_type = kCmdNameLPop;
-    }else if(pop_arg.block_type == BlockKeyType::Brpop){
+      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    } else if (pop_arg.block_type == BlockKeyType::Brpop) {
       pop_type = kCmdNameRPop;
+      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
     }
 
-    std::shared_ptr<Cmd> pop_cmd = g_pika_cmd_table_manager->GetCmd(pop_type);
     PikaCmdArgsType args;
     args.push_back(std::move(pop_type));
     args.push_back(pop_arg.key);
@@ -183,7 +185,7 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
       LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
     } else {
       pop_cmd->SetConn(pop_arg.conn);
-      auto resp_ptr = std::make_shared<std::string>("this resp won't be used");
+      auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
       pop_cmd->SetResp(resp_ptr);
       pop_cmd->DoBinlog(sync_slot);
     }
@@ -212,7 +214,8 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time) {
+void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys,
+                                                  int64_t expire_time) {
   std::shared_ptr<net::RedisConn> conn_to_block = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
 
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(conn_to_block->thread());
@@ -236,64 +239,15 @@ void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, s
   }
 
   // construct a list of keys and insert into this map as value(while key of the map is conn_fd)
-  conn_to_keys_.emplace(
-      conn_to_block->fd(), std::make_unique<std::list<net::BlockKey>>(blrpop_keys.begin(), blrpop_keys.end()));
-
-  //------------code for testing---------------
-  std::cout << "-------------db name:" << conn_to_block->GetCurrentTable() << "-------------" << std::endl;
-  std::cout << "from key to conn:" << std::endl;
-  for (auto& pair : key_to_conns) {
-    std::cout << "key:<" << pair.first.db_name << "," << pair.first.key << ">  list of it:" << std::endl;
-    for (auto& it : *pair.second) {
-      it.SelfPrint();
-    }
-  }
-
-  std::cout << "\n\nfrom conn to key:" << std::endl;
-  for (auto& pair : conn_to_keys_) {
-    std::cout << "fd:" << pair.first << "  related keys:" << std::endl;
-    for (auto& it : *pair.second) {
-      std::cout << " <" << it.db_name << "," << it.key << "> " << std::endl;
-    }
-  }
-  std::cout << "-----------end------------------" << std::endl;
-  //------------code for testing---------------
+  conn_to_keys_.emplace(conn_to_block->fd(),
+                        std::make_unique<std::list<net::BlockKey>>(blrpop_keys.begin(), blrpop_keys.end()));
 }
 void BlockingBaseCmd::removeDuplicates(std::vector<std::string>& keys_) {
   std::unordered_set<std::string> seen;
-
-  auto it = std::remove_if(keys_.begin(), keys_.end(), [&seen](const auto& key) {
-    return !seen.insert(key).second;
-  });
+  auto it = std::remove_if(keys_.begin(), keys_.end(), [&seen](const auto& key) { return !seen.insert(key).second; });
   keys_.erase(it, keys_.end());
 }
 
-void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
-  for (auto& this_key : keys_) {
-    std::string value;
-    rocksdb::Status s = slot->db()->LPop(this_key, &value);
-    if (s.ok()) {
-      res_.AppendArrayLen(2);
-      res_.AppendString(this_key);
-      res_.AppendString(value);
-      //write an binlog of lpop
-      std::vector<WriteBinlogOfPopArgs> pop_args;
-      pop_args.emplace_back(BlockKeyType::Blpop, this_key, slot, GetConn());
-      WriteBinlogOfPop(pop_args);
-      return;
-    } else if (s.IsNotFound()) {
-      continue;
-    } else {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
-      return;
-    }
-  }
-  /*
-   * need To Do: If blpop is exec within a transaction and no elements can pop from keys_,
-   * jsut return nil(-1), do not block the conn, maybe need to add a if here
-   */
-  BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
-}
 void BLPopCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBLPop);
@@ -320,6 +274,45 @@ void BLPopCmd::DoInitial() {
     expire_time_ =
         std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
+}
+
+void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
+  for (auto& this_key : keys_) {
+    std::string value;
+    rocksdb::Status s = slot->db()->LPop(this_key, &value);
+    if (s.ok()) {
+      res_.AppendArrayLen(2);
+      res_.AppendString(this_key);
+      res_.AppendString(value);
+      // write an binlog of lpop
+      binlog_args_.block_type = BlockKeyType::Blpop;
+      binlog_args_.key = this_key;
+      binlog_args_.slot = slot;
+      binlog_args_.conn = GetConn();
+      is_binlog_deferred_ = false;
+      return;
+    } else if (s.IsNotFound()) {
+      continue;
+    } else {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+  /*
+   * To Do: If blpop is exec within a transaction and no elements can pop from keys_,
+   * jsut return nil(-1), do not block the conn, maybe need to add a if here
+   */
+  is_binlog_deferred_ = true;
+  BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
+}
+
+void BLPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(is_binlog_deferred_){
+    return;
+  }
+  std::vector<WriteBinlogOfPopArgs> args;
+  args.push_back(std::move(binlog_args_));
+  WriteBinlogOfPop(args);
 }
 
 void LPopCmd::DoInitial() {
@@ -374,7 +367,7 @@ void LRangeCmd::DoInitial() {
   if (pstd::string2int(right.data(), right.size(), &right_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   rocksdb::Status s = slot->db()->LRange(key_, left_, right_, &values);
@@ -455,7 +448,7 @@ void LTrimCmd::DoInitial() {
   if (pstd::string2int(stop.data(), stop.size(), &stop_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
@@ -473,10 +466,12 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(value);
-      //write an binlog of rpop
-      std::vector<WriteBinlogOfPopArgs> pop_args;
-      pop_args.emplace_back(BlockKeyType::Brpop, this_key, slot, GetConn());
-      WriteBinlogOfPop(pop_args);
+      // write an binlog of rpop
+      binlog_args_.block_type = BlockKeyType::Brpop;
+      binlog_args_.key = this_key;
+      binlog_args_.slot = slot;
+      binlog_args_.conn = GetConn();
+      is_binlog_deferred_ = false;
       return;
     } else if (s.IsNotFound()) {
       continue;
@@ -489,6 +484,7 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
    * nedd To Do: If blpop is exec within a transaction and no elements can pop from keys_,
    * jsut return nil(-1), do not block the conn, maybe need to add a if here
    */
+  is_binlog_deferred_ = true;
   BlockThisClientToWaitLRPush(BlockKeyType::Brpop, keys_, expire_time_);
 }
 
@@ -518,6 +514,14 @@ void BRPopCmd::DoInitial() {
     expire_time_ =
         std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
+}
+void BRPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(is_binlog_deferred_){
+    return;
+  }
+  std::vector<WriteBinlogOfPopArgs> args;
+  args.push_back(std::move(binlog_args_));
+  WriteBinlogOfPop(args);
 }
 
 void RPopCmd::DoInitial() {

@@ -40,6 +40,7 @@ class RedisConn : public NetConn {
 
   virtual int DealMessage(const RedisCmdArgsType& argv, std::string* response) = 0;
   virtual const std::string& GetCurrentTable() = 0;
+
  private:
   static int ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv);
   static int ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs);

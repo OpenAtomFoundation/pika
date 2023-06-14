@@ -80,9 +80,10 @@ class BlockingBaseCmd : public Cmd {
   //blpop/brpop used start
   struct WriteBinlogOfPopArgs{
     BlockKeyType block_type;
-    const std::string key;
+    std::string key;
     std::shared_ptr<Slot> slot;
     std::shared_ptr<net::NetConn> conn;
+    WriteBinlogOfPopArgs() = default;
     WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
                          std::shared_ptr<Slot> slot_, std::shared_ptr<net::NetConn> conn_)
         : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
@@ -107,9 +108,13 @@ class BLPopCmd final : public BlockingBaseCmd {
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
   void DoInitial() override;
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+
  private:
   std::vector<std::string> keys_;
   int64_t expire_time_{0};
+  WriteBinlogOfPopArgs binlog_args_;
+  bool is_binlog_deferred_{false};
 };
 
 class LPopCmd : public Cmd {
@@ -267,10 +272,12 @@ class BRPopCmd final : public BlockingBaseCmd {
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
   void DoInitial() override;
-
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
  private:
   std::vector<std::string> keys_;
   int64_t expire_time_{0};
+  WriteBinlogOfPopArgs binlog_args_;
+  bool is_binlog_deferred_{false};
 };
 
 class RPopCmd : public Cmd {

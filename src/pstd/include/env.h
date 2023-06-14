@@ -1,10 +1,8 @@
 #ifndef __PSTD_ENV_H__
 #define __PSTD_ENV_H__
 
-#include <sys/epoll.h>
-#include <sys/timerfd.h>
+
 #include <unistd.h>
-#include <functional>
 #include <string>
 #include <vector>
 #include <memory>
@@ -155,8 +153,5 @@ class RandomRWFile : public pstd::noncopyable {
     return Status::OK();
   }
 };
-
-
-
 }  // namespace pstd
 #endif  // __PSTD_ENV_H__
