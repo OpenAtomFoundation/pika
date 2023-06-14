@@ -615,6 +615,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);
+  SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 
