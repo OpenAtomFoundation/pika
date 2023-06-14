@@ -233,7 +233,7 @@ enum CmdFlags {
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsMayDfferWrite = 2048
+  kCmdFlagsMayDfferWriteBinlog = 2048
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -413,7 +413,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_write() const;
-  bool is_may_defer_write() const;
+  bool is_may_defer_write_binlog() const;
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
