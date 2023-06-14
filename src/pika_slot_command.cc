@@ -1391,26 +1391,33 @@ void SlotsInfoCmd::DoInitial() {
 }
 
 void SlotsInfoCmd::Do(std::shared_ptr<Slot>slot) {
-  std::map<int64_t,int64_t> slotsMap;
-  for (int i = 0; i < HASH_SLOTS_SIZE; ++i){
-    int32_t card = 0;
-    rocksdb::Status s = slot->db()->SCard(SlotKeyPrefix+std::to_string(i), &card);
-    if (s.ok()) {
-      slotsMap[i] = card;
-    } else if (s.IsNotFound()){
+  int slots_slot[HASH_SLOTS_SIZE] = {0};
+  int slots_size[HASH_SLOTS_SIZE] = {0};
+  int n = 0;
+  int i = 0;
+  int32_t len = 0;
+  std::string slot_key;
+
+  for (i = begin_; i < end_; i ++) {
+    slot_key = GetSlotKey(i);
+    len = 0;
+    rocksdb::Status s = slot->db()->SCard(slot_key, &len);
+    if (!s.ok() || len == 0) {
       continue;
-    } else {
-      res_.SetRes(CmdRes::kErrOther, "Slotsinfo scard error");
-      return;
     }
+
+    slots_slot[n] = i;
+    slots_size[n] = len;
+    n++;
   }
-  res_.AppendArrayLen(slotsMap.size());
-  std::map<int64_t,int64_t>::iterator it;
-  for (it = slotsMap.begin(); it != slotsMap.end(); ++it){
+
+  res_.AppendArrayLen(n);
+  for (i = 0; i < n; i ++) {
     res_.AppendArrayLen(2);
-    res_.AppendInteger(it->first);
-    res_.AppendInteger(it->second);
+    res_.AppendInteger(slots_slot[i]);
+    res_.AppendInteger(slots_size[i]);
   }
+
   return;
 }
 
