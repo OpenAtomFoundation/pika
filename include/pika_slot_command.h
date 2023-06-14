@@ -43,7 +43,7 @@ class PikaMigrate {
   PikaMigrate();
   virtual ~PikaMigrate();
 
-  int MigrateKey(const std::string &host, const int port, int db, int timeout, const std::string &key, const char type,
+  int MigrateKey(const std::string &host, const int port, int timeout, const std::string &key, const char type,
                  std::string &detail, std::shared_ptr<Slot> slot);
   void CleanMigrateClient();
 

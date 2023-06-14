@@ -191,7 +191,7 @@ void PikaMigrate::KillAllMigrateClient() {
  *    -1 - error happens
  *   >=0 - # of success migration (0 or 1)
  * */
-int PikaMigrate::MigrateKey(const std::string &host, const int port, int db, int timeout, const std::string &key,
+int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout, const std::string &key,
                             const char type, std::string &detail, std::shared_ptr<Slot> slot) {
   int send_command_num = -1;
 
@@ -634,7 +634,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
   rocksdb::Status s;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
-  send_command_num = g_pika_server->pika_migrate_->MigrateKey(host, port, 0, timeout, key, type, detail, slot);
+  send_command_num = g_pika_server->pika_migrate_->MigrateKey(host, port, timeout, key, type, detail, slot);
 
   // the key is migrated to target, delete key and slotsinfo
   if (send_command_num >= 1) {
