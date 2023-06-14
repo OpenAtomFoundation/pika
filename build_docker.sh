@@ -56,24 +56,23 @@ then
     TAG="pikadb/pika:$(git describe --tags --abbrev=0 --always)"
 fi
 
-# if Platform is not set, set it "linux/amd64"
-if [ -z "$PLATFORM" ]
-then
-    PLATFORM="linux/amd64"
-fi
-
 # if Platform is "all", set it "linux/amd64,linux/arm64,linux/arm"
 if [ "$PLATFORM" = "all" ]
 then
     PLATFORM="linux/amd64,linux/arm,linux/arm64"
 fi
 
+# if Platform is not set, set it "linux/amd64"
+if [ -z "$PLATFORM" ]
+then
+    PLATFORM="linux/amd64"
+fi
+
 # if proxy is set, set it
+PROXY=false
 if [ -n "$proxy" ]
 then
     PROXY=true
-else 
-    PROXY=false
 fi
 
 # check if docker is installed
