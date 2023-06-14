@@ -993,23 +993,6 @@ static int listGetall(const std::string key, std::vector<std::string> *values, s
   return 1;
 }
 
-// check slotkey remaind keys number
-static void SlotKeyLenCheck(const std::string slotKey, CmdRes &res, std::shared_ptr<Slot> slot) {
-  int32_t card = 0;
-  rocksdb::Status s = slot->db()->SCard(slotKey, &card);
-  if (!(s.ok() || s.IsNotFound())) {
-    res.SetRes(CmdRes::kErrOther, "migrate slot kv error");
-    res.AppendArrayLen(2);
-    res.AppendInteger(1);
-    res.AppendInteger(1);
-    return;
-  }
-  res.AppendArrayLen(2);
-  res.AppendInteger(1);
-  res.AppendInteger(card);
-  return;
-}
-
 // get set key all values
 static int setGetall(const std::string key, std::vector<std::string> *members, std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SMembers(key, members);
@@ -1172,26 +1155,6 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(std::shared_ptr<Slot> slot) {
   } else {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
     res_.AppendInteger(0);
-    return -1;
-  }
-  return 0;
-}
-
-// delete one key from slotkey
-int SlotsMgrtTagOneCmd::SlotKeyRemCheck(std::shared_ptr<Slot> slot) {
-  std::string slotKey = GetSlotKey(slot_id_);
-  std::string tkey = std::string(1, key_type_) + key_;
-  std::vector<std::string> members(1, tkey);
-  int32_t count = 0;
-  rocksdb::Status s = slot->db()->SRem(slotKey, members, &count);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(INFO) << "Migrate slot: " << slot_id_ << " not found ";
-      res_.AppendInteger(0);
-    } else {
-      LOG(WARNING) << "Migrate slot key: " << key_ << " error: " << s.ToString();
-      res_.SetRes(CmdRes::kErrOther, "migrate slot error");
-    }
     return -1;
   }
   return 0;
@@ -1606,6 +1569,10 @@ void SlotsScanCmd::DoInitial() {
     return;
   }
   key_ = SlotKeyPrefix + argv_[1];
+  if (std::stoll(argv_[1].data()) < 0 || std::stoll(argv_[1].data()) >= HASH_SLOTS_SIZE) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
+    return;
+  }
   if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
     return;
