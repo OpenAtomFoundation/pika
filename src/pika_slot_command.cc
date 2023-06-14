@@ -1465,7 +1465,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void SlotsMgrtAsyncStatusCmd::DoInitial() {
-  if (CheckArg(argv_.size())) {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
   }
   return;
@@ -1474,7 +1474,7 @@ void SlotsMgrtAsyncStatusCmd::DoInitial() {
 void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Slot> slot) {
   std::string status;
   std::string ip;
-  int64_t port, slots, moved, remained;
+  int64_t port = -1, slots = -1, moved = -1, remained = -1;
   bool migrating;
   g_pika_server->GetSlotsMgrtSenderStatus(&ip, &port, &slots, &migrating, &moved, &remained);
   std::string mstatus = migrating ? "yes" : "no";
