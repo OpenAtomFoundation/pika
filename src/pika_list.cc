@@ -24,7 +24,7 @@ void LIndexCmd::DoInitial() {
   if (pstd::string2int(index.data(), index.size(), &index_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->LIndex(key_, index_, &value);
@@ -82,18 +82,18 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-struct BlrPopUnblockTaskArgs{
+struct BlrPopUnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
   net::DispatchThread* dispatchThread;
-  BlrPopUnblockTaskArgs(std::string  key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_){}
+  BlrPopUnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
 };
 
 void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
-  if(!curr_conn){
-    //current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
+  if (!curr_conn) {
+    // current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
     return;
   }
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(curr_conn->thread());
@@ -120,12 +120,13 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto& key_to_conns_ = dispatchThread->GetMapFromKeyToConns();
   net::BlockKey blrPop_key{slot->GetDBName(), key};
 
+  slot->LockMgr()->TryLock(key);  // do not change the sequence of these two lock, or deadlock will happen
   std::unique_lock latch(dispatchThread->GetBlockMtx());
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
+    slot->LockMgr()->UnLock(key);
     return;
   }
-
   CmdRes res;
   std::vector<WriteBinlogOfPopArgs> pop_binlog_args;
   auto& waitting_list_of_this_key = it->second;
@@ -161,14 +162,15 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   dispatchThread->CleanKeysAfterWaitNodeCleaned();
   latch.unlock();
   WriteBinlogOfPop(pop_binlog_args);
+  slot->LockMgr()->UnLock(key);
 }
 void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args) {
-  //write binlog of l/rpop
-  for(auto& pop_arg : pop_args) {
+  // write binlog of l/rpop
+  for (auto& pop_arg : pop_args) {
     std::string pop_type;
-    if(pop_arg.block_type == BlockKeyType::Blpop){
+    if (pop_arg.block_type == BlockKeyType::Blpop) {
       pop_type = kCmdNameLPop;
-    }else if(pop_arg.block_type == BlockKeyType::Brpop){
+    } else if (pop_arg.block_type == BlockKeyType::Brpop) {
       pop_type = kCmdNameRPop;
     }
 
@@ -212,7 +214,8 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time) {
+void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys,
+                                                  int64_t expire_time) {
   std::shared_ptr<net::RedisConn> conn_to_block = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
 
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(conn_to_block->thread());
@@ -236,35 +239,12 @@ void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, s
   }
 
   // construct a list of keys and insert into this map as value(while key of the map is conn_fd)
-  conn_to_keys_.emplace(
-      conn_to_block->fd(), std::make_unique<std::list<net::BlockKey>>(blrpop_keys.begin(), blrpop_keys.end()));
-
-  //------------code for testing---------------
-  std::cout << "-------------db name:" << conn_to_block->GetCurrentTable() << "-------------" << std::endl;
-  std::cout << "from key to conn:" << std::endl;
-  for (auto& pair : key_to_conns) {
-    std::cout << "key:<" << pair.first.db_name << "," << pair.first.key << ">  list of it:" << std::endl;
-    for (auto& it : *pair.second) {
-      it.SelfPrint();
-    }
-  }
-
-  std::cout << "\n\nfrom conn to key:" << std::endl;
-  for (auto& pair : conn_to_keys_) {
-    std::cout << "fd:" << pair.first << "  related keys:" << std::endl;
-    for (auto& it : *pair.second) {
-      std::cout << " <" << it.db_name << "," << it.key << "> " << std::endl;
-    }
-  }
-  std::cout << "-----------end------------------" << std::endl;
-  //------------code for testing---------------
+  conn_to_keys_.emplace(conn_to_block->fd(),
+                        std::make_unique<std::list<net::BlockKey>>(blrpop_keys.begin(), blrpop_keys.end()));
 }
 void BlockingBaseCmd::removeDuplicates(std::vector<std::string>& keys_) {
   std::unordered_set<std::string> seen;
-
-  auto it = std::remove_if(keys_.begin(), keys_.end(), [&seen](const auto& key) {
-    return !seen.insert(key).second;
-  });
+  auto it = std::remove_if(keys_.begin(), keys_.end(), [&seen](const auto& key) { return !seen.insert(key).second; });
   keys_.erase(it, keys_.end());
 }
 
@@ -276,7 +256,7 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(value);
-      //write an binlog of lpop
+      // write an binlog of lpop
       std::vector<WriteBinlogOfPopArgs> pop_args;
       pop_args.emplace_back(BlockKeyType::Blpop, this_key, slot, GetConn());
       WriteBinlogOfPop(pop_args);
@@ -374,7 +354,7 @@ void LRangeCmd::DoInitial() {
   if (pstd::string2int(right.data(), right.size(), &right_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   rocksdb::Status s = slot->db()->LRange(key_, left_, right_, &values);
@@ -455,7 +435,7 @@ void LTrimCmd::DoInitial() {
   if (pstd::string2int(stop.data(), stop.size(), &stop_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
-  }
+}
 void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
@@ -473,7 +453,7 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(value);
-      //write an binlog of rpop
+      // write an binlog of rpop
       std::vector<WriteBinlogOfPopArgs> pop_args;
       pop_args.emplace_back(BlockKeyType::Brpop, this_key, slot, GetConn());
       WriteBinlogOfPop(pop_args);

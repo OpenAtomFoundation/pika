@@ -138,7 +138,7 @@ int ServerThread::InitHandle() {
     ips_.insert("0.0.0.0");
   }
 
-  for (const auto & ip : ips_) {
+  for (const auto& ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
     ret = socket_p->Listen(ip);
@@ -184,8 +184,8 @@ void* ServerThread::ThreadMain() {
   net::DispatchThread* dispatch_ptr = nullptr;
   if (dispatcher_ != nullptr) {
     dispatch_ptr = dynamic_cast<net::DispatchThread*>(dispatcher_);
-    dispatch_ptr->GetTimedTaskManager()->AddTimedTask("blrpop_blocking_info_scan", 200,
-                                   [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop(); });
+    dispatch_ptr->GetTimedTaskManager()->AddTimedTask(
+        "blrpop_blocking_info_scan", 200, [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop(); });
   }
 
   while (!should_stop()) {
@@ -209,7 +209,8 @@ void* ServerThread::ThreadMain() {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (dispatch_ptr != nullptr && pfe->mask == kReadable && dispatch_ptr->GetTimedTaskManager()->TryToExecTimedTask(pfe->fd, EPOLLIN)) {
+      if (dispatch_ptr != nullptr && pfe->mask == kReadable &&
+          dispatch_ptr->GetTimedTaskManager()->TryToExecTimedTask(pfe->fd, EPOLLIN)) {
         continue;
       }
 

@@ -9,9 +9,9 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace net {
 
@@ -27,7 +27,7 @@ class TimedTaskManager {
  public:
   TimedTaskManager(int epoll_fd) : epoll_fd_(epoll_fd) {}
   ~TimedTaskManager() {
-    for (auto &pair: tasks_) {
+    for (auto& pair : tasks_) {
       epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, pair.first, nullptr);
       close(pair.first);
     }
@@ -46,7 +46,8 @@ class TimedTaskManager {
       return -1;
     }
 
-    std::function<void()> new_task = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...), task_fd] {
+    std::function<void()> new_task = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...),
+                                      task_fd] {
       std::apply(f, args);
       uint64_t time_now;
       read(task_fd, &time_now, sizeof(time_now));
@@ -78,9 +79,10 @@ class TimedTaskManager {
 
   void EraseTask(int task_fd);
 
-  //no copying allowed
+  // no copying allowed
   TimedTaskManager(const TimedTaskManager& other) = delete;
   TimedTaskManager& operator=(const TimedTaskManager& other) = delete;
+
  private:
   int epoll_fd_;
   std::unordered_map<int, TimedTask> tasks_;
