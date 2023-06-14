@@ -618,10 +618,12 @@ class ScanCmd : public Cmd {
   int64_t cursor_ = 0;
   std::string pattern_ = "*";
   int64_t count_ = 10;
+  storage::DataType type_ = storage::DataType::kAll;
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";
     count_ = 10;
+    type_ = storage::DataType::kAll;
   }
 };
 

@@ -1109,7 +1109,8 @@ void ScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0) ||
+        (strcasecmp(opt.data(), "type") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1117,6 +1118,21 @@ void ScanCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
+      } else if (strcasecmp(opt.data(), "type") == 0) {
+        std::string str_type = argv_[index];
+        if (strcasecmp(str_type.data(), "string") == 0) {
+          type_ = storage::DataType::kStrings;
+        } else if (strcasecmp(str_type.data(), "zset") == 0) {
+          type_ = storage::DataType::kZSets;
+        } else if (strcasecmp(str_type.data(), "set") == 0) {
+          type_ = storage::DataType::kSets;
+        } else if (strcasecmp(str_type.data(), "list") == 0) {
+          type_ = storage::DataType::kLists;
+        } else if (strcasecmp(str_type.data(), "hash") == 0) {
+          type_ = storage::DataType::kHashes;
+        } else {
+          res_.SetRes(CmdRes::kSyntaxErr);
+        }
       } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
@@ -1142,7 +1158,7 @@ void ScanCmd::Do(std::shared_ptr<Slot> slot) {
     keys.clear();
     batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
-    cursor_ret = slot->db()->Scan(storage::DataType::kAll, cursor_ret, pattern_, batch_count, &keys);
+    cursor_ret = slot->db()->Scan(type_, cursor_ret, pattern_, batch_count, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
