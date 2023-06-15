@@ -1638,11 +1638,15 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
   return;
 }
 
+// return 0 means key not exist or key is not migrating
+// return 1 means key is migrating
+// return -1 means something wrong
 void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendArrayLen(2);
   int ret = g_pika_server->SlotsMigrateOne(key_, slot);
   switch (ret) {
-    case 0:
+    case 0 :
+    case -2:
       res_.AppendInteger(0);
       res_.AppendInteger(0);
       return;

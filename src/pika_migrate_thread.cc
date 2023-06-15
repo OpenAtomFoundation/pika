@@ -688,7 +688,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, std::shared_ptr<Slo
 
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
-    return -1;
+    return -2;
   }
 
   // if the migrate thread exit, start it
