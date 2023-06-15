@@ -128,6 +128,9 @@ enum TaskType {
   kBgSave,
 };
 
+void DoBgslotscleanup(void* arg);
+void DoBgslotsreload(void* arg);
+
 class PikaServer : public pstd::noncopyable {
  public:
   PikaServer();
@@ -332,6 +335,119 @@ class PikaServer : public pstd::noncopyable {
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
 
+  std::shared_mutex bgsave_protector_;
+  BgSaveInfo bgsave_info_;
+
+  /*
+ * BGSlotsReload used
+   */
+  struct BGSlotsReload {
+    bool reloading;
+    time_t start_time;
+    std::string s_start_time;
+    int64_t cursor;
+    std::string pattern;
+    int64_t count;
+    std::shared_ptr<Slot> slot;
+    BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100) {}
+    void Clear() {
+      reloading = false;
+      pattern = "*";
+      count = 100;
+      cursor = 0;
+    }
+  };
+
+  BGSlotsReload bgslots_reload_;
+
+  BGSlotsReload bgslots_reload() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_reload_;
+  }
+  bool GetSlotsreloading() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_reload_.reloading;
+  }
+  void SetSlotsreloading(bool reloading) {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_reload_.reloading = reloading;
+  }
+  void SetSlotsreloadingCursor(int64_t cursor) {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_reload_.cursor = cursor;
+  }
+  int64_t GetSlotsreloadingCursor() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_reload_.cursor;
+  }
+  void Bgslotsreload(std::shared_ptr<Slot> slot);
+
+  /*
+   * BGSlotsCleanup used
+   */
+  struct BGSlotsCleanup {
+    bool cleaningup;
+    time_t start_time;
+    std::string s_start_time;
+    int64_t cursor;
+    std::string pattern;
+    int64_t count;
+    std::shared_ptr<Slot> slot;
+    storage::DataType type_;
+    std::vector<int> cleanup_slots;
+    BGSlotsCleanup() : cleaningup(false), cursor(0), pattern("*"), count(100){}
+    void Clear() {
+      cleaningup = false;
+      pattern = "*";
+      count = 100;
+      cursor = 0;
+    }
+  };
+
+  /*
+   * BGSlotsCleanup use
+   */
+  BGSlotsCleanup bgslots_cleanup_;
+  net::BGThread bgslots_cleanup_thread_;
+
+
+  BGSlotsCleanup bgslots_cleanup() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_cleanup_;
+  }
+  bool GetSlotscleaningup() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_cleanup_.cleaningup;
+  }
+  void SetSlotscleaningup(bool cleaningup) {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.cleaningup = cleaningup;
+  }
+  void SetSlotscleaningupCursor(int64_t cursor) {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.cursor = cursor;
+  }
+  int64_t GetSlotscleaningupCursor() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_cleanup_.cursor;
+  }
+  void SetCleanupSlots(std::vector<int> cleanup_slots) {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
+  }
+  std::vector<int> GetCleanupSlots() {
+    std::lock_guard ml(bgsave_protector_);
+    return bgslots_cleanup_.cleanup_slots;
+  }
+  void Bgslotscleanup(std::vector<int> cleanup_slots, std::shared_ptr<Slot> slot);
+  void StopBgslotscleanup() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.cleaningup = false;
+    std::vector<int> cleanup_slots;
+    bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
+  }
+
+
   /*
    * StorageOptions used
    */
@@ -340,10 +456,6 @@ class PikaServer : public pstd::noncopyable {
 
   friend class Cmd;
   friend class InfoCmd;
-  friend class PkClusterAddSlotsCmd;
-  friend class PkClusterDelSlotsCmd;
-  friend class PkClusterAddDBCmd;
-  friend class PkClusterDelDBCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
@@ -392,15 +504,15 @@ class PikaServer : public pstd::noncopyable {
    * Slave used
    */
   std::string master_ip_;
-  int master_port_  = 0;
-  int repl_state_  = PIKA_REPL_NO_CONNECT;
+  int master_port_ = 0;
+  int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
   bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;
-  bool leader_protected_mode_ = false;        // reject request after master slave sync done
-  std::shared_mutex state_protector_;         // protect below, use for master-slave mode
+  bool leader_protected_mode_ = false;  // reject request after master slave sync done
+  std::shared_mutex state_protector_;   // protect below, use for master-slave mode
 
   /*
    * Bgsave used
@@ -460,7 +572,6 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
-
 };
 
 #endif

@@ -118,22 +118,6 @@ static int setGetall(const std::string key, std::vector<std::string> *members, s
   return 1;
 }
 
-// get one zset key all values
-static int zsetGetall(const std::string key, std::vector<storage::ScoreMember> *score_members,
-                      std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->ZRange(key, 0, -1, score_members);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "zset get key: " << key << " not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "zset get key: " << key << " value error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 1;
-}
-
 static int MigrateKv(net::NetCli *cli, const std::string key, std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->Get(key, &value);

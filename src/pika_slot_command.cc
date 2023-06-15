@@ -963,20 +963,6 @@ int DeleteKey(const std::string key, const char key_type, std::shared_ptr<Slot> 
   return 1;
 }
 
-// get all hash field and values
-static int hashGetall(const std::string key, std::vector<storage::FieldValue> *fvs, std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->HGetall(key, fvs);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "HGetall key: " << key << " not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "HGetall key: " << key << " error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 1;
-}
 
 // get list key all values
 static int listGetall(const std::string key, std::vector<std::string> *values, std::shared_ptr<Slot> slot) {
@@ -993,36 +979,6 @@ static int listGetall(const std::string key, std::vector<std::string> *values, s
   return 1;
 }
 
-// get set key all values
-static int setGetall(const std::string key, std::vector<std::string> *members, std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->SMembers(key, members);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "Set get key: " << key << " value not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "Set get key: " << key << " value error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 1;
-}
-
-// get one zset key all values
-static int zsetGetall(const std::string key, std::vector<storage::ScoreMember> *score_members,
-                      std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->ZRange(key, 0, -1, score_members);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "zset get key: " << key << " not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "zset get key: " << key << " value error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 1;
-}
 
 void SlotsMgrtTagSlotCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1659,5 +1615,81 @@ void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendInteger(-1);
       return;
   }
+  return;
+}
+
+void SlotsReloadCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsReload);
+  }
+  return;
+}
+
+void SlotsReloadCmd::Do(std::shared_ptr<Slot> slot) {
+  g_pika_server->Bgslotsreload(slot);
+  const PikaServer::BGSlotsReload& info = g_pika_server->bgslots_reload();
+  char buf[256];
+  snprintf(buf, sizeof(buf), "+%s : %lu",
+           info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
+  res_.AppendContent(buf);
+  return;
+}
+
+void SlotsReloadOffCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsReloadOff);
+  }
+  return;
+}
+
+void SlotsReloadOffCmd::Do(std::shared_ptr<Slot>slot) {
+  g_pika_server->SetSlotsreloading(false);
+  res_.SetRes(CmdRes::kOk);
+  return;
+}
+
+
+void SlotsCleanupCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsCleanup);
+  }
+
+  PikaCmdArgsType::const_iterator iter = argv_.begin() + 1; //Remember the first args is the opt name
+  std::string slot;
+  long slotLong;
+  std::vector<int> slots;
+  for (; iter != argv_.end(); iter++){
+    slot = *iter;
+    if (!pstd::string2int(slot.data(), slot.size(), &slotLong) || slotLong < 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+    slots.push_back(int(slotLong));
+  }
+  cleanup_slots_.swap(slots);
+  return;
+}
+
+void SlotsCleanupCmd::Do(std::shared_ptr<Slot> slot) {
+  g_pika_server->Bgslotscleanup(cleanup_slots_, slot);
+  std::vector<int> cleanup_slots(g_pika_server->GetCleanupSlots());
+  res_.AppendArrayLen(cleanup_slots.size());
+  std::vector<int>::const_iterator iter = cleanup_slots.begin();
+  for (; iter != cleanup_slots.end(); iter++){
+    res_.AppendInteger(*iter);
+  }
+  return;
+}
+
+void SlotsCleanupOffCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsCleanupOff);
+  }
+  return;
+}
+
+void SlotsCleanupOffCmd::Do(std::shared_ptr<Slot> slot) {
+  g_pika_server->StopBgslotscleanup();
+  res_.SetRes(CmdRes::kOk);
   return;
 }

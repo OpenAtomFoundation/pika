@@ -1558,3 +1558,130 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
   pika_migrate_thread_->CancelMigrate();
   return true;
 }
+
+void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
+  // Only one thread can go through
+  {
+    std::lock_guard ml(bgsave_protector_);
+    if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+      return;
+    }
+    bgslots_reload_.reloading = true;
+  }
+
+  bgslots_reload_.start_time = time(nullptr);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
+  bgslots_reload_.s_start_time.assign(s_time, len);
+  bgslots_reload_.cursor = 0;
+  bgslots_reload_.pattern = "*";
+  bgslots_reload_.count = 100;
+  bgslots_reload_.slot = slot;
+
+  LOG(INFO) << "Start slot reloading";
+
+  // Start new thread if needed
+  bgsave_thread_.StartThread();
+  bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
+}
+
+void DoBgslotsreload(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  PikaServer::BGSlotsReload reload = p->bgslots_reload();
+
+  // Do slotsreload
+  rocksdb::Status s;
+  std::vector<std::string> keys;
+  int64_t cursor_ret = -1;
+  while(cursor_ret != 0 && p->GetSlotsreloading()){
+    cursor_ret = reload.slot->db()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
+
+    std::vector<std::string>::const_iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++){
+      std::string key_type;
+
+      int s = GetKeyType(*iter, key_type, reload.slot);
+      //if key is slotkey, can't add to SlotKey
+      if (s > 0){
+        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
+          continue;
+        }
+
+        AddSlotKey(key_type, *iter, reload.slot);
+      }
+    }
+
+    reload.cursor = cursor_ret;
+    p->SetSlotsreloadingCursor(cursor_ret);
+    keys.clear();
+  }
+  p->SetSlotsreloading(false);
+
+  if (cursor_ret == 0) {
+    LOG(INFO) << "Finish slot reloading";
+  } else{
+    LOG(INFO) << "Stop slot reloading";
+  }
+}
+
+void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<Slot> slot) {
+  // Only one thread can go through
+  {
+    std::lock_guard ml(bgsave_protector_);
+    if (bgslots_cleanup_.cleaningup || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+      return;
+    }
+    bgslots_cleanup_.cleaningup = true;
+  }
+
+  bgslots_cleanup_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
+  bgslots_cleanup_.s_start_time.assign(s_time, len);
+  bgslots_cleanup_.cursor = 0;
+  bgslots_cleanup_.pattern = "*";
+  bgslots_cleanup_.count = 100;
+  bgslots_cleanup_.slot = slot;
+  bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
+  LOG(INFO) << "Start slot cleanup!";
+
+  // Start new thread if needed
+  bgslots_cleanup_thread_.StartThread();
+  bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
+}
+
+void DoBgslotscleanup(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
+
+  // Do slotscleanup
+  std::vector<std::string> keys;
+  int64_t cursor_ret = -1;
+  std::vector<int> cleanupSlots(cleanup.cleanup_slots);
+  while (cursor_ret != 0 && p->GetSlotscleaningup()){
+    cursor_ret = g_pika_server->bgslots_cleanup_.slot->db()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
+
+    std::string key_type;
+    std::vector<std::string>::const_iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++){
+      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos){
+        continue;
+      }
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
+        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.slot) > 0){
+          if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.slot) <= 0){
+            LOG(WARNING) << "BG slots_cleanup slot " << GetSlotID(*iter) << " key "<< *iter << " error";
+          }
+        }
+      }
+    }
+
+    cleanup.cursor = cursor_ret;
+    p->SetSlotscleaningupCursor(cursor_ret);
+    keys.clear();
+  }
+  p->SetSlotscleaningup(false);
+  std::vector<int> empty;
+  p->SetCleanupSlots(empty);
+  LOG(INFO) << "Finish slots cleanup!";
+}
