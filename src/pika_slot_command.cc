@@ -642,8 +642,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
     keys.push_back(key);
     int64_t count = slot->db()->Del(keys, &type_status);
     if (count > 0) {
-      // todo add bin log
-      //      WriteDelKeyToBinlog(key);
+      WriteDelKeyToBinlog(key, slot);
     }
 
     // del slots info

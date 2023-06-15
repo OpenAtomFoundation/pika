@@ -1,10 +1,15 @@
 #include <glog/logging.h>
 
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
+
+#include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
@@ -13,6 +18,8 @@ const std::string INVALID_STR = "NL";
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // do migrate key to dest pika server
 static int doMigrate(net::NetCli *cli, std::string send_str) {
@@ -472,8 +479,23 @@ void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char,
                                                 std::shared_ptr<Slot> slot) {
   for (auto iter = send_keys.begin(); iter != send_keys.end(); ++iter) {
     DeleteKey(iter->second, iter->first, slot);
-    // todo add to binlog
-    //    WriteDelKeyToBinlog(iter->second, slot);
+    WriteDelKeyToBinlog(iter->second, slot);
+  }
+}
+
+// write del key to binlog for slave
+void WriteDelKeyToBinlog(const std::string &key, std::shared_ptr<Slot> slot) {
+  std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("del");
+  std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
+  args->push_back("DEL");
+  args->push_back(key);
+  cmd_ptr->Initial(*args, slot->GetDBName());
+
+  std::shared_ptr<SyncMasterSlot> sync_slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
+  Status s = sync_slot->ConsensusProposeLog(cmd_ptr);
+  if (!s.ok()) {
+    LOG(INFO) << "write delete key to binlog failed, key: " << key;
   }
 }
 

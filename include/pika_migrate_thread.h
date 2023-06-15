@@ -15,6 +15,7 @@
 #  include "storage/storage.h"
 #  include "strings.h"
 
+void WriteDelKeyToBinlog(const std::string &key, std::shared_ptr<Slot> slot);
 static int DoMigrate(net::NetCli *cli, std::string send_str);
 
 class PikaMigrateThread;
