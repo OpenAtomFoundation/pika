@@ -900,6 +900,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
       if (count > 0) {
         count = count <= size ? count : size;
         while (targets.size() < static_cast<size_t>(count)) {
+          engine.seed(last_seed);
           last_seed = engine();
           uint32_t pos = last_seed % size;
           if (unique.find(pos) == unique.end()) {
@@ -910,6 +911,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
       } else {
         count = -count;
         while (targets.size() < static_cast<size_t>(count)) {
+          engine.seed(last_seed);
           last_seed = engine();
           targets.push_back(last_seed % size);
         }
