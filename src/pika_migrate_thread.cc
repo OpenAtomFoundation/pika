@@ -423,7 +423,7 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
   LOG(INFO) << "PikaParseSendThread init cli_, dest_ip_: " << dest_ip_ << " ,dest_port_: " << dest_port_;
   pstd::Status result = cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
   if (!result.ok()) {
-    LOG(INFO) << "PikaParseSendThread::Init failed. Connect server(" << dest_ip_ << ":" << dest_port_ << ") "
+    LOG(ERROR) << "PikaParseSendThread::Init failed. Connect server(" << dest_ip_ << ":" << dest_port_ << ") "
               << result.ToString();
     return false;
   }

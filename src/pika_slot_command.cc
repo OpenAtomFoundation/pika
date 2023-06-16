@@ -7,8 +7,11 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
+#include "include/pika_define.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
@@ -16,6 +19,10 @@
 #include "include/pika_command.h"
 #include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
+
+#include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
@@ -991,7 +998,6 @@ int DeleteKey(const std::string key, const char key_type, const std::shared_ptr<
   return 1;
 }
 
-
 // get list key all values
 static int listGetall(const std::string key, std::vector<std::string> *values, std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LRange(key, 0, -1, values);
@@ -1006,7 +1012,6 @@ static int listGetall(const std::string key, std::vector<std::string> *values, s
   }
   return 1;
 }
-
 
 void SlotsMgrtTagSlotCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1425,6 +1430,22 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
+  int32_t remained = 0;
+  std::string slotKey = GetSlotKey(slot_id_);
+  storage::Status status = slot->db()->SCard(slotKey, &remained);
+  if (status.IsNotFound()) {
+    LOG(INFO) << "find no record in slot " << slot_id_;
+    res_.AppendArrayLen(2);
+    res_.AppendInteger(0);
+    res_.AppendInteger(remained);
+    return;
+  }
+  if (!status.ok()) {
+    LOG(WARNING) << "Slot batch migrate keys get result error";
+    res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys get result error");
+    return;
+  }
+
   bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_id_, keys_num_, slot);
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
@@ -1432,18 +1453,9 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  int32_t remained = 0;
-  std::string slotKey = GetSlotKey(slot_id_);
-  storage::Status status = slot->db()->SCard(slotKey, &remained);
-  if (status.ok()) {
-    res_.AppendArrayLen(2);
-    res_.AppendInteger(0);
-    res_.AppendInteger(remained);
-  } else {
-    LOG(WARNING) << "Slot batch migrate keys get result error";
-    res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys get result error");
-    return;
-  }
+  res_.AppendArrayLen(2);
+  res_.AppendInteger(0);
+  res_.AppendInteger(remained);
   return;
 }
 
@@ -1628,7 +1640,7 @@ void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendArrayLen(2);
   int ret = g_pika_server->SlotsMigrateOne(key_, slot);
   switch (ret) {
-    case 0 :
+    case 0:
     case -2:
       res_.AppendInteger(0);
       res_.AppendInteger(0);
@@ -1654,10 +1666,9 @@ void SlotsReloadCmd::DoInitial() {
 
 void SlotsReloadCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_server->Bgslotsreload(slot);
-  const PikaServer::BGSlotsReload& info = g_pika_server->bgslots_reload();
+  const PikaServer::BGSlotsReload &info = g_pika_server->bgslots_reload();
   char buf[256];
-  snprintf(buf, sizeof(buf), "+%s : %lu",
-           info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
+  snprintf(buf, sizeof(buf), "+%s : %lu", info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
   res_.AppendContent(buf);
   return;
 }
@@ -1669,23 +1680,22 @@ void SlotsReloadOffCmd::DoInitial() {
   return;
 }
 
-void SlotsReloadOffCmd::Do(std::shared_ptr<Slot>slot) {
+void SlotsReloadOffCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_server->SetSlotsreloading(false);
   res_.SetRes(CmdRes::kOk);
   return;
 }
-
 
 void SlotsCleanupCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsCleanup);
   }
 
-  PikaCmdArgsType::const_iterator iter = argv_.begin() + 1; //Remember the first args is the opt name
+  PikaCmdArgsType::const_iterator iter = argv_.begin() + 1;
   std::string slot;
   long slotLong;
   std::vector<int> slots;
-  for (; iter != argv_.end(); iter++){
+  for (; iter != argv_.end(); iter++) {
     slot = *iter;
     if (!pstd::string2int(slot.data(), slot.size(), &slotLong) || slotLong < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
@@ -1702,7 +1712,7 @@ void SlotsCleanupCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<int> cleanup_slots(g_pika_server->GetCleanupSlots());
   res_.AppendArrayLen(cleanup_slots.size());
   std::vector<int>::const_iterator iter = cleanup_slots.begin();
-  for (; iter != cleanup_slots.end(); iter++){
+  for (; iter != cleanup_slots.end(); iter++) {
     res_.AppendInteger(*iter);
   }
   return;
