@@ -562,6 +562,26 @@ set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
+ExternalProject_Add(openrsync
+  URL
+  https://github.com/pikiwidb/openrsync/archive/refs/tags/v0.1.0.tar.gz
+  URL_HASH
+  MD5=d45b3c530b52998977aef4d5494c4efb
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_COMMAND
+  ${PROJECT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/openrsync/configure &&
+  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} all
+  INSTALL_COMMAND
+  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
+)
+
+set(LIB_OPENRSYNC libopenrsync.a)
+set(OPENRSYNC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(OPENRSYNC_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
+
 ExternalProject_Add(rocksdb
   DEPENDS
   gflags
@@ -753,7 +773,8 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  storage
+  openrsync)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -775,7 +796,8 @@ target_link_libraries(${PROJECT_NAME}
   liblz4.a
   libz.a
   ${LIBUNWIND_LIBRARY}
-  ${JEMALLOC_LIBRARY})
+  ${JEMALLOC_LIBRARY}
+  ${LIB_OPENRSYNC})
 
 option(USE_SSL "Enable SSL support" OFF)
 add_custom_target(
