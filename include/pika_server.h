@@ -213,7 +213,7 @@ class PikaServer : public pstd::noncopyable {
   bool LoopSlotStateMachine();
   void SetLoopSlotStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
-  void UpdateMetaSyncTimestamp();
+  void UpdateMetaSyncTimestamp(bool need_lock = true);
   bool IsFirstMetaSync();
   void SetFirstMetaSync(bool v);
 
