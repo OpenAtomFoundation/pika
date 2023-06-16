@@ -13,12 +13,21 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 #include "storage/include/storage/storage.h"
+#include "include/pika_command.h"
+#include "include/pika_define.h"
+#include "include/pika_migrate_thread.h"
+
+#include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 uint32_t crc32tab[256];
 void CRC32TableInit(uint32_t poly) {
@@ -811,6 +820,7 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
     LOG(ERROR) << "sadd key[" << key << "] to slotKey[" << slot_key << "] failed, error: " << s.ToString();
     return;
   }
+  WriteSAddToBinlog(slot_key, members.front(), slot);
 
   // if res == 0, indicate the key is existed; may return,
   // prevent write slot_key success, but write tag_key failed, so always write tag_key
@@ -821,6 +831,24 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
       LOG(ERROR) << "sadd key[" << key << "] to tagKey[" << tag_key << "] failed, error: " << s.ToString();
       return;
     }
+    WriteSAddToBinlog(tag_key, members.front(), slot);
+  }
+}
+
+// write sadd key to binlog for slave
+void WriteSAddToBinlog(const std::string &key, const std::string &value, std::shared_ptr<Slot> slot) {
+  std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("sadd");
+  std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
+  args->push_back("SADD");
+  args->push_back(key);
+  args->push_back(value);
+  cmd_ptr->Initial(*args, slot->GetDBName());
+
+  std::shared_ptr<SyncMasterSlot> sync_slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
+  Status s = sync_slot->ConsensusProposeLog(cmd_ptr);
+  if (!s.ok()) {
+    LOG(ERROR) << "write sadd key to binlog failed, key: " << key;
   }
 }
 

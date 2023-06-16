@@ -36,6 +36,7 @@ std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
 void SlotKeyRemByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot);
+void WriteSAddToBinlog(const std::string &key, const std::string &value, const std::shared_ptr<Slot>& slot);
 
 class PikaMigrate {
  public:
