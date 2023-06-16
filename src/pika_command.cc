@@ -118,7 +118,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> slotsmgrtexecwrapper =
       std::make_unique<SlotsMgrtExecWrapperCmd>(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtExecWrapper, std::move(slotsmgrtexecwrapper)));
-  std::unique_ptr<Cmd> slotsreloadptr = std::make_unique<SlotsReloadCmd>(kCmdNameSlotsReload, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  std::unique_ptr<Cmd> slotsreloadptr = std::make_unique<SlotsReloadCmd>(kCmdNameSlotsReload, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsReload, std::move(slotsreloadptr)));
   std::unique_ptr<Cmd> slotsreloadoffptr = std::make_unique<SlotsReloadOffCmd>(kCmdNameSlotsReloadOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsReloadOff, std::move(slotsreloadoffptr)));

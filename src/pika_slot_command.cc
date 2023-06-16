@@ -986,6 +986,7 @@ int DeleteKey(const std::string key, const char key_type, const std::shared_ptr<
     LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(key) << " error";
     return -1;
   }
+  WriteDelKeyToBinlog(key, slot);
 
   return 1;
 }

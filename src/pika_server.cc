@@ -1643,7 +1643,10 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
   bgslots_cleanup_.count = 100;
   bgslots_cleanup_.slot = slot;
   bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
-  LOG(INFO) << "Start slot cleanup!";
+
+  std::string slotsStr;
+  slotsStr.assign(cleanupSlots.begin(), cleanupSlots.end());
+  LOG(INFO) << "Start slot cleanup, slots: " << slotsStr << std::endl;
 
   // Start new thread if needed
   bgslots_cleanup_thread_.StartThread();
@@ -1668,10 +1671,13 @@ void DoBgslotscleanup(void* arg) {
         continue;
       }
       if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
-        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.slot) > 0){
-          if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.slot) <= 0){
-            LOG(WARNING) << "BG slots_cleanup slot " << GetSlotID(*iter) << " key "<< *iter << " error";
-          }
+        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.slot) <= 0) {
+          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
+          continue ;
+        }
+
+        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.slot) <= 0){
+          LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
         }
       }
     }
@@ -1680,8 +1686,17 @@ void DoBgslotscleanup(void* arg) {
     p->SetSlotscleaningupCursor(cursor_ret);
     keys.clear();
   }
+
+  for (std::vector<int>::const_iterator iter = cleanupSlots.begin(); iter != cleanupSlots.end(); iter++){
+    WriteDelKeyToBinlog(GetSlotKey(*iter), g_pika_server->bgslots_cleanup_.slot);
+    WriteDelKeyToBinlog(GetSlotsTagKey(*iter), g_pika_server->bgslots_cleanup_.slot);
+  }
+
   p->SetSlotscleaningup(false);
   std::vector<int> empty;
   p->SetCleanupSlots(empty);
-  LOG(INFO) << "Finish slots cleanup!";
+
+  std::string slotsStr;
+  slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
+  LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
 }
