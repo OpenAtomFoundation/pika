@@ -598,9 +598,7 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot,
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     do_duration_ += pstd::NowMicros() - start_us;
   }
-
-    DoBinlog(sync_slot);
-
+  DoBinlog(sync_slot);
 
   if (is_write()) {
     record_lock.Unlock(current_key());

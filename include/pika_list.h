@@ -135,11 +135,6 @@ class LPopCmd : public Cmd {
   void DoInitial() override;
 };
 
-class BPopServeCmd : public Cmd {
- public:
-  BPopServeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-
-};
 
 class LPushCmd : public BlockingBaseCmd {
  public:
