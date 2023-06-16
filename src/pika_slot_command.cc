@@ -836,7 +836,7 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
 }
 
 // write sadd key to binlog for slave
-void WriteSAddToBinlog(const std::string &key, const std::string &value, std::shared_ptr<Slot> slot) {
+void WriteSAddToBinlog(const std::string &key, const std::string &value, const std::shared_ptr<Slot>& slot) {
   std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("sadd");
   std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
   args->push_back("SADD");

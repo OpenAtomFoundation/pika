@@ -83,7 +83,7 @@ static int kvGet(const std::string key, std::string &value, const std::shared_pt
 }
 
 static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataType data_type,
-                         std::shared_ptr<Slot> slot) {
+                         const std::shared_ptr<Slot>& slot) {
   net::RedisCmdArgsType argv;
   std::string send_str;
   std::map<storage::DataType, int64_t> type_timestamp;
@@ -476,7 +476,7 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key, 
 }
 
 void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys,
-                                                std::shared_ptr<Slot> slot) {
+                                                const std::shared_ptr<Slot>& slot) {
   for (auto iter = send_keys.begin(); iter != send_keys.end(); ++iter) {
     DeleteKey(iter->second, iter->first, slot);
     WriteDelKeyToBinlog(iter->second, slot);

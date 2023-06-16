@@ -51,7 +51,7 @@ class PikaMigrateThread : public net::Thread {
   PikaMigrateThread();
   virtual ~PikaMigrateThread();
   bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num, int64_t keys_num,
-                       std::shared_ptr<Slot> slot);
+                       const std::shared_ptr<Slot>& slot);
   int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
   void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
                         int64_t *remained);
