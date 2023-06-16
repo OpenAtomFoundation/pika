@@ -558,7 +558,7 @@ void *PikaParseSendThread::ThreadMain() {
     for (auto iter = send_keys.begin(); iter != send_keys.end(); ++iter) {
       if (0 > (send_num = MigrateOneKey(cli_, iter->second, iter->first, false))) {
         LOG(WARNING) << "PikaParseSendThread::ThreadMain MigrateOneKey: " << iter->second << " failed !!!";
-        migrate_thread_->TaskFailed();
+        migrate_thread_->OnTaskFailed();
         migrate_thread_->DecWorkingThreadNum();
         return NULL;
       } else {
@@ -570,7 +570,7 @@ void *PikaParseSendThread::ThreadMain() {
     // check response
     if (!CheckMigrateRecv(need_receive_num)) {
       LOG(INFO) << "PikaMigrateThread::ThreadMain CheckMigrateRecv failed !!!";
-      migrate_thread_->TaskFailed();
+      migrate_thread_->OnTaskFailed();
       migrate_thread_->DecWorkingThreadNum();
       return NULL;
     } else {
@@ -772,8 +772,8 @@ void PikaMigrateThread::DecWorkingThreadNum(void) {
   workers_cond_.notify_one();
 }
 
-void PikaMigrateThread::TaskFailed() {
-  LOG(ERROR) << "PikaMigrateThread::TaskFailed !!!";
+void PikaMigrateThread::OnTaskFailed() {
+  LOG(ERROR) << "PikaMigrateThread::OnTaskFailed !!!";
   is_task_success_ = false;
 }
 

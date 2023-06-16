@@ -58,7 +58,7 @@ class PikaMigrateThread : public net::Thread {
   void CancelMigrate(void);
   void IncWorkingThreadNum(void);
   void DecWorkingThreadNum(void);
-  void TaskFailed(void);
+  void OnTaskFailed(void);
   void AddResponseNum(int32_t response_num);
 
  private:

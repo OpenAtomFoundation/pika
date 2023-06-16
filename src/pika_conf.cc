@@ -175,7 +175,7 @@ int PikaConf::Load() {
   // slot migrate
   std::string smgrt = "no";
   GetConfStr("slotmigrate", &smgrt);
-  slotmigrate_ =  (smgrt == "yes") ? true : false;
+  slotmigrate_ = (smgrt == "yes") ? true : false;
 
   int binlog_writer_num = 1 ;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
