@@ -124,7 +124,6 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
     // add a new migrate client to the map
     migrate_clients_[ip_port] = migrate_cli;
   } else {
-    // LOG(INFO) << "GetMigrateClient: find  migrate_cli[" << ip_port.c_str() << "]";
     migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
   }
 
@@ -133,7 +132,6 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
   migrate_cli->set_recv_timeout(timeout);
 
   // modify the client last time
-  //  migrate_cli->
   gettimeofday(&migrate_cli->last_interaction_, NULL);
 
   return migrate_cli;
@@ -292,8 +290,6 @@ bool PikaMigrate::MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::s
     // rpush return length
     if (argv.size() == 1 &&
         (kInnerReplOk == pstd::StringToLower(reply) || pstd::string2int(reply.data(), reply.size(), &ret))) {
-      // success
-
       // continue reiceve response
       if (need_receive > 0) {
         continue;
@@ -927,41 +923,10 @@ int GetKeyType(const std::string key, std::string &key_type, const std::shared_p
   return 1;
 }
 
-// do migrate cli auth
-static int doAuth(net::NetCli *cli) {
-  net::RedisCmdArgsType argv;
-  std::string wbuf_str;
-  std::string requirepass = g_pika_conf->requirepass();
-  if (requirepass != "") {
-    argv.push_back("auth");
-    argv.push_back(requirepass);
-  } else {
-    argv.push_back("ping");
-  }
-  net::SerializeRedisCommand(argv, &wbuf_str);
-
-  pstd::Status s;
-  s = cli->Send(&wbuf_str);
-  if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate auth Send error: " << s.ToString();
-    return -1;
-  }
-  // Recv
-  s = cli->Recv(&argv);
-  if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate auth Recv error: " << s.ToString();
-    return -1;
-  }
-  pstd::StringToLower(argv[0]);
-  if (argv[0] != "ok" && argv[0] != "pong" && argv[0].find("no password") == std::string::npos) {
-    LOG(WARNING) << "Slot Migrate auth error: " << argv[0];
-    return -1;
-  }
-  return 0;
+// get slotstagkey by key
+std::string GetSlotsTagKey(uint32_t crc) {
+  return SlotTagPrefix + std::to_string(crc);
 }
-
-// rocksdb namespace function
-std::string GetSlotsTagKey(uint32_t crc) { return SlotTagPrefix + std::to_string(crc); }
 
 // delete key from db
 int DeleteKey(const std::string key, const char key_type, const std::shared_ptr<Slot>& slot) {

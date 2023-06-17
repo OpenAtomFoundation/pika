@@ -1,10 +1,5 @@
 #ifndef PIKA_MIGRATE_THREAD_H_
-#  define PIKA_MIGRATE_THREAD_H_
-
-// #  include <atomic>
-// #  include <deque>
-// #  include <string>
-// #  include <vector>
+#define PIKA_MIGRATE_THREAD_H_
 
 #  include "include/pika_client_conn.h"
 #  include "include/pika_command.h"
@@ -28,7 +23,6 @@ class PikaParseSendThread : public net::Thread {
   void ExitThread(void);
 
  private:
-  //  int MigrateOneKey(const char key_type, const std::string key);
   int MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async);
   void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
