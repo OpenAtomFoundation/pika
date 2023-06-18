@@ -878,7 +878,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
   }
 
   members->clear();
-  int32_t last_seed = time(nullptr);
+  int64_t last_seed = pstd::NowMicros();
   std::default_random_engine engine;
 
   std::string meta_value;
