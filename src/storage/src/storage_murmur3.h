@@ -15,8 +15,6 @@
 
 // Microsoft Visual Studio
 
-namespace storage {
-
 #if defined(_MSC_VER)
 
 typedef unsigned char uint8_t;
@@ -30,6 +28,8 @@ typedef unsigned __int64 uint64_t;
 #  include <cstdint>
 
 #endif  // !defined(_MSC_VER)
+
+namespace storage {
 
 #define FORCE_INLINE __attribute__((always_inline))
 

@@ -47,6 +47,11 @@ jobs:
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: ctest -C ${{env.BUILD_TYPE}}
 
+      - name: Unit Test
+        working-directory: ${{github.workspace}}
+        run: |
+          ./pikatests.sh all
+
       - name: Start Pika
         run: cd ${{github.workspace}} && cd build/ && make && ls -l && cd .. && chmod +x ./build/pika && ./build/pika -c ./conf/pika.conf
 
