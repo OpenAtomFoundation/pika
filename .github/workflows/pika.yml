@@ -61,9 +61,14 @@ jobs:
       - name: Start pika master and slave
         working-directory: ${{github.workspace}}/build
         run: |
-          chmod +x ../tests/start_master_and_slave.sh
-          ../tests/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        working-directory: ${{github.workspace}}/build
+        run: |
           python3 ../tests/integration/rpoplpush_replication_test.py
+
 
   build_on_centos:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.

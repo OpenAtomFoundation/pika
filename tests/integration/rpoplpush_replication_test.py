@@ -89,5 +89,6 @@ def test_master_slave_replication():
             f"Expected:master.lindex('blist', i) == slave.linex('blist', i), but got False when i = {i}"
     print("test_master_slave_replication OK [✓]")
 
+
 test_master_slave_replication()
 
