@@ -1,14 +1,14 @@
 #ifndef PIKA_MIGRATE_THREAD_H_
 #define PIKA_MIGRATE_THREAD_H_
 
-#  include "include/pika_client_conn.h"
-#  include "include/pika_command.h"
-#  include "include/pika_slot.h"
-#  include "net/include/net_cli.h"
-#  include "net/include/net_thread.h"
-#  include "pika_client_conn.h"
-#  include "storage/storage.h"
-#  include "strings.h"
+#include "include/pika_client_conn.h"
+#include "include/pika_command.h"
+#include "include/pika_slot.h"
+#include "net/include/net_cli.h"
+#include "net/include/net_thread.h"
+#include "pika_client_conn.h"
+#include "storage/storage.h"
+#include "strings.h"
 
 void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot);
 static int DoMigrate(net::NetCli *cli, std::string send_str);
@@ -34,8 +34,8 @@ class PikaParseSendThread : public net::Thread {
   int64_t timeout_ms_ = 60;
   int32_t mgrtkeys_num_ = 0;
   std::atomic<bool> should_exit_;
-  PikaMigrateThread *migrate_thread_;
-  net::NetCli *cli_;
+  PikaMigrateThread *migrate_thread_ = nullptr;
+  net::NetCli *cli_ = nullptr;
   pstd::Mutex working_mutex_;
   std::shared_ptr<Slot> slot_;
 };

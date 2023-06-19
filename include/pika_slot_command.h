@@ -48,15 +48,12 @@ class PikaMigrate {
   void CleanMigrateClient();
 
   void Lock() {
-    LOG(INFO) << "migrate lock";
     mutex_.lock();
   }
   int Trylock() {
-    LOG(INFO) << "migrate trylock";
     return mutex_.try_lock();
   }
   void Unlock() {
-    LOG(INFO) << "migrate unlock";
     mutex_.unlock();
   }
   net::NetCli *GetMigrateClient(const std::string &host, const int port, int timeout);

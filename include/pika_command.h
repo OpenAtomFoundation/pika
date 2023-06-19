@@ -221,9 +221,9 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskPreDo            = 512,
-  kCmdFlagsMaskCacheDo          = 1024,
-  kCmdFlagsMaskPostDo           = 2048,
+  kCmdFlagsMaskPreDo  = 512,
+  kCmdFlagsMaskCacheDo  = 1024,
+  kCmdFlagsMaskPostDo  = 2048,
   kCmdFlagsMaskSlot = 1536
 };
 
