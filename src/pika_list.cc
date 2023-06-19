@@ -80,13 +80,6 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-struct BlrPopUnblockTaskArgs {
-  std::string key;
-  std::shared_ptr<Slot> slot;
-  net::DispatchThread* dispatchThread;
-  BlrPopUnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
-};
 
 void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
@@ -107,31 +100,30 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
     }
   }
 
-  auto* args = new BlrPopUnblockTaskArgs(key, std::move(slot), dispatchThread);
+  auto* args = new UnblockTaskArgs(key, std::move(slot), dispatchThread);
   g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args);
 }
 void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
-  auto bg_args = std::unique_ptr<BlrPopUnblockTaskArgs>(static_cast<BlrPopUnblockTaskArgs*>(args));
+  auto bg_args = std::unique_ptr<UnblockTaskArgs>(static_cast<UnblockTaskArgs*>(args));
   net::DispatchThread* dispatchThread = bg_args->dispatchThread;
   std::shared_ptr<Slot> slot = bg_args->slot;
   std::string key = std::move(bg_args->key);
   auto& key_to_conns_ = dispatchThread->GetMapFromKeyToConns();
   net::BlockKey blrPop_key{slot->GetDBName(), key};
 
-  slot->LockMgr()->TryLock(key);  // do not change the sequence of these two lock, or deadlock will happen
-  std::unique_lock latch(dispatchThread->GetBlockMtx());
+  pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);//It's a RAII Lock
+  std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these two lock, or deadlock will happen
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
-    slot->LockMgr()->UnLock(key);
     return;
   }
   CmdRes res;
   std::vector<WriteBinlogOfPopArgs> pop_binlog_args;
-  auto& waitting_list_of_this_key = it->second;
+  auto& waitting_list = it->second;
   std::string value;
   rocksdb::Status s;
   // traverse this list from head to tail(in the order of adding sequence) ,means "first blocked, first get served“
-  for (auto conn_blocked = waitting_list_of_this_key->begin(); conn_blocked != waitting_list_of_this_key->end();) {
+  for (auto conn_blocked = waitting_list->begin(); conn_blocked != waitting_list->end();) {
     if (conn_blocked->GetBlockType() == BlockKeyType::Blpop) {
       s = slot->db()->LPop(key, &value);
     } else {  // BlockKeyType is Brpop
@@ -153,14 +145,13 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
     res.clear();
     conn_ptr->NotifyEpoll(true);
     pop_binlog_args.emplace_back(conn_blocked->GetBlockType(), key, slot, conn_ptr);
-    conn_blocked = waitting_list_of_this_key->erase(conn_blocked);  // remove this conn from current waiting list
+    conn_blocked = waitting_list->erase(conn_blocked);  // remove this conn from current waiting list
     // erase all waiting info of this conn
     dispatchThread->CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
   }
   dispatchThread->CleanKeysAfterWaitNodeCleaned();
-  latch.unlock();
+  map_lock.unlock();
   WriteBinlogOfPop(pop_binlog_args);
-  slot->LockMgr()->UnLock(key);
 }
 void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args) {
   // write binlog of l/rpop

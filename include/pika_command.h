@@ -15,6 +15,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_slot.h"
+#include "net/src/dispatch_thread.h"
 
 class SyncMasterSlot;
 class SyncSlaveSlot;
@@ -367,6 +368,18 @@ class CmdRes {
  private:
   std::string message_;
   CmdRet ret_ = kNone;
+};
+
+/**
+ * Current used by:
+ * blpop,brpop
+ */
+struct UnblockTaskArgs {
+  std::string key;
+  std::shared_ptr<Slot> slot;
+  net::DispatchThread* dispatchThread;
+  UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
