@@ -30,9 +30,9 @@ class PikaParseSendThread : public net::Thread {
 
  private:
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t timeout_ms_;
-  int32_t mgrtkeys_num_;
+  int64_t dest_port_ = 0;
+  int64_t timeout_ms_ = 60;
+  int32_t mgrtkeys_num_ = 0;
   std::atomic<bool> should_exit_;
   PikaMigrateThread *migrate_thread_;
   net::NetCli *cli_;
@@ -67,10 +67,10 @@ class PikaMigrateThread : public net::Thread {
 
  private:
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t timeout_ms_;
-  int64_t slot_id_;
-  int64_t keys_num_;
+  int64_t dest_port_ = 0;
+  int64_t timeout_ms_ = 60;
+  int64_t slot_id_ = 0;
+  int64_t keys_num_ = 0;
   std::shared_ptr<Slot> slot_;
   std::atomic<bool> is_migrating_;
   std::atomic<bool> should_exit_;
@@ -80,11 +80,11 @@ class PikaMigrateThread : public net::Thread {
   std::atomic<int64_t> moved_num_;
   std::shared_ptr<Slot> slot;
 
-  bool request_migrate_;
+  bool request_migrate_ = false;
   pstd::CondVar request_migrate_cond_;
   std::mutex request_migrate_mutex_;
 
-  int32_t workers_num_;
+  int32_t workers_num_ = 0;
   std::vector<PikaParseSendThread *> workers_;
 
   std::atomic<int32_t> working_thread_num_;
@@ -94,7 +94,7 @@ class PikaMigrateThread : public net::Thread {
   std::deque<std::pair<const char, std::string>> mgrtone_queue_;
   std::mutex mgrtone_queue_mutex_;
 
-  int64_t cursor_;
+  int64_t cursor_ = 0;
   std::deque<std::pair<const char, std::string>> mgrtkeys_queue_;
   pstd::CondVar mgrtkeys_cond_;
   std::mutex mgrtkeys_queue_mutex_;

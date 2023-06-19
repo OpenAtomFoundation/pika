@@ -91,11 +91,10 @@ class SlotsMgrtTagSlotCmd : public Cmd {
   Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
  private:
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t timeout_ms_;
-  int64_t slot_id_;
+  int64_t dest_port_ = 0;
+  int64_t timeout_ms_ = 60;
+  int64_t slot_id_ = 0;
   std::basic_string<char, std::char_traits<char>, std::allocator<char>> key_;
-  char key_type_;
 
   void DoInitial() override;
 };
@@ -109,12 +108,12 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
  private:
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t timeout_ms_;
-  int64_t max_bulks_;
-  int64_t max_bytes_;
-  int64_t slot_id_;
-  int64_t keys_num_;
+  int64_t dest_port_ = 0;
+  int64_t timeout_ms_ = 60;
+  int64_t max_bulks_ = 0;
+  int64_t max_bytes_ = 0;
+  int64_t slot_id_ = 0;
+  int64_t keys_num_ = 0;
 
   void DoInitial() override;
 };
@@ -128,11 +127,11 @@ class SlotsMgrtTagOneCmd : public Cmd {
   Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
  private:
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t timeout_ms_;
+  int64_t dest_port_ = 0;
+  int64_t timeout_ms_ = 60;
   std::string key_;
-  int64_t slot_id_;
-  char key_type_;
+  int64_t slot_id_ = 0;
+  char key_type_ = '\0';
   void DoInitial() override;
   int KeyTypeCheck(const std::shared_ptr<Slot>& slot);
 };
@@ -159,7 +158,7 @@ class SlotsInfoCmd : public Cmd {
  private:
   void DoInitial() override;
 
-  int64_t begin_;
+  int64_t begin_ = 0;
   int64_t end_ = 1024;
 };
 
@@ -206,8 +205,10 @@ class SlotsScanCmd : public Cmd {
   void Merge() override {};
   Cmd* Clone() override { return new SlotsScanCmd(*this); }
  private:
-  std::string key_, pattern_;
-  int64_t cursor_, count_;
+  std::string key_;
+  std::string pattern_ = "*";
+  int64_t cursor_ = 0;
+  int64_t count_ = 10;
   void DoInitial()  override;
   void Clear() override {
     pattern_ = "*";

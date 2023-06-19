@@ -343,12 +343,12 @@ class PikaServer : public pstd::noncopyable {
  * BGSlotsReload used
    */
   struct BGSlotsReload {
-    bool reloading;
-    time_t start_time;
+    bool reloading = false;
+    time_t start_time = 0;
     std::string s_start_time;
-    int64_t cursor;
-    std::string pattern;
-    int64_t count;
+    int64_t cursor = 0;
+    std::string pattern = "*";
+    int64_t count = 0;
     std::shared_ptr<Slot> slot;
     BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100) {}
     void Clear() {
@@ -387,12 +387,12 @@ class PikaServer : public pstd::noncopyable {
    * BGSlotsCleanup used
    */
   struct BGSlotsCleanup {
-    bool cleaningup;
-    time_t start_time;
+    bool cleaningup = false;
+    time_t start_time = 0;
     std::string s_start_time;
-    int64_t cursor;
-    std::string pattern;
-    int64_t count;
+    int64_t cursor = 0;
+    std::string pattern = "*";
+    int64_t count = 0;
     std::shared_ptr<Slot> slot;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
