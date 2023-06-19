@@ -90,6 +90,14 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return arena_block_size_;
   }
+  int64_t slotmigrate_thread_num() {
+    std::shared_lock l(rwlock_);
+    return slotmigrate_thread_num_;
+  }
+  int64_t thread_migrate_keys_num() {
+    std::shared_lock l(rwlock_);
+    return thread_migrate_keys_num_;
+  }
   int64_t max_write_buffer_size() {
     std::shared_lock l(rwlock_);
     return max_write_buffer_size_;
@@ -105,6 +113,14 @@ class PikaConf : public pstd::BaseConf {
   int timeout() {
     std::shared_lock l(rwlock_);
     return timeout_;
+  }
+  int binlog_writer_num(){
+    std::shared_lock l(rwlock_);
+    return binlog_writer_num_;
+  }
+  bool slotmigrate(){
+    std::shared_lock l(rwlock_);
+    return slotmigrate_;
   }
   std::string server_id() {
     std::shared_lock l(rwlock_);
@@ -388,6 +404,10 @@ class PikaConf : public pstd::BaseConf {
       pstd::StringToLower(item);
     }
   }
+  void SetSlotMigrate(const std::string &value) {
+    std::lock_guard l(rwlock_);
+    slotmigrate_ =  (value == "yes") ? true : false;
+  }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
@@ -502,6 +522,8 @@ class PikaConf : public pstd::BaseConf {
   std::string compact_interval_;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
+  int64_t slotmigrate_thread_num_ = 0;
+  int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
   int max_write_buffer_num_ = 0;
   int64_t max_client_response_size_ = 0;
@@ -528,6 +550,8 @@ class PikaConf : public pstd::BaseConf {
   int root_connection_num_ = 0;
   std::atomic<bool> slowlog_write_errorlog_;
   std::atomic<int> slowlog_log_slower_than_;
+  std::atomic<bool> slotmigrate_;
+  std::atomic<int> binlog_writer_num_;
   int slowlog_max_len_ = 0;
   int expire_logs_days_ = 0;
   int expire_logs_nums_ = 0;
