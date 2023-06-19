@@ -731,7 +731,7 @@ void PikaServer::RemoveMaster() {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
       loop_slot_state_machine_ = false;
-      UpdateMetaSyncTimestamp();
+      UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
@@ -825,6 +825,10 @@ int PikaServer::GetMetaSyncTimestamp() {
 
 void PikaServer::UpdateMetaSyncTimestamp() {
   std::lock_guard sp_l(state_protector_);
+  last_meta_sync_timestamp_ = time(nullptr);
+}
+
+void PikaServer::UpdateMetaSyncTimestampWithoutLock() {
   last_meta_sync_timestamp_ = time(nullptr);
 }
 
