@@ -1027,21 +1027,21 @@ class Storage {
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
   std::unique_ptr<RedisLists> lists_db_;
-  std::atomic<bool> is_opened_;
+  std::atomic<bool> is_opened_ = false;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
   // Storage start the background thread for compaction task
-  pthread_t bg_tasks_thread_id_;
+  pthread_t bg_tasks_thread_id_ = 0;
   pstd::Mutex bg_tasks_mutex_;
   pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
-  std::atomic<int> current_task_type_;
-  std::atomic<bool> bg_tasks_should_exit_;
+  std::atomic<int> current_task_type_ = kNone;
+  std::atomic<bool> bg_tasks_should_exit_ = false;
 
   // For scan keys in data base
-  std::atomic<bool> scan_keynum_exit_;
+  std::atomic<bool> scan_keynum_exit_ = false;
 };
 
 }  //  namespace storage

@@ -48,8 +48,7 @@ Status StorageOptions::ResetOptions(const OptionType& option_type,
   return Status::OK();
 }
 
-Storage::Storage()
-    : is_opened_(false), current_task_type_(kNone), bg_tasks_should_exit_(false), scan_keynum_exit_(false) {
+Storage::Storage() {
   cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
 
