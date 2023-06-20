@@ -658,20 +658,20 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
     }
 
     // del slots info
-    SlotKeyRemByType(std::string(1, type), key, slot);
+    RemSlotKeyByType(std::string(1, type), key, slot);
     return 1;
   }
 
   // key is not existed, only del slotsinfo
   if (send_command_num == 0) {
     // del slots info
-    SlotKeyRemByType(std::string(1, type), key, slot);
+    RemSlotKeyByType(std::string(1, type), key, slot);
     return 0;
   }
   return -1;
 }
 
-void SlotKeyRemByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot) {
+void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot) {
   uint32_t crc;
   int hastag;
   int slotNum = GetSlotsID(key, &crc, &hastag);

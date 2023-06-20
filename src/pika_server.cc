@@ -97,7 +97,6 @@ PikaServer::~PikaServer() {
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
   pika_migrate_thread_->StopThread();
-  pika_migrate_thread_->StopThread();
 
   dbs_.clear();
 

@@ -877,10 +877,7 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
-void Cmd::ProcessDoNotSpecifySlotCmd() {
-  std::shared_ptr<Slot>slot;
-  Do(slot);
-}
+void Cmd::ProcessDoNotSpecifySlotCmd() {Do();}
 
 bool Cmd::is_read() const {return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead);}
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }

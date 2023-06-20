@@ -118,7 +118,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return binlog_writer_num_;
   }
-  bool slotmigrate(){
+  bool slotmigrate() {
     std::shared_lock l(rwlock_);
     return slotmigrate_;
   }
