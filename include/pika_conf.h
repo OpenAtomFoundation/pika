@@ -114,7 +114,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return timeout_;
   }
-  int binlog_writer_num(){
+  int binlog_writer_num() {
     std::shared_lock l(rwlock_);
     return binlog_writer_num_;
   }
@@ -406,7 +406,7 @@ class PikaConf : public pstd::BaseConf {
   }
   void SetSlotMigrate(const std::string &value) {
     std::lock_guard l(rwlock_);
-    slotmigrate_ =  (value == "yes") ? true : false;
+    slotmigrate_ = (value == "yes") ? true : false;
   }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);

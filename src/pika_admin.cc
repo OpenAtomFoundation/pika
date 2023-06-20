@@ -1734,7 +1734,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "slotmigrate") {
     g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
-  }else if (set_item == "userblacklist") {
+  } else if (set_item == "userblacklist") {
     g_pika_conf->SetUserBlackList(value);
     ret = "+OK\r\n";
   } else if (set_item == "dump-prefix") {
