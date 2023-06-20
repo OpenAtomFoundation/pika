@@ -550,14 +550,42 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
     res_.AppendString(value);
+    value_poped_from_source_ = value;
+    is_write_binlog_ = true;
   } else if (s.IsNotFound()) {
+    // no actual write operation happened, will not write binlog
     res_.AppendStringLen(-1);
+    is_write_binlog_ = false;
     return;
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
   TryToServeBLrPopWithThisKey(receiver_, slot);
+}
+
+void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!is_write_binlog_){
+    return;
+  }
+  PikaCmdArgsType rpop_args;
+  rpop_args.push_back("RPOP");
+  rpop_args.push_back(source_);
+  rpop_cmd_->Initial(std::move(rpop_args), db_name_);
+
+  PikaCmdArgsType lpush_args;
+  lpush_args.push_back("LPUSH");
+  lpush_args.push_back(receiver_);
+  lpush_args.push_back(value_poped_from_source_);
+  lpush_cmd_->Initial(std::move(lpush_args), db_name_);
+
+  rpop_cmd_->SetConn(GetConn());
+  rpop_cmd_->SetResp(resp_.lock());
+  lpush_cmd_->SetConn(GetConn());
+  lpush_cmd_->SetResp(resp_.lock());
+
+  rpop_cmd_->DoBinlog(slot);
+  lpush_cmd_->DoBinlog(slot);
 }
 
 void RPushCmd::DoInitial() {

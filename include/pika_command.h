@@ -465,6 +465,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   int arity_ = -2;
   uint16_t flag_ = 0;
 
+
+ protected:
   CmdRes res_;
   PikaCmdArgsType argv_;
   std::string db_name_;
