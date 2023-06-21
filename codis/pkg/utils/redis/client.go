@@ -206,6 +206,7 @@ func (c *Client) InfoReplication() (*InfoReplication, error) {
 				for _, slaveKvStr := range slaveKvs {
 					slaveKv := strings.Split(slaveKvStr, "=")
 					if len(slaveKv) != 2 {
+						log.Warnf("invalid replication info, slaveKvs = %s, slaveKv = %s", slaveKvs, slaveKv)
 						continue
 					}
 					slave[slaveKv[0]] = slaveKv[1]
