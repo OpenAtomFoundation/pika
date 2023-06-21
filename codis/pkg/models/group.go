@@ -43,9 +43,9 @@ type GroupServer struct {
 	} `json:"action"`
 
 	// master or slave
-	Role string
+	Role string `json:"role"`
 	// If it is a master node, take the master_repl_offset field, otherwise take the slave_repl_offset field
-	ReplyOffset int
+	ReplyOffset int `json:"reply_offset"`
 	// Monitoring status, 0 normal, 1 subjective offline, 2 actual offline
 	// If marked as 2 , no service is provided
 	State GroupServerState `json:"state"`
