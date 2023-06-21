@@ -7,9 +7,6 @@ import (
 	"container/list"
 	"encoding/json"
 	"net"
-	"pika/codis/v2/pkg/utils/errors"
-	"pika/codis/v2/pkg/utils/log"
-	"pika/codis/v2/pkg/utils/math2"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,6 +14,10 @@ import (
 	"time"
 
 	redigo "github.com/garyburd/redigo/redis"
+
+	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/math2"
 )
 
 type Client struct {

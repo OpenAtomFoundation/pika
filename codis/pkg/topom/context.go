@@ -183,7 +183,7 @@ func (ctx *context) getGroup(gid int) (*models.Group, error) {
 }
 
 func (ctx *context) getGroups() []*models.Group {
-	var gs []*models.Group
+	gs := make([]*models.Group, 0, len(ctx.group))
 	for _, g := range ctx.group {
 		gs = append(gs, g)
 	}

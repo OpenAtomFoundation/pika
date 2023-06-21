@@ -3,12 +3,13 @@ package redis
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"pika/codis/v2/pkg/models"
 	"pika/codis/v2/pkg/utils/errors"
 	"pika/codis/v2/pkg/utils/log"
 	"pika/codis/v2/pkg/utils/math2"
 	"pika/codis/v2/pkg/utils/sync2"
-	"time"
 )
 
 type CodisSentinel struct {
