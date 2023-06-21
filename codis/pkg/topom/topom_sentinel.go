@@ -63,8 +63,8 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 		// 之前是主节点 && 主节点挂机 && 当前还是主节点
 		if state.Index == 0 && state.Err != nil && g.Servers[0].Addr == state.Addr {
 			// 修改状态为主观下线
-			if g.Servers[0].State == 0 {
-				g.Servers[0].State = 1
+			if g.Servers[0].State == models.GroupServerStateNormal {
+				g.Servers[0].State = models.GroupServerStateSubjectiveOffline
 			} else {
 				// 更新重试次数
 				g.Servers[0].ReCallTimes++
@@ -72,10 +72,10 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 				// 重试超过5次，开始选主
 				if g.Servers[0].ReCallTimes >= 5 {
 					// 标记进入客观下线状态
-					g.Servers[0].State = 2
+					g.Servers[0].State = models.GroupServerStateOffline
 				}
 				// 开始进行选主
-				if g.Servers[0].State == 2 {
+				if g.Servers[0].State == models.GroupServerStateOffline {
 					pending = append(pending, g)
 				}
 			}
@@ -84,13 +84,13 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 		// 更新state、role、offset信息
 		if val, ok := serversMap[state.Addr]; ok {
 			if state.Err != nil {
-				if val.State == 0 {
-					val.State = 1
+				if val.State == models.GroupServerStateNormal {
+					val.State = models.GroupServerStateSubjectiveOffline
 				}
 				continue
 			}
 
-			val.State = 0
+			val.State = models.GroupServerStateNormal
 			val.ReCallTimes = 0
 			val.Role = state.Replication.Role
 			if val.Role == "master" {

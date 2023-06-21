@@ -371,7 +371,7 @@ func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
 
 	for _, server := range servers {
 		// 如果节点的状态异常，直接过滤掉
-		if server.State != 0 {
+		if server.State != models.GroupServerStateNormal {
 			continue
 		}
 
@@ -412,7 +412,6 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 			}
 		}
 		for i, x := range g.Servers {
-			// todo RUNID待确认是否返回
 			rid1 := cache.GetRunId(master)
 			rid2 := cache.GetRunId(x.Addr)
 			if rid1 != "" && rid1 == rid2 {
@@ -445,7 +444,7 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 
 	// 将 group 中其他的节点设置为新主节点的从节点
 	for _, server := range g.Servers {
-		if server.State != 0 || server.Addr == master {
+		if server.State != models.GroupServerStateNormal || server.Addr == master {
 			continue
 		}
 		if c, err := redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
@@ -466,7 +465,6 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 	return s.storeUpdateGroup(g)
 }
 
-// todo 待移除方法
 func (s *Topom) trySwitchGroupMaster(gid int, master string, cache *redis.InfoCache) error {
 	ctx, err := s.newContext()
 	if err != nil {

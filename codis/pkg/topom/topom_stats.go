@@ -189,7 +189,7 @@ func (s *Topom) CheckMastersAndSlavesState(timeout time.Duration) (*sync.WaitGro
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
-		return index != 0 || g.State == 0
+		return index != 0 || g.State == models.GroupServerStateNormal
 	}, wg)
 	return wg, nil
 }
@@ -201,7 +201,7 @@ func (s *Topom) CheckPreOffineMastersState(timeout time.Duration) (*sync.WaitGro
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
-		return index == 0 && g.State != 0
+		return index == 0 && g.State != models.GroupServerStateNormal
 	}, wg)
 	return wg, nil
 }

@@ -22,7 +22,6 @@ type context struct {
 	group map[int]*models.Group
 	proxy map[string]*models.Proxy
 
-	// todo 待改动
 	sentinel *models.Sentinel
 
 	hosts struct {
@@ -42,7 +41,6 @@ func (ctx *context) getSlotMapping(sid int) (*models.SlotMapping, error) {
 	return nil, errors.Errorf("slot-[%d] doesn't exist", sid)
 }
 
-// todo 这里把未迁移完成的slot，也通知proxy进行更新吗？这个为啥呢？
 func (ctx *context) getSlotMappingsByGroupId(gid int) []*models.SlotMapping {
 	var slots = []*models.SlotMapping{}
 	for _, m := range ctx.slots {
@@ -156,7 +154,7 @@ func (ctx *context) toReplicaGroups(gid int, p *models.Proxy) [][]string {
 	var groups [3][]string
 	for _, s := range g.Servers {
 		// state 为0说明未掉线，正常服务
-		if s.ReplicaGroup && s.State == 0 {
+		if s.ReplicaGroup && s.State == models.GroupServerStateNormal {
 			p := getPriority(s)
 			groups[p] = append(groups[p], s.Addr)
 		}

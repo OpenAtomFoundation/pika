@@ -80,8 +80,6 @@ func (s *CodisSentinel) dispatch(ctx context.Context, sentinel string, timeout t
 	}
 }
 
-// todo timeout 参数是从配置文件读取的，需要修改配置文件里面参数的名字
-//todo 添加参数，表示多久检查一次是否存活
 func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers map[int][]*models.GroupServer) []*ReplicationState {
 	if len(groupServers) == 0 {
 		s.printf("there's no groups")

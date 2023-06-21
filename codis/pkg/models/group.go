@@ -25,6 +25,14 @@ func (g *Group) GetServersMap() map[string]*GroupServer {
 	return results
 }
 
+type GroupServerState int8
+
+const (
+	GroupServerStateNormal GroupServerState = iota
+	GroupServerStateSubjectiveOffline
+	GroupServerStateOffline
+)
+
 type GroupServer struct {
 	Addr       string `json:"server"`
 	DataCenter string `json:"datacenter"`
@@ -39,8 +47,8 @@ type GroupServer struct {
 	// 如果是master节点，取 master_repl_offset 字段，否则取 slave_repl_offset 字段
 	ReplyOffset int
 	// 监控状态，分为：0 正常，1 主观下线，2 实际下线
-	// 如果被标记为2，则不提供服务，等待人工进入处理
-	State int8 `json:"state"`
+	// 如果被标记为2，则不提供服务
+	State GroupServerState `json:"state"`
 
 	ReCallTimes int8 `json:"recall_times"`
 
