@@ -78,8 +78,6 @@ func newApiServer(p *Proxy) http.Handler {
 		r.Put("/shutdown/:xauth", api.Shutdown)
 		r.Put("/loglevel/:xauth/:value", api.LogLevel)
 		r.Put("/fillslots/:xauth", binding.Json([]*models.Slot{}), api.FillSlots)
-		r.Put("/sentinels/:xauth", binding.Json(models.Sentinel{}), api.SetSentinels)
-		r.Put("/sentinels/:xauth/rewatch", api.RewatchSentinels)
 	})
 
 	m.MapTo(r, (*martini.Routes)(nil))
@@ -210,26 +208,6 @@ func (s *apiServer) FillSlots(slots []*models.Slot, params martini.Params) (int,
 		return rpc.ApiResponseError(err)
 	}
 	if err := s.proxy.FillSlots(slots); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	return rpc.ApiResponseJson("OK")
-}
-
-func (s *apiServer) SetSentinels(sentinel models.Sentinel, params martini.Params) (int, string) {
-	if err := s.verifyXAuth(params); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	if err := s.proxy.SetSentinels(sentinel.Servers); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	return rpc.ApiResponseJson("OK")
-}
-
-func (s *apiServer) RewatchSentinels(params martini.Params) (int, string) {
-	if err := s.verifyXAuth(params); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	if err := s.proxy.RewatchSentinels(); err != nil {
 		return rpc.ApiResponseError(err)
 	}
 	return rpc.ApiResponseJson("OK")

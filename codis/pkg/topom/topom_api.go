@@ -113,13 +113,6 @@ func newApiServer(t *Topom) http.Handler {
 			r.Put("/assign/:xauth/offline", binding.Json([]*models.SlotMapping{}), api.SlotsAssignOffline)
 			r.Put("/rebalance/:xauth/:confirm", api.SlotsRebalance)
 		})
-		r.Group("/sentinels", func(r martini.Router) {
-			r.Put("/add/:xauth/:addr", api.AddSentinel)
-			r.Put("/del/:xauth/:addr/:force", api.DelSentinel)
-			r.Put("/resync-all/:xauth", api.ResyncSentinels)
-			r.Get("/info/:addr", api.InfoSentinel)
-			r.Get("/info/:addr/monitored", api.InfoSentinelMonitored)
-		})
 	})
 
 	m.MapTo(r, (*martini.Routes)(nil))
@@ -459,51 +452,6 @@ func (s *apiServer) EnableReplicaGroupsAll(params martini.Params) (int, string) 
 	}
 }
 
-func (s *apiServer) AddSentinel(params martini.Params) (int, string) {
-	if err := s.verifyXAuth(params); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	addr, err := s.parseAddr(params)
-	if err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	if err := s.topom.AddSentinel(addr); err != nil {
-		return rpc.ApiResponseError(err)
-	} else {
-		return rpc.ApiResponseJson("OK")
-	}
-}
-
-func (s *apiServer) DelSentinel(params martini.Params) (int, string) {
-	if err := s.verifyXAuth(params); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	addr, err := s.parseAddr(params)
-	if err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	force, err := s.parseInteger(params, "force")
-	if err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	if err := s.topom.DelSentinel(addr, force != 0); err != nil {
-		return rpc.ApiResponseError(err)
-	} else {
-		return rpc.ApiResponseJson("OK")
-	}
-}
-
-func (s *apiServer) ResyncSentinels(params martini.Params) (int, string) {
-	if err := s.verifyXAuth(params); err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	if err := s.topom.ResyncSentinels(); err != nil {
-		return rpc.ApiResponseError(err)
-	} else {
-		return rpc.ApiResponseJson("OK")
-	}
-}
-
 func (s *apiServer) InfoServer(params martini.Params) (int, string) {
 	addr, err := s.parseAddr(params)
 	if err != nil {
@@ -516,37 +464,6 @@ func (s *apiServer) InfoServer(params martini.Params) (int, string) {
 	}
 	defer c.Close()
 	if info, err := c.InfoFull(); err != nil {
-		return rpc.ApiResponseError(err)
-	} else {
-		return rpc.ApiResponseJson(info)
-	}
-}
-
-func (s *apiServer) InfoSentinel(params martini.Params) (int, string) {
-	addr, err := s.parseAddr(params)
-	if err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	c, err := redis.NewClientNoAuth(addr, time.Second)
-	if err != nil {
-		log.WarnErrorf(err, "create redis client to %s failed", addr)
-		return rpc.ApiResponseError(err)
-	}
-	defer c.Close()
-	if info, err := c.Info(); err != nil {
-		return rpc.ApiResponseError(err)
-	} else {
-		return rpc.ApiResponseJson(info)
-	}
-}
-
-func (s *apiServer) InfoSentinelMonitored(params martini.Params) (int, string) {
-	addr, err := s.parseAddr(params)
-	if err != nil {
-		return rpc.ApiResponseError(err)
-	}
-	sentinel := redis.NewSentinel(s.topom.Config().ProductName, s.topom.Config().ProductAuth)
-	if info, err := sentinel.MastersAndSlaves(addr, s.topom.Config().SentinelClientTimeout.Duration()); err != nil {
 		return rpc.ApiResponseError(err)
 	} else {
 		return rpc.ApiResponseJson(info)
