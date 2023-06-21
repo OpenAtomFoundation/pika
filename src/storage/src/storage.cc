@@ -369,9 +369,9 @@ Status Storage::LTrim(const Slice& key, int64_t start, int64_t stop) { return li
 
 Status Storage::LLen(const Slice& key, uint64_t* len) { return lists_db_->LLen(key, len); }
 
-Status Storage::LPop(const Slice& key, std::string* element) { return lists_db_->LPop(key, element); }
+Status Storage::LPop(const Slice& key, int64_t count, std::vector<std::string>* elements) { return lists_db_->LPop(key, count, elements); }
 
-Status Storage::RPop(const Slice& key, std::string* element) { return lists_db_->RPop(key, element); }
+Status Storage::RPop(const Slice& key, int64_t count, std::vector<std::string>* elements) { return lists_db_->RPop(key, count, elements); }
 
 Status Storage::LIndex(const Slice& key, int64_t index, std::string* element) {
   return lists_db_->LIndex(key, index, element);

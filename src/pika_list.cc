@@ -102,12 +102,27 @@ void LPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  size_t argc = argv_.size();
+  size_t index = 2;
+  if (index < argc) {
+    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+      return;
+    }
+    if (count_ < 0) {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+  }
 }
 void LPopCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string value;
-  rocksdb::Status s = slot->db()->LPop(key_, &value);
+  std::vector<std::string> elements;
+  rocksdb::Status s = slot->db()->LPop(key_, count_, &elements);
   if (s.ok()) {
-    res_.AppendString(value);
+    res_.AppendArrayLen(elements.size());
+    for (const auto& element : elements) {
+      res_.AppendString(element);
+    }
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -245,12 +260,27 @@ void RPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  size_t argc = argv_.size();
+  size_t index = 2;
+  if (index < argc) {
+    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+      return;
+    }
+    if (count_ < 0) {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+  }
 }
 void RPopCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string value;
-  rocksdb::Status s = slot->db()->RPop(key_, &value);
+  std::vector<std::string> elements;
+  rocksdb::Status s = slot->db()->RPop(key_, count_, &elements);
   if (s.ok()) {
-    res_.AppendString(value);
+    res_.AppendArrayLen(elements.size());
+    for (const auto& element : elements) {
+      res_.AppendString(element);
+    }
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -286,7 +316,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!is_write_binlog_){
+  if (!is_write_binlog_) {
     return;
   }
   PikaCmdArgsType rpop_args;
