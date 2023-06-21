@@ -130,8 +130,6 @@ func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers
 }
 
 func (s *CodisSentinel) infoReplicationDispatch(addr string) (*InfoReplication, error) {
-	// 这两步如果失败，需要做特殊处理
-	// todo 待确认这里是否使用pool？
 	if c, err := NewClient(addr, s.Auth, time.Second); err != nil {
 		log.WarnErrorf(err, "create redis client to %s failed", addr)
 		return nil, err
