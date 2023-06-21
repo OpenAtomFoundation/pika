@@ -361,7 +361,7 @@ func (s *Topom) trySwitchGroupMaster(gid int, cache *redis.InfoCache) error {
 	return s.doSwitchGroupMaster(gid, master, cache)
 }
 
-// 选择改group下一个master节点
+// Choose to change to the next master node in the group
 func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
 	if len(servers) == 0 {
 		return ""
@@ -370,12 +370,11 @@ func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
 	var masterServer *models.GroupServer
 
 	for _, server := range servers {
-		// 如果节点的状态异常，直接过滤掉
 		if server.State != models.GroupServerStateNormal {
 			continue
 		}
 
-		// 如果group中已经有master节点正常工作，则直接返回
+		// If there is already a master node in the group working normally, return directly
 		if server.Role == "master" {
 			return server.Addr
 		}
@@ -383,7 +382,7 @@ func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
 		if masterServer == nil {
 			masterServer = server
 		} else if server.ReplyOffset > masterServer.ReplyOffset {
-			// 选取offset最新的slave节点作为主节点
+			// Select the slave node with the latest offset as the master node
 			masterServer = server
 		}
 	}
@@ -430,7 +429,7 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 
 	log.Warnf("group-[%d] will switch master to server[%d] = %s", g.Id, index, g.Servers[index].Addr)
 
-	// 将从节点设置为新的主节点
+	// Set the slave node as the new master node
 	if c, err := redis.NewClient(master, s.config.ProductAuth, 100*time.Millisecond); err != nil {
 		log.WarnErrorf(err, "create redis client to %s failed", master)
 		return err
@@ -442,7 +441,7 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 		}
 	}
 
-	// 将 group 中其他的节点设置为新主节点的从节点
+	// Set other nodes in the group as slave nodes of the new master node
 	for _, server := range g.Servers {
 		if server.State != models.GroupServerStateNormal || server.Addr == master {
 			continue

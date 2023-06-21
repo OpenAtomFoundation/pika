@@ -153,7 +153,7 @@ func (ctx *context) toReplicaGroups(gid int, p *models.Proxy) [][]string {
 	}
 	var groups [3][]string
 	for _, s := range g.Servers {
-		// state 为0说明未掉线，正常服务
+		// The state is 0, indicating that the connection is not disconnected and the service is normal
 		if s.ReplicaGroup && s.State == models.GroupServerStateNormal {
 			p := getPriority(s)
 			groups[p] = append(groups[p], s.Addr)

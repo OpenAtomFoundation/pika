@@ -42,12 +42,12 @@ type GroupServer struct {
 		State string `json:"state,omitempty"`
 	} `json:"action"`
 
-	// master 或是 slave
+	// master or slave
 	Role string
-	// 如果是master节点，取 master_repl_offset 字段，否则取 slave_repl_offset 字段
+	// If it is a master node, take the master_repl_offset field, otherwise take the slave_repl_offset field
 	ReplyOffset int
-	// 监控状态，分为：0 正常，1 主观下线，2 实际下线
-	// 如果被标记为2，则不提供服务
+	// Monitoring status, 0 normal, 1 subjective offline, 2 actual offline
+	// If marked as 2 , no service is provided
 	State GroupServerState `json:"state"`
 
 	ReCallTimes int8 `json:"recall_times"`

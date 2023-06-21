@@ -196,7 +196,7 @@ func (s *Topom) Start(routines bool) error {
 		return nil
 	}
 
-	// 每5秒检查一次所有master和slave的状态
+	// Check the status of all masters and slaves every 5 seconds
 	go func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
@@ -209,7 +209,8 @@ func (s *Topom) Start(routines bool) error {
 		}
 	}()
 
-	// 每1秒检查一次预下线的master的状态，来判断是否要自动进行切主从
+	// Check the status of the pre-offline master every 1 second
+	// to determine whether to automatically switch master and slave
 	go func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
