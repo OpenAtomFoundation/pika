@@ -110,7 +110,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 	}
 	// 尝试进行主从切换
 	for _, g := range pending {
-		if err = s.trySwitchGroupMaster2(g.Id, cache); err != nil {
+		if err = s.trySwitchGroupMaster(g.Id, cache); err != nil {
 			log.Errorf("gid-[%d] switch master failed, %v", g.Id, err)
 			continue
 		}

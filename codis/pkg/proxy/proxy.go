@@ -44,7 +44,6 @@ type Proxy struct {
 	ladmin net.Listener
 
 	ha struct {
-		//monitor *redis.Sentinel
 		masters map[int]string
 		servers []string
 	}
