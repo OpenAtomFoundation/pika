@@ -68,8 +68,8 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 				// update retries
 				g.Servers[0].ReCallTimes++
 
-				// Retry more than 5 times, start election
-				if g.Servers[0].ReCallTimes >= 5 {
+				// Retry more than config times, start election
+				if g.Servers[0].ReCallTimes >= s.Config().SentinelMasterDeadCheckTimes {
 					// Mark enters objective offline state
 					g.Servers[0].State = models.GroupServerStateOffline
 				}

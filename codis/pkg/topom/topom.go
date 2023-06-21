@@ -205,7 +205,7 @@ func (s *Topom) Start(routines bool) error {
 					w.Wait()
 				}
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(s.Config().SentinelCheckServerStateInterval.Duration())
 		}
 	}()
 
@@ -219,7 +219,7 @@ func (s *Topom) Start(routines bool) error {
 					w.Wait()
 				}
 			}
-			time.Sleep(time.Millisecond * 1000)
+			time.Sleep(s.Config().SentinelCheckMasterFailoverInterval.Duration())
 		}
 	}()
 
