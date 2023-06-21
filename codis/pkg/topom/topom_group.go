@@ -303,16 +303,17 @@ func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 			return err
 		}
 
-		var master = slice[0].Addr
-		if c, err := redis.NewClient(master, s.config.ProductAuth, time.Second); err != nil {
+		var (
+			master = slice[0].Addr
+			client *redis.Client
+		)
+		if client, err = redis.NewClient(master, s.config.ProductAuth, time.Second); err != nil {
 			log.WarnErrorf(err, "create redis client to %s failed", master)
-		} else {
-			defer c.Close()
-			if err := c.SetMaster("NO:ONE"); err != nil {
-				log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
-			}
 		}
-
+		defer client.Close()
+		if err = client.SetMaster("NO:ONE"); err != nil {
+			log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
+		}
 		fallthrough
 
 	case models.ActionFinished:
@@ -430,15 +431,16 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 	log.Warnf("group-[%d] will switch master to server[%d] = %s", g.Id, index, g.Servers[index].Addr)
 
 	// Set the slave node as the new master node
-	if c, err := redis.NewClient(master, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+	var client *redis.Client
+	if client, err = redis.NewClient(master, s.config.ProductAuth, 100*time.Millisecond); err != nil {
 		log.WarnErrorf(err, "create redis client to %s failed", master)
 		return err
-	} else {
-		defer c.Close()
-		if err = c.SetMaster("NO:ONE"); err != nil {
-			log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
-			return err
-		}
+	}
+
+	defer client.Close()
+	if err = client.SetMaster("NO:ONE"); err != nil {
+		log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
+		return err
 	}
 
 	// Set other nodes in the group as slave nodes of the new master node
@@ -446,15 +448,15 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 		if server.State != models.GroupServerStateNormal || server.Addr == master {
 			continue
 		}
-		if c, err := redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+		var client2 *redis.Client
+		if client2, err = redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
 			log.WarnErrorf(err, "create redis client to %s failed", master)
 			return err
-		} else {
-			defer c.Close()
-			if err = c.SetMaster(master); err != nil {
-				log.WarnErrorf(err, "redis %s set master to %s failed", server.Addr, master)
-				return err
-			}
+		}
+		defer client2.Close()
+		if err = client2.SetMaster(master); err != nil {
+			log.WarnErrorf(err, "redis %s set master to %s failed", server.Addr, master)
+			return err
 		}
 	}
 
