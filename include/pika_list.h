@@ -87,7 +87,7 @@ class LPopCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t count_ = 1;
+  std::int64_t count_ = 1;
   void DoInitial() override;
 };
 
