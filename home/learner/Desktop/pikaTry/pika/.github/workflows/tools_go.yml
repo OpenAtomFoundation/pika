@@ -1,0 +1,47 @@
+name: Tools_go_build
+
+on:
+  push:
+    branches: [ "unstable" ]
+    paths:
+      - 'tools/**'
+  pull_request:
+    branches: [ "unstable" ]
+    paths:
+      - 'tools/**'
+
+jobs:
+
+  build_pika_exporter:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+
+    - name: Build
+      run: |
+        cd tools/pika_exporter && make -j
+    - name: Test
+      run: |
+        cd tools/pika_exporter && make -j
+
+  build_codis2pika:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+
+    - name: Build
+      run: |
+        cd tools/codis2pika && sh build.sh
+    - name: Test
+      run: |
+        cd tools/codis2pika && sh build.sh

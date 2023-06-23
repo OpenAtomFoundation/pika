@@ -1,0 +1,118 @@
+---
+Checks:     '
+            bugprone-*,
+            clang-analyzer-*,
+            google-*,
+            modernize-*,
+            performance-*,
+            portability-*,
+            readability-*,
+            -bugprone-easily-swappable-parameters,
+            -bugprone-implicit-widening-of-multiplication-result,
+            -bugprone-narrowing-conversions,
+            -bugprone-reserved-identifier,
+            -bugprone-signed-char-misuse,
+            -bugprone-suspicious-include,
+            -bugprone-unhandled-self-assignment,
+            -clang-analyzer-cplusplus.NewDelete,
+            -clang-analyzer-cplusplus.NewDeleteLeaks,
+            -clang-analyzer-security.insecureAPI.rand,
+            -clang-diagnostic-implicit-int-float-conversion,
+            -google-readability-avoid-underscore-in-googletest-name,
+            -modernize-avoid-c-arrays,
+            -modernize-use-nodiscard,
+            -readability-convert-member-functions-to-static,
+            -readability-identifier-length,
+            -readability-function-cognitive-complexity,
+            -readability-magic-numbers,
+            -readability-make-member-function-const,
+            -readability-qualified-auto,
+            -readability-redundant-access-specifiers,
+            -bugprone-exception-escape,
+            -modernize-use-trailing-return-type,
+            -readability-function-size,
+            -readability-else-after-return,
+            -bugprone-branch-clone,
+            -readability-use-anyofallof,
+            -google-default-arguments,
+            -clang-analyzer-cplusplus.InnerPointer,
+            -google-explicit-constructor,
+            -use_of_tag_name_without_tag,
+            -clang-analyzer-core.CallAndMessage,
+            -clang-analyzer-deadcode.DeadStores,
+            -google-runtime-int,
+            -clang-diagnostic-unused-command-line-argument,
+            -clang-diagnostic-ignored-optimization-argument,
+            -readability-implicit-bool-conversion,
+            '
+# CheckOptions:
+#   - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
+#   - { key: readability-identifier-naming.EnumCase,            value: CamelCase  }
+#   - { key: readability-identifier-naming.FunctionCase,        value: CamelCase  }
+#   - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
+#   - { key: readability-identifier-naming.MemberCase,          value: lower_case }
+#   - { key: readability-identifier-naming.MemberSuffix,        value: _          }
+#   - { key: readability-identifier-naming.NamespaceCase,       value: lower_case }
+#   - { key: readability-identifier-naming.StructCase,          value: CamelCase  }
+#   - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
+#   - { key: readability-identifier-naming.VariableCase,        value: lower_case }
+
+WarningsAsErrors: '*'
+# HeaderFilterRegex: '(|/src|/src/net|/src/pstd|/src/storage)/include'
+# HeaderFilterRegex: '/src/(net|storage|pstd)/include'
+AnalyzeTemporaryDtors: true
+
+#### Disabled checks and why: #####
+#
+# -readability-convert-member-functions-to-static,
+#     This check started going off in the upgrade from clang-tidy-8 to clang-tidy-12.  It is not always correct because 
+#     we hide the reference implementation in another repository.
+# -clang-analyzer-security.insecureAPI.rand, -clang-analyzer-security.insecureAPI.rand, -bugprone-unhandled-self-assignment, 
+# -bugprone-implicit-widening-of-multiplication-result
+#     These have not been investigated yet.
+# -bugprone-reserved-identifier, 
+#     Fails due to use of some __SHORT_FILE__ symbol, originating from very old code.
+# -bugprone-suspicious-include, 
+#     False positive due to GTest code.
+# -bugprone-too-small-loop-variable,
+#     Complains about uint8_t or uint16_t when the limit on the loop is a container's .size() (size_t).
+#     We usually do this when we know the maximum size of the container though, so propose leaving disabled.
+# -clang-analyzer-cplusplus.NewDelete,
+#     Seems to generate false positives. Suggest relying on ASAN and valgrind for memory stuff.
+# -clang-analyzer-cplusplus.NewDeleteLeaks,
+#     Seems to generate false positives. Suggest relying on ASAN and valgrind for memory stuff.
+# -modernize-use-nodiscard,
+#     New C++17 feature, slightly polarizing. Would clutter codebase.
+# -modernize-avoid-c-arrays,
+#     Let's not deal with people doing ridiculous things to hack around this. If it bites them, it bites them.
+# -bugprone-signed-char-misuse, -clang-diagnostic-implicit-int-float-conversion, -readability-make-member-function-const, 
+# -readability-qualified-auto, -readability-redundant-access-specifiers
+#     These were previously disabled for not being available in clang-tidy-8. They are now available on our clang-tidy-12, 
+#     and potentially worth investigating/fixing.
+# -bugprone-exception-escape
+#     Weird. No idea how to resolve.
+# -bugprone-branch-clone,
+#    frequent misidentification
+# -google-default-arguments
+#    Too many virtual functions in pika have default parameters, specifically void Do(std::shared_ptr<Partition> partition = nullptr)
+# -clang-analyzer-cplusplus.InnerPointer
+#     I don't know why this bug in the RocksDB library fails to suppress detection.So I have to disable this check.
+#--google-explicit-constructor
+#     There are so many implicit convert in pika
+#--use_of_tag_name_without_tag
+#     like class member is class , If there is no class tag, an error will be reported
+#     class A{  B b_;  } -> error ;  class A{  class B b_;  } -> no error ; 
+#-clang-analyzer-core.CallAndMessage
+#     pika/src/storage/src/scope_record_lock.h 
+#     Always detect a null pointer and call the TryLock method
+#     Called C++ object pointer is null [clang-analyzer-core.CallAndMessage,-warnings-as-errors]
+#     lock_mgr_->UnLock(key);
+#-clang-analyzer-deadcode.DeadStores
+#    error detection in some places
+#-google-runtime-int
+#    todo discussed, because there are so many of `long` and `long long` in pika, so disable for now
+#-clang-diagnostic-unused-command-line-argument
+#    because there are to many compile command error in github ci, but no error in local environment
+#    See in build folder compile_commands.json
+#-clang-diagnostic-ignored-optimization-argument
+#    The reason disabled this is same as above.

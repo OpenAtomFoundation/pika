@@ -1,0 +1,73 @@
+# vim temp files
+*.swp
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*pb.cc
+*pb.h
+build
+cmake-build-debug
+cmake-build-release
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+
+# Compiled Static libraries
+*.lai *.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Log path
+make_config.mk
+log/
+lib/
+output/
+
+# DB
+db/
+dump/
+src/dbsync/
+
+# third party
+gdb.txt
+tags
+
+# IDE
+.vscode
+
+# generate
+make_config.mk
+src/*.d
+src/build_version.cc
+
+#cache
+.cache
+
+.idea/
+
+
+#build
+build/
+buildtrees
+deps
+
+#develop container
+.devcontainer
+
+# include codis fe javascript lib files
+!codis/cmd/fe/assets/**
+

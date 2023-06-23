@@ -1,0 +1,49 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*pb.cc
+*pb.h
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Log path
+make_config.mk
+log/
+lib/
+tools/
+output/
+
+# DB
+db/
+dump/
+
+# third party
+gdb.txt
+tags
+
+make_config.mk
+src/*.d
+src/build_version.cc
