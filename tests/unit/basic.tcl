@@ -211,7 +211,7 @@ start_server {tags {"basic"}} {
         # p.s. no way I can force NaN to test it from the API because
         # there is no way to increment / decrement by infinity nor to
         # perform divisions.
-    } {ERR*would produce*}
+    } {ERR*increment or decrement would overflow*}
 
     test {INCRBYFLOAT decrement} {
         r set foo 1
