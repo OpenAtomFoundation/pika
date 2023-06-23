@@ -2032,6 +2032,7 @@ void DbsizeCmd::Do(std::shared_ptr<Slot> slot) {
   if (!db) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
+    db->RunKeyScan();
     KeyScanInfo key_scan_info = db->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
