@@ -47,6 +47,7 @@ const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
 const std::string kCmdNameHello = "hello";
+const std::string kCmdNameCommand = "command";
 
 // Kv
 const std::string kCmdNameSet = "set";
