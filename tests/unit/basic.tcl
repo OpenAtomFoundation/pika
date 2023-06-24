@@ -38,11 +38,15 @@ start_server {tags {"basic"}} {
     } {foo_a foo_b foo_c key_x key_y key_z}
 
     test {DBSIZE} {
+        r info keyspace 1
+        after 1000
         r dbsize
     } {6}
 
     test {DEL all keys} {
         foreach key [r keys *] {r del $key}
+        r info keyspace 1
+        after 1000
         r dbsize
     } {0}
 
@@ -91,6 +95,8 @@ start_server {tags {"basic"}} {
         } {}
 
         test {DBSIZE should be 10101 now} {
+            r info keyspace 1
+            after 1000
             r dbsize
         } {10101}
     }

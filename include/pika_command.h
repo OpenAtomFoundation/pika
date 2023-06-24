@@ -344,6 +344,7 @@ class CmdRes {
         result = "-ERR increment would produce NaN or Infinity";
         result.append(message_);
         result.append(kNewLine);
+        break;
       default:
         break;
     }
