@@ -262,7 +262,8 @@ class CmdRes {
     kInvalidDbType,
     kInvalidDB,
     kInconsistentHashTag,
-    kErrOther
+    kErrOther,
+    KIncrByOverFlow,
   };
 
   CmdRes() = default;
@@ -339,6 +340,10 @@ class CmdRes {
         result.append(message_);
         result.append(kNewLine);
         break;
+      case KIncrByOverFlow:
+        result = "-ERR increment would produce NaN or Infinity";
+        result.append(message_);
+        result.append(kNewLine);
       default:
         break;
     }

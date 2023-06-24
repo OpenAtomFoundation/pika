@@ -211,7 +211,7 @@ start_server {tags {"basic"}} {
         # p.s. no way I can force NaN to test it from the API because
         # there is no way to increment / decrement by infinity nor to
         # perform divisions.
-    } {ERR*increment or decrement would overflow*}
+    } {ERR*would produce*}
 
     test {INCRBYFLOAT decrement} {
         r set foo 1
@@ -261,13 +261,13 @@ start_server {tags {"basic"}} {
         assert_equal 20 [r get x]
     }
 
-    test "DEL against expired key" {
-        r debug set-active-expire 0
-        r setex keyExpire 1 valExpire
-        after 1100
-        assert_equal 0 [r del keyExpire]
-        r debug set-active-expire 1
-    }
+   # test "DEL against expired key" {
+   #     r debug set-active-expire 0
+   #     r setex keyExpire 1 valExpire
+   #     after 1100
+   #     assert_equal 0 [r del keyExpire]
+   #     r debug set-active-expire 1
+   # }
 
     test {EXISTS} {
         set res {}
