@@ -433,6 +433,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
+  virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -441,7 +442,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
   bool CheckArg(int num) const;
   void LogCommand() const;
 
@@ -449,6 +449,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   int arity_ = -2;
   uint16_t flag_ = 0;
 
+
+ protected:
   CmdRes res_;
   PikaCmdArgsType argv_;
   std::string db_name_;

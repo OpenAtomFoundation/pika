@@ -5,6 +5,8 @@
 
 #include "include/pika_data_distribution.h"
 
+#include <cassert>
+
 const std::string kTagBegin = "{";
 const std::string kTagEnd = "}";
 

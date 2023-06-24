@@ -31,6 +31,7 @@ aux_source_directory(./src  DIR_SRCS)
 add_library(pstd STATIC ${DIR_SRCS})
 
 add_dependencies(pstd
+  rocksdb
   glog
   gflags
   fmt
@@ -42,9 +43,16 @@ target_include_directories(pstd
            ${INSTALL_INCLUDEDIR}
 )
 
-target_link_libraries(pstd
-    PUBLIC ${GLOG_LIBRARY}
-           ${GFLAGS_LIBRARY}
-           ${FMT_LIBRARY}
-           ${LIBUNWIND_LIBRARY}
-)
+set(PSTD_DEP_LIBS ${GLOG_LIBRARY} ${GFLAGS_LIBRARY} ${FMT_LIBRARY} ${LIBUNWIND_LIBRARY})
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION LESS 9)
+    list(APPEND PSTD_DEP_LIBS stdc++fs)
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION LESS 9)
+    list(APPEND PSTD_DEP_LIBS c++fs)
+  endif()
+endif()
+
+target_link_libraries(pstd PUBLIC ${PSTD_DEP_LIBS})

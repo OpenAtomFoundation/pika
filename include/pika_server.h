@@ -214,6 +214,7 @@ class PikaServer : public pstd::noncopyable {
   void SetLoopSlotStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
+  void UpdateMetaSyncTimestampWithoutLock();
   bool IsFirstMetaSync();
   void SetFirstMetaSync(bool v);
 
@@ -349,6 +350,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
+  std::timed_mutex  exit_mutex_;
 
   /*
    * Table used

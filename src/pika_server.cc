@@ -76,6 +76,7 @@ PikaServer::PikaServer()
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
+  exit_mutex_.lock();
 }
 
 PikaServer::~PikaServer() {
@@ -177,16 +178,18 @@ void PikaServer::Start() {
   LOG(INFO) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
-    // wake up every 10 second
-    int try_num = 0;
-    while (!exit_ && try_num++ < 5) {
-      sleep(1);
+    // wake up every 5 seconds
+    if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
+      exit_mutex_.unlock();
     }
   }
   LOG(INFO) << "Goodbye...";
 }
 
-void PikaServer::Exit() { exit_ = true; }
+void PikaServer::Exit() {
+  exit_mutex_.unlock();
+  exit_ = true;
+}
 
 std::string PikaServer::host() { return host_; }
 
@@ -728,7 +731,7 @@ void PikaServer::RemoveMaster() {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
       loop_slot_state_machine_ = false;
-      UpdateMetaSyncTimestamp();
+      UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
@@ -822,6 +825,10 @@ int PikaServer::GetMetaSyncTimestamp() {
 
 void PikaServer::UpdateMetaSyncTimestamp() {
   std::lock_guard sp_l(state_protector_);
+  last_meta_sync_timestamp_ = time(nullptr);
+}
+
+void PikaServer::UpdateMetaSyncTimestampWithoutLock() {
   last_meta_sync_timestamp_ = time(nullptr);
 }
 

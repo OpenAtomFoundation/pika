@@ -2,6 +2,7 @@
 #define __PSTD_INCLUDE_RANDOM_H__
 
 #include <ctime>
+#include <cstdint>
 
 namespace pstd {
 
