@@ -531,7 +531,7 @@ int string2d(const char* s, size_t slen, double* dval) {
  * given execution of Redis, so that if you are talking with an instance
  * having run_id == A, and you reconnect and it has run_id == B, you can be
  * sure that it is either a different instance or it was restarted. */
-std::string getRandomHexChars(size_t len) {
+std::string getRandomHexChars(const size_t len) {
   FILE* fp = fopen("/dev/urandom", "r");
   DEFER {
     if (fp) {
@@ -541,8 +541,9 @@ std::string getRandomHexChars(size_t len) {
   };
 
   char charset[] = "0123456789abcdef";
-  unsigned int j;
-  char p[len];
+  unsigned int j{0};
+  std::string buf(len, '\0');
+  char* p = buf.data();
 
   if (!fp || !fread(p, len, 1, fp)) {
     /* If we can't read from /dev/urandom, do some reasonable effort
