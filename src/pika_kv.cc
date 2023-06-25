@@ -250,7 +250,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
-    res_.SetRes(CmdRes::kOverFlow);
+    res_.SetRes(CmdRes::KIncrByOverFlow);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

@@ -71,3 +71,4 @@ deps
 # include codis fe javascript lib files
 !codis/cmd/fe/assets/**
 
+tests/tmp
