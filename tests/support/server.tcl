@@ -202,7 +202,11 @@ proc start_server {options {code undefined}} {
             puts -nonewline $fp "$directive : "
             puts $fp [dict get $config $directive]
         } elseif {$directive == "requirepass"} {
-            puts $fp "$directive :"
+            if {[dict get $config $directive] eq ":"} {
+                puts $fp "$directive: "
+            } else {
+                puts $fp "$directive: [dict get $config $directive]"
+            }
         } elseif {$directive == "dump_prefix"} {
             puts $fp "$directive :"
         } else {
