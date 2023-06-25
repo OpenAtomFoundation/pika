@@ -48,7 +48,7 @@ class Thread : public pstd::noncopyable {
   virtual void* ThreadMain() = 0;
 
   pstd::Mutex running_mu_;
-  std::atomic_bool running_;
+  std::atomic_bool running_ = false;
   pthread_t thread_id_{};
   std::string thread_name_;
 };
