@@ -36,7 +36,7 @@ class RedisLists : public Redis {
   Status LLen(const Slice& key, uint64_t* len);
   Status LPop(const Slice& key, std::string* element);
   Status LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
-  Status LPushx(const Slice& key, const Slice& value, uint64_t* len);
+  Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
   Status LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret);
   Status LSet(const Slice& key, int64_t index, const Slice& value);
@@ -44,7 +44,7 @@ class RedisLists : public Redis {
   Status RPop(const Slice& key, std::string* element);
   Status RPoplpush(const Slice& source, const Slice& destination, std::string* element);
   Status RPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
-  Status RPushx(const Slice& key, const Slice& value, uint64_t* len);
+  Status RPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
   Status PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
                      std::vector<std::string>* keys, std::string* next_key);
   Status PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
