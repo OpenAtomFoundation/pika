@@ -827,25 +827,6 @@ func (c *ApiClient) EnableReplicaGroupsAll(value bool) error {
 	return rpc.ApiPutJson(url, nil, nil)
 }
 
-func (c *ApiClient) AddSentinel(addr string) error {
-	url := c.encodeURL("/api/topom/sentinels/add/%s/%s", c.xauth, addr)
-	return rpc.ApiPutJson(url, nil, nil)
-}
-
-func (c *ApiClient) DelSentinel(addr string, force bool) error {
-	var value int
-	if force {
-		value = 1
-	}
-	url := c.encodeURL("/api/topom/sentinels/del/%s/%s/%d", c.xauth, addr, value)
-	return rpc.ApiPutJson(url, nil, nil)
-}
-
-func (c *ApiClient) ResyncSentinels() error {
-	url := c.encodeURL("/api/topom/sentinels/resync-all/%s", c.xauth)
-	return rpc.ApiPutJson(url, nil, nil)
-}
-
 func (c *ApiClient) SyncCreateAction(addr string) error {
 	url := c.encodeURL("/api/topom/group/action/create/%s/%s", c.xauth, addr)
 	return rpc.ApiPutJson(url, nil, nil)

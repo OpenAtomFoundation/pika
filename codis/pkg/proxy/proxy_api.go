@@ -309,13 +309,3 @@ func (c *ApiClient) FillSlots(slots ...*models.Slot) error {
 	url := c.encodeURL("/api/proxy/fillslots/%s", c.xauth)
 	return rpc.ApiPutJson(url, slots, nil)
 }
-
-func (c *ApiClient) SetSentinels(sentinel *models.Sentinel) error {
-	url := c.encodeURL("/api/proxy/sentinels/%s", c.xauth)
-	return rpc.ApiPutJson(url, sentinel, nil)
-}
-
-func (c *ApiClient) RewatchSentinels() error {
-	url := c.encodeURL("/api/proxy/sentinels/%s/rewatch", c.xauth)
-	return rpc.ApiPutJson(url, nil, nil)
-}
