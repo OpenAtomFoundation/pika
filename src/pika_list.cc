@@ -303,13 +303,13 @@ void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType rpop_args;
   rpop_args.push_back("RPOP");
   rpop_args.push_back(source_);
-  rpop_cmd_->Initial(std::move(rpop_args), db_name_);
+  rpop_cmd_->Initial(rpop_args, db_name_);
 
   PikaCmdArgsType lpush_args;
   lpush_args.push_back("LPUSH");
   lpush_args.push_back(receiver_);
   lpush_args.push_back(value_poped_from_source_);
-  lpush_cmd_->Initial(std::move(lpush_args), db_name_);
+  lpush_cmd_->Initial(lpush_args, db_name_);
 
   rpop_cmd_->SetConn(GetConn());
   rpop_cmd_->SetResp(resp_.lock());
