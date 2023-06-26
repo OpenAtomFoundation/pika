@@ -81,7 +81,6 @@ def test_master_slave_replication():
     m_keys = master.keys()
     s_keys = slave.keys()
     assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got s_keys = {s_keys}, m_keys = {m_keys}'
-
     for i in range(0, master.llen('blist')):
         # print(master.lindex('blist', i))
         # print(slave.lindex('blist', i))

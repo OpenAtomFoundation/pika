@@ -125,11 +125,14 @@ void LPushxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  value_ = argv_[2];
+  size_t pos = 2;
+  while (pos < argv_.size()) {
+    values_.push_back(argv_[pos++]);
+  }
 }
 void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = slot->db()->LPushx(key_, value_, &llen);
+  rocksdb::Status s = slot->db()->LPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
     AddSlotKey("l", key_, slot);
@@ -345,11 +348,14 @@ void RPushxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  value_ = argv_[2];
+  size_t pos = 2;
+  while (pos < argv_.size()) {
+    values_.push_back(argv_[pos++]);
+  }
 }
 void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
-  rocksdb::Status s = slot->db()->RPushx(key_, value_, &llen);
+  rocksdb::Status s = slot->db()->RPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
     RemKeyNotExists("l", key_, slot);
