@@ -182,6 +182,15 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 void DelCmd::Merge() {
   res_.AppendInteger(split_res_);
 }
+void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  std::string opt = argv_.at(0);
+  for(auto& key: keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog(slot);
+  }
+}
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -659,6 +668,17 @@ void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void MsetCmd::Merge() {}
+void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType set_argv;
+  set_argv.reserve(3);
+  set_argv[0] = "SET";
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(argv_, db_name_);
+    set_cmd_->DoBinlog(slot);
+  }
+}
 
 void MsetnxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -683,6 +703,21 @@ void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendInteger(success_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!success_){
+    //some keys already exist, set operations aborted, no need of binlog
+    return;
+  }
+  PikaCmdArgsType set_argv;
+  set_argv.reserve(3);
+  set_argv[0] = "SET";
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(argv_, db_name_);
+    set_cmd_->DoBinlog(slot);
   }
 }
 

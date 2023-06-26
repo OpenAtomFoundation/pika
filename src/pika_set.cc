@@ -339,9 +339,35 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
+    move_success_ = res;
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!move_success_){
+    //the member is not in the source set, nothing changed
+    return;
+  }
+  PikaCmdArgsType srem_args;
+  srem_args.push_back("SREM");
+  srem_args.push_back(src_key_);
+  srem_args.push_back(member_);
+  srem_cmd_->Initial(srem_args, db_name_);
+
+  PikaCmdArgsType sadd_args;
+  sadd_args.push_back("SADD");
+  sadd_args.push_back(dest_key_);
+  sadd_args.push_back(member_);
+  sadd_cmd_->Initial(sadd_args, db_name_);
+
+  srem_cmd_->SetConn(GetConn());
+  srem_cmd_->SetResp(resp_.lock());
+  sadd_cmd_->SetConn(GetConn());
+  sadd_cmd_->SetResp(resp_.lock());
+
+  srem_cmd_->DoBinlog(slot);
+  sadd_cmd_->DoBinlog(slot);
 }
 
 void SRandmemberCmd::DoInitial() {
