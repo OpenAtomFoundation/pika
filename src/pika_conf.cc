@@ -170,7 +170,20 @@ int PikaConf::Load() {
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_.store(swe == "yes");
+  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
+
+  // slot migrate
+  std::string smgrt = "no";
+  GetConfStr("slotmigrate", &smgrt);
+  slotmigrate_ = (smgrt == "yes") ? true : false;
+
+  int binlog_writer_num = 1 ;
+  GetConfInt("binlog-writer-num", &binlog_writer_num);
+  if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
+    binlog_writer_num_ = 1;
+  } else {
+    binlog_writer_num_ = binlog_writer_num;
+  }
 
   int tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
@@ -344,6 +357,18 @@ int PikaConf::Load() {
   GetConfInt64Human("arena-block-size", &arena_block_size_);
   if (arena_block_size_ <= 0) {
     arena_block_size_ = write_buffer_size_ >> 3;  // 1/8 of the write_buffer_size_
+  }
+
+  // arena_block_size
+  GetConfInt64Human("slotmigrate-thread-num_", &slotmigrate_thread_num_);
+  if (slotmigrate_thread_num_ < 1 || slotmigrate_thread_num_ > 24) {
+    slotmigrate_thread_num_ = 8;  // 1/8 of the write_buffer_size_
+  }
+
+  // arena_block_size
+  GetConfInt64Human("thread-migrate-keys-num", &thread_migrate_keys_num_);
+  if (thread_migrate_keys_num_ < 64 || thread_migrate_keys_num_ > 128) {
+    thread_migrate_keys_num_ = 64;  // 1/8 of the write_buffer_size_
   }
 
   // max_write_buffer_size
@@ -590,6 +615,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);
+  SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 

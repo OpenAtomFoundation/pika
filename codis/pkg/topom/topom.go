@@ -72,7 +72,7 @@ type Topom struct {
 	ha struct {
 		redisp *redis.Pool
 
-		monitor *redis.Sentinel
+		monitor *redis.CodisSentinel
 		masters map[int]string
 	}
 }
@@ -195,11 +195,33 @@ func (s *Topom) Start(routines bool) error {
 	if !routines {
 		return nil
 	}
-	ctx, err := s.newContext()
-	if err != nil {
-		return err
-	}
-	s.rewatchSentinels(ctx.sentinel.Servers)
+
+	// Check the status of all masters and slaves every 5 seconds
+	go func() {
+		for !s.IsClosed() {
+			if s.IsOnline() {
+				w, _ := s.CheckMastersAndSlavesState(10 * time.Second)
+				if w != nil {
+					w.Wait()
+				}
+			}
+			time.Sleep(s.Config().SentinelCheckServerStateInterval.Duration())
+		}
+	}()
+
+	// Check the status of the pre-offline master every 1 second
+	// to determine whether to automatically switch master and slave
+	go func() {
+		for !s.IsClosed() {
+			if s.IsOnline() {
+				w, _ := s.CheckPreOffineMastersState(5 * time.Second)
+				if w != nil {
+					w.Wait()
+				}
+			}
+			time.Sleep(s.Config().SentinelCheckMasterFailoverInterval.Duration())
+		}
+	}()
 
 	go func() {
 		for !s.IsClosed() {

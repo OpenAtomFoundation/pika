@@ -36,6 +36,8 @@ class NetCli : public pstd::noncopyable {
 
   bool Available() const;
 
+  struct timeval last_interaction_;
+
   // default connect timeout is 1000ms
   int set_send_timeout(int send_timeout);
   int set_recv_timeout(int recv_timeout);
