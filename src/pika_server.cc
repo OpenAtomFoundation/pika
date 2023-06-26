@@ -1091,7 +1091,7 @@ void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
   }
 }
 
-void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
+void PikaServer::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
   if (client_ptr) {
     std::unique_lock lock(monitor_mutex_protector_);
     pika_monitor_clients_.insert(client_ptr);
