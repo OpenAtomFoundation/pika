@@ -33,7 +33,7 @@ jobs:
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt install autoconf libprotobuf-dev protobuf-compiler -y
-        #  sudo apt-get install -y clang-tidy-12
+          sudo apt-get install -y clang-tidy-12
           sudo apt-get install -y python3-pip
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
@@ -46,10 +46,6 @@ jobs:
       - name: Build
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-      #- name: Clang-tidy Check
-      #  working-directory: ${{github.workspace}}/build
-      #  run: make clang-tidy
 
       - name: Test
         working-directory: ${{github.workspace}}/build
@@ -90,8 +86,8 @@ jobs:
         run: |
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-        #  yum install -y llvm-toolset-7
-        #  yum install -y llvm-toolset-7-clang
+          yum install -y llvm-toolset-7
+          yum install -y llvm-toolset-7-clang
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
@@ -125,10 +121,6 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      #- name: Clang-tidy Check
-      #  working-directory: ${{github.workspace}}/build
-      #  run: make clang-tidy
-
       - name: Test
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
@@ -136,3 +128,4 @@ jobs:
           cd ${{github.workspace}}/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
+
