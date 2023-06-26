@@ -2,9 +2,9 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable" ]
+    branches: ["unstable"]
   pull_request:
-    branches: [ "unstable" ]
+    branches: ["unstable"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -24,9 +24,7 @@ jobs:
         uses: actions/cache@v2
         id: cache
         with:
-          path: |
-            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-            ~/.cache/pip
+          path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
           key: ${{ runner.os }}-dependencies
 
       - name: install Deps
@@ -136,4 +134,5 @@ jobs:
           cd ${{github.workspace}}/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
+
 

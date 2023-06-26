@@ -358,7 +358,7 @@ std::set<uint32_t> PikaServer::GetDBSlotIds(const std::string& db_name) {
   std::set<uint32_t> empty;
   std::shared_lock l(dbs_rw_);
   auto iter = dbs_.find(db_name);
-  return (iter == dbs_.end()) ? empty : iter->second->GetSlotIds();
+  return (iter == dbs_.end()) ? empty : iter->second->GetSlotIDs();
 }
 
 bool PikaServer::IsBgSaving() {
@@ -478,7 +478,7 @@ void PikaServer::PrepareSlotTrySync() {
     for (const auto& slot_item : db_item.second->slots_) {
       Status s = g_pika_rm->ActivateSyncSlaveSlot(
           RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_item.second->GetDBName(),
-                 slot_item.second->GetSlotId()),
+                 slot_item.second->GetSlotID()),
           state);
       if (!s.ok()) {
         LOG(WARNING) << s.ToString();
@@ -547,19 +547,19 @@ Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
       switch (type) {
         case TaskType::kResetReplState: {
           slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
           if (!slave_slot) {
             LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                         << slot_item.second->GetSlotId() << " Not Found";
+                         << slot_item.second->GetSlotID() << " Not Found";
           }
           slave_slot->SetReplState(ReplState::kNoConnect);
           break;
         }
         case TaskType::kPurgeLog: {
           std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
           if (!slot) {
-            LOG(WARNING) << db_item.second->GetDBName() << slot_item.second->GetSlotId()
+            LOG(WARNING) << db_item.second->GetDBName() << slot_item.second->GetSlotID()
                          << " Not Found.";
             break;
           }
@@ -790,10 +790,10 @@ bool PikaServer::AllSlotConnectSuccess() {
   for (const auto& db_item : dbs_) {
     for (const auto& slot_item : db_item.second->slots_) {
       slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                     << slot_item.second->GetSlotId() << ", NotFound";
+                     << slot_item.second->GetSlotID() << ", NotFound";
         return false;
       }
 
@@ -1461,7 +1461,7 @@ void PikaServer::InitStorageOptions() {
     storage_options_.options.compression_per_level.push_back(storage_options_.options.compression);
   }
 
-  // For rocksdb::BlockBasedTableOptions
+  // For rocksdb::BlockBasedDBOptions
   storage_options_.table_options.block_size = g_pika_conf->block_size();
   storage_options_.table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
   storage_options_.block_cache_size = g_pika_conf->block_cache();

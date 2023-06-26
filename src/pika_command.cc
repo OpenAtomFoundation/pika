@@ -19,6 +19,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
+#include "include/pika_slot.h"
 #include "include/pika_zset.h"
 
 using pstd::Status;
@@ -327,7 +328,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> lpushptr =
       std::make_unique<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPush, std::move(lpushptr)));
-  std::unique_ptr<Cmd> lpushxptr = 
+  std::unique_ptr<Cmd> lpushxptr =
       std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPushx, std::move(lpushxptr)));
   std::unique_ptr<Cmd> lrangeptr =
@@ -351,7 +352,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> rpushptr =
       std::make_unique<RPushCmd>(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPush, std::move(rpushptr)));
-  std::unique_ptr<Cmd> rpushxptr = 
+  std::unique_ptr<Cmd> rpushxptr =
       std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
 
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPushx, std::move(rpushxptr)));
@@ -649,7 +650,7 @@ void Cmd::ProcessFlushDBCmd() {
       std::lock_guard s_prw(g_pika_rm->slots_rw_);
       for (const auto& slot_item : db->slots_) {
         std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+        SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
         if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
           res_.SetRes(CmdRes::kErrOther, "Slot not found");
           return;
@@ -675,7 +676,7 @@ void Cmd::ProcessFlushAllCmd() {
     std::lock_guard s_prw(g_pika_rm->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
       if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -696,7 +697,7 @@ void Cmd::ProcessSingleSlotCmd() {
   }
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
   if (!sync_slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
@@ -808,7 +809,7 @@ void Cmd::ProcessMultiSlotCmd() {
         return;
       }
       std::shared_ptr<SyncMasterSlot> sync_slot =
-          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
       if (!sync_slot) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
