@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"pika/codis/v2/pkg/models"
-	"pika/codis/v2/pkg/models/fs"
+	fsclient "pika/codis/v2/pkg/models/fs"
 	"pika/codis/v2/pkg/proxy"
 	"pika/codis/v2/pkg/utils/assert"
 	"pika/codis/v2/pkg/utils/log"

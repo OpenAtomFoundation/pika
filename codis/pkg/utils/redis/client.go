@@ -5,16 +5,19 @@ package redis
 
 import (
 	"container/list"
+	"encoding/json"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"pika/codis/v2/pkg/utils/errors"
-	"pika/codis/v2/pkg/utils/math2"
-
 	redigo "github.com/garyburd/redigo/redis"
+
+	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/math2"
 )
 
 type Client struct {
@@ -176,6 +179,63 @@ func (c *Client) InfoKeySpace() (map[int]string, error) {
 	return info, nil
 }
 
+func (c *Client) InfoReplication() (*InfoReplication, error) {
+	text, err := redigo.String(c.Do("INFO", "replication"))
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	var (
+		info            = make(map[string]string)
+		slaveMap        = make([]map[string]string, 0)
+		infoReplication InfoReplication
+		slaves          []InfoSlave
+	)
+
+	for _, line := range strings.Split(text, "\n") {
+		kv := strings.SplitN(line, ":", 2)
+		if len(kv) != 2 {
+			continue
+		}
+
+		if key := strings.TrimSpace(kv[0]); key != "" {
+			if ok, _ := regexp.Match("slave[0-9]+", []byte(key)); ok {
+				slaveKvs := strings.Split(kv[1], ",")
+
+				slave := make(map[string]string)
+				for _, slaveKvStr := range slaveKvs {
+					slaveKv := strings.Split(slaveKvStr, "=")
+					if len(slaveKv) != 2 {
+						log.Warnf("invalid replication info, slaveKvs = %s, slaveKv = %s", slaveKvs, slaveKv)
+						continue
+					}
+					slave[slaveKv[0]] = slaveKv[1]
+				}
+
+				slaveMap = append(slaveMap, slave)
+			} else {
+				info[key] = strings.TrimSpace(kv[1])
+			}
+		}
+	}
+
+	if len(slaveMap) > 0 {
+		slavesStr, _ := json.Marshal(slaveMap)
+		if err = json.Unmarshal(slavesStr, &slaves); err != nil {
+			log.Errorf("unmarshal to slaves failed, %v", err)
+		}
+	}
+
+	str, _ := json.Marshal(info)
+	if err = json.Unmarshal(str, &infoReplication); err != nil {
+		log.Errorf("unmarshal to infoReplication failed, %v", err)
+	} else {
+		infoReplication.Slaves = slaves
+	}
+
+	return &infoReplication, nil
+}
+
 func (c *Client) InfoFull() (map[string]string, error) {
 	if info, err := c.Info(); err != nil {
 		return nil, errors.Trace(err)
@@ -203,23 +263,24 @@ func (c *Client) InfoFull() (map[string]string, error) {
 }
 
 func (c *Client) SetMaster(master string) error {
-	host, port, err := net.SplitHostPort(master)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	c.Send("MULTI")
-	c.Send("CONFIG", "SET", "masterauth", c.Auth)
-	c.Send("SLAVEOF", host, port)
-	c.Send("CONFIG", "REWRITE")
-	c.Send("CLIENT", "KILL", "TYPE", "normal")
-	values, err := redigo.Values(c.Do("EXEC"))
-	if err != nil {
-		return errors.Trace(err)
-	}
-	for _, r := range values {
-		if err, ok := r.(redigo.Error); ok {
+	if master == "" || strings.ToUpper(master) == "NO:ONE" {
+		if _, err := c.Do("SLAVEOF", "NO", "ONE"); err != nil {
+			return err
+		}
+	} else {
+		host, port, err := net.SplitHostPort(master)
+		if err != nil {
 			return errors.Trace(err)
 		}
+		if _, err := c.Do("CONFIG", "set", "masterauth", c.Auth); err != nil {
+			return err
+		}
+		if _, err := c.Do("SLAVEOF", host, port); err != nil {
+			return err
+		}
+	}
+	if _, err := c.Do("CONFIG", "REWRITE"); err != nil {
+		return err
 	}
 	return nil
 }

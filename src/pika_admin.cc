@@ -941,7 +941,7 @@ void InfoCmd::InfoReplication(std::string& info) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
@@ -1026,7 +1026,7 @@ void InfoCmd::InfoReplication(std::string& info) {
     std::shared_lock slot_rwl(t_item.second->slots_rw_);
     for (const auto& p_item : t_item.second->slots_) {
       std::string db_name = p_item.second->GetDBName();
-      uint32_t slot_id = p_item.second->GetSlotId();
+      uint32_t slot_id = p_item.second->GetSlotID();
       master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
       if (!master_slot) {
         LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
@@ -1387,6 +1387,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->daemonize() ? "yes" : "no");
   }
 
+  if (pstd::stringmatch(pattern.data(), "slotmigrate", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "slotmigrate");
+    EncodeString(&config_body, g_pika_conf->slotmigrate() ? "yes" : "no");
+  }
+
   if (pstd::stringmatch(pattern.data(), "dump-path", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "dump-path");
@@ -1676,6 +1682,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
+    EncodeString(&ret, "slotmigrate");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
@@ -1723,6 +1730,9 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "userpass") {
     g_pika_conf->SetUserPass(value);
+    ret = "+OK\r\n";
+  } else if (set_item == "slotmigrate") {
+    g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
   } else if (set_item == "userblacklist") {
     g_pika_conf->SetUserBlackList(value);
