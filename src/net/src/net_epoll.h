@@ -16,7 +16,7 @@ namespace net {
 class NetEpoll final : public NetMultiplexer {
  public:
   NetEpoll(int queue_limit = kUnlimitedQueue);
-  ~NetEpoll() = default;
+  ~NetEpoll() override = default;
 
   int NetAddEvent(int fd, int mask) override;
   int NetDelEvent(int fd, [[maybe_unused]] int mask) override;

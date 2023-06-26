@@ -240,12 +240,12 @@ class ZRemCmd : public Cmd {
 class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), aggregate_(storage::SUM) {}
+      : Cmd(name, arity, flag) {}
 
  protected:
   std::string dest_key_;
   int64_t num_keys_ = 0;
-  storage::AGGREGATE aggregate_;
+  storage::AGGREGATE aggregate_{storage::SUM};
   std::vector<std::string> keys_;
   std::vector<double> weights_;
   void DoInitial() override;

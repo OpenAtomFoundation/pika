@@ -27,7 +27,7 @@
 class PikaConf : public pstd::BaseConf {
  public:
   PikaConf(const std::string& path);
-  ~PikaConf() override {}
+  ~PikaConf() override = default;
 
   // Getter
   int port() {

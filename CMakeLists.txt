@@ -786,6 +786,7 @@ add_custom_target(
         -clang-tidy-binary ${CLANG_TIDY_BIN}
         -p ${CMAKE_BINARY_DIR}
         -quiet
+        -extra-arg=-std=c++17
     )
 
 add_custom_target(clang-tidy-fix
@@ -794,4 +795,5 @@ add_custom_target(clang-tidy-fix
     -p ${CMAKE_BINARY_DIR}
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
+    -extra-arg=-std=c++17
 )

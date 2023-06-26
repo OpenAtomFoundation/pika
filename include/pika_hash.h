@@ -272,7 +272,7 @@ class HValsCmd : public Cmd {
 
 class HScanCmd : public Cmd {
  public:
-  HScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  HScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -285,7 +285,7 @@ class HScanCmd : public Cmd {
 
  private:
   std::string key_, pattern_;
-  int64_t cursor_, count_;
+  int64_t cursor_, count_{10};
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";
@@ -295,7 +295,7 @@ class HScanCmd : public Cmd {
 
 class HScanxCmd : public Cmd {
  public:
-  HScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  HScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -308,7 +308,7 @@ class HScanxCmd : public Cmd {
 
  private:
   std::string key_, start_field_, pattern_;
-  int64_t count_;
+  int64_t count_{10};
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";

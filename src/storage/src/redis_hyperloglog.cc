@@ -28,7 +28,7 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   }
 }
 
-HyperLogLog::~HyperLogLog() {}
+HyperLogLog::~HyperLogLog() = default;
 
 std::string HyperLogLog::Add(const char* value, uint32_t len) {
   uint32_t hash_value;

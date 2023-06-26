@@ -15,7 +15,7 @@
 class PikaCmdTableManager {
  public:
   PikaCmdTableManager();
-  virtual ~PikaCmdTableManager(){};
+  virtual ~PikaCmdTableManager() = default;
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t slot_num);
 
