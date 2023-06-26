@@ -787,6 +787,7 @@ add_custom_target(
         -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
         -p ${CMAKE_BINARY_DIR}
         -quiet
+        -extra-arg=-std=c++17
     )
 
 add_custom_target(clang-tidy-fix
@@ -796,4 +797,5 @@ add_custom_target(clang-tidy-fix
     -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
+    -extra-arg=-std=c++17
 )

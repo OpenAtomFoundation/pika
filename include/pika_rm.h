@@ -160,14 +160,14 @@ class SyncSlaveSlot : public SyncSlot {
  private:
   pstd::Mutex slot_mu_;
   RmNode m_info_;
-  ReplState repl_state_;
+  ReplState repl_state_{kNoConnect};
   std::string local_ip_;
 };
 
 class PikaReplicaManager {
  public:
   PikaReplicaManager();
-  ~PikaReplicaManager(){};
+  ~PikaReplicaManager() = default;
 
   friend Cmd;
 
