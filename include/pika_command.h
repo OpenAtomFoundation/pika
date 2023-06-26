@@ -48,6 +48,24 @@ const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
 const std::string kCmdNameHello = "hello";
 
+//Migrate slot
+const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
+const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
+const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
+const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
+const std::string kCmdNameSlotsInfo = "slotsinfo";
+const std::string kCmdNameSlotsHashKey = "slotshashkey";
+const std::string kCmdNameSlotsReload = "slotsreload";
+const std::string kCmdNameSlotsReloadOff = "slotsreloadoff";
+const std::string kCmdNameSlotsDel = "slotsdel";
+const std::string kCmdNameSlotsScan = "slotsscan";
+const std::string kCmdNameSlotsCleanup = "slotscleanup";
+const std::string kCmdNameSlotsCleanupOff = "slotscleanupoff";
+const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
+const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
+const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
+const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
+const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
 // Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
@@ -192,21 +210,6 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
-// Codis Slots
-const std::string kCmdNameSlotsInfo = "slotsinfo";
-const std::string kCmdNameSlotsHashKey = "slotshashkey";
-const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
-const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
-const std::string kCmdNameSlotsDel = "slotsdel";
-const std::string kCmdNameSlotsScan = "slotsscan";
-const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
-const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
-const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
-const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
-const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
-const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
-const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
-
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -218,7 +221,10 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskSlot = 1536
+  kCmdFlagsMaskPreDo = 512,
+  kCmdFlagsMaskCacheDo = 1024,
+  kCmdFlagsMaskPostDo = 2048,
+  kCmdFlagsMaskSlot = 1536,
 };
 
 enum CmdFlags {
@@ -244,7 +250,8 @@ enum CmdFlags {
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
   kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024
+  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsPreDo = 2048,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -429,6 +436,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
+  bool is_read() const;
   bool is_write() const;
   bool is_local() const;
   bool is_suspend() const;
