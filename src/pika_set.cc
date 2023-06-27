@@ -58,9 +58,9 @@ void SPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   rocksdb::Status s = slot->db()->SPop(key_, &members, count_);
   if (s.ok()) {
-    res_.AppendArrayLen(members.size());
+    res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
-      res_.AppendStringLen(member.size());
+      res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
       AddSlotKey("s", key_, slot);
     }
@@ -101,9 +101,9 @@ void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   rocksdb::Status s = slot->db()->SMembers(key_, &members);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(members.size());
+    res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
-      res_.AppendStringLen(member.size());
+      res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
   } else {
@@ -161,7 +161,7 @@ void SScanCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
-    res_.AppendArrayLen(members.size());
+    res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendString(member);
     }
@@ -200,9 +200,9 @@ void SUnionCmd::DoInitial() {
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   slot->db()->SUnion(keys_, &members);
-  res_.AppendArrayLen(members.size());
+  res_.AppendArrayLenUint64(members.size());
   for (const auto& member : members) {
-    res_.AppendStringLen(member.size());
+    res_.AppendStringLenUint64(member.size());
     res_.AppendContent(member);
   }
 }
@@ -240,9 +240,9 @@ void SInterCmd::DoInitial() {
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   slot->db()->SInter(keys_, &members);
-  res_.AppendArrayLen(members.size());
+  res_.AppendArrayLenUint64(members.size());
   for (const auto& member : members) {
-    res_.AppendStringLen(member.size());
+    res_.AppendStringLenUint64(member.size());
     res_.AppendContent(member);
   }
 }
@@ -299,9 +299,9 @@ void SDiffCmd::DoInitial() {
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   slot->db()->SDiff(keys_, &members);
-  res_.AppendArrayLen(members.size());
+  res_.AppendArrayLenUint64(members.size());
   for (const auto& member : members) {
-    res_.AppendStringLen(member.size());
+    res_.AppendStringLenUint64(member.size());
     res_.AppendContent(member);
   }
 }
@@ -369,15 +369,15 @@ void SRandmemberCmd::DoInitial() {
 
 void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SRandmember(key_, count_, &members);
+  rocksdb::Status s = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
   if (s.ok() || s.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
-      res_.AppendStringLen(members[0].size());
+      res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
     } else {
-      res_.AppendArrayLen(members.size());
+      res_.AppendArrayLenUint64(members.size());
       for (const auto& member : members) {
-        res_.AppendStringLen(member.size());
+        res_.AppendStringLenUint64(member.size());
         res_.AppendContent(member);
       }
     }

@@ -140,7 +140,7 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
+  bool sm_ret = g_pika_server->SetMaster(master_ip_, static_cast<int32_t>(master_port_));
 
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
@@ -460,7 +460,7 @@ std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t
 
   // to flushdb cmd
   std::string flushdb_cmd("flushdb");
-  RedisAppendLen(content, flushdb_cmd.size(), "$");
+  RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
   RedisAppendContent(content, flushdb_cmd);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
                                              content, {});
@@ -782,8 +782,7 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       break;
   }
 
-  res_.AppendStringLen(info.size());
-  res_.AppendContent(info);
+  res_.AppendString(info);
 }
 
 void InfoCmd::InfoServer(std::string& info) {
@@ -1107,11 +1106,11 @@ void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
 
-  int64_t db_size = pstd::Du(g_pika_conf->db_path());
+  uint64_t db_size = pstd::Du(g_pika_conf->db_path());
   tmp_stream << "# Data" << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
-  int64_t log_size = pstd::Du(g_pika_conf->log_path());
+  uint64_t log_size = pstd::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -1718,7 +1717,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
       return;
     }
-    g_pika_conf->SetTimeout(ival);
+    g_pika_conf->SetTimeout(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
@@ -1743,43 +1742,43 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'maxclients'\r\n";
       return;
     }
-    g_pika_conf->SetMaxConnection(ival);
-    g_pika_server->SetDispatchQueueLimit(ival);
+    g_pika_conf->SetMaxConnection(static_cast<int>(ival));
+    g_pika_server->SetDispatchQueueLimit(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'dump-expire'\r\n";
       return;
     }
-    g_pika_conf->SetExpireDumpDays(ival);
+    g_pika_conf->SetExpireDumpDays(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slave-priority") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-priority'\r\n";
       return;
     }
-    g_pika_conf->SetSlavePriority(ival);
+    g_pika_conf->SetSlavePriority(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
     }
-    g_pika_conf->SetExpireLogsDays(ival);
+    g_pika_conf->SetExpireLogsDays(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
     }
-    g_pika_conf->SetExpireLogsNums(ival);
+    g_pika_conf->SetExpireLogsNums(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
     }
-    g_pika_conf->SetRootConnectionNum(ival);
+    g_pika_conf->SetRootConnectionNum(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-write-errorlog") {
     bool is_write_errorlog;
@@ -1798,14 +1797,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
     }
-    g_pika_conf->SetSlowlogSlowerThan(ival);
+    g_pika_conf->SetSlowlogSlowerThan(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-max-len") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-max-len'\r\n";
       return;
     }
-    g_pika_conf->SetSlowlogMaxLen(ival);
+    g_pika_conf->SetSlowlogMaxLen(static_cast<int>(ival));
     g_pika_server->SlowlogTrim();
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-statistic-keys") {
@@ -1813,23 +1812,23 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
       return;
     }
-    g_pika_conf->SetMaxCacheStatisticKeys(ival);
-    g_pika_server->SlotSetMaxCacheStatisticKeys(ival);
+    g_pika_conf->SetMaxCacheStatisticKeys(static_cast<int>(ival));
+    g_pika_server->SlotSetMaxCacheStatisticKeys(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-threshold'\r\n";
       return;
     }
-    g_pika_conf->SetSmallCompactionThreshold(ival);
-    g_pika_server->SlotSetSmallCompactionThreshold(ival);
+    g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
+    g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n";
       return;
     }
-    g_pika_conf->SetMaxClientResponseSize(ival);
+    g_pika_conf->SetMaxClientResponseSize(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
     int role = g_pika_server->role();
@@ -1851,7 +1850,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     if (ival < 0 || ival > 1024) {
       ival = 1024;
     }
-    g_pika_conf->SetDbSyncSpeed(ival);
+    g_pika_conf->SetDbSyncSpeed(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "compact-cron") {
     bool invalid = false;
@@ -1859,7 +1858,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       bool have_week = false;
       std::string compact_cron;
       std::string week_str;
-      int slash_num = count(value.begin(), value.end(), '/');
+      int64_t slash_num = count(value.begin(), value.end(), '/');
       if (slash_num == 2) {
         have_week = true;
         std::string::size_type first_slash = value.find('/');
@@ -1924,7 +1923,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Argument exceed range \'" + value + "\' for CONFIG SET 'sync-window-size'\r\n";
       return;
     }
-    g_pika_conf->SetSyncWindowSize(ival);
+    g_pika_conf->SetSyncWindowSize(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -1937,7 +1936,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxCacheFiles(ival);
+    g_pika_conf->SetMaxCacheFiles(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-background-compactions") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -1950,7 +1949,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxBackgroudCompactions(ival);
+    g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -1963,7 +1962,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetWriteBufferSize(ival);
+    g_pika_conf->SetWriteBufferSize(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-write-buffer-num") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -1976,7 +1975,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxWriteBufferNumber(ival);
+    g_pika_conf->SetMaxWriteBufferNumber(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "arena-block-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -1989,7 +1988,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetArenaBlockSize(ival);
+    g_pika_conf->SetArenaBlockSize(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
@@ -2046,8 +2045,8 @@ void DbsizeCmd::Do(std::shared_ptr<Slot> slot) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
     }
-    int64_t dbsize = key_infos[0].keys + key_infos[1].keys + key_infos[2].keys + key_infos[3].keys + key_infos[4].keys;
-    res_.AppendInteger(dbsize);
+    uint64_t dbsize = key_infos[0].keys + key_infos[1].keys + key_infos[2].keys + key_infos[3].keys + key_infos[4].keys;
+    res_.AppendInteger(static_cast<int64_t>(dbsize));
   }
 }
 
@@ -2098,10 +2097,9 @@ void DelbackupCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  int len = dump_dir.size();
-  for (auto & i : dump_dir) {
-    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix ||
-        i.size() != (db_sync_prefix.size() + 8)) {
+  int len = static_cast<int>(dump_dir.size());
+  for (auto& i : dump_dir) {
+    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
     }
 
@@ -2200,13 +2198,13 @@ void SlowlogCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     std::vector<SlowlogEntry> slowlogs;
     g_pika_server->SlowlogObtain(number_, &slowlogs);
-    res_.AppendArrayLen(slowlogs.size());
+    res_.AppendArrayLenUint64(slowlogs.size());
     for (const auto& slowlog : slowlogs) {
       res_.AppendArrayLen(4);
       res_.AppendInteger(slowlog.id);
       res_.AppendInteger(slowlog.start_time);
       res_.AppendInteger(slowlog.duration);
-      res_.AppendArrayLen(slowlog.argv.size());
+      res_.AppendArrayLenUint64(slowlog.argv.size());
       for (const auto& arg : slowlog.argv) {
         res_.AppendString(arg);
       }
@@ -2229,7 +2227,6 @@ std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
       BinlogType::TypeFirst,
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
 }
-
 
 void PKPatternMatchDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2367,16 +2364,16 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   for (const auto& fv : fvs) {
-    RedisAppendLen(raw, fv.field.size(), "$");
+    RedisAppendLenUint64(raw, fv.field.size(), "$");
     RedisAppendContent(raw, fv.field);
     if (fv.field == "proto") {
       pstd::string2int(fv.value.data(), fv.value.size(), &ver);
       RedisAppendLen(raw, static_cast<int64_t>(ver), ":");
       continue;
     }
-    RedisAppendLen(raw, fv.value.size(), "$");
+    RedisAppendLenUint64(raw, fv.value.size(), "$");
     RedisAppendContent(raw, fv.value);
   }
-  res_.AppendArrayLen(fvs.size() * 2);
+  res_.AppendArrayLenUint64(fvs.size() * 2);
   res_.AppendStringRaw(raw);
 }

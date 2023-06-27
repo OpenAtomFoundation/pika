@@ -267,7 +267,7 @@ class RmNode : public Node {
   const std::string& DBName() const { return slot_info_.db_name_; }
   uint32_t SlotId() const { return slot_info_.slot_id_; }
   const SlotInfo& NodeSlotInfo() const { return slot_info_; }
-  void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
+  void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
     return "partition=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +

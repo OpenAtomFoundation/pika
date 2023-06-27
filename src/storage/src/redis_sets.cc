@@ -177,7 +177,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
       if (s.ok()) {
-        total_delete += batch.Count();
+        total_delete += static_cast<int32_t>(batch.Count());
         batch.Clear();
       } else {
         *ret = total_delete;
@@ -189,7 +189,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
   if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += batch.Count();
+      total_delete += static_cast<int32_t>(batch.Count());
       batch.Clear();
     }
   }
@@ -217,13 +217,13 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (parsed_sets_meta_value.IsStale() || parsed_sets_meta_value.count() == 0) {
       version = parsed_sets_meta_value.InitialMetaValue();
-      parsed_sets_meta_value.set_count(filtered_members.size());
+      parsed_sets_meta_value.set_count(static_cast<int32_t>(filtered_members.size()));
       batch.Put(handles_[0], key, meta_value);
       for (const auto& member : filtered_members) {
         SetsMemberKey sets_member_key(key, version, member);
         batch.Put(handles_[1], sets_member_key.Encode(), Slice());
       }
-      *ret = filtered_members.size();
+      *ret = static_cast<int32_t>(filtered_members.size());
     } else {
       int32_t cnt = 0;
       std::string member_value;
@@ -257,7 +257,7 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
       SetsMemberKey sets_member_key(key, version, member);
       batch.Put(handles_[1], sets_member_key.Encode(), Slice());
     }
-    *ret = filtered_members.size();
+    *ret = static_cast<int32_t>(filtered_members.size());
   } else {
     return s;
   }
@@ -420,7 +420,7 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
-    parsed_sets_meta_value.set_count(members.size());
+    parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
     char str[4];
@@ -435,7 +435,7 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
     SetsMemberKey sets_member_key(destination, version, member);
     batch.Put(handles_[1], sets_member_key.Encode(), Slice());
   }
-  *ret = members.size();
+  *ret = static_cast<int32_t>(members.size());
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
   return s;
@@ -602,7 +602,7 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
-    parsed_sets_meta_value.set_count(members.size());
+    parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
     char str[4];
@@ -617,7 +617,7 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
     SetsMemberKey sets_member_key(destination, version, member);
     batch.Put(handles_[1], sets_member_key.Encode(), Slice());
   }
-  *ret = members.size();
+  *ret = static_cast<int32_t>(members.size());
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
   return s;
@@ -819,7 +819,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
             cur_round < cnt;
             cur_round++) {
           do {
-            target_index = engine() % modnum;
+            target_index = static_cast<int32_t>( engine() % modnum);
           } while (sets_index.find(target_index) != sets_index.end());
           sets_index.insert(target_index);
         }
@@ -841,7 +841,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
           }
         }
 
-        parsed_sets_meta_value.ModifyCount(-cnt);
+        parsed_sets_meta_value.ModifyCount(static_cast<int32_t>(-cnt));
         batch.Put(handles_[0], key, meta_value);
         delete iter;
 
@@ -878,7 +878,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
   }
 
   members->clear();
-  int64_t last_seed = pstd::NowMicros();
+  uint64_t last_seed = pstd::NowMicros();
   std::default_random_engine engine;
 
   std::string meta_value;
@@ -901,8 +901,8 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
         count = count <= size ? count : size;
         while (targets.size() < static_cast<size_t>(count)) {
           engine.seed(last_seed);
-          last_seed = engine();
-          uint32_t pos = last_seed % size;
+          last_seed = static_cast<int64_t>(engine());
+          auto pos = static_cast<int32_t>(last_seed % size);
           if (unique.find(pos) == unique.end()) {
             unique.insert(pos);
             targets.push_back(pos);
@@ -912,8 +912,8 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
         count = -count;
         while (targets.size() < static_cast<size_t>(count)) {
           engine.seed(last_seed);
-          last_seed = engine();
-          targets.push_back(last_seed % size);
+          last_seed = static_cast<int64_t>(engine());
+          targets.push_back(static_cast<int32_t>(last_seed % size));
         }
       }
       std::sort(targets.begin(), targets.end());
@@ -1084,7 +1084,7 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
-    parsed_sets_meta_value.set_count(members.size());
+    parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
     char str[4];
@@ -1099,7 +1099,7 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
     SetsMemberKey sets_member_key(destination, version, member);
     batch.Put(handles_[1], sets_member_key.Encode(), Slice());
   }
-  *ret = members.size();
+  *ret = static_cast<int32_t>(members.size());
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
   return s;
@@ -1475,7 +1475,7 @@ void RedisSets::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(nullptr);
+  auto current_time = static_cast<int32_t>(time(nullptr));
 
   LOG(INFO) << "***************Sets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
