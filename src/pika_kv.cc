@@ -686,12 +686,21 @@ void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 void MsetCmd::Merge() {}
 void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_argv;
-  set_argv.reserve(3);
-  set_argv[0] = "SET";
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of Set and Mset
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
   for(auto& kv: kvs_){
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
-    set_cmd_->Initial(argv_, db_name_);
+    set_cmd_->Initial(set_argv, db_name_);
+    std::cout << "here1:";
+    for(auto&it:set_cmd_->argv()){
+      std::cout << it << " ";
+    }
+    std::cout << std::endl;
+
     set_cmd_->DoBinlog(slot);
   }
 }
@@ -731,12 +740,15 @@ void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     return;
   }
   PikaCmdArgsType set_argv;
-  set_argv.reserve(3);
-  set_argv[0] = "SET";
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of Set and Mset
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
   for(auto& kv: kvs_){
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
-    set_cmd_->Initial(argv_, db_name_);
+    set_cmd_->Initial(set_argv, db_name_);
     set_cmd_->DoBinlog(slot);
   }
 }
