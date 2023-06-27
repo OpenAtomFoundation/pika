@@ -47,9 +47,7 @@ pid_t Waitpid(pid_t pid, int* iptr, int options) {
 
 /* $begin kill */
 void Kill(pid_t pid, int signum) {
-  int rc;
-
-  if ((rc = kill(pid, signum)) < 0) {
+  if (kill(pid, signum) < 0) {
     LOG(ERROR) << "Kill error: " << strerror(errno);
   }
 }
@@ -64,9 +62,7 @@ unsigned int Sleep(unsigned int secs) { return sleep(secs); }
 unsigned int Alarm(unsigned int seconds) { return alarm(seconds); }
 
 void Setpgid(pid_t pid, pid_t pgid) {
-  int rc;
-
-  if ((rc = setpgid(pid, pgid)) < 0) {
+  if (setpgid(pid, pgid) < 0) {
     LOG(ERROR) << "Setpgid error: " << strerror(errno);
   }
 }
@@ -172,9 +168,7 @@ off_t Lseek(int fildes, off_t offset, int whence) {
 }
 
 void Close(int fd) {
-  int rc;
-
-  if ((rc = close(fd)) < 0) {
+  if (close(fd) < 0) {
     LOG(ERROR) << "Close error: " << strerror(errno);
   }
 }

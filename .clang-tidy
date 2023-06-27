@@ -16,15 +16,15 @@ Checks:     '
 #            -bugprone-suspicious-include,
 #            -bugprone-exception-escape,
             -bugprone-branch-clone,
-            -clang-analyzer-cplusplus.NewDelete,
-            -clang-analyzer-cplusplus.NewDeleteLeaks,
+#            -clang-analyzer-cplusplus.NewDelete,
+#            -clang-analyzer-cplusplus.NewDeleteLeaks,
             -clang-analyzer-security.insecureAPI.rand,
             -clang-analyzer-cplusplus.InnerPointer,
-            -clang-analyzer-core.CallAndMessage,
-            -clang-analyzer-deadcode.DeadStores,
-            -clang-diagnostic-implicit-int-float-conversion,
+#            -clang-analyzer-core.CallAndMessage,
+#            -clang-analyzer-deadcode.DeadStores,
+#            -clang-diagnostic-implicit-int-float-conversion,
             -clang-diagnostic-unused-command-line-argument,
-            -clang-diagnostic-ignored-optimization-argument,
+#            -clang-diagnostic-ignored-optimization-argument,
             -google-readability-avoid-underscore-in-googletest-name,
             -google-default-arguments,
             -google-explicit-constructor,
@@ -82,8 +82,6 @@ CheckOptions:
   - { key: readability-identifier-naming.MemberSuffix,             value: _          }
 
 WarningsAsErrors: '*'
-# HeaderFilterRegex: '(src/net/..|src/storage/include|src/pstd/..|src/pstd/include|src/net/..|include/pika_.*\.h)'
-# HeaderFilterRegex: '(pstd/include|net/include|storage/include|include)/.+\.h'
 HeaderFilterRegex: '((pstd|net|storage)/include/.+\.h|include/pika_.+\.h)'
 AnalyzeTemporaryDtors: true
 

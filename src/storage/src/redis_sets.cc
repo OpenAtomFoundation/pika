@@ -558,7 +558,7 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
     if (s.ok()) {
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
       if (parsed_sets_meta_value.IsStale() || parsed_sets_meta_value.count() == 0) {
-        have_invalid_sets = true;
+        // have_invalid_sets = true;
       } else {
         bool reliable;
         std::string member_value;

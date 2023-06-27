@@ -75,10 +75,10 @@ int LongDoubleToStr(long double ldval, std::string* value) {
      * different way, so better to handle it in an explicit way. */
     if (ldval > 0) {
       strcpy(buf, "inf");
-      len = 3;
+      // len = 3;
     } else {
       strcpy(buf, "-inf");
-      len = 4;
+      // len = 4;
     }
     return -1;
   } else {
