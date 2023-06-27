@@ -727,8 +727,6 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
-      info.append("\r\n");
-      InfoRocksDB(info);
       break;
     case kInfoAll:
       InfoServer(info);
