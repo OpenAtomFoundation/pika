@@ -54,7 +54,7 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
 
 int SyncWindow::Remaining() {
   std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
-  return remaining_size > 0 ? remaining_size : 0;
+  return static_cast<int32_t>(remaining_size > 0 ? remaining_size : 0);
 }
 
 /* SlaveNode */

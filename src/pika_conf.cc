@@ -21,10 +21,10 @@ PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
 Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
-  int32_t db_index = -1;
+  uint32_t db_index = -1;
   for (size_t idx = 0; idx < db_structs_.size(); ++idx) {
     if (db_structs_[idx].db_name == db_name) {
-      db_index = idx;
+      db_index = static_cast<uint32_t>(idx);
       break;
     }
   }
@@ -290,7 +290,7 @@ int PikaConf::Load() {
     bool have_week = false;
     std::string compact_cron;
     std::string week_str;
-    int slash_num = count(compact_cron_.begin(), compact_cron_.end(), '/');
+    int64_t slash_num = count(compact_cron_.begin(), compact_cron_.end(), '/');
     if (slash_num == 2) {
       have_week = true;
       std::string::size_type first_slash = compact_cron_.find('/');
@@ -576,7 +576,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
-  SetConfInt("max-client-response-size", max_client_response_size_);
+  SetConfInt("max-client-response-size", static_cast<int32_t>(max_client_response_size_));
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);

@@ -162,7 +162,7 @@ void DB::RunKeyScan() {
       break;
     }
   }
-  key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
+  key_scan_info_.duration = static_cast<int32_t>(time(nullptr) - key_scan_info_.start_time);
 
   std::lock_guard lm(key_scan_protector_);
   if (s.ok()) {
@@ -220,7 +220,7 @@ void DB::DoKeyScan(void* arg) {
 void DB::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
+  size_t len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }

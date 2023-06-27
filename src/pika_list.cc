@@ -69,7 +69,7 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->LLen(key_, &llen);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(llen);
+    res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -90,7 +90,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
-    res_.AppendInteger(llen);
+    res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -130,7 +130,7 @@ void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->LPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(llen);
+    res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -156,7 +156,7 @@ void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   rocksdb::Status s = slot->db()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
-    res_.AppendArrayLen(values.size());
+    res_.AppendArrayLenUint64(values.size());
     for (const auto& value : values) {
       res_.AppendString(value);
     }
@@ -184,7 +184,7 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t res = 0;
   rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(res);
+    res_.AppendInteger(static_cast<int64_t>(res));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -327,7 +327,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
-    res_.AppendInteger(llen);
+    res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -348,7 +348,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->RPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(llen);
+    res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

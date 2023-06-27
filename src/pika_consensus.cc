@@ -165,7 +165,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
 
 int SyncProgress::SlaveSize() {
   std::shared_lock l(rwlock_);
-  return slaves_.size();
+  return static_cast<int32_t>(slaves_.size());
 }
 
 LogOffset SyncProgress::InternalCalCommittedIndex(const std::unordered_map<std::string, LogOffset>& match_index) {
@@ -243,7 +243,7 @@ bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
 }
 
 int MemLog::InternalFindLogByLogicIndex(const LogOffset& offset) {
-  for (size_t i = 0; i < logs_.size(); ++i) {
+  for (int i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset.l_offset.index > offset.l_offset.index) {
       return -1;
     }
@@ -255,7 +255,7 @@ int MemLog::InternalFindLogByLogicIndex(const LogOffset& offset) {
 }
 
 int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
-  for (size_t i = 0; i < logs_.size(); ++i) {
+  for (int i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset > offset) {
       return -1;
     }
@@ -931,7 +931,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   }
 
   LogOffset committed = committed_index();
-  for (int i = hints.size() - 1; i >= 0; i--) {
+  for (size_t i = hints.size() - 1; i >= 0; i--) {
     if (hints[i].l_offset.index < committed.l_offset.index) {
       return Status::Corruption("hints less than committed index");
     }

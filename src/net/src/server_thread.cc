@@ -180,7 +180,7 @@ void* ServerThread::ThreadMain() {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
       } else {
         // Do own cron task as well as user's
         DoCronTask();

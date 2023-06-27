@@ -66,7 +66,7 @@ void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->HGet(key_, field_, &value);
   if (s.ok()) {
-    res_.AppendStringLen(value.size());
+    res_.AppendStringLenUint64(value.size());
     res_.AppendContent(value);
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
@@ -101,16 +101,16 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
       break;
     } else {
       for (const auto& fv : fvs) {
-        RedisAppendLen(raw, fv.field.size(), "$");
+        RedisAppendLenUint64(raw, fv.field.size(), "$");
         RedisAppendContent(raw, fv.field);
-        RedisAppendLen(raw, fv.value.size(), "$");
+        RedisAppendLenUint64(raw, fv.value.size(), "$");
         RedisAppendContent(raw, fv.value);
       }
       if (raw.size() >= raw_limit) {
         res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
         return;
       }
-      total_fv += fvs.size();
+      total_fv += static_cast<int64_t>(fvs.size());
       cursor = next_cursor;
     }
   } while (cursor != 0);
@@ -184,7 +184,7 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   std::string new_value;
   rocksdb::Status s = slot->db()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s.ok()) {
-    res_.AppendStringLen(new_value.size());
+    res_.AppendStringLenUint64(new_value.size());
     res_.AppendContent(new_value);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
@@ -207,7 +207,7 @@ void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> fields;
   rocksdb::Status s = slot->db()->HKeys(key_, &fields);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(fields.size());
+    res_.AppendArrayLenUint64(fields.size());
     for (const auto& field : fields) {
       res_.AppendString(field);
     }
@@ -250,10 +250,10 @@ void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
   rocksdb::Status s = slot->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(vss.size());
+    res_.AppendArrayLenUint64(vss.size());
     for (const auto& vs : vss) {
       if (vs.status.ok()) {
-        res_.AppendStringLen(vs.value.size());
+        res_.AppendStringLenUint64(vs.value.size());
         res_.AppendContent(vs.value);
       } else {
         res_.AppendContent("$-1");
@@ -342,9 +342,9 @@ void HValsCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   rocksdb::Status s = slot->db()->HVals(key_, &values);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(values.size());
+    res_.AppendArrayLenUint64(values.size());
     for (const auto& value : values) {
-      res_.AppendStringLen(value.size());
+      res_.AppendStringLenUint64(value.size());
       res_.AppendContent(value);
     }
   } else {
@@ -403,7 +403,7 @@ void HScanCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
-    res_.AppendArrayLen(field_values.size() * 2);
+    res_.AppendArrayLenUint64(field_values.size() * 2);
     for (const auto& field_value : field_values) {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
@@ -456,10 +456,10 @@ void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
-    res_.AppendStringLen(next_field.size());
+    res_.AppendStringLenUint64(next_field.size());
     res_.AppendContent(next_field);
 
-    res_.AppendArrayLen(2 * field_values.size());
+    res_.AppendArrayLenUint64(2 * field_values.size());
     for (const auto& field_value : field_values) {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
@@ -506,13 +506,13 @@ void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
     res_.AppendString(next_field);
 
-    res_.AppendArrayLen(2 * field_values.size());
+    res_.AppendArrayLenUint64(2 * field_values.size());
     for (const auto& field_value : field_values) {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
@@ -559,13 +559,13 @@ void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
     res_.AppendString(next_field);
 
-    res_.AppendArrayLen(2 * field_values.size());
+    res_.AppendArrayLenUint64(2 * field_values.size());
     for (const auto& field_value : field_values) {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
