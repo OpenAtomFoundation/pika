@@ -206,7 +206,7 @@ void* WorkerThread::ThreadMain() {
             std::lock_guard lock(rwlock_);
             conns_.erase(pfe->fd);
           }
-          should_close = 0;
+          // should_close = 0;
         }
       }  // connection event
     }    // for (int i = 0; i < nfds; i++)

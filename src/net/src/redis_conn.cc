@@ -89,7 +89,7 @@ ReadStatus RedisConn::GetRequest() {
   nread = read(fd(), rbuf_ + next_read_pos, remain);
   if (nread == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      nread = 0;
+      // nread = 0;
       return kReadHalf;  // HALF
     } else {
       // error happened, close client

@@ -569,8 +569,8 @@ std::string getRandomHexChars(const size_t len) {
     }
     if (l >= sizeof(pid)) {
       memcpy(x, &pid, sizeof(pid));
-      l -= sizeof(pid);
-      x += sizeof(pid);
+      // l -= sizeof(pid);
+      // x += sizeof(pid);
     }
     /* Finally xor it with rand() output, that was already seeded with
      * time() at startup. */

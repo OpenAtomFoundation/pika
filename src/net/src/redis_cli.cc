@@ -94,7 +94,7 @@ Status RedisCli::Send(void* msg) {
   while (nleft > 0) {
     if ((nwritten = write(fd(), wbuf + wbuf_pos, nleft)) <= 0) {
       if (errno == EINTR) {
-        nwritten = 0;
+        // nwritten = 0;
         continue;
         // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,...)
         // will return EAGAIN | EWOULDBLOCK for timeout

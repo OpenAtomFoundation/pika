@@ -47,7 +47,6 @@ Status NetCli::Connect(const std::string& bind_ip) { return Connect(rep_->peer_i
 Status NetCli::Connect(const std::string& ip, const int port, const std::string& bind_ip) {
   std::unique_ptr<Rep>& r = rep_;
   Status s;
-  int rv;
   char cport[6];
   struct addrinfo hints;
   struct addrinfo *servinfo;
@@ -58,7 +57,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
   hints.ai_socktype = SOCK_STREAM;
 
   // We do not handle IPv6
-  if ((rv = getaddrinfo(ip.c_str(), cport, &hints, &servinfo)) != 0) {
+  if (getaddrinfo(ip.c_str(), cport, &hints, &servinfo) != 0) {
     return Status::IOError("connect getaddrinfo error for ", ip);
   }
   for (p = servinfo; p != nullptr; p = p->ai_next) {

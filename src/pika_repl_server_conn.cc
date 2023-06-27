@@ -126,7 +126,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success) {
-    pre_success = TrySyncUpdateSlaveNode(slot, try_sync_request, conn, try_sync_response);
+    TrySyncUpdateSlaveNode(slot, try_sync_request, conn, try_sync_response);
   }
 
   std::string reply_str;
@@ -321,7 +321,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
         } else {
           response.set_code(InnerMessage::kError);
           LOG(WARNING) << "Slot: " << slot_name << " Handle DBSync Request Failed, " << s.ToString();
-          prior_success = false;
+          // prior_success = false;
         }
       } else {
         db_sync_response->set_session_id(-1);
@@ -332,7 +332,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
       if (!s.ok()) {
         response.set_code(InnerMessage::kError);
         LOG(WARNING) << "Slot: " << slot_name << ", Get Session id Failed" << s.ToString();
-        prior_success = false;
+        // prior_success = false;
         db_sync_response->set_session_id(-1);
       } else {
         db_sync_response->set_session_id(session_id);
