@@ -169,15 +169,18 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 }
 
 void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
-                                      std::string* response) {
+                                      std::string* _) {
+  auto response = std::make_shared<std::string>();
+  response_queue_.push(response);
   if (async) {
     auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
+    arg->resp_ptr = response;
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
     return;
   }
-  BatchExecRedisCmd(argvs);
+  BatchExecRedisCmd(argvs, response);
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
@@ -194,7 +197,7 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
     }
   }
 
-  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
+  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds, bg_arg->resp_ptr);
 }
 
 void PikaClientConn::DoExecTask(void* arg) {
@@ -236,27 +239,39 @@ void PikaClientConn::DoExecTask(void* arg) {
   conn_ptr->TryWriteResp();
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
-  resp_num.store(argvs.size());
+void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs, const std::shared_ptr<std::string>& response) {
+  std::string buffer;
   for (const auto & argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
-    resp_array.push_back(resp_ptr);
     ExecRedisCmd(argv, resp_ptr);
+    buffer.append(*resp_ptr);
   }
+  *response = buffer;
   TryWriteResp();
 }
 
 void PikaClientConn::TryWriteResp() {
-  int expected = 0;
-  if (resp_num.compare_exchange_strong(expected, -1)) {
-    for (auto& resp : resp_array) {
-      WriteResp(*resp);
+  const std::lock_guard<std::mutex> lock(mutex_);
+  if (response_queue_.empty()) {
+    int expected = 0;
+    if (!resp_num.compare_exchange_strong(expected, -1)) {
+      return;
     }
+  } else {
+    while (!response_queue_.empty()) {
+      auto response = response_queue_.front();
+      if (response->empty()) {
+        break;
+      }
+      WriteResp(*response);
+      response_queue_.pop();
+    }
+  }
+  if (response_queue_.empty()) {
     if (write_completed_cb_) {
       write_completed_cb_();
       write_completed_cb_ = nullptr;
     }
-    resp_array.clear();
     NotifyEpoll(true);
   }
 }

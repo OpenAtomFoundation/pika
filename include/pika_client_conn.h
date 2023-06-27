@@ -45,9 +45,9 @@ class PikaClientConn : public net::RedisConn {
   ~PikaClientConn() override = default;
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
-                                std::string* response) override;
+                                std::string* _) override;
 
-  void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
+  void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs, const std::shared_ptr<std::string>& response);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
@@ -62,7 +62,6 @@ class PikaClientConn : public net::RedisConn {
   AuthStat& auth_stat() { return auth_stat_; }
 
   std::atomic<int> resp_num;
-  std::vector<std::shared_ptr<std::string>> resp_array;
 
  private:
   net::ServerThread* const server_thread_;
@@ -80,6 +79,8 @@ class PikaClientConn : public net::RedisConn {
   void TryWriteResp();
 
   AuthStat auth_stat_;
+  std::queue<std::shared_ptr<std::string>> response_queue_;
+  std::mutex mutex_;
 };
 
 struct ClientInfo {
