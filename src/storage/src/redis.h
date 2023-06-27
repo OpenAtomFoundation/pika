@@ -55,6 +55,7 @@ class Redis {
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(size_t small_compaction_threshold);
   void GetRocksDBInfo(std::string &info, const char *prefix);
+  std::shared_ptr<LockMgr> GetLockMgr() { return lock_mgr_; }
 
  protected:
   Storage* const storage_;

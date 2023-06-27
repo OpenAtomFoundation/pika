@@ -148,6 +148,7 @@ class SUnionstoreCmd : public Cmd {
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(dest_key_);
+    res.insert(res.end(), keys_.begin(), keys_.end());
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
@@ -180,6 +181,7 @@ class SInterstoreCmd : public Cmd {
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(dest_key_);
+    res.insert(res.end(), keys_.begin(), keys_.end());
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
@@ -230,6 +232,7 @@ class SDiffstoreCmd : public Cmd {
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(dest_key_);
+    res.insert(res.end(), keys_.begin(), keys_.end());
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;

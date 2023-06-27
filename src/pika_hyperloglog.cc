@@ -64,10 +64,24 @@ void PfMergeCmd::DoInitial() {
 }
 
 void PfMergeCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->PfMerge(keys_);
+  //value_to_dest will be used or removed at the end of this pr(i'm trying to use snapshot to replace redo the binlog
+  rocksdb::Status s = slot->db()->PfMerge(keys_, value_to_dest_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+//void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+//  PikaCmdArgsType set_args;
+//  //mset and msetnx use "set", setcmd use "SET", bitop use "seT", pfmerge use "sEt"
+//  set_args.push_back("sEt");
+//  set_args.push_back(keys_[0]);
+//  set_args.push_back(value_to_dest_);
+//  std::cout << "sizeof value_to_dest in pfmerge:" << value_to_dest_.size() << std::endl;
+//  set_cmd_->Initial(std::move(set_args),  db_name_);
+//  set_cmd_->SetConn(GetConn());
+//  set_cmd_->SetResp(resp_.lock());
+//  //value of this binlog might be strange if you print it out(eg: sEt hll_out XshellXshellXshellXshell ), but it's ok.
+//  set_cmd_->DoBinlog(slot);
+//}

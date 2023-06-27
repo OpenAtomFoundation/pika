@@ -10,8 +10,9 @@
 #include <limits>
 #include <memory>
 
-#include <glog/logging.h>
 #include <fmt/core.h>
+#include <glog/logging.h>
+#include <iostream>
 
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -289,7 +290,7 @@ std::string BitOpOperate(BitOpType op, const std::vector<std::string>& src_value
 }
 
 Status RedisStrings::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
-                           int64_t* ret) {
+                            std::string &value_to_dest, int64_t* ret) {
   Status s;
   if (op == kBitOpNot && src_keys.size() != 1) {
     return Status::InvalidArgument("the number of source keys is not right");
@@ -323,6 +324,7 @@ Status RedisStrings::BitOp(BitOpType op, const std::string& dest_key, const std:
   }
 
   std::string dest_value = BitOpOperate(op, src_values, max_len);
+  value_to_dest = dest_value;
   *ret = dest_value.size();
 
   StringsValue strings_value(Slice(dest_value.c_str(), static_cast<size_t>(max_len)));
@@ -372,6 +374,22 @@ Status RedisStrings::Decrby(const Slice& key, int64_t value, int64_t* ret) {
 Status RedisStrings::Get(const Slice& key, std::string* value) {
   value->clear();
   Status s = db_->Get(default_read_options_, key, value);
+  if (s.ok()) {
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+    }
+  }
+  return s;
+}
+
+Status RedisStrings::Get(const Slice& key, std::string* value, rocksdb::ReadOptions& read_options) {
+  std::cout << "get with snapshot" << std::endl; //for bebug, it will be remove at the end of this pr
+  value->clear();
+  Status s = db_->Get(read_options, key, value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(value);
     if (parsed_strings_value.IsStale()) {

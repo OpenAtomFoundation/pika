@@ -210,10 +210,22 @@ void BitOpCmd::DoInitial() {
 
 void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t result_length;
-  rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType set_args;
+  //mset and msetnx use "set", setcmd use "SET", bitop use "seT", pfmerge use "sEt"
+  set_args.push_back("seT");
+  set_args.push_back(dest_key_);
+  set_args.push_back(value_to_dest_);
+  set_cmd_->Initial(std::move(set_args), db_name_);
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  //value of this binlog might be strange if you print it out(eg. seT bitkey_out1 «ѦFO<t·), but it's ok.
+  set_cmd_->DoBinlog(slot);
 }

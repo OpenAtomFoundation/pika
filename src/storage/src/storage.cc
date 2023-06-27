@@ -10,6 +10,7 @@
 
 #include <utility>
 
+#include "scope_snapshot.h"
 #include "src/lru_cache.h"
 #include "src/mutex_impl.h"
 #include "src/options_helper.h"
@@ -191,8 +192,8 @@ Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_off
 }
 
 Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
-                      int64_t* ret) {
-  return strings_db_->BitOp(op, dest_key, src_keys, ret);
+                      std::string &value_to_dest, int64_t* ret) {
+  return strings_db_->BitOp(op, dest_key, src_keys, value_to_dest, ret);
 }
 
 Status Storage::BitPos(const Slice& key, int32_t bit, int64_t* ret) { return strings_db_->BitPos(key, bit, ret); }
@@ -1435,7 +1436,7 @@ Status Storage::PfCount(const std::vector<std::string>& keys, int64_t* result) {
   return Status::OK();
 }
 
-Status Storage::PfMerge(const std::vector<std::string>& keys) {
+Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value_to_dest) {
   if (keys.size() >= kMaxKeys || keys.empty()) {
     return Status::InvalidArgument("Invalid the number of key");
   }
@@ -1444,7 +1445,12 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
   std::string value;
   std::string first_registers;
   std::string result;
-  s = strings_db_->Get(keys[0], &value);
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+  ScopeSnapshot ss(strings_db_->GetDB(), &snapshot);
+  read_options.snapshot = snapshot;
+
+  s = strings_db_->Get(keys[0], &value, read_options);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
@@ -1456,7 +1462,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
   for (size_t i = 1; i < keys.size(); ++i) {
     std::string value;
     std::string registers;
-    s = strings_db_->Get(keys[i], &value);
+    s = strings_db_->Get(keys[i], &value, read_options);
     if (s.ok()) {
       registers = std::string(value.data(), value.size());
     } else if (s.IsNotFound()) {
@@ -1468,6 +1474,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
     result = first_log.Merge(log);
   }
   s = strings_db_->Set(keys[0], result);
+  value_to_dest = result;
   return s;
 }
 

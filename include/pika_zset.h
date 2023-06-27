@@ -242,6 +242,7 @@ class ZsetUIstoreParentCmd : public Cmd {
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(dest_key_);
+    res.insert(res.end(), keys_.begin(), keys_.end());
     return res;
   }
 

@@ -221,7 +221,7 @@ class Storage {
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
 
   // Return the position of the first bit set to 1 or 0 in a string
   // BitPos key 0
@@ -993,7 +993,7 @@ class Storage {
   // Merge multiple HyperLogLog values into an unique value that will
   // approximate the cardinality of the union of the observed Sets of the source
   // HyperLogLog structures.
-  Status PfMerge(const std::vector<std::string>& keys);
+  Status PfMerge(const std::vector<std::string>& keys, std::string& value_to_dest);
 
   // Admin Commands
   Status StartBGThread();
