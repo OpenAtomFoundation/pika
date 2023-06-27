@@ -400,6 +400,10 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
   return Status::OK();
 }
 
+Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
+    return ProposeLog(cmd_ptr, nullptr, nullptr);
+}
+
 Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
                                                std::shared_ptr<PikaClientConn> conn_ptr,
                                                std::shared_ptr<std::string> resp_ptr) {

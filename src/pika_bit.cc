@@ -8,6 +8,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
+#include "include/pika_slot_command.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -44,6 +45,7 @@ void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, static_cast<int32_t>(on_), &bit_val);
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

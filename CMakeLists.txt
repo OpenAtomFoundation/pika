@@ -97,8 +97,8 @@ if (${AUTOCONF} MATCHES AUTOCONF-NOTFOUND)
   message(FATAL_ERROR "not find autoconf on localhost")
 endif()
 
-set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin"
-                      "/usr/local/opt/llvm@12/bin")
+#set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin"
+#                      "/usr/local/opt/llvm@12/bin")
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
         HINTS ${CLANG_SEARCH_PATH})
@@ -784,6 +784,7 @@ add_custom_target(
         clang-tidy
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
         -clang-tidy-binary ${CLANG_TIDY_BIN}
+        -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
         -p ${CMAKE_BINARY_DIR}
         -quiet
         -extra-arg=-std=c++17
@@ -793,6 +794,7 @@ add_custom_target(clang-tidy-fix
     ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
     -clang-tidy-binary ${CLANG_TIDY_BIN}
     -p ${CMAKE_BINARY_DIR}
+    -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
     -extra-arg=-std=c++17

@@ -138,7 +138,7 @@ docker run -d \
   -v <db_dir>:/pika/db \
   -v <dump_dir>:/pika/dump \
   -v <dbsync_dir>:/pika/dbsync \
-  pikadb/pika:v3.3.6 
+  pikadb/pika:v3.3.6
 
 redis-cli -p 9221 "info"
 ```
@@ -154,7 +154,7 @@ redis-cli -p 9221 "info"
 - `--help`: 显示帮助信息。
 
 这是脚本的一个示例使用：
-  
+
 ```bash
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
@@ -398,4 +398,6 @@ Pika与Redis的极限QPS对比。
 
 ![](docs/images/pika-wechat-cn.png)
 
-QQ群：294254078
+* [Slack Channel](https://join.slack.com/t/w1687838400-twm937235/shared_invite/zt-1y72dch5d-~9CuERHYUSmfeJZh32Z~qQ)
+
+* QQ群：294254078

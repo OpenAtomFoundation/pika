@@ -12,6 +12,13 @@
 
 #include "net/include/redis_cli.h"
 
+/*
+ * TTL type
+ */
+#define PIKA_TTL_ZERO 0
+#define PIKA_TTL_NONE -1
+#define PIKA_TTL_STALE -2
+
 #define PIKA_SYNC_BUFFER_SIZE 1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 #define PIKA_REPL_SERVER_TP_SIZE 3
@@ -21,6 +28,8 @@
 #define PIKA_MAX_CONN_RBUF_LB (1 << 26)  // 64MB
 #define PIKA_MAX_CONN_RBUF_HB (1 << 29)  // 512MB
 #define PIKA_SERVER_ID_MAX 65535
+#define HASH_SLOTS_MASK 0x000003ff
+#define HASH_SLOTS_SIZE (HASH_SLOTS_MASK + 1)
 
 class PikaServer;
 
@@ -33,7 +42,7 @@ const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
 
 struct DBStruct {
-  DBStruct(std::string  tn, const uint32_t pn, std::set<uint32_t>  pi)
+  DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)
       : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
 
   bool operator==(const DBStruct& db_struct) const {
@@ -156,7 +165,7 @@ struct DBSyncArg {
   int port;
   std::string db_name;
   uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string  _ip, int _port, std::string  _db_name,
+  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
             uint32_t _slot_id)
       : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
 };
@@ -191,7 +200,7 @@ struct BinlogChip {
 };
 
 struct SlotInfo {
-  SlotInfo(std::string  db_name, uint32_t slot_id)
+  SlotInfo(std::string db_name, uint32_t slot_id)
       : db_name_(std::move(db_name)), slot_id_(slot_id) {}
 
   SlotInfo() = default;

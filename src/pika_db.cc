@@ -233,7 +233,7 @@ void DB::LeaveAllSlot() {
   slots_.clear();
 }
 
-std::set<uint32_t> DB::GetSlotIds() {
+std::set<uint32_t> DB::GetSlotIDs() {
   std::set<uint32_t> ids;
   std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
