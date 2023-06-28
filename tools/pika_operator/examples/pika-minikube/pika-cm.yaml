@@ -43,7 +43,7 @@ data:
     # a different one on a per-connection basis using SELECT <dbid> where
     # dbid is a number between 0 and 'databases' - 1, limited in [1, 8]
     databases : 1
-    # default slot number each table in sharding mode
+    # # The slot number of pika when used with codis.
     default-slot-num : 1024
     # replication num defines how many followers in a single raft group, only [0, 1, 2, 3, 4] is valid
     replication-num : 0

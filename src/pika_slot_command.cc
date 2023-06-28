@@ -799,7 +799,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   if (phastag != NULL) {
     *phastag = hastag;
   }
-  return (int)(crc & HASH_SLOTS_MASK);
+  return crc % g_pika_conf->default_slot_num();
 }
 
 uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
@@ -1024,7 +1024,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (slot_id_ < 0 || slot_id_ >= HASH_SLOTS_SIZE) {
+  if (slot_id_ < 0 || slot_id_ >= g_pika_conf->default_slot_num()) {
     std::string detail = "invalid slot number " + std::to_string(slot_id_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
@@ -1305,8 +1305,11 @@ void SlotsInfoCmd::DoInitial() {
 }
 
 void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
-  int slots_slot[HASH_SLOTS_SIZE] = {0};
-  int slots_size[HASH_SLOTS_SIZE] = {0};
+  int slotNum = g_pika_conf->default_slot_num();
+  int slots_slot[slotNum];
+  int slots_size[slotNum];
+  memset(slots_slot, 0, slotNum);
+  memset(slots_size, 0, slotNum);
   int n = 0;
   int i = 0;
   int32_t len = 0;
@@ -1375,7 +1378,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
   std::string str_slot_num = *it++;
   if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_id_) || slot_id_ < 0 ||
-      slot_id_ >= HASH_SLOTS_SIZE) {
+      slot_id_ >= g_pika_conf->default_slot_num()) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1529,7 +1532,7 @@ void SlotsScanCmd::DoInitial() {
     return;
   }
   key_ = SlotKeyPrefix + argv_[1];
-  if (std::stoll(argv_[1].data()) < 0 || std::stoll(argv_[1].data()) >= HASH_SLOTS_SIZE) {
+  if (std::stoll(argv_[1].data()) < 0 || std::stoll(argv_[1].data()) >= g_pika_conf->default_slot_num()) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
     return;
   }
