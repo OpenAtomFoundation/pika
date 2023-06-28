@@ -952,8 +952,13 @@ void InfoCmd::InfoReplication(std::string& info) {
   for (const auto& db_item : g_pika_server->dbs_) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
+<<<<<<< Updated upstream
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
           SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
+=======
+      std::shared_ptr<SyncSlaveSlot> slave_slot =
+          g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+>>>>>>> Stashed changes
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
