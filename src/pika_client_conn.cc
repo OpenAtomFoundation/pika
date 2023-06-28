@@ -138,7 +138,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       bool trim = false;
       std::string slow_log;
       uint32_t cmd_size = 0;
-      for (const auto & i : argv) {
+      for (const auto& i : argv) {
         cmd_size += 1 + i.size();  // blank space and argument length
         if (!trim) {
           slow_log.append(" ");
@@ -162,14 +162,13 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string db_name = current_db_.substr(2);
   monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
-  for (const auto & iter : argv) {
+  for (const auto& iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }
   g_pika_server->AddMonitorMessage(monitor_message);
 }
 
-void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
-                                      std::string* _) {
+void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* _) {
   auto response = std::make_shared<std::string>();
   response_queue_.push(response);
   if (async) {
@@ -220,8 +219,7 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
     return;
@@ -239,9 +237,10 @@ void PikaClientConn::DoExecTask(void* arg) {
   conn_ptr->TryWriteResp();
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs, const std::shared_ptr<std::string>& response) {
+void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs,
+                                       const std::shared_ptr<std::string>& response) {
   std::string buffer;
-  for (const auto & argv : argvs) {
+  for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     ExecRedisCmd(argv, resp_ptr);
     buffer.append(*resp_ptr);
@@ -252,6 +251,7 @@ void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>&
 
 void PikaClientConn::TryWriteResp() {
   const std::lock_guard<std::mutex> lock(mutex_);
+  bool wrote = false;
   if (response_queue_.empty()) {
     int expected = 0;
     if (!resp_num.compare_exchange_strong(expected, -1)) {
@@ -265,15 +265,17 @@ void PikaClientConn::TryWriteResp() {
       }
       WriteResp(*response);
       response_queue_.pop();
+      wrote = true;
     }
   }
-  if (response_queue_.empty()) {
-    if (write_completed_cb_) {
-      write_completed_cb_();
-      write_completed_cb_ = nullptr;
-    }
-    NotifyEpoll(true);
+  if (!wrote) {
+    return;
   }
+  if (write_completed_cb_) {
+    write_completed_cb_();
+    write_completed_cb_ = nullptr;
+  }
+  NotifyEpoll(true);
 }
 
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
