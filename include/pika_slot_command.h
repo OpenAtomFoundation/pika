@@ -27,12 +27,12 @@ extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
 extern uint32_t CRC32CheckSum(const char *buf, int len);
 
 int GetSlotID(const std::string &str);
-int GetKeyType(const std::string key, std::string &key_type, const std::shared_ptr<Slot>& slot);
-void AddSlotKey(const std::string type, const std::string key, const std::shared_ptr<Slot>& slot);
-void RemKeyNotExists(const std::string type, const std::string key, const std::shared_ptr<Slot>& slot);
-void RemSlotKey(const std::string key, const std::shared_ptr<Slot>& slot);
-int DeleteKey(const std::string key, const char key_type, const std::shared_ptr<Slot>& slot);
-std::string GetSlotKey(int slot);
+int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot);
+void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot);
+void RemKeyNotExists(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot);
+void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot);
+int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
+std::string GetSlotKey(int64_t slot);
 std::string GetSlotsTagKey(uint32_t crc);
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
 void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot);
@@ -43,8 +43,8 @@ class PikaMigrate {
   PikaMigrate();
   virtual ~PikaMigrate();
 
-  int MigrateKey(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                 std::string &detail, std::shared_ptr<Slot> slot);
+  int MigrateKey(const std::string &host, const int64_t port, int64_t timeout, const std::string &key, const char type,
+                 std::string &detail, const std::shared_ptr<Slot>& slot);
   void CleanMigrateClient();
 
   void Lock() {
@@ -56,7 +56,7 @@ class PikaMigrate {
   void Unlock() {
     mutex_.unlock();
   }
-  net::NetCli *GetMigrateClient(const std::string &host, const int port, int timeout);
+  net::NetCli *GetMigrateClient(const std::string &host, const int64_t port, int64_t timeout);
 
  private:
   std::map<std::string, void *> migrate_clients_;
@@ -101,7 +101,7 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge(){};
+  void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
  private:
   std::string dest_ip_;

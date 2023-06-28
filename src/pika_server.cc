@@ -13,6 +13,7 @@
 #include <ctime>
 #include <fstream>
 #include <memory>
+#include <utility>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
@@ -1544,7 +1545,7 @@ void PikaServer::ServerStatus(std::string* info) {
   info->append(tmp_stream.str());
 }
 
-bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, std::shared_ptr<Slot>slot) {
+bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, const std::shared_ptr<Slot>&slot) {
   return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
 }
 
@@ -1552,7 +1553,7 @@ void PikaServer:: GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64
   return pika_migrate_thread_->GetMigrateStatus(ip, port, slot, migrating, moved, remained);
 }
 
-int PikaServer:: SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot) {
+int PikaServer:: SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot>&slot) {
   return pika_migrate_thread_->ReqMigrateOne(key, slot);
 }
 
@@ -1561,7 +1562,7 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
   return true;
 }
 
-void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
+void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1573,7 +1574,7 @@ void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
 
   bgslots_reload_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
+  size_t len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
   bgslots_reload_.s_start_time.assign(s_time, len);
   bgslots_reload_.cursor = 0;
   bgslots_reload_.pattern = "*";
@@ -1588,7 +1589,7 @@ void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
 }
 
 void DoBgslotsreload(void* arg) {
-  PikaServer* p = static_cast<PikaServer*>(arg);
+  auto* p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsReload reload = p->bgslots_reload();
 
   // Do slotsreload
@@ -1626,7 +1627,7 @@ void DoBgslotsreload(void* arg) {
   }
 }
 
-void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<Slot> slot) {
+void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared_ptr<Slot>& slot) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1636,9 +1637,9 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
     bgslots_cleanup_.cleaningup = true;
   }
 
-  bgslots_cleanup_.start_time = time(NULL);
+  bgslots_cleanup_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
+  size_t len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
   bgslots_cleanup_.s_start_time.assign(s_time, len);
   bgslots_cleanup_.cursor = 0;
   bgslots_cleanup_.pattern = "*";
@@ -1656,7 +1657,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
 }
 
 void DoBgslotscleanup(void* arg) {
-  PikaServer* p = static_cast<PikaServer*>(arg);
+  auto* p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
 
   // Do slotscleanup
@@ -1689,9 +1690,9 @@ void DoBgslotscleanup(void* arg) {
     keys.clear();
   }
 
-  for (std::vector<int>::const_iterator iter = cleanupSlots.begin(); iter != cleanupSlots.end(); iter++){
-    WriteDelKeyToBinlog(GetSlotKey(*iter), g_pika_server->bgslots_cleanup_.slot);
-    WriteDelKeyToBinlog(GetSlotsTagKey(*iter), g_pika_server->bgslots_cleanup_.slot);
+  for (int cleanupSlot : cleanupSlots){
+    WriteDelKeyToBinlog(GetSlotKey(cleanupSlot), g_pika_server->bgslots_cleanup_.slot);
+    WriteDelKeyToBinlog(GetSlotsTagKey(cleanupSlot), g_pika_server->bgslots_cleanup_.slot);
   }
 
   p->SetSlotscleaningup(false);

@@ -20,10 +20,10 @@ class PikaParseSendThread : public net::Thread {
   ~PikaParseSendThread();
 
   bool Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num);
-  void ExitThread(void);
+  void ExitThread();
 
  private:
-  int MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async);
+  int MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async);
   void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
   virtual void *ThreadMain();
@@ -49,20 +49,20 @@ class PikaMigrateThread : public net::Thread {
   int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
   void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
                         int64_t *remained);
-  void CancelMigrate(void);
-  void IncWorkingThreadNum(void);
-  void DecWorkingThreadNum(void);
-  void OnTaskFailed(void);
+  void CancelMigrate();
+  void IncWorkingThreadNum();
+  void DecWorkingThreadNum();
+  void OnTaskFailed();
   void AddResponseNum(int32_t response_num);
 
  private:
-  void ResetThread(void);
+  void ResetThread();
   void DestroyThread(bool is_self_exit);
-  void NotifyRequestMigrate(void);
+  void NotifyRequestMigrate();
   bool IsMigrating(std::pair<const char, std::string> &kpair);
   void ReadSlotKeys(const std::string &slotKey, int64_t need_read_num, int64_t &real_read_num, int32_t *finish);
   bool CreateParseSendThreads(int32_t dispatch_num);
-  void DestroyParseSendThreads(void);
+  void DestroyParseSendThreads();
   virtual void *ThreadMain();
 
  private:
