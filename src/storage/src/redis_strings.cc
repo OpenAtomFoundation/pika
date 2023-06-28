@@ -386,22 +386,6 @@ Status RedisStrings::Get(const Slice& key, std::string* value) {
   return s;
 }
 
-Status RedisStrings::Get(const Slice& key, std::string* value, rocksdb::ReadOptions& read_options) {
-  std::cout << "get with snapshot" << std::endl; //for bebug, it will be remove at the end of this pr
-  value->clear();
-  Status s = db_->Get(read_options, key, value);
-  if (s.ok()) {
-    ParsedStringsValue parsed_strings_value(value);
-    if (parsed_strings_value.IsStale()) {
-      value->clear();
-      return Status::NotFound("Stale");
-    } else {
-      parsed_strings_value.StripSuffix();
-    }
-  }
-  return s;
-}
-
 Status RedisStrings::GetBit(const Slice& key, int64_t offset, int32_t* ret) {
   std::string meta_value;
   Status s = db_->Get(default_read_options_, key, &meta_value);
