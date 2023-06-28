@@ -142,7 +142,7 @@ rocksdb::Status RedisSets::ScanKeys(const std::string& pattern, std::vector<std:
     ParsedSetsMetaValue parsed_sets_meta_value(iter->value());
     if (!parsed_sets_meta_value.IsStale() && parsed_sets_meta_value.count() != 0) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -170,7 +170,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
     meta_value = iter->value().ToString();
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (!parsed_sets_meta_value.IsStale() && (parsed_sets_meta_value.count() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_sets_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
     }
@@ -1151,7 +1151,7 @@ rocksdb::Status RedisSets::SScan(const Slice& key, int64_t cursor, const std::st
            iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
         std::string member = parsed_sets_member_key.member().ToString();
-        if (StringMatch(pattern.data(), pattern.size(), member.data(), member.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), member.data(), member.size(), 0) != 0) {
           members->push_back(member);
         }
         rest--;
@@ -1206,7 +1206,7 @@ rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_
       it->Next();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1259,7 +1259,7 @@ rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key
       it->Prev();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1343,7 +1343,7 @@ bool RedisSets::Scan(const std::string& start_key, const std::string& pattern, s
       continue;
     } else {
       meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
         keys->push_back(meta_key);
       }
       (*count)--;

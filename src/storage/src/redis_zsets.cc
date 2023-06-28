@@ -155,7 +155,7 @@ Status RedisZSets::ScanKeys(const std::string& pattern, std::vector<std::string>
     ParsedZSetsMetaValue parsed_zsets_meta_value(iter->value());
     if (!parsed_zsets_meta_value.IsStale() && parsed_zsets_meta_value.count() != 0) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -183,7 +183,7 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
     meta_value = iter->value().ToString();
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (!parsed_zsets_meta_value.IsStale() && (parsed_zsets_meta_value.count() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_zsets_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
     }
@@ -1432,7 +1432,7 @@ bool RedisZSets::Scan(const std::string& start_key, const std::string& pattern, 
       continue;
     } else {
       meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
         keys->push_back(meta_key);
       }
       (*count)--;
@@ -1554,7 +1554,7 @@ Status RedisZSets::ZScan(const Slice& key, int64_t cursor, const std::string& pa
            iter->Next()) {
         ParsedZSetsMemberKey parsed_zsets_member_key(iter->key());
         std::string member = parsed_zsets_member_key.member().ToString();
-        if (StringMatch(pattern.data(), pattern.size(), member.data(), member.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), member.data(), member.size(), 0) != 0) {
           uint64_t tmp = DecodeFixed64(iter->value().data());
           const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
           double score = *reinterpret_cast<const double*>(ptr_tmp);
@@ -1612,7 +1612,7 @@ Status RedisZSets::PKScanRange(const Slice& key_start, const Slice& key_end, con
       it->Next();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1665,7 +1665,7 @@ Status RedisZSets::PKRScanRange(const Slice& key_start, const Slice& key_end, co
       it->Prev();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;

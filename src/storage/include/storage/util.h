@@ -17,8 +17,10 @@ namespace storage {
 
 int Int64ToStr(char* dst, size_t dstlen, int64_t svalue);
 int StrToInt64(const char* s, size_t slen, int64_t* value);
+/* When you need to pass parameters to this function using xx.size(), consider using StringMatchUint64 instead. */
 int StringMatch(const char* pattern, int pattern_len, const char* string, int string_len, int nocase);
-int StringMatch(const char* pattern, size_t pattern_len, const char* string, size_t string_len, int nocase);
+/* This function is recommended when you need to pass parameters to StringMatch using xx.size(). */
+int StringMatchUint64(const char* pattern, size_t pattern_len, const char* string, size_t string_len, int nocase);
 int StrToLongDouble(const char* s, size_t slen, long double* ldval);
 int LongDoubleToStr(long double ldval, std::string* value);
 int do_mkdir(const char* path, mode_t mode);

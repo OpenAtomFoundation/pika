@@ -140,7 +140,7 @@ Status RedisLists::ScanKeys(const std::string& pattern, std::vector<std::string>
     ParsedListsMetaValue parsed_lists_meta_value(iter->value());
     if (!parsed_lists_meta_value.IsStale() && parsed_lists_meta_value.count() != 0) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -168,7 +168,7 @@ Status RedisLists::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
     meta_value = iter->value().ToString();
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
     if (!parsed_lists_meta_value.IsStale() && (parsed_lists_meta_value.count() != 0U) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_lists_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
     }
@@ -955,7 +955,7 @@ Status RedisLists::PKScanRange(const Slice& key_start, const Slice& key_end, con
       it->Next();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1008,7 +1008,7 @@ Status RedisLists::PKRScanRange(const Slice& key_start, const Slice& key_end, co
       it->Prev();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1092,7 +1092,7 @@ bool RedisLists::Scan(const std::string& start_key, const std::string& pattern, 
       continue;
     } else {
       meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
         keys->push_back(meta_key);
       }
       (*count)--;

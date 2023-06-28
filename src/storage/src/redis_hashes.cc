@@ -133,7 +133,7 @@ Status RedisHashes::ScanKeys(const std::string& pattern, std::vector<std::string
     ParsedHashesMetaValue parsed_hashes_meta_value(iter->value());
     if (!parsed_hashes_meta_value.IsStale() && parsed_hashes_meta_value.count() != 0) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -161,7 +161,7 @@ Status RedisHashes::PKPatternMatchDel(const std::string& pattern, int32_t* ret) 
     meta_value = iter->value().ToString();
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (!parsed_hashes_meta_value.IsStale() && (parsed_hashes_meta_value.count() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_hashes_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
     }
@@ -794,7 +794,7 @@ Status RedisHashes::HScan(const Slice& key, int64_t cursor, const std::string& p
            iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
         std::string field = parsed_hashes_data_key.field().ToString();
-        if (StringMatch(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
           field_values->push_back({field, iter->value().ToString()});
         }
         rest--;
@@ -844,7 +844,7 @@ Status RedisHashes::HScanx(const Slice& key, const std::string& start_field, con
            iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
         std::string field = parsed_hashes_data_key.field().ToString();
-        if (StringMatch(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
           field_values->push_back({field, iter->value().ToString()});
         }
         rest--;
@@ -903,7 +903,7 @@ Status RedisHashes::PKHScanRange(const Slice& key, const Slice& field_start, con
         if (!end_no_limit && field.compare(field_end) > 0) {
           break;
         }
-        if (StringMatch(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
           field_values->push_back({field, iter->value().ToString()});
         }
         remain--;
@@ -963,7 +963,7 @@ Status RedisHashes::PKHRScanRange(const Slice& key, const Slice& field_start, co
         if (!end_no_limit && field.compare(field_end) < 0) {
           break;
         }
-        if (StringMatch(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
+        if (StringMatchUint64(pattern.data(), pattern.size(), field.data(), field.size(), 0) != 0) {
           field_values->push_back({field, iter->value().ToString()});
         }
         remain--;
@@ -1015,7 +1015,7 @@ Status RedisHashes::PKScanRange(const Slice& key_start, const Slice& key_end, co
       it->Next();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1068,7 +1068,7 @@ Status RedisHashes::PKRScanRange(const Slice& key_start, const Slice& key_end, c
       it->Prev();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1152,7 +1152,7 @@ bool RedisHashes::Scan(const std::string& start_key, const std::string& pattern,
       continue;
     } else {
       meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
         keys->push_back(meta_key);
       }
       (*count)--;

@@ -375,11 +375,17 @@ class CmdRes {
   }
 
   // Inline functions for Create Redis protocol
+  /* When using xx.size() as an argument to AppendStringLen, it is recommended to replace it with AppendStringLenUint64 */
   void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
   void AppendStringLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "$"); }
+
+  /* When using xx.size() as an argument to AppendArrayLen, it is recommended to replace it with AppendArrayLenUint64 */
   void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
   void AppendArrayLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "*"); }
+
   void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
+
+  /* We recommend that you use AppendString instead of AppendStringLen + AppendContent */
   void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
   void AppendString(const std::string& value) {
     AppendStringLenUint64(value.size());

@@ -44,7 +44,7 @@ int StringMatch(const char* pattern, int pattern_len, const char* str, int strin
   return pstd::stringmatchlen(pattern, pattern_len, str, string_len, nocase);
 }
 
-int StringMatch(const char* pattern, size_t pattern_len, const char* str, size_t string_len, int nocase) {
+int StringMatchUint64(const char* pattern, size_t pattern_len, const char* str, size_t string_len, int nocase) {
   return pstd::stringmatchlen(pattern, static_cast<int32_t>(pattern_len), str, static_cast<int32_t>(string_len), nocase);
 }
 

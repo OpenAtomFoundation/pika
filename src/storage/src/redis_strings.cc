@@ -103,7 +103,7 @@ Status RedisStrings::ScanKeys(const std::string& pattern, std::vector<std::strin
     ParsedStringsValue parsed_strings_value(iter->value());
     if (!parsed_strings_value.IsStale()) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -130,7 +130,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
     key = iter->key().ToString();
     value = iter->value().ToString();
     ParsedStringsValue parsed_strings_value(&value);
-    if (!parsed_strings_value.IsStale() && (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+    if (!parsed_strings_value.IsStale() && (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       batch.Delete(key);
     }
     // In order to be more efficient, we use batch deletion here
@@ -1073,7 +1073,7 @@ Status RedisStrings::PKScanRange(const Slice& key_start, const Slice& key_end, c
     } else {
       key = it->key().ToString();
       value = parsed_strings_value.value().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         kvs->push_back({key, value});
       }
       remain--;
@@ -1128,7 +1128,7 @@ Status RedisStrings::PKRScanRange(const Slice& key_start, const Slice& key_end, 
     } else {
       key = it->key().ToString();
       value = parsed_strings_value.value().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         kvs->push_back({key, value});
       }
       remain--;
@@ -1204,7 +1204,7 @@ bool RedisStrings::Scan(const std::string& start_key, const std::string& pattern
       continue;
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
+      if (StringMatchUint64(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       (*count)--;
