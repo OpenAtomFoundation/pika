@@ -66,40 +66,13 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
 }
 
 int LongDoubleToStr(long double ldval, std::string* value) {
-  char buf[256];
-  int len;
   if (std::isnan(ldval)) {
     return -1;
   } else if (std::isinf(ldval)) {
-    /* Libc in odd systems (Hi Solaris!) will format infinite in a
-     * different way, so better to handle it in an explicit way. */
-    if (ldval > 0) {
-      strcpy(buf, "inf");
-      // len = 3;
-    } else {
-      strcpy(buf, "-inf");
-      // len = 4;
-    }
+    value->assign(ldval >= 0 ? "inf" : "-inf");
     return -1;
   } else {
-    /* We use 17 digits precision since with 128 bit floats that precision
-     * after rounding is able to represent most small decimal numbers in a
-     * way that is "non surprising" for the user (that is, most small
-     * decimal numbers will be represented in a way that when converted
-     * back into a string are exactly the same as what the user typed.) */
-    len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
-    /* Now remove trailing zeroes after the '.' */
-    if (strchr(buf, '.')) {
-      char* p = buf + len - 1;
-      while (*p == '0') {
-        p--;
-        len--;
-      }
-      if (*p == '.') {
-        len--;
-      }
-    }
-    value->assign(buf, len);
+    value->assign(std::to_string(ldval));
     return 0;
   }
 }
