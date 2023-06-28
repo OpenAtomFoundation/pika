@@ -33,7 +33,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   uint32_t SlotNum();
   void GetAllSlots(std::set<uint32_t>& slot_ids);
 
-  // Dynamic change partition
+  // Dynamic change slot
   pstd::Status AddSlots(const std::set<uint32_t>& slot_ids);
   pstd::Status RemoveSlots(const std::set<uint32_t>& slot_ids);
 

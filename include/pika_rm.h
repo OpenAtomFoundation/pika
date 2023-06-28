@@ -207,7 +207,7 @@ class PikaReplicaManager {
 
   pstd::Status CheckSyncTimeout(uint64_t now);
 
-  // To check partition info
+  // To check slot info
   // For pkcluster info command
   pstd::Status GetSlotInfo(const std::string& table, uint32_t slot_id, std::string* info);
 
@@ -234,7 +234,7 @@ class PikaReplicaManager {
   // Schedule Task
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& table_partition,
+  void ScheduleWriteBinlogTask(const std::string& db_slot,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                std::shared_ptr<net::PbConn> conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
