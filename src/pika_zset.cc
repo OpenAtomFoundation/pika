@@ -741,8 +741,8 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
   FitLimit(count_, offset_, static_cast<int64_t>(members.size()));
 
   res_.AppendArrayLen(count_);
-  uint64_t index = members.size() - 1 - offset_;
-  uint64_t end = index - count_;
+  int64_t index = static_cast<int64_t>(members.size()) - 1 - offset_;
+  int64_t end = index - count_;
   for (; index > end; index--) {
     res_.AppendStringLenUint64(members[index].size());
     res_.AppendContent(members[index]);
