@@ -1168,12 +1168,12 @@ void InfoCmd::InfoRocksDB(std::string &info) {
         if (!table_item.second) {
             continue;
         }
-        std::shared_lock partition_rwl(table_item.second->slots_rw_);
-        for (const auto& partition_item : table_item.second->slots_) {
+        std::shared_lock slot_rwl(table_item.second->slots_rw_);
+        for (const auto& slot_item : table_item.second->slots_) {
             std::string rocksdb_info;
-            partition_item.second->DbRWLockReader();
-            partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
-            partition_item.second->DbRWUnLock();
+            slot_item.second->DbRWLockReader();
+            slot_item.second->db()->GetRocksDBInfo(rocksdb_info);
+            slot_item.second->DbRWUnLock();
             tmp_stream << rocksdb_info;
         }
     }

@@ -179,7 +179,7 @@ class PikaServer : public pstd::noncopyable {
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
 
   /*
-   * Partition use
+   * Slot use
    */
   void PrepareSlotTrySync();
   void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);

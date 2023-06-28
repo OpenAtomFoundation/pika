@@ -22,10 +22,6 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 
-#include "include/pika_admin.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
-
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
 
