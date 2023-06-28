@@ -12,6 +12,12 @@
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 
+typedef struct pikaCommand {
+  std::string cmd_name;
+  int cmd_count;
+  int cmd_time_consuming;
+} pikaCommand;
+
 class PikaCmdTableManager {
  public:
   PikaCmdTableManager();

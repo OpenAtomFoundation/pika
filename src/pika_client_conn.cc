@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <glog/logging.h>
+#include <time.h>
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
@@ -21,6 +22,9 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::map<std::string, struct pikaCommand> cmdstat_map;
+
+std::mutex mtx;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -33,7 +37,17 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
   // Get command info
+  std::lock_guard<std::mutex> lock(mtx);
+  clock_t start, end;
+  start = clock();
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+  end = clock();
+  int cost = end - start;
+
+  if (cmdstat_map.count(opt)) {
+    cmdstat_map[opt].cmd_count++;
+    cmdstat_map[opt].cmd_time_consuming += cost;
+  }
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
@@ -41,7 +55,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
   c_ptr->SetConn(shared_from_this());
   c_ptr->SetResp(resp_ptr);
-
   // Check authed
   // AuthCmd will set stat_
   if (!auth_stat_.IsAuthed(c_ptr)) {
@@ -138,7 +151,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       bool trim = false;
       std::string slow_log;
       uint32_t cmd_size = 0;
-      for (const auto & i : argv) {
+      for (const auto& i : argv) {
         cmd_size += 1 + i.size();  // blank space and argument length
         if (!trim) {
           slow_log.append(" ");
@@ -162,7 +175,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string db_name = current_db_.substr(2);
   monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
-  for (const auto & iter : argv) {
+  for (const auto& iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }
   g_pika_server->AddMonitorMessage(monitor_message);
@@ -217,8 +230,7 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
     return;
@@ -238,7 +250,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
   resp_num.store(argvs.size());
-  for (const auto & argv : argvs) {
+  for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);
     ExecRedisCmd(argv, resp_ptr);

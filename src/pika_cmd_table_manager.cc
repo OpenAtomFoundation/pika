@@ -13,10 +13,24 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
+std::map<std::string, struct pikaCommand> cmdstat_map;
+
 PikaCmdTableManager::PikaCmdTableManager() {
   cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
   InitCmdTable(cmds_.get());
+  auto iter = (*cmds_).begin();
+  std::string name = "";
+  pikaCommand Cmd;
+  while (iter != (*cmds_).end()) {
+    name = iter->first;
+    pikaCommand b;
+    Cmd.cmd_name = name;
+    Cmd.cmd_count = 0;
+    Cmd.cmd_time_consuming = 0;
+    cmdstat_map[name] = b;
+    ++iter;
+  }
 }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
@@ -29,6 +43,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   if (cmd) {
     return std::shared_ptr<Cmd>(cmd->Clone());
   }
+
   return nullptr;
 }
 
