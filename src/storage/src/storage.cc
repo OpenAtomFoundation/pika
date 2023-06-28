@@ -1445,12 +1445,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
   std::string value;
   std::string first_registers;
   std::string result;
-  rocksdb::ReadOptions read_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(strings_db_->GetDB(), &snapshot);
-  read_options.snapshot = snapshot;
-
-  s = strings_db_->Get(keys[0], &value, read_options);
+  s = strings_db_->Get(keys[0], &value);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
@@ -1462,7 +1457,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
   for (size_t i = 1; i < keys.size(); ++i) {
     std::string value;
     std::string registers;
-    s = strings_db_->Get(keys[i], &value, read_options);
+    s = strings_db_->Get(keys[i], &value);
     if (s.ok()) {
       registers = std::string(value.data(), value.size());
     } else if (s.IsNotFound()) {
