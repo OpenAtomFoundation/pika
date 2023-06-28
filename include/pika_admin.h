@@ -158,7 +158,7 @@ class FlushallCmd : public Cmd {
  private:
   void DoInitial() override;
   std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+                       uint64_t offset) override;
 };
 
 class FlushdbCmd : public Cmd {
@@ -206,7 +206,8 @@ class InfoCmd : public Cmd {
     kInfoRocksDB,
     kInfo,
     kInfoAll,
-    kInfoDebug
+    kInfoDebug,
+    kInfoCommandstats
   };
 
   InfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -233,6 +234,7 @@ class InfoCmd : public Cmd {
   const static std::string kDataSection;
   const static std::string kRocksDBSection;
   const static std::string kDebugSection;
+  const static std::string kCommandstatsSection;
 
   void DoInitial() override;
   void Clear() override {
@@ -252,6 +254,7 @@ class InfoCmd : public Cmd {
   void InfoData(std::string& info);
   void InfoRocksDB(std::string& info);
   void InfoDebug(std::string& info);
+  void InfoCommandstats(std::string& info);
 };
 
 class ShutdownCmd : public Cmd {
@@ -388,7 +391,7 @@ class PaddingCmd : public Cmd {
  private:
   void DoInitial() override;
   std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+                       uint64_t offset) override;
 };
 
 class PKPatternMatchDelCmd : public Cmd {

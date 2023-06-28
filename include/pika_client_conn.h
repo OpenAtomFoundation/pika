@@ -69,6 +69,7 @@ class PikaClientConn : public net::RedisConn {
   std::string current_db_;
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
+  std::mutex mtx_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);

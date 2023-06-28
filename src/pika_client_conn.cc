@@ -23,8 +23,6 @@ extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::map<std::string, struct pikaCommandStatistics> cmdstat_map;
 
-std::mutex mtx;
-
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
     : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
@@ -36,7 +34,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
   // Get command info
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_);
   clock_t start, end;
   start = clock();
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
