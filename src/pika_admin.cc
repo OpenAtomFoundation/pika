@@ -17,12 +17,14 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+#include "include/pika_cmd_table_manager.h"
 #include "pstd/include/rsync.h"
 
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::map<std::string, struct pikaCommandStatistics> cmdstat_map;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -634,6 +636,7 @@ const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
+const std::string InfoCmd::kCommandstatsSection = "commandstats";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -702,6 +705,8 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoRocksDB;
   } else if (strcasecmp(argv_[1].data(), kDebugSection.data()) == 0) {
     info_section_ = kInfoDebug;
+  } else if (strcasecmp(argv_[1].data(), kCommandstatsSection.data()) == 0) {
+    info_section_ = kInfoCommandstats;
   } else {
     info_section_ = kInfoErr;
   }
@@ -776,6 +781,9 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       break;
     case kInfoDebug:
       InfoDebug(info);
+      break;
+    case kInfoCommandstats:
+      InfoCommandstats(info);
       break;
     default:
       // kInfoErr is nothing
@@ -1126,7 +1134,7 @@ void InfoCmd::InfoData(std::string& info) {
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (!db_item.second) {
-        continue;
+      continue;
     }
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
@@ -1160,26 +1168,26 @@ void InfoCmd::InfoData(std::string& info) {
 }
 
 void InfoCmd::InfoRocksDB(std::string &info) {
-    std::stringstream tmp_stream;
+  std::stringstream tmp_stream;
 
-    tmp_stream << "# RocksDB" << "\r\n";
+  tmp_stream << "# RocksDB" << "\r\n";
 
-    std::shared_lock table_rwl(g_pika_server->dbs_rw_);
-    for (const auto& table_item : g_pika_server->dbs_) {
-        if (!table_item.second) {
-            continue;
-        }
-        std::shared_lock partition_rwl(table_item.second->slots_rw_);
-        for (const auto& partition_item : table_item.second->slots_) {
-            std::string rocksdb_info;
-            partition_item.second->DbRWLockReader();
-            partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
-            partition_item.second->DbRWUnLock();
-            tmp_stream << rocksdb_info;
-        }
+  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  for (const auto& table_item : g_pika_server->dbs_) {
+    if (!table_item.second) {
+      continue;
     }
+    std::shared_lock partition_rwl(table_item.second->slots_rw_);
+    for (const auto& partition_item : table_item.second->slots_) {
+      std::string rocksdb_info;
+      partition_item.second->DbRWLockReader();
+      partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
+      partition_item.second->DbRWUnLock();
+      tmp_stream << rocksdb_info;
+    }
+  }
 
-    info.append(tmp_stream.str());
+  info.append(tmp_stream.str());
 }
 
 void InfoCmd::InfoDebug(std::string& info) {
@@ -1194,6 +1202,22 @@ void InfoCmd::InfoDebug(std::string& info) {
 
   info.append(tmp_stream.str());
   g_pika_server->ServerStatus(&info);
+}
+
+void InfoCmd::InfoCommandstats(std::string& info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Commandstats" << "\r\n";
+  auto iter = cmdstat_map.begin();
+  while (iter != cmdstat_map.end()) {
+    if (iter->second.cmd_count != 0) {
+      tmp_stream << "cmdstat_" << iter->second.cmd_name << ":"
+                 << "calls=" << iter->second.cmd_count << ",usec=" << iter->second.cmd_time_consuming
+                 << ",usec_per_call=" << std::setprecision(4)
+                 << (iter->second.cmd_time_consuming * 1.0) / iter->second.cmd_count << "\r\n";
+    }
+    ++iter;
+  }
+  info.append(tmp_stream.str());
 }
 
 void ConfigCmd::DoInitial() {
@@ -2158,7 +2182,7 @@ void ScandbCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
   }
-  }
+}
 
 void ScandbCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
@@ -2168,7 +2192,7 @@ void ScandbCmd::Do(std::shared_ptr<Slot> slot) {
     db->ScanDatabase(type_);
     res_.SetRes(CmdRes::kOk);
   }
-  }
+}
 
 void SlowlogCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
