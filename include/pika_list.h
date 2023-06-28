@@ -126,7 +126,7 @@ class LPushxCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string value_;
+  std::vector<std::string> values_;
   void DoInitial() override;
 };
 
@@ -302,7 +302,7 @@ class RPushxCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string value_;
-  void DoInitial() override;
+  std::vector<std::string> values_;
+  virtual void DoInitial() override;
 };
 #endif
