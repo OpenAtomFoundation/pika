@@ -68,9 +68,9 @@ void PikaReplClient::Schedule(net::TaskFunc func, void* arg) {
 
 void PikaReplClient::ScheduleWriteBinlogTask(const std::string& db_slot,
                                              const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                                             std::shared_ptr<net::PbConn> conn, void* res_private_data) {
+                                             const std::shared_ptr<net::PbConn>& conn, void* res_private_data) {
   size_t index = GetHashIndex(db_slot, true);
-  auto task_arg = new ReplClientWriteBinlogTaskArg(res, std::move(conn), res_private_data, bg_workers_[index].get());
+  auto task_arg = new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index].get());
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
 }
 

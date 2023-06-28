@@ -106,10 +106,10 @@ bool PikaMonitorThread::ThreadClientKill(const std::string& ip_port) {
 bool PikaMonitorThread::HasMonitorClients() { return has_monitor_clients_.load(); }
 
 net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
-  size_t retry = 0;
-  size_t nwritten = 0;
-  size_t message_len_sended = 0;
-  size_t message_len_left = message.size();
+  ssize_t retry = 0;
+  ssize_t nwritten = 0;
+  ssize_t message_len_sended = 0;
+  auto message_len_left = static_cast<int64_t>(message.size());
   while (message_len_left > 0) {
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
     if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {

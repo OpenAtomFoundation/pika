@@ -787,8 +787,8 @@ void PikaReplicaManager::ScheduleReplClientBGTask(net::TaskFunc func, void* arg)
 
 void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db_slot,
                                                  const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                                                 std::shared_ptr<net::PbConn> conn, void* res_private_data) {
-  pika_repl_client_->ScheduleWriteBinlogTask(db_slot, res, std::move(conn), res_private_data);
+                                                 const std::shared_ptr<net::PbConn>& conn, void* res_private_data) {
+  pika_repl_client_->ScheduleWriteBinlogTask(db_slot, res, conn, res_private_data);
 }
 
 void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,

@@ -47,8 +47,8 @@ ReadStatus PbConn::GetRequest() {
           if (cur_pos_ == COMMAND_HEADER_LENGTH) {
             uint32_t integer = 0;
             memcpy(reinterpret_cast<char*>(&integer), rbuf_, sizeof(uint32_t));
-            header_len_ = ntohl(integer);
-            remain_packet_len_ = static_cast<int32_t>(header_len_);
+            header_len_ = static_cast<int32_t>(ntohl(integer));
+            remain_packet_len_ = header_len_;
             connStatus_ = kPacket;
             continue;
           }

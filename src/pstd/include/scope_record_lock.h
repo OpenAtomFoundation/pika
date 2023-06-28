@@ -33,7 +33,7 @@ class ScopeRecordLock final : public pstd::noncopyable {
 
 class MultiScopeRecordLock final : public pstd::noncopyable {
  public:
-  MultiScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const std::vector<std::string>& keys);
+  MultiScopeRecordLock(const std::shared_ptr<LockMgr>& lock_mgr, const std::vector<std::string>& keys);
   ~MultiScopeRecordLock();
 
  private:

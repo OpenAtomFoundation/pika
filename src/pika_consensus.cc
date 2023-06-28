@@ -243,24 +243,24 @@ bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
 }
 
 int MemLog::InternalFindLogByLogicIndex(const LogOffset& offset) {
-  for (int i = 0; i < logs_.size(); ++i) {
+  for (size_t i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset.l_offset.index > offset.l_offset.index) {
       return -1;
     }
     if (logs_[i].offset.l_offset.index == offset.l_offset.index) {
-      return i;
+      return static_cast<int32_t>(i);
     }
   }
   return -1;
 }
 
 int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
-  for (int i = 0; i < logs_.size(); ++i) {
+  for (size_t i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset > offset) {
       return -1;
     }
     if (logs_[i].offset == offset) {
-      return i;
+      return static_cast<int32_t>(i);
     }
   }
   return -1;
