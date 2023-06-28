@@ -25,6 +25,12 @@ func (s *Topom) dirtyGroupCache(gid int) {
 	})
 }
 
+func (s *Topom) dirtyGroupsCache() {
+	s.cache.hooks.PushBack(func() {
+		s.cache.group = nil
+	})
+}
+
 func (s *Topom) dirtyProxyCache(token string) {
 	s.cache.hooks.PushBack(func() {
 		if s.cache.proxy != nil {
@@ -180,6 +186,13 @@ func (s *Topom) storeUpdateGroup(g *models.Group) error {
 	if err := s.store.UpdateGroup(g); err != nil {
 		log.ErrorErrorf(err, "store: update group-[%d] failed", g.Id)
 		return errors.Errorf("store: update group-[%d] failed", g.Id)
+	}
+	return nil
+}
+
+func (s *Topom) storeUpdateGroups(gs []*models.Group) error {
+	for _, g := range gs {
+		s.storeUpdateGroup(g)
 	}
 	return nil
 }

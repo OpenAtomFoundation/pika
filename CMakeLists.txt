@@ -97,6 +97,8 @@ if (${AUTOCONF} MATCHES AUTOCONF-NOTFOUND)
   message(FATAL_ERROR "not find autoconf on localhost")
 endif()
 
+#set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin"
+#                      "/usr/local/opt/llvm@12/bin")
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
         HINTS ${CLANG_SEARCH_PATH})
