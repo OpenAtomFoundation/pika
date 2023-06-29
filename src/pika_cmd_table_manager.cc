@@ -20,7 +20,7 @@ PikaCmdTableManager::PikaCmdTableManager() {
   cmds_->reserve(300);
   InitCmdTable(cmds_.get());
   auto iter = (*cmds_).begin();
-  std::string name = "";
+  std::string name;
   pikaCommandStatistics Cmd;
   while (iter != (*cmds_).end()) {
     name = iter->first;
