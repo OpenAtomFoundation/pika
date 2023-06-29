@@ -1172,6 +1172,7 @@ void InfoCmd::InfoRocksDB(std::string &info) {
 
   tmp_stream << "# RocksDB" << "\r\n";
 
+
   std::shared_lock table_rwl(g_pika_server->dbs_rw_);
   for (const auto& table_item : g_pika_server->dbs_) {
     if (!table_item.second) {
