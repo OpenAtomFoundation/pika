@@ -784,7 +784,6 @@ add_custom_target(
         clang-tidy
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
         -clang-tidy-binary ${CLANG_TIDY_BIN}
-        -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
         -p ${CMAKE_BINARY_DIR}
         -quiet
         -extra-arg=-std=c++17
@@ -794,7 +793,6 @@ add_custom_target(clang-tidy-fix
     ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
     -clang-tidy-binary ${CLANG_TIDY_BIN}
     -p ${CMAKE_BINARY_DIR}
-    -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
     -extra-arg=-std=c++17
