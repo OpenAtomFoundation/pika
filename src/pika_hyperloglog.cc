@@ -77,10 +77,9 @@ void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_args.push_back("sEt");
   set_args.push_back(keys_[0]);
   set_args.push_back(value_to_dest_);
-  std::cout << "sizeof value_to_dest in pfmerge:" << value_to_dest_.size() << std::endl;
   set_cmd_->Initial(std::move(set_args),  db_name_);
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  //value of this binlog might be strange if you print it out(eg: sEt hll_out XshellXshellXshellXshell ), but it's ok.
+  //value of this binlog might be strange, it's an string with size of 128KB
   set_cmd_->DoBinlog(slot);
 }

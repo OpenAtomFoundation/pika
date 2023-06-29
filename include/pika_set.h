@@ -279,7 +279,7 @@ class SMoveCmd : public Cmd {
   // used for write binlog
   std::shared_ptr<SRemCmd> srem_cmd_;
   std::shared_ptr<SAddCmd> sadd_cmd_;
-  int32_t move_success_{false};
+  int32_t move_success_{0};
 };
 
 class SRandmemberCmd : public Cmd {

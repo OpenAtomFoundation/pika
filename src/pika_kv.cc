@@ -695,12 +695,6 @@ void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
-    std::cout << "here1:";
-    for(auto&it:set_cmd_->argv()){
-      std::cout << it << " ";
-    }
-    std::cout << std::endl;
-
     set_cmd_->DoBinlog(slot);
   }
 }
