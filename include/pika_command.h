@@ -249,7 +249,7 @@ enum CmdFlags {
   kCmdFlagsPrior = 128,
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
-  kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
+  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsPreDo = 2048,
