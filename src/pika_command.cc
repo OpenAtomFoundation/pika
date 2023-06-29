@@ -19,6 +19,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
+#include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
 
 using pstd::Status;
@@ -93,6 +94,50 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
   std::unique_ptr<Cmd> commandptr = std::make_unique<CommandCmd>(kCmdNameCommand, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCommand, std::move(commandptr)));
+
+  // Slots related
+  std::unique_ptr<Cmd> slotsinfoptr = std::make_unique<SlotsInfoCmd>(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsInfo, std::move(slotsinfoptr)));
+  std::unique_ptr<Cmd> slotmgrttagslotasyncptr =
+      std::make_unique<SlotsMgrtTagSlotAsyncCmd>(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlotAsync, std::move(slotmgrttagslotasyncptr)));
+  std::unique_ptr<Cmd> slotmgrtasyncstatus =
+      std::make_unique<SlotsMgrtAsyncStatusCmd>(kCmdNameSlotsMgrtAsyncStatus, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncStatus, std::move(slotmgrtasyncstatus)));
+  std::unique_ptr<Cmd> slotmgrtasynccancel =
+      std::make_unique<SlotsMgrtAsyncCancelCmd>(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncCancel, std::move(slotmgrtasynccancel)));
+
+  std::unique_ptr<Cmd> slotmgrttagoneptr = std::make_unique<SlotsMgrtTagOneCmd>(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagOne, std::move(slotmgrttagoneptr)));
+  std::unique_ptr<Cmd> slotmgrtoneptr = std::make_unique<SlotsMgrtTagOneCmd>(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtOne, std::move(slotmgrtoneptr)));
+
+  std::unique_ptr<Cmd> slotmgrttagslotptr =
+      std::make_unique<SlotsMgrtTagSlotCmd>(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlot, std::move(slotmgrttagslotptr)));
+  std::unique_ptr<Cmd> slotmgrttagslottagptr =
+      std::make_unique<SlotsMgrtTagSlotCmd>(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtSlot, std::move(slotmgrttagslottagptr)));
+
+  std::unique_ptr<Cmd> slotsdelptr = std::make_unique<SlotsDelCmd>(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsDel, std::move(slotsdelptr)));
+  std::unique_ptr<Cmd> slotshashkeyptr = std::make_unique<SlotsHashKeyCmd>(kCmdNameSlotsHashKey, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsHashKey, std::move(slotshashkeyptr)));
+  std::unique_ptr<Cmd> slotsscanptr = std::make_unique<SlotsScanCmd>(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsScan, std::move(slotsscanptr)));
+  std::unique_ptr<Cmd> slotsmgrtexecwrapper =
+      std::make_unique<SlotsMgrtExecWrapperCmd>(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtExecWrapper, std::move(slotsmgrtexecwrapper)));
+  std::unique_ptr<Cmd> slotsreloadptr = std::make_unique<SlotsReloadCmd>(kCmdNameSlotsReload, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsReload, std::move(slotsreloadptr)));
+  std::unique_ptr<Cmd> slotsreloadoffptr = std::make_unique<SlotsReloadOffCmd>(kCmdNameSlotsReloadOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsReloadOff, std::move(slotsreloadoffptr)));
+  std::unique_ptr<Cmd> slotscleanupptr = std::make_unique<SlotsCleanupCmd>(kCmdNameSlotsCleanup, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsCleanup, std::move(slotscleanupptr)));
+  std::unique_ptr<Cmd> slotscleanupoffptr = std::make_unique<SlotsCleanupOffCmd>(kCmdNameSlotsCleanupOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsCleanupOff, std::move(slotscleanupoffptr)));
+
 
   // Kv
   ////SetCmd
@@ -330,6 +375,8 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPush, std::move(lpushptr)));
   std::unique_ptr<Cmd> lpushxptr =
+
+      std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
       std::make_unique<LPushxCmd>(kCmdNameLPushx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPushx, std::move(lpushxptr)));
   std::unique_ptr<Cmd> lrangeptr =
@@ -354,6 +401,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<RPushCmd>(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPush, std::move(rpushptr)));
   std::unique_ptr<Cmd> rpushxptr =
+      std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
       std::make_unique<RPushxCmd>(kCmdNameRPushx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPushx, std::move(rpushxptr)));
 
@@ -650,7 +698,7 @@ void Cmd::ProcessFlushDBCmd() {
       std::lock_guard s_prw(g_pika_rm->slots_rw_);
       for (const auto& slot_item : db->slots_) {
         std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+        SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
         if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
           res_.SetRes(CmdRes::kErrOther, "Slot not found");
           return;
@@ -676,7 +724,7 @@ void Cmd::ProcessFlushAllCmd() {
     std::lock_guard s_prw(g_pika_rm->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetDBName(), slot->GetSlotId());
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
       if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -697,7 +745,7 @@ void Cmd::ProcessSingleSlotCmd() {
   }
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
   if (!sync_slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
@@ -809,7 +857,7 @@ void Cmd::ProcessMultiSlotCmd() {
         return;
       }
       std::shared_ptr<SyncMasterSlot> sync_slot =
-          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotId()));
+          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
       if (!sync_slot) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
@@ -834,8 +882,9 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
-void Cmd::ProcessDoNotSpecifySlotCmd() { Do(); }
+void Cmd::ProcessDoNotSpecifySlotCmd() {Do();}
 
+bool Cmd::is_read() const {return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead);}
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
 bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
 // Others need to be suspended when a suspend command run

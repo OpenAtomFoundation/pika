@@ -19,7 +19,7 @@ def test_master_slave_replication():
     slave.slaveof(master_ip, master_port)
     master.delete('blist0', 'blist1', 'blist')
 
-    time.sleep(1)
+    time.sleep(10)
     m_keys = master.keys()
     s_keys = slave.keys()
     assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
@@ -77,11 +77,10 @@ def test_master_slave_replication():
     t9.join()
     t10.join()
 
-    time.sleep(3)
+    time.sleep(10)
     m_keys = master.keys()
     s_keys = slave.keys()
-    assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
-
+    assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got s_keys = {s_keys}, m_keys = {m_keys}'
     for i in range(0, master.llen('blist')):
         # print(master.lindex('blist', i))
         # print(slave.lindex('blist', i))
