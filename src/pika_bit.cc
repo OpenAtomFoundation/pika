@@ -219,13 +219,13 @@ void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
 }
 void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_args;
-  //mset and msetnx use "set", setcmd use "SET", bitop use "seT", pfmerge use "sEt"
-  set_args.push_back("seT");
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  set_args.push_back("set");
   set_args.push_back(dest_key_);
   set_args.push_back(value_to_dest_);
   set_cmd_->Initial(std::move(set_args), db_name_);
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  //value of this binlog might be strange if you print it out(eg. seT bitkey_out1 «ѦFO<t·), but it's ok.
+  //value of this binlog might be strange if you print it out(eg. set bitkey_out1 «ѦFO<t·), but it's ok.
   set_cmd_->DoBinlog(slot);
 }

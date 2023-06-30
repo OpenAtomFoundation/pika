@@ -687,7 +687,7 @@ void MsetCmd::Merge() {}
 void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
-  //used "set" instead of "SET" to distinguish the binlog of Set and Mset
+  //used "set" instead of "SET" to distinguish the binlog of Set
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
@@ -735,7 +735,7 @@ void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   }
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
-  //used "set" instead of "SET" to distinguish the binlog of Set and Mset
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
