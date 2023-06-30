@@ -262,10 +262,7 @@ class SMoveCmd : public Cmd {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
   }
   std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(src_key_);
-    res.push_back(dest_key_);
-    return res;
+    return {src_key_, dest_key_};
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
