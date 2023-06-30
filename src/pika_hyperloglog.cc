@@ -73,8 +73,8 @@ void PfMergeCmd::Do(std::shared_ptr<Slot> slot) {
 }
 void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_args;
-  //mset and msetnx use "set", setcmd use "SET", bitop use "seT", pfmerge use "sEt"
-  set_args.push_back("sEt");
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  set_args.push_back("set");
   set_args.push_back(keys_[0]);
   set_args.push_back(value_to_dest_);
   set_cmd_->Initial(std::move(set_args),  db_name_);
