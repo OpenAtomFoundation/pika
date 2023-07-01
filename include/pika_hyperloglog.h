@@ -52,7 +52,7 @@ class PfMergeCmd : public Cmd {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   PfMergeCmd(const PfMergeCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_), keys_(other.keys_), value_to_dest_(other.value_to_dest_) {
+      : Cmd(other), keys_(other.keys_), value_to_dest_(other.value_to_dest_) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   std::vector<std::string> current_key() const override {

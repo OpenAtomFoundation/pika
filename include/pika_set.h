@@ -8,6 +8,7 @@
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "pika_kv.h"
 
 /*
  * set
@@ -142,23 +143,43 @@ class SUnionCmd : public Cmd {
   void DoInitial() override;
 };
 
-class SUnionstoreCmd : public Cmd {
+
+class SetOperationCmd : public Cmd{
  public:
-  SUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(dest_key_);
-    res.insert(res.end(), keys_.begin(), keys_.end());
-    return res;
+  SetOperationCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
   }
+  SetOperationCmd(const SetOperationCmd& other)
+      : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_){
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+  }
+
+  std::vector<std::string> current_key() const override {
+    return {dest_key_};
+  }
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+
+ protected:
+  std::string dest_key_;
+  std::vector<std::string> keys_;
+  //used for write binlog
+  std::shared_ptr<Cmd> sadd_cmd_;
+  std::shared_ptr<Cmd> del_cmd_;
+  std::vector<std::string> value_to_dest_;
+};
+
+class SUnionstoreCmd : public SetOperationCmd {
+ public:
+  SUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
+  // current_key() is override in base class : SetOperationCmd
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SUnionstoreCmd(*this); }
 
  private:
-  std::string dest_key_;
-  std::vector<std::string> keys_;
   void DoInitial() override;
 };
 
@@ -175,23 +196,15 @@ class SInterCmd : public Cmd {
   void DoInitial() override;
 };
 
-class SInterstoreCmd : public Cmd {
+class SInterstoreCmd : public SetOperationCmd {
  public:
-  SInterstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(dest_key_);
-    res.insert(res.end(), keys_.begin(), keys_.end());
-    return res;
-  }
+  SInterstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SInterstoreCmd(*this); }
 
  private:
-  std::string dest_key_;
-  std::vector<std::string> keys_;
   void DoInitial() override;
 };
 
@@ -226,23 +239,15 @@ class SDiffCmd : public Cmd {
   void DoInitial() override;
 };
 
-class SDiffstoreCmd : public Cmd {
+class SDiffstoreCmd : public SetOperationCmd {
  public:
-  SDiffstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(dest_key_);
-    res.insert(res.end(), keys_.begin(), keys_.end());
-    return res;
-  }
+  SDiffstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SDiffstoreCmd(*this); }
 
  private:
-  std::string dest_key_;
-  std::vector<std::string> keys_;
   void DoInitial() override;
 };
 
@@ -253,7 +258,7 @@ class SMoveCmd : public Cmd {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
   }
   SMoveCmd(const SMoveCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_),
+      : Cmd(other),
         src_key_(other.src_key_),
         dest_key_(other.dest_key_),
         member_(other.member_),

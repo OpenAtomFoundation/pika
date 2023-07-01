@@ -10,6 +10,7 @@
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "pika_kv.h"
 
 /*
  * zset
@@ -238,14 +239,24 @@ class ZRemCmd : public Cmd {
 class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), aggregate_(storage::SUM) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(dest_key_);
-    res.insert(res.end(), keys_.begin(), keys_.end());
-    return res;
+      : Cmd(name, arity, flag), aggregate_(storage::SUM) {
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
+    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+  }
+  ZsetUIstoreParentCmd(const ZsetUIstoreParentCmd& other)
+      : Cmd(other),
+        dest_key_(other.dest_key_),
+        num_keys_(other.num_keys_),
+        aggregate_(other.aggregate_),
+        keys_(other.keys_),
+        weights_(other.weights_) {
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
+    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
   }
 
+  std::vector<std::string> current_key() const override {
+    return {dest_key_};
+  }
  protected:
   std::string dest_key_;
   int64_t num_keys_ = 0;
@@ -254,6 +265,9 @@ class ZsetUIstoreParentCmd : public Cmd {
   std::vector<double> weights_;
   void DoInitial() override;
   void Clear() override { aggregate_ = storage::SUM; }
+  //used for write binlog
+  std::shared_ptr<Cmd> zadd_cmd_;
+  std::shared_ptr<Cmd> del_cmd_;
 };
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
@@ -266,6 +280,9 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
 
  private:
   void DoInitial() override;
+  //used for write binlog
+  std::map<std::string, double> value_to_dest_;
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 };
 
 class ZInterstoreCmd : public ZsetUIstoreParentCmd {
@@ -275,9 +292,12 @@ class ZInterstoreCmd : public ZsetUIstoreParentCmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZInterstoreCmd(*this); }
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
  private:
   void DoInitial() override;
+  //used for write binlog
+  std::vector<storage::ScoreMember> value_to_dest_;
 };
 
 class ZsetRankParentCmd : public Cmd {

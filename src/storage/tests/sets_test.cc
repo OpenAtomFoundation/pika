@@ -1738,7 +1738,8 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp1_keys{"GP1_SUNIONSTORE_KEY1", "GP1_SUNIONSTORE_KEY2", "GP1_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, &ret);
+  std::vector<std::string> value_to_dest;
+  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 5));
@@ -1752,7 +1753,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   // destination = {a, b, c, d}
   ASSERT_TRUE(make_expired(&db, "GP1_SUNIONSTORE_KEY3"));
 
-  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, &ret);
+  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 4));
@@ -1780,7 +1781,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp2_keys{"GP2_SUNIONSTORE_KEY1", "GP2_SUNIONSTORE_KEY2", "GP2_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP2_SUNIONSTORE_DESTINATION1", gp2_keys, &ret);
+  s = db.SUnionstore("GP2_SUNIONSTORE_DESTINATION1", gp2_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP2_SUNIONSTORE_DESTINATION1", 5));
@@ -1813,7 +1814,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(members_match(&db, "GP3_SUNIONSTORE_KEY3", {}));
 
   std::vector<std::string> gp3_keys{"GP3_SUNIONSTORE_KEY1", "GP3_SUNIONSTORE_KEY2", "GP3_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP3_SUNIONSTORE_DESTINATION1", gp3_keys, &ret);
+  s = db.SUnionstore("GP3_SUNIONSTORE_DESTINATION1", gp3_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP3_SUNIONSTORE_DESTINATION1", 4));
@@ -1831,7 +1832,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
 
   std::vector<std::string> gp4_keys{"GP4_SUNIONSTORE_KEY1", "GP4_SUNIONSTORE_NOT_EXIST_KEY"};
   std::vector<std::string> gp4_members_out;
-  s = db.SUnionstore("GP4_SUNIONSTORE_DESTINATION1", gp4_keys, &ret);
+  s = db.SUnionstore("GP4_SUNIONSTORE_DESTINATION1", gp4_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP4_SUNIONSTORE_DESTINATION1", 3));

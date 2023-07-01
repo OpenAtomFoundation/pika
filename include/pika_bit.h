@@ -127,7 +127,7 @@ class BitOpCmd : public Cmd {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   };
   BitOpCmd(const BitOpCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_),
+      : Cmd(other),
         dest_key_(other.dest_key_),
         src_keys_(other.src_keys_),
         op_(other.op_),

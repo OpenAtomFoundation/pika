@@ -300,16 +300,16 @@ Status Storage::SDiff(const std::vector<std::string>& keys, std::vector<std::str
   return sets_db_->SDiff(keys, members);
 }
 
-Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SDiffstore(destination, keys, ret);
+Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SDiffstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SInter(const std::vector<std::string>& keys, std::vector<std::string>* members) {
   return sets_db_->SInter(keys, members);
 }
 
-Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SInterstore(destination, keys, ret);
+Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SInterstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SIsmember(const Slice& key, const Slice& member, int32_t* ret) {
@@ -345,8 +345,8 @@ Status Storage::SUnion(const std::vector<std::string>& keys, std::vector<std::st
   return sets_db_->SUnion(keys, members);
 }
 
-Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SUnionstore(destination, keys, ret);
+Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SUnionstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -481,13 +481,13 @@ Status Storage::ZScore(const Slice& key, const Slice& member, double* ret) {
 }
 
 Status Storage::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
-  return zsets_db_->ZUnionstore(destination, keys, weights, agg, ret);
+                            const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
+  return zsets_db_->ZUnionstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
 Status Storage::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
-  return zsets_db_->ZInterstore(destination, keys, weights, agg, ret);
+                            const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
+  return zsets_db_->ZInterstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
 Status Storage::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,

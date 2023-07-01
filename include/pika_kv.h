@@ -333,7 +333,7 @@ class MsetCmd : public Cmd {
   MsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
-  MsetCmd(const MsetCmd& other) : Cmd(other.name_, other.arity_, other.flag_), kvs_(other.kvs_) {
+  MsetCmd(const MsetCmd& other) : Cmd(other), kvs_(other.kvs_) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
 
@@ -363,7 +363,7 @@ class MsetnxCmd : public Cmd {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   MsetnxCmd(const MsetnxCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_), kvs_(other.kvs_), success_(other.success_) {
+      : Cmd(other), kvs_(other.kvs_), success_(other.success_) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   std::vector<std::string> current_key() const override {

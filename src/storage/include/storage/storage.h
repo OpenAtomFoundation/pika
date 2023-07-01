@@ -385,7 +385,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SDIFFSTORE destination key1 key2 key3
   //   destination = {b, d}
-  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns the members of the set resulting from the intersection of all the
   // given sets.
@@ -408,7 +408,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SINTERSTORE destination key1 key2 key3
   //   destination = {a, c}
-  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns if member is a member of the set stored at key.
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
@@ -465,7 +465,7 @@ class Storage {
   //   key3 = {c, d, e}
   //   SUNIONSTORE destination key1 key2 key3
   //   destination = {a, b, c, d, e}
-  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // See SCAN for SSCAN documentation.
   Status SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -819,7 +819,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret);
 
   // Computes the intersection of numkeys sorted sets given by the specified
   // keys, and stores the result in destination. It is mandatory to provide the
@@ -836,7 +836,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command returns all the
