@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 static CommandCmd::EncodablePtr operator""_RedisInt(unsigned long long value) {
   return std::make_shared<CommandCmd::EncodableInt>(value);
@@ -32,6 +33,66 @@ static CommandCmd::EncodablePtr RedisSet(std::vector<CommandCmd::EncodablePtr> v
 static CommandCmd::EncodablePtr RedisArray(std::vector<CommandCmd::EncodablePtr> values) {
   return std::make_shared<CommandCmd::EncodableArray>(std::move(values));
 }
+
+const std::string CommandCmd::kPikaField{"pika"};
+const CommandCmd::EncodablePtr CommandCmd::kNotSupportedLiteral = "当前还未支持"_RedisString;
+const CommandCmd::EncodablePtr CommandCmd::kCompatibleLiteral =
+    "该接口完全支持，使用方式与redis没有任何区别"_RedisString;
+const CommandCmd::EncodablePtr CommandCmd::kBitSpecLiteral =
+    "BIT操作：与Redis不同，Pika的bit操作范围为2^21， bitmap的最大值为256Kb。redis setbit 只是对key的value值更新。但是pika使用rocksdb作为存储引擎，rocksdb只会新写入数据并且只在compact的时候才从硬盘删除旧数据。如果pika的bit操作范围和redis一致都是2^32的话，那么有可能每次对同一个key setbit时，rocksdb都会存储一个512M大小的value。这会产生 严重的性能隐患。因此我们对pika的bit操作范围作了取舍。"_RedisString;
+const CommandCmd::EncodablePtr CommandCmd::kHyperLogLiteral =
+    "50w以内误差均小于1%, 100w以内误差小于3%, 但付出了时间代价."_RedisString;
+const CommandCmd::EncodablePtr CommandCmd::kPubSubLiteral = "暂不支持keyspace notifications"_RedisString;
+
+const CommandCmd::EncodablePtr CommandCmd::kNotSupportedSpecialization = RedisMap({{kPikaField, kNotSupportedLiteral}});
+const CommandCmd::EncodablePtr CommandCmd::kCompatibleSpecialization = RedisMap({{kPikaField, kCompatibleLiteral}});
+const CommandCmd::EncodablePtr CommandCmd::kBitSpecialization = RedisMap({{kPikaField, kBitSpecLiteral}});
+const CommandCmd::EncodablePtr CommandCmd::kHyperLogSpecialization = RedisMap({{kPikaField, kHyperLogLiteral}});
+const CommandCmd::EncodablePtr CommandCmd::kPubSubSpecialization = RedisMap({{kPikaField, kPubSubLiteral}});
+
+const std::unordered_map<std::string, CommandCmd::EncodablePtr> CommandCmd::kPikaSpecialization{
+    {"pexpire", RedisMap({{kPikaField, "无法精确到毫秒，底层会自动截断按秒级别进行处理"_RedisString}})},
+    {"pexpireat", RedisMap({{kPikaField, "无法精确到毫秒，底层会自动截断按秒级别进行处理"_RedisString}})},
+    {"scan",
+     RedisMap(
+         {{kPikaField,
+           "会顺序迭代当前db的快照，由于pika允许重名五次，所以scan有优先输出顺序，依次为：string -> hash -> list -> zset -> set"_RedisString}})},
+    {"type",
+     RedisMap(
+         {{kPikaField,
+           "另外由于pika允许重名五次，所以type有优先输出顺序，依次为：string -> hash -> list -> zset -> set，如果这个key在string中存在，那么只输出sting，如果不存在，那么则输出hash的，依次类推"_RedisString}})},
+    {"keys",
+     RedisMap(
+         {{kPikaField,
+           "KEYS命令支持参数支持扫描指定类型的数据，用法如 \"keys * [string, hash, list, zset, set]\""_RedisString}})},
+    {"bitop", kBitSpecialization},
+    {"getbit", kBitSpecialization},
+    {"setbit", kBitSpecialization},
+    {"hset", RedisMap({{kPikaField, "暂不支持单条命令设置多个field value，如有需求请用HMSET"_RedisString}})},
+    {"srandmember", RedisMap({{kPikaField, "时间复杂度O( n )，耗时较多"_RedisString}})},
+    {"zadd", RedisMap({{kPikaField, "的选项 [NX|XX] [CH] [INCR] 暂不支持"_RedisString}})},
+    {"pfadd", kHyperLogSpecialization},
+    {"pfcount", kHyperLogSpecialization},
+    {"pfmerge", kHyperLogSpecialization},
+    {"psubscribe", kPubSubSpecialization},
+    {"pubsub", kPubSubSpecialization},
+    {"publish", kPubSubSpecialization},
+    {"punsubscribe", kPubSubSpecialization},
+    {"subscribe", kPubSubSpecialization},
+    {"unsubscribe", kPubSubSpecialization},
+    {"info",
+     RedisMap(
+         {{kPikaField,
+           "info支持全部输出，也支持匹配形式的输出，例如可以通过info stats查看状态信息，需要注意的是key space与redis不同，pika对于key space的展示选择了分类型展示而非redis的分库展示（因为pika没有库），pika对于key space的统计是被动的，需要手动触发，然后pika会在后台进行统计，pika的key space统计是精确的。触发方式为执行：keyspace命令即可，然后pika会在后台统计，此时可以使用：keyspace readonly命令来进行查看，readonly参数可以避免反复进行统计，如果当前数据为0，则证明还在统计中"_RedisString}})},
+    {"client", RedisMap({{kPikaField,
+                          "当前client命令支持client list及client kill，client list显示的内容少于redis"_RedisString}})},
+    {"select", RedisMap({{kPikaField, "该命令在3.1.0版前无任何效果，自3.1.0版开始与Redis一致"_RedisString}})},
+    {"ping", RedisMap({{kPikaField, "该命令仅支持无参数使用，即使用PING，客户端返回PONG"_RedisString}})},
+    {"type",
+     RedisMap(
+         {{kPikaField,
+           "pika不同类型的key name 是允许重复的，例如：string 类型里有 key1，hash list set zset类型可以同时存在 key1，在使用 type命令查询时，只能得到一个，如果要查询同一个 name 所有的类型，需要使用 ptype 命令查询"_RedisString}})},
+};
 
 const std::unordered_map<std::string, CommandCmd::EncodablePtr> CommandCmd::kCommandDocs{
     {"zremrangebyscore",

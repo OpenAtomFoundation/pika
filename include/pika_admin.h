@@ -463,22 +463,27 @@ class CommandCmd : public Cmd {
     const static std::unordered_map<std::string, int> kFieldNameOrder;
   };
 
+  class Encodable;
+  using EncodablePtr = std::shared_ptr<Encodable>;
+
   class Encodable {
    public:
-    friend CmdRes& operator<<(CmdRes& res, const Encodable& e) { return e.EncodeTo(res); };
+    friend CmdRes& operator<<(CmdRes& res, const Encodable& e) { return e.EncodeTo(res); }
+    EncodablePtr operator+(const EncodablePtr& other) { return MergeFrom(other); }
 
    protected:
     virtual CmdRes& EncodeTo(CmdRes&) const = 0;
+    virtual EncodablePtr MergeFrom(const EncodablePtr& other) const = 0;
   };
-
-  using EncodablePtr = std::shared_ptr<Encodable>;
 
   class EncodableInt : public Encodable {
    public:
+    EncodableInt(int value) : value_(value) {}
     EncodableInt(unsigned long long value) : value_(value) {}
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     int value_;
@@ -490,6 +495,7 @@ class CommandCmd : public Cmd {
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     std::string value_;
@@ -499,11 +505,12 @@ class CommandCmd : public Cmd {
    public:
     using RedisMap = std::map<std::string, EncodablePtr, CommandFieldCompare>;
     EncodableMap(RedisMap values) : values_(std::move(values)) {}
-    template <class Map>
-    static CmdRes& EncodeTo(CmdRes& res, const Map& map);
+    template <typename Map>
+    static CmdRes& EncodeTo(CmdRes& res, const Map& map, const Map& specialization = Map());
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     RedisMap values_;
@@ -517,6 +524,7 @@ class CommandCmd : public Cmd {
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     std::vector<EncodablePtr> values_;
@@ -530,6 +538,7 @@ class CommandCmd : public Cmd {
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     std::vector<EncodablePtr> values_;
@@ -541,6 +550,7 @@ class CommandCmd : public Cmd {
 
    protected:
     CmdRes& EncodeTo(CmdRes& res) const override;
+    EncodablePtr MergeFrom(const EncodablePtr& other) const override;
 
    private:
     std::string value_;
@@ -554,7 +564,20 @@ class CommandCmd : public Cmd {
   std::string command_;
   std::vector<std::string>::const_iterator cmds_begin_, cmds_end_;
 
-  const static std::string kNullReply;
+  const static std::string kPikaField;
+  const static EncodablePtr kNotSupportedLiteral;
+  const static EncodablePtr kCompatibleLiteral;
+  const static EncodablePtr kBitSpecLiteral;
+  const static EncodablePtr kHyperLogLiteral;
+  const static EncodablePtr kPubSubLiteral;
+
+  const static EncodablePtr kNotSupportedSpecialization;
+  const static EncodablePtr kCompatibleSpecialization;
+  const static EncodablePtr kBitSpecialization;
+  const static EncodablePtr kHyperLogSpecialization;
+  const static EncodablePtr kPubSubSpecialization;
+
+  const static std::unordered_map<std::string, EncodablePtr> kPikaSpecialization;
   const static std::unordered_map<std::string, EncodablePtr> kCommandDocs;
 };
 

@@ -14,6 +14,7 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -943,8 +944,8 @@ void InfoCmd::InfoReplication(std::string& info) {
   for (const auto& db_item : g_pika_server->dbs_) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
-      std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
+      std::shared_ptr<SyncSlaveSlot> slave_slot =
+          g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
@@ -1177,20 +1178,20 @@ void InfoCmd::InfoRocksDB(std::string& info) {
   tmp_stream << "# RocksDB"
              << "\r\n";
 
-    std::shared_lock table_rwl(g_pika_server->dbs_rw_);
-    for (const auto& table_item : g_pika_server->dbs_) {
-        if (!table_item.second) {
-            continue;
-        }
-        std::shared_lock slot_rwl(table_item.second->slots_rw_);
-        for (const auto& slot_item : table_item.second->slots_) {
-            std::string rocksdb_info;
-            slot_item.second->DbRWLockReader();
-            slot_item.second->db()->GetRocksDBInfo(rocksdb_info);
-            slot_item.second->DbRWUnLock();
-            tmp_stream << rocksdb_info;
-        }
+  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  for (const auto& table_item : g_pika_server->dbs_) {
+    if (!table_item.second) {
+      continue;
     }
+    std::shared_lock slot_rwl(table_item.second->slots_rw_);
+    for (const auto& slot_item : table_item.second->slots_) {
+      std::string rocksdb_info;
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->GetRocksDBInfo(rocksdb_info);
+      slot_item.second->DbRWUnLock();
+      tmp_stream << rocksdb_info;
+    }
+  }
 
   info.append(tmp_stream.str());
 }
@@ -2409,24 +2410,59 @@ CmdRes& CommandCmd::EncodableInt::EncodeTo(CmdRes& res) const {
   return res;
 }
 
+CommandCmd::EncodablePtr CommandCmd::EncodableInt::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableInt>(other)) {
+    return std::make_shared<CommandCmd::EncodableInt>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableInt>(value_);
+}
+
 CmdRes& CommandCmd::EncodableString::EncodeTo(CmdRes& res) const {
   res.AppendString(value_);
   return res;
 }
 
-template <class Map>
-CmdRes& CommandCmd::EncodableMap::EncodeTo(CmdRes& res, const Map& map) {
+CommandCmd::EncodablePtr CommandCmd::EncodableString::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableString>(other)) {
+    return std::make_shared<CommandCmd::EncodableString>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableString>(value_);
+}
+
+template <typename Map>
+CmdRes& CommandCmd::EncodableMap::EncodeTo(CmdRes& res, const Map& map, const Map& specialization) {
   std::string raw_string;
   RedisAppendLen(raw_string, map.size() * 2, kPrefix);
   res.AppendStringRaw(raw_string);
   for (const auto& kv : map) {
     res.AppendString(kv.first);
-    res << *kv.second;
+    if (auto iter = specialization.find(kv.first); iter != specialization.end()) {
+      res << *(*kv.second + iter->second);
+    } else {
+      res << *kv.second;
+    }
   }
   return res;
 }
 
 CmdRes& CommandCmd::EncodableMap::EncodeTo(CmdRes& res) const { return EncodeTo(res, values_); }
+
+CommandCmd::EncodablePtr CommandCmd::EncodableMap::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableMap>(other)) {
+    auto values = CommandCmd::EncodableMap::RedisMap(values_.cbegin(), values_.cend());
+    for (const auto& pair : pe->values_) {
+      auto iter = values.find(pair.first);
+      if (iter == values.end()) {
+        values[pair.first] = pair.second;
+      } else {
+        iter->second = (*iter->second + pair.second);
+      }
+    }
+    return std::make_shared<CommandCmd::EncodableMap>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableMap>(
+      CommandCmd::EncodableMap::RedisMap(values_.cbegin(), values_.cend()));
+}
 
 CmdRes& CommandCmd::EncodableSet::EncodeTo(CmdRes& res) const {
   std::string raw_string;
@@ -2438,6 +2474,16 @@ CmdRes& CommandCmd::EncodableSet::EncodeTo(CmdRes& res) const {
   return res;
 }
 
+CommandCmd::EncodablePtr CommandCmd::EncodableSet::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableSet>(other)) {
+    auto values = std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend());
+    values.insert(values.end(), pe->values_.cbegin(), pe->values_.cend());
+    return std::make_shared<CommandCmd::EncodableSet>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableSet>(
+      std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend()));
+}
+
 CmdRes& CommandCmd::EncodableArray::EncodeTo(CmdRes& res) const {
   res.AppendArrayLen(values_.size());
   for (const auto& item : values_) {
@@ -2446,28 +2492,40 @@ CmdRes& CommandCmd::EncodableArray::EncodeTo(CmdRes& res) const {
   return res;
 }
 
+CommandCmd::EncodablePtr CommandCmd::EncodableArray::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableArray>(other)) {
+    auto values = std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend());
+    values.insert(values.end(), pe->values_.cbegin(), pe->values_.cend());
+    return std::make_shared<CommandCmd::EncodableArray>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableArray>(
+      std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend()));
+}
+
 CmdRes& CommandCmd::EncodableStatus::EncodeTo(CmdRes& res) const {
   res.AppendStringRaw(kPrefix + value_ + kNewLine);
   return res;
 }
 
-const std::string CommandCmd::kNullReply = "_" + kNewLine;
+CommandCmd::EncodablePtr CommandCmd::EncodableStatus::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableStatus>(other)) {
+    return std::make_shared<CommandCmd::EncodableStatus>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableStatus>(value_);
+}
+
 const std::unordered_map<std::string, int> CommandCmd::CommandFieldCompare::kFieldNameOrder{
-    {"name", 0},          {"type", 1},
-    {"spec", 2},          {"index", 3},
-    {"display_text", 4},  {"key_spec_index", 5},
-    {"token", 6},         {"summary", 7},
-    {"since", 8},         {"group", 9},
-    {"complexity", 10},   {"module", 11},
-    {"doc_flags", 12},    {"deprecated_since", 13},
-    {"notes", 14},        {"flags", 15},
-    {"begin_search", 16}, {"replaced_by", 17},
-    {"history", 18},      {"arguments", 19},
-    {"subcommands", 20},  {"keyword", 21},
-    {"startfrom", 22},    {"find_keys", 23},
-    {"lastkey", 24},      {"keynum", 25},
-    {"keynumidx", 26},    {"firstkey", 27},
-    {"keystep", 28},      {"limit", 29},
+    {kPikaField, 0},         {"name", 100},      {"type", 101},
+    {"spec", 102},           {"index", 103},     {"display_text", 104},
+    {"key_spec_index", 105}, {"token", 106},     {"summary", 107},
+    {"since", 108},          {"group", 109},     {"complexity", 110},
+    {"module", 111},         {"doc_flags", 112}, {"deprecated_since", 113},
+    {"notes", 114},          {"flags", 15},      {"begin_search", 116},
+    {"replaced_by", 17},     {"history", 18},    {"arguments", 119},
+    {"subcommands", 120},    {"keyword", 121},   {"startfrom", 122},
+    {"find_keys", 123},      {"lastkey", 124},   {"keynum", 125},
+    {"keynumidx", 126},      {"firstkey", 127},  {"keystep", 128},
+    {"limit", 129},
 };
 const std::string CommandCmd::EncodableMap::kPrefix = "*";
 const std::string CommandCmd::EncodableSet::kPrefix = "*";
@@ -2490,16 +2548,30 @@ void CommandCmd::DoInitial() {
   cmds_end_ = argv_.cend();
 }
 
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
 void CommandCmd::Do(std::shared_ptr<Slot> slots) {
   std::unordered_map<std::string, CommandCmd::EncodablePtr> cmds;
+  std::unordered_map<std::string, CommandCmd::EncodablePtr> specializations;
   if (cmds_begin_ == cmds_end_) {
     cmds = kCommandDocs;
+    specializations.insert(kPikaSpecialization.cbegin(), kPikaSpecialization.cend());
   } else {
     for (auto iter = cmds_begin_; iter != cmds_end_; ++iter) {
       if (auto cmd = kCommandDocs.find(*iter); cmd != kCommandDocs.end()) {
         cmds.insert(*cmd);
       }
+      if (auto specialization = kPikaSpecialization.find(*iter); specialization != kPikaSpecialization.end()) {
+        specializations.insert(*specialization);
+      }
     }
   }
-  EncodableMap::EncodeTo(res_, cmds);
+  for (const auto& cmd : cmds) {
+    if (!g_pika_cmd_table_manager->CmdExist(cmd.first)) {
+      specializations[cmd.first] = kNotSupportedSpecialization;
+    } else if (auto iter = specializations.find(cmd.first); iter == specializations.end()) {
+      specializations[cmd.first] = kCompatibleSpecialization;
+    }
+  }
+  EncodableMap::EncodeTo(res_, cmds, specializations);
 }
