@@ -99,9 +99,9 @@ var collectReplicationMetrics = map[string]MetricConfig{
 		MetricMeta: &MetaDatas{
 			{
 				Name:      "slave_lag",
-				Help:      "pika serve instance slave's partition binlog lag",
+				Help:      "pika serve instance slave's slot binlog lag",
 				Type:      metricTypeGauge,
-				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_conn_fd", "slave_ip", "slave_port", "partition"},
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_conn_fd", "slave_ip", "slave_port", "slot"},
 				ValueName: "slave_lag",
 			},
 		},
@@ -123,7 +123,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 						Parser: &regexParser{
 							name:   "master_sharding_slave_info_slave_lag",
 							source: "slave_lag",
-							reg:    regexp.MustCompile(`((?P<partition>db[\d.]+:[\d.]+).*:(?P<slave_lag>[\d]+))`),
+							reg:    regexp.MustCompile(`((?P<slot>db[\d.]+:[\d.]+).*:(?P<slave_lag>[\d]+))`),
 							Parser: &normalParser{},
 						},
 					},
@@ -136,7 +136,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 						Parser: &regexParser{
 							name:   "master_sharding_slave_info_slave_lag",
 							source: "slave_lag",
-							reg:    regexp.MustCompile(`((?P<partition>db[\d.]+:[\d.]+).*:(?P<slave_lag>[\d]+))`),
+							reg:    regexp.MustCompile(`((?P<slot>db[\d.]+:[\d.]+).*:(?P<slave_lag>[\d]+))`),
 							Parser: &normalParser{},
 						},
 					},
@@ -145,11 +145,11 @@ var collectReplicationMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaDatas{
 			{
-				Name:      "partition_slave_lag",
-				Help:      "pika serve instance slave's partition binlog lag",
+				Name:      "slot_slave_lag",
+				Help:      "pika serve instance slave's slot binlog lag",
 				Type:      metricTypeGauge,
-				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_conn_fd", "slave_ip", "slave_port", "partition"},
-				ValueName: "partition_slave_lag",
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_conn_fd", "slave_ip", "slave_port", "slot"},
+				ValueName: "slot_slave_lag",
 			},
 		},
 	},
@@ -234,11 +234,11 @@ var collectReplicationMetrics = map[string]MetricConfig{
 			},
 		},
 		MetricMeta: &MetaData{
-			Name:      "partition_repl_state",
-			Help:      "sync connection state between slave and master for each partition, when pika instance's role is slave",
+			Name:      "slot_repl_state",
+			Help:      "sync connection state between slave and master for each slot, when pika instance's role is slave",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "master_host", "master_port"},
-			ValueName: "partition_repl_state",
+			ValueName: "slot_repl_state",
 		},
 	},
 

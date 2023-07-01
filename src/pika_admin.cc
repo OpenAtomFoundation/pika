@@ -9,10 +9,12 @@
 #include <sys/utsname.h>
 
 #include <algorithm>
+#include <unordered_map>
 
 #include <glog/logging.h>
 
 #include "include/build_version.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -202,8 +204,7 @@ void DbSlaveofCmd::DoInitial() {
 }
 
 void DbSlaveofCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, 0));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, 0));
   if (!slave_slot) {
     res_.SetRes(CmdRes::kErrOther, "Db not found");
     return;
@@ -217,8 +218,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     if (slave_slot->State() == ReplState::kNoConnect || slave_slot->State() == ReplState::kError ||
         slave_slot->State() == ReplState::kDBNoConnect) {
       if (have_offset_) {
-        std::shared_ptr<SyncMasterSlot> db_slot =
-            g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, 0));
+        std::shared_ptr<SyncMasterSlot> db_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, 0));
         db_slot->Logger()->SetProducerStatus(filenum_, offset_);
       }
       ReplState state = force_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
@@ -373,8 +373,7 @@ void PurgelogstoCmd::DoInitial() {
 }
 
 void PurgelogstoCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_, 0));
+  std::shared_ptr<SyncMasterSlot> sync_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_, 0));
   if (!sync_slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
   } else {
@@ -820,7 +819,8 @@ void InfoCmd::InfoServer(std::string& info) {
 
 void InfoCmd::InfoClients(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Clients" << "\r\n";
+  tmp_stream << "# Clients"
+             << "\r\n";
   tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
 
   info.append(tmp_stream.str());
@@ -828,7 +828,8 @@ void InfoCmd::InfoClients(std::string& info) {
 
 void InfoCmd::InfoStats(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Stats" << "\r\n";
+  tmp_stream << "# Stats"
+             << "\r\n";
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
@@ -861,15 +862,20 @@ void InfoCmd::InfoCPU(std::string& info) {
   getrusage(RUSAGE_SELF, &self_ru);
   getrusage(RUSAGE_CHILDREN, &c_ru);
   std::stringstream tmp_stream;
-  tmp_stream << "# CPU" << "\r\n";
+  tmp_stream << "# CPU"
+             << "\r\n";
   tmp_stream << "used_cpu_sys:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(self_ru.ru_stime.tv_sec) + static_cast<float>(self_ru.ru_stime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(self_ru.ru_stime.tv_sec) + static_cast<float>(self_ru.ru_stime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_user:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(self_ru.ru_utime.tv_sec) + static_cast<float>(self_ru.ru_utime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(self_ru.ru_utime.tv_sec) + static_cast<float>(self_ru.ru_utime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_sys_children:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(c_ru.ru_stime.tv_sec) + static_cast<float>(c_ru.ru_stime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(c_ru.ru_stime.tv_sec) + static_cast<float>(c_ru.ru_stime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_user_children:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(c_ru.ru_utime.tv_sec) + static_cast<float>(c_ru.ru_utime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(c_ru.ru_utime.tv_sec) + static_cast<float>(c_ru.ru_utime.tv_usec) / 1000000
+             << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -938,8 +944,8 @@ void InfoCmd::InfoReplication(std::string& info) {
   for (const auto& db_item : g_pika_server->dbs_) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
-      std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
+      std::shared_ptr<SyncSlaveSlot> slave_slot =
+          g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
@@ -1056,12 +1062,15 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   int32_t duration;
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
-  tmp_stream << "# Keyspace" << "\r\n";
+  tmp_stream << "# Keyspace"
+             << "\r\n";
 
   if (argv_.size() == 3) {  // command => `info keyspace 1`
-    tmp_stream << "# Start async statistics" << "\r\n";
+    tmp_stream << "# Start async statistics"
+               << "\r\n";
   } else {  // command => `info keyspace` or `info`
-    tmp_stream << "# Use \"info keyspace 1\" do async statistics" << "\r\n";
+    tmp_stream << "# Use \"info keyspace 1\" do async statistics"
+               << "\r\n";
   }
 
   std::shared_lock rwl(g_pika_server->dbs_rw_);
@@ -1077,11 +1086,14 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       }
       tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
       if (duration == -2) {
-        tmp_stream << "# Duration: " << "In Waiting\r\n";
+        tmp_stream << "# Duration: "
+                   << "In Waiting\r\n";
       } else if (duration == -1) {
-        tmp_stream << "# Duration: " << "In Processing\r\n";
+        tmp_stream << "# Duration: "
+                   << "In Processing\r\n";
       } else if (duration >= 0) {
-        tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
+        tmp_stream << "# Duration: " << std::to_string(duration) + "s"
+                   << "\r\n";
       }
 
       tmp_stream << db_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires
@@ -1108,7 +1120,8 @@ void InfoCmd::InfoData(std::string& info) {
   std::stringstream db_fatal_msg_stream;
 
   int64_t db_size = pstd::Du(g_pika_conf->db_path());
-  tmp_stream << "# Data" << "\r\n";
+  tmp_stream << "# Data"
+             << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
   int64_t log_size = pstd::Du(g_pika_conf->log_path());
@@ -1126,7 +1139,7 @@ void InfoCmd::InfoData(std::string& info) {
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (!db_item.second) {
-        continue;
+      continue;
     }
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
@@ -1159,38 +1172,41 @@ void InfoCmd::InfoData(std::string& info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoRocksDB(std::string &info) {
-    std::stringstream tmp_stream;
+void InfoCmd::InfoRocksDB(std::string& info) {
+  std::stringstream tmp_stream;
 
-    tmp_stream << "# RocksDB" << "\r\n";
+  tmp_stream << "# RocksDB"
+             << "\r\n";
 
-    std::shared_lock table_rwl(g_pika_server->dbs_rw_);
-    for (const auto& table_item : g_pika_server->dbs_) {
-        if (!table_item.second) {
-            continue;
-        }
-        std::shared_lock partition_rwl(table_item.second->slots_rw_);
-        for (const auto& partition_item : table_item.second->slots_) {
-            std::string rocksdb_info;
-            partition_item.second->DbRWLockReader();
-            partition_item.second->db()->GetRocksDBInfo(rocksdb_info);
-            partition_item.second->DbRWUnLock();
-            tmp_stream << rocksdb_info;
-        }
+  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  for (const auto& table_item : g_pika_server->dbs_) {
+    if (!table_item.second) {
+      continue;
     }
+    std::shared_lock slot_rwl(table_item.second->slots_rw_);
+    for (const auto& slot_item : table_item.second->slots_) {
+      std::string rocksdb_info;
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->GetRocksDBInfo(rocksdb_info);
+      slot_item.second->DbRWUnLock();
+      tmp_stream << rocksdb_info;
+    }
+  }
 
-    info.append(tmp_stream.str());
+  info.append(tmp_stream.str());
 }
 
 void InfoCmd::InfoDebug(std::string& info) {
   std::stringstream tmp_stream;
-  tmp_stream << "# Synchronization Status"<< "\r\n";
+  tmp_stream << "# Synchronization Status"
+             << "\r\n";
 
   info.append(tmp_stream.str());
   g_pika_rm->RmStatus(&info);
 
   tmp_stream.str(std::string());
-  tmp_stream << "# Running Status " << "\r\n";
+  tmp_stream << "# Running Status "
+             << "\r\n";
 
   info.append(tmp_stream.str());
   g_pika_server->ServerStatus(&info);
@@ -2099,9 +2115,8 @@ void DelbackupCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   int len = dump_dir.size();
-  for (auto & i : dump_dir) {
-    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix ||
-        i.size() != (db_sync_prefix.size() + 8)) {
+  for (auto& i : dump_dir) {
+    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
     }
 
@@ -2132,9 +2147,7 @@ void EchoCmd::DoInitial() {
   body_ = argv_[1];
 }
 
-void EchoCmd::Do(std::shared_ptr<Slot> slot) {
-  res_.AppendString(body_);
-}
+void EchoCmd::Do(std::shared_ptr<Slot> slot) { res_.AppendString(body_); }
 
 void ScandbCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2158,7 +2171,7 @@ void ScandbCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
   }
-  }
+}
 
 void ScandbCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
@@ -2168,7 +2181,7 @@ void ScandbCmd::Do(std::shared_ptr<Slot> slot) {
     db->ScanDatabase(type_);
     res_.SetRes(CmdRes::kOk);
   }
-  }
+}
 
 void SlowlogCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2229,7 +2242,6 @@ std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
       BinlogType::TypeFirst,
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
 }
-
 
 void PKPatternMatchDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2379,4 +2391,187 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.AppendArrayLen(fvs.size() * 2);
   res_.AppendStringRaw(raw);
+}
+
+bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
+  int av{0};
+  int bv{0};
+  if (auto avi = kFieldNameOrder.find(a); avi != kFieldNameOrder.end()) {
+    av = avi->second;
+  }
+  if (auto bvi = kFieldNameOrder.find(b); bvi != kFieldNameOrder.end()) {
+    bv = bvi->second;
+  }
+  return av < bv;
+}
+
+CmdRes& CommandCmd::EncodableInt::EncodeTo(CmdRes& res) const {
+  res.AppendInteger(value_);
+  return res;
+}
+
+CommandCmd::EncodablePtr CommandCmd::EncodableInt::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableInt>(other)) {
+    return std::make_shared<CommandCmd::EncodableInt>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableInt>(value_);
+}
+
+CmdRes& CommandCmd::EncodableString::EncodeTo(CmdRes& res) const {
+  res.AppendString(value_);
+  return res;
+}
+
+CommandCmd::EncodablePtr CommandCmd::EncodableString::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableString>(other)) {
+    return std::make_shared<CommandCmd::EncodableString>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableString>(value_);
+}
+
+template <typename Map>
+CmdRes& CommandCmd::EncodableMap::EncodeTo(CmdRes& res, const Map& map, const Map& specialization) {
+  std::string raw_string;
+  RedisAppendLen(raw_string, map.size() * 2, kPrefix);
+  res.AppendStringRaw(raw_string);
+  for (const auto& kv : map) {
+    res.AppendString(kv.first);
+    if (auto iter = specialization.find(kv.first); iter != specialization.end()) {
+      res << *(*kv.second + iter->second);
+    } else {
+      res << *kv.second;
+    }
+  }
+  return res;
+}
+
+CmdRes& CommandCmd::EncodableMap::EncodeTo(CmdRes& res) const { return EncodeTo(res, values_); }
+
+CommandCmd::EncodablePtr CommandCmd::EncodableMap::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableMap>(other)) {
+    auto values = CommandCmd::EncodableMap::RedisMap(values_.cbegin(), values_.cend());
+    for (const auto& pair : pe->values_) {
+      auto iter = values.find(pair.first);
+      if (iter == values.end()) {
+        values[pair.first] = pair.second;
+      } else {
+        iter->second = (*iter->second + pair.second);
+      }
+    }
+    return std::make_shared<CommandCmd::EncodableMap>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableMap>(
+      CommandCmd::EncodableMap::RedisMap(values_.cbegin(), values_.cend()));
+}
+
+CmdRes& CommandCmd::EncodableSet::EncodeTo(CmdRes& res) const {
+  std::string raw_string;
+  RedisAppendLen(raw_string, values_.size(), kPrefix);
+  res.AppendStringRaw(raw_string);
+  for (const auto& item : values_) {
+    res << *item;
+  }
+  return res;
+}
+
+CommandCmd::EncodablePtr CommandCmd::EncodableSet::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableSet>(other)) {
+    auto values = std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend());
+    values.insert(values.end(), pe->values_.cbegin(), pe->values_.cend());
+    return std::make_shared<CommandCmd::EncodableSet>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableSet>(
+      std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend()));
+}
+
+CmdRes& CommandCmd::EncodableArray::EncodeTo(CmdRes& res) const {
+  res.AppendArrayLen(values_.size());
+  for (const auto& item : values_) {
+    res << *item;
+  }
+  return res;
+}
+
+CommandCmd::EncodablePtr CommandCmd::EncodableArray::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableArray>(other)) {
+    auto values = std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend());
+    values.insert(values.end(), pe->values_.cbegin(), pe->values_.cend());
+    return std::make_shared<CommandCmd::EncodableArray>(values);
+  }
+  return std::make_shared<CommandCmd::EncodableArray>(
+      std::vector<CommandCmd::EncodablePtr>(values_.cbegin(), values_.cend()));
+}
+
+CmdRes& CommandCmd::EncodableStatus::EncodeTo(CmdRes& res) const {
+  res.AppendStringRaw(kPrefix + value_ + kNewLine);
+  return res;
+}
+
+CommandCmd::EncodablePtr CommandCmd::EncodableStatus::MergeFrom(const CommandCmd::EncodablePtr& other) const {
+  if (auto pe = std::dynamic_pointer_cast<CommandCmd::EncodableStatus>(other)) {
+    return std::make_shared<CommandCmd::EncodableStatus>(value_ + pe->value_);
+  }
+  return std::make_shared<CommandCmd::EncodableStatus>(value_);
+}
+
+const std::unordered_map<std::string, int> CommandCmd::CommandFieldCompare::kFieldNameOrder{
+    {kPikaField, 0},         {"name", 100},      {"type", 101},
+    {"spec", 102},           {"index", 103},     {"display_text", 104},
+    {"key_spec_index", 105}, {"token", 106},     {"summary", 107},
+    {"since", 108},          {"group", 109},     {"complexity", 110},
+    {"module", 111},         {"doc_flags", 112}, {"deprecated_since", 113},
+    {"notes", 114},          {"flags", 15},      {"begin_search", 116},
+    {"replaced_by", 17},     {"history", 18},    {"arguments", 119},
+    {"subcommands", 120},    {"keyword", 121},   {"startfrom", 122},
+    {"find_keys", 123},      {"lastkey", 124},   {"keynum", 125},
+    {"keynumidx", 126},      {"firstkey", 127},  {"keystep", 128},
+    {"limit", 129},
+};
+const std::string CommandCmd::EncodableMap::kPrefix = "*";
+const std::string CommandCmd::EncodableSet::kPrefix = "*";
+const std::string CommandCmd::EncodableStatus::kPrefix = "+";
+
+void CommandCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {  // The original redis command's arity is -1
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
+    return;
+  }
+  if (argv_.size() < 2) {  // But currently only docs subcommand is impled
+    res_.SetRes(CmdRes::kErrOther, "only docs subcommand supported");
+    return;
+  }
+  if (command_ = argv_[1]; strcasecmp(command_.data(), "docs") != 0) {
+    res_.SetRes(CmdRes::kErrOther, "unknown command '" + command_ + "'");
+    return;
+  }
+  cmds_begin_ = argv_.cbegin() + 2;
+  cmds_end_ = argv_.cend();
+}
+
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
+void CommandCmd::Do(std::shared_ptr<Slot> slots) {
+  std::unordered_map<std::string, CommandCmd::EncodablePtr> cmds;
+  std::unordered_map<std::string, CommandCmd::EncodablePtr> specializations;
+  if (cmds_begin_ == cmds_end_) {
+    cmds = kCommandDocs;
+    specializations.insert(kPikaSpecialization.cbegin(), kPikaSpecialization.cend());
+  } else {
+    for (auto iter = cmds_begin_; iter != cmds_end_; ++iter) {
+      if (auto cmd = kCommandDocs.find(*iter); cmd != kCommandDocs.end()) {
+        cmds.insert(*cmd);
+      }
+      if (auto specialization = kPikaSpecialization.find(*iter); specialization != kPikaSpecialization.end()) {
+        specializations.insert(*specialization);
+      }
+    }
+  }
+  for (const auto& cmd : cmds) {
+    if (!g_pika_cmd_table_manager->CmdExist(cmd.first)) {
+      specializations[cmd.first] = kNotSupportedSpecialization;
+    } else if (auto iter = specializations.find(cmd.first); iter == specializations.end()) {
+      specializations[cmd.first] = kCompatibleSpecialization;
+    }
+  }
+  EncodableMap::EncodeTo(res_, cmds, specializations);
 }

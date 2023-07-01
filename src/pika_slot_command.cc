@@ -16,13 +16,6 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 #include "storage/include/storage/storage.h"
-#include "include/pika_command.h"
-#include "include/pika_define.h"
-#include "include/pika_migrate_thread.h"
-
-#include "include/pika_admin.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
