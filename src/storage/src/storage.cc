@@ -377,12 +377,12 @@ Status Storage::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, 
   return lists_db_->LInsert(key, before_or_after, pivot, value, ret);
 }
 
-Status Storage::LPushx(const Slice& key, const Slice& value, uint64_t* len) {
-  return lists_db_->LPushx(key, value, len);
+Status Storage::LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len) {
+  return lists_db_->LPushx(key, values, len);
 }
 
-Status Storage::RPushx(const Slice& key, const Slice& value, uint64_t* len) {
-  return lists_db_->RPushx(key, value, len);
+Status Storage::RPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len) {
+  return lists_db_->RPushx(key, values, len);
 }
 
 Status Storage::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret) {

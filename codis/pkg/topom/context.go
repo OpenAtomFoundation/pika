@@ -153,7 +153,7 @@ func (ctx *context) toReplicaGroups(gid int, p *models.Proxy) [][]string {
 	}
 	var groups [3][]string
 	for _, s := range g.Servers {
-		if s.ReplicaGroup {
+		if s.ReplicaGroup && s.State == models.GroupServerStateNormal {
 			p := getPriority(s)
 			groups[p] = append(groups[p], s.Addr)
 		}
@@ -180,6 +180,24 @@ func (ctx *context) getGroup(gid int) (*models.Group, error) {
 		return g, nil
 	}
 	return nil, errors.Errorf("group-[%d] doesn't exist", gid)
+}
+
+func (ctx *context) getGroups() []*models.Group {
+	gs := make([]*models.Group, 0, len(ctx.group))
+	for _, g := range ctx.group {
+		gs = append(gs, g)
+	}
+	return gs
+}
+
+func (ctx *context) getGroupServers() map[int][]*models.GroupServer {
+	groupServers := make(map[int][]*models.GroupServer)
+
+	for gid, group := range ctx.group {
+		groupServers[gid] = group.Servers
+	}
+
+	return groupServers
 }
 
 func (ctx *context) getGroupIndex(g *models.Group, addr string) (int, error) {

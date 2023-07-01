@@ -12,7 +12,7 @@ source tests/support/test.tcl
 source tests/support/util.tcl
 
 set ::all_tests {
-    # unit/printver
+    unit/printver
     # unit/auth
     # unit/protocol
     # unit/basic
@@ -40,7 +40,7 @@ set ::all_tests {
     # unit/pubsub
     # unit/slowlog
     # unit/scripting
-    # unit/maxmemory
+    unit/maxmemory
     # unit/introspection
     # unit/limits
     # unit/obuf-limits
@@ -49,6 +49,7 @@ set ::all_tests {
     # unit/memefficiency
     # unit/hyperloglog
     unit/type
+    unit/command
 }
 
 # because the comment not works in tcl list, use regsub to ignore the item starting with '#'

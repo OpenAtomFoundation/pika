@@ -47,6 +47,9 @@ migration_async_numkeys = 500
 migration_timeout = "30s"
 
 # Set configs for redis sentinel.
+sentinel_check_server_state_interval = "5s"
+sentinel_check_master_failover_interval = "1s"
+sentinel_master_dead_check_times = 5
 sentinel_client_timeout = "10s"
 sentinel_quorum = 2
 sentinel_parallel_syncs = 1
@@ -75,13 +78,16 @@ type Config struct {
 	MigrationAsyncNumKeys  int               `toml:"migration_async_numkeys" json:"migration_async_numkeys"`
 	MigrationTimeout       timesize.Duration `toml:"migration_timeout" json:"migration_timeout"`
 
-	SentinelClientTimeout        timesize.Duration `toml:"sentinel_client_timeout" json:"sentinel_client_timeout"`
-	SentinelQuorum               int               `toml:"sentinel_quorum" json:"sentinel_quorum"`
-	SentinelParallelSyncs        int               `toml:"sentinel_parallel_syncs" json:"sentinel_parallel_syncs"`
-	SentinelDownAfter            timesize.Duration `toml:"sentinel_down_after" json:"sentinel_down_after"`
-	SentinelFailoverTimeout      timesize.Duration `toml:"sentinel_failover_timeout" json:"sentinel_failover_timeout"`
-	SentinelNotificationScript   string            `toml:"sentinel_notification_script" json:"sentinel_notification_script"`
-	SentinelClientReconfigScript string            `toml:"sentinel_client_reconfig_script" json:"sentinel_client_reconfig_script"`
+	SentinelCheckServerStateInterval    timesize.Duration `toml:"sentinel_check_server_state_interval" json:"sentinel_client_timeout"`
+	SentinelCheckMasterFailoverInterval timesize.Duration `toml:"sentinel_check_master_failover_interval" json:"sentinel_check_master_failover_interval"`
+	SentinelMasterDeadCheckTimes        int8              `toml:"sentinel_master_dead_check_times" json:"sentinel_master_dead_check_times"`
+	SentinelClientTimeout               timesize.Duration `toml:"sentinel_client_timeout" json:"sentinel_client_timeout"`
+	SentinelQuorum                      int               `toml:"sentinel_quorum" json:"sentinel_quorum"`
+	SentinelParallelSyncs               int               `toml:"sentinel_parallel_syncs" json:"sentinel_parallel_syncs"`
+	SentinelDownAfter                   timesize.Duration `toml:"sentinel_down_after" json:"sentinel_down_after"`
+	SentinelFailoverTimeout             timesize.Duration `toml:"sentinel_failover_timeout" json:"sentinel_failover_timeout"`
+	SentinelNotificationScript          string            `toml:"sentinel_notification_script" json:"sentinel_notification_script"`
+	SentinelClientReconfigScript        string            `toml:"sentinel_client_reconfig_script" json:"sentinel_client_reconfig_script"`
 }
 
 func NewDefaultConfig() *Config {
@@ -144,6 +150,15 @@ func (c *Config) Validate() error {
 	}
 	if c.SentinelClientTimeout <= 0 {
 		return errors.New("invalid sentinel_client_timeout")
+	}
+	if c.SentinelCheckServerStateInterval <= 0 {
+		return errors.New("invalid sentinel_check_server_state_interval")
+	}
+	if c.SentinelCheckMasterFailoverInterval <= 0 {
+		return errors.New("invalid sentinel_check_master_failover_interval")
+	}
+	if c.SentinelMasterDeadCheckTimes <= 0 {
+		return errors.New("invalid sentinel_master_dead_check_times")
 	}
 	if c.SentinelQuorum <= 0 {
 		return errors.New("invalid sentinel_quorum")
