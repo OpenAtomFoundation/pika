@@ -1116,29 +1116,6 @@ void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PTypeCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameType);
-    return;
-  }
-  key_ = argv_[1];
-}
-
-void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> types(5);
-  rocksdb::Status s = slot->db()->Type(key_, types);
-
-  if (s.ok()) {
-    res_.AppendArrayLen(types.size());
-    for (const auto& vs : types) {
-      res_.AppendStringLen(vs.size());
-      res_.AppendContent(vs);
-    }
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  }
-}
-
 void ScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);
