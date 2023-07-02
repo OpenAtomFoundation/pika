@@ -141,7 +141,7 @@ func (c *Client) writeFile(realpath string, data []byte, noexists bool) error {
 	if noexists {
 		_, err := os.Stat(realpath)
 		if err == nil {
-			return errors.Errorf("file already exists")
+			return errors.Errorf("file %s already exists", realpath)
 		} else if !os.IsNotExist(err) {
 			return errors.Trace(err)
 		}

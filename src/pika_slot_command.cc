@@ -891,22 +891,22 @@ void RemSlotKey(const std::string key, const std::shared_ptr<Slot>& slot) {
 }
 
 int GetKeyType(const std::string key, std::string &key_type, const std::shared_ptr<Slot>& slot) {
-  std::string type_str;
-  rocksdb::Status s = slot->db()->Type(key, &type_str);
+  std::vector<std::string> type_str(1);
+  rocksdb::Status s = slot->db()->GetType(key, true, type_str);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  if (type_str == "string") {
+  if (type_str[0] == "string") {
     key_type = "k";
-  } else if (type_str == "hash") {
+  } else if (type_str[0] == "hash") {
     key_type = "h";
-  } else if (type_str == "list") {
+  } else if (type_str[0] == "list") {
     key_type = "l";
-  } else if (type_str == "set") {
+  } else if (type_str[0] == "set") {
     key_type = "s";
-  } else if (type_str == "zset") {
+  } else if (type_str[0] == "zset") {
     key_type = "z";
   } else {
     LOG(WARNING) << "Get key type error: " << key;
@@ -1079,8 +1079,8 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot>& slot) {
-  std::string type_str;
-  rocksdb::Status s = slot->db()->Type(key_, &type_str);
+  std::vector<std::string> type_str(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(INFO) << "Migrate slot key " << key_ << " not found";
@@ -1091,15 +1091,15 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot>& slot) {
     }
     return -1;
   }
-  if (type_str == "string") {
+  if (type_str[0] == "string") {
     key_type_ = 'k';
-  } else if (type_str == "hash") {
+  } else if (type_str[0] == "hash") {
     key_type_ = 'h';
-  } else if (type_str == "list") {
+  } else if (type_str[0] == "list") {
     key_type_ = 'l';
-  } else if (type_str == "set") {
+  } else if (type_str[0] == "set") {
     key_type_ = 's';
-  } else if (type_str == "zset") {
+  } else if (type_str[0] == "zset") {
     key_type_ = 'z';
   } else {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
