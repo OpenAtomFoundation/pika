@@ -2393,6 +2393,8 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendStringRaw(raw);
 }
 
+#ifdef WITH_COMMAND_DOCS
+
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
   int av{0};
   int bv{0};
@@ -2575,3 +2577,5 @@ void CommandCmd::Do(std::shared_ptr<Slot> slots) {
   }
   EncodableMap::EncodeTo(res_, cmds, specializations);
 }
+
+#endif  // WITH_COMMAND_DOCS
