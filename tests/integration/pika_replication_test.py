@@ -800,13 +800,11 @@ for i in range(0, 2):
     test_mset_replication()
     test_smove_replication()
     test_pfmerge_replication()
+    test_sdiffstore_replication()
+    test_sinterstore_replication()
+    test_zunionstore_replication()
+    test_zinterstore_replication()
+    test_sunionstore_replication()
     delay_slave_of = not delay_slave_of
 
 
-# The following tests have a very low probability of not passing.
-# Please do not enable them in the GitHub workflow.
-# test_sdiffstore_replication()
-# test_sinterstore_replication()
-# test_zunionstore_replication()
-# test_zinterstore_replication()
-# test_sunionstore_replication()
