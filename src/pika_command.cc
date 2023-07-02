@@ -280,6 +280,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> typeptr =
       std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
+  ////PTypeCmd
+  std::unique_ptr<Cmd> pTypeptr = std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePType, std::move(pTypeptr)));
   ////ScanCmd
   std::unique_ptr<Cmd> scanptr =
       std::make_unique<ScanCmd>(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsKv);

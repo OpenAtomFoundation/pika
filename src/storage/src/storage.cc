@@ -49,12 +49,7 @@ Status StorageOptions::ResetOptions(const OptionType& option_type,
   return Status::OK();
 }
 
-Storage::Storage()
-    : 
-      is_opened_(false),
-      current_task_type_(kNone),
-      bg_tasks_should_exit_(false),
-      scan_keynum_exit_(false) {
+Storage::Storage() {
   cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
 
@@ -1238,57 +1233,64 @@ std::map<DataType, int64_t> Storage::TTL(const Slice& key, std::map<DataType, St
   return ret;
 }
 
-// the sequence is kv, hash, list, zset, set
-Status Storage::Type(const std::string& key, std::string* type) {
-  type->clear();
+Status Storage::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
+  types.clear();
 
   Status s;
   std::string value;
   s = strings_db_->Get(key, &value);
   if (s.ok()) {
-    *type = "string";
-    return s;
+    types.emplace_back("string");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t hashes_len = 0;
   s = hashes_db_->HLen(key, &hashes_len);
   if (s.ok() && hashes_len != 0) {
-    *type = "hash";
-    return s;
+    types.emplace_back("hash");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   uint64_t lists_len = 0;
   s = lists_db_->LLen(key, &lists_len);
   if (s.ok() && lists_len != 0) {
-    *type = "list";
-    return s;
+    types.emplace_back("list");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t zsets_size = 0;
   s = zsets_db_->ZCard(key, &zsets_size);
   if (s.ok() && zsets_size != 0) {
-    *type = "zset";
-    return s;
+    types.emplace_back("zset");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t sets_size = 0;
   s = sets_db_->SCard(key, &sets_size);
   if (s.ok() && sets_size != 0) {
-    *type = "set";
-    return s;
+    types.emplace_back("set");
   } else if (!s.IsNotFound()) {
     return s;
   }
-
-  *type = "none";
+  if (single && types.empty()) {
+    types.emplace_back("none");
+  }
   return Status::OK();
 }
 
@@ -1391,7 +1393,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   }
   HyperLogLog log(kPrecision, registers);
   auto previous = static_cast<int32_t>(log.Estimate());
-  for (const auto & value : values) {
+  for (const auto& value : values) {
     result = log.Add(value.data(), value.size());
   }
   HyperLogLog update_log(kPrecision, result);
@@ -1751,12 +1753,12 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   return s;
 }
 
-void Storage::GetRocksDBInfo(std::string &info) {
-    strings_db_->GetRocksDBInfo(info, "strings_");
-    hashes_db_->GetRocksDBInfo(info, "hashes_");
-    lists_db_->GetRocksDBInfo(info, "lists_");
-    sets_db_->GetRocksDBInfo(info, "sets_");
-    zsets_db_->GetRocksDBInfo(info, "zsets_");
+void Storage::GetRocksDBInfo(std::string& info) {
+  strings_db_->GetRocksDBInfo(info, "strings_");
+  hashes_db_->GetRocksDBInfo(info, "hashes_");
+  lists_db_->GetRocksDBInfo(info, "lists_");
+  sets_db_->GetRocksDBInfo(info, "sets_");
+  zsets_db_->GetRocksDBInfo(info, "zsets_");
 }
 
 }  //  namespace storage
