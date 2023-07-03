@@ -7,6 +7,7 @@
 #define PIKA_DEFINE_H_
 
 #include <glog/logging.h>
+
 #include <set>
 #include <utility>
 
@@ -87,8 +88,9 @@ enum ReplState {
 };
 
 // debug only
-const std::string ReplStateMsg[] = {"kNoConnect", "kTryConnect", "kTryDBSync", "kWaitDBSync",
-                                    "kWaitReply", "kConnected",  "kError",     "kDBNoConnect"};
+const std::string ReplStateMsg[] = {"kNoConnect",  "kTryConnect", "kTryDBSync",
+                                    "kWaitDBSync", "kWaitReply",  "kConnected",
+                                    "kError",      "kDBNoConnect"};
 
 enum SlotState {
   INFREE = 0,
@@ -104,10 +106,16 @@ struct LogicOffset {
     term = other.term;
     index = other.index;
   }
-  bool operator==(const LogicOffset& other) const { return term == other.term && index == other.index; }
-  bool operator!=(const LogicOffset& other) const { return term != other.term || index != other.index; }
+  bool operator==(const LogicOffset& other) const {
+    return term == other.term && index == other.index;
+  }
+  bool operator!=(const LogicOffset& other) const {
+    return term != other.term || index != other.index;
+  }
 
-  std::string ToString() const { return "term: " + std::to_string(term) + " index: " + std::to_string(index); }
+  std::string ToString() const {
+    return "term: " + std::to_string(term) + " index: " + std::to_string(index);
+  }
 };
 
 struct BinlogOffset {
@@ -119,7 +127,10 @@ struct BinlogOffset {
     filenum = other.filenum;
     offset = other.offset;
   }
-  std::string ToString() const { return "filenum: " + std::to_string(filenum) + " offset: " + std::to_string(offset); }
+  std::string ToString() const {
+    return "filenum: " + std::to_string(filenum) +
+           " offset: " + std::to_string(offset);
+  }
   bool operator==(const BinlogOffset& other) const {
     return filenum == other.filenum && offset == other.offset;
   }
@@ -128,16 +139,20 @@ struct BinlogOffset {
   }
 
   bool operator>(const BinlogOffset& other) const {
-    return filenum > other.filenum || (filenum == other.filenum && offset > other.offset);
+    return filenum > other.filenum ||
+           (filenum == other.filenum && offset > other.offset);
   }
   bool operator<(const BinlogOffset& other) const {
-    return filenum < other.filenum || (filenum == other.filenum && offset < other.offset);
+    return filenum < other.filenum ||
+           (filenum == other.filenum && offset < other.offset);
   }
   bool operator<=(const BinlogOffset& other) const {
-    return filenum < other.filenum || (filenum == other.filenum && offset <= other.offset);
+    return filenum < other.filenum ||
+           (filenum == other.filenum && offset <= other.offset);
   }
   bool operator>=(const BinlogOffset& other) const {
-    return filenum > other.filenum || (filenum == other.filenum && offset >= other.offset);
+    return filenum > other.filenum ||
+           (filenum == other.filenum && offset >= other.offset);
   }
 };
 
@@ -147,13 +162,26 @@ struct LogOffset {
     l_offset = _log_offset.l_offset;
   }
   LogOffset() = default;
-  LogOffset(const BinlogOffset& _b_offset, const LogicOffset& _l_offset) : b_offset(_b_offset), l_offset(_l_offset) {}
-  bool operator<(const LogOffset& other) const { return b_offset < other.b_offset; }
-  bool operator==(const LogOffset& other) const { return b_offset == other.b_offset; }
-  bool operator<=(const LogOffset& other) const { return b_offset <= other.b_offset; }
-  bool operator>=(const LogOffset& other) const { return b_offset >= other.b_offset; }
-  bool operator>(const LogOffset& other) const { return b_offset > other.b_offset; }
-  std::string ToString() const { return b_offset.ToString() + " " + l_offset.ToString(); }
+  LogOffset(const BinlogOffset& _b_offset, const LogicOffset& _l_offset)
+      : b_offset(_b_offset), l_offset(_l_offset) {}
+  bool operator<(const LogOffset& other) const {
+    return b_offset < other.b_offset;
+  }
+  bool operator==(const LogOffset& other) const {
+    return b_offset == other.b_offset;
+  }
+  bool operator<=(const LogOffset& other) const {
+    return b_offset <= other.b_offset;
+  }
+  bool operator>=(const LogOffset& other) const {
+    return b_offset >= other.b_offset;
+  }
+  bool operator>(const LogOffset& other) const {
+    return b_offset > other.b_offset;
+  }
+  std::string ToString() const {
+    return b_offset.ToString() + " " + l_offset.ToString();
+  }
   BinlogOffset b_offset;
   LogicOffset l_offset;
 };
@@ -165,9 +193,13 @@ struct DBSyncArg {
   int port;
   std::string db_name;
   uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
-            uint32_t _slot_id)
-      : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
+  DBSyncArg(PikaServer* const _p, std::string _ip, int _port,
+            std::string _db_name, uint32_t _slot_id)
+      : p(_p),
+        ip(std::move(_ip)),
+        port(_port),
+        db_name(std::move(_db_name)),
+        slot_id(_slot_id) {}
 };
 
 // rm define
@@ -178,7 +210,8 @@ enum SlaveState {
 };
 
 // debug only
-const std::string SlaveStateMsg[] = {"SlaveNotSync", "SlaveDbSync", "SlaveBinlogSync"};
+const std::string SlaveStateMsg[] = {"SlaveNotSync", "SlaveDbSync",
+                                     "SlaveBinlogSync"};
 
 enum BinlogSyncState {
   kNotSync = 0,
@@ -187,12 +220,14 @@ enum BinlogSyncState {
 };
 
 // debug only
-const std::string BinlogSyncStateMsg[] = {"NotSync", "ReadFromCache", "ReadFromFile"};
+const std::string BinlogSyncStateMsg[] = {"NotSync", "ReadFromCache",
+                                          "ReadFromFile"};
 
 struct BinlogChip {
   LogOffset offset_;
   std::string binlog_;
-  BinlogChip(const LogOffset& offset, std::string binlog) : offset_(offset), binlog_(std::move(binlog)) {}
+  BinlogChip(const LogOffset& offset, std::string binlog)
+      : offset_(offset), binlog_(std::move(binlog)) {}
   BinlogChip(const BinlogChip& binlog_chip) {
     offset_ = binlog_chip.offset_;
     binlog_ = binlog_chip.binlog_;
@@ -210,23 +245,27 @@ struct SlotInfo {
   }
 
   bool operator<(const SlotInfo& other) const {
-    return db_name_ < other.db_name_ || (db_name_ == other.db_name_ && slot_id_ < other.slot_id_);
+    return db_name_ < other.db_name_ ||
+           (db_name_ == other.db_name_ && slot_id_ < other.slot_id_);
   }
 
-  std::string ToString() const { return "(" + db_name_ + ":" + std::to_string(slot_id_) + ")"; }
+  std::string ToString() const {
+    return "(" + db_name_ + ":" + std::to_string(slot_id_) + ")";
+  }
   std::string db_name_;
   uint32_t slot_id_{0};
 };
 
 struct hash_slot_info {
   size_t operator()(const SlotInfo& n) const {
-    return std::hash<std::string>()(n.db_name_) ^ std::hash<uint32_t>()(n.slot_id_);
+    return std::hash<std::string>()(n.db_name_) ^
+           std::hash<uint32_t>()(n.slot_id_);
   }
 };
 
 class Node {
  public:
-  Node(std::string  ip, int port) : ip_(std::move(ip)), port_(port) {}
+  Node(std::string ip, int port) : ip_(std::move(ip)), port_(port) {}
   virtual ~Node() = default;
   Node() = default;
   const std::string& Ip() const { return ip_; }
@@ -240,28 +279,26 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
+  RmNode(const std::string& ip, int port, SlotInfo slot_info)
       : Node(ip, port), slot_info_(std::move(slot_info)) {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
-      : Node(ip, port),
-        slot_info_(db_name, slot_id)
-        {}
+  RmNode(const std::string& ip, int port, const std::string& db_name,
+         uint32_t slot_id)
+      : Node(ip, port), slot_info_(db_name, slot_id) {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
-      : Node(ip, port),
-        slot_info_(db_name, slot_id),
-        session_id_(session_id)
-        {}
+  RmNode(const std::string& ip, int port, const std::string& db_name,
+         uint32_t slot_id, int32_t session_id)
+      : Node(ip, port), slot_info_(db_name, slot_id), session_id_(session_id) {}
 
   RmNode(const std::string& db_name, uint32_t slot_id)
-      :  slot_info_(db_name, slot_id) {}
+      : slot_info_(db_name, slot_id) {}
   RmNode() = default;
 
   ~RmNode() override = default;
   bool operator==(const RmNode& other) const {
-    return slot_info_.db_name_ == other.DBName() && slot_info_.slot_id_ == other.SlotId() &&
-        Ip() == other.Ip() && Port() == other.Port();
+    return slot_info_.db_name_ == other.DBName() &&
+           slot_info_.slot_id_ == other.SlotId() && Ip() == other.Ip() &&
+           Port() == other.Port();
   }
 
   const std::string& DBName() const { return slot_info_.db_name_; }
@@ -270,12 +307,17 @@ class RmNode : public Node {
   void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
-           std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
+    return "slot=" + DBName() + "_" + std::to_string(SlotId()) +
+           ",ip_port=" + Ip() + ":" + std::to_string(Port()) +
+           ",session id=" + std::to_string(SessionId());
   }
-  void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
+  void SetLastSendTime(uint64_t last_send_time) {
+    last_send_time_ = last_send_time;
+  }
   uint64_t LastSendTime() const { return last_send_time_; }
-  void SetLastRecvTime(uint64_t last_recv_time) { last_recv_time_ = last_recv_time; }
+  void SetLastRecvTime(uint64_t last_recv_time) {
+    last_recv_time_ = last_recv_time;
+  }
   uint64_t LastRecvTime() const { return last_recv_time_; }
 
  private:
@@ -287,7 +329,8 @@ class RmNode : public Node {
 
 struct hash_rm_node {
   size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^
+    return std::hash<std::string>()(n.DBName()) ^
+           std::hash<uint32_t>()(n.SlotId()) ^
            std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
   }
 };
@@ -296,8 +339,11 @@ struct WriteTask {
   struct RmNode rm_node_;
   struct BinlogChip binlog_chip_;
   LogOffset prev_offset_;
-  WriteTask(const RmNode& rm_node, const BinlogChip& binlog_chip, const LogOffset& prev_offset)
-      : rm_node_(rm_node), binlog_chip_(binlog_chip), prev_offset_(prev_offset) {}
+  WriteTask(const RmNode& rm_node, const BinlogChip& binlog_chip,
+            const LogOffset& prev_offset)
+      : rm_node_(rm_node),
+        binlog_chip_(binlog_chip),
+        prev_offset_(prev_offset) {}
 };
 
 // slowlog define

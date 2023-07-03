@@ -5,9 +5,9 @@
 
 #include "net/include/redis_parser.h"
 
-#include <cassert> /* assert */
-
 #include <glog/logging.h>
+
+#include <cassert> /* assert */
 
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
@@ -15,7 +15,8 @@
 namespace net {
 
 static bool IsHexDigit(char ch) {
-  return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+  return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') ||
+         (ch >= 'A' && ch <= 'F');
 }
 
 static int HexDigitToInt32(char ch) {
@@ -48,8 +49,10 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
       arg.clear();
       while (done == 0) {
         if (inq != 0) {
-          if (*p == '\\' && *(p + 1) == 'x' && IsHexDigit(*(p + 2)) && IsHexDigit(*(p + 3))) {
-            unsigned char byte = HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3));
+          if (*p == '\\' && *(p + 1) == 'x' && IsHexDigit(*(p + 2)) &&
+              IsHexDigit(*(p + 3))) {
+            unsigned char byte =
+                HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3));
             arg.append(1, byte);
             p += 3;
           } else if (*p == '\\' && (*(p + 1) != 0)) {
@@ -164,7 +167,8 @@ int RedisParser::GetNextNum(int pos, long* value) {
   //      |    |
   //      *3\r\n
   // [cur_pos_ + 1, pos - cur_pos_ - 2]
-  if (pstd::string2int(input_buf_ + cur_pos_ + 1, pos - cur_pos_ - 2, value) != 0) {
+  if (pstd::string2int(input_buf_ + cur_pos_ + 1, pos - cur_pos_ - 2, value) !=
+      0) {
     return 0;  // Success
   }
   return -1;  // Failed
@@ -173,7 +177,8 @@ int RedisParser::GetNextNum(int pos, long* value) {
 RedisParser::RedisParser()
     : redis_type_(0), bulk_len_(-1), redis_parser_type_(REDIS_PARSER_REQUEST) {}
 
-void RedisParser::SetParserStatus(RedisParserStatus status, RedisParserError error) {
+void RedisParser::SetParserStatus(RedisParserStatus status,
+                                  RedisParserError error) {
   if (status == kRedisParserHalf) {
     CacheHalfArgv();
   }
@@ -187,7 +192,8 @@ void RedisParser::CacheHalfArgv() {
   cur_pos_ = length_;
 }
 
-RedisParserStatus RedisParser::RedisParserInit(RedisParserType type, const RedisParserSettings& settings) {
+RedisParserStatus RedisParser::RedisParserInit(
+    RedisParserType type, const RedisParserSettings& settings) {
   if (status_code_ != kRedisParserNone) {
     SetParserStatus(kRedisParserError, kRedisParserInitError);
     return status_code_;
@@ -295,8 +301,10 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
 }
 
 void RedisParser::PrintCurrentStatus() {
-  LOG(INFO) << "status_code " << status_code_ << " error_code " <<  error_code_;
-  LOG(INFO) << "multibulk_len_ " << multibulk_len_ << "bulk_len " << bulk_len_ << " redis_type " << redis_type_ << " redis_parser_type " << redis_parser_type_;
+  LOG(INFO) << "status_code " << status_code_ << " error_code " << error_code_;
+  LOG(INFO) << "multibulk_len_ " << multibulk_len_ << "bulk_len " << bulk_len_
+            << " redis_type " << redis_type_ << " redis_parser_type "
+            << redis_parser_type_;
   // for (auto& i : argv_) {
   //   UNUSED(i);
   //   log_info("parsed arguments: %s", i.c_str());
@@ -310,8 +318,10 @@ void RedisParser::PrintCurrentStatus() {
   LOG(INFO) << "input_buf len " << length_;
 }
 
-RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int length, int* parsed_len) {
-  if (status_code_ == kRedisParserInitDone || status_code_ == kRedisParserHalf || status_code_ == kRedisParserDone) {
+RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf,
+                                                  int length, int* parsed_len) {
+  if (status_code_ == kRedisParserInitDone ||
+      status_code_ == kRedisParserHalf || status_code_ == kRedisParserDone) {
     // TODO(): AZ: avoid copy
     std::string tmp_str(input_buf, length);
     input_str_ = half_argv_ + tmp_str;

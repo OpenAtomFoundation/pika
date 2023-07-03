@@ -4,8 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/bg_thread.h"
+
 #include <iostream>
 #include <string>
+
 #include "pstd/include/pstd_mutex.h"
 #include "unistd.h"
 
@@ -28,7 +30,9 @@ struct TimerItem {
   void* arg;
   TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg)
       : exec_time(_exec_time), function(_function), arg(_arg) {}
-  bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
+  bool operator<(const TimerItem& item) const {
+    return exec_time > item.exec_time;
+  }
 };
 
 int main() {

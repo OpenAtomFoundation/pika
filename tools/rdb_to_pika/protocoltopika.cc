@@ -3,17 +3,21 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+
 #include "hiredis-vip/hiredis.h"
 
 void Usage() {
   std::cout << "Usage:" << std::endl;
-  std::cout << "      redisConn read protocol_file and send command to pika DB " << std::endl;
+  std::cout << "      redisConn read protocol_file and send command to pika DB "
+            << std::endl;
   std::cout << "      --f       protocol_file name" << std::endl;
   std::cout << "      --i       pika ip address" << std::endl;
   std::cout << "      --p       pika port" << std::endl;
-  std::cout << "      [--a]     password for pika db; default = nullptr" << std::endl;
+  std::cout << "      [--a]     password for pika db; default = nullptr"
+            << std::endl;
   std::cout << "example "
-            << "./redisConn protocol_file 127.0.0.1 9221  password" << std::endl;
+            << "./redisConn protocol_file 127.0.0.1 9221  password"
+            << std::endl;
 }
 int main(int argc, char** argv) {
   if (argc < 4) {
@@ -35,7 +39,8 @@ int main(int argc, char** argv) {
       std::cout << "connection error" << std::endl;
       return -1;
     } else {
-      std::cout << "conneciont error : can't allocate redis context." << std::endl;
+      std::cout << "conneciont error : can't allocate redis context."
+                << std::endl;
       return -1;
     }
   }

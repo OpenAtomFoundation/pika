@@ -10,26 +10,28 @@
 #include <string>
 #include <vector>
 
-#include "rocksdb/compaction_filter.h"
-
 #include "base_filter.h"
 #include "base_meta_value_format.h"
+#include "rocksdb/compaction_filter.h"
 #include "zsets_data_key_format.h"
 
 namespace storage {
 
 class ZSetsScoreFilter : public rocksdb::CompactionFilter {
  public:
-  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+  ZSetsScoreFilter(rocksdb::DB* db,
+                   std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_(db), cf_handles_ptr_(handles_ptr) {}
 
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
-              bool* value_changed) const override {
+  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value,
+              std::string* new_value, bool* value_changed) const override {
     ParsedZSetsScoreKey parsed_zsets_score_key(key);
     TRACE("==========================START==========================");
     TRACE("[ScoreFilter], key: %s, score = %lf, member = %s, version = %d",
-          parsed_zsets_score_key.key().ToString().c_str(), parsed_zsets_score_key.score(),
-          parsed_zsets_score_key.member().ToString().c_str(), parsed_zsets_score_key.version());
+          parsed_zsets_score_key.key().ToString().c_str(),
+          parsed_zsets_score_key.score(),
+          parsed_zsets_score_key.member().ToString().c_str(),
+          parsed_zsets_score_key.version());
 
     if (parsed_zsets_score_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_zsets_score_key.key().ToString();
@@ -38,7 +40,8 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       if (cf_handles_ptr_->empty()) {
         return false;
       }
-      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
+      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0],
+                          cur_key_, &meta_value);
       if (s.ok()) {
         meta_not_found_ = false;
         ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -60,7 +63,8 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (cur_meta_timestamp_ != 0 && cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
+    if (cur_meta_timestamp_ != 0 &&
+        cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;
     }
@@ -87,7 +91,9 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
 
 class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+  ZSetsScoreFilterFactory(
+      rocksdb::DB** db_ptr,
+      std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(

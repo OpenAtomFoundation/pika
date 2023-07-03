@@ -7,11 +7,10 @@
 #include <queue>
 #include <thread>
 
+#include "conf.h"
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
-
-#include "conf.h"
 
 class PikaSender : public net::Thread {
  public:

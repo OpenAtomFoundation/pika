@@ -6,25 +6,25 @@
 #ifndef PIKA_BIT_H_
 #define PIKA_BIT_H_
 
-#include "storage/storage.h"
-
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "storage/storage.h"
 
 /*
  * bitoperation
  */
 class BitGetCmd : public Cmd {
  public:
-  BitGetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitGetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new BitGetCmd(*this); }
 
  private:
@@ -39,15 +39,16 @@ class BitGetCmd : public Cmd {
 
 class BitSetCmd : public Cmd {
  public:
-  BitSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitSetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new BitSetCmd(*this); }
 
  private:
@@ -64,15 +65,16 @@ class BitSetCmd : public Cmd {
 
 class BitCountCmd : public Cmd {
  public:
-  BitCountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitCountCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new BitCountCmd(*this); }
 
  private:
@@ -91,15 +93,16 @@ class BitCountCmd : public Cmd {
 
 class BitPosCmd : public Cmd {
  public:
-  BitPosCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitPosCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new BitPosCmd(*this); }
 
  private:
@@ -122,10 +125,11 @@ class BitPosCmd : public Cmd {
 
 class BitOpCmd : public Cmd {
  public:
-  BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitOpCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new BitOpCmd(*this); }
 
  private:

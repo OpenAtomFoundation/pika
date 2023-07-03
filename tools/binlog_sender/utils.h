@@ -7,9 +7,8 @@
 #define INCLUDE_UTILS_H_
 
 #include "iostream"
-#include "vector"
-
 #include "pstd/include/env.h"
+#include "vector"
 
 #define COMMA_STR ","
 #define COLON_STR ":"
@@ -22,6 +21,7 @@ bool Exists(const std::string& base, const std::string& pattern);
 bool CheckFilesStr(const std::string& files_str);
 bool GetFileList(const std::string& files_str, std::vector<uint32_t>* files);
 bool CheckBinlogSequential(const std::vector<uint32_t>& files);
-bool CheckBinlogExists(const std::string& binlog_path, const std::vector<uint32_t>& files);
+bool CheckBinlogExists(const std::string& binlog_path,
+                       const std::vector<uint32_t>& files);
 
 #endif  //  INCLUDE_UTILS_H_

@@ -1,5 +1,6 @@
 #include <chrono>
 #include <iostream>
+
 #include "scan.h"
 #include "sender.h"
 
@@ -7,8 +8,12 @@ using std::chrono::high_resolution_clock;
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
-  std::cout << "    ./txt_to_pika txt pika_ip pika_port -n [thread_num] -t [ttl] -p [password]" << std::endl;
-  std::cout << "    example: ./txt_to_pika data.txt 127.0.0.1 9921 -n 10 -t 10 -p 123456" << std::endl;
+  std::cout << "    ./txt_to_pika txt pika_ip pika_port -n [thread_num] -t "
+               "[ttl] -p [password]"
+            << std::endl;
+  std::cout << "    example: ./txt_to_pika data.txt 127.0.0.1 9921 -n 10 -t 10 "
+               "-p 123456"
+            << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -90,20 +95,26 @@ int main(int argc, char** argv) {
     delete senders[i];
   }
 
-  std::cout << std::endl << "Total " << scan_thread->Num() << " records has been scaned" << std::endl;
-  std::cout << "Total " << records << " records hash been executed by pika" << std::endl;
+  std::cout << std::endl
+            << "Total " << scan_thread->Num() << " records has been scaned"
+            << std::endl;
+  std::cout << "Total " << records << " records hash been executed by pika"
+            << std::endl;
 
   delete scan_thread;
 
   high_resolution_clock::time_point end = high_resolution_clock::now();
-  std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(end - start);
-  std::chrono::minutes m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
-  std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  std::chrono::hours h =
+      std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes m =
+      std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds s =
+      std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
   std::cout << "====================================" << std::endl;
   std::cout << "Running time  :";
-  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60
-            << " s\n"
+  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min "
+            << s.count() - h.count() * 60 * 60 << " s\n"
             << std::endl;
   return 0;
 }

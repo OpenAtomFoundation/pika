@@ -13,14 +13,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "pstd/include/pstd_status.h"
-
 #include "include/pika_binlog_reader.h"
 #include "include/pika_consensus.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
+#include "pstd/include/pstd_status.h"
 
 #define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
@@ -28,7 +27,6 @@
 // unit seconds
 #define kSendKeepAliveTimeout (2 * 1000000)
 #define kRecvKeepAliveTimeout (20 * 1000000)
-
 
 class SyncSlot {
  public:
@@ -49,13 +47,17 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
 
-  pstd::Status ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset);
+  pstd::Status ActivateSlaveBinlogSync(const std::string& ip, int port,
+                                       const LogOffset& offset);
   pstd::Status ActivateSlaveDbSync(const std::string& ip, int port);
 
   pstd::Status SyncBinlogToWq(const std::string& ip, int port);
 
-  pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
-  pstd::Status GetSlaveState(const std::string& ip, int port, SlaveState* slave_state);
+  pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port,
+                                      BinlogOffset* sent_offset,
+                                      BinlogOffset* acked_offset);
+  pstd::Status GetSlaveState(const std::string& ip, int port,
+                             SlaveState* slave_state);
 
   pstd::Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
   pstd::Status GetLastSendTime(const std::string& ip, int port, uint64_t* time);
@@ -71,7 +73,8 @@ class SyncMasterSlot : public SyncSlot {
 
   int GetNumberOfSlaveNode();
   bool CheckSlaveNodeExist(const std::string& ip, int port);
-  pstd::Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
+  pstd::Status GetSlaveNodeSession(const std::string& ip, int port,
+                                   int32_t* session);
 
   void GetValidSlaveNames(std::vector<std::string>* slavenames);
   // display use
@@ -80,16 +83,21 @@ class SyncMasterSlot : public SyncSlot {
   std::string ToStringStatus();
 
   int32_t GenSessionId();
-  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id,
+  bool CheckSessionId(const std::string& ip, int port,
+                      const std::string& db_name, uint64_t slot_id,
                       int session_id);
 
   // consensus use
-  pstd::Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
-  pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                             std::shared_ptr<std::string> resp_ptr);
+  pstd::Status ConsensusUpdateSlave(const std::string& ip, int port,
+                                    const LogOffset& start,
+                                    const LogOffset& end);
+  pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr,
+                                   std::shared_ptr<PikaClientConn> conn_ptr,
+                                   std::shared_ptr<std::string> resp_ptr);
   Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status ConsensusSanityCheck();
-  pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
+  pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr,
+                                         const BinlogItem& attribute);
   pstd::Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
@@ -97,12 +105,17 @@ class SyncMasterSlot : public SyncSlot {
   void ConsensusUpdateTerm(uint32_t term);
   pstd::Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
   LogOffset ConsensusAppliedIndex();
-  pstd::Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
-  pstd::Status ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
+  pstd::Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset,
+                                        bool* reject,
+                                        std::vector<LogOffset>* hints);
+  pstd::Status ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints,
+                                          LogOffset* reply_offset);
   pstd::Status ConsensusReset(const LogOffset& applied_offset);
   void CommitPreviousLogs(const uint32_t& term);
 
-  std::shared_ptr<StableLog> StableLogger() { return coordinator_.StableLogger(); }
+  std::shared_ptr<StableLog> StableLogger() {
+    return coordinator_.StableLogger();
+  }
 
   std::shared_ptr<Binlog> Logger() {
     if (!coordinator_.StableLogger()) {
@@ -117,7 +130,8 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
 
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
-  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
+  std::unordered_map<std::string, std::shared_ptr<SlaveNode>>
+  GetAllSlaveNodes();
 
   pstd::Mutex session_mu_;
   int32_t session_id_ = 0;
@@ -180,25 +194,34 @@ class PikaReplicaManager {
   pstd::Status AddSyncSlot(const std::set<SlotInfo>& p_infos);
   pstd::Status RemoveSyncSlotSanityCheck(const std::set<SlotInfo>& p_infos);
   pstd::Status RemoveSyncSlot(const std::set<SlotInfo>& p_infos);
-  pstd::Status ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state);
+  pstd::Status ActivateSyncSlaveSlot(const RmNode& node,
+                                     const ReplState& repl_state);
   pstd::Status DeactivateSyncSlaveSlot(const SlotInfo& p_info);
   pstd::Status SyncDBSanityCheck(const std::string& db_name);
   pstd::Status DelSyncDB(const std::string& db_name);
 
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
-  pstd::Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t slot_id);
-  pstd::Status SendSlotTrySyncRequest(const std::string& db_name, size_t slot_id);
-  pstd::Status SendSlotDBSyncRequest(const std::string& db_name, size_t slot_id);
-  pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id, const LogOffset& ack_start,
-                                           const LogOffset& ack_end, bool is_first_send = false);
+  pstd::Status SendRemoveSlaveNodeRequest(const std::string& table,
+                                          uint32_t slot_id);
+  pstd::Status SendSlotTrySyncRequest(const std::string& db_name,
+                                      size_t slot_id);
+  pstd::Status SendSlotDBSyncRequest(const std::string& db_name,
+                                     size_t slot_id);
+  pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table,
+                                            uint32_t slot_id,
+                                            const LogOffset& ack_start,
+                                            const LogOffset& ack_end,
+                                            bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
   // For Pika Repl Server Thread
-  pstd::Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  pstd::Status SendSlaveBinlogChipsRequest(const std::string& ip, int port,
+                                           const std::vector<WriteTask>& tasks);
 
   // For SyncMasterSlot
-  std::shared_ptr<SyncMasterSlot> GetSyncMasterSlotByName(const SlotInfo& p_info);
+  std::shared_ptr<SyncMasterSlot> GetSyncMasterSlotByName(
+      const SlotInfo& p_info);
 
   // For SyncSlaveSlot
   std::shared_ptr<SyncSlaveSlot> GetSyncSlaveSlotByName(const SlotInfo& p_info);
@@ -209,11 +232,13 @@ class PikaReplicaManager {
 
   // To check slot info
   // For pkcluster info command
-  pstd::Status GetSlotInfo(const std::string& table, uint32_t slot_id, std::string* info);
+  pstd::Status GetSlotInfo(const std::string& table, uint32_t slot_id,
+                           std::string* info);
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-  pstd::Status CheckSlotRole(const std::string& table, uint32_t slot_id, int* role);
+  pstd::Status CheckSlotRole(const std::string& table, uint32_t slot_id,
+                             int* role);
 
   void RmStatus(std::string* debug_info);
 
@@ -222,22 +247,27 @@ class PikaReplicaManager {
   pstd::Status LostConnection(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
-  pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
+  pstd::Status UpdateSyncBinlogStatus(const RmNode& slave,
+                                      const LogOffset& offset_start,
+                                      const LogOffset& offset_end);
 
   pstd::Status WakeUpBinlogSync();
 
   // write_queue related
-  void ProduceWriteQueue(const std::string& ip, int port, uint32_t slot_id, const std::vector<WriteTask>& tasks);
+  void ProduceWriteQueue(const std::string& ip, int port, uint32_t slot_id,
+                         const std::vector<WriteTask>& tasks);
   int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
 
   // Schedule Task
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot,
-                               const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                               std::shared_ptr<net::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
+  void ScheduleWriteBinlogTask(
+      const std::string& db_slot,
+      const std::shared_ptr<InnerMessage::InnerResponse>& res,
+      std::shared_ptr<net::PbConn> conn, void* res_private_data);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr,
+                           const LogOffset& offset, const std::string& db_name,
                            uint32_t slot_id);
 
   void ReplServerRemoveClientConn(int fd);
@@ -245,15 +275,20 @@ class PikaReplicaManager {
 
  private:
   void InitSlot();
-  pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);
+  pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port,
+                             std::string* local_ip);
 
   std::shared_mutex slots_rw_;
-  std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_slot_info> sync_master_slots_;
-  std::unordered_map<SlotInfo, std::shared_ptr<SyncSlaveSlot>, hash_slot_info> sync_slave_slots_;
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_slot_info>
+      sync_master_slots_;
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncSlaveSlot>, hash_slot_info>
+      sync_slave_slots_;
 
   pstd::Mutex write_queue_mu_;
   // every host owns a queue, the key is "ip+port"
-  std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;
+  std::unordered_map<std::string,
+                     std::unordered_map<uint32_t, std::queue<WriteTask>>>
+      write_queues_;
 
   std::unique_ptr<PikaReplClient> pika_repl_client_;
   std::unique_ptr<PikaReplServer> pika_repl_server_;

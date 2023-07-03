@@ -8,11 +8,10 @@
 
 #include <vector>
 
+#include "migrator_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "net/include/redis_cli.h"
-
-#include "migrator_thread.h"
 #include "pika_sender.h"
 
 class TrysyncThread : public net::Thread {

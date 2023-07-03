@@ -43,7 +43,8 @@ void SPopCmd::DoInitial() {
   count_ = 1;
 
   if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) ==
+        0) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -125,7 +126,8 @@ void SScanCmd::DoInitial() {
   size_t index = 3;
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -133,7 +135,8 @@ void SScanCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                  &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -152,7 +155,8 @@ void SScanCmd::DoInitial() {
 void SScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_,
+                                        &members, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");

@@ -4,7 +4,9 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/bg_thread.h"
+
 #include <sys/time.h>
+
 #include <cstdlib>
 #include <mutex>
 
@@ -16,7 +18,8 @@ namespace net {
 void BGThread::Schedule(void (*function)(void*), void* arg) {
   std::unique_lock lock(mu_);
 
-  wsignal_.wait(lock, [this]() { return queue_.size() < full_ || should_stop(); });
+  wsignal_.wait(lock,
+                [this]() { return queue_.size() < full_ || should_stop(); });
 
   if (!should_stop()) {
     queue_.emplace(function, arg);
@@ -51,7 +54,9 @@ void BGThread::SwallowReadyTasks() {
   mu_.unlock();
 
   auto now = std::chrono::system_clock::now();
-  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(
+                      now.time_since_epoch())
+                      .count();
   mu_.lock();
 
   while (!timer_queue_.empty()) {
@@ -72,7 +77,9 @@ void* BGThread::ThreadMain() {
   while (!should_stop()) {
     std::unique_lock lock(mu_);
 
-    rsignal_.wait(lock, [this]() { return !queue_.empty() || !timer_queue_.empty() || should_stop(); });
+    rsignal_.wait(lock, [this]() {
+      return !queue_.empty() || !timer_queue_.empty() || should_stop();
+    });
 
     if (should_stop()) {
       break;
@@ -80,7 +87,9 @@ void* BGThread::ThreadMain() {
 
     if (!timer_queue_.empty()) {
       auto now = std::chrono::system_clock::now();
-      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(
+                          now.time_since_epoch())
+                          .count();
       auto [exec_time, function, arg] = timer_queue_.top();
       if (unow >= exec_time) {
         timer_queue_.pop();
@@ -111,9 +120,12 @@ void* BGThread::ThreadMain() {
 /*
  * timeout is in millisecond
  */
-void BGThread::DelaySchedule(uint64_t timeout, void (*function)(void*), void* arg) {
+void BGThread::DelaySchedule(uint64_t timeout, void (*function)(void*),
+                             void* arg) {
   auto now = std::chrono::system_clock::now();
-  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(
+                      now.time_since_epoch())
+                      .count();
   uint64_t exec_time = unow + timeout * 1000;
 
   std::lock_guard lock(mu_);

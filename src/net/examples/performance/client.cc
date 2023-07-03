@@ -22,7 +22,8 @@ int main(int argc, char* argv[]) {
 
   Status s = cli->Connect(ip, port);
   if (!s.ok()) {
-    printf("Connect (%s:%d) failed, %s\n", ip.c_str(), port, s.ToString().c_str());
+    printf("Connect (%s:%d) failed, %s\n", ip.c_str(), port,
+           s.ToString().c_str());
   }
   for (int i = 0; i < 100000000; i++) {
     Ping msg;

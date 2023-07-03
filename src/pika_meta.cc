@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_meta.h"
+
 #include "pika_inner_message.pb.h"
 
 using pstd::Status;
@@ -89,8 +90,10 @@ Status PikaMeta::ParseMeta(std::vector<DBStruct>* const db_structs) {
 
   uint32_t version = 0;
   uint32_t meta_size = 0;
-  memcpy(reinterpret_cast<char*>(&version), reader->GetData(), sizeof(uint32_t));
-  memcpy(reinterpret_cast<char*>(&meta_size), reader->GetData() + sizeof(uint32_t), sizeof(uint32_t));
+  memcpy(reinterpret_cast<char*>(&version), reader->GetData(),
+         sizeof(uint32_t));
+  memcpy(reinterpret_cast<char*>(&meta_size),
+         reader->GetData() + sizeof(uint32_t), sizeof(uint32_t));
   auto const buf_ptr = std::make_unique<char[]>(meta_size);
   char* const buf = buf_ptr.get();
   memcpy(buf, reader->GetData() + 2 * sizeof(uint32_t), meta_size);

@@ -29,6 +29,7 @@ class PikaCmdTableManager {
   std::unique_ptr<CmdTable> cmds_;
 
   std::shared_mutex map_protector_;
-  std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
+  std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>>
+      thread_distribution_map_;
 };
 #endif

@@ -5,10 +5,9 @@
 
 #include "include/pika_hash.h"
 
-#include "pstd/include/pstd_string.h"
-
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -96,7 +95,8 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
 
   do {
     fvs.clear();
-    s = slot->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
+    s = slot->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs,
+                          &next_cursor);
     if (!s.ok()) {
       raw.clear();
       total_fv = 0;
@@ -109,7 +109,8 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
         RedisAppendContent(raw, fv.value);
       }
       if (raw.size() >= raw_limit) {
-        res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+        res_.SetRes(CmdRes::kErrOther,
+                    "Response exceeds the max-client-response-size limit");
         return;
       }
       total_fv += fvs.size();
@@ -152,7 +153,8 @@ void HIncrbyCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  if (argv_[3].find(' ') != std::string::npos || (pstd::string2int(argv_[3].data(), argv_[3].size(), &by_) == 0)) {
+  if (argv_[3].find(' ') != std::string::npos ||
+      (pstd::string2int(argv_[3].data(), argv_[3].size(), &by_) == 0)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -164,7 +166,8 @@ void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
     AddSlotKey("h", key_, slot);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -190,7 +193,8 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
     AddSlotKey("h", key_, slot);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a vaild float") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -373,7 +377,8 @@ void HScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -381,7 +386,8 @@ void HScanCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                  &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -400,7 +406,8 @@ void HScanCmd::DoInitial() {
 void HScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
+  rocksdb::Status s = slot->db()->HScan(key_, cursor_, pattern_, count_,
+                                        &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -431,7 +438,8 @@ void HScanxCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -439,7 +447,8 @@ void HScanxCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                  &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -458,7 +467,8 @@ void HScanxCmd::DoInitial() {
 void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_,
+                                         &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -488,7 +498,8 @@ void PKHScanRangeCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -496,7 +507,9 @@ void PKHScanRangeCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &limit_) == 0) ||
+                 limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -512,7 +525,8 @@ void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_,
+                               &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -541,7 +555,8 @@ void PKHRScanRangeCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -549,7 +564,9 @@ void PKHRScanRangeCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &limit_) == 0) ||
+                 limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -565,7 +582,8 @@ void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_,
+                                limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);

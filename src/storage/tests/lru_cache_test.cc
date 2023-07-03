@@ -3,9 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "src/lru_cache.h"
+
 #include <gtest/gtest.h>
 
-#include "src/lru_cache.h"
 #include "storage/storage.h"
 
 using namespace storage;
@@ -26,7 +27,8 @@ TEST(LRUCacheTest, TestSetCapacityCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 15);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 2 *****************
   // (k5, v5) -> (k4, v4) -> (k3, v3)
@@ -34,7 +36,8 @@ TEST(LRUCacheTest, TestSetCapacityCase1) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 12);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}}));
 
   // ***************** Step 3 *****************
   // (k5, v5)
@@ -77,7 +80,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 2 *****************
   // (k3, v3) -> (k5, v5) -> (k4, v4) -> (k2, v2) -> (k1, v1);
@@ -85,7 +89,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 3 *****************
   // (k1, v1) -> (k3, v3) -> (k5, v5) -> (k4, v4) -> (k2, v2);
@@ -93,7 +98,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k1", "v1"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k1", "v1"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}}));
 
   // ***************** Step 4 *****************
   // (k4, v4) -> (k1, v1) -> (k3, v3) -> (k5, v5) -> (k2, v2);
@@ -101,7 +107,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k5", "v5"}, {"k2", "v2"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k5", "v5"}, {"k2", "v2"}}));
 
   // ***************** Step 5 *****************
   // (k5, v5) -> (k4, v4) -> (k1, v1) -> (k3, v3) -> (k2, v2);
@@ -109,7 +116,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k2", "v2"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k2", "v2"}}));
 
   // ***************** Step 6 *****************
   // (k5, v5) -> (k4, v4) -> (k1, v1) -> (k3, v3) -> (k2, v2);
@@ -117,7 +125,8 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k2", "v2"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k2", "v2"}}));
 }
 
 TEST(LRUCacheTest, TestInsertCase1) {
@@ -150,7 +159,8 @@ TEST(LRUCacheTest, TestInsertCase1) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 3);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 4 *****************
   // (k4, v4) -> (k3, v3) -> (k2, v2)
@@ -159,7 +169,8 @@ TEST(LRUCacheTest, TestInsertCase1) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 3);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}}));
 
   // ***************** Step 5 *****************
   // (k5, v5) -> (k4, v4) -> (k3, v3)
@@ -168,7 +179,8 @@ TEST(LRUCacheTest, TestInsertCase1) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 3);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}}));
 }
 
 TEST(LRUCacheTest, TestInsertCase2) {
@@ -187,7 +199,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 2 *****************
   // (k3, v3) -> (k5, v5) -> (k4, v4) -> (k2, v2) -> (k1, v1)
@@ -196,7 +209,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 3 *****************
   // (k2, v2) -> (k3, v3) -> (k5, v5) -> (k4, v4) -> (k1, v1)
@@ -205,7 +219,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}}));
 
   // ***************** Step 4 *****************
   // (k1, v1) -> (k2, v2) -> (k3, v3) -> (k5, v5) -> (k4, v4)
@@ -214,7 +229,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}, {"k4", "v4"}}));
 
   // ***************** Step 5 *****************
   // (k4, v4) -> (k1, v1) -> (k2, v2) -> (k3, v3) -> (k5, v5)
@@ -223,7 +239,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}}));
 
   // ***************** Step 6 *****************
   // (k4, v4) -> (k1, v1) -> (k2, v2) -> (k3, v3) -> (k5, v5)
@@ -232,7 +249,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}, {"k5", "v5"}}));
 
   // ***************** Step 6 *****************
   // (k4, v4) -> (k1, v1) -> (k2, v2) -> (k3, v3) -> (k5, v5)
@@ -241,7 +259,8 @@ TEST(LRUCacheTest, TestInsertCase2) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k0", "v0"}, {"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k0", "v0"}, {"k4", "v4"}, {"k1", "v1"}, {"k2", "v2"}, {"k3", "v3"}}));
 }
 
 TEST(LRUCacheTest, TestInsertCase3) {
@@ -274,7 +293,8 @@ TEST(LRUCacheTest, TestInsertCase3) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 6);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 4 *****************
   // (k4, v4) -> (k3, v3) -> (k2, v2) -> (k1, v1)
@@ -283,7 +303,8 @@ TEST(LRUCacheTest, TestInsertCase3) {
   ASSERT_EQ(lru_cache.Size(), 4);
   ASSERT_EQ(lru_cache.TotalCharge(), 10);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 5 *****************
   // (k5, v5) -> (k4, v4)
@@ -319,7 +340,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 4);
   ASSERT_EQ(lru_cache.TotalCharge(), 10);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 2 *****************
   // empty
@@ -349,7 +371,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 4);
   ASSERT_EQ(lru_cache.TotalCharge(), 10);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 5 *****************
   // (k5, k5) -> (k4, v4)
@@ -367,7 +390,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 10);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k1", "v1"}, {"k5", "v5"}, {"k4", "v4"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k1", "v1"}, {"k5", "v5"}, {"k4", "v4"}}));
 
   // ***************** Step 7 *****************
   // (k5, v5) -> (k1, k1) -> (k4, v4)
@@ -376,7 +400,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 10);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k1", "v1"}, {"k4", "v4"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k5", "v5"}, {"k1", "v1"}, {"k4", "v4"}}));
 
   // ***************** Step 8 *****************
   // (k6, v6)
@@ -403,7 +428,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 9);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k1", "v1"}, {"k2", "v2"}, {"k6", "v6"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k1", "v1"}, {"k2", "v2"}, {"k6", "v6"}}));
 
   // ***************** Step 10 *****************
   // (k3, v3) -> (k1, v1) -> (k2, v2)
@@ -412,7 +438,8 @@ TEST(LRUCacheTest, TestInsertCase4) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 6);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k3", "v3"}, {"k1", "v1"}, {"k2", "v2"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k3", "v3"}, {"k1", "v1"}, {"k2", "v2"}}));
 }
 
 TEST(LRUCacheTest, TestRemoveCase1) {
@@ -430,7 +457,8 @@ TEST(LRUCacheTest, TestRemoveCase1) {
   ASSERT_EQ(lru_cache.Size(), 5);
   ASSERT_EQ(lru_cache.TotalCharge(), 5);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k5", "v5"}, {"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 2 *****************
   // (k4, v4) -> (k3, v3) -> (k2, v2) -> (k1, v1);
@@ -439,7 +467,8 @@ TEST(LRUCacheTest, TestRemoveCase1) {
   ASSERT_EQ(lru_cache.Size(), 4);
   ASSERT_EQ(lru_cache.TotalCharge(), 4);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
+  ASSERT_TRUE(lru_cache.LRUAsExpected(
+      {{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}, {"k1", "v1"}}));
 
   // ***************** Step 3 *****************
   // (k4, v4) -> (k3, v3) -> (k2, v2)
@@ -448,7 +477,8 @@ TEST(LRUCacheTest, TestRemoveCase1) {
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 3);
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
-  ASSERT_TRUE(lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}}));
+  ASSERT_TRUE(
+      lru_cache.LRUAsExpected({{"k4", "v4"}, {"k3", "v3"}, {"k2", "v2"}}));
 
   // ***************** Step 4 *****************
   // (k4, v4) -> (k2, v2)

@@ -48,9 +48,10 @@ std::string BinlogItem::ToString() const {
   return str;
 }
 
-std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_time, uint32_t server_id,
-                                                uint64_t logic_id, uint32_t filenum, uint64_t offset,
-                                                const std::string& content, const std::vector<std::string>& extends) {
+std::string PikaBinlogTransverter::BinlogEncode(
+    BinlogType type, uint32_t exec_time, uint32_t server_id, uint64_t logic_id,
+    uint32_t filenum, uint64_t offset, const std::string& content,
+    const std::vector<std::string>& extends) {
   std::string binlog;
   pstd::PutFixed16(&binlog, type);
   pstd::PutFixed32(&binlog, exec_time);
@@ -64,7 +65,9 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_t
   return binlog;
 }
 
-bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item) {
+bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
+                                         const std::string& binlog,
+                                         BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
   std::string binlog_str = binlog;

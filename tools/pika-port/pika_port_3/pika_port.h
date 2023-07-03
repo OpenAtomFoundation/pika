@@ -6,16 +6,16 @@
 #ifndef BINLOG_SYNC_H_
 #define BINLOG_SYNC_H_
 
+#include <vector>
+
 #include "binlog_receiver_thread.h"
 #include "pika_binlog.h"
 #include "pika_define.h"
-#include "redis_sender.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
+#include "redis_sender.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
-
-#include <vector>
 
 using pstd::Slice;
 using pstd::Status;
@@ -45,7 +45,9 @@ class PikaPort {
   }
   std::string requirepass() { return requirepass_; }
 
-  BinlogReceiverThread* binlog_receiver_thread() { return binlog_receiver_thread_; }
+  BinlogReceiverThread* binlog_receiver_thread() {
+    return binlog_receiver_thread_;
+  }
   TrysyncThread* trysync_thread() { return trysync_thread_; }
   Binlog* logger() { return logger_; }
 
@@ -98,7 +100,8 @@ class PikaPort {
 
   Binlog* logger_;
 
-  std::shared_mutex state_protector_;  // protect below, use for master-slave mode
+  std::shared_mutex
+      state_protector_;  // protect below, use for master-slave mode
 
   PikaPort(PikaPort& bs);
   void operator=(const PikaPort& bs);

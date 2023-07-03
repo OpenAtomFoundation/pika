@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <signal.h>
+
 #include <atomic>
 #include <string>
 
@@ -17,7 +18,8 @@ using namespace net;
 
 class MyHTTPConn : public net::SimpleHTTPConn {
  public:
-  MyHTTPConn(const int fd, const std::string& ip_port, Thread* worker) : SimpleHTTPConn(fd, ip_port, worker) {}
+  MyHTTPConn(const int fd, const std::string& ip_port, Thread* worker)
+      : SimpleHTTPConn(fd, ip_port, worker) {}
   virtual void DealMessage(const net::Request* req, net::Response* res) {
     std::cout << "handle get" << std::endl;
     std::cout << " + method: " << req->method << std::endl;
@@ -44,8 +46,11 @@ class MyHTTPConn : public net::SimpleHTTPConn {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetMultiplexer* net_epoll) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd,
+                                              const std::string& ip_port,
+                                              Thread* thread,
+                                              void* worker_specific_data,
+                                              NetMultiplexer* net_epoll) const {
     return std::make_shared<MyHTTPConn>(connfd, ip_port, thread);
   }
 };
@@ -76,8 +81,10 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  std::unique_ptr<ConnFactory> my_conn_factory = std::make_unique<MyConnFactory>();
-  std::unique_ptr<ServerThread> st(NewDispatchThread(port, 4, my_conn_factory.get(), 1000));
+  std::unique_ptr<ConnFactory> my_conn_factory =
+      std::make_unique<MyConnFactory>();
+  std::unique_ptr<ServerThread> st(
+      NewDispatchThread(port, 4, my_conn_factory.get(), 1000));
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");

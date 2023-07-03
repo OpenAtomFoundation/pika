@@ -40,22 +40,28 @@ class PikaClientConn : public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
-                 const net::HandleType& handle_type, int max_conn_rbuf_size);
+  PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread,
+                 net::NetMultiplexer* mpx, const net::HandleType& handle_type,
+                 int max_conn_rbuf_size);
   ~PikaClientConn() override = default;
 
-  void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
-                                std::string* response) override;
+  void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs,
+                        bool async, std::string* response) override;
 
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
-  int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
+  int DealMessage(const net::RedisCmdArgsType& argv,
+                  std::string* response) override {
+    return 0;
+  }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentTable(const std::string& db_name) { current_db_ = db_name; }
-  void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
+  void SetWriteCompleteCallback(WriteCompleteCallback cb) {
+    write_completed_cb_ = std::move(cb);
+  }
 
   net::ServerThread* server_thread() { return server_thread_; }
 
@@ -70,13 +76,16 @@ class PikaClientConn : public net::RedisConn {
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
 
-  std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
+  std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv,
+                             const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
 
-  void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration);
+  void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us,
+                      uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
-  void ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr);
+  void ExecRedisCmd(const PikaCmdArgsType& argv,
+                    const std::shared_ptr<std::string>& resp_ptr);
   void TryWriteResp();
 
   AuthStat auth_stat_;

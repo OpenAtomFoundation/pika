@@ -72,6 +72,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "pstd/include/pstd_hash.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -118,10 +119,10 @@ class SHA256 {
     *((str) + 1) = (uint8)((x) >> 16); \
     *((str) + 0) = (uint8)((x) >> 24); \
   }
-#define SHA2_PACK32(str, x)                                                                            \
-  {                                                                                                    \
-    *(x) = ((uint32) * ((str) + 3)) | ((uint32) * ((str) + 2) << 8) | ((uint32) * ((str) + 1) << 16) | \
-           ((uint32) * ((str) + 0) << 24);                                                             \
+#define SHA2_PACK32(str, x)                                                 \
+  {                                                                         \
+    *(x) = ((uint32) * ((str) + 3)) | ((uint32) * ((str) + 2) << 8) |       \
+           ((uint32) * ((str) + 1) << 16) | ((uint32) * ((str) + 0) << 24); \
   }
 
 // a small class for calculating MD5 hashes of strings or byte arrays
@@ -169,21 +170,28 @@ class MD5 {
   static inline uint4 H(uint4 x, uint4 y, uint4 z);
   static inline uint4 I(uint4 x, uint4 y, uint4 z);
   static inline uint4 rotate_left(uint4 x, int n);
-  static inline void FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
-  static inline void GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
-  static inline void HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
-  static inline void II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
+  static inline void FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                        uint4 ac);
+  static inline void GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                        uint4 ac);
+  static inline void HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                        uint4 ac);
+  static inline void II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                        uint4 ac);
 };
 
 const unsigned int SHA256::sha256_k[64] = {  // UL = uint32
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+    0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
 void SHA256::transform(const unsigned char* message, unsigned int block_nb) {
   uint32 w[64];
@@ -205,7 +213,8 @@ void SHA256::transform(const unsigned char* message, unsigned int block_nb) {
       wv[j] = m_h[j];
     }
     for (j = 0; j < 64; j++) {
-      t1 = wv[7] + SHA256_F2(wv[4]) + SHA2_CH(wv[4], wv[5], wv[6]) + sha256_k[j] + w[j];
+      t1 = wv[7] + SHA256_F2(wv[4]) + SHA2_CH(wv[4], wv[5], wv[6]) +
+           sha256_k[j] + w[j];
       t2 = SHA256_F1(wv[0]) + SHA2_MAJ(wv[0], wv[1], wv[2]);
       wv[7] = wv[6];
       wv[6] = wv[5];
@@ -264,7 +273,8 @@ void SHA256::final(unsigned char* digest) {
   unsigned int pm_len;
   unsigned int len_b;
   int i;
-  block_nb = (1 + static_cast<int>((SHA224_256_BLOCK_SIZE - 9) < (m_len % SHA224_256_BLOCK_SIZE)));
+  block_nb = (1 + static_cast<int>((SHA224_256_BLOCK_SIZE - 9) <
+                                   (m_len % SHA224_256_BLOCK_SIZE)));
   len_b = (m_tot_len + m_len) << 3;
   pm_len = block_nb << 6;
   memset(m_block + m_len, 0, pm_len - m_len);
@@ -323,32 +333,42 @@ std::string sha256(const std::string& input, bool raw) {
 ///////////////////////////////////////////////
 
 // F, G, H and I are basic MD5 functions.
-inline MD5::uint4 MD5::F(uint4 x, uint4 y, uint4 z) { return (x & y) | (~x & z); }
+inline MD5::uint4 MD5::F(uint4 x, uint4 y, uint4 z) {
+  return (x & y) | (~x & z);
+}
 
-inline MD5::uint4 MD5::G(uint4 x, uint4 y, uint4 z) { return (x & z) | (y & ~z); }
+inline MD5::uint4 MD5::G(uint4 x, uint4 y, uint4 z) {
+  return (x & z) | (y & ~z);
+}
 
 inline MD5::uint4 MD5::H(uint4 x, uint4 y, uint4 z) { return x ^ y ^ z; }
 
 inline MD5::uint4 MD5::I(uint4 x, uint4 y, uint4 z) { return y ^ (x | ~z); }
 
 // rotate_left rotates x left n bits.
-inline MD5::uint4 MD5::rotate_left(uint4 x, int n) { return (x << n) | (x >> (32 - n)); }
+inline MD5::uint4 MD5::rotate_left(uint4 x, int n) {
+  return (x << n) | (x >> (32 - n));
+}
 
 // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 // Rotation is separate from addition to prevent recomputation.
-inline void MD5::FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+inline void MD5::FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                    uint4 ac) {
   a = rotate_left(a + F(b, c, d) + x + ac, s) + b;
 }
 
-inline void MD5::GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+inline void MD5::GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                    uint4 ac) {
   a = rotate_left(a + G(b, c, d) + x + ac, s) + b;
 }
 
-inline void MD5::HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+inline void MD5::HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                    uint4 ac) {
   a = rotate_left(a + H(b, c, d) + x + ac, s) + b;
 }
 
-inline void MD5::II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+inline void MD5::II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s,
+                    uint4 ac) {
   a = rotate_left(a + I(b, c, d) + x + ac, s) + b;
 }
 
@@ -383,11 +403,14 @@ void MD5::init() {
 
 //////////////////////////////
 
-// decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
+// decodes input (unsigned char) into output (uint4). Assumes len is a multiple
+// of 4.
 void MD5::decode(uint4 output[], const uint1 input[], size_type len) {
   for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
-    output[i] = (static_cast<uint4>(input[j])) | ((static_cast<uint4>(input[j + 1])) << 8) |
-                ((static_cast<uint4>(input[j + 2])) << 16) | ((static_cast<uint4>(input[j + 3])) << 24);
+    output[i] = (static_cast<uint4>(input[j])) |
+                ((static_cast<uint4>(input[j + 1])) << 8) |
+                ((static_cast<uint4>(input[j + 2])) << 16) |
+                ((static_cast<uint4>(input[j + 3])) << 24);
   }
 }
 
@@ -547,9 +570,10 @@ void MD5::update(const char input[], size_type length) {
 // MD5 finalization. Ends an MD5 message-digest operation, writing the
 // the message digest and zeroizing the context.
 MD5& MD5::finalize() {
-  static unsigned char padding[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                      0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                      0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  static unsigned char padding[64] = {
+      0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   if (!finalized) {
     // Save number of bits
@@ -607,7 +631,9 @@ std::string MD5::rawdigest() const {
 
 //////////////////////////////
 
-std::ostream& operator<<(std::ostream& out, MD5 md5) { return out << md5.hexdigest(); }
+std::ostream& operator<<(std::ostream& out, MD5 md5) {
+  return out << md5.hexdigest();
+}
 
 //////////////////////////////
 

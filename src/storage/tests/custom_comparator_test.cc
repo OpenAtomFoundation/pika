@@ -3,11 +3,13 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "src/custom_comparator.h"
+
 #include <gtest/gtest.h>
+
 #include <iostream>
 #include <thread>
 
-#include "src/custom_comparator.h"
 #include "src/redis.h"
 #include "src/zsets_data_key_format.h"
 #include "storage/storage.h"
@@ -89,7 +91,8 @@ TEST(ZSetScoreKeyComparator, FindShortestSeparatorTest) {
   ASSERT_TRUE(impl.Compare(change_start_5, limit_5) < 0);
 
   // ***************** Group 6 Test *****************
-  ZSetsScoreKey zsets_score_key_start_6("Axlgrep", 1557212501, 3.1415, "abccccccc");
+  ZSetsScoreKey zsets_score_key_start_6("Axlgrep", 1557212501, 3.1415,
+                                        "abccccccc");
   ZSetsScoreKey zsets_score_key_limit_6("Axlgrep", 1557212501, 3.1415, "abd");
   std::string start_6 = zsets_score_key_start_6.Encode().ToString();
   std::string limit_6 = zsets_score_key_limit_6.Encode().ToString();
@@ -103,8 +106,10 @@ TEST(ZSetScoreKeyComparator, FindShortestSeparatorTest) {
   ASSERT_TRUE(impl.Compare(change_start_6, limit_6) < 0);
 
   // ***************** Group 7 Test *****************
-  ZSetsScoreKey zsets_score_key_start_7("Axlgrep", 1557212501, 3.1415, "abcccaccc");
-  ZSetsScoreKey zsets_score_key_limit_7("Axlgrep", 1557212501, 3.1415, "abccccccc");
+  ZSetsScoreKey zsets_score_key_start_7("Axlgrep", 1557212501, 3.1415,
+                                        "abcccaccc");
+  ZSetsScoreKey zsets_score_key_limit_7("Axlgrep", 1557212501, 3.1415,
+                                        "abccccccc");
   std::string start_7 = zsets_score_key_start_7.Encode().ToString();
   std::string limit_7 = zsets_score_key_limit_7.Encode().ToString();
   std::string change_start_7 = start_7;
@@ -118,7 +123,8 @@ TEST(ZSetScoreKeyComparator, FindShortestSeparatorTest) {
 
   // ***************** Group 8 Test *****************
   ZSetsScoreKey zsets_score_key_start_8("Axlgrep", 1557212501, 3.1415, "");
-  ZSetsScoreKey zsets_score_key_limit_8("Axlgrep", 1557212501, 3.1415, "abccccccc");
+  ZSetsScoreKey zsets_score_key_limit_8("Axlgrep", 1557212501, 3.1415,
+                                        "abccccccc");
   std::string start_8 = zsets_score_key_start_8.Encode().ToString();
   std::string limit_8 = zsets_score_key_limit_8.Encode().ToString();
   std::string change_start_8 = start_8;

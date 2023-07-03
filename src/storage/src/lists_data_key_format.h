@@ -6,15 +6,15 @@
 #ifndef SRC_LISTS_DATA_KEY_FORMAT_H_
 #define SRC_LISTS_DATA_KEY_FORMAT_H_
 
-#include "pstd/include/pstd_coding.h"
-
 #include <string>
+
+#include "pstd/include/pstd_coding.h"
 
 namespace storage {
 class ListsDataKey {
  public:
   ListsDataKey(const rocksdb::Slice& key, int32_t version, uint64_t index)
-      :  key_(key), version_(version), index_(index) {}
+      : key_(key), version_(version), index_(index) {}
 
   ~ListsDataKey() {
     if (start_ != space_) {

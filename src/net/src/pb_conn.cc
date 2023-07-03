@@ -6,16 +6,17 @@
 #include "net/include/pb_conn.h"
 
 #include <arpa/inet.h>
-#include <string>
-
 #include <glog/logging.h>
+
+#include <string>
 
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
 
 namespace net {
 
-PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
+PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread,
+               NetMultiplexer* mpx)
     : NetConn(fd, ip_port, thread, mpx),
       header_len_(-1),
       cur_pos_(0),
@@ -37,7 +38,8 @@ ReadStatus PbConn::GetRequest() {
   while (true) {
     switch (connStatus_) {
       case kHeader: {
-        ssize_t nread = read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
+        ssize_t nread =
+            read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -63,12 +65,14 @@ ReadStatus PbConn::GetRequest() {
         if (header_len_ > rbuf_len_ - COMMAND_HEADER_LENGTH) {
           uint32_t new_size = header_len_ + COMMAND_HEADER_LENGTH;
           if (new_size < kProtoMaxMessage) {
-            rbuf_ = reinterpret_cast<char*>(realloc(rbuf_, sizeof(char) * new_size));
+            rbuf_ = reinterpret_cast<char*>(
+                realloc(rbuf_, sizeof(char) * new_size));
             if (!rbuf_) {
               return kFullError;
             }
             rbuf_len_ = new_size;
-            LOG(INFO) << "Thread_id " << pthread_self() << " Expand rbuf to " << new_size << ", cur_pos_ " << cur_pos_;
+            LOG(INFO) << "Thread_id " << pthread_self() << " Expand rbuf to "
+                      << new_size << ", cur_pos_ " << cur_pos_;
           } else {
             return kFullError;
           }
@@ -120,7 +124,8 @@ WriteStatus PbConn::SendReply() {
     std::string item = write_buf_.queue_.front();
     item_len = item.size();
     while (item_len - write_buf_.item_pos_ > 0) {
-      nwritten = write(fd(), item.data() + write_buf_.item_pos_, item_len - write_buf_.item_pos_);
+      nwritten = write(fd(), item.data() + write_buf_.item_pos_,
+                       item_len - write_buf_.item_pos_);
       if (nwritten <= 0) {
         break;
       }
@@ -183,12 +188,15 @@ void PbConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
   int idletime = now.tv_sec - last_interaction().tv_sec;
-  if (rbuf_len_ > PB_IOBUF_LEN && ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
-    uint32_t new_size = ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
+  if (rbuf_len_ > PB_IOBUF_LEN &&
+      ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
+    uint32_t new_size =
+        ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
-      LOG(INFO) << "Thread_id " << pthread_self() << "Shrink rbuf to " << rbuf_len_ << ", cur_pos_: " << cur_pos_;
+      LOG(INFO) << "Thread_id " << pthread_self() << "Shrink rbuf to "
+                << rbuf_len_ << ", cur_pos_: " << cur_pos_;
     }
   }
 }

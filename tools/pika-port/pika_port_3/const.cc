@@ -1,8 +1,7 @@
 #include "const.h"
 
-#include "storage/storage.h"
-
 #include "pika_define.h"
+#include "storage/storage.h"
 
 std::string PikaState(int state) {
   switch (state) {

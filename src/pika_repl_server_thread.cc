@@ -11,7 +11,8 @@
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval)
+PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
+                                           int port, int cron_interval)
     : HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true),
       conn_factory_(this),
       port_(port) {
@@ -20,8 +21,10 @@ PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips, int
 
 int PikaReplServerThread::ListenPort() { return port_; }
 
-void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-  LOG(INFO) << "ServerThread Close Slave Conn, fd: " << fd << ", ip_port: " << ip_port;
+void PikaReplServerThread::ReplServerHandle::FdClosedHandle(
+    int fd, const std::string& ip_port) const {
+  LOG(INFO) << "ServerThread Close Slave Conn, fd: " << fd
+            << ", ip_port: " << ip_port;
   g_pika_server->DeleteSlave(fd);
   g_pika_rm->ReplServerRemoveClientConn(fd);
 }

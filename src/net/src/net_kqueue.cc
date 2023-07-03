@@ -6,10 +6,10 @@
 #include "net/src/net_kqueue.h"
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <cerrno>
-
 #include <glog/logging.h>
+#include <unistd.h>
+
+#include <cerrno>
 
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
@@ -88,7 +88,8 @@ int NetKqueue::NetPoll(int timeout) {
     s_timeout.tv_nsec = timeout % 1000 * 1000000;
   }
 
-  int num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0], NET_MAX_CLIENTS, p_timeout);
+  int num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0],
+                            NET_MAX_CLIENTS, p_timeout);
   if (num_events <= 0) {
     return 0;
   }

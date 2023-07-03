@@ -1,6 +1,8 @@
 #include "net/include/redis_cli.h"
+
 #include <errno.h>
 #include <stdio.h>
+
 #include "net/include/net_cli.h"
 #include "pstd/include/xdebug.h"
 
@@ -41,7 +43,8 @@ int main(int argc, char* argv[]) {
   // Test connect timeout with a non-routable IP
   // Status s = rcli->Connect("10.255.255.1", 9824);
 
-  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port, s.ToString().c_str());
+  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port,
+         s.ToString().c_str());
   if (!s.ok()) {
     printf("Connect failed, %s\n", s.ToString().c_str());
     exit(-1);
@@ -79,7 +82,8 @@ int main(int argc, char* argv[]) {
   printf("Send mset return %s\n", s.ToString().c_str());
 
   s = rcli->Recv(&redis_argv);
-  printf("Recv mset return %s with %lu elements\n", s.ToString().c_str(), redis_argv.size());
+  printf("Recv mset return %s with %lu elements\n", s.ToString().c_str(),
+         redis_argv.size());
   for (size_t i = 0; i < redis_argv.size(); i++) {
     printf("  redis_argv[%lu] = (%s)", i, redis_argv[i].c_str());
   }
@@ -93,7 +97,8 @@ int main(int argc, char* argv[]) {
     printf("Send mget case 1: i=%d, return %s\n", si, s.ToString().c_str());
 
     s = rcli->Recv(&redis_argv);
-    printf("Recv mget case 1: i=%d, return %s with %lu elements\n", si, s.ToString().c_str(), redis_argv.size());
+    printf("Recv mget case 1: i=%d, return %s with %lu elements\n", si,
+           s.ToString().c_str(), redis_argv.size());
     for (size_t i = 0; i < redis_argv.size(); i++) {
       printf("  redis_argv[%lu] = (%s)\n", i, redis_argv[i].c_str());
     }
@@ -110,7 +115,8 @@ int main(int argc, char* argv[]) {
 
   for (int si = 0; si < 2; si++) {
     s = rcli->Recv(&redis_argv);
-    printf("Recv mget case 1: i=%d, return %s with %lu elements\n", si, s.ToString().c_str(), redis_argv.size());
+    printf("Recv mget case 1: i=%d, return %s with %lu elements\n", si,
+           s.ToString().c_str(), redis_argv.size());
     for (size_t i = 0; i < redis_argv.size(); i++) {
       printf("  redis_argv[%lu] = (%s)\n", i, redis_argv[i].c_str());
     }

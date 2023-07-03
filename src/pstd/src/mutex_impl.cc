@@ -3,11 +3,12 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "pstd/include/mutex_impl.h"
+
 #include <condition_variable>
 #include <memory>
 
 #include "pstd/include/mutex.h"
-#include "pstd/include/mutex_impl.h"
 
 namespace pstd::lock {
 
@@ -45,9 +46,13 @@ class CondVarImpl : public CondVar {
   std::condition_variable cv_;
 };
 
-std::shared_ptr<Mutex> MutexFactoryImpl::AllocateMutex() { return std::shared_ptr<Mutex>(new MutexImpl()); }
+std::shared_ptr<Mutex> MutexFactoryImpl::AllocateMutex() {
+  return std::shared_ptr<Mutex>(new MutexImpl());
+}
 
-std::shared_ptr<CondVar> MutexFactoryImpl::AllocateCondVar() { return std::shared_ptr<CondVar>(new CondVarImpl()); }
+std::shared_ptr<CondVar> MutexFactoryImpl::AllocateCondVar() {
+  return std::shared_ptr<CondVar>(new CondVarImpl());
+}
 
 Status MutexImpl::Lock() {
   mutex_.lock();
@@ -90,7 +95,8 @@ Status CondVarImpl::Wait(std::shared_ptr<Mutex> mutex) {
   return Status::OK();
 }
 
-Status CondVarImpl::WaitFor(std::shared_ptr<Mutex> mutex, int64_t timeout_time) {
+Status CondVarImpl::WaitFor(std::shared_ptr<Mutex> mutex,
+                            int64_t timeout_time) {
   Status s;
 
   auto mutex_impl = reinterpret_cast<MutexImpl*>(mutex.get());

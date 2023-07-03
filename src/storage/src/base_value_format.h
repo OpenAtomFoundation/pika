@@ -18,7 +18,7 @@ namespace storage {
 class InternalValue {
  public:
   explicit InternalValue(const rocksdb::Slice& user_value)
-      :  user_value_(user_value) {}
+      : user_value_(user_value) {}
   virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;
@@ -73,9 +73,9 @@ class ParsedInternalValue {
 
   // Use this constructor in rocksdb::CompactionFilter::Filter(),
   // since we use this in Compaction process, all we need to do is parsing
-  // the rocksdb::Slice, so don't need to modify the original value, value_ can be
-  // set to nullptr
-  explicit ParsedInternalValue(const rocksdb::Slice& value)  {}
+  // the rocksdb::Slice, so don't need to modify the original value, value_ can
+  // be set to nullptr
+  explicit ParsedInternalValue(const rocksdb::Slice& value) {}
 
   virtual ~ParsedInternalValue() = default;
 
@@ -120,7 +120,7 @@ class ParsedInternalValue {
   virtual void SetTimestampToValue() = 0;
   std::string* value_ = nullptr;
   rocksdb::Slice user_value_;
-  int32_t version_ = 0 ;
+  int32_t version_ = 0;
   int32_t timestamp_ = 0;
 };
 

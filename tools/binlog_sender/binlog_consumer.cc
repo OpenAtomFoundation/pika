@@ -5,7 +5,8 @@
 
 #include "binlog_consumer.h"
 
-BinlogConsumer::BinlogConsumer(const std::string& binlog_path, uint32_t first_filenum, uint32_t last_filenum,
+BinlogConsumer::BinlogConsumer(const std::string& binlog_path,
+                               uint32_t first_filenum, uint32_t last_filenum,
                                uint64_t offset)
     : filename_(binlog_path + kBinlogPrefix),
       first_filenum_(first_filenum),
@@ -14,11 +15,10 @@ BinlogConsumer::BinlogConsumer(const std::string& binlog_path, uint32_t first_fi
       backing_store_(new char[kBlockSize]),
       queue_(nullptr){};
 
-BinlogConsumer::~BinlogConsumer() {
-  delete[] backing_store_;
-}
+BinlogConsumer::~BinlogConsumer() { delete[] backing_store_; }
 
-std::string BinlogConsumer::NewFileName(const std::string& name, const uint32_t current) {
+std::string BinlogConsumer::NewFileName(const std::string& name,
+                                        const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
   return {buf};

@@ -48,7 +48,8 @@ struct Statistic {
   QpsStatistic DBStat(const std::string& db_name);
   std::unordered_map<std::string, QpsStatistic> AllDBStat();
 
-  void UpdateDBQps(const std::string& db_name, const std::string& command, bool is_write);
+  void UpdateDBQps(const std::string& db_name, const std::string& command,
+                   bool is_write);
   void ResetDBLastSecQuerynum();
 
   // statistic shows accumulated data of all tables

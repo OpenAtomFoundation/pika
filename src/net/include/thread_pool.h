@@ -7,6 +7,7 @@
 #define NET_INCLUDE_THREAD_POOL_H_
 
 #include <pthread.h>
+
 #include <atomic>
 #include <queue>
 #include <string>
@@ -16,7 +17,7 @@
 
 namespace net {
 
-using TaskFunc = void (*)(void *);
+using TaskFunc = void (*)(void*);
 
 struct Task {
   TaskFunc func;
@@ -28,8 +29,11 @@ struct TimeTask {
   uint64_t exec_time;
   TaskFunc func;
   void* arg;
-  TimeTask(uint64_t _exec_time, TaskFunc _func, void* _arg) : exec_time(_exec_time), func(_func), arg(_arg) {}
-  bool operator<(const TimeTask& task) const { return exec_time > task.exec_time; }
+  TimeTask(uint64_t _exec_time, TaskFunc _func, void* _arg)
+      : exec_time(_exec_time), func(_func), arg(_arg) {}
+  bool operator<(const TimeTask& task) const {
+    return exec_time > task.exec_time;
+  }
 };
 
 class ThreadPool : public pstd::noncopyable {
@@ -49,7 +53,8 @@ class ThreadPool : public pstd::noncopyable {
     std::string worker_name_;
   };
 
-  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size,
+                      std::string thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();
@@ -80,7 +85,6 @@ class ThreadPool : public pstd::noncopyable {
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
-
 };
 
 }  // namespace net

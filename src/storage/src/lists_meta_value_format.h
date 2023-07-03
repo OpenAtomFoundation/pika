@@ -18,7 +18,9 @@ const uint64_t InitalRightIndex = 9223372036854775808U;
 class ListsMetaValue : public InternalValue {
  public:
   explicit ListsMetaValue(const rocksdb::Slice& user_value)
-      : InternalValue(user_value), left_index_(InitalLeftIndex), right_index_(InitalRightIndex) {}
+      : InternalValue(user_value),
+        left_index_(InitalLeftIndex),
+        right_index_(InitalRightIndex) {}
 
   size_t AppendTimestampAndVersion() override {
     size_t usize = user_value_.size();
@@ -40,7 +42,8 @@ class ListsMetaValue : public InternalValue {
     return 2 * sizeof(int64_t);
   }
 
-  static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2 + sizeof(int64_t) * 2;
+  static const size_t kDefaultValueSuffixLength =
+      sizeof(int32_t) * 2 + sizeof(int64_t) * 2;
 
   rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
@@ -87,13 +90,21 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       : ParsedInternalValue(internal_value_str) {
     assert(internal_value_str->size() >= kListsMetaValueSuffixLength);
     if (internal_value_str->size() >= kListsMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kListsMetaValueSuffixLength);
-      version_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t) * 2 -
-                               sizeof(int64_t) * 2);
-      timestamp_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t) -
+      user_value_ = rocksdb::Slice(
+          internal_value_str->data(),
+          internal_value_str->size() - kListsMetaValueSuffixLength);
+      version_ = DecodeFixed32(internal_value_str->data() +
+                               internal_value_str->size() -
+                               sizeof(int32_t) * 2 - sizeof(int64_t) * 2);
+      timestamp_ = DecodeFixed32(internal_value_str->data() +
+                                 internal_value_str->size() - sizeof(int32_t) -
                                  sizeof(int64_t) * 2);
-      left_index_ = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(int64_t) * 2);
-      right_index_ = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(int64_t));
+      left_index_ =
+          DecodeFixed64(internal_value_str->data() +
+                        internal_value_str->size() - sizeof(int64_t) * 2);
+      right_index_ =
+          DecodeFixed64(internal_value_str->data() +
+                        internal_value_str->size() - sizeof(int64_t));
     }
     count_ = DecodeFixed64(internal_value_str->data());
   }
@@ -103,47 +114,60 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kListsMetaValueSuffixLength);
-      version_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t) * 2 -
-                               sizeof(int64_t) * 2);
-      timestamp_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t) -
+      user_value_ = rocksdb::Slice(
+          internal_value_slice.data(),
+          internal_value_slice.size() - kListsMetaValueSuffixLength);
+      version_ = DecodeFixed32(internal_value_slice.data() +
+                               internal_value_slice.size() -
+                               sizeof(int32_t) * 2 - sizeof(int64_t) * 2);
+      timestamp_ = DecodeFixed32(internal_value_slice.data() +
+                                 internal_value_slice.size() - sizeof(int32_t) -
                                  sizeof(int64_t) * 2);
-      left_index_ = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(int64_t) * 2);
-      right_index_ = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(int64_t));
+      left_index_ =
+          DecodeFixed64(internal_value_slice.data() +
+                        internal_value_slice.size() - sizeof(int64_t) * 2);
+      right_index_ =
+          DecodeFixed64(internal_value_slice.data() +
+                        internal_value_slice.size() - sizeof(int64_t));
     }
     count_ = DecodeFixed64(internal_value_slice.data());
   }
 
   void StripSuffix() override {
     if (value_) {
-      value_->erase(value_->size() - kListsMetaValueSuffixLength, kListsMetaValueSuffixLength);
+      value_->erase(value_->size() - kListsMetaValueSuffixLength,
+                    kListsMetaValueSuffixLength);
     }
   }
 
   void SetVersionToValue() override {
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - kListsMetaValueSuffixLength;
+      char* dst = const_cast<char*>(value_->data()) + value_->size() -
+                  kListsMetaValueSuffixLength;
       EncodeFixed32(dst, version_);
     }
   }
 
   void SetTimestampToValue() override {
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int32_t) - 2 * sizeof(int64_t);
+      char* dst = const_cast<char*>(value_->data()) + value_->size() -
+                  sizeof(int32_t) - 2 * sizeof(int64_t);
       EncodeFixed32(dst, timestamp_);
     }
   }
 
   void SetIndexToValue() {
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
+      char* dst = const_cast<char*>(value_->data()) + value_->size() -
+                  2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
       dst += sizeof(int64_t);
       EncodeFixed64(dst, right_index_);
     }
   }
 
-  static const size_t kListsMetaValueSuffixLength = 2 * sizeof(int32_t) + 2 * sizeof(int64_t);
+  static const size_t kListsMetaValueSuffixLength =
+      2 * sizeof(int32_t) + 2 * sizeof(int64_t);
 
   int32_t InitialMetaValue() {
     this->set_count(0);
@@ -188,7 +212,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void set_left_index(uint64_t index) {
     left_index_ = index;
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
+      char* dst = const_cast<char*>(value_->data()) + value_->size() -
+                  2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
     }
   }
@@ -196,7 +221,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void ModifyLeftIndex(uint64_t index) {
     left_index_ -= index;
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * sizeof(int64_t);
+      char* dst = const_cast<char*>(value_->data()) + value_->size() -
+                  2 * sizeof(int64_t);
       EncodeFixed64(dst, left_index_);
     }
   }
@@ -206,7 +232,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void set_right_index(uint64_t index) {
     right_index_ = index;
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
+      char* dst =
+          const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
       EncodeFixed64(dst, right_index_);
     }
   }
@@ -214,7 +241,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void ModifyRightIndex(uint64_t index) {
     right_index_ += index;
     if (value_) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
+      char* dst =
+          const_cast<char*>(value_->data()) + value_->size() - sizeof(int64_t);
       EncodeFixed64(dst, right_index_);
     }
   }

@@ -10,7 +10,8 @@
 
 class PikaDispatchThread {
  public:
-  PikaDispatchThread(std::set<std::string>& ips, int port, int work_num, int cron_interval, int queue_limit,
+  PikaDispatchThread(std::set<std::string>& ips, int port, int work_num,
+                     int cron_interval, int queue_limit,
                      int max_conn_rbuf_size);
   ~PikaDispatchThread();
   int StartThread();
@@ -20,15 +21,21 @@ class PikaDispatchThread {
   bool ClientKill(const std::string& ip_port);
   void ClientKillAll();
 
-  void SetQueueLimit(int queue_limit) { thread_rep_->SetQueueLimit(queue_limit); }
+  void SetQueueLimit(int queue_limit) {
+    thread_rep_->SetQueueLimit(queue_limit);
+  }
 
  private:
   class ClientConnFactory : public net::ConnFactory {
    public:
-    explicit ClientConnFactory(int max_conn_rbuf_size) : max_conn_rbuf_size_(max_conn_rbuf_size) {}
-    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* server_thread,
-                                                     void* worker_specific_data, net::NetMultiplexer* net) const override {
-      return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_);
+    explicit ClientConnFactory(int max_conn_rbuf_size)
+        : max_conn_rbuf_size_(max_conn_rbuf_size) {}
+    std::shared_ptr<net::NetConn> NewNetConn(
+        int connfd, const std::string& ip_port, net::Thread* server_thread,
+        void* worker_specific_data, net::NetMultiplexer* net) const override {
+      return std::make_shared<PikaClientConn>(
+          connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous,
+          max_conn_rbuf_size_);
     }
 
    private:
@@ -37,7 +44,8 @@ class PikaDispatchThread {
 
   class Handles : public net::ServerHandle {
    public:
-    explicit Handles(PikaDispatchThread* pika_disptcher) : pika_disptcher_(pika_disptcher) {}
+    explicit Handles(PikaDispatchThread* pika_disptcher)
+        : pika_disptcher_(pika_disptcher) {}
     using net::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
     void CronHandle() const override;

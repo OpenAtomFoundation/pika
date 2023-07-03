@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include <atomic>
 #include <map>
 
@@ -17,7 +18,8 @@ std::map<std::string, std::string> db;
 
 class MyConn : public RedisConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread,
+         void* worker_specific_data);
   virtual ~MyConn() = default;
 
  protected:
@@ -26,7 +28,8 @@ class MyConn : public RedisConn {
  private:
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread,
+               void* worker_specific_data)
     : RedisConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
@@ -64,9 +67,12 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, net::NetMultiplexer* net_epoll = nullptr) const {
-    return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data,
+      net::NetMultiplexer* net_epoll = nullptr) const {
+    return std::make_shared<MyConn>(connfd, ip_port, thread,
+                                    worker_specific_data);
   }
 };
 
@@ -98,8 +104,8 @@ int main(int argc, char* argv[]) {
 
   std::unique_ptr<ConnFactory> conn_factory = std::make_unique<MyConnFactory>();
 
-  std::unique_ptr<ServerThread> my_thread =
-      std::make_unique<HolyThread>(my_port, conn_factory.get(), 1000, nullptr, false);
+  std::unique_ptr<ServerThread> my_thread = std::make_unique<HolyThread>(
+      my_port, conn_factory.get(), 1000, nullptr, false);
   if (my_thread->StartThread() != 0) {
     printf("StartThread error happened!\n");
     exit(-1);

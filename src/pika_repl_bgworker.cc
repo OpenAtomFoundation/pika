@@ -31,11 +31,14 @@ int PikaReplBgWorker::StartThread() { return bg_thread_.StartThread(); }
 
 int PikaReplBgWorker::StopThread() { return bg_thread_.StopThread(); }
 
-void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) { bg_thread_.Schedule(func, arg); }
+void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) {
+  bg_thread_.Schedule(func, arg);
+}
 
 void PikaReplBgWorker::QueueClear() { bg_thread_.QueueClear(); }
 
-void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset) {
+void PikaReplBgWorker::ParseBinlogOffset(
+    const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset) {
   offset->b_offset.filenum = pb_offset.filenum();
   offset->b_offset.offset = pb_offset.offset();
   offset->l_offset.term = pb_offset.term();
@@ -50,7 +53,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  DEFER { 
+  DEFER {
     delete index;
     delete task_arg;
   };
@@ -63,7 +66,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   // find the first not keepalive binlogsync
   for (size_t i = 0; i < index->size(); ++i) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res =
+        res->binlog_sync((*index)[i]);
     if (i == 0) {
       db_name = binlog_res.slot().db_name();
       slot_id = binlog_res.slot().slot_id();
@@ -76,7 +80,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   // find the last not keepalive binlogsync
   for (int i = index->size() - 1; i >= 0; i--) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res =
+        res->binlog_sync((*index)[i]);
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_end);
       break;
@@ -116,12 +121,13 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   if (res->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
     if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
+      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from "
+                << slot->ConsensusTerm() << " to " << meta.term();
       slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync response " << db_name << "_" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
+      LOG(WARNING) << "Drop outdated binlog sync response " << db_name << "_"
+                   << slot_id << " recv term: " << meta.term()
+                   << " local term: " << slot->ConsensusTerm();
       return;
     }
     if (!only_keepalive) {
@@ -129,8 +135,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       LogOffset prev_offset;
       ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
       if (last_offset.l_offset.index != 0 &&
-          (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
-        LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
+          (last_offset.l_offset != prev_offset.l_offset ||
+           last_offset.b_offset != prev_offset.b_offset)) {
+        LOG(WARNING) << "last_offset " << last_offset.ToString()
+                     << " NOT equal to pb prev_offset "
                      << prev_offset.ToString();
         slave_slot->SetReplState(ReplState::kTryConnect);
         return;
@@ -139,21 +147,24 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   }
 
   for (size_t i = 0; i < index->size(); ++i) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res =
+        res->binlog_sync((*index)[i]);
     // if pika are not current a slave or Slot not in
     // BinlogSync state, we drop remain write binlog task
     if (((g_pika_server->role() & PIKA_ROLE_SLAVE) == 0) ||
-        ((slave_slot->State() != ReplState::kConnected) && (slave_slot->State() != ReplState::kWaitDBSync))) {
+        ((slave_slot->State() != ReplState::kConnected) &&
+         (slave_slot->State() != ReplState::kWaitDBSync))) {
       return;
     }
 
     if (slave_slot->MasterSessionId() != binlog_res.session_id()) {
-      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp() << ":"
-                   << slave_slot->MasterPort() << ", " << slave_slot->SyncSlotInfo().ToString()
+      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp()
+                   << ":" << slave_slot->MasterPort() << ", "
+                   << slave_slot->SyncSlotInfo().ToString()
                    << " expected_session: " << binlog_res.session_id()
                    << ", actual_session:" << slave_slot->MasterSessionId();
-      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name() << "_"
-                   << binlog_res.slot().slot_id();
+      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name()
+                   << "_" << binlog_res.slot().slot_id();
       slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
@@ -162,16 +173,19 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     if (binlog_res.binlog().empty()) {
       continue;
     }
-    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(
+            TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
       slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
-    const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
-    int redis_parser_len = static_cast<int>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
+    const char* redis_parser_start =
+        binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
+    int redis_parser_len =
+        static_cast<int>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
-    net::RedisParserStatus ret =
-        worker->redis_parser_.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
+    net::RedisParserStatus ret = worker->redis_parser_.ProcessInputBuffer(
+        redis_parser_start, redis_parser_len, &processed_len);
     if (ret != net::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
       slave_slot->SetReplState(ReplState::kTryConnect);
@@ -193,8 +207,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     LogOffset productor_status;
     // Reply Ack to master immediately
     std::shared_ptr<Binlog> logger = slot->Logger();
-    logger->GetProducerStatus(&productor_status.b_offset.filenum, &productor_status.b_offset.offset,
-                              &productor_status.l_offset.term, &productor_status.l_offset.index);
+    logger->GetProducerStatus(
+        &productor_status.b_offset.filenum, &productor_status.b_offset.offset,
+        &productor_status.l_offset.term, &productor_status.l_offset.index);
     ack_end = productor_status;
     ack_end.l_offset.term = pb_end.l_offset.term;
   }
@@ -202,7 +217,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, ack_start, ack_end);
 }
 
-int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
+int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser,
+                                        const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);
 
@@ -211,14 +227,16 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   if (g_pika_server->HasMonitorClients()) {
     std::string db_name = worker->db_name_.substr(2);
     std::string monitor_message =
-        std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + worker->ip_port_ + "]";
+        std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name +
+        " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
       monitor_message += " " + pstd::ToRead(item);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr =
+      g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command db";
     return -1;
@@ -230,10 +248,11 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
     return -1;
   }
 
-  g_pika_server->UpdateQueryNumAndExecCountDB(worker->db_name_, opt, c_ptr->is_write());
+  g_pika_server->UpdateQueryNumAndExecCountDB(worker->db_name_, opt,
+                                              c_ptr->is_write());
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(worker->db_name_, worker->slot_id_));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(
+      SlotInfo(worker->db_name_, worker->slot_id_));
   if (!slot) {
     LOG(WARNING) << worker->db_name_ << worker->slot_id_ << "Not found.";
   }
@@ -243,7 +262,8 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
-  std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
+  std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(
+      static_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
@@ -272,11 +292,12 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     if (duration > g_pika_conf->slowlog_slower_than()) {
       g_pika_server->SlowlogPushEntry(argv, start_time, duration);
       if (g_pika_conf->slowlog_write_errorlog()) {
-        LOG(ERROR) << "command: " << argv[0] << ", start_time(s): " << start_time << ", duration(us): " << duration;
+        LOG(ERROR) << "command: " << argv[0]
+                   << ", start_time(s): " << start_time
+                   << ", duration(us): " << duration;
       }
     }
   }
-
 
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<SyncMasterSlot> slot =

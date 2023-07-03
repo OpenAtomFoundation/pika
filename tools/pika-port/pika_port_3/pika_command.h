@@ -11,10 +11,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "binlog_transverter.h"
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
-
-#include "binlog_transverter.h"
 
 const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
 
@@ -237,21 +236,32 @@ enum CmdFlags {
 
 class CmdInfo {
  public:
-  CmdInfo(const std::string _name, int _num, uint16_t _flag) : name_(_name), arity_(_num), flag_(_flag) {}
+  CmdInfo(const std::string _name, int _num, uint16_t _flag)
+      : name_(_name), arity_(_num), flag_(_flag) {}
   bool CheckArg(int num) const {
     if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
       return false;
     }
     return true;
   }
-  bool is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
+  bool is_write() const {
+    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+  }
   uint16_t flag_type() const { return flag_ & kCmdFlagsMaskType; }
-  bool is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
+  bool is_local() const {
+    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+  }
   // Others need to be suspended when a suspend command run
-  bool is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
-  bool is_prior() const { return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior); }
+  bool is_suspend() const {
+    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+  bool is_prior() const {
+    return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
+  }
   // Must with admin auth
-  bool is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
+  bool is_admin_require() const {
+    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
+  }
   std::string name() const { return name_; }
 
  private:
@@ -264,7 +274,8 @@ class CmdInfo {
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
-void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
+void inline RedisAppendLen(std::string& str, int64_t ori,
+                           const std::string& prefix);
 
 const std::string kNewLine = "\r\n";
 
@@ -367,7 +378,9 @@ class CmdRes {
   void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
   void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
   void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
-  void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
+  void AppendContent(const std::string& value) {
+    RedisAppendContent(message_, value);
+  }
   void AppendString(const std::string& value) {
     AppendStringLen(value.size());
     AppendContent(value);
@@ -400,8 +413,9 @@ class Cmd {
 
   CmdRes& res() { return res_; }
 
-  virtual std::string ToBinlog(const PikaCmdArgsType& argv, uint32_t exec_time, const std::string& server_id,
-                               uint64_t logic_id, uint32_t filenum, uint64_t offset) {
+  virtual std::string ToBinlog(const PikaCmdArgsType& argv, uint32_t exec_time,
+                               const std::string& server_id, uint64_t logic_id,
+                               uint32_t filenum, uint64_t offset) {
     std::string content;
     content.reserve(RAW_ARGS_LEN);
     RedisAppendLen(content, argv.size(), "*");
@@ -411,15 +425,17 @@ class Cmd {
       RedisAppendContent(content, v);
     }
 
-    return PortBinlogTransverter::PortBinlogEncode(PortBinlogType::PortTypeFirst, exec_time, std::stoi(server_id),
-                                                   logic_id, filenum, offset, content, {});
+    return PortBinlogTransverter::PortBinlogEncode(
+        PortBinlogType::PortTypeFirst, exec_time, std::stoi(server_id),
+        logic_id, filenum, offset, content, {});
   }
 
  protected:
   CmdRes res_;
 
  private:
-  virtual void DoInitial(PikaCmdArgsType& argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void DoInitial(PikaCmdArgsType& argvs,
+                         const CmdInfo* const ptr_info) = 0;
   virtual void Clear(){};
 
   Cmd(const Cmd&);

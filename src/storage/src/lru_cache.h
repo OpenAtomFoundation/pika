@@ -10,9 +10,8 @@
 #include <cstdio>
 #include <unordered_map>
 
-#include "rocksdb/status.h"
-
 #include "pstd/include/pstd_mutex.h"
+#include "rocksdb/status.h"
 
 namespace storage {
 
@@ -71,7 +70,8 @@ LRUHandle<T1, T2>* HandleTable<T1, T2>::Remove(const T1& key) {
 }
 
 template <typename T1, typename T2>
-LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(const T1& key, LRUHandle<T1, T2>* const handle) {
+LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(
+    const T1& key, LRUHandle<T1, T2>* const handle) {
   LRUHandle<T1, T2>* old = nullptr;
   if (table_.find(key) != table_.end()) {
     old = table_[key];
@@ -123,7 +123,7 @@ class LRUCache {
 };
 
 template <typename T1, typename T2>
-LRUCache<T1, T2>::LRUCache()  {
+LRUCache<T1, T2>::LRUCache() {
   // Make empty circular linked lists.
   lru_.next = &lru_;
   lru_.prev = &lru_;
@@ -171,7 +171,8 @@ rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
 }
 
 template <typename T1, typename T2>
-rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
+rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value,
+                                         size_t charge) {
   std::lock_guard l(mutex_);
   if (capacity_ == 0) {
     return rocksdb::Status::Corruption("capacity is empty");
@@ -229,14 +230,16 @@ bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
 }
 
 template <typename T1, typename T2>
-bool LRUCache<T1, T2>::LRUAsExpected(const std::vector<std::pair<T1, T2>>& expect) {
+bool LRUCache<T1, T2>::LRUAsExpected(
+    const std::vector<std::pair<T1, T2>>& expect) {
   if (Size() != expect.size()) {
     return false;
   } else {
     size_t idx = 0;
     LRUHandle<T1, T2>* current = lru_.prev;
     while (current != &lru_) {
-      if (current->key != expect[idx].first || current->value != expect[idx].second) {
+      if (current->key != expect[idx].first ||
+          current->value != expect[idx].second) {
         return false;
       } else {
         idx++;

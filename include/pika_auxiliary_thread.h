@@ -7,7 +7,6 @@
 #define PIKA_AUXILIARY_THREAD_H_
 
 #include "net/include/net_thread.h"
-
 #include "pstd/include/pstd_mutex.h"
 
 class PikaAuxiliaryThread : public net::Thread {

@@ -13,9 +13,10 @@
 
 /*
  * ***********************************************Type First Binlog Item
- * Format*********************************************** | <Type> | <Create Time> | <Server Id> | <Binlog Logic Id> |
- * <File Num> | <Offset> | <Content Length> |      <Content>     | 2 Bytes      4 Bytes        4 Bytes          8 Bytes
- * 4 Bytes     8 Bytes         4 Bytes      content length Bytes
+ * Format*********************************************** | <Type> | <Create
+ * Time> | <Server Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content
+ * Length> |      <Content>     | 2 Bytes      4 Bytes        4 Bytes          8
+ * Bytes 4 Bytes     8 Bytes         4 Bytes      content length Bytes
  *
  */
 enum BinlogType {
@@ -24,7 +25,13 @@ enum BinlogType {
 
 class BinlogItem {
  public:
-  BinlogItem() : exec_time_(0), server_id_(0), logic_id_(0), filenum_(0), offset_(0), content_("") {}
+  BinlogItem()
+      : exec_time_(0),
+        server_id_(0),
+        logic_id_(0),
+        filenum_(0),
+        offset_(0),
+        content_("") {}
 
   friend class PikaBinlogTransverter;
 
@@ -55,11 +62,14 @@ class BinlogItem {
 class PikaBinlogTransverter {
  public:
   PikaBinlogTransverter(){};
-  static std::string BinlogEncode(BinlogType type, uint32_t exec_time, uint32_t server_id, uint64_t logic_id,
-                                  uint32_t filenum, uint64_t offset, const std::string& content,
+  static std::string BinlogEncode(BinlogType type, uint32_t exec_time,
+                                  uint32_t server_id, uint64_t logic_id,
+                                  uint32_t filenum, uint64_t offset,
+                                  const std::string& content,
                                   const std::vector<std::string>& extends);
 
-  static bool BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item);
+  static bool BinlogDecode(BinlogType type, const std::string& binlog,
+                           BinlogItem* binlog_item);
 };
 
 #endif

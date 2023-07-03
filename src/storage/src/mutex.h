@@ -8,9 +8,8 @@
 
 #include <memory>
 
-#include "rocksdb/status.h"
-
 #include "pstd/include/mutex.h"
+#include "rocksdb/status.h"
 
 namespace storage {
 

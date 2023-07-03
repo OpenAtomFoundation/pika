@@ -20,23 +20,28 @@ namespace storage {
 class BaseMetaFilter : public rocksdb::CompactionFilter {
  public:
   BaseMetaFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
-              bool* value_changed) const override {
+  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value,
+              std::string* new_value, bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     auto cur_time = static_cast<int32_t>(unix_time);
     ParsedBaseMetaValue parsed_base_meta_value(value);
     TRACE("==========================START==========================");
-    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
-          parsed_base_meta_value.count(), parsed_base_meta_value.timestamp(), cur_time,
-          parsed_base_meta_value.version());
+    TRACE(
+        "[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, "
+        "version: %d",
+        key.ToString().c_str(), parsed_base_meta_value.count(),
+        parsed_base_meta_value.timestamp(), cur_time,
+        parsed_base_meta_value.version());
 
-    if (parsed_base_meta_value.timestamp() != 0 && parsed_base_meta_value.timestamp() < cur_time &&
+    if (parsed_base_meta_value.timestamp() != 0 &&
+        parsed_base_meta_value.timestamp() < cur_time &&
         parsed_base_meta_value.version() < cur_time) {
       TRACE("Drop[Stale & version < cur_time]");
       return true;
     }
-    if (parsed_base_meta_value.count() == 0 && parsed_base_meta_value.version() < cur_time) {
+    if (parsed_base_meta_value.count() == 0 &&
+        parsed_base_meta_value.version() < cur_time) {
       TRACE("Drop[Empty & version < cur_time]");
       return true;
     }
@@ -59,17 +64,18 @@ class BaseMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 
 class BaseDataFilter : public rocksdb::CompactionFilter {
  public:
-  BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
-      : db_(db),
-        cf_handles_ptr_(cf_handles_ptr)
-        {}
+  BaseDataFilter(rocksdb::DB* db,
+                 std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
+      : db_(db), cf_handles_ptr_(cf_handles_ptr) {}
 
-  bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
-              bool* value_changed) const override {
+  bool Filter(int level, const Slice& key, const rocksdb::Slice& value,
+              std::string* new_value, bool* value_changed) const override {
     ParsedBaseDataKey parsed_base_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
-          parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.version());
+    TRACE("[DataFilter], key: %s, data = %s, version = %d",
+          parsed_base_data_key.key().ToString().c_str(),
+          parsed_base_data_key.data().ToString().c_str(),
+          parsed_base_data_key.version());
 
     if (parsed_base_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_base_data_key.key().ToString();
@@ -78,7 +84,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       if (cf_handles_ptr_->empty()) {
         return false;
       }
-      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
+      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0],
+                          cur_key_, &meta_value);
       if (s.ok()) {
         meta_not_found_ = false;
         ParsedBaseMetaValue parsed_base_meta_value(&meta_value);
@@ -100,7 +107,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (cur_meta_timestamp_ != 0 && cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
+    if (cur_meta_timestamp_ != 0 &&
+        cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;
     }
@@ -128,11 +136,13 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
 
 class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+  BaseDataFilterFactory(rocksdb::DB** db_ptr,
+                        std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
-    return std::unique_ptr<rocksdb::CompactionFilter>(new BaseDataFilter(*db_ptr_, cf_handles_ptr_));
+    return std::unique_ptr<rocksdb::CompactionFilter>(
+        new BaseDataFilter(*db_ptr_, cf_handles_ptr_));
   }
   const char* Name() const override { return "BaseDataFilterFactory"; }
 

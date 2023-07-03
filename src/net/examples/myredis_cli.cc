@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include <atomic>
 #include <map>
 #include <thread>
@@ -15,7 +16,8 @@ using namespace net;
 
 class MyConn : public RedisConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread,
+         void* worker_specific_data);
   virtual ~MyConn() = default;
 
  protected:
@@ -24,7 +26,8 @@ class MyConn : public RedisConn {
  private:
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread,
+               void* worker_specific_data)
     : RedisConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
@@ -41,10 +44,12 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data,
-                                              net::NetMultiplexer* net_epoll = nullptr) const override {
-    return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data,
+      net::NetMultiplexer* net_epoll = nullptr) const override {
+    return std::make_shared<MyConn>(connfd, ip_port, thread,
+                                    worker_specific_data);
   }
 };
 
@@ -56,7 +61,8 @@ class MyClientHandle : public net::ClientHandle {
   bool AccessHandle(std::string& ip) const override { return true; }
   int CreateWorkerSpecificData(void** data) const override { return 0; }
   int DeleteWorkerSpecificData(void* data) const override { return 0; }
-  void DestConnectFailedHandle(std::string ip_port, std::string reason) const override {}
+  void DestConnectFailedHandle(std::string ip_port,
+                               std::string reason) const override {}
 };
 
 static std::atomic<bool> running(false);
@@ -99,7 +105,8 @@ int main(int argc, char* argv[]) {
   //"handle" will be deleted within "client->StopThread()"
   ClientHandle* handle = new ClientHandle();
 
-  client = std::make_unique<ClientThread>(conn_factory.get(), 3000, 60, handle, nullptr);
+  client = std::make_unique<ClientThread>(conn_factory.get(), 3000, 60, handle,
+                                          nullptr);
 
   if (client->StartThread() != 0) {
     printf("StartThread error happened!\n");

@@ -33,25 +33,29 @@ struct NetCli::Rep {
 
   Rep() = default;
 
-  Rep(std::string  ip, int port) : peer_ip(std::move(ip)),peer_port(port) {}
+  Rep(std::string ip, int port) : peer_ip(std::move(ip)), peer_port(port) {}
 };
 
-NetCli::NetCli(const std::string& ip, const int port) : rep_(std::make_unique<Rep>(ip, port)) {}
+NetCli::NetCli(const std::string& ip, const int port)
+    : rep_(std::make_unique<Rep>(ip, port)) {}
 
 NetCli::~NetCli() { Close(); }
 
 bool NetCli::Available() const { return rep_->available; }
 
-Status NetCli::Connect(const std::string& bind_ip) { return Connect(rep_->peer_ip, rep_->peer_port, bind_ip); }
+Status NetCli::Connect(const std::string& bind_ip) {
+  return Connect(rep_->peer_ip, rep_->peer_port, bind_ip);
+}
 
-Status NetCli::Connect(const std::string& ip, const int port, const std::string& bind_ip) {
+Status NetCli::Connect(const std::string& ip, const int port,
+                       const std::string& bind_ip) {
   std::unique_ptr<Rep>& r = rep_;
   Status s;
   int rv;
   char cport[6];
   struct addrinfo hints;
-  struct addrinfo *servinfo;
-  struct addrinfo *p;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   snprintf(cport, sizeof(cport), "%d", port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -62,7 +66,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
     return Status::IOError("connect getaddrinfo error for ", ip);
   }
   for (p = servinfo; p != nullptr; p = p->ai_next) {
-    if ((r->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+    if ((r->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==
+        -1) {
       continue;
     }
 
@@ -72,7 +77,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
       localaddr.sin_family = AF_INET;
       localaddr.sin_addr.s_addr = inet_addr(bind_ip.c_str());
       localaddr.sin_port = 0;  // Any local port will do
-      if (bind(r->sockfd, reinterpret_cast<struct sockaddr*>(&localaddr), sizeof(localaddr)) < 0) {
+      if (bind(r->sockfd, reinterpret_cast<struct sockaddr*>(&localaddr),
+               sizeof(localaddr)) < 0) {
         close(r->sockfd);
         continue;
       }
@@ -86,7 +92,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
       if (errno == EHOSTUNREACH) {
         close(r->sockfd);
         continue;
-      } else if (errno == EINPROGRESS || errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (errno == EINPROGRESS || errno == EAGAIN ||
+                 errno == EWOULDBLOCK) {
         struct pollfd wfd[1];
 
         wfd[0].fd = r->sockfd;
@@ -108,7 +115,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
         if (getsockopt(r->sockfd, SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
           close(r->sockfd);
           freeaddrinfo(servinfo);
-          return Status::IOError("EHOSTUNREACH", "connect host getsockopt error");
+          return Status::IOError("EHOSTUNREACH",
+                                 "connect host getsockopt error");
         }
 
         if (val != 0) {
@@ -119,7 +127,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
       } else {
         close(r->sockfd);
         freeaddrinfo(servinfo);
-        return Status::IOError("EHOSTUNREACH", "The target host cannot be reached");
+        return Status::IOError("EHOSTUNREACH",
+                               "The target host cannot be reached");
       }
     }
 
@@ -272,15 +281,19 @@ void NetCli::Close() {
   }
 }
 
-void NetCli::set_connect_timeout(int connect_timeout) { rep_->connect_timeout = connect_timeout; }
+void NetCli::set_connect_timeout(int connect_timeout) {
+  rep_->connect_timeout = connect_timeout;
+}
 
 int NetCli::set_send_timeout(int send_timeout) {
   std::unique_ptr<Rep>& r = rep_;
   int ret = 0;
   if (send_timeout > 0) {
     r->send_timeout = send_timeout;
-    struct timeval timeout = {r->send_timeout / 1000, (r->send_timeout % 1000) * 1000};
-    ret = setsockopt(r->sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    struct timeval timeout = {r->send_timeout / 1000,
+                              (r->send_timeout % 1000) * 1000};
+    ret = setsockopt(r->sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+                     sizeof(timeout));
   }
   return ret;
 }
@@ -290,8 +303,10 @@ int NetCli::set_recv_timeout(int recv_timeout) {
   int ret = 0;
   if (recv_timeout > 0) {
     r->recv_timeout = recv_timeout;
-    struct timeval timeout = {r->recv_timeout / 1000, (r->recv_timeout % 1000) * 1000};
-    ret = setsockopt(r->sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    struct timeval timeout = {r->recv_timeout / 1000,
+                              (r->recv_timeout % 1000) * 1000};
+    ret = setsockopt(r->sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                     sizeof(timeout));
   }
   return ret;
 }

@@ -7,6 +7,7 @@
 #define PIKA_DEFINE_H_
 
 #include <glog/logging.h>
+
 #include "net/include/redis_cli.h"
 
 #define PIKA_SYNC_BUFFER_SIZE 10
@@ -53,7 +54,10 @@ struct BinlogOffset {
     filenum = other.filenum;
     offset = other.offset;
   }
-  std::string ToString() const { return "filenum: " + std::to_string(filenum) + " offset: " + std::to_string(offset); }
+  std::string ToString() const {
+    return "filenum: " + std::to_string(filenum) +
+           " offset: " + std::to_string(offset);
+  }
   bool operator==(const BinlogOffset& other) const {
     if (filenum == other.filenum && offset == other.offset) {
       return true;
@@ -69,9 +73,13 @@ struct DBSyncArg {
   int port;
   std::string table_name;
   uint32_t partition_id;
-  DBSyncArg(PikaServer* const _p, const std::string& _ip, int _port, const std::string& _table_name,
-            uint32_t _partition_id)
-      : p(_p), ip(_ip), port(_port), table_name(_table_name), partition_id(_partition_id) {}
+  DBSyncArg(PikaServer* const _p, const std::string& _ip, int _port,
+            const std::string& _table_name, uint32_t _partition_id)
+      : p(_p),
+        ip(_ip),
+        port(_port),
+        table_name(_table_name),
+        partition_id(_partition_id) {}
 };
 
 // rm define
@@ -83,7 +91,8 @@ enum SlaveState {
 };
 
 // debug only
-const std::string SlaveStateMsg[] = {"kSlaveNotSync", "kSlaveDbSync", "kSlaveBinlogSync"};
+const std::string SlaveStateMsg[] = {"kSlaveNotSync", "kSlaveDbSync",
+                                     "kSlaveBinlogSync"};
 
 enum BinlogSyncState {
   kNotSync = 0,
@@ -92,12 +101,14 @@ enum BinlogSyncState {
 };
 
 // debug only
-const std::string BinlogSyncStateMsg[] = {"kNotSync", "kReadFromCache", "kReadFromFile"};
+const std::string BinlogSyncStateMsg[] = {"kNotSync", "kReadFromCache",
+                                          "kReadFromFile"};
 
 struct BinlogChip {
   BinlogOffset offset_;
   std::string binlog_;
-  BinlogChip(BinlogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {}
+  BinlogChip(BinlogOffset offset, std::string binlog)
+      : offset_(offset), binlog_(binlog) {}
   BinlogChip(const BinlogChip& binlog_chip) {
     offset_ = binlog_chip.offset_;
     binlog_ = binlog_chip.binlog_;
@@ -113,19 +124,23 @@ struct PartitionInfo {
   }
   PartitionInfo() : partition_id_(0) {}
   bool operator==(const PartitionInfo& other) const {
-    if (table_name_ == other.table_name_ && partition_id_ == other.partition_id_) {
+    if (table_name_ == other.table_name_ &&
+        partition_id_ == other.partition_id_) {
       return true;
     }
     return false;
   }
-  std::string ToString() const { return table_name_ + "_" + std::to_string(partition_id_); }
+  std::string ToString() const {
+    return table_name_ + "_" + std::to_string(partition_id_);
+  }
   std::string table_name_;
   uint32_t partition_id_;
 };
 
 struct hash_partition_info {
   size_t operator()(const PartitionInfo& n) const {
-    return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
+    return std::hash<std::string>()(n.table_name_) ^
+           std::hash<uint32_t>()(n.partition_id_);
   }
 };
 
@@ -146,16 +161,22 @@ class Node {
 class RmNode : public Node {
  public:
   RmNode(const std::string& ip, int port, const PartitionInfo& partition_info)
-      : Node(ip, port), partition_info_(partition_info), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
+      : Node(ip, port),
+        partition_info_(partition_info),
+        session_id_(0),
+        last_send_time_(0),
+        last_recv_time_(0) {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id)
+  RmNode(const std::string& ip, int port, const std::string& table_name,
+         uint32_t partition_id)
       : Node(ip, port),
         partition_info_(table_name, partition_id),
         session_id_(0),
         last_send_time_(0),
         last_recv_time_(0) {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int32_t session_id)
+  RmNode(const std::string& ip, int port, const std::string& table_name,
+         uint32_t partition_id, int32_t session_id)
       : Node(ip, port),
         partition_info_(table_name, partition_id),
         session_id_(session_id),
@@ -163,11 +184,16 @@ class RmNode : public Node {
         last_recv_time_(0) {}
 
   RmNode(const std::string& table_name, uint32_t partition_id)
-      : Node(), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
+      : Node(),
+        partition_info_(table_name, partition_id),
+        session_id_(0),
+        last_send_time_(0),
+        last_recv_time_(0) {}
 
   virtual ~RmNode() = default;
   bool operator==(const RmNode& other) const {
-    if (partition_info_.table_name_ == other.TableName() && partition_info_.partition_id_ == other.PartitionId() &&
+    if (partition_info_.table_name_ == other.TableName() &&
+        partition_info_.partition_id_ == other.PartitionId() &&
         Ip() == other.Ip() && Port() == other.Port()) {
       return true;
     }
@@ -180,12 +206,17 @@ class RmNode : public Node {
   void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "partition=" + TableName() + "_" + std::to_string(PartitionId()) + ",ip_port=" + Ip() + ":" +
-           std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
+    return "partition=" + TableName() + "_" + std::to_string(PartitionId()) +
+           ",ip_port=" + Ip() + ":" + std::to_string(Port()) +
+           ",session id=" + std::to_string(SessionId());
   }
-  void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
+  void SetLastSendTime(uint64_t last_send_time) {
+    last_send_time_ = last_send_time;
+  }
   uint64_t LastSendTime() const { return last_send_time_; }
-  void SetLastRecvTime(uint64_t last_recv_time) { last_recv_time_ = last_recv_time; }
+  void SetLastRecvTime(uint64_t last_recv_time) {
+    last_recv_time_ = last_recv_time;
+  }
   uint64_t LastRecvTime() const { return last_recv_time_; }
 
  private:
@@ -197,7 +228,8 @@ class RmNode : public Node {
 
 struct hash_rm_node {
   size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.TableName()) ^ std::hash<uint32_t>()(n.PartitionId()) ^
+    return std::hash<std::string>()(n.TableName()) ^
+           std::hash<uint32_t>()(n.PartitionId()) ^
            std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
   }
 };
@@ -205,7 +237,8 @@ struct hash_rm_node {
 struct WriteTask {
   struct RmNode rm_node_;
   struct BinlogChip binlog_chip_;
-  WriteTask(RmNode rm_node, BinlogChip binlog_chip) : rm_node_(rm_node), binlog_chip_(binlog_chip) {}
+  WriteTask(RmNode rm_node, BinlogChip binlog_chip)
+      : rm_node_(rm_node), binlog_chip_(binlog_chip) {}
 };
 
 // slowlog define

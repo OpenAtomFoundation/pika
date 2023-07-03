@@ -1,15 +1,15 @@
-#include <glog/logging.h>
-
-#include "include/pika_command.h"
-#include "include/pika_conf.h"
-#include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
-#include "include/pika_server.h"
-#include "include/pika_slot_command.h"
+
+#include <glog/logging.h>
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
+#include "include/pika_conf.h"
+#include "include/pika_define.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "include/pika_slot_command.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
@@ -58,7 +58,8 @@ static int doAuth(net::NetCli *cli) {
     return -1;
   }
   pstd::StringToLower(argv[0]);
-  if (argv[0] != "ok" && argv[0] != "pong" && argv[0].find("no password") == std::string::npos) {
+  if (argv[0] != "ok" && argv[0] != "pong" &&
+      argv[0].find("no password") == std::string::npos) {
     LOG(WARNING) << "Slot Migrate auth error: " << argv[0];
     return -1;
   }
@@ -66,7 +67,8 @@ static int doAuth(net::NetCli *cli) {
 }
 
 // get kv key value
-static int kvGet(const std::string key, std::string &value, const std::shared_ptr<Slot>& slot) {
+static int kvGet(const std::string key, std::string &value,
+                 const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s = slot->db()->Get(key, &value);
   if (!s.ok()) {
     if (s.IsNotFound()) {
@@ -82,14 +84,16 @@ static int kvGet(const std::string key, std::string &value, const std::shared_pt
   return 0;
 }
 
-static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataType data_type,
-                         const std::shared_ptr<Slot>& slot) {
+static int migrateKeyTTl(net::NetCli *cli, const std::string key,
+                         storage::DataType data_type,
+                         const std::shared_ptr<Slot> &slot) {
   net::RedisCmdArgsType argv;
   std::string send_str;
   std::map<storage::DataType, int64_t> type_timestamp;
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = slot->db()->TTL(key, &type_status);
-  if (PIKA_TTL_ZERO == type_timestamp[data_type] || PIKA_TTL_STALE == type_timestamp[data_type]) {
+  if (PIKA_TTL_ZERO == type_timestamp[data_type] ||
+      PIKA_TTL_STALE == type_timestamp[data_type]) {
     argv.push_back("del");
     argv.push_back(key);
     net::SerializeRedisCommand(argv, &send_str);
@@ -111,21 +115,24 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataT
 }
 
 // get set key all values
-static int setGetall(const std::string key, std::vector<std::string> *members, const std::shared_ptr<Slot>& slot) {
+static int setGetall(const std::string key, std::vector<std::string> *members,
+                     const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s = slot->db()->SMembers(key, members);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(WARNING) << "Set get key: " << key << " value not found ";
       return 0;
     } else {
-      LOG(WARNING) << "Set get key: " << key << " value error: " << s.ToString();
+      LOG(WARNING) << "Set get key: " << key
+                   << " value error: " << s.ToString();
       return -1;
     }
   }
   return 1;
 }
 
-static int MigrateKv(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
+static int MigrateKv(net::NetCli *cli, const std::string key,
+                     const std::shared_ptr<Slot> &slot) {
   std::string value;
   rocksdb::Status s = slot->db()->Get(key, &value);
   if (!s.ok()) {
@@ -162,14 +169,16 @@ static int MigrateKv(net::NetCli *cli, const std::string key, const std::shared_
   return send_num;
 }
 
-static int MigrateHash(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
+static int MigrateHash(net::NetCli *cli, const std::string key,
+                       const std::shared_ptr<Slot> &slot) {
   int send_num = 0;
   int64_t cursor = 0;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s;
 
   do {
-    s = slot->db()->HScan(key, cursor, "*", MAX_MEMBERS_NUM, &field_values, &cursor);
+    s = slot->db()->HScan(key, cursor, "*", MAX_MEMBERS_NUM, &field_values,
+                          &cursor);
     if (s.ok() && field_values.size() > 0) {
       net::RedisCmdArgsType argv;
       std::string send_str;
@@ -200,7 +209,8 @@ static int MigrateHash(net::NetCli *cli, const std::string key, const std::share
   return send_num;
 }
 
-static int MigrateList(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
+static int MigrateList(net::NetCli *cli, const std::string key,
+                       const std::shared_ptr<Slot> &slot) {
   // del old key, before migrate list; prevent redo when failed
   int send_num = 0;
   net::RedisCmdArgsType argv;
@@ -224,7 +234,8 @@ static int MigrateList(net::NetCli *cli, const std::string key, const std::share
       argv.push_back("RPUSH");
       argv.push_back(key);
 
-      for (int i = 0; iter != values.end() && i < MAX_MEMBERS_NUM; ++iter, ++i) {
+      for (int i = 0; iter != values.end() && i < MAX_MEMBERS_NUM;
+           ++iter, ++i) {
         argv.push_back(*iter);
       }
 
@@ -250,7 +261,8 @@ static int MigrateList(net::NetCli *cli, const std::string key, const std::share
   return send_num;
 }
 
-static int MigrateSet(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
+static int MigrateSet(net::NetCli *cli, const std::string key,
+                      const std::shared_ptr<Slot> &slot) {
   int send_num = 0;
   int64_t cursor = 0;
   std::vector<std::string> members;
@@ -288,14 +300,16 @@ static int MigrateSet(net::NetCli *cli, const std::string key, const std::shared
   return send_num;
 }
 
-static int MigrateZset(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
+static int MigrateZset(net::NetCli *cli, const std::string key,
+                       const std::shared_ptr<Slot> &slot) {
   int send_num = 0;
   int64_t cursor = 0;
   std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s;
 
   do {
-    s = slot->db()->ZScan(key, cursor, "*", MAX_MEMBERS_NUM, &score_members, &cursor);
+    s = slot->db()->ZScan(key, cursor, "*", MAX_MEMBERS_NUM, &score_members,
+                          &cursor);
     if (s.ok() && score_members.size() > 0) {
       net::RedisCmdArgsType argv;
       std::string send_str;
@@ -328,14 +342,16 @@ static int MigrateZset(net::NetCli *cli, const std::string key, const std::share
 }
 
 // get list key all values
-static int listGetall(const std::string key, std::vector<std::string> *values, const std::shared_ptr<Slot>& slot) {
+static int listGetall(const std::string key, std::vector<std::string> *values,
+                      const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s = slot->db()->LRange(key, 0, -1, values);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(WARNING) << "List get key: " << key << " value not found ";
       return 0;
     } else {
-      LOG(WARNING) << "List get key: " << key << " value error: " << s.ToString();
+      LOG(WARNING) << "List get key: " << key
+                   << " value error: " << s.ToString();
       return -1;
     }
   }
@@ -343,7 +359,8 @@ static int listGetall(const std::string key, std::vector<std::string> *values, c
 }
 
 // migrate one list key
-static int migrateList(net::NetCli *cli, const std::string key, bool async, const std::shared_ptr<Slot>& slot) {
+static int migrateList(net::NetCli *cli, const std::string key, bool async,
+                       const std::shared_ptr<Slot> &slot) {
   int r, ret = 0;
   std::vector<std::string> values;
   if (listGetall(key, &values, slot) < 0) {
@@ -359,13 +376,15 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, cons
   for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
     if (i > 0) {
       LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+                   << " migrated value: "
+                   << min((i + 1) * MaxKeySendSize, keySize);
     }
     argv.clear();
     send_str = "";
     argv.push_back("lpush");
     argv.push_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
+    for (size_t j = i * MaxKeySendSize;
+         j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
       argv.push_back(values[j]);
     }
     net::SerializeRedisCommand(argv, &send_str);
@@ -383,12 +402,14 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, cons
   }
 
   if (!async) {
-    DeleteKey(key, 'l', slot);  // key already been migrated successfully, del error doesn't matter
+    DeleteKey(key, 'l', slot);  // key already been migrated successfully, del
+                                // error doesn't matter
   }
   return ret;
 }
 
-PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot)
+PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread,
+                                         const std::shared_ptr<Slot> &slot)
     : dest_ip_("none"),
       dest_port_(-1),
       timeout_ms_(3000),
@@ -410,7 +431,8 @@ PikaParseSendThread::~PikaParseSendThread() {
   }
 }
 
-bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num) {
+bool PikaParseSendThread::Init(const std::string &ip, int64_t port,
+                               int64_t timeout_ms, int64_t mgrtkeys_num) {
   dest_ip_ = ip;
   dest_port_ = port;
   timeout_ms_ = timeout_ms;
@@ -420,11 +442,13 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
   cli_->set_connect_timeout(timeout_ms_);
   cli_->set_send_timeout(timeout_ms_);
   cli_->set_recv_timeout(timeout_ms_);
-  LOG(INFO) << "PikaParseSendThread init cli_, dest_ip_: " << dest_ip_ << " ,dest_port_: " << dest_port_;
-  pstd::Status result = cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
+  LOG(INFO) << "PikaParseSendThread init cli_, dest_ip_: " << dest_ip_
+            << " ,dest_port_: " << dest_port_;
+  pstd::Status result =
+      cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
   if (!result.ok()) {
-    LOG(ERROR) << "PikaParseSendThread::Init failed. Connect server(" << dest_ip_ << ":" << dest_port_ << ") "
-              << result.ToString();
+    LOG(ERROR) << "PikaParseSendThread::Init failed. Connect server("
+               << dest_ip_ << ":" << dest_port_ << ") " << result.ToString();
     return false;
   }
 
@@ -440,7 +464,8 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
 
 void PikaParseSendThread::ExitThread(void) { should_exit_ = true; }
 
-int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async) {
+int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key,
+                                       const char key_type, bool async) {
   int send_num;
   switch (key_type) {
     case 'k':
@@ -475,8 +500,9 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string key, 
   return send_num;
 }
 
-void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys,
-                                                const std::shared_ptr<Slot>& slot) {
+void PikaParseSendThread::DelKeysAndWriteBinlog(
+    std::deque<std::pair<const char, std::string>> &send_keys,
+    const std::shared_ptr<Slot> &slot) {
   for (auto iter = send_keys.begin(); iter != send_keys.end(); ++iter) {
     DeleteKey(iter->second, iter->first, slot);
     WriteDelKeyToBinlog(iter->second, slot);
@@ -484,15 +510,18 @@ void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char,
 }
 
 // write del key to binlog for slave
-void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot) {
+void WriteDelKeyToBinlog(const std::string &key,
+                         const std::shared_ptr<Slot> &slot) {
   std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("del");
-  std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
+  std::unique_ptr<PikaCmdArgsType> args =
+      std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
   args->push_back("DEL");
   args->push_back(key);
   cmd_ptr->Initial(*args, slot->GetDBName());
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
+      g_pika_rm->GetSyncMasterSlotByName(
+          SlotInfo(slot->GetDBName(), slot->GetSlotID()));
   Status s = sync_slot->ConsensusProposeLog(cmd_ptr);
   if (!s.ok()) {
     LOG(ERROR) << "write delete key to binlog failed, key: " << key;
@@ -505,7 +534,8 @@ bool PikaParseSendThread::CheckMigrateRecv(int64_t need_receive_num) {
     pstd::Status s;
     s = cli_->Recv(&argv);
     if (!s.ok()) {
-      LOG(ERROR) << "PikaParseSendThread::CheckMigrateRecv Recv error: " << s.ToString();
+      LOG(ERROR) << "PikaParseSendThread::CheckMigrateRecv Recv error: "
+                 << s.ToString();
       return false;
     }
 
@@ -518,10 +548,12 @@ bool PikaParseSendThread::CheckMigrateRecv(int64_t need_receive_num) {
     std::string reply = argv[0];
     int64_t ret;
     if (1 == argv.size() &&
-        (kInnerReplOk == pstd::StringToLower(reply) || pstd::string2int(reply.data(), reply.size(), &ret))) {
+        (kInnerReplOk == pstd::StringToLower(reply) ||
+         pstd::string2int(reply.data(), reply.size(), &ret))) {
       continue;
     } else {
-      LOG(ERROR) << "PikaParseSendThread::CheckMigrateRecv reply error: " << reply;
+      LOG(ERROR) << "PikaParseSendThread::CheckMigrateRecv reply error: "
+                 << reply;
       return false;
     }
   }
@@ -538,7 +570,8 @@ void *PikaParseSendThread::ThreadMain() {
       }
 
       if (should_exit_) {
-        LOG(INFO) << "PikaParseSendThread::ThreadMain :" << pthread_self() << " exit !!!";
+        LOG(INFO) << "PikaParseSendThread::ThreadMain :" << pthread_self()
+                  << " exit !!!";
         return NULL;
       }
 
@@ -556,8 +589,10 @@ void *PikaParseSendThread::ThreadMain() {
     int64_t need_receive_num = 0;
     int32_t migrate_keys_num = 0;
     for (auto iter = send_keys.begin(); iter != send_keys.end(); ++iter) {
-      if (0 > (send_num = MigrateOneKey(cli_, iter->second, iter->first, false))) {
-        LOG(WARNING) << "PikaParseSendThread::ThreadMain MigrateOneKey: " << iter->second << " failed !!!";
+      if (0 >
+          (send_num = MigrateOneKey(cli_, iter->second, iter->first, false))) {
+        LOG(WARNING) << "PikaParseSendThread::ThreadMain MigrateOneKey: "
+                     << iter->second << " failed !!!";
         migrate_thread_->OnTaskFailed();
         migrate_thread_->DecWorkingThreadNum();
         return NULL;
@@ -613,14 +648,17 @@ PikaMigrateThread::~PikaMigrateThread() {
   }
 }
 
-bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_id,
-                                        int64_t keys_num, const std::shared_ptr<Slot>& slot) {
+bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port,
+                                        int64_t time_out, int64_t slot_id,
+                                        int64_t keys_num,
+                                        const std::shared_ptr<Slot> &slot) {
   if (migrator_mutex_.try_lock()) {
     if (is_migrating_) {
       if (dest_ip_ != ip || dest_port_ != port || slot_id_ != slot_id) {
-        LOG(INFO) << "PikaMigrateThread::ReqMigrate current: " << dest_ip_ << ":" << dest_port_ << " slot[" << slot_id_
-                  << "]"
-                  << "request: " << ip << ":" << port << " slot[" << slot << "]";
+        LOG(INFO) << "PikaMigrateThread::ReqMigrate current: " << dest_ip_
+                  << ":" << dest_port_ << " slot[" << slot_id_ << "]"
+                  << "request: " << ip << ":" << port << " slot[" << slot
+                  << "]";
         migrator_mutex_.unlock();
         return false;
       }
@@ -658,7 +696,8 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
   return false;
 }
 
-int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot) {
+int PikaMigrateThread::ReqMigrateOne(const std::string &key,
+                                     const std::shared_ptr<Slot> &slot) {
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(key);
@@ -667,10 +706,12 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
   rocksdb::Status s = slot->db()->GetType(key, true, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
-      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " not found";
+      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key
+                << " not found";
       return 0;
     } else {
-      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " error: " << strerror(errno);
+      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key
+                   << " error: " << strerror(errno);
       return -1;
     }
   }
@@ -688,12 +729,14 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
   } else if (type_str[0] == "none") {
     return 0;
   } else {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key
+                 << " type: " << type_str[0] << " is  illegal";
     return -1;
   }
 
   if (slot_id != slot_id_) {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id
+                 << " is not the migrating slot:" << slot_id_;
     return -2;
   }
 
@@ -715,7 +758,8 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
     // check the key is migrating
     std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
     if (IsMigrating(kpair)) {
-      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " is migrating ! ";
+      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key
+                << " is migrating ! ";
       return 1;
     } else {
       std::unique_lock lo(mgrtone_queue_mutex_);
@@ -727,8 +771,9 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
   return 1;
 }
 
-void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
-                                         int64_t *remained) {
+void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port,
+                                         int64_t *slot, bool *migrating,
+                                         int64_t *moved, int64_t *remained) {
   std::unique_lock lm(migrator_mutex_);
   // todo for sure
   if (!is_migrating_) {
@@ -777,7 +822,9 @@ void PikaMigrateThread::OnTaskFailed() {
   is_task_success_ = false;
 }
 
-void PikaMigrateThread::AddResponseNum(int32_t response_num) { response_num_ += response_num; }
+void PikaMigrateThread::AddResponseNum(int32_t response_num) {
+  response_num_ += response_num;
+}
 
 void PikaMigrateThread::ResetThread(void) {
   if (0 != thread_id()) {
@@ -800,7 +847,8 @@ void PikaMigrateThread::DestroyThread(bool is_self_exit) {
     std::unique_lock lq(mgrtkeys_queue_mutex_);
     std::unique_lock lm(mgrtkeys_map_mutex_);
     std::deque<std::pair<const char, std::string>>().swap(mgrtkeys_queue_);
-    std::map<std::pair<const char, std::string>, std::string>().swap(mgrtkeys_map_);
+    std::map<std::pair<const char, std::string>, std::string>().swap(
+        mgrtkeys_map_);
   }
 
   cursor_ = 0;
@@ -819,7 +867,8 @@ bool PikaMigrateThread::IsMigrating(std::pair<const char, std::string> &kpair) {
   std::unique_lock lo(mgrtone_queue_mutex_);
   std::unique_lock lm(mgrtkeys_map_mutex_);
 
-  for (auto iter = mgrtone_queue_.begin(); iter != mgrtone_queue_.end(); ++iter) {
+  for (auto iter = mgrtone_queue_.begin(); iter != mgrtone_queue_.end();
+       ++iter) {
     if (iter->first == kpair.first && iter->second == kpair.second) {
       return true;
     }
@@ -833,15 +882,17 @@ bool PikaMigrateThread::IsMigrating(std::pair<const char, std::string> &kpair) {
   return false;
 }
 
-void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey, int64_t need_read_num, int64_t &real_read_num,
-                                     int32_t *finish) {
+void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey,
+                                     int64_t need_read_num,
+                                     int64_t &real_read_num, int32_t *finish) {
   real_read_num = 0;
   std::string key;
   char key_type;
   int32_t is_member = 0;
   std::vector<std::string> members;
 
-  rocksdb::Status s = slot_->db()->SScan(slotKey, cursor_, "*", need_read_num, &members, &cursor_);
+  rocksdb::Status s = slot_->db()->SScan(slotKey, cursor_, "*", need_read_num,
+                                         &members, &cursor_);
   if (s.ok() && 0 < members.size()) {
     for (const auto &member : members) {
       slot_->db()->SIsmember(slotKey, member, &is_member);
@@ -849,14 +900,16 @@ void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey, int64_t need_re
         key = member;
         key_type = key.at(0);
         key.erase(key.begin());
-        std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
+        std::pair<const char, std::string> kpair =
+            std::make_pair(key_type, key);
         if (mgrtkeys_map_.find(kpair) == mgrtkeys_map_.end()) {
           mgrtkeys_queue_.push_back(kpair);
           mgrtkeys_map_[kpair] = INVALID_STR;
           ++real_read_num;
         }
       } else {
-        LOG(INFO) << "PikaMigrateThread::ReadSlotKeys key " << member << " not found in" << slotKey;
+        LOG(INFO) << "PikaMigrateThread::ReadSlotKeys key " << member
+                  << " not found in" << slotKey;
       }
     }
   }
@@ -875,7 +928,9 @@ bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
     } else {
       int ret = worker->StartThread();
       if (0 != ret) {
-        LOG(INFO) << "PikaMigrateThread::CreateParseSendThreads start work thread failed ret=" << ret;
+        LOG(INFO) << "PikaMigrateThread::CreateParseSendThreads start work "
+                     "thread failed ret="
+                  << ret;
         delete worker;
         DestroyParseSendThreads();
         return false;
@@ -911,7 +966,8 @@ void *PikaMigrateThread::ThreadMain() {
   // Create parse_send_threads
   int32_t dispatch_num = g_pika_conf->thread_migrate_keys_num();
   if (!CreateParseSendThreads(dispatch_num)) {
-    LOG(INFO) << "PikaMigrateThread::ThreadMain CreateParseSendThreads failed !!!";
+    LOG(INFO)
+        << "PikaMigrateThread::ThreadMain CreateParseSendThreads failed !!!";
     DestroyThread(true);
     return NULL;
   }
@@ -930,7 +986,8 @@ void *PikaMigrateThread::ThreadMain() {
       request_migrate_ = false;
 
       if (should_exit_) {
-        LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit1 !!!";
+        LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self()
+                  << " exit1 !!!";
         DestroyThread(false);
         return NULL;
       }
@@ -956,7 +1013,9 @@ void *PikaMigrateThread::ThreadMain() {
           ++send_num_;
         }
       } else {
-        int64_t need_read_num = (0 < round_remained_keys - dispatch_num) ? dispatch_num : round_remained_keys;
+        int64_t need_read_num = (0 < round_remained_keys - dispatch_num)
+                                    ? dispatch_num
+                                    : round_remained_keys;
         ReadSlotKeys(slotKey, need_read_num, real_read_num, &is_finish);
         round_remained_keys -= need_read_num;
         send_num_ += real_read_num;
@@ -973,33 +1032,39 @@ void *PikaMigrateThread::ThreadMain() {
         workers_cond_.wait(lw);
       }
     }
-    LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;
+    LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_
+              << " response_num:" << response_num_;
 
     if (should_exit_) {
-      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit2 !!!";
+      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self()
+                << " exit2 !!!";
       DestroyThread(false);
       return NULL;
     }
 
     // check one round migrate task success
     if (!is_task_success_) {
-      LOG(ERROR) << "PikaMigrateThread::ThreadMain one round migrate task failed !!!";
+      LOG(ERROR)
+          << "PikaMigrateThread::ThreadMain one round migrate task failed !!!";
       DestroyThread(true);
       return NULL;
     } else {
       moved_num_ += response_num_;
 
       std::unique_lock lm(mgrtkeys_map_mutex_);
-      std::map<std::pair<const char, std::string>, std::string>().swap(mgrtkeys_map_);
+      std::map<std::pair<const char, std::string>, std::string>().swap(
+          mgrtkeys_map_);
     }
 
     // check slot migrate finish
     int32_t slot_remained_keys = 0;
     slot_->db()->SCard(slotKey, &slot_remained_keys);
     if (0 == slot_remained_keys) {
-      LOG(INFO) << "PikaMigrateThread::ThreadMain slot_size:" << slot_size << " moved_num:" << moved_num_;
+      LOG(INFO) << "PikaMigrateThread::ThreadMain slot_size:" << slot_size
+                << " moved_num:" << moved_num_;
       if (slot_size != moved_num_) {
-        LOG(ERROR) << "PikaMigrateThread::ThreadMain moved_num != slot_size !!!";
+        LOG(ERROR)
+            << "PikaMigrateThread::ThreadMain moved_num != slot_size !!!";
       }
       DestroyThread(true);
       return NULL;

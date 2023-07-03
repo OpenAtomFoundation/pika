@@ -6,15 +6,16 @@
 #define NET_THREAD_NAME_H
 
 #include <pthread.h>
+
 #include <string>
 
 namespace net {
 
 #if defined(__GLIBC__) && !defined(__APPLE__) && !defined(__ANDROID__)
-#  if __GLIBC_PREREQ(2, 12)
+#if __GLIBC_PREREQ(2, 12)
 // has pthread_setname_np(pthread_t, const char*) (2 params)
-#    define HAS_PTHREAD_SETNAME_NP 1
-#  endif
+#define HAS_PTHREAD_SETNAME_NP 1
+#endif
 #endif
 
 #ifdef HAS_PTHREAD_SETNAME_NP

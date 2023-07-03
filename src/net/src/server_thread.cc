@@ -7,16 +7,15 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <glog/logging.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 
-#include <glog/logging.h>
-
 #include "net/src/server_socket.h"
-#include "pstd/include/xdebug.h"
 #include "pstd/include/testutil.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -59,7 +58,8 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
   return raw_handle;
 }
 
-ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(int port, int cron_interval,
+                           const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -72,7 +72,8 @@ ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* hand
   ips_.insert("0.0.0.0");
 }
 
-ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(const std::string& bind_ip, int port,
+                           int cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -85,8 +86,8 @@ ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interv
   ips_.insert(bind_ip);
 }
 
-ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval,
-                           const ServerHandle* handle)
+ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port,
+                           int cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -133,7 +134,7 @@ int ServerThread::InitHandle() {
     ips_.insert("0.0.0.0");
   }
 
-  for (const auto & ip : ips_) {
+  for (const auto& ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
     ret = socket_p->Listen(ip);
@@ -150,7 +151,9 @@ int ServerThread::InitHandle() {
 
 void ServerThread::DoCronTask() {}
 
-void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) { UNUSED(pfe); }
+void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
+  UNUSED(pfe);
+}
 
 void* ServerThread::ThreadMain() {
   int nfds;
@@ -179,8 +182,10 @@ void* ServerThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec ||
+          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 +
+                  (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // Do own cron task as well as user's
         DoCronTask();
@@ -207,24 +212,29 @@ void* ServerThread::ThreadMain() {
        */
       if (server_fds_.find(fd) != server_fds_.end()) {
         if ((pfe->mask & kReadable) != 0) {
-          connfd = accept(fd, reinterpret_cast<struct sockaddr*>(&cliaddr), &clilen);
+          connfd =
+              accept(fd, reinterpret_cast<struct sockaddr*>(&cliaddr), &clilen);
           if (connfd == -1) {
-            LOG(WARNING) << "accept error, errno numberis " << errno << ", error reason " << strerror(errno);
+            LOG(WARNING) << "accept error, errno numberis " << errno
+                         << ", error reason " << strerror(errno);
             continue;
           }
           fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
 
           // not use nagel to avoid tcp 40ms delay
           if (SetTcpNoDelay(connfd) == -1) {
-            LOG(WARNING) << "setsockopt error, errno numberis " << errno << ", error reason " << strerror(errno);
+            LOG(WARNING) << "setsockopt error, errno numberis " << errno
+                         << ", error reason " << strerror(errno);
             close(connfd);
             continue;
           }
 
           // Just ip
-          ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, sizeof(ip_addr));
+          ip_port =
+              inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, sizeof(ip_addr));
 
-          if (!handle_->AccessHandle(ip_port) || !handle_->AccessHandle(connfd, ip_port)) {
+          if (!handle_->AccessHandle(ip_port) ||
+              !handle_->AccessHandle(connfd, ip_port)) {
             close(connfd);
             continue;
           }
@@ -275,7 +285,8 @@ static void SSLLockingCallback(int mode, int type, const char* file, int line) {
 
 static unsigned long SSLIdCallback() { return (unsigned long)pthread_self(); }
 
-int ServerThread::EnableSecurity(const std::string& cert_file, const std::string& key_file) {
+int ServerThread::EnableSecurity(const std::string& cert_file,
+                                 const std::string& key_file) {
   if (cert_file.empty() || key_file.empty()) {
     LOG(WARNING) << "cert_file and key_file can not be empty!";
   }
@@ -304,12 +315,14 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
   }
 
   // 5. Set cert file and key file, then check key file
-  if (SSL_CTX_use_certificate_file(ssl_ctx_, cert_file.c_str(), SSL_FILETYPE_PEM) != 1) {
+  if (SSL_CTX_use_certificate_file(ssl_ctx_, cert_file.c_str(),
+                                   SSL_FILETYPE_PEM) != 1) {
     LOG(WARNING) << "SSL_CTX_use_certificate_file(" << cert_file << ") failed";
     return -1;
   }
 
-  if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
+  if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(),
+                                  SSL_FILETYPE_PEM) != 1) {
     LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" << key_file << ")";
     return -1;
   }

@@ -10,13 +10,12 @@
 #include <string>
 #include <vector>
 
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/xdebug.h"
-#include "pstd/include/noncopyable.h"
-
 #include "net/include/net_conn.h"
 #include "net/include/net_define.h"
 #include "net/src/net_util.h"
+#include "pstd/include/noncopyable.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -147,8 +146,9 @@ class HTTPHandles : public pstd::noncopyable {
 
   /*
    * Fill response headers in this handle when body received.
-   * You MUST set Content-Length by means of calling resp->SetContentLength(num).
-   * Besides, resp->SetStatusCode(code) should be called either.
+   * You MUST set Content-Length by means of calling
+   * resp->SetContentLength(num). Besides, resp->SetStatusCode(code) should be
+   * called either.
    */
   virtual void PrepareResponse(HTTPResponse* resp) = 0;
   /*
@@ -178,8 +178,8 @@ class HTTPHandles : public pstd::noncopyable {
 
 class HTTPConn : public NetConn {
  public:
-  HTTPConn(int fd, const std::string& ip_port, Thread* sthread, std::shared_ptr<HTTPHandles> handles_,
-           void* worker_specific_data);
+  HTTPConn(int fd, const std::string& ip_port, Thread* sthread,
+           std::shared_ptr<HTTPHandles> handles_, void* worker_specific_data);
   ~HTTPConn() override;
 
   ReadStatus GetRequest() override;

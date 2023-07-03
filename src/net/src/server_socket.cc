@@ -3,18 +3,20 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "net/src/server_socket.h"
+
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
 #include "net/include/net_define.h"
 #include "net/src/net_util.h"
-#include "net/src/server_socket.h"
 
 namespace net {
 
@@ -57,7 +59,8 @@ int ServerSocket::Listen(const std::string& bind_ip) {
 
   fcntl(sockfd_, F_SETFD, fcntl(sockfd_, F_GETFD) | FD_CLOEXEC);
 
-  ret = bind(sockfd_, reinterpret_cast<struct sockaddr*>(&servaddr_), sizeof(servaddr_));
+  ret = bind(sockfd_, reinterpret_cast<struct sockaddr*>(&servaddr_),
+             sizeof(servaddr_));
   if (ret < 0) {
     return kBindError;
   }

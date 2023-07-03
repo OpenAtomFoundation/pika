@@ -8,16 +8,16 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <cstdarg>
 
 #include <atomic>
+#include <cstdarg>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "pstd/include/noncopyable.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
+#include "pstd/include/noncopyable.h"
 
 using pstd::Status;
 
@@ -54,7 +54,6 @@ class RedisCli : public NetCli {
   ssize_t BufferRead();
   char* ReadBytes(unsigned int bytes);
   char* ReadLine(int* _len);
-
 };
 
 enum REDIS_STATUS {
@@ -73,7 +72,7 @@ enum REDIS_STATUS {
   REDIS_REPLY_ERROR
 };
 
-RedisCli::RedisCli()  {
+RedisCli::RedisCli() {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * rbuf_size_));
 }
 
@@ -96,8 +95,8 @@ Status RedisCli::Send(void* msg) {
       if (errno == EINTR) {
         nwritten = 0;
         continue;
-        // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,...)
-        // will return EAGAIN | EWOULDBLOCK for timeout
+        // blocking fd after setting setsockopt(sock, SOL_SOCKET,
+        // SO_SNDTIMEO,...) will return EAGAIN | EWOULDBLOCK for timeout
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         s = Status::Timeout("Send timeout");
       } else {
@@ -132,7 +131,8 @@ Status RedisCli::Recv(void* trival) {
     case REDIS_EPARSE_TYPE:
       return Status::IOError("invalid type");
     default:  // other error
-      return Status::IOError("other error, maybe " + std::string(strerror(errno)));
+      return Status::IOError("other error, maybe " +
+                             std::string(strerror(errno)));
   }
 }
 
@@ -153,8 +153,8 @@ ssize_t RedisCli::BufferRead() {
     if (nread == -1) {
       if (errno == EINTR) {
         continue;
-        // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,...)
-        // will return EAGAIN for timeout
+        // blocking fd after setting setsockopt(sock, SOL_SOCKET,
+        // SO_RCVTIMEO,...) will return EAGAIN for timeout
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         return REDIS_ETIMEOUT;
       } else {
@@ -244,8 +244,8 @@ int RedisCli::ProcessLineItem() {
 }
 
 int RedisCli::ProcessBulkItem() {
-  char *p;
-  char *s;
+  char* p;
+  char* s;
   int len;
   int bytelen;
 
@@ -319,8 +319,8 @@ char* RedisCli::ReadBytes(unsigned int bytes) {
 }
 
 char* RedisCli::ReadLine(int* _len) {
-  char *p;
-  char *s;
+  char* p;
+  char* s;
   int len;
 
   p = rbuf_ + rbuf_pos_;
@@ -582,7 +582,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
   cmd->append(1, '*');
   cmd->append(std::to_string(args.size()));
   cmd->append("\r\n");
-  for (auto & arg : args) {
+  for (auto& arg : args) {
     cmd->append(1, '$');
     cmd->append(std::to_string(arg.size()));
     cmd->append("\r\n");
@@ -636,6 +636,8 @@ int SerializeRedisCommand(std::string* cmd, const char* format, ...) {
   return result;
 }
 
-int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd) { return redisFormatCommandArgv(std::move(argv), cmd); }
+int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd) {
+  return redisFormatCommandArgv(std::move(argv), cmd);
+}
 
 };  // namespace net

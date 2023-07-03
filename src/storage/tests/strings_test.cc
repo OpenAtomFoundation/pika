@@ -4,6 +4,7 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
+
 #include <iostream>
 #include <thread>
 
@@ -49,7 +50,8 @@ static bool make_expired(storage::Storage* const db, const Slice& key) {
   return true;
 }
 
-static bool string_ttl(storage::Storage* const db, const Slice& key, int32_t* ttl) {
+static bool string_ttl(storage::Storage* const db, const Slice& key,
+                       int32_t* ttl) {
   std::map<storage::DataType, int64_t> type_ttl;
   std::map<storage::DataType, Status> type_status;
   type_ttl = db->TTL(key, &type_status);
@@ -155,7 +157,8 @@ TEST_F(StringsTest, BitCountTest) {
 //   ASSERT_TRUE(s.ok());
 //   s = db.Set("BITOP_KEY3", "STORAGE");
 //   ASSERT_TRUE(s.ok());
-//   std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
+//   std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2",
+//   "BITOP_KEY3"};
 
 //   // AND
 //   s = db.BitOp(storage::BitOpType::kBitOpAnd,
@@ -490,11 +493,13 @@ TEST_F(StringsTest, MGetTest) {
   std::vector<storage::ValueStatus> vss;
 
   // ***************** Group 1 Test *****************
-  std::vector<storage::KeyValue> kvs1{
-      {"GP1_MGET_KEY1", "VALUE1"}, {"GP1_MGET_KEY2", "VALUE2"}, {"GP1_MGET_KEY3", "VALUE3"}};
+  std::vector<storage::KeyValue> kvs1{{"GP1_MGET_KEY1", "VALUE1"},
+                                      {"GP1_MGET_KEY2", "VALUE2"},
+                                      {"GP1_MGET_KEY3", "VALUE3"}};
   s = db.MSet(kvs1);
   ASSERT_TRUE(s.ok());
-  std::vector<std::string> keys1{"", "GP1_MGET_KEY1", "GP1_MGET_KEY2", "GP1_MGET_KEY3", "GP1_MGET_NOT_EXIST_KEY"};
+  std::vector<std::string> keys1{"", "GP1_MGET_KEY1", "GP1_MGET_KEY2",
+                                 "GP1_MGET_KEY3", "GP1_MGET_NOT_EXIST_KEY"};
   vss.clear();
   s = db.MGet(keys1, &vss);
   ASSERT_TRUE(s.ok());
@@ -511,10 +516,13 @@ TEST_F(StringsTest, MGetTest) {
   ASSERT_EQ(vss[4].value, "");
 
   // ***************** Group 2 Test *****************
-  std::vector<storage::KeyValue> kvs2{{"GP2_MGET_KEY1", "VALUE1"}, {"GP2_MGET_KEY2", "VALUE2"}, {"GP2_MGET_KEY3", ""}};
+  std::vector<storage::KeyValue> kvs2{{"GP2_MGET_KEY1", "VALUE1"},
+                                      {"GP2_MGET_KEY2", "VALUE2"},
+                                      {"GP2_MGET_KEY3", ""}};
   s = db.MSet(kvs2);
   ASSERT_TRUE(s.ok());
-  std::vector<std::string> keys2{"GP2_MGET_KEY1", "GP2_MGET_KEY2", "GP2_MGET_KEY3", "GP2_MGET_NOT_EXIST_KEY"};
+  std::vector<std::string> keys2{"GP2_MGET_KEY1", "GP2_MGET_KEY2",
+                                 "GP2_MGET_KEY3", "GP2_MGET_NOT_EXIST_KEY"};
   ASSERT_TRUE(make_expired(&db, "GP2_MGET_KEY2"));
 
   vss.clear();
@@ -719,7 +727,8 @@ TEST_F(StringsTest, SetvxTest) {
   s = db.Set("GP3_SETVX_KEY", "GP3_SETVX_VALUE");
   ASSERT_TRUE(s.ok());
 
-  s = db.Setvx("GP3_SETVX_KEY", "GP3_SETVX_OTHER_VALUE", "GP3_SETVX_NEW_VALUE", &ret);
+  s = db.Setvx("GP3_SETVX_KEY", "GP3_SETVX_OTHER_VALUE", "GP3_SETVX_NEW_VALUE",
+               &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, -1);
 
@@ -744,7 +753,8 @@ TEST_F(StringsTest, SetvxTest) {
   s = db.Set("GP5_SETVX_KEY", "GP5_SETVX_VALUE");
   ASSERT_TRUE(s.ok());
 
-  s = db.Setvx("GP5_SETVX_KEY", "GP5_SETVX_VALUE", "GP5_SETVX_NEW_VALUE", &ret, 10);
+  s = db.Setvx("GP5_SETVX_KEY", "GP5_SETVX_VALUE", "GP5_SETVX_NEW_VALUE", &ret,
+               10);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
@@ -769,7 +779,8 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_LT(0, ttl);
   ASSERT_GT(10, ttl);
 
-  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret, 20);
+  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret,
+               20);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 

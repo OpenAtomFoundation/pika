@@ -8,9 +8,8 @@
 
 #include <utility>
 
-#include "rocksdb/db.h"
-
 #include "db_checkpoint.h"
+#include "rocksdb/db.h"
 #include "storage.h"
 #include "util.h"
 
@@ -29,8 +28,11 @@ struct BackupSaveArgs {
   const std::string key_type;
   Status res;
 
-  BackupSaveArgs(void* _p_engine, std::string  _backup_dir, std::string  _key_type)
-      : p_engine(_p_engine), backup_dir(std::move(_backup_dir)), key_type(std::move(_key_type)) {}
+  BackupSaveArgs(void* _p_engine, std::string _backup_dir,
+                 std::string _key_type)
+      : p_engine(_p_engine),
+        backup_dir(std::move(_backup_dir)),
+        key_type(std::move(_key_type)) {}
 };
 
 struct BackupContent {
@@ -43,7 +45,8 @@ struct BackupContent {
 class BackupEngine {
  public:
   ~BackupEngine();
-  static Status Open(Storage* db, std::shared_ptr<BackupEngine>& backup_engine_ret);
+  static Status Open(Storage* db,
+                     std::shared_ptr<BackupEngine>& backup_engine_ret);
 
   Status SetBackupContent();
 
@@ -51,7 +54,8 @@ class BackupEngine {
 
   void StopBackup();
 
-  Status CreateNewBackupSpecify(const std::string& dir, const std::string& type);
+  Status CreateNewBackupSpecify(const std::string& dir,
+                                const std::string& type);
 
  private:
   BackupEngine() = default;
@@ -61,7 +65,8 @@ class BackupEngine {
   std::map<std::string, pthread_t> backup_pthread_ts_;
 
   Status NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type);
-  std::string GetSaveDirByType(const std::string& _dir, const std::string& _type) const {
+  std::string GetSaveDirByType(const std::string& _dir,
+                               const std::string& _type) const {
     std::string backup_dir = _dir.empty() ? DEFAULT_BK_PATH : _dir;
     return backup_dir + ((backup_dir.back() != '/') ? "/" : "") + _type;
   }
@@ -70,4 +75,3 @@ class BackupEngine {
 
 }  //  namespace storage
 #endif  //  SRC_BACKUPABLE_H_
-

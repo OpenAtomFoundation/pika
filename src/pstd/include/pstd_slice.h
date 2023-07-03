@@ -80,7 +80,9 @@ class Slice {
   int compare(const Slice& b) const;
 
   // Return true iff "x" is a prefix of "*this"
-  bool starts_with(const Slice& x) const { return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0)); }
+  bool starts_with(const Slice& x) const {
+    return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0));
+  }
 
  private:
   const char* data_{""};
@@ -90,7 +92,8 @@ class Slice {
 };
 
 inline bool operator==(const Slice& x, const Slice& y) {
-  return ((x.size() == y.size()) && (memcmp(x.data(), y.data(), x.size()) == 0));
+  return ((x.size() == y.size()) &&
+          (memcmp(x.data(), y.data(), x.size()) == 0));
 }
 
 inline bool operator!=(const Slice& x, const Slice& y) { return !(x == y); }

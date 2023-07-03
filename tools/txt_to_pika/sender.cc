@@ -2,9 +2,13 @@
 
 #include <utility>
 
-
 SenderThread::SenderThread(std::string ip, int64_t port, std::string password)
-    : cli_(nullptr), ip_(std::move(ip)), port_(port), password_(std::move(password)), should_exit_(false), elements_(0) {}
+    : cli_(nullptr),
+      ip_(std::move(ip)),
+      port_(port),
+      password_(std::move(password)),
+      should_exit_(false),
+      elements_(0) {}
 
 SenderThread::~SenderThread() = default;
 
@@ -16,7 +20,8 @@ void SenderThread::ConnectPika() {
     pstd::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
       cli_ = nullptr;
-      log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
+      log_info("Can not connect to %s:%d: %s", ip_.data(), port_,
+               s.ToString().data());
       continue;
     } else {
       // Connect success
@@ -117,7 +122,8 @@ void* SenderThread::ThreadMain() {
   while (!should_exit_ || QueueSize() != 0) {
     {
       std::unique_lock lock(cmd_mutex_);
-      rsignal_.wait(lock, [this] { return cmd_queue_.empty() || should_exit_; });
+      rsignal_.wait(lock,
+                    [this] { return cmd_queue_.empty() || should_exit_; });
     }
 
     if (!cli_) {

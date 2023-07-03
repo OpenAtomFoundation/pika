@@ -3,15 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "unistd.h"
+#include "net/include/thread_pool.h"
 
 #include <pthread.h>
 #include <sys/time.h>
+
 #include <iostream>
 #include <string>
 
-#include "net/include/thread_pool.h"
 #include "pstd/include/pstd_mutex.h"
+#include "unistd.h"
 
 using namespace std;
 
@@ -27,8 +28,8 @@ void task(void* arg) {
   std::unique_ptr<int> int_arg(static_cast<int*>(arg));
   {
     std::lock_guard l(print_lock);
-    std::cout << " task : " << *int_arg << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
-              << std::endl;
+    std::cout << " task : " << *int_arg << " time(micros) " << NowMicros()
+              << "   thread id: " << pthread_self() << std::endl;
   }
   sleep(1);
 }
@@ -67,8 +68,8 @@ int main() {
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
     std::lock_guard l(print_lock);
-    std::cout << "Schedule task " << i << " time(micros) " << NowMicros() << " for " << i * 1000 * 1000 << " micros "
-              << std::endl;
+    std::cout << "Schedule task " << i << " time(micros) " << NowMicros()
+              << " for " << i * 1000 * 1000 << " micros " << std::endl;
   }
   while (pqsize > 0) {
     t.cur_time_queue_size(&pqsize);

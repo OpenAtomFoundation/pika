@@ -23,8 +23,10 @@ enum HandleType { kSynchronous, kAsynchronous };
 
 class RedisConn : public NetConn {
  public:
-  RedisConn(int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr,
-            const HandleType& handle_type = kSynchronous, int rbuf_max_len = REDIS_MAX_MESSAGE);
+  RedisConn(int fd, const std::string& ip_port, Thread* thread,
+            NetMultiplexer* net_mpx = nullptr,
+            const HandleType& handle_type = kSynchronous,
+            int rbuf_max_len = REDIS_MAX_MESSAGE);
   ~RedisConn() override;
 
   ReadStatus GetRequest() override;
@@ -35,14 +37,18 @@ class RedisConn : public NetConn {
   void SetHandleType(const HandleType& handle_type);
   HandleType GetHandleType();
 
-  virtual void ProcessRedisCmds(const std::vector<RedisCmdArgsType>& argvs, bool async, std::string* response);
+  virtual void ProcessRedisCmds(const std::vector<RedisCmdArgsType>& argvs,
+                                bool async, std::string* response);
   void NotifyEpoll(bool success);
 
-  virtual int DealMessage(const RedisCmdArgsType& argv, std::string* response) = 0;
+  virtual int DealMessage(const RedisCmdArgsType& argv,
+                          std::string* response) = 0;
 
  private:
-  static int ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv);
-  static int ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs);
+  static int ParserDealMessageCb(RedisParser* parser,
+                                 const RedisCmdArgsType& argv);
+  static int ParserCompleteCb(RedisParser* parser,
+                              const std::vector<RedisCmdArgsType>& argvs);
   ReadStatus ParseRedisParserStatus(RedisParserStatus status);
 
   HandleType handle_type_ = kSynchronous;

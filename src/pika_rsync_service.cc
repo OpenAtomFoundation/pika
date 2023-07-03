@@ -6,18 +6,19 @@
 #include "include/pika_rsync_service.h"
 
 #include <glog/logging.h>
+
 #include <fstream>
 #include <utility>
 
+#include "include/pika_conf.h"
+#include "include/pika_define.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
-#include "include/pika_conf.h"
-#include "include/pika_define.h"
-
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
+PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port)
+    : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
@@ -44,7 +45,8 @@ int PikaRsyncService::StartRsync() {
   }
   ret = pstd::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_, auth);
   if (ret) {
-    LOG(WARNING) << "Failed to start rsync, path:" << raw_path_ << " error : " << ret;
+    LOG(WARNING) << "Failed to start rsync, path:" << raw_path_
+                 << " error : " << ret;
     return -1;
   }
   ret = CreateSecretFile();
@@ -53,7 +55,8 @@ int PikaRsyncService::StartRsync() {
     return -1;
   }
   // Make sure the listening addr of rsyncd is accessible, avoid the corner case
-  // that rsync --daemon process is started but not finished listening on the socket
+  // that rsync --daemon process is started but not finished listening on the
+  // socket
   sleep(1);
 
   if (!CheckRsyncAlive()) {

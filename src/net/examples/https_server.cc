@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <signal.h>
+
 #include <atomic>
 #include <chrono>
 #include <string>
@@ -63,11 +64,13 @@ class MyHTTPHandles : public net::HTTPHandles {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data,
-                                              NetMultiplexer* net_mpx = nullptr) const override {
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data,
+      NetMultiplexer* net_mpx = nullptr) const override {
     auto my_handles = std::make_shared<MyHTTPHandles>();
-    return std::make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
+    return std::make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles,
+                                           worker_specific_data);
   }
 };
 
@@ -97,11 +100,14 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  std::unique_ptr<ConnFactory> my_conn_factory = std::make_unique<MyConnFactory>();
-  std::unique_ptr<ServerThread> st(NewDispatchThread(port, 4, my_conn_factory.get(), 1000));
+  std::unique_ptr<ConnFactory> my_conn_factory =
+      std::make_unique<MyConnFactory>();
+  std::unique_ptr<ServerThread> st(
+      NewDispatchThread(port, 4, my_conn_factory.get(), 1000));
 
 #if __ENABLE_SSL
-  if (st->EnableSecurity("/complete_path_to/host.crt", "/complete_path_to/host.key") != 0) {
+  if (st->EnableSecurity("/complete_path_to/host.crt",
+                         "/complete_path_to/host.key") != 0) {
     printf("EnableSecurity error happened!\n");
     exit(-1);
   }

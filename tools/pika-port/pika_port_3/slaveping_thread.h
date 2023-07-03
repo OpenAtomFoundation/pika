@@ -6,13 +6,13 @@
 #ifndef SLAVEPING_THREAD_H_
 #define SLAVEPING_THREAD_H_
 
+#include <glog/logging.h>
+
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
-
-#include <glog/logging.h>
 
 using pstd::Status;
 

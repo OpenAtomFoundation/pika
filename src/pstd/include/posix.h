@@ -1,33 +1,34 @@
 /* $begin csapp.h */
 #ifndef __CSAPP_H__
-#  define __CSAPP_H__
+#define __CSAPP_H__
 
-#  include <arpa/inet.h>
-#  include <fcntl.h>
-#  include <netdb.h>
-#  include <netinet/in.h>
-#  include <pthread.h>
-#  include <semaphore.h>
-#  include <sys/mman.h>
-#  include <sys/socket.h>
-#  include <sys/stat.h>
-#  include <sys/time.h>
-#  include <sys/types.h>
-#  include <sys/wait.h>
-#  include <unistd.h>
-#  include <cctype>
-#  include <cerrno>
-#  include <cmath>
-#  include <csetjmp>
-#  include <csignal>
-#  include <cstdio>
-#  include <cstdlib>
-#  include <cstring>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <cctype>
+#include <cerrno>
+#include <cmath>
+#include <csetjmp>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 /* $begin createmasks */
-#  define DEF_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
-#  define DEF_UMASK (S_IWGRP | S_IWOTH)
+#define DEF_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
+#define DEF_UMASK (S_IWGRP | S_IWOTH)
 /* $end createmasks */
 
 /* Simplifies calls to bind(), connect(), and accept() */
@@ -37,7 +38,7 @@ using SA = struct sockaddr;
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
-#  define RIO_BUFSIZE 8192
+#define RIO_BUFSIZE 8192
 using rio_t = struct {
   int rio_fd;                /* descriptor for this internal buf */
   int rio_cnt;               /* unread bytes in internal buf */
@@ -50,9 +51,9 @@ using rio_t = struct {
 extern char** environ; /* defined by libc */
 
 /* Misc constants */
-#  define MAXLINE 8192 /* max text line length */
-#  define MAXBUF 8192  /* max I/O buffer size */
-#  define LISTENQ 1024 /* second argument to listen() */
+#define MAXLINE 8192 /* max text line length */
+#define MAXBUF 8192  /* max I/O buffer size */
+#define LISTENQ 1024 /* second argument to listen() */
 
 /* Process control wrappers */
 pid_t Fork();
@@ -67,7 +68,7 @@ void Setpgid(pid_t pid, pid_t pgid);
 pid_t Getpgrp();
 
 /* Signal wrappers */
-using handler_t = void (int);
+using handler_t = void(int);
 handler_t* Signal(int signum, handler_t* handler);
 void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset);
 void Sigemptyset(sigset_t* set);
@@ -82,7 +83,8 @@ ssize_t Read(int fd, void* buf, size_t count);
 ssize_t Write(int fd, const void* buf, size_t count);
 off_t Lseek(int fildes, off_t offset, int whence);
 void Close(int fd);
-int Select(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, struct timeval* timeout);
+int Select(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
+           struct timeval* timeout);
 int Dup2(int fd1, int fd2);
 void Stat(const char* filename, struct stat* buf);
 void Fstat(int fd, struct stat* buf);
@@ -119,7 +121,8 @@ struct hostent* Gethostbyname(const char* name);
 struct hostent* Gethostbyaddr(const char* addr, int len, int type);
 
 /* Pthreads thread control wrappers */
-void Pthread_create(pthread_t* tidp, pthread_attr_t* attrp, void* (*routine)(void*), void* argp);
+void Pthread_create(pthread_t* tidp, pthread_attr_t* attrp,
+                    void* (*routine)(void*), void* argp);
 void Pthread_join(pthread_t tid, void** thread_return);
 void Pthread_cancel(pthread_t tid);
 void Pthread_detach(pthread_t tid);

@@ -11,11 +11,10 @@
 #include <unordered_set>
 #include <utility>
 
+#include "include/pika_slot.h"
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
-
-#include "include/pika_slot.h"
 
 class SyncMasterSlot;
 class SyncSlaveSlot;
@@ -258,7 +257,8 @@ enum CmdFlags {
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
-void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
+void inline RedisAppendLen(std::string& str, int64_t ori,
+                           const std::string& prefix);
 
 const std::string kNewLine = "\r\n";
 
@@ -380,7 +380,9 @@ class CmdRes {
   void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
   void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
   void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
-  void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
+  void AppendContent(const std::string& value) {
+    RedisAppendContent(message_, value);
+  }
   void AppendString(const std::string& value) {
     AppendStringLen(value.size());
     AppendContent(value);
@@ -413,13 +415,17 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   };
   struct ProcessArg {
     ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot, HintKeys _hint_keys)
-        : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
+    ProcessArg(std::shared_ptr<Slot> _slot,
+               std::shared_ptr<SyncMasterSlot> _sync_slot, HintKeys _hint_keys)
+        : slot(std::move(_slot)),
+          sync_slot(std::move(_sync_slot)),
+          hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Slot> slot;
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  Cmd(std::string name, int arity, uint16_t flag)
+      : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -444,7 +450,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
-  bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
+  bool HashtagIsConsistent(const std::string& lhs,
+                           const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
   std::string name() const;
@@ -452,7 +459,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string db_name() const;
   BinlogOffset binlog_offset() const;
   const PikaCmdArgsType& argv() const;
-  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id,
+                               uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
 
   void SetConn(const std::shared_ptr<net::NetConn>& conn);
@@ -468,9 +476,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void ProcessCommand(const std::shared_ptr<Slot>& slot,
+                      const std::shared_ptr<SyncMasterSlot>& sync_slot,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void InternalProcessCommand(const std::shared_ptr<Slot>& slot,
+                              const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
   bool CheckArg(int num) const;

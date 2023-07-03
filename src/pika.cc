@@ -5,6 +5,7 @@
 
 #include <glog/logging.h>
 #include <sys/resource.h>
+
 #include <csignal>
 
 #include "include/build_version.h"
@@ -14,8 +15,8 @@
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "include/pika_version.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_version.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_defer.h"
 
@@ -28,11 +29,13 @@ std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static void version() {
   char version[32];
-  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
+  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR,
+           PIKA_PATCH);
   std::cout << "-----------Pika server----------" << std::endl;
   std::cout << "pika_version: " << version << std::endl;
   std::cout << pika_build_git_sha << std::endl;
-  std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
+  std::cout << "pika_build_compile_date: " << pika_build_compile_date
+            << std::endl;
   // fake version for client SDK
   std::cout << "redis_version: " << version << std::endl;
 }
@@ -68,7 +71,7 @@ static void daemonize() {
   if (fork()) {
     exit(0); /* parent exits */
   }
-  setsid();  /* create a new session */
+  setsid(); /* create a new session */
 }
 
 static void close_std() {
@@ -115,7 +118,8 @@ static void PikaSignalSetup() {
 
 static void usage() {
   char version[32];
-  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
+  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR,
+           PIKA_PATCH);
   fprintf(stderr,
           "Pika module %s\n"
           "usage: pika [-hv] [-c conf/file]\n"
@@ -170,11 +174,14 @@ int main(int argc, char* argv[]) {
     limit.rlim_max = maxfiles;
     if (setrlimit(RLIMIT_NOFILE, &limit) != -1) {
       LOG(WARNING) << "your 'limit -n ' of " << old_limit
-                   << " is not enough for Redis to start. pika have successfully reconfig it to " << limit.rlim_cur;
+                   << " is not enough for Redis to start. pika have "
+                      "successfully reconfig it to "
+                   << limit.rlim_cur;
     } else {
-      LOG(FATAL) << "your 'limit -n ' of " << old_limit
-                 << " is not enough for Redis to start. pika can not reconfig it(" << strerror(errno)
-                 << "), do it by yourself";
+      LOG(FATAL)
+          << "your 'limit -n ' of " << old_limit
+          << " is not enough for Redis to start. pika can not reconfig it("
+          << strerror(errno) << "), do it by yourself";
     }
   }
 

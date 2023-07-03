@@ -3,6 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "pstd/include/pstd_status.h"
+
 #include <cstdint>
 #include <cstdio>
 
@@ -77,7 +78,8 @@ std::string Status::ToString() const {
         type = "Busy:";
         break;
       default:
-        snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int>(code()));
+        snprintf(tmp, sizeof(tmp),
+                 "Unknown code(%d): ", static_cast<int>(code()));
         type = tmp;
         break;
     }

@@ -8,12 +8,10 @@
 
 #include <shared_mutex>
 
+#include "include/pika_binlog.h"
 #include "pstd/include/scope_record_lock.h"
-
 #include "storage/backupable.h"
 #include "storage/storage.h"
-
-#include "include/pika_binlog.h"
 
 class Cmd;
 
@@ -24,12 +22,16 @@ struct KeyScanInfo {
   time_t start_time = 0;
   std::string s_start_time;
   int32_t duration = -3;
-  std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
+  std::vector<storage::KeyInfo>
+      key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_ = false;
-  KeyScanInfo() :
-        s_start_time("0"),
-        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
-        {}
+  KeyScanInfo()
+      : s_start_time("0"),
+        key_infos({{0, 0, 0, 0},
+                   {0, 0, 0, 0},
+                   {0, 0, 0, 0},
+                   {0, 0, 0, 0},
+                   {0, 0, 0, 0}}) {}
 };
 
 struct BgSaveInfo {
@@ -46,9 +48,11 @@ struct BgSaveInfo {
   }
 };
 
-class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
+class Slot : public std::enable_shared_from_this<Slot>,
+             public pstd::noncopyable {
  public:
-  Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path);
+  Slot(const std::string& db_name, uint32_t slot_id,
+       const std::string& table_db_path);
   virtual ~Slot();
 
   std::string GetDBName() const;
@@ -88,7 +92,9 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   /*
    * SlotsMgrt used
    */
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+  void GetSlotsMgrtSenderStatus(std::string* ip, int64_t* port, int64_t* slot,
+                                bool* migrating, int64_t* moved,
+                                int64_t* remained);
 
  private:
   std::string db_name_;
@@ -126,8 +132,6 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
 
   // key scan info use
   void InitKeyScan();
-
 };
 
 #endif
-

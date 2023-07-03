@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include <atomic>
 
 #include "myproto.pb.h"
@@ -14,7 +15,8 @@ using namespace net;
 
 class MyConn : public PbConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread,
+         void* worker_specific_data);
   virtual ~MyConn();
 
  protected:
@@ -25,7 +27,8 @@ class MyConn : public PbConn {
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread,
+               void* worker_specific_data)
     : PbConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
@@ -35,7 +38,8 @@ MyConn::~MyConn() {}
 int MyConn::DealMessage() {
   printf("In the myconn DealMessage branch\n");
   ping_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-  printf("DealMessage receive (%s) port %d \n", ping_.address().c_str(), ping_.port());
+  printf("DealMessage receive (%s) port %d \n", ping_.address().c_str(),
+         ping_.port());
 
   ping_res_.Clear();
   ping_res_.set_res(11234);
@@ -48,9 +52,11 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetMultiplexer* net_epoll) const override {
-    return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data, NetMultiplexer* net_epoll) const override {
+    return std::make_shared<MyConn>(connfd, ip_port, thread,
+                                    worker_specific_data);
   }
 };
 
@@ -82,7 +88,8 @@ int main(int argc, char* argv[]) {
 
   std::unique_ptr<ConnFactory> conn_factory = std::make_unique<MyConnFactory>();
 
-  std::unique_ptr<ServerThread> my_thread(NewHolyThread(my_port, conn_factory.get()));
+  std::unique_ptr<ServerThread> my_thread(
+      NewHolyThread(my_port, conn_factory.get()));
   if (my_thread->StartThread() != 0) {
     printf("StartThread error happened!\n");
     exit(-1);

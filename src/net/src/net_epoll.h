@@ -5,9 +5,9 @@
 
 #ifndef NET_SRC_NET_EPOLL_H_
 #define NET_SRC_NET_EPOLL_H_
-#include <vector>
-
 #include <sys/epoll.h>
+
+#include <vector>
 
 #include "net/src/net_multiplexer.h"
 

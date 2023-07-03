@@ -1,4 +1,5 @@
 #include "scan.h"
+
 #include <fstream>
 #include <iostream>
 

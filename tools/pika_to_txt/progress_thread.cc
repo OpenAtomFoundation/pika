@@ -5,7 +5,8 @@
 
 #include "progress_thread.h"
 
-ProgressThread::ProgressThread(ScanThread* scan_thread) : scan_thread_(scan_thread) {}
+ProgressThread::ProgressThread(ScanThread* scan_thread)
+    : scan_thread_(scan_thread) {}
 
 void* ProgressThread::ThreadMain() {
   while (true) {

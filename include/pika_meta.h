@@ -8,11 +8,9 @@
 
 #include <shared_mutex>
 
+#include "include/pika_define.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
-
-#include "include/pika_define.h"
-
 
 class PikaMeta : public pstd::noncopyable {
  public:
@@ -27,7 +25,6 @@ class PikaMeta : public pstd::noncopyable {
  private:
   std::shared_mutex rwlock_;
   std::string local_meta_path_;
-
 };
 
 #endif

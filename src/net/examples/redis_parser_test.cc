@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/xdebug.h"
@@ -19,7 +20,8 @@ int main(int argc, char* argv[]) {
   rcli->set_connect_timeout(3000);
 
   Status s = rcli->Connect(ip, port, "127.0.0.1");
-  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port, s.ToString().c_str());
+  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port,
+         s.ToString().c_str());
   if (!s.ok()) {
     printf("Connect failed, %s\n", s.ToString().c_str());
     exit(-1);
@@ -63,7 +65,8 @@ int main(int argc, char* argv[]) {
   {
     printf("\nTest Send command into two times bulk num break\n");
     std::string half_command = "*3\r\n$3\r\nSET\r\n$1";
-    std::string another_half_command = "0\r\n0123456789\r\n$10\r\n1234567890\r\n";
+    std::string another_half_command =
+        "0\r\n0123456789\r\n$10\r\n1234567890\r\n";
     std::string one_command_and_a_half = one_command + half_command;
     s = rcli->Send(&one_command_and_a_half);
     printf("Send  %s\n", s.ToString().c_str());
@@ -82,7 +85,8 @@ int main(int argc, char* argv[]) {
     printf("\nTest Send command byte by byte\n");
     std::string half_command = "*";
     std::string another_half_command =
-        "11\r\n$4\r\nMSET\r\n$10\r\n0123456789\r\n$10\r\n1234567890\r\n$1\r\na\r\n$1\r\na\r\n$1\r\na\r\n$1\r\na\r\n$"
+        "11\r\n$4\r\nMSET\r\n$10\r\n0123456789\r\n$10\r\n1234567890\r\n$"
+        "1\r\na\r\n$1\r\na\r\n$1\r\na\r\n$1\r\na\r\n$"
         "1\r\na\r\n$1\r\na\r\n$1\r\na\r\n$1\r\na\r\n";
     std::string one_command_and_a_half = one_command + half_command;
     s = rcli->Send(&one_command_and_a_half);

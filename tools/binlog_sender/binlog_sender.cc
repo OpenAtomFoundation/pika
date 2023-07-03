@@ -3,21 +3,19 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "chrono"
-#include "ctime"
-#include "iostream"
-
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include "unistd.h"
-
-#include "net/include/net_cli.h"
-#include "net/include/redis_cli.h"
 
 #include "binlog_consumer.h"
 #include "binlog_transverter.h"
+#include "chrono"
+#include "ctime"
+#include "iostream"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 #include "progress_thread.h"
+#include "unistd.h"
 #include "utils.h"
 
 std::string binlog_path = "./log/";
@@ -35,7 +33,8 @@ BinlogConsumer* binlog_consumer = nullptr;
 ProgressThread* progress_thread = nullptr;
 
 void PrintInfo(const std::time_t& now) {
-  std::cout << "===================== Binlog Sender ====================" << std::endl;
+  std::cout << "===================== Binlog Sender ===================="
+            << std::endl;
   std::cout << "Ip : " << ip << std::endl;
   std::cout << "Port : " << port << std::endl;
   std::cout << "Password : " << pass_wd << std::endl;
@@ -43,24 +42,35 @@ void PrintInfo(const std::time_t& now) {
   std::cout << "Files_to_send: " << files_to_send << std::endl;
   std::cout << "File_offset : " << file_offset << std::endl;
   std::cout << "Startup Time : " << asctime(localtime(&now));
-  std::cout << "========================================================" << std::endl;
+  std::cout << "========================================================"
+            << std::endl;
 }
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
-  std::cout << "\tBinlog_sender reads from pika's binlog and send to pika/redis server" << std::endl;
-  std::cout << "\tYou can build a new pika back to any timepoint with this tool" << std::endl;
-  std::cout << "\t-h    -- displays this help information and exits" << std::endl;
+  std::cout << "\tBinlog_sender reads from pika's binlog and send to "
+               "pika/redis server"
+            << std::endl;
+  std::cout << "\tYou can build a new pika back to any timepoint with this tool"
+            << std::endl;
+  std::cout << "\t-h    -- displays this help information and exits"
+            << std::endl;
   std::cout << "\t-n    -- input binlog path" << std::endl;
   std::cout << "\t-i    -- ip of the pika server" << std::endl;
   std::cout << "\t-p    -- port of the pika server" << std::endl;
   std::cout << "\t-f    -- files to send, default = 0" << std::endl;
-  std::cout << "\t-o    -- the offset that the first file starts sending" << std::endl;
-  std::cout << "\t-s    -- start time , default: '2001-00-00 00:59:01'" << std::endl;
-  std::cout << "\t-e    -- end time , default: '2100-01-30 24:00:01'" << std::endl;
+  std::cout << "\t-o    -- the offset that the first file starts sending"
+            << std::endl;
+  std::cout << "\t-s    -- start time , default: '2001-00-00 00:59:01'"
+            << std::endl;
+  std::cout << "\t-e    -- end time , default: '2100-01-30 24:00:01'"
+            << std::endl;
   std::cout << "\t-a    -- password of the pika server" << std::endl;
-  std::cout << "\texample1: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f 526 -o 8749409" << std::endl;
-  std::cout << "\texample2: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f 526-530 -s '2001-10-11 11:11:11' -e "
+  std::cout << "\texample1: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f "
+               "526 -o 8749409"
+            << std::endl;
+  std::cout << "\texample2: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f "
+               "526-530 -s '2001-10-11 11:11:11' -e "
                "'2020-12-11 11:11:11'"
             << std::endl;
 }
@@ -70,7 +80,8 @@ void TryToCommunicate() {
   cli->set_connect_timeout(3000);
   pstd::Status net_s = cli->Connect(ip, port, "");
   if (!net_s.ok()) {
-    std::cout << "Connect failed " << net_s.ToString().c_str() << ", exit..." << std::endl;
+    std::cout << "Connect failed " << net_s.ToString().c_str() << ", exit..."
+              << std::endl;
     exit(-1);
   }
   std::cout << "Connect success..." << std::endl;
@@ -157,13 +168,15 @@ int main(int argc, char* argv[]) {
         break;
     }
   }
-  std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
+  std::chrono::system_clock::time_point start_time =
+      std::chrono::system_clock::now();
   std::time_t now = std::chrono::system_clock::to_time_t(start_time);
   PrintInfo(now);
 
   std::vector<uint32_t> files;
   if (!CheckFilesStr(files_to_send) || !GetFileList(files_to_send, &files)) {
-    std::cout << "input illlegal binlog scope of the sequence, exit..." << std::endl;
+    std::cout << "input illlegal binlog scope of the sequence, exit..."
+              << std::endl;
     exit(-1);
   }
 
@@ -181,13 +194,16 @@ int main(int argc, char* argv[]) {
   int32_t first_index = 0;
   int32_t last_index = files.size() - 1;
 
-  binlog_consumer = new BinlogConsumer(binlog_path, files[first_index], files[last_index], file_offset);
+  binlog_consumer = new BinlogConsumer(binlog_path, files[first_index],
+                                       files[last_index], file_offset);
 
   if (!binlog_consumer->Init()) {
     fprintf(stderr, "Binlog comsumer initialization failure, exit...\n");
     exit(-1);
   } else if (!binlog_consumer->trim()) {
-    fprintf(stderr, "Binlog comsumer trim failure, maybe the offset is illegal, exit...\n");
+    fprintf(
+        stderr,
+        "Binlog comsumer trim failure, maybe the offset is illegal, exit...\n");
     exit(-1);
   }
 
@@ -204,16 +220,19 @@ int main(int argc, char* argv[]) {
     std::string scratch;
     pstd::Status s = binlog_consumer->Parse(&scratch);
     if (s.ok()) {
-      if (PikaBinlogTransverter::BinlogDecode(TypeFirst, scratch, &binlog_item)) {
+      if (PikaBinlogTransverter::BinlogDecode(TypeFirst, scratch,
+                                              &binlog_item)) {
         std::string redis_cmd = binlog_item.content();
-        if (tv_start <= binlog_item.exec_time() && binlog_item.exec_time() <= tv_end) {
+        if (tv_start <= binlog_item.exec_time() &&
+            binlog_item.exec_time() <= tv_end) {
           pstd::Status net_s = cli->Send(&redis_cmd);
           if (net_s.ok()) {
             net_s = cli->Recv(nullptr);
             if (net_s.ok()) {
               success_num++;
             } else {
-              std::cout << "No." << fail_num << "send data failed, " << net_s.ToString().c_str() << std::endl;
+              std::cout << "No." << fail_num << "send data failed, "
+                        << net_s.ToString().c_str() << std::endl;
               std::cout << "data: " << scratch << std::endl;
               fail_num++;
             }
@@ -232,22 +251,30 @@ int main(int argc, char* argv[]) {
   }
   progress_thread->StopThread();
   progress_thread->JoinThread();
-  std::cout << "Send binlog finished, success num: " << success_num << ", fail num: " << fail_num << std::endl;
+  std::cout << "Send binlog finished, success num: " << success_num
+            << ", fail num: " << fail_num << std::endl;
 
   delete progress_thread;
   delete binlog_consumer;
   delete cli;
 
-  std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();
+  std::chrono::system_clock::time_point end_time =
+      std::chrono::system_clock::now();
   now = std::chrono::system_clock::to_time_t(end_time);
   std::cout << "Finish Time : " << asctime(localtime(&now));
 
-  auto hours = std::chrono::duration_cast<std::chrono::hours>(end_time - start_time).count();
-  auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
-  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
+  auto hours =
+      std::chrono::duration_cast<std::chrono::hours>(end_time - start_time)
+          .count();
+  auto minutes =
+      std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time)
+          .count();
+  auto seconds =
+      std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time)
+          .count();
 
-  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
-            << std::endl;
+  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60
+            << " minutes " << seconds % 60 << " seconds " << std::endl;
 
   return 0;
 }

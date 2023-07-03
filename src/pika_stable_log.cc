@@ -13,7 +13,6 @@
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-
 #include "pstd/include/env.h"
 
 using pstd::Status;
@@ -21,9 +20,14 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-StableLog::StableLog(std::string db_name, uint32_t slot_id, std::string log_path)
-    : purging_(false), db_name_(std::move(db_name)), slot_id_(slot_id), log_path_(std::move(log_path)) {
-  stable_logger_ = std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
+StableLog::StableLog(std::string db_name, uint32_t slot_id,
+                     std::string log_path)
+    : purging_(false),
+      db_name_(std::move(db_name)),
+      slot_id_(slot_id),
+      log_path_(std::move(log_path)) {
+  stable_logger_ =
+      std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
     LOG(FATAL) << log_path_ << " Could not get binlog files!";
@@ -54,7 +58,8 @@ void StableLog::RemoveStableLogDir() {
   }
   g_pika_server->PurgeDir(logpath);
 
-  LOG(WARNING) << "Slot StableLog: " << db_name_ << ":" << slot_id_ << " move to trash success";
+  LOG(WARNING) << "Slot StableLog: " << db_name_ << ":" << slot_id_
+               << " move to trash success";
 }
 
 bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
@@ -68,14 +73,16 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
   arg->to = to;
   arg->manual = manual;
   arg->logger = shared_from_this();
-  g_pika_server->PurgelogsTaskSchedule(&DoPurgeStableLogs, static_cast<void*>(arg));
+  g_pika_server->PurgelogsTaskSchedule(&DoPurgeStableLogs,
+                                       static_cast<void*>(arg));
   return true;
 }
 
 void StableLog::ClearPurge() { purging_ = false; }
 
 void StableLog::DoPurgeStableLogs(void* arg) {
-  std::unique_ptr<PurgeStableLogArg> purge_arg(static_cast<PurgeStableLogArg*>(arg));
+  std::unique_ptr<PurgeStableLogArg> purge_arg(
+      static_cast<PurgeStableLogArg*>(arg));
   purge_arg->logger->PurgeFiles(purge_arg->to, purge_arg->manual);
   purge_arg->logger->ClearPurge();
 }
@@ -97,16 +104,20 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
         || (remain_expire_num > 0)            // Expire num trigger
         || (binlogs.size() - delete_num > 10  // At lease remain 10 files
             && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
-            file_stat.st_mtime < time(nullptr) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
+            file_stat.st_mtime <
+                time(nullptr) - g_pika_conf->expire_logs_days() * 24 *
+                                    3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
-      master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
+      master_slot =
+          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
       if (!master_slot) {
         LOG(WARNING) << "Slot: " << db_name_ << ":" << slot_id_ << " Not Found";
         return false;
       }
 
       if (!master_slot->BinlogCloudPurge(it->first)) {
-        LOG(WARNING) << log_path_ << " Could not purge " << (it->first) << ", since it is already be used";
+        LOG(WARNING) << log_path_ << " Could not purge " << (it->first)
+                     << ", since it is already be used";
         return false;
       }
 
@@ -115,7 +126,8 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
         ++delete_num;
         --remain_expire_num;
       } else {
-        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second) << " failed! error: delete file failed";
+        LOG(WARNING) << log_path_ << " Purge log file : " << (it->second)
+                     << " failed! error: delete file failed";
       }
     } else {
       // Break when face the first one not satisfied
@@ -143,8 +155,9 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
   int ret = pstd::GetChildren(log_path_, children);
-   if (ret) {
-    LOG(WARNING) << log_path_ << " Get all files in log path failed! error:" << ret;
+  if (ret) {
+    LOG(WARNING) << log_path_
+                 << " Get all files in log path failed! error:" << ret;
     return false;
   }
 
@@ -157,7 +170,8 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
     }
     sindex = (*it).substr(kBinlogPrefixLen);
     if (pstd::string2int(sindex.c_str(), sindex.size(), &index) == 1) {
-      binlogs->insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
+      binlogs->insert(
+          std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
     }
   }
   return true;
@@ -183,7 +197,8 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
       LOG(WARNING) << "Binlog reader get failed";
       return;
     }
-    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst,
+                                                               binlog, &item)) {
       LOG(WARNING) << "Binlog item decode failed";
       return;
     }
@@ -210,7 +225,8 @@ Status StableLog::PurgeFileAfter(uint32_t filenum) {
       // Do delete
       auto filename = log_path_ + it.second;
       if (!pstd::DeleteFile(filename)) {
-        return Status::IOError("pstd::DeleteFile faield, filename = " + filename);
+        return Status::IOError("pstd::DeleteFile faield, filename = " +
+                               filename);
       }
       LOG(WARNING) << "Delete file " << filename;
     }
@@ -223,5 +239,6 @@ Status StableLog::TruncateTo(const LogOffset& offset) {
   if (!s.ok()) {
     return s;
   }
-  return stable_logger_->Truncate(offset.b_offset.filenum, offset.b_offset.offset, offset.l_offset.index);
+  return stable_logger_->Truncate(
+      offset.b_offset.filenum, offset.b_offset.offset, offset.l_offset.index);
 }

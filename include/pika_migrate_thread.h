@@ -10,21 +10,27 @@
 #include "storage/storage.h"
 #include "strings.h"
 
-void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot);
+void WriteDelKeyToBinlog(const std::string &key,
+                         const std::shared_ptr<Slot> &slot);
 static int DoMigrate(net::NetCli *cli, std::string send_str);
 
 class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
  public:
-  PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot_);
+  PikaParseSendThread(PikaMigrateThread *migrate_thread,
+                      const std::shared_ptr<Slot> &slot_);
   ~PikaParseSendThread();
 
-  bool Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num);
+  bool Init(const std::string &ip, int64_t port, int64_t timeout_ms,
+            int64_t mgrtkeys_num);
   void ExitThread(void);
 
  private:
-  int MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async);
-  void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
+  int MigrateOneKey(net::NetCli *cli, const std::string key,
+                    const char key_type, bool async);
+  void DelKeysAndWriteBinlog(
+      std::deque<std::pair<const char, std::string>> &send_keys,
+      const std::shared_ptr<Slot> &slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
   virtual void *ThreadMain();
 
@@ -44,11 +50,12 @@ class PikaMigrateThread : public net::Thread {
  public:
   PikaMigrateThread();
   virtual ~PikaMigrateThread();
-  bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num, int64_t keys_num,
-                       const std::shared_ptr<Slot>& slot);
-  int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
-  void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
-                        int64_t *remained);
+  bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out,
+                       int64_t slot_num, int64_t keys_num,
+                       const std::shared_ptr<Slot> &slot);
+  int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
+  void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot,
+                        bool *migrating, int64_t *moved, int64_t *remained);
   void CancelMigrate(void);
   void IncWorkingThreadNum(void);
   void DecWorkingThreadNum(void);
@@ -60,7 +67,8 @@ class PikaMigrateThread : public net::Thread {
   void DestroyThread(bool is_self_exit);
   void NotifyRequestMigrate(void);
   bool IsMigrating(std::pair<const char, std::string> &kpair);
-  void ReadSlotKeys(const std::string &slotKey, int64_t need_read_num, int64_t &real_read_num, int32_t *finish);
+  void ReadSlotKeys(const std::string &slotKey, int64_t need_read_num,
+                    int64_t &real_read_num, int32_t *finish);
   bool CreateParseSendThreads(int32_t dispatch_num);
   void DestroyParseSendThreads(void);
   virtual void *ThreadMain();

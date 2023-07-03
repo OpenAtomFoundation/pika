@@ -7,6 +7,7 @@
 #define PIKA_BINLOG_TRANSVERTER_H_
 
 #include <glog/logging.h>
+
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -62,16 +63,22 @@ class BinlogItem {
 
 class PikaBinlogTransverter {
  public:
-  PikaBinlogTransverter()= default;;
-  static std::string BinlogEncode(BinlogType type, uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
-                                  uint32_t filenum, uint64_t offset, const std::string& content,
+  PikaBinlogTransverter() = default;
+  ;
+  static std::string BinlogEncode(BinlogType type, uint32_t exec_time,
+                                  uint32_t term_id, uint64_t logic_id,
+                                  uint32_t filenum, uint64_t offset,
+                                  const std::string& content,
                                   const std::vector<std::string>& extends);
 
-  static bool BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item);
+  static bool BinlogDecode(BinlogType type, const std::string& binlog,
+                           BinlogItem* binlog_item);
 
   static std::string ConstructPaddingBinlog(BinlogType type, uint32_t size);
 
-  static bool BinlogItemWithoutContentDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item);
+  static bool BinlogItemWithoutContentDecode(BinlogType type,
+                                             const std::string& binlog,
+                                             BinlogItem* binlog_item);
 };
 
 #endif

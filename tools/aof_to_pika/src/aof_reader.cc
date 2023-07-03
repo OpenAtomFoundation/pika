@@ -1,4 +1,5 @@
 #include <unistd.h>
+
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -7,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+
 #include "include/aof_sender.h"
 
 #define VERSION "1.0.0"
@@ -45,8 +47,8 @@ static void print_cur_time() {
   std::time_t now = time(nullptr);
   struct tm* time = localtime(&now);
   std::stringstream ss;
-  ss << (time->tm_mon + 1) << '-' << time->tm_mday << " " << time->tm_hour << ":" << time->tm_min << "."
-     << time->tm_sec;
+  ss << (time->tm_mon + 1) << '-' << time->tm_mday << " " << time->tm_hour
+     << ":" << time->tm_min << "." << time->tm_sec;
   LOG_INFO(ss.str());
 }
 
@@ -117,7 +119,8 @@ static void usage() {
           "   -p: the target port \n"
           "   -a: the target auth \n"
           "   -v: show more information\n"
-          "Example: ./aof_to_pika -i ./appendonly.aof -h 128.0.0.1 -p 6379 -a abc -v\n",
+          "Example: ./aof_to_pika -i ./appendonly.aof -h 128.0.0.1 -p 6379 -a "
+          "abc -v\n",
           VERSION);
 }
 
@@ -169,7 +172,8 @@ int main(int argc, char** argv) {
 
   sender = new AOFSender();
   if (!sender->rconnect(host, port, auth)) {
-    LOG_ERR("Failed to connect remote server! host: " + host + " port : " + port);
+    LOG_ERR("Failed to connect remote server! host: " + host +
+            " port : " + port);
     delete sender;
     return -1;
   }

@@ -17,11 +17,13 @@ PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset)
   last_record_offset_ = cur_offset % kBlockSize;
 }
 
-PikaBinlogReader::PikaBinlogReader() : backing_store_(std::make_unique<char[]>(kBlockSize)), buffer_() {
+PikaBinlogReader::PikaBinlogReader()
+    : backing_store_(std::make_unique<char[]>(kBlockSize)), buffer_() {
   last_record_offset_ = 0 % kBlockSize;
 }
 
-void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset) {
+void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum,
+                                       uint64_t* cur_offset) {
   std::shared_lock l(rwlock_);
   *cur_filenum = cur_filenum_;
   *cur_offset = cur_offset_;
@@ -35,7 +37,8 @@ bool PikaBinlogReader::ReadToTheEnd() {
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
-int PikaBinlogReader::Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset) {
+int PikaBinlogReader::Seek(const std::shared_ptr<Binlog>& logger,
+                           uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename(), filenum);
   if (!pstd::FileExists(confile)) {
     LOG(WARNING) << confile << " not exits";
@@ -132,7 +135,9 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
   return is_error;
 }
 
-unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset) {
+unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result,
+                                                  uint32_t* filenum,
+                                                  uint64_t* offset) {
   pstd::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
@@ -177,12 +182,14 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
   return type;
 }
 
-Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
+Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum,
+                                 uint64_t* offset) {
   Status s;
 
   pstd::Slice fragment;
   while (true) {
-    const unsigned int record_type = ReadPhysicalRecord(&fragment, filenum, offset);
+    const unsigned int record_type =
+        ReadPhysicalRecord(&fragment, filenum, offset);
 
     switch (record_type) {
       case kFullType:
@@ -204,8 +211,8 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
-        LOG(WARNING)
-            << "Read BadRecord record, will decode failed, this record may dbsync padded record, not processed here";
+        LOG(WARNING) << "Read BadRecord record, will decode failed, this "
+                        "record may dbsync padded record, not processed here";
         return Status::IOError("Data Corruption");
       case kOldRecord:
         return Status::EndFile("Eof");
@@ -223,7 +230,8 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
 // Get a whole message;
 // Append to scratch;
 // the status will be OK, IOError or Corruption, EndFile;
-Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
+Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum,
+                             uint64_t* offset) {
   if (!logger_ || !queue_) {
     return Status::Corruption("Not seek");
   }

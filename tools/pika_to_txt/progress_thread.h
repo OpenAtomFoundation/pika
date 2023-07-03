@@ -7,11 +7,9 @@
 #define INCLUDE_PROGRESS_THREAD_H_
 
 #include "iostream"
-#include "vector"
-
 #include "net/include/net_thread.h"
-
 #include "scan_thread.h"
+#include "vector"
 
 class ProgressThread : public net::Thread {
  public:

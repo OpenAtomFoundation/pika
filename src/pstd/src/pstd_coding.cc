@@ -3,15 +3,22 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "pstd/include/pstd_coding.h"
+
 #include "pstd/include/pstd_slice.h"
 
 namespace pstd {
 
-void EncodeFixed16(char* buf, uint16_t value) { memcpy(buf, &value, sizeof(value)); }
+void EncodeFixed16(char* buf, uint16_t value) {
+  memcpy(buf, &value, sizeof(value));
+}
 
-void EncodeFixed32(char* buf, uint32_t value) { memcpy(buf, &value, sizeof(value)); }
+void EncodeFixed32(char* buf, uint32_t value) {
+  memcpy(buf, &value, sizeof(value));
+}
 
-void EncodeFixed64(char* buf, uint64_t value) { memcpy(buf, &value, sizeof(value)); }
+void EncodeFixed64(char* buf, uint64_t value) {
+  memcpy(buf, &value, sizeof(value));
+}
 
 void PutFixed16(std::string* dst, uint16_t value) {
   char buf[sizeof(value)];
@@ -96,7 +103,8 @@ int VarintLength(uint64_t v) {
   return len;
 }
 
-const char* GetVarint32PtrFallback(const char* p, const char* limit, uint32_t* value) {
+const char* GetVarint32PtrFallback(const char* p, const char* limit,
+                                   uint32_t* value) {
   uint32_t result = 0;
   for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
     uint32_t byte = *(reinterpret_cast<const unsigned char*>(p));
@@ -166,7 +174,8 @@ bool GetVarint64(Slice* input, uint64_t* value) {
   }
 }
 
-const char* GetLengthPrefixedSlice(const char* p, const char* limit, Slice* result) {
+const char* GetLengthPrefixedSlice(const char* p, const char* limit,
+                                   Slice* result) {
   uint32_t len;
   p = GetVarint32Ptr(p, limit, &len);
   if (!p) {

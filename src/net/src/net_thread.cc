@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/net_thread.h"
+
 #include "net/include/net_define.h"
 #include "net/src/net_thread_name.h"
 #include "pstd/include/xdebug.h"

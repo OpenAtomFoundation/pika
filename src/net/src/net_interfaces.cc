@@ -5,26 +5,24 @@
 
 #include "net/include/net_interfaces.h"
 
+#include <arpa/inet.h>
+#include <glog/logging.h>
+#include <ifaddrs.h>
 #include <unistd.h>
 
-#include <glog/logging.h>
-
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-
 #if defined(__APPLE__)
-#  include <net/if.h>
-#  include <sys/ioctl.h>
-#  include <sys/socket.h>
-#  include <unistd.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#  include "pstd/include/pstd_defer.h"
+#include "pstd/include/pstd_defer.h"
 
 #else
-#  include <fstream>
-#  include <iterator>
-#  include <sstream>
-#  include <vector>
+#include <fstream>
+#include <iterator>
+#include <sstream>
+#include <vector>
 
 #endif
 
@@ -63,7 +61,8 @@ std::string GetDefaultInterface() {
       break;
     }
 
-    ifreq = reinterpret_cast<struct ifreq*>(reinterpret_cast<char*>(ifreq) + len);
+    ifreq =
+        reinterpret_cast<struct ifreq*>(reinterpret_cast<char*>(ifreq) + len);
     i += len;
   }
 
@@ -79,7 +78,8 @@ std::string GetDefaultInterface() {
   std::vector<std::string> tokens;
   while (std::getline(routeFile, line)) {
     std::istringstream stream(line);
-    std::copy(std::istream_iterator<std::string>(stream), std::istream_iterator<std::string>(),
+    std::copy(std::istream_iterator<std::string>(stream),
+              std::istream_iterator<std::string>(),
               std::back_inserter<std::vector<std::string> >(tokens));
 
     // the default interface is the one having the second
@@ -118,16 +118,20 @@ std::string GetIpByInterface(const std::string& network_interface) {
       continue;
     }
 
-    if (ifa->ifa_addr->sa_family == AF_INET) {  // Check it is a valid IPv4 address
-      tmpAddrPtr = &(reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr))->sin_addr;
+    if (ifa->ifa_addr->sa_family ==
+        AF_INET) {  // Check it is a valid IPv4 address
+      tmpAddrPtr =
+          &(reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr))->sin_addr;
       char addressBuffer[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {
         host = addressBuffer;
         break;
       }
-    } else if (ifa->ifa_addr->sa_family == AF_INET6) {  // Check it is a valid IPv6 address
-      tmpAddrPtr = &(reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr))->sin6_addr;
+    } else if (ifa->ifa_addr->sa_family ==
+               AF_INET6) {  // Check it is a valid IPv6 address
+      tmpAddrPtr =
+          &(reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr))->sin6_addr;
       char addressBuffer[INET6_ADDRSTRLEN];
       inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {

@@ -12,7 +12,7 @@ namespace storage {
 class BaseDataKey {
  public:
   BaseDataKey(const Slice& key, int32_t version, const Slice& data)
-      :  key_(key), version_(version), data_(data) {}
+      : key_(key), version_(version), data_(data) {}
 
   ~BaseDataKey() {
     if (start_ != space_) {
@@ -94,21 +94,24 @@ class ParsedBaseDataKey {
 
 class ParsedHashesDataKey : public ParsedBaseDataKey {
  public:
-  explicit ParsedHashesDataKey(const std::string* key) : ParsedBaseDataKey(key) {}
+  explicit ParsedHashesDataKey(const std::string* key)
+      : ParsedBaseDataKey(key) {}
   explicit ParsedHashesDataKey(const Slice& key) : ParsedBaseDataKey(key) {}
   Slice field() { return data_; }
 };
 
 class ParsedSetsMemberKey : public ParsedBaseDataKey {
  public:
-  explicit ParsedSetsMemberKey(const std::string* key) : ParsedBaseDataKey(key) {}
+  explicit ParsedSetsMemberKey(const std::string* key)
+      : ParsedBaseDataKey(key) {}
   explicit ParsedSetsMemberKey(const Slice& key) : ParsedBaseDataKey(key) {}
   Slice member() { return data_; }
 };
 
 class ParsedZSetsMemberKey : public ParsedBaseDataKey {
  public:
-  explicit ParsedZSetsMemberKey(const std::string* key) : ParsedBaseDataKey(key) {}
+  explicit ParsedZSetsMemberKey(const std::string* key)
+      : ParsedBaseDataKey(key) {}
   explicit ParsedZSetsMemberKey(const Slice& key) : ParsedBaseDataKey(key) {}
   Slice member() { return data_; }
 };

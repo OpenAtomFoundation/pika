@@ -16,7 +16,8 @@
 
 class BinlogReceiverThread {
  public:
-  BinlogReceiverThread(const std::string& host, int port, int cron_interval = 0);
+  BinlogReceiverThread(const std::string& host, int port,
+                       int cron_interval = 0);
   virtual ~BinlogReceiverThread();
   int StartThread();
 
@@ -33,12 +34,15 @@ class BinlogReceiverThread {
  private:
   class MasterConnFactory : public net::ConnFactory {
    public:
-    explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
+    explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {}
 
-    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
-                                     void* worker_specific_data, 
-                                     net::NetMultiplexer* net_mpx = nullptr) const override {
-      return std::static_pointer_cast<net::NetConn>(std::make_shared<MasterConn>(connfd, ip_port, binlog_receiver_));
+    virtual std::shared_ptr<net::NetConn> NewNetConn(
+        int connfd, const std::string& ip_port, net::Thread* thread,
+        void* worker_specific_data,
+        net::NetMultiplexer* net_mpx = nullptr) const override {
+      return std::static_pointer_cast<net::NetConn>(
+          std::make_shared<MasterConn>(connfd, ip_port, binlog_receiver_));
     }
 
    private:
@@ -47,7 +51,8 @@ class BinlogReceiverThread {
 
   class Handles : public net::ServerHandle {
    public:
-    explicit Handles(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
+    explicit Handles(BinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {}
 
     bool AccessHandle(std::string& ip) const override;
 

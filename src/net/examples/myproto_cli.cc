@@ -2,6 +2,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <memory>
 
 #include "myproto.pb.h"
@@ -23,7 +24,8 @@ int main(int argc, char* argv[]) {
 
   Status s = cli->Connect(ip, port);
   if (!s.ok()) {
-    printf("Connect (%s:%d) failed, %s\n", ip.c_str(), port, s.ToString().c_str());
+    printf("Connect (%s:%d) failed, %s\n", ip.c_str(), port,
+           s.ToString().c_str());
   }
   printf("Connect (%s:%d) ok, fd is %d\n", ip.c_str(), port, cli->fd());
 

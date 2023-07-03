@@ -37,7 +37,8 @@ int main() {
 
   // GetSet
   s = db.GetSet("TEST_KEY", "Hello", &value);
-  printf("GetSet return: %s, old_value: %s", s.ToString().c_str(), value.c_str());
+  printf("GetSet return: %s, old_value: %s", s.ToString().c_str(),
+         value.c_str());
 
   // SetBit
   s = db.SetBit("SETBIT_KEY", 7, 1, &ret);
@@ -60,12 +61,14 @@ int main() {
   s = db.MGet(keys, &vss);
   printf("MGet return: %s\n", s.ToString().c_str());
   for (size_t idx = 0; idx != keys.size(); idx++) {
-    printf("idx = %d, keys = %s, value = %s\n", idx, keys[idx].c_str(), vss[idx].value.c_str());
+    printf("idx = %d, keys = %s, value = %s\n", idx, keys[idx].c_str(),
+           vss[idx].value.c_str());
   }
 
   // Setnx
   s = db.Setnx("TEST_KEY", "TEST_VALUE", &ret);
-  printf("Setnx return: %s, value: %s, ret: %d\n", s.ToString().c_str(), value.c_str(), ret);
+  printf("Setnx return: %s, value: %s, ret: %d\n", s.ToString().c_str(),
+         value.c_str(), ret);
 
   // MSetnx
   s = db.MSetnx(kvs, &ret);
@@ -77,14 +80,16 @@ int main() {
 
   // Getrange
   s = db.Getrange("TEST_KEY", 0, -1, &value);
-  printf("Getrange return: %s, value: %s\n", s.ToString().c_str(), value.c_str());
+  printf("Getrange return: %s, value: %s\n", s.ToString().c_str(),
+         value.c_str());
 
   // Append
   std::string append_value;
   s = db.Set("TEST_KEY", "TEST_VALUE");
   s = db.Append("TEST_KEY", "APPEND_VALUE", &ret);
   s = db.Get("TEST_KEY", &append_value);
-  printf("Append return: %s, value: %s, ret: %d\n", s.ToString().c_str(), append_value.c_str(), ret);
+  printf("Append return: %s, value: %s, ret: %d\n", s.ToString().c_str(),
+         append_value.c_str(), ret);
 
   // BitCount
   s = db.BitCount("TEST_KEY", 0, -1, &ret, false);
@@ -101,17 +106,21 @@ int main() {
   s = db.Set("BITOP_KEY3", "STORAGE");
   std::vector<std::string> src_keys{"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
   // and
-  s = db.BitOp(storage::BitOpType::kBitOpAnd, "BITOP_DESTKEY", src_keys, &bitop_ret);
+  s = db.BitOp(storage::BitOpType::kBitOpAnd, "BITOP_DESTKEY", src_keys,
+               &bitop_ret);
   printf("BitOp return: %s, ret: %d\n", s.ToString().c_str(), bitop_ret);
   // or
-  s = db.BitOp(storage::BitOpType::kBitOpOr, "BITOP_DESTKEY", src_keys, &bitop_ret);
+  s = db.BitOp(storage::BitOpType::kBitOpOr, "BITOP_DESTKEY", src_keys,
+               &bitop_ret);
   printf("BitOp return: %s, ret: %d\n", s.ToString().c_str(), bitop_ret);
   // xor
-  s = db.BitOp(storage::BitOpType::kBitOpXor, "BITOP_DESTKEY", src_keys, &bitop_ret);
+  s = db.BitOp(storage::BitOpType::kBitOpXor, "BITOP_DESTKEY", src_keys,
+               &bitop_ret);
   printf("BitOp return: %s, ret: %d\n", s.ToString().c_str(), bitop_ret);
   // not
   std::vector<std::string> not_keys{"BITOP_KEY1"};
-  s = db.BitOp(storage::BitOpType::kBitOpNot, "BITOP_DESTKEY", not_keys, &bitop_ret);
+  s = db.BitOp(storage::BitOpType::kBitOpNot, "BITOP_DESTKEY", not_keys,
+               &bitop_ret);
   printf("BitOp return: %s, ret: %d\n", s.ToString().c_str(), bitop_ret);
 
   // BitPos
@@ -141,7 +150,8 @@ int main() {
   // Incrbyfloat
   s = db.Set("INCRBYFLOAT_KEY", "10.50");
   s = db.Incrbyfloat("INCRBYFLOAT_KEY", "0.1", &value);
-  printf("Incrbyfloat return: %s, value: %s\n", s.ToString().c_str(), value.c_str());
+  printf("Incrbyfloat return: %s, value: %s\n", s.ToString().c_str(),
+         value.c_str());
 
   // Setex
   s = db.Setex("TEST_KEY", "TEST_VALUE", 1);

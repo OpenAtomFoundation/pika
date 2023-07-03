@@ -24,12 +24,15 @@ class WorkerThread;
 
 class DispatchThread : public ServerThread {
  public:
-  DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
+  DispatchThread(int port, int work_num, ConnFactory* conn_factory,
+                 int cron_interval, int queue_limit,
                  const ServerHandle* handle);
-  DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
-                 int queue_limit, const ServerHandle* handle);
-  DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
-                 int queue_limit, const ServerHandle* handle);
+  DispatchThread(const std::string& ip, int port, int work_num,
+                 ConnFactory* conn_factory, int cron_interval, int queue_limit,
+                 const ServerHandle* handle);
+  DispatchThread(const std::set<std::string>& ips, int port, int work_num,
+                 ConnFactory* conn_factory, int cron_interval, int queue_limit,
+                 const ServerHandle* handle);
 
   ~DispatchThread() override;
 
@@ -45,7 +48,8 @@ class DispatchThread : public ServerThread {
 
   std::shared_ptr<NetConn> MoveConnOut(int fd) override;
 
-  void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override;
+  void MoveConnIn(std::shared_ptr<NetConn> conn,
+                  const NotifyType& type) override;
 
   void KillAllConns() override;
 

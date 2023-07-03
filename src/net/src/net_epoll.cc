@@ -6,10 +6,9 @@
 #include "net/src/net_epoll.h"
 
 #include <fcntl.h>
+#include <glog/logging.h>
 #include <linux/version.h>
 #include <unistd.h>
-
-#include <glog/logging.h>
 
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
@@ -45,7 +44,7 @@ int NetEpoll::NetAddEvent(int fd, int mask) {
   }
   if (mask & kWritable) {
     ee.events |= EPOLLOUT;
-    }
+  }
 
   return epoll_ctl(multiplexer_, EPOLL_CTL_ADD, fd, &ee);
 }
@@ -75,7 +74,8 @@ int NetEpoll::NetDelEvent(int fd, [[maybe_unused]] int mask) {
 }
 
 int NetEpoll::NetPoll(int timeout) {
-  int num_events = epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
+  int num_events =
+      epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
   if (num_events <= 0) {
     return 0;
   }

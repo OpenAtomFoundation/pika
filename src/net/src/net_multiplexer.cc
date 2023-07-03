@@ -6,16 +6,17 @@
 #include "net/src/net_multiplexer.h"
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <cstdlib>
-
 #include <glog/logging.h>
+#include <unistd.h>
+
+#include <cstdlib>
 
 #include "pstd/include/xdebug.h"
 
 namespace net {
 
-NetMultiplexer::NetMultiplexer(int queue_limit) : queue_limit_(queue_limit), fired_events_(NET_MAX_CLIENTS) {
+NetMultiplexer::NetMultiplexer(int queue_limit)
+    : queue_limit_(queue_limit), fired_events_(NET_MAX_CLIENTS) {
   int fds[2];
   if (pipe(fds) != 0) {
     exit(-1);
@@ -23,7 +24,8 @@ NetMultiplexer::NetMultiplexer(int queue_limit) : queue_limit_(queue_limit), fir
   notify_receive_fd_ = fds[0];
   notify_send_fd_ = fds[1];
 
-  fcntl(notify_receive_fd_, F_SETFD, fcntl(notify_receive_fd_, F_GETFD) | FD_CLOEXEC);
+  fcntl(notify_receive_fd_, F_SETFD,
+        fcntl(notify_receive_fd_, F_GETFD) | FD_CLOEXEC);
   fcntl(notify_send_fd_, F_SETFD, fcntl(notify_send_fd_, F_GETFD) | FD_CLOEXEC);
 }
 
@@ -60,7 +62,8 @@ bool NetMultiplexer::Register(const NetItem& it, bool force) {
 
   bool success = false;
   notify_queue_protector_.lock();
-  if (force || queue_limit_ == kUnlimitedQueue || notify_queue_.size() < static_cast<size_t>(queue_limit_)) {
+  if (force || queue_limit_ == kUnlimitedQueue ||
+      notify_queue_.size() < static_cast<size_t>(queue_limit_)) {
     notify_queue_.push(it);
     success = true;
   }

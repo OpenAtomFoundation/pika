@@ -4,8 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "slaveping_thread.h"
+
 #include <glog/logging.h>
 #include <poll.h>
+
 #include "pika_port.h"
 
 extern PikaPort* g_pika_port;
@@ -51,10 +53,11 @@ void* SlavepingThread::ThreadMain() {
   int connect_retry_times = 0;
   while (!should_stop() && g_pika_port->ShouldStartPingMaster()) {
     if (!should_stop() &&
-        (cli_->Connect(
-             g_pika_port->master_ip(), g_pika_port->master_port() + 2000,
-             // Bug Fix By AS on 20190413 12:49pm: ping thread should bind the same network ip as trysync thread
-             g_conf.local_ip))
+        (cli_->Connect(g_pika_port->master_ip(),
+                       g_pika_port->master_port() + 2000,
+                       // Bug Fix By AS on 20190413 12:49pm: ping thread should
+                       // bind the same network ip as trysync thread
+                       g_conf.local_ip))
             .ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
@@ -96,7 +99,8 @@ void* SlavepingThread::ThreadMain() {
     } else if (!should_stop()) {
       LOG(WARNING) << "Slaveping, Connect timeout";
       if ((++connect_retry_times) >= 30) {
-        LOG(WARNING) << "Slaveping, Connect timeout 10 times, disconnect with master";
+        LOG(WARNING)
+            << "Slaveping, Connect timeout 10 times, disconnect with master";
         close(cli_->fd());
         g_pika_port->binlog_receiver_thread()->KillBinlogSender();
         connect_retry_times = 0;

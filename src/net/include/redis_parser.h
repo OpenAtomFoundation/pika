@@ -6,9 +6,9 @@
 #ifndef NET_INCLUDE_REDIS_PARSER_H_
 #define NET_INCLUDE_REDIS_PARSER_H_
 
-#include "net/include/net_define.h"
-
 #include <vector>
+
+#include "net/include/net_define.h"
 
 #define REDIS_PARSER_REQUEST 1
 #define REDIS_PARSER_RESPONSE 2
@@ -18,9 +18,10 @@ namespace net {
 class RedisParser;
 
 using RedisCmdArgsType = std::vector<std::string>;
-using RedisParserDataCb = int (*)(RedisParser *, const RedisCmdArgsType &);
-using RedisParserMultiDataCb = int (*)(RedisParser *, const std::vector<RedisCmdArgsType> &);
-using RedisParserCb = int (*)(RedisParser *);
+using RedisParserDataCb = int (*)(RedisParser*, const RedisCmdArgsType&);
+using RedisParserMultiDataCb = int (*)(RedisParser*,
+                                       const std::vector<RedisCmdArgsType>&);
+using RedisParserCb = int (*)(RedisParser*);
 using RedisParserType = int;
 
 enum RedisParserStatus {
@@ -52,11 +53,14 @@ struct RedisParserSettings {
 class RedisParser {
  public:
   RedisParser();
-  RedisParserStatus RedisParserInit(RedisParserType type, const RedisParserSettings& settings);
-  RedisParserStatus ProcessInputBuffer(const char* input_buf, int length, int* parsed_len);
+  RedisParserStatus RedisParserInit(RedisParserType type,
+                                    const RedisParserSettings& settings);
+  RedisParserStatus ProcessInputBuffer(const char* input_buf, int length,
+                                       int* parsed_len);
   long get_bulk_len() { return bulk_len_; }
   RedisParserError get_error_code() { return error_code_; }
-  void* data = nullptr; /* A pointer to get hook to the "connection" or "socket" object */
+  void* data = nullptr; /* A pointer to get hook to the "connection" or "socket"
+                           object */
  private:
   // for DEBUG
   void PrintCurrentStatus();
@@ -68,7 +72,8 @@ class RedisParser {
   RedisParserStatus ProcessMultibulkBuffer();
   RedisParserStatus ProcessRequestBuffer();
   RedisParserStatus ProcessResponseBuffer();
-  void SetParserStatus(RedisParserStatus status, RedisParserError error = kRedisParserOk);
+  void SetParserStatus(RedisParserStatus status,
+                       RedisParserError error = kRedisParserOk);
   void ResetRedisParser();
   void ResetCommandStatus();
 

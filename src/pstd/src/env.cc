@@ -6,13 +6,13 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <cassert>
 
+#include <cassert>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
-#include <utility>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if __has_include(<filesystem>)
@@ -213,10 +213,14 @@ uint64_t Du(const std::string& path) {
 
 uint64_t NowMicros() {
   auto now = std::chrono::system_clock::now();
-  return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+             now.time_since_epoch())
+      .count();
 }
 
-void SleepForMicroseconds(int micros) { std::this_thread::sleep_for(std::chrono::microseconds(micros)); }
+void SleepForMicroseconds(int micros) {
+  std::this_thread::sleep_for(std::chrono::microseconds(micros));
+}
 
 SequentialFile::~SequentialFile() = default;
 
@@ -228,7 +232,10 @@ class PosixSequentialFile : public SequentialFile {
  public:
   virtual void setUnBuffer() { setbuf(file_, nullptr); }
 
-  PosixSequentialFile(std::string  fname, FILE* f) : filename_(std::move(fname)), file_(f) { setbuf(file_, nullptr); }
+  PosixSequentialFile(std::string fname, FILE* f)
+      : filename_(std::move(fname)), file_(f) {
+    setbuf(file_, nullptr);
+  }
 
   ~PosixSequentialFile() override {
     if (file_) {
@@ -282,14 +289,14 @@ class PosixMmapFile : public WritableFile {
  private:
   std::string filename_;
   int fd_ = -1;
-  size_t page_size_      = 0;
-  size_t map_size_       = 0;       // How much extra memory to map at a time
-  char* base_            = nullptr; // The mapped region
-  char* limit_           = nullptr; // Limit of the mapped region
-  char* dst_             = nullptr; // Where to write next  (in range [base_,limit_])
-  char* last_sync_       = nullptr; // Where have we synced up to
-  uint64_t file_offset_  = 0;       // Offset of base_ in file
-  uint64_t write_len_    = 0;       // The data that written in the file
+  size_t page_size_ = 0;
+  size_t map_size_ = 0;        // How much extra memory to map at a time
+  char* base_ = nullptr;       // The mapped region
+  char* limit_ = nullptr;      // Limit of the mapped region
+  char* dst_ = nullptr;        // Where to write next  (in range [base_,limit_])
+  char* last_sync_ = nullptr;  // Where have we synced up to
+  uint64_t file_offset_ = 0;   // Offset of base_ in file
+  uint64_t write_len_ = 0;     // The data that written in the file
 
   // Have we done an munmap of unsynced data?
   bool pending_sync_ = false;
@@ -338,7 +345,8 @@ class PosixMmapFile : public WritableFile {
       LOG(WARNING) << "ftruncate error";
       return false;
     }
-    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
+    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
+                     fd_, file_offset_);
     if (ptr == MAP_FAILED) {  // NOLINT
       LOG(WARNING) << "mmap failed";
       return false;
@@ -352,14 +360,14 @@ class PosixMmapFile : public WritableFile {
   }
 
  public:
-  PosixMmapFile(std::string  fname, int fd, size_t page_size, uint64_t write_len = 0)
+  PosixMmapFile(std::string fname, int fd, size_t page_size,
+                uint64_t write_len = 0)
       : filename_(std::move(fname)),
         fd_(fd),
         page_size_(page_size),
         map_size_(Roundup(kMmapBoundSize, page_size)),
 
-        write_len_(write_len)
-        {
+        write_len_(write_len) {
     if (write_len_ != 0) {
       while (map_size_ < write_len_) {
         map_size_ += (1024 * 1024);
@@ -463,15 +471,20 @@ class PosixMmapFile : public WritableFile {
     return Status::OK();
   }
 
-  uint64_t Filesize() override { return write_len_ + file_offset_ + (dst_ - base_); }
+  uint64_t Filesize() override {
+    return write_len_ + file_offset_ + (dst_ - base_);
+  }
 };
 
 RWFile::~RWFile() = default;
 
 class MmapRWFile : public RWFile {
  public:
-  MmapRWFile(std::string  fname, int fd, size_t page_size)
-      : filename_(std::move(fname)), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)) {
+  MmapRWFile(std::string fname, int fd, size_t page_size)
+      : filename_(std::move(fname)),
+        fd_(fd),
+        page_size_(page_size),
+        map_size_(Roundup(65536, page_size)) {
     DoMapRegion();
   }
 
@@ -489,7 +502,8 @@ class MmapRWFile : public RWFile {
 #endif
       return false;
     }
-    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+    void* ptr =
+        mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
     if (ptr == MAP_FAILED) {  // NOLINT
       return false;
     }
@@ -504,7 +518,7 @@ class MmapRWFile : public RWFile {
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
   std::string filename_;
   int fd_ = -1;
-  size_t page_size_[[maybe_unused]] = 0;
+  size_t page_size_ [[maybe_unused]] = 0;
   size_t map_size_ = 0;
   char* base_ = nullptr;
 };
@@ -525,8 +539,9 @@ class PosixRandomRWFile : public RandomRWFile {
 
   ~PosixRandomRWFile() override {
     if (fd_ >= 0) {
-      // TODO(clang-tidy): Call virtual method during destruction bypasses virtual dispatch
-      // So I disabled next line clang-tidy check simply temporarily.
+      // TODO(clang-tidy): Call virtual method during destruction bypasses
+      // virtual dispatch So I disabled next line clang-tidy check simply
+      // temporarily.
       Close();  // NOLINT
     }
   }
@@ -555,7 +570,8 @@ class PosixRandomRWFile : public RandomRWFile {
     return Status::OK();
   }
 
-  Status Read(uint64_t offset, size_t n, Slice* result, char* scratch) const override {
+  Status Read(uint64_t offset, size_t n, Slice* result,
+              char* scratch) const override {
     Status s;
     ssize_t r = -1;
     size_t left = n;
@@ -612,7 +628,8 @@ class PosixRandomRWFile : public RandomRWFile {
   //  virtual Status Allocate(off_t offset, off_t len) override {
   //    TEST_KILL_RANDOM(rocksdb_kill_odds);
   //    int alloc_status = fallocate(
-  //        fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0, offset, len);
+  //        fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0, offset,
+  //        len);
   //    if (alloc_status == 0) {
   //      return Status::OK();
   //    } else {
@@ -621,7 +638,8 @@ class PosixRandomRWFile : public RandomRWFile {
   //  }
 };
 
-Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result) {
+Status NewSequentialFile(const std::string& fname,
+                         std::unique_ptr<SequentialFile>& result) {
   FILE* f = fopen(fname.c_str(), "r");
   if (!f) {
     return IOError(fname, errno);
@@ -631,9 +649,11 @@ Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFil
   }
 }
 
-Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result) {
+Status NewWritableFile(const std::string& fname,
+                       std::unique_ptr<WritableFile>& result) {
   Status s;
-  const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
+  const int fd =
+      open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
@@ -653,7 +673,9 @@ Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
   return s;
 }
 
-Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result, uint64_t write_len) {
+Status AppendWritableFile(const std::string& fname,
+                          std::unique_ptr<WritableFile>& result,
+                          uint64_t write_len) {
   Status s;
   const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
@@ -664,7 +686,8 @@ Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile
   return s;
 }
 
-Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result) {
+Status NewRandomRWFile(const std::string& fname,
+                       std::unique_ptr<RandomRWFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
   if (fd < 0) {

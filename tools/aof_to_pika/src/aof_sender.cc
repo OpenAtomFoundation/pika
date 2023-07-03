@@ -1,9 +1,12 @@
+#include "include/aof_sender.h"
+
 #include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -11,9 +14,9 @@
 #include <sstream>
 
 #include "include/aof_info.h"
-#include "include/aof_sender.h"
 
-bool AOFSender::rconnect(const std::string& host, const std::string& port, const std::string& auth) {
+bool AOFSender::rconnect(const std::string& host, const std::string& port,
+                         const std::string& auth) {
   if (host.empty() || port.empty()) {
     return false;
   }
@@ -48,7 +51,8 @@ bool AOFSender::rconnect(const std::string& host, const std::string& port, const
     sockfd_ = s;
     if (!auth.empty()) {
       std::stringstream auth_info;
-      auth_info << "*2\r\n$4\r\nauth\r\n$" << auth.size() << "\r\n" << auth << "\r\n";
+      auth_info << "*2\r\n$4\r\nauth\r\n$" << auth.size() << "\r\n"
+                << auth << "\r\n";
       to_send_.assign(auth_info.str());
     }
     conn_info_ = new ConnInfo(host, port, auth);
@@ -123,8 +127,9 @@ bool AOFSender::process() {
     if ((mask & RM_RECONN) != 0) {
       close(sockfd_);
       if (!rconnect(conn_info_->host_, conn_info_->port_, conn_info_->auth_)) {
-        LOG_ERR("Failed to reconnect remote server! host: " + conn_info_->host_ + " port : " + conn_info_->port_ +
-                " try again 1 second later!");
+        LOG_ERR(
+            "Failed to reconnect remote server! host: " + conn_info_->host_ +
+            " port : " + conn_info_->port_ + " try again 1 second later!");
         usleep(1000000);
       }
     } else if ((mask & RM_READBLE) != 0) {
@@ -157,8 +162,10 @@ bool AOFSender::process() {
             LOG_TRACE(ss.str());
           }
         } else {
-          ss << "Process Failed current bulk :[" << current_bulk_ << "] size: " << current_bulk_.size()
-             << ", remain send size: " << to_send_.size() << ", with reply : [" << reply + "]";
+          ss << "Process Failed current bulk :[" << current_bulk_
+             << "] size: " << current_bulk_.size()
+             << ", remain send size: " << to_send_.size() << ", with reply : ["
+             << reply + "]";
           LOG_ERR(ss.str());
           ss.str(std::string());
           ss << "SUCC : " << nsucc << ", FAILED: " << nfail;
@@ -177,7 +184,8 @@ bool AOFSender::process() {
       if (!to_send_.empty()) {
         ssize_t total_nwritten = 0;
         do {
-          ssize_t nwritten = write(sockfd_, to_send_.c_str() + total_nwritten, to_send_.size() - total_nwritten);
+          ssize_t nwritten = write(sockfd_, to_send_.c_str() + total_nwritten,
+                                   to_send_.size() - total_nwritten);
 
           if (nwritten == -1) {
             if (errno == EAGAIN) {

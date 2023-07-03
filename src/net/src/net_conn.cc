@@ -3,24 +3,24 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <unistd.h>
-#include <cstdio>
+#include "net/include/net_conn.h"
 
 #include <glog/logging.h>
+#include <unistd.h>
 
+#include <cstdio>
 #include <utility>
 
-#include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
 #include "net/src/net_util.h"
 #include "pstd/include/xdebug.h"
 
 namespace net {
 
-NetConn::NetConn(const int fd, std::string  ip_port, Thread* thread, NetMultiplexer* net_mpx)
+NetConn::NetConn(const int fd, std::string ip_port, Thread* thread,
+                 NetMultiplexer* net_mpx)
     : fd_(fd),
       ip_port_(std::move(ip_port)),
-      
 #ifdef __ENABLE_SSL
       ssl_(nullptr),
 #endif
@@ -36,9 +36,7 @@ NetConn::~NetConn() {
 }
 #endif
 
-void NetConn::SetClose(bool close) {
-  close_ = close;
-}
+void NetConn::SetClose(bool close) { close_ = close; }
 
 bool NetConn::SetNonblock() {
   flags_ = Setnonblocking(fd());

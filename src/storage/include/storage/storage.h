@@ -7,6 +7,7 @@
 #define INCLUDE_STORAGE_STORAGE_H_
 
 #include <unistd.h>
+
 #include <list>
 #include <map>
 #include <queue>
@@ -14,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "pstd/include/pstd_mutex.h"
 #include "rocksdb/convenience.h"
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/options.h"
@@ -22,16 +24,17 @@
 #include "rocksdb/status.h"
 #include "rocksdb/table.h"
 
-#include "pstd/include/pstd_mutex.h"
-
 namespace storage {
 
 inline constexpr double ZSET_SCORE_MAX = std::numeric_limits<double>::max();
 inline constexpr double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
 
-inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES = "rocksdb.cur-size-all-mem-tables";
-inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM = "rocksdb.estimate-table-readers-mem";
-inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
+inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES =
+    "rocksdb.cur-size-all-mem-tables";
+inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM =
+    "rocksdb.estimate-table-readers-mem";
+inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS =
+    "rocksdb.background-errors";
 
 inline const std::string ALL_DB = "all";
 inline const std::string STRINGS_DB = "strings";
@@ -66,13 +69,17 @@ struct StorageOptions {
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
-  Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
+  Status ResetOptions(
+      const OptionType& option_type,
+      const std::unordered_map<std::string, std::string>& options_map);
 };
 
 struct KeyValue {
   std::string key;
   std::string value;
-  bool operator==(const KeyValue& kv) const { return (kv.key == key && kv.value == value); }
+  bool operator==(const KeyValue& kv) const {
+    return (kv.key == key && kv.value == value);
+  }
   bool operator<(const KeyValue& kv) const { return key < kv.key; }
 };
 
@@ -86,25 +93,33 @@ struct KeyInfo {
 struct ValueStatus {
   std::string value;
   Status status;
-  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status); }
+  bool operator==(const ValueStatus& vs) const {
+    return (vs.value == value && vs.status == status);
+  }
 };
 
 struct FieldValue {
   std::string field;
   std::string value;
-  bool operator==(const FieldValue& fv) const { return (fv.field == field && fv.value == value); }
+  bool operator==(const FieldValue& fv) const {
+    return (fv.field == field && fv.value == value);
+  }
 };
 
 struct KeyVersion {
   std::string key;
   int32_t version;
-  bool operator==(const KeyVersion& kv) const { return (kv.key == key && kv.version == version); }
+  bool operator==(const KeyVersion& kv) const {
+    return (kv.key == key && kv.version == version);
+  }
 };
 
 struct ScoreMember {
   double score;
   std::string member;
-  bool operator==(const ScoreMember& sm) const { return (sm.score == score && sm.member == member); }
+  bool operator==(const ScoreMember& sm) const {
+    return (sm.score == score && sm.member == member);
+  }
 };
 
 enum BeforeOrAfter { Before, After };
@@ -124,14 +139,24 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactKey };
+enum Operation {
+  kNone = 0,
+  kCleanAll,
+  kCleanStrings,
+  kCleanHashes,
+  kCleanZSets,
+  kCleanSets,
+  kCleanLists,
+  kCompactKey
+};
 
 struct BGTask {
   DataType type;
   Operation operation;
   std::string argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
+  BGTask(const DataType& _type = DataType::kAll,
+         const Operation& _opeation = Operation::kNone, std::string _argv = "")
       : type(_type), operation(_opeation), argv(std::move(_argv)) {}
 };
 
@@ -140,11 +165,14 @@ class Storage {
   Storage();
   ~Storage();
 
-  Status Open(const StorageOptions& storage_options, const std::string& db_path);
+  Status Open(const StorageOptions& storage_options,
+              const std::string& db_path);
 
-  Status GetStartKey(const DataType& dtype, int64_t cursor, std::string* start_key);
+  Status GetStartKey(const DataType& dtype, int64_t cursor,
+                     std::string* start_key);
 
-  Status StoreCursorStartKey(const DataType& dtype, int64_t cursor, const std::string& next_key);
+  Status StoreCursorStartKey(const DataType& dtype, int64_t cursor,
+                             const std::string& next_key);
 
   // Strings Commands
 
@@ -153,7 +181,8 @@ class Storage {
   Status Set(const Slice& key, const Slice& value);
 
   // Set key to hold the string value. if key exist
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret,
+               int32_t ttl = 0);
 
   // Get the value of key. If the key does not exist
   // the special value nil is returned
@@ -176,12 +205,14 @@ class Storage {
   // Returns the values of all specified keys. For every key
   // that does not hold a string value or does not exist, the
   // special value nil is returned
-  Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
+  Status MGet(const std::vector<std::string>& keys,
+              std::vector<ValueStatus>* vss);
 
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret,
+               int32_t ttl = 0);
 
   // Sets the given keys to their respective values.
   // MSETNX will not perform any operation at all even
@@ -191,8 +222,10 @@ class Storage {
   // Set key to hold string new_value if key currently hold the give value
   // return 1 if the key currently hold the give value And override success
   // return 0 if the key doesn't exist And override fail
-  // return -1 if the key currently does not hold the given value And override fail
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);
+  // return -1 if the key currently does not hold the given value And override
+  // fail
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value,
+               int32_t* ret, int32_t ttl = 0);
 
   // delete the key that holds a given value
   // return 1 if the key currently hold the give value And delete success
@@ -202,11 +235,13 @@ class Storage {
 
   // Set key to hold string value if key does not exist
   // return the length of the string after it was modified by the command
-  Status Setrange(const Slice& key, int64_t start_offset, const Slice& value, int32_t* ret);
+  Status Setrange(const Slice& key, int64_t start_offset, const Slice& value,
+                  int32_t* ret);
 
   // Returns the substring of the string value stored at key,
   // determined by the offsets start and end (both are inclusive)
-  Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
+  Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset,
+                  std::string* ret);
 
   // If key already exists and is a string, this command appends the value at
   // the end of the string
@@ -216,19 +251,23 @@ class Storage {
   // Count the number of set bits (population counting) in a string.
   // return the number of bits set to 1
   // note: if need to specified offset, set have_range to true
-  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
+  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset,
+                  int32_t* ret, bool have_range);
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key,
+               const std::vector<std::string>& src_keys, int64_t* ret);
 
   // Return the position of the first bit set to 1 or 0 in a string
   // BitPos key 0
   Status BitPos(const Slice& key, int32_t bit, int64_t* ret);
   // BitPos key 0 [start]
-  Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t* ret);
+  Status BitPos(const Slice& key, int32_t bit, int64_t start_offset,
+                int64_t* ret);
   // BitPos key 0 [start] [end]
-  Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t end_offset, int64_t* ret);
+  Status BitPos(const Slice& key, int32_t bit, int64_t start_offset,
+                int64_t end_offset, int64_t* ret);
 
   // Decrements the number stored at key by decrement
   // return the value of key after the decrement
@@ -261,7 +300,8 @@ class Storage {
   // Sets field in the hash stored at key to value. If key does not exist, a new
   // key holding a hash is created. If field already exists in the hash, it is
   // overwritten.
-  Status HSet(const Slice& key, const Slice& field, const Slice& value, int32_t* res);
+  Status HSet(const Slice& key, const Slice& field, const Slice& value,
+              int32_t* res);
 
   // Returns the value associated with field in the hash stored at key.
   // the value associated with field, or nil when field is not present in the
@@ -278,7 +318,8 @@ class Storage {
   // For every field that does not exist in the hash, a nil value is returned.
   // Because a non-existing keys are treated as empty hashes, running HMGET
   // against a non-existing key will return a list of nil values.
-  Status HMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss);
+  Status HMGet(const Slice& key, const std::vector<std::string>& fields,
+               std::vector<ValueStatus>* vss);
 
   // Returns all fields and values of the hash stored at key. In the returned
   // value, every field name is followed by its value, so the length of the
@@ -294,7 +335,8 @@ class Storage {
   // Sets field in the hash stored at key to value, only if field does not yet
   // exist. If key does not exist, a new key holding a hash is created. If field
   // already exists, this operation has no effect.
-  Status HSetnx(const Slice& key, const Slice& field, const Slice& value, int32_t* ret);
+  Status HSetnx(const Slice& key, const Slice& field, const Slice& value,
+                int32_t* ret);
 
   // Returns the number of fields contained in the hash stored at key.
   // Return 0 when key does not exist.
@@ -314,7 +356,8 @@ class Storage {
   // increment. If key does not exist, a new key holding a hash is created. If
   // field does not exist the value is set to 0 before the operation is
   // performed.
-  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
+  Status HIncrby(const Slice& key, const Slice& field, int64_t value,
+                 int64_t* ret);
 
   // Increment the specified field of a hash stored at key, and representing a
   // floating point number, by the specified increment. If the increment value
@@ -326,39 +369,48 @@ class Storage {
   // The field contains a value of the wrong type (not a string).
   // The current field content or the specified increment are not parsable as a
   // double precision floating point number.
-  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
+  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by,
+                      std::string* new_value);
 
   // Removes the specified fields from the hash stored at key. Specified fields
   // that do not exist within this hash are ignored. If key does not exist, it
   // is treated as an empty hash and this command returns 0.
-  Status HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
+  Status HDel(const Slice& key, const std::vector<std::string>& fields,
+              int32_t* ret);
 
   // See SCAN for HSCAN documentation.
-  Status HScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
-               std::vector<FieldValue>* field_values, int64_t* next_cursor);
+  Status HScan(const Slice& key, int64_t cursor, const std::string& pattern,
+               int64_t count, std::vector<FieldValue>* field_values,
+               int64_t* next_cursor);
 
   // Iterate over a Hash table of fields
   // return next_field that the user need to use as the start_field argument
   // in the next call
-  Status HScanx(const Slice& key, const std::string& start_field, const std::string& pattern, int64_t count,
+  Status HScanx(const Slice& key, const std::string& start_field,
+                const std::string& pattern, int64_t count,
                 std::vector<FieldValue>* field_values, std::string* next_field);
 
   // Iterate over a Hash table of fields by specified range
   // return next_field that the user need to use as the start_field argument
   // in the next call
-  Status PKHScanRange(const Slice& key, const Slice& field_start, const std::string& field_end, const Slice& pattern,
-                      int32_t limit, std::vector<FieldValue>* field_values, std::string* next_field);
+  Status PKHScanRange(const Slice& key, const Slice& field_start,
+                      const std::string& field_end, const Slice& pattern,
+                      int32_t limit, std::vector<FieldValue>* field_values,
+                      std::string* next_field);
 
   // part from the reversed ordering, PKHRSCANRANGE is similar to PKHScanRange
-  Status PKHRScanRange(const Slice& key, const Slice& field_start, const std::string& field_end, const Slice& pattern,
-                       int32_t limit, std::vector<FieldValue>* field_values, std::string* next_field);
+  Status PKHRScanRange(const Slice& key, const Slice& field_start,
+                       const std::string& field_end, const Slice& pattern,
+                       int32_t limit, std::vector<FieldValue>* field_values,
+                       std::string* next_field);
 
   // Sets Commands
 
   // Add the specified members to the set stored at key. Specified members that
   // are already a member of this set are ignored. If key does not exist, a new
   // set is created before adding the specified members.
-  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SAdd(const Slice& key, const std::vector<std::string>& members,
+              int32_t* ret);
 
   // Returns the set cardinality (number of elements) of the set stored at key.
   Status SCard(const Slice& key, int32_t* ret);
@@ -371,7 +423,8 @@ class Storage {
   //   key2 = {c}
   //   key3 = {a, c, e}
   //   SDIFF key1 key2 key3  = {b, d}
-  Status SDiff(const std::vector<std::string>& keys, std::vector<std::string>* members);
+  Status SDiff(const std::vector<std::string>& keys,
+               std::vector<std::string>* members);
 
   // This command is equal to SDIFF, but instead of returning the resulting set,
   // it is stored in destination.
@@ -384,7 +437,8 @@ class Storage {
   //   key3 = {a, c, e}
   //   SDIFFSTORE destination key1 key2 key3
   //   destination = {b, d}
-  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SDiffstore(const Slice& destination,
+                    const std::vector<std::string>& keys, int32_t* ret);
 
   // Returns the members of the set resulting from the intersection of all the
   // given sets.
@@ -394,7 +448,8 @@ class Storage {
   //   key2 = {c}
   //   key3 = {a, c, e}
   //   SINTER key1 key2 key3 = {c}
-  Status SInter(const std::vector<std::string>& keys, std::vector<std::string>* members);
+  Status SInter(const std::vector<std::string>& keys,
+                std::vector<std::string>* members);
 
   // This command is equal to SINTER, but instead of returning the resulting
   // set, it is stored in destination.
@@ -407,7 +462,8 @@ class Storage {
   //   key3 = {a, c, e}
   //   SINTERSTORE destination key1 key2 key3
   //   destination = {a, c}
-  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SInterstore(const Slice& destination,
+                     const std::vector<std::string>& keys, int32_t* ret);
 
   // Returns if member is a member of the set stored at key.
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
@@ -419,10 +475,13 @@ class Storage {
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
   // treated as an empty set and this command returns 0.
-  Status SRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SRem(const Slice& key, const std::vector<std::string>& members,
+              int32_t* ret);
 
-  // Removes and returns several random elements specified by count from the set value store at key.
-  Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
+  // Removes and returns several random elements specified by count from the set
+  // value store at key.
+  Status SPop(const Slice& key, std::vector<std::string>* members,
+              int64_t count);
 
   // When called with just the key argument, return a random element from the
   // set value stored at key.
@@ -431,7 +490,8 @@ class Storage {
   // behavior changes and the command is allowed to return the same element
   // multiple times. In this case the number of returned elements is the
   // absolute value of the specified count
-  Status SRandmember(const Slice& key, int32_t count, std::vector<std::string>* members);
+  Status SRandmember(const Slice& key, int32_t count,
+                     std::vector<std::string>* members);
 
   // Move member from the set at source to the set at destination. This
   // operation is atomic. In every given moment the element will appear to be a
@@ -442,7 +502,8 @@ class Storage {
   // removed from the source set and added to the destination set. When the
   // specified element already exists in the destination set, it is only removed
   // from the source set.
-  Status SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret);
+  Status SMove(const Slice& source, const Slice& destination,
+               const Slice& member, int32_t* ret);
 
   // Returns the members of the set resulting from the union of all the given
   // sets.
@@ -452,7 +513,8 @@ class Storage {
   //   key2 = {c}
   //   key3 = {a, c, e}
   //   SUNION key1 key2 key3 = {a, b, c, d, e}
-  Status SUnion(const std::vector<std::string>& keys, std::vector<std::string>* members);
+  Status SUnion(const std::vector<std::string>& keys,
+                std::vector<std::string>* members);
 
   // This command is equal to SUNION, but instead of returning the resulting
   // set, it is stored in destination.
@@ -464,28 +526,33 @@ class Storage {
   //   key3 = {c, d, e}
   //   SUNIONSTORE destination key1 key2 key3
   //   destination = {a, b, c, d, e}
-  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SUnionstore(const Slice& destination,
+                     const std::vector<std::string>& keys, int32_t* ret);
 
   // See SCAN for SSCAN documentation.
-  Status SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
-               std::vector<std::string>* members, int64_t* next_cursor);
+  Status SScan(const Slice& key, int64_t cursor, const std::string& pattern,
+               int64_t count, std::vector<std::string>* members,
+               int64_t* next_cursor);
 
   // Lists Commands
 
   // Insert all the specified values at the head of the list stored at key. If
   // key does not exist, it is created as empty list before performing the push
   // operations.
-  Status LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
+  Status LPush(const Slice& key, const std::vector<std::string>& values,
+               uint64_t* ret);
 
   // Insert all the specified values at the tail of the list stored at key. If
   // key does not exist, it is created as empty list before performing the push
   // operation.
-  Status RPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
+  Status RPush(const Slice& key, const std::vector<std::string>& values,
+               uint64_t* ret);
 
   // Returns the specified elements of the list stored at key. The offsets start
   // and stop are zero-based indexes, with 0 being the first element of the list
   // (the head of the list), 1 being the next element and so on.
-  Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
+  Status LRange(const Slice& key, int64_t start, int64_t stop,
+                std::vector<std::string>* ret);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -515,18 +582,21 @@ class Storage {
   // When key does not exist, it is considered an empty list and no operation is
   // performed.
   // An error is returned when key exists but does not hold a list value.
-  Status LInsert(const Slice& key, const BeforeOrAfter& before_or_after, const std::string& pivot,
-                 const std::string& value, int64_t* ret);
+  Status LInsert(const Slice& key, const BeforeOrAfter& before_or_after,
+                 const std::string& pivot, const std::string& value,
+                 int64_t* ret);
 
   // Inserts value at the head of the list stored at key, only if key already
   // exists and holds a list. In contrary to LPUSH, no operation will be
   // performed when key does not yet exist.
-  Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
+  Status LPushx(const Slice& key, const std::vector<std::string>& values,
+                uint64_t* len);
 
   // Inserts value at the tail of the list stored at key, only if key already
   // exists and holds a list. In contrary to RPUSH, no operation will be
   // performed when key does not yet exist.
-  Status RPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
+  Status RPushx(const Slice& key, const std::vector<std::string>& values,
+                uint64_t* len);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -540,7 +610,8 @@ class Storage {
   //
   // Note that non-existing keys are treated like empty lists, so when key does
   // not exist, the command will always return 0.
-  Status LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret);
+  Status LRem(const Slice& key, int64_t count, const Slice& value,
+              uint64_t* ret);
 
   // Sets the list element at index to value. For more information on the index
   // argument, see LINDEX.
@@ -561,23 +632,26 @@ class Storage {
   // equivalent to removing the last element from the list and pushing it as
   // first element of the list, so it can be considered as a list rotation
   // command.
-  Status RPoplpush(const Slice& source, const Slice& destination, std::string* element);
+  Status RPoplpush(const Slice& source, const Slice& destination,
+                   std::string* element);
 
   // Zsets Commands
 
-  // Pop the maximum count score_members which have greater score in the sorted set.
-  // And return the result in the score_members,If the total number of the sorted
-  // set less than count, it will pop out the total number of sorted set. If two
-  // ScoreMember's score were the same, the lexicographic predominant elements will
-  // be pop out.
-  Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
+  // Pop the maximum count score_members which have greater score in the sorted
+  // set. And return the result in the score_members,If the total number of the
+  // sorted set less than count, it will pop out the total number of sorted set.
+  // If two ScoreMember's score were the same, the lexicographic predominant
+  // elements will be pop out.
+  Status ZPopMax(const Slice& key, int64_t count,
+                 std::vector<ScoreMember>* score_members);
 
-  // Pop the minimum count score_members which have less score in the sorted set.
-  // And return the result in the score_members,If the total number of the sorted
-  // set less than count, it will pop out the total number of sorted set. If two
-  // ScoreMember's score were the same, the lexicographic predominant elements will
-  // not be pop out.
-  Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
+  // Pop the minimum count score_members which have less score in the sorted
+  // set. And return the result in the score_members,If the total number of the
+  // sorted set less than count, it will pop out the total number of sorted set.
+  // If two ScoreMember's score were the same, the lexicographic predominant
+  // elements will not be pop out.
+  Status ZPopMin(const Slice& key, int64_t count,
+                 std::vector<ScoreMember>* score_members);
 
   // Adds all the specified members with the specified scores to the sorted set
   // stored at key. It is possible to specify multiple score / member pairs. If
@@ -590,7 +664,8 @@ class Storage {
   // does not hold a sorted set, an error is returned.
   // The score values should be the string representation of a double precision
   // floating point number. +inf and -inf values are valid values as well.
-  Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members, int32_t* ret);
+  Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members,
+              int32_t* ret);
 
   // Returns the sorted set cardinality (number of elements) of the sorted set
   // stored at key.
@@ -605,7 +680,8 @@ class Storage {
   // Note: the command has a complexity of just O(log(N)) because it uses
   // elements ranks (see ZRANK) to get an idea of the range. Because of this
   // there is no need to do a work proportional to the size of the range.
-  Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
+  Status ZCount(const Slice& key, double min, double max, bool left_close,
+                bool right_close, int32_t* ret);
 
   // Increments the score of member in the sorted set stored at key by
   // increment. If member does not exist in the sorted set, it is added with
@@ -618,7 +694,8 @@ class Storage {
   // The score value should be the string representation of a numeric value, and
   // accepts double precision floating point numbers. It is possible to provide
   // a negative value to decrement the score.
-  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
+  Status ZIncrby(const Slice& key, const Slice& member, double increment,
+                 double* ret);
 
   // Returns the specified range of elements in the sorted set stored at key.
   // The elements are considered to be ordered from the lowest to the highest
@@ -645,7 +722,8 @@ class Storage {
   // value1,score1,...,valueN,scoreN instead of value1,...,valueN. Client
   // libraries are free to return a more appropriate data type (suggestion: an
   // array with (value, score) arrays/tuples).
-  Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+  Status ZRange(const Slice& key, int32_t start, int32_t stop,
+                std::vector<ScoreMember>* score_members);
 
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
@@ -683,7 +761,8 @@ class Storage {
   // Return value
   // Array reply: list of elements in the specified score range (optionally with
   // their scores).
-  Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
+  Status ZRangebyscore(const Slice& key, double min, double max,
+                       bool left_close, bool right_close,
                        std::vector<ScoreMember>* score_members);
 
   // Returns all the elements in the sorted set at key with a score between min
@@ -722,7 +801,8 @@ class Storage {
   // Return value
   // Array reply: list of elements in the specified score range (optionally with
   // their scores).
-  Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
+  Status ZRangebyscore(const Slice& key, double min, double max,
+                       bool left_close, bool right_close, int64_t count,
                        int64_t offset, std::vector<ScoreMember>* score_members);
 
   // Returns the rank of member in the sorted set stored at key, with the scores
@@ -737,7 +817,8 @@ class Storage {
   // existing members are ignored.
   //
   // An error is returned when key exists and does not hold a sorted set.
-  Status ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status ZRem(const Slice& key, const std::vector<std::string>& members,
+              int32_t* ret);
 
   // Removes all elements in the sorted set stored at key with rank between
   // start and stop. Both start and stop are 0 -based indexes with 0 being the
@@ -745,11 +826,13 @@ class Storage {
   // they indicate offsets starting at the element with the highest score. For
   // example: -1 is the element with the highest score, -2 the element with the
   // second highest score and so forth.
-  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret);
+  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop,
+                         int32_t* ret);
 
   // Removes all elements in the sorted set stored at key with a score between
   // min and max (inclusive).
-  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
+  Status ZRemrangebyscore(const Slice& key, double min, double max,
+                          bool left_close, bool right_close, int32_t* ret);
 
   // Returns the specified range of elements in the sorted set stored at key.
   // The elements are considered to be ordered from the highest to the lowest
@@ -757,7 +840,8 @@ class Storage {
   // score.
   //
   // Apart from the reversed ordering, ZREVRANGE is similar to ZRANGE.
-  Status ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+  Status ZRevrange(const Slice& key, int32_t start, int32_t stop,
+                   std::vector<ScoreMember>* score_members);
 
   // Returns all the elements in the sorted set at key with a score between max
   // and min (including elements with score equal to max or min). In contrary to
@@ -769,7 +853,8 @@ class Storage {
   //
   // Apart from the reversed ordering, ZREVRANGEBYSCORE is similar to
   // ZRANGEBYSCORE.
-  Status ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
+  Status ZRevrangebyscore(const Slice& key, double min, double max,
+                          bool left_close, bool right_close,
                           std::vector<ScoreMember>* score_members);
 
   // Returns all the elements in the sorted set at key with a score between max
@@ -782,8 +867,10 @@ class Storage {
   //
   // Apart from the reversed ordering, ZREVRANGEBYSCORE is similar to
   // ZRANGEBYSCORE.
-  Status ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
-                          int64_t offset, std::vector<ScoreMember>* score_members);
+  Status ZRevrangebyscore(const Slice& key, double min, double max,
+                          bool left_close, bool right_close, int64_t count,
+                          int64_t offset,
+                          std::vector<ScoreMember>* score_members);
 
   // Returns the rank of member in the sorted set stored at key, with the scores
   // ordered from high to low. The rank (or index) is 0-based, which means that
@@ -817,8 +904,10 @@ class Storage {
   // maximum score of an element across the inputs where it exists.
   //
   // If destination already exists, it is overwritten.
-  Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+  Status ZUnionstore(const Slice& destination,
+                     const std::vector<std::string>& keys,
+                     const std::vector<double>& weights, AGGREGATE agg,
+                     int32_t* ret);
 
   // Computes the intersection of numkeys sorted sets given by the specified
   // keys, and stores the result in destination. It is mandatory to provide the
@@ -834,8 +923,10 @@ class Storage {
   // For a description of the WEIGHTS and AGGREGATE options, see ZUNIONSTORE.
   //
   // If destination already exists, it is overwritten.
-  Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+  Status ZInterstore(const Slice& destination,
+                     const std::vector<std::string>& keys,
+                     const std::vector<double>& weights, AGGREGATE agg,
+                     int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command returns all the
@@ -853,7 +944,8 @@ class Storage {
   // if offset is large, the sorted set needs to be traversed for offset
   // elements before getting to the elements to return, which can add up to O(N)
   // time complexity.
-  Status ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
+  Status ZRangebylex(const Slice& key, const Slice& min, const Slice& max,
+                     bool left_close, bool right_close,
                      std::vector<std::string>* members);
 
   // When all the elements in a sorted set are inserted with the same score, in
@@ -866,8 +958,8 @@ class Storage {
   // Note: the command has a complexity of just O(log(N)) because it uses
   // elements ranks (see ZRANK) to get an idea of the range. Because of this
   // there is no need to do a work proportional to the size of the range.
-  Status ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                   int32_t* ret);
+  Status ZLexcount(const Slice& key, const Slice& min, const Slice& max,
+                   bool left_close, bool right_close, int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command removes all elements
@@ -877,12 +969,13 @@ class Storage {
   // The meaning of min and max are the same of the ZRANGEBYLEX command.
   // Similarly, this command actually returns the same elements that ZRANGEBYLEX
   // would return if called with the same min and max arguments.
-  Status ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                        int32_t* ret);
+  Status ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max,
+                        bool left_close, bool right_close, int32_t* ret);
 
   // See SCAN for ZSCAN documentation.
-  Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
-               std::vector<ScoreMember>* score_members, int64_t* next_cursor);
+  Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern,
+               int64_t count, std::vector<ScoreMember>* score_members,
+               int64_t* next_cursor);
 
   // Keys Commands
 
@@ -893,12 +986,14 @@ class Storage {
   // Set a timeout on key
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, int32_t ttl, std::map<DataType, Status>* type_status);
+  int32_t Expire(const Slice& key, int32_t ttl,
+                 std::map<DataType, Status>* type_status);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys that were removed
-  int64_t Del(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Del(const std::vector<std::string>& keys,
+              std::map<DataType, Status>* type_status);
 
   // Removes the specified keys of the specified type
   // return -1 operation exception errors happen in database
@@ -908,40 +1003,49 @@ class Storage {
   // Iterate over a collection of elements
   // return an updated cursor that the user need to use as the cursor argument
   // in the next call
-  int64_t Scan(const DataType& dtype, int64_t cursor, const std::string& pattern, int64_t count,
+  int64_t Scan(const DataType& dtype, int64_t cursor,
+               const std::string& pattern, int64_t count,
                std::vector<std::string>* keys);
 
   // Iterate over a collection of elements, obtaining the item which timeout
   // conforms to the inequality (min_ttl < item_ttl < max_ttl)
   // return an updated cursor that the user need to use as the cursor argument
   // in the next call
-  int64_t PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min_ttl, int32_t max_ttl, int64_t count,
+  int64_t PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min_ttl,
+                       int32_t max_ttl, int64_t count,
                        std::vector<std::string>* keys);
 
   // Iterate over a collection of elements by specified range
   // return a next_key that the user need to use as the key_start argument
   // in the next call
-  Status PKScanRange(const DataType& data_type, const Slice& key_start, const Slice& key_end, const Slice& pattern,
-                     int32_t limit, std::vector<std::string>* keys, std::vector<KeyValue>* kvs, std::string* next_key);
+  Status PKScanRange(const DataType& data_type, const Slice& key_start,
+                     const Slice& key_end, const Slice& pattern, int32_t limit,
+                     std::vector<std::string>* keys, std::vector<KeyValue>* kvs,
+                     std::string* next_key);
 
   // part from the reversed ordering, PKRSCANRANGE is similar to PKScanRange
-  Status PKRScanRange(const DataType& data_type, const Slice& key_start, const Slice& key_end, const Slice& pattern,
-                      int32_t limit, std::vector<std::string>* keys, std::vector<KeyValue>* kvs, std::string* next_key);
+  Status PKRScanRange(const DataType& data_type, const Slice& key_start,
+                      const Slice& key_end, const Slice& pattern, int32_t limit,
+                      std::vector<std::string>* keys,
+                      std::vector<KeyValue>* kvs, std::string* next_key);
 
   // Traverses the database of the specified type, removing the Key that matches
   // the pattern
-  Status PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret);
+  Status PKPatternMatchDel(const DataType& data_type,
+                           const std::string& pattern, int32_t* ret);
 
   // Iterate over a collection of elements
   // return next_key that the user need to use as the start_key argument
   // in the next call
-  Status Scanx(const DataType& data_type, const std::string& start_key, const std::string& pattern, int64_t count,
+  Status Scanx(const DataType& data_type, const std::string& start_key,
+               const std::string& pattern, int64_t count,
                std::vector<std::string>* keys, std::string* next_key);
 
   // Returns if key exists.
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys existing
-  int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Exists(const std::vector<std::string>& keys,
+                 std::map<DataType, Status>* type_status);
 
   // EXPIREAT has the same effect and semantic as EXPIRE, but instead of
   // specifying the number of seconds representing the TTL (time to live), it
@@ -950,7 +1054,8 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist
   // return >=1 if the timueout was set
-  int32_t Expireat(const Slice& key, int32_t timestamp, std::map<DataType, Status>* type_status);
+  int32_t Expireat(const Slice& key, int32_t timestamp,
+                   std::map<DataType, Status>* type_status);
 
   // Remove the existing timeout on key, turning the key from volatile (a key
   // with an expire set) to persistent (a key that will never expire as no
@@ -965,16 +1070,19 @@ class Storage {
   // return -2 if the key does not exist
   // return -1 if the key exists but has not associated expire
   // return > 0 TTL in seconds
-  std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
+  std::map<DataType, int64_t> TTL(const Slice& key,
+                                  std::map<DataType, Status>* type_status);
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
-  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
+  Status GetType(const std::string& key, bool single,
+                 std::vector<std::string>& types);
 
   // Reutrns the data all type of the key
   Status Type(const std::string& key, std::vector<std::string>& types);
 
-  Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
+  Status Keys(const DataType& data_type, const std::string& pattern,
+              std::vector<std::string>* keys);
 
   // Iterate through all the data in the database.
   void ScanDatabase(const DataType& type);
@@ -986,7 +1094,8 @@ class Storage {
   };
   // Adds all the element arguments to the HyperLogLog data structure stored
   // at the variable name specified as first argument.
-  Status PfAdd(const Slice& key, const std::vector<std::string>& values, bool* update);
+  Status PfAdd(const Slice& key, const std::vector<std::string>& values,
+               bool* update);
 
   // When called with a single key, returns the approximated cardinality
   // computed by the HyperLogLog data structure stored at the specified
@@ -1012,7 +1121,8 @@ class Storage {
 
   std::string GetCurrentTaskType();
   Status GetUsage(const std::string& property, uint64_t* result);
-  Status GetUsage(const std::string& property, std::map<std::string, uint64_t>* type_result);
+  Status GetUsage(const std::string& property,
+                  std::map<std::string, uint64_t>* type_result);
   uint64_t GetProperty(const std::string& db_type, const std::string& property);
 
   Status GetKeyNum(std::vector<KeyInfo>* key_infos);
@@ -1020,8 +1130,9 @@ class Storage {
 
   rocksdb::DB* GetDBByType(const std::string& type);
 
-  Status SetOptions(const OptionType& option_type, const std::string& db_type,
-                    const std::unordered_map<std::string, std::string>& options);
+  Status SetOptions(
+      const OptionType& option_type, const std::string& db_type,
+      const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
  private:

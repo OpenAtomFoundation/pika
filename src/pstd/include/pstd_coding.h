@@ -38,7 +38,8 @@ extern void GetFixed64(Slice* dst, uint64_t* value);
 extern bool GetVarint32(Slice* input, uint32_t* value);
 extern bool GetVarint64(Slice* input, uint64_t* value);
 
-extern const char* GetLengthPrefixedSlice(const char* p, const char* limit, Slice* result);
+extern const char* GetLengthPrefixedSlice(const char* p, const char* limit,
+                                          Slice* result);
 extern bool GetLengthPrefixedSlice(Slice* input, Slice* result);
 extern bool GetLengthPrefixedString(std::string* input, std::string* result);
 
@@ -46,8 +47,10 @@ extern bool GetLengthPrefixedString(std::string* input, std::string* result);
 // in *v and return a pointer just past the parsed value, or return
 // nullptr on error.  These routines only look at bytes in the range
 // [p..limit-1]
-extern const char* GetVarint32Ptr(const char* p, const char* limit, uint32_t* v);
-extern const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* v);
+extern const char* GetVarint32Ptr(const char* p, const char* limit,
+                                  uint32_t* v);
+extern const char* GetVarint64Ptr(const char* p, const char* limit,
+                                  uint64_t* v);
 
 // Returns the length of the varint32 or varint64 encoding of "v"
 extern int VarintLength(uint64_t v);
@@ -137,8 +140,10 @@ inline void GetFixed64(Slice* dst, uint64_t* value) {
 }
 
 // Internal routine for use by fallback path of GetVarint32Ptr
-extern const char* GetVarint32PtrFallback(const char* p, const char* limit, uint32_t* value);
-inline const char* GetVarint32Ptr(const char* p, const char* limit, uint32_t* value) {
+extern const char* GetVarint32PtrFallback(const char* p, const char* limit,
+                                          uint32_t* value);
+inline const char* GetVarint32Ptr(const char* p, const char* limit,
+                                  uint32_t* value) {
   if (p < limit) {
     uint32_t result = *(reinterpret_cast<const unsigned char*>(p));
     if ((result & 128) == 0) {

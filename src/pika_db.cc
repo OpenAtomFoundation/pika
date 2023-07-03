@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <utility>
-
 #include "include/pika_db.h"
+
+#include <utility>
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
@@ -22,8 +22,8 @@ std::string DBPath(const std::string& path, const std::string& db_name) {
   return path + buf;
 }
 
-DB::DB(std::string  db_name, uint32_t slot_num, const std::string& db_path,
-             const std::string& log_path)
+DB::DB(std::string db_name, uint32_t slot_num, const std::string& db_path,
+       const std::string& log_path)
     : db_name_(std::move(db_name)), slot_num_(slot_num) {
   db_path_ = DBPath(db_path, db_name_);
   log_path_ = DBPath(log_path, "log_" + db_name_);
@@ -89,9 +89,11 @@ Status DB::AddSlots(const std::set<uint32_t>& slot_ids) {
   std::lock_guard l(slots_rw_);
   for (const uint32_t& id : slot_ids) {
     if (id >= slot_num_) {
-      return Status::Corruption("slot index out of range[0, " + std::to_string(slot_num_ - 1) + "]");
+      return Status::Corruption("slot index out of range[0, " +
+                                std::to_string(slot_num_ - 1) + "]");
     } else if (slots_.find(id) != slots_.end()) {
-      return Status::Corruption("slot " + std::to_string(id) + " already exist");
+      return Status::Corruption("slot " + std::to_string(id) +
+                                " already exist");
     }
   }
 
@@ -134,7 +136,8 @@ void DB::KeyScan() {
                                  // has not been scheduled for exec
   auto bg_task_arg = new BgTaskArg();
   bg_task_arg->db = shared_from_this();
-  g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
+  g_pika_server->KeyScanTaskSchedule(&DoKeyScan,
+                                     reinterpret_cast<void*>(bg_task_arg));
 }
 
 bool DB::IsKeyScaning() {
@@ -213,14 +216,15 @@ void DB::Compact(const storage::DataType& type) {
 }
 
 void DB::DoKeyScan(void* arg) {
-  std::unique_ptr <BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
+  std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
   bg_task_arg->db->RunKeyScan();
 }
 
 void DB::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S",
+                     localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
@@ -275,7 +279,8 @@ Status DB::MovetoToTrash(const std::string& path) {
   }
   path_tmp += "_deleting/";
   if (pstd::RenameFile(path, path_tmp) != 0) {
-    LOG(WARNING) << "Failed to move " << path << " to trash, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to move " << path
+                 << " to trash, error: " << strerror(errno);
     return Status::Corruption("Failed to move %s to trash", path);
   }
   g_pika_server->PurgeDir(path_tmp);

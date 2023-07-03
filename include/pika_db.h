@@ -8,14 +8,14 @@
 
 #include <shared_mutex>
 
-#include "storage/storage.h"
-
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "storage/storage.h"
 
 class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
  public:
-  DB(std::string  db_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
+  DB(std::string db_name, uint32_t slot_num, const std::string& db_path,
+     const std::string& log_path);
   virtual ~DB();
 
   friend class Cmd;

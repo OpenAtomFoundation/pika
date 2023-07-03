@@ -4,11 +4,11 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/simple_http_conn.h"
+
+#include <algorithm>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
-
-#include <algorithm>
 #include <string>
 
 #include "net/include/net_define.h"
@@ -73,7 +73,8 @@ inline int find_lf(const char* data, int size) {
   return count;
 }
 
-bool Request::ParseHeadLine(const char* data, int line_start, int line_end, ParseStatus* parseStatus) {
+bool Request::ParseHeadLine(const char* data, int line_start, int line_end,
+                            ParseStatus* parseStatus) {
   std::string param_key;
   std::string param_value;
   for (int i = line_start; i <= line_end; i++) {
@@ -124,7 +125,8 @@ bool Request::ParseHeadLine(const char* data, int line_start, int line_end, Pars
 
 bool Request::ParseGetUrl() {
   // Format path
-  if (path.find(headers["host"]) != std::string::npos && path.size() > (7 + headers["host"].size())) {
+  if (path.find(headers["host"]) != std::string::npos &&
+      path.size() > (7 + headers["host"].size())) {
     // http://www.xxx.xxx/path/to
     path.assign(path.substr(7 + headers["host"].size()));
   }
@@ -141,7 +143,8 @@ bool Request::ParseGetUrl() {
 
 // Parse query parameter from GET url or POST application/x-www-form-urlencoded
 // format: key1=value1&key2=value2&key3=value3
-bool Request::ParseParameters(const std::string& data, size_t line_start, bool from_url) {
+bool Request::ParseParameters(const std::string& data, size_t line_start,
+                              bool from_url) {
   size_t pre = line_start;
   size_t mid;
   size_t end;
@@ -164,9 +167,11 @@ bool Request::ParseParameters(const std::string& data, size_t line_start, bool f
       pre = end + 1;
     } else {
       if (from_url) {
-        query_params[data.substr(pre, mid - pre)] = data.substr(mid + 1, end - mid - 1);
+        query_params[data.substr(pre, mid - pre)] =
+            data.substr(mid + 1, end - mid - 1);
       } else {
-        post_params[data.substr(pre, mid - pre)] = data.substr(mid + 1, end - mid - 1);
+        post_params[data.substr(pre, mid - pre)] =
+            data.substr(mid + 1, end - mid - 1);
       }
       pre = end + 1;
     }
@@ -202,7 +207,8 @@ bool Request::ParseHeadFromArray(const char* data, const int size) {
 
 bool Request::ParseBodyFromArray(const char* data, const int size) {
   content.append(data, size);
-  if (method == "POST" && headers["content-type"] == "application/x-www-form-urlencoded") {
+  if (method == "POST" &&
+      headers["content-type"] == "application/x-www-form-urlencoded") {
     return ParseParameters(content, 0, false);
   }
   return true;
@@ -231,7 +237,8 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
   int ret;
 
   // Serialize statues line
-  ret = snprintf(data, size, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase_.c_str());
+  ret = snprintf(data, size, "HTTP/1.1 %d %s\r\n", status_code_,
+                 reason_phrase_.c_str());
   if (ret < 0 || ret == static_cast<int>(size)) {
     return ret;
   }
@@ -242,7 +249,8 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
     SetHeaders("Content-Length", body_.size());
   }
   for (auto& line : headers_) {
-    ret = snprintf(data + serial_size, size - serial_size, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
+    ret = snprintf(data + serial_size, size - serial_size, "%s: %s\r\n",
+                   line.first.c_str(), line.second.c_str());
     if (ret < 0) {
       return ret;
     }
@@ -270,13 +278,15 @@ int Response::SerializeBodyToArray(char* data, size_t size, int* pos) {
 }
 
 void Response::SetStatusCode(int code) {
-  assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) || (code >= 400 && code <= 409) ||
-         (code == 416) || (code >= 500 && code <= 509));
+  assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) ||
+         (code >= 400 && code <= 409) || (code == 416) ||
+         (code >= 500 && code <= 509));
   status_code_ = code;
   reason_phrase_.assign(http_status_map.at(code));
 }
 
-SimpleHTTPConn::SimpleHTTPConn(const int fd, const std::string& ip_port, Thread* thread)
+SimpleHTTPConn::SimpleHTTPConn(const int fd, const std::string& ip_port,
+                               Thread* thread)
     : NetConn(fd, ip_port, thread),
       conn_status_(kHeader),
       rbuf_pos_(0),
@@ -325,7 +335,8 @@ bool SimpleHTTPConn::BuildRequestHeader() {
 }
 
 bool SimpleHTTPConn::AppendRequestBody() {
-  return request_->ParseBodyFromArray(rbuf_ + header_len_, rbuf_pos_ - header_len_);
+  return request_->ParseBodyFromArray(rbuf_ + header_len_,
+                                      rbuf_pos_ - header_len_);
 }
 
 void SimpleHTTPConn::HandleMessage() {
@@ -357,14 +368,16 @@ ReadStatus SimpleHTTPConn::GetRequest() {
             return kReadError;
           }
 
-          std::string sign = request_->headers.count("expect") != 0U ? request_->headers.at("expect") : "";
+          std::string sign = request_->headers.count("expect") != 0U
+                                 ? request_->headers.at("expect")
+                                 : "";
           if (sign == "100-continue" || sign == "100-Continue") {
             // Reply 100 Continue, then receive body
             response_->Clear();
             response_->SetStatusCode(100);
             set_is_reply(true);
             conn_status_ = kPacket;
-            if (remain_packet_len_ > 0) { 
+            if (remain_packet_len_ > 0) {
               return kReadHalf;
             }
           }
@@ -374,9 +387,10 @@ ReadStatus SimpleHTTPConn::GetRequest() {
       }
       case kPacket: {
         if (remain_packet_len_ > 0) {
-          nread = read(
-              fd(), rbuf_ + rbuf_pos_,
-              (kHTTPMaxMessage - rbuf_pos_ > remain_packet_len_) ? remain_packet_len_ : kHTTPMaxMessage - rbuf_pos_);
+          nread = read(fd(), rbuf_ + rbuf_pos_,
+                       (kHTTPMaxMessage - rbuf_pos_ > remain_packet_len_)
+                           ? remain_packet_len_
+                           : kHTTPMaxMessage - rbuf_pos_);
           if (nread == -1 && errno == EAGAIN) {
             return kReadHalf;
           } else if (nread <= 0) {
@@ -414,7 +428,8 @@ ReadStatus SimpleHTTPConn::GetRequest() {
 bool SimpleHTTPConn::FillResponseBuf() {
   if (response_pos_ < 0) {
     // Not ever serialize response header
-    int actual = response_->SerializeHeaderToArray(wbuf_ + wbuf_len_, kHTTPMaxMessage - wbuf_len_);
+    int actual = response_->SerializeHeaderToArray(wbuf_ + wbuf_len_,
+                                                   kHTTPMaxMessage - wbuf_len_);
     if (actual < 0) {
       return false;
     }
@@ -423,7 +438,8 @@ bool SimpleHTTPConn::FillResponseBuf() {
   }
   while (response_->HasMoreBody(response_pos_) && wbuf_len_ < kHTTPMaxMessage) {
     // Has more body and more space in wbuf_
-    wbuf_len_ += response_->SerializeBodyToArray(wbuf_ + wbuf_len_, kHTTPMaxMessage - wbuf_len_, &response_pos_);
+    wbuf_len_ += response_->SerializeBodyToArray(
+        wbuf_ + wbuf_len_, kHTTPMaxMessage - wbuf_len_, &response_pos_);
   }
   return true;
 }

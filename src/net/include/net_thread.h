@@ -7,11 +7,12 @@
 #define NET_INCLUDE_NET_THREAD_H_
 
 #include <pthread.h>
+
 #include <atomic>
 #include <string>
 
-#include "pstd/include/pstd_mutex.h"
 #include "pstd/include/noncopyable.h"
+#include "pstd/include/pstd_mutex.h"
 
 namespace net {
 

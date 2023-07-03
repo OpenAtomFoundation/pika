@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
+
 #include <atomic>
 #include <memory>
 #include <type_traits>
@@ -26,7 +27,9 @@ static atomic<int> num(0);
 
 class PingConn : public PbConn {
  public:
-  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = nullptr) : PbConn(fd, ip_port, pself_thread) {}
+  PingConn(int fd, std::string ip_port,
+           net::ServerThread* pself_thread = nullptr)
+      : PbConn(fd, ip_port, pself_thread) {}
   virtual ~PingConn() {}
 
   int DealMessage() {
@@ -52,10 +55,12 @@ class PingConn : public PbConn {
 
 class PingConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data,
-                                              NetMultiplexer* net_mpx = nullptr) const override {
-    return std::make_shared<PingConn>(connfd, ip_port, dynamic_cast<ServerThread*>(thread));
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data,
+      NetMultiplexer* net_mpx = nullptr) const override {
+    return std::make_shared<PingConn>(connfd, ip_port,
+                                      dynamic_cast<ServerThread*>(thread));
   }
 };
 
@@ -84,7 +89,8 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  std::unique_ptr<ServerThread> st_thread(NewDispatchThread(ip, port, 24, &conn_factory, 1000));
+  std::unique_ptr<ServerThread> st_thread(
+      NewDispatchThread(ip, port, 24, &conn_factory, 1000));
   st_thread->StartThread();
   uint64_t st, ed;
 
@@ -95,7 +101,8 @@ int main(int argc, char* argv[]) {
     printf("num %d\n", num.load());
     ed = NowMicros();
     printf("mmap cost time microsecond(us) %lld\n", ed - st);
-    printf("average qps %lf\n", (double)(num.load() - prv) / ((double)(ed - st) / 1000000));
+    printf("average qps %lf\n",
+           (double)(num.load() - prv) / ((double)(ed - st) / 1000000));
   }
   st_thread->StopThread();
 

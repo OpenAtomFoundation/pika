@@ -13,10 +13,9 @@
  */
 #define HEADER_LEN 6
 
+#include "binlog_transverter.h"
 #include "net/include/net_conn.h"
 #include "pika_command.h"
-
-#include "binlog_transverter.h"
 
 class BinlogReceiverThread;
 
@@ -36,12 +35,16 @@ class MasterConn : public net::NetConn {
   net::ReadStatus ReadBody(uint32_t body_length);
   void ResetStatus();
 
-  int32_t FindNextSeparators(const std::string& content, int32_t next_parse_pos);
-  int32_t GetNextNum(const std::string& content, int32_t left_pos, int32_t pos, long* value);
-  net::ReadStatus ParseRedisRESPArray(const std::string& content, net::RedisCmdArgsType* argv);
+  int32_t FindNextSeparators(const std::string& content,
+                             int32_t next_parse_pos);
+  int32_t GetNextNum(const std::string& content, int32_t left_pos, int32_t pos,
+                     long* value);
+  net::ReadStatus ParseRedisRESPArray(const std::string& content,
+                                      net::RedisCmdArgsType* argv);
 
   bool ProcessAuth(const net::RedisCmdArgsType& argv);
-  bool ProcessBinlogData(const net::RedisCmdArgsType& argv, const PortBinlogItem& binlog_item);
+  bool ProcessBinlogData(const net::RedisCmdArgsType& argv,
+                         const PortBinlogItem& binlog_item);
 
  private:
   char* rbuf_;

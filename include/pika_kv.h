@@ -6,10 +6,9 @@
 #ifndef PIKA_KV_H_
 #define PIKA_KV_H_
 
-#include "storage/storage.h"
-
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "storage/storage.h"
 
 /*
  * kv
@@ -17,15 +16,16 @@
 class SetCmd : public Cmd {
  public:
   enum SetCondition { kNONE, kNX, kXX, kVX, kEXORPX };
-  SetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag),  condition_(kNONE){};
+  SetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), condition_(kNONE){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetCmd(*this); }
 
  private:
@@ -41,21 +41,22 @@ class SetCmd : public Cmd {
     success_ = 0;
     condition_ = kNONE;
   }
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class GetCmd : public Cmd {
  public:
-  GetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  GetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetCmd(*this); }
 
  private:
@@ -65,7 +66,8 @@ class GetCmd : public Cmd {
 
 class DelCmd : public Cmd {
  public:
-  DelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
+  DelCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -80,15 +82,16 @@ class DelCmd : public Cmd {
 
 class IncrCmd : public Cmd {
  public:
-  IncrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrCmd(*this); }
 
  private:
@@ -99,15 +102,16 @@ class IncrCmd : public Cmd {
 
 class IncrbyCmd : public Cmd {
  public:
-  IncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrbyCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrbyCmd(*this); }
 
  private:
@@ -118,15 +122,16 @@ class IncrbyCmd : public Cmd {
 
 class IncrbyfloatCmd : public Cmd {
  public:
-  IncrbyfloatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrbyfloatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrbyfloatCmd(*this); }
 
  private:
@@ -137,15 +142,16 @@ class IncrbyfloatCmd : public Cmd {
 
 class DecrCmd : public Cmd {
  public:
-  DecrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  DecrCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new DecrCmd(*this); }
 
  private:
@@ -156,15 +162,16 @@ class DecrCmd : public Cmd {
 
 class DecrbyCmd : public Cmd {
  public:
-  DecrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  DecrbyCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new DecrbyCmd(*this); }
 
  private:
@@ -175,15 +182,16 @@ class DecrbyCmd : public Cmd {
 
 class GetsetCmd : public Cmd {
  public:
-  GetsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  GetsetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetsetCmd(*this); }
 
  private:
@@ -194,15 +202,16 @@ class GetsetCmd : public Cmd {
 
 class AppendCmd : public Cmd {
  public:
-  AppendCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  AppendCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new AppendCmd(*this); }
 
  private:
@@ -213,7 +222,8 @@ class AppendCmd : public Cmd {
 
 class MgetCmd : public Cmd {
  public:
-  MgetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  MgetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -228,10 +238,11 @@ class MgetCmd : public Cmd {
 
 class KeysCmd : public Cmd {
  public:
-  KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
+  KeysCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new KeysCmd(*this); }
 
  private:
@@ -243,15 +254,16 @@ class KeysCmd : public Cmd {
 
 class SetnxCmd : public Cmd {
  public:
-  SetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetnxCmd(*this); }
 
  private:
@@ -259,21 +271,22 @@ class SetnxCmd : public Cmd {
   std::string value_;
   int32_t success_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class SetexCmd : public Cmd {
  public:
-  SetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetexCmd(*this); }
 
  private:
@@ -281,21 +294,22 @@ class SetexCmd : public Cmd {
   int64_t sec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class PsetexCmd : public Cmd {
  public:
-  PsetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PsetexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PsetexCmd(*this); }
 
  private:
@@ -303,21 +317,22 @@ class PsetexCmd : public Cmd {
   int64_t usec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class DelvxCmd : public Cmd {
  public:
-  DelvxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DelvxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new DelvxCmd(*this); }
 
  private:
@@ -329,7 +344,8 @@ class DelvxCmd : public Cmd {
 
 class MsetCmd : public Cmd {
  public:
-  MsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  MsetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -349,10 +365,11 @@ class MsetCmd : public Cmd {
 
 class MsetnxCmd : public Cmd {
  public:
-  MsetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  MsetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new MsetnxCmd(*this); }
 
  private:
@@ -363,15 +380,16 @@ class MsetnxCmd : public Cmd {
 
 class GetrangeCmd : public Cmd {
  public:
-  GetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  GetrangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetrangeCmd(*this); }
 
  private:
@@ -383,15 +401,16 @@ class GetrangeCmd : public Cmd {
 
 class SetrangeCmd : public Cmd {
  public:
-  SetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetrangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetrangeCmd(*this); }
 
  private:
@@ -403,15 +422,16 @@ class SetrangeCmd : public Cmd {
 
 class StrlenCmd : public Cmd {
  public:
-  StrlenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  StrlenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new StrlenCmd(*this); }
 
  private:
@@ -421,7 +441,8 @@ class StrlenCmd : public Cmd {
 
 class ExistsCmd : public Cmd {
  public:
-  ExistsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExistsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -436,57 +457,60 @@ class ExistsCmd : public Cmd {
 
 class ExpireCmd : public Cmd {
  public:
-  ExpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExpireCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ExpireCmd(*this); }
 
  private:
   std::string key_;
   int64_t sec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class PexpireCmd : public Cmd {
  public:
-  PexpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PexpireCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PexpireCmd(*this); }
 
  private:
   std::string key_;
   int64_t msec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class ExpireatCmd : public Cmd {
  public:
-  ExpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExpireatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ExpireatCmd(*this); }
 
  private:
@@ -497,36 +521,38 @@ class ExpireatCmd : public Cmd {
 
 class PexpireatCmd : public Cmd {
  public:
-  PexpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PexpireatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PexpireatCmd(*this); }
 
  private:
   std::string key_;
   int64_t time_stamp_ms_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) override;
+  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+                       uint32_t filenum, uint64_t offset) override;
 };
 
 class TtlCmd : public Cmd {
  public:
-  TtlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  TtlCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new TtlCmd(*this); }
 
  private:
@@ -536,15 +562,16 @@ class TtlCmd : public Cmd {
 
 class PttlCmd : public Cmd {
  public:
-  PttlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PttlCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PttlCmd(*this); }
 
  private:
@@ -554,15 +581,16 @@ class PttlCmd : public Cmd {
 
 class PersistCmd : public Cmd {
  public:
-  PersistCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PersistCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PersistCmd(*this); }
 
  private:
@@ -572,15 +600,16 @@ class PersistCmd : public Cmd {
 
 class TypeCmd : public Cmd {
  public:
-  TypeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  TypeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new TypeCmd(*this); }
 
  private:
@@ -590,15 +619,16 @@ class TypeCmd : public Cmd {
 
 class PTypeCmd : public Cmd {
  public:
-  PTypeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PTypeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PTypeCmd(*this); }
 
  private:
@@ -608,10 +638,11 @@ class PTypeCmd : public Cmd {
 
 class ScanCmd : public Cmd {
  public:
-  ScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  ScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ScanCmd(*this); }
 
  private:
@@ -629,10 +660,11 @@ class ScanCmd : public Cmd {
 
 class ScanxCmd : public Cmd {
  public:
-  ScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  ScanxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ScanxCmd(*this); }
 
  private:
@@ -649,15 +681,16 @@ class ScanxCmd : public Cmd {
 
 class PKSetexAtCmd : public Cmd {
  public:
-  PKSetexAtCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PKSetexAtCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PKSetexAtCmd(*this); }
 
  private:
@@ -678,8 +711,8 @@ class PKScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PKScanRangeCmd(*this); }
 
  private:
@@ -707,8 +740,8 @@ class PKRScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:

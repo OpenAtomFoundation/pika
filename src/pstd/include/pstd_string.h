@@ -40,7 +40,8 @@
 
 namespace pstd {
 
-int stringmatchlen(const char* pattern, int patternLen, const char* string, int stringLen, int nocase);
+int stringmatchlen(const char* pattern, int patternLen, const char* string,
+                   int stringLen, int nocase);
 int stringmatch(const char* p, const char* s, int nocase);
 long long memtoll(const char* p, int* err);
 int ll2string(char* dst, size_t dstlen, long long svalue);
@@ -49,14 +50,16 @@ int string2int(const char* s, size_t slen, long* lval);
 int string2int(const char* s, size_t slen, unsigned long* lval);
 int d2string(char* buf, size_t len, double value);
 int string2d(const char* s, size_t slen, double* dval);
-std::vector<std::string>& StringSplit(const std::string& s, char delim, std::vector<std::string>& elems);
+std::vector<std::string>& StringSplit(const std::string& s, char delim,
+                                      std::vector<std::string>& elems);
 std::string StringConcat(const std::vector<std::string>& elems, char delim);
 std::string& StringToLower(std::string& ori);
 std::string& StringToUpper(std::string& ori);
 std::string IpPortString(const std::string& ip, int port);
 std::string ToRead(const std::string& str);
 bool ParseIpPortString(const std::string& ip_port, std::string& ip, int& port);
-std::string StringTrim(const std::string& ori, const std::string& charlist = " ");
+std::string StringTrim(const std::string& ori,
+                       const std::string& charlist = " ");
 std::string getRandomHexChars(size_t len);
 
 }  // namespace pstd

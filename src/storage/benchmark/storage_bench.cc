@@ -113,7 +113,8 @@ void BenchHGetall() {
   auto end = system_clock::now();
   duration<double> elapsed_seconds = end - start;
   auto cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 1, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
+  std::cout << "Test case 1, HGetall " << fvs_out.size()
+            << " Field HashTable Cost: " << cost << "ms" << std::endl;
 
   // 1. Create the hash table then insert hash table 10000000 field
   // 2. Delete the hash table
@@ -144,7 +145,8 @@ void BenchHGetall() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 2, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
+  std::cout << "Test case 2, HGetall " << fvs_out.size()
+            << " Field HashTable Cost: " << cost << "ms" << std::endl;
 
   // 1. Create the hash table then insert hash table 10000000 field
   // 2. Delete hash table 9990000 field, the hash table remain 10000 field
@@ -168,7 +170,8 @@ void BenchHGetall() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 3, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
+  std::cout << "Test case 3, HGetall " << fvs_out.size()
+            << " Field HashTable Cost: " << cost << "ms" << std::endl;
 }
 
 void BenchScan() {
@@ -214,7 +217,8 @@ void BenchScan() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<seconds>(elapsed_seconds).count();
-  std::cout << "Test case 2, Scan " << 100000 << " Cost: " << cost << "s" << std::endl;
+  std::cout << "Test case 2, Scan " << 100000 << " Cost: " << cost << "s"
+            << std::endl;
 
   // Scan 10000000
   keys.clear();
@@ -223,7 +227,8 @@ void BenchScan() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<seconds>(elapsed_seconds).count();
-  std::cout << "Test case 3, Scan " << kv_num << " Cost: " << cost << "s" << std::endl;
+  std::cout << "Test case 3, Scan " << kv_num << " Cost: " << cost << "s"
+            << std::endl;
 }
 
 int main(int argc, char** argv) {

@@ -6,13 +6,13 @@
 #ifndef PIKA_REPL_SERVER_THREAD_H_
 #define PIKA_REPL_SERVER_THREAD_H_
 
-#include "net/src/holy_thread.h"
-
 #include "include/pika_repl_server_conn.h"
+#include "net/src/holy_thread.h"
 
 class PikaReplServerThread : public net::HolyThread {
  public:
-  PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval);
+  PikaReplServerThread(const std::set<std::string>& ips, int port,
+                       int cron_interval);
   ~PikaReplServerThread() override = default;
 
   int ListenPort();
@@ -23,13 +23,15 @@ class PikaReplServerThread : public net::HolyThread {
  private:
   class ReplServerConnFactory : public net::ConnFactory {
    public:
-    explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
+    explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {}
 
-    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
-                                                     void* worker_specific_data,
-                                                     net::NetMultiplexer* net) const override {
+    std::shared_ptr<net::NetConn> NewNetConn(
+        int connfd, const std::string& ip_port, net::Thread* thread,
+        void* worker_specific_data, net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
-          std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net));
+          std::make_shared<PikaReplServerConn>(connfd, ip_port, thread,
+                                               binlog_receiver_, net));
     }
 
    private:

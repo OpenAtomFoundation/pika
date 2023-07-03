@@ -7,13 +7,12 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <glog/logging.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-
-#include <glog/logging.h>
 
 #include "net/include/net_conn.h"
 #include "net/src/server_socket.h"
@@ -24,7 +23,8 @@ namespace net {
 
 using pstd::Status;
 
-BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
+BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval,
+                             int keepalive_timeout, BackendHandle* handle,
                              void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
@@ -99,7 +99,8 @@ Status BackendThread::Close(const int fd) {
   return Status::OK();
 }
 
-Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
+Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe,
+                                           int* should_close) {
   if (pfe->mask & kErrorEvent) {
     *should_close = 1;
     return Status::Corruption("POLLERR or POLLHUP");
@@ -123,11 +124,14 @@ void BackendThread::SetWaitConnectOnEpoll(int sockfd) {
   connecting_fds_.insert(sockfd);
 }
 
-void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int sockfd) {
+void BackendThread::AddConnection(const std::string& peer_ip, int peer_port,
+                                  int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, nullptr, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
+      sockfd, ip_port, this, nullptr, net_multiplexer_.get());
   tc->SetNonblock();
-  // This flag specifies that the file descriptor should be closed when an exec function is invoked.
+  // This flag specifies that the file descriptor should be closed when an exec
+  // function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
 
   {
@@ -136,14 +140,15 @@ void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int
   }
 }
 
-Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int* fd) {
+Status BackendThread::Connect(const std::string& dst_ip, const int dst_port,
+                              int* fd) {
   Status s;
   int sockfd = -1;
   int rv;
   char cport[6];
   struct addrinfo hints;
-  struct addrinfo *servinfo;
-  struct addrinfo *p;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   snprintf(cport, sizeof(cport), "%d", dst_port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -167,7 +172,8 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
       if (errno == EHOSTUNREACH) {
         CloseFd(sockfd);
         continue;
-      } else if (errno == EINPROGRESS || errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (errno == EINPROGRESS || errno == EAGAIN ||
+                 errno == EWOULDBLOCK) {
         AddConnection(dst_ip, dst_port, sockfd);
         SetWaitConnectOnEpoll(sockfd);
         freeaddrinfo(servinfo);
@@ -176,7 +182,8 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
       } else {
         CloseFd(sockfd);
         freeaddrinfo(servinfo);
-        return Status::IOError("EHOSTUNREACH", "The target host cannot be reached");
+        return Status::IOError("EHOSTUNREACH",
+                               "The target host cannot be reached");
       }
     }
 
@@ -241,7 +248,8 @@ void BackendThread::DoCronTask() {
     std::shared_ptr<NetConn> conn = iter->second;
 
     // Check keepalive timeout connection
-    if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+    if (keepalive_timeout_ > 0 &&
+        (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       LOG(INFO) << "Do cron task del fd " << conn->fd();
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
@@ -372,8 +380,10 @@ void* BackendThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec ||
+          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 +
+                  (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // do user defined cron
         handle_->CronHandle();
@@ -449,7 +459,8 @@ void* BackendThread::ThreadMain() {
 
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
-          LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
+          LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask
+                    << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           mu_.lock();

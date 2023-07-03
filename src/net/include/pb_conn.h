@@ -26,7 +26,8 @@ class PbConn : public NetConn {
     std::queue<std::string> queue_;
     size_t item_pos_;
   };
-  PbConn(int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
+  PbConn(int fd, const std::string& ip_port, Thread* thread,
+         NetMultiplexer* net_mpx = nullptr);
   ~PbConn() override;
 
   ReadStatus GetRequest() override;
@@ -50,9 +51,11 @@ class PbConn : public NetConn {
   ConnStatus connStatus_;
 
  protected:
-  // NOTE: if this function return non 0, the the server will close this connection
+  // NOTE: if this function return non 0, the the server will close this
+  // connection
   //
-  // In the implementation of DealMessage, we should distinguish two types of error
+  // In the implementation of DealMessage, we should distinguish two types of
+  // error
   //
   // 1. protocol parsing error
   // 2. service logic error

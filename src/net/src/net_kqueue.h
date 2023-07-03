@@ -5,9 +5,9 @@
 
 #ifndef NET_SRC_NET_KQUEUE_H_
 #define NET_SRC_NET_KQUEUE_H_
-#include <vector>
-
 #include <sys/event.h>
+
+#include <vector>
 
 #include "net/src/net_multiplexer.h"
 

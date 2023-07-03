@@ -7,27 +7,30 @@
 #define NET_INCLUDE_NET_CONN_H_
 
 #include <sys/time.h>
+
 #include <sstream>
 #include <string>
 
 #ifdef __ENABLE_SSL
-#  include <openssl/err.h>
-#  include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #endif
 
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
-#include "pstd/include/testutil.h"
 #include "pstd/include/noncopyable.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
 class Thread;
 
-class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::noncopyable {
+class NetConn : public std::enable_shared_from_this<NetConn>,
+                public pstd::noncopyable {
  public:
-  NetConn(int fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+  NetConn(int fd, std::string ip_port, Thread* thread,
+          NetMultiplexer* mpx = nullptr);
 #ifdef __ENABLE_SSL
   virtual ~NetConn();
 #else
@@ -59,7 +62,9 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 
   bool is_ready_to_reply() { return is_writable() && is_reply(); }
 
-  virtual void set_is_writable(const bool is_writable) { is_writable_ = is_writable; }
+  virtual void set_is_writable(const bool is_writable) {
+    is_writable_ = is_writable;
+  }
 
   virtual bool is_writable() { return is_writable_; }
 
@@ -73,7 +78,9 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
   bool IsClose() { return close_; }
   void SetClose(bool close);
 
-  void set_last_interaction(const struct timeval& now) { last_interaction_ = now; }
+  void set_last_interaction(const struct timeval& now) {
+    last_interaction_ = now;
+  }
 
   struct timeval last_interaction() const { return last_interaction_; }
 
@@ -85,7 +92,8 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 
   std::string String() const {
     std::stringstream ss;
-    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_;
+    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_
+       << ", is_reply: " << is_reply_ << ", close: " << close_;
     return ss.str();
   }
 
@@ -113,7 +121,6 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
   Thread* thread_ = nullptr;
   // the net epoll this conn belong to
   NetMultiplexer* net_multiplexer_ = nullptr;
-
 };
 
 /*
@@ -122,9 +129,10 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 class ConnFactory {
  public:
   virtual ~ConnFactory() = default;
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_private_data, /* Has set in ThreadEnvHandle */
-                                              NetMultiplexer* net_mpx = nullptr) const = 0;
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_private_data, /* Has set in ThreadEnvHandle */
+      NetMultiplexer* net_mpx = nullptr) const = 0;
 };
 
 }  // namespace net

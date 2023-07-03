@@ -6,11 +6,10 @@
 #ifndef PIKA_BINLOG_H_
 #define PIKA_BINLOG_H_
 
+#include "include/pika_define.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
-
-#include "include/pika_define.h"
 
 using pstd::Slice;
 using pstd::Status;
@@ -48,7 +47,7 @@ class Version {
 
 class Binlog {
  public:
-  Binlog(std::string  Binlog_path, const int file_size = 100 * 1024 * 1024);
+  Binlog(std::string Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   void Lock() { mutex_.lock(); }
@@ -57,7 +56,8 @@ class Binlog {
   Status Put(const std::string& item);
   Status Put(const char* item, int len);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = nullptr);
+  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset,
+                           uint64_t* logic_id = nullptr);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
@@ -73,7 +73,8 @@ class Binlog {
 
  private:
   void InitLogFile();
-  Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
+  Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n,
+                            int* temp_pro_offset);
 
   /*
    * Produce

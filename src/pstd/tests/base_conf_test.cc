@@ -3,12 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "pstd/include/base_conf.h"
+
 #include <string>
 #include <vector>
 
 #include "glog/logging.h"
 #include "gtest/gtest.h"
-#include "pstd/include/base_conf.h"
 #include "pstd/include/env.h"
 #include "pstd/include/testutil.h"
 

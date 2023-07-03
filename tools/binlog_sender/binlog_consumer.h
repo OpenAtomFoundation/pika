@@ -6,13 +6,12 @@
 #ifndef INCLUDE_BINLOG_CONSUMER_H_
 #define INCLUDE_BINLOG_CONSUMER_H_
 
-#include "stddef.h"
-#include "stdint.h"
-
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_slice.h"
 #include "pstd/include/pstd_status.h"
+#include "stddef.h"
+#include "stdint.h"
 
 enum RecordType {
   kZeroType = 0,
@@ -34,7 +33,8 @@ static const std::string kBinlogPrefix = "write2file";
 
 class BinlogConsumer {
  public:
-  BinlogConsumer(const std::string& binlog_path, uint32_t first_filenum, uint32_t last_filenum, uint64_t offset);
+  BinlogConsumer(const std::string& binlog_path, uint32_t first_filenum,
+                 uint32_t last_filenum, uint64_t offset);
   virtual ~BinlogConsumer();
 
   std::string NewFileName(const std::string& name, const uint32_t current);

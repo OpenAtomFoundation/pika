@@ -1,24 +1,24 @@
-#include <signal.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <atomic>
-
-#include "net/include/net_thread.h"
-#include "net/include/server_thread.h"
-#include "pstd/include/xdebug.h"
-
-#include "myproto.pb.h"
-#include "net/include/pb_conn.h"
-
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#include <atomic>
+
+#include "myproto.pb.h"
+#include "net/include/net_thread.h"
+#include "net/include/pb_conn.h"
+#include "net/include/server_thread.h"
+#include "pstd/include/xdebug.h"
 
 using namespace net;
 
 class MyConn : public PbConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread,
+         void* worker_specific_data);
   virtual ~MyConn();
 
  protected:
@@ -29,7 +29,8 @@ class MyConn : public PbConn {
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread,
+               void* worker_specific_data)
     : PbConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
@@ -51,9 +52,11 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetMultiplexer* net_epoll) const override {
-    return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
+  virtual std::shared_ptr<NetConn> NewNetConn(
+      int connfd, const std::string& ip_port, Thread* thread,
+      void* worker_specific_data, NetMultiplexer* net_epoll) const override {
+    return std::make_shared<MyConn>(connfd, ip_port, thread,
+                                    worker_specific_data);
   }
 };
 
@@ -75,8 +78,10 @@ static void SignalSetup() {
 
 int main() {
   SignalSetup();
-  std::unique_ptr<ConnFactory> my_conn_factory = std::make_unique<MyConnFactory>();
-  std::unique_ptr<ServerThread> st(NewDispatchThread(9211, 10, my_conn_factory.get(), 1000));
+  std::unique_ptr<ConnFactory> my_conn_factory =
+      std::make_unique<MyConnFactory>();
+  std::unique_ptr<ServerThread> st(
+      NewDispatchThread(9211, 10, my_conn_factory.get(), 1000));
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");

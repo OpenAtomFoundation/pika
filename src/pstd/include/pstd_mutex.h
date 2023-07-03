@@ -2,6 +2,7 @@
 #define __PSTD_MUTEXLOCK_H__
 
 #include <pthread.h>
+
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -10,6 +11,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "noncopyable.h"
 
 namespace pstd {
@@ -46,7 +48,8 @@ class RefMutex : public pstd::noncopyable {
 
 class RecordMutex : public pstd::noncopyable {
  public:
-  RecordMutex()= default;;
+  RecordMutex() = default;
+  ;
   ~RecordMutex();
 
   void MultiLock(const std::vector<std::string>& keys);
@@ -62,7 +65,9 @@ class RecordMutex : public pstd::noncopyable {
 
 class RecordLock : public pstd::noncopyable {
  public:
-  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(key)) { mu_->Lock(key_); }
+  RecordLock(RecordMutex* mu, std::string key) : mu_(mu), key_(std::move(key)) {
+    mu_->Lock(key_);
+  }
   ~RecordLock() { mu_->Unlock(key_); }
 
  private:

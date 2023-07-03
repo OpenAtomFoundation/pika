@@ -7,9 +7,10 @@
 
 #ifndef ROCKSDB_LITE
 
-#  include <vector>
-#  include "rocksdb/status.h"
-#  include "rocksdb/transaction_log.h"
+#include <vector>
+
+#include "rocksdb/status.h"
+#include "rocksdb/transaction_log.h"
 
 namespace rocksdb {
 
@@ -29,11 +30,15 @@ class DBCheckpoint {
   // The directory will be an absolute path
   virtual Status CreateCheckpoint(const std::string& checkpoint_dir) = 0;
 
-  virtual Status GetCheckpointFiles(std::vector<std::string>& live_files, VectorLogPtr& live_wal_files,
-                                    uint64_t& manifest_file_size, uint64_t& sequence_number) = 0;
+  virtual Status GetCheckpointFiles(std::vector<std::string>& live_files,
+                                    VectorLogPtr& live_wal_files,
+                                    uint64_t& manifest_file_size,
+                                    uint64_t& sequence_number) = 0;
 
-  virtual Status CreateCheckpointWithFiles(const std::string& checkpoint_dir, std::vector<std::string>& live_files,
-                                           VectorLogPtr& live_wal_files, uint64_t manifest_file_size,
+  virtual Status CreateCheckpointWithFiles(const std::string& checkpoint_dir,
+                                           std::vector<std::string>& live_files,
+                                           VectorLogPtr& live_wal_files,
+                                           uint64_t manifest_file_size,
                                            uint64_t sequence_number) = 0;
 
   virtual ~DBCheckpoint() = default;

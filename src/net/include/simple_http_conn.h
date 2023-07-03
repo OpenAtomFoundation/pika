@@ -10,12 +10,11 @@
 #include <string>
 #include <vector>
 
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/xdebug.h"
-
 #include "net/include/net_conn.h"
 #include "net/include/net_define.h"
 #include "net/src/net_util.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -42,11 +41,20 @@ class Request {
   bool ParseBodyFromArray(const char* data, int size);
 
  private:
-  enum ParseStatus { kHeaderMethod, kHeaderPath, kHeaderVersion, kHeaderParamKey, kHeaderParamValue, kBody };
+  enum ParseStatus {
+    kHeaderMethod,
+    kHeaderPath,
+    kHeaderVersion,
+    kHeaderParamKey,
+    kHeaderParamValue,
+    kBody
+  };
 
   bool ParseGetUrl();
-  bool ParseHeadLine(const char* data, int line_start, int line_end, ParseStatus* parseStatus);
-  bool ParseParameters(const std::string& data, size_t line_start = 0, bool from_url = true);
+  bool ParseHeadLine(const char* data, int line_start, int line_end,
+                     ParseStatus* parseStatus);
+  bool ParseParameters(const std::string& data, size_t line_start = 0,
+                       bool from_url = true);
 };
 
 class Response {
@@ -59,9 +67,13 @@ class Response {
 
   void SetStatusCode(int code);
 
-  void SetHeaders(const std::string& key, const std::string& value) { headers_[key] = value; }
+  void SetHeaders(const std::string& key, const std::string& value) {
+    headers_[key] = value;
+  }
 
-  void SetHeaders(const std::string& key, const int value) { headers_[key] = std::to_string(value); }
+  void SetHeaders(const std::string& key, const int value) {
+    headers_[key] = std::to_string(value);
+  }
 
   void SetBody(const std::string& body) { body_.assign(body); }
 

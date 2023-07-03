@@ -6,12 +6,10 @@
 #ifndef INCLUDE_PROGRESS_THREAD_H_
 #define INCLUDE_PROGRESS_THREAD_H_
 
-#include "iostream"
-#include "vector"
-
-#include "net/include/net_thread.h"
-
 #include "binlog_consumer.h"
+#include "iostream"
+#include "net/include/net_thread.h"
+#include "vector"
 
 extern pstd::Mutex mutex;
 

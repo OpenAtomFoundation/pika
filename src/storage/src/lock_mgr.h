@@ -10,7 +10,6 @@
 #include <string>
 
 #include "pstd/include/lock_mgr.h"
-
 #include "src/mutex.h"
 
 namespace storage {

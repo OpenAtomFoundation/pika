@@ -7,13 +7,12 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <glog/logging.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-
-#include <glog/logging.h>
 
 #include "net/include/net_conn.h"
 #include "net/src/server_socket.h"
@@ -24,7 +23,8 @@ namespace net {
 
 using pstd::Status;
 
-ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
+ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval,
+                           int keepalive_timeout, ClientHandle* handle,
                            void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
@@ -65,7 +65,8 @@ int ClientThread::StopThread() {
   return Thread::StopThread();
 }
 
-Status ClientThread::Write(const std::string& ip, const int port, const std::string& msg) {
+Status ClientThread::Write(const std::string& ip, const int port,
+                           const std::string& msg) {
   std::string ip_port = ip + ":" + std::to_string(port);
   if (!handle_->AccessHandle(ip_port)) {
     return Status::Corruption(ip_port + " is baned by user!");
@@ -93,7 +94,8 @@ Status ClientThread::Close(const std::string& ip, const int port) {
   return Status::OK();
 }
 
-Status ClientThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
+Status ClientThread::ProcessConnectStatus(NetFiredEvent* pfe,
+                                          int* should_close) {
   if (pfe->mask & kErrorEvent) {
     *should_close = 1;
     return Status::Corruption("POLLERR or POLLHUP");
@@ -117,11 +119,14 @@ void ClientThread::SetWaitConnectOnEpoll(int sockfd) {
   connecting_fds_.insert(sockfd);
 }
 
-void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int sockfd) {
+void ClientThread::NewConnection(const std::string& peer_ip, int peer_port,
+                                 int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, nullptr, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
+      sockfd, ip_port, this, nullptr, net_multiplexer_.get());
   tc->SetNonblock();
-  // This flag specifies that the file descriptor should be closed when an exec function is invoked.
+  // This flag specifies that the file descriptor should be closed when an exec
+  // function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
 
   fd_conns_.insert(std::make_pair(sockfd, tc));
@@ -134,8 +139,8 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
   int rv;
   char cport[6];
   struct addrinfo hints;
-  struct addrinfo *servinfo;
-  struct addrinfo *p;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   snprintf(cport, sizeof(cport), "%d", dst_port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -156,7 +161,8 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       if (errno == EHOSTUNREACH) {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         continue;
-      } else if (errno == EINPROGRESS || errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (errno == EINPROGRESS || errno == EAGAIN ||
+                 errno == EWOULDBLOCK) {
         NewConnection(dst_ip, dst_port, sockfd);
         SetWaitConnectOnEpoll(sockfd);
         freeaddrinfo(servinfo);
@@ -164,7 +170,8 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       } else {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         freeaddrinfo(servinfo);
-        return Status::IOError("EHOSTUNREACH", "The target host cannot be reached");
+        return Status::IOError("EHOSTUNREACH",
+                               "The target host cannot be reached");
       }
     }
 
@@ -219,7 +226,8 @@ void ClientThread::DoCronTask() {
     std::shared_ptr<NetConn> conn = iter->second;
 
     // Check keepalive timeout connection
-    if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+    if (keepalive_timeout_ > 0 &&
+        (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       LOG(INFO) << "Do cron task del fd " << conn->fd();
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       // did not clean up content in to_send queue
@@ -324,12 +332,14 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             if (!s.ok()) {
               std::string ip_port = ip + ":" + std::to_string(port);
               handle_->DestConnectFailedHandle(ip_port, s.ToString());
-              LOG(INFO) << "Ip " << ip << ", port " << port << " Connect err " << s.ToString();
+              LOG(INFO) << "Ip " << ip << ", port " << port << " Connect err "
+                        << s.ToString();
               continue;
             }
           } else {
             // connection exist
-            net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, kReadable | kWritable);
+            net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0,
+                                          kReadable | kWritable);
           }
           {
             std::lock_guard l(mu_);
@@ -380,8 +390,10 @@ void* ClientThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec ||
+          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 +
+                  (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // do user defined cron
         handle_->CronHandle();
@@ -454,7 +466,8 @@ void* ClientThread::ThreadMain() {
 
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
-          LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
+          LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask
+                    << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           fd_conns_.erase(pfe->fd);

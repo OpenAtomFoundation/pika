@@ -9,13 +9,14 @@
 namespace storage {
 
 /*
- * |  <Key Size>  |      <Key>      | <Version> |  <Score>  |      <Member>      |
- *      4 Bytes      key size Bytes    4 Bytes     8 Bytes    member size Bytes
+ * |  <Key Size>  |      <Key>      | <Version> |  <Score>  |      <Member> | 4
+ * Bytes      key size Bytes    4 Bytes     8 Bytes    member size Bytes
  */
 class ZSetsScoreKey {
  public:
-  ZSetsScoreKey(const Slice& key, int32_t version, double score, const Slice& member)
-      :  key_(key), version_(version), score_(score), member_(member) {}
+  ZSetsScoreKey(const Slice& key, int32_t version, double score,
+                const Slice& member)
+      : key_(key), version_(version), score_(score), member_(member) {}
 
   ~ZSetsScoreKey() {
     if (start_ != space_) {
@@ -24,7 +25,8 @@ class ZSetsScoreKey {
   }
 
   Slice Encode() {
-    size_t needed = key_.size() + member_.size() + sizeof(int32_t) * 2 + sizeof(uint64_t);
+    size_t needed =
+        key_.size() + member_.size() + sizeof(int32_t) * 2 + sizeof(uint64_t);
     char* dst = nullptr;
     if (needed <= sizeof(space_)) {
       dst = space_;
@@ -74,7 +76,8 @@ class ParsedZSetsScoreKey {
     const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
     score_ = *reinterpret_cast<const double*>(ptr_tmp);
     ptr += sizeof(uint64_t);
-    member_ = Slice(ptr, key->size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
+    member_ = Slice(
+        ptr, key->size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
   }
 
   explicit ParsedZSetsScoreKey(const Slice& key) {
@@ -90,7 +93,8 @@ class ParsedZSetsScoreKey {
     const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
     score_ = *reinterpret_cast<const double*>(ptr_tmp);
     ptr += sizeof(uint64_t);
-    member_ = Slice(ptr, key.size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
+    member_ = Slice(
+        ptr, key.size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
   }
 
   Slice key() { return key_; }

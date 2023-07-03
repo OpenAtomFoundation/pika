@@ -18,7 +18,8 @@ void SyncWindow::Push(const SyncWinItem& item) {
   total_size_ += item.binlog_size_;
 }
 
-bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset) {
+bool SyncWindow::Update(const SyncWinItem& start_item,
+                        const SyncWinItem& end_item, LogOffset* acked_offset) {
   size_t start_pos = win_.size();
   size_t end_pos = win_.size();
   for (size_t i = 0; i < win_.size(); ++i) {
@@ -31,7 +32,8 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
     }
   }
   if (start_pos == win_.size() || end_pos == win_.size()) {
-    LOG(WARNING) << "Ack offset Start: " << start_item.ToString() << "End: " << end_item.ToString()
+    LOG(WARNING) << "Ack offset Start: " << start_item.ToString()
+                 << "End: " << end_item.ToString()
                  << " not found in binlog controller window." << std::endl
                  << "window status " << std::endl
                  << ToStringStatus();
@@ -59,16 +61,17 @@ int SyncWindow::Remaining() {
 
 /* SlaveNode */
 
-SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
+SlaveNode::SlaveNode(const std::string& ip, int port,
+                     const std::string& db_name, uint32_t slot_id,
                      int session_id)
     : RmNode(ip, port, db_name, slot_id, session_id),
       slave_state(kSlaveNotSync),
-      b_state(kNotSync)
-      {}
+      b_state(kNotSync) {}
 
 SlaveNode::~SlaveNode() = default;
 
-Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset) {
+Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog,
+                                       const BinlogOffset& offset) {
   binlog_reader = std::make_shared<PikaBinlogReader>();
   int res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
   if (res != 0) {
@@ -80,22 +83,26 @@ Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, co
 std::string SlaveNode::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << "    Slave_state: " << SlaveStateMsg[slave_state] << "\r\n";
-  tmp_stream << "    Binlog_sync_state: " << BinlogSyncStateMsg[b_state] << "\r\n";
+  tmp_stream << "    Binlog_sync_state: " << BinlogSyncStateMsg[b_state]
+             << "\r\n";
   tmp_stream << "    Sync_window: "
              << "\r\n"
              << sync_win.ToStringStatus();
   tmp_stream << "    Sent_offset: " << sent_offset.ToString() << "\r\n";
   tmp_stream << "    Acked_offset: " << acked_offset.ToString() << "\r\n";
-  tmp_stream << "    Binlog_reader activated: " << (binlog_reader != nullptr) << "\r\n";
+  tmp_stream << "    Binlog_reader activated: " << (binlog_reader != nullptr)
+             << "\r\n";
   return tmp_stream.str();
 }
 
-Status SlaveNode::Update(const LogOffset& start, const LogOffset& end, LogOffset* updated_offset) {
+Status SlaveNode::Update(const LogOffset& start, const LogOffset& end,
+                         LogOffset* updated_offset) {
   if (slave_state != kSlaveBinlogSync) {
     return Status::Corruption(ToString() + "state not BinlogSync");
   }
   *updated_offset = LogOffset();
-  bool res = sync_win.Update(SyncWinItem(start), SyncWinItem(end), updated_offset);
+  bool res =
+      sync_win.Update(SyncWinItem(start), SyncWinItem(end), updated_offset);
   if (!res) {
     return Status::Corruption("UpdateAckedInfo failed");
   }

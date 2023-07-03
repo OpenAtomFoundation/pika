@@ -70,7 +70,6 @@ class ServerSocket : public pstd::noncopyable {
 
   struct sockaddr_in servaddr_;
   int sockfd_;
-
 };
 
 }  // namespace net

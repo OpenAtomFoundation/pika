@@ -7,9 +7,8 @@
 
 #include <algorithm>
 
-#include "pstd/include/pstd_string.h"
-
 #include "include/pika_geohash_helper.h"
+#include "pstd/include/pstd_string.h"
 
 void GeoAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -27,11 +26,13 @@ void GeoAddCmd::DoInitial() {
   double longitude;
   double latitude;
   for (size_t index = 2; index < argc; index += 3) {
-    if (pstd::string2d(argv_[index].data(), argv_[index].size(), &longitude) == 0) {
+    if (pstd::string2d(argv_[index].data(), argv_[index].size(), &longitude) ==
+        0) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    if (pstd::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude) == 0) {
+    if (pstd::string2d(argv_[index + 1].data(), argv_[index + 1].size(),
+                       &latitude) == 0) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
@@ -47,7 +48,8 @@ void GeoAddCmd::Do(std::shared_ptr<Slot> slot) {
   for (const auto& geo_point : pos_) {
     // Convert coordinates to geohash
     GeoHashBits hash;
-    geohashEncodeWGS84(geo_point.longitude, geo_point.latitude, GEO_STEP_MAX, &hash);
+    geohashEncodeWGS84(geo_point.longitude, geo_point.latitude, GEO_STEP_MAX,
+                       &hash);
     GeoHashFix52Bits bits = geohashAlign52Bits(hash);
     // Convert uint64 to double
     double score;
@@ -62,7 +64,7 @@ void GeoAddCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void GeoPosCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -84,7 +86,8 @@ void GeoPosCmd::Do(std::shared_ptr<Slot> slot) {
     rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
-      GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score),
+                          .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
 
       res_.AppendArrayLen(2);
@@ -147,7 +150,8 @@ void GeoDistCmd::DoInitial() {
     unit_ = "m";
   }
   if (!check_unit(unit_)) {
-    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    res_.SetRes(CmdRes::kErrOther,
+                "unsupported unit provided. please use m, km, ft, mi");
     return;
   }
 }
@@ -159,7 +163,8 @@ void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
   double second_xy[2];
   rocksdb::Status s = slot->db()->ZScore(key_, first_pos_, &first_score);
   if (s.ok()) {
-    GeoHashBits hash = {.bits = static_cast<uint64_t>(first_score), .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(first_score),
+                        .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, first_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
@@ -171,7 +176,8 @@ void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
 
   s = slot->db()->ZScore(key_, second_pos_, &second_score);
   if (s.ok()) {
-    GeoHashBits hash = {.bits = static_cast<uint64_t>(second_score), .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(second_score),
+                        .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, second_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
@@ -181,7 +187,8 @@ void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  double distance = geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
+  double distance =
+      geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
   distance = length_converter(distance, unit_);
   char buf[32];
   sprintf(buf, "%.4f", distance);
@@ -210,7 +217,8 @@ void GeoHashCmd::Do(std::shared_ptr<Slot> slot) {
     rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
-      GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score),
+                          .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
       GeoHashRange r[2];
       GeoHashBits encode_hash;
@@ -240,15 +248,18 @@ void GeoHashCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-static bool sort_distance_asc(const NeighborPoint& pos1, const NeighborPoint& pos2) {
+static bool sort_distance_asc(const NeighborPoint& pos1,
+                              const NeighborPoint& pos2) {
   return pos1.distance < pos2.distance;
 }
 
-static bool sort_distance_desc(const NeighborPoint& pos1, const NeighborPoint& pos2) {
+static bool sort_distance_desc(const NeighborPoint& pos1,
+                               const NeighborPoint& pos2) {
   return pos1.distance > pos2.distance;
 }
 
-static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key, GeoRange& range, CmdRes& res) {
+static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
+                            GeoRange& range, CmdRes& res) {
   rocksdb::Status s;
   double longitude = range.longitude;
   double latitude = range.latitude;
@@ -267,7 +278,8 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
     distance = -1;
   }
   // Search the zset for all matching points
-  GeoHashRadius georadius = geohashGetAreasByRadiusWGS84(longitude, latitude, distance);
+  GeoHashRadius georadius =
+      geohashGetAreasByRadiusWGS84(longitude, latitude, distance);
   GeoHashBits neighbors[9];
   neighbors[0] = georadius.hash;
   neighbors[1] = georadius.neighbors.north;
@@ -294,23 +306,28 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
     max = geohashAlign52Bits(neighbors[i]);
     // When a huge Radius (in the 5000 km range or more) is used,
     // adjacent neighbors can be the same, so need to remove duplicated elements
-    if ((last_processed != 0) && neighbors[i].bits == neighbors[last_processed].bits &&
+    if ((last_processed != 0) &&
+        neighbors[i].bits == neighbors[last_processed].bits &&
         neighbors[i].step == neighbors[last_processed].step) {
       continue;
     }
     std::vector<storage::ScoreMember> score_members;
-    s = slot->db()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
+    s = slot->db()->ZRangebyscore(key, static_cast<double>(min),
+                                  static_cast<double>(max), true, true,
+                                  &score_members);
     if (!s.ok() && !s.IsNotFound()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
     // Insert into result only if the point is within the search area.
-    for (auto & score_member : score_members) {
+    for (auto& score_member : score_members) {
       double xy[2];
       double real_distance;
-      GeoHashBits hash = {.bits = static_cast<uint64_t>(score_member.score), .step = GEO_STEP_MAX};
+      GeoHashBits hash = {.bits = static_cast<uint64_t>(score_member.score),
+                          .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
-      if (geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1], distance, &real_distance) != 0) {
+      if (geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1],
+                                            distance, &real_distance) != 0) {
         NeighborPoint item;
         item.member = score_member.member;
         item.score = score_member.score;
@@ -323,7 +340,9 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
 
   // If using the count opiton
   if (range.count) {
-    count_limit = static_cast<int>(result.size()) < range.count_limit ? result.size() : range.count_limit;
+    count_limit = static_cast<int>(result.size()) < range.count_limit
+                      ? result.size()
+                      : range.count_limit;
   } else {
     count_limit = result.size();
   }
@@ -366,7 +385,8 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
       // If using withdist option
       if (range.withdist) {
         double xy[2];
-        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score), .step = GEO_STEP_MAX};
+        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score),
+                            .step = GEO_STEP_MAX};
         geohashDecodeToLongLatWGS84(hash, xy);
         double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
         distance = length_converter(distance, range.unit);
@@ -383,7 +403,8 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
       if (range.withcoord) {
         res.AppendArrayLen(2);
         double xy[2];
-        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score), .step = GEO_STEP_MAX};
+        GeoHashBits hash = {.bits = static_cast<uint64_t>(result[i].score),
+                            .step = GEO_STEP_MAX};
         geohashDecodeToLongLatWGS84(hash, xy);
 
         char longitude[32];
@@ -411,7 +432,8 @@ void GeoRadiusCmd::DoInitial() {
   pstd::string2d(argv_[4].data(), argv_[4].size(), &range_.distance);
   range_.unit = argv_[5];
   if (!check_unit(range_.unit)) {
-    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    res_.SetRes(CmdRes::kErrOther,
+                "unsupported unit provided. please use m, km, ft, mi");
     return;
   }
   size_t pos = 6;
@@ -434,7 +456,8 @@ void GeoRadiusCmd::DoInitial() {
       std::string str_count = argv_[++pos];
       for (auto s : str_count) {
         if (isdigit(s) == 0) {
-          res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
+          res_.SetRes(CmdRes::kErrOther,
+                      "value is not an integer or out of range");
           return;
         }
       }
@@ -463,14 +486,18 @@ void GeoRadiusCmd::DoInitial() {
     }
     pos++;
   }
-  if (range_.store && (range_.withdist || range_.withcoord || range_.withhash)) {
+  if (range_.store &&
+      (range_.withdist || range_.withcoord || range_.withhash)) {
     res_.SetRes(CmdRes::kErrOther,
-                "STORE option in GEORADIUS is not compatible with WITHDIST, WITHHASH and WITHCOORDS options");
+                "STORE option in GEORADIUS is not compatible with WITHDIST, "
+                "WITHHASH and WITHCOORDS options");
     return;
   }
 }
 
-void GeoRadiusCmd::Do(std::shared_ptr<Slot> slot) { GetAllNeighbors(slot, key_, range_, this->res_); }
+void GeoRadiusCmd::Do(std::shared_ptr<Slot> slot) {
+  GetAllNeighbors(slot, key_, range_, this->res_);
+}
 
 void GeoRadiusByMemberCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -482,7 +509,8 @@ void GeoRadiusByMemberCmd::DoInitial() {
   pstd::string2d(argv_[3].data(), argv_[3].size(), &range_.distance);
   range_.unit = argv_[4];
   if (!check_unit(range_.unit)) {
-    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    res_.SetRes(CmdRes::kErrOther,
+                "unsupported unit provided. please use m, km, ft, mi");
     return;
   }
   size_t pos = 5;
@@ -505,7 +533,8 @@ void GeoRadiusByMemberCmd::DoInitial() {
       std::string str_count = argv_[++pos];
       for (auto s : str_count) {
         if (isdigit(s) == 0) {
-          res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
+          res_.SetRes(CmdRes::kErrOther,
+                      "value is not an integer or out of range");
           return;
         }
       }
@@ -534,9 +563,11 @@ void GeoRadiusByMemberCmd::DoInitial() {
     }
     pos++;
   }
-  if (range_.store && (range_.withdist || range_.withcoord || range_.withhash)) {
+  if (range_.store &&
+      (range_.withdist || range_.withcoord || range_.withhash)) {
     res_.SetRes(CmdRes::kErrOther,
-                "STORE option in GEORADIUS is not compatible with WITHDIST, WITHHASH and WITHCOORDS options");
+                "STORE option in GEORADIUS is not compatible with WITHDIST, "
+                "WITHHASH and WITHCOORDS options");
     return;
   }
 }
@@ -546,7 +577,8 @@ void GeoRadiusByMemberCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->ZScore(key_, range_.member, &score);
   if (s.ok()) {
     double xy[2];
-    GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
+    GeoHashBits hash = {.bits = static_cast<uint64_t>(score),
+                        .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, xy);
     range_.longitude = xy[0];
     range_.latitude = xy[1];

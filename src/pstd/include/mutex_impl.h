@@ -6,9 +6,9 @@
 #ifndef __SRC_MUTEX_IMPL_H__
 #define __SRC_MUTEX_IMPL_H__
 
-#include "pstd/include/mutex.h"
-
 #include <memory>
+
+#include "pstd/include/mutex.h"
 
 namespace pstd {
 namespace lock {

@@ -91,9 +91,11 @@ class ClientHandle {
   }
 
   /*
-   * DestConnectFailedHandle(...) will run the invoker's logic when socket connect failed
+   * DestConnectFailedHandle(...) will run the invoker's logic when socket
+   * connect failed
    */
-  virtual void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const {
+  virtual void DestConnectFailedHandle(const std::string& ip_port,
+                                       const std::string& reason) const {
     UNUSED(ip_port);
     UNUSED(reason);
   }
@@ -101,8 +103,8 @@ class ClientHandle {
 
 class ClientThread : public Thread {
  public:
-  ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
-               void* private_data);
+  ClientThread(ConnFactory* conn_factory, int cron_interval,
+               int keepalive_timeout, ClientHandle* handle, void* private_data);
   ~ClientThread() override;
   /*
    * StartThread will return the error code as pthread_create return
@@ -124,7 +126,8 @@ class ClientThread : public Thread {
 
   void NewConnection(const std::string& peer_ip, int peer_port, int sockfd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
-  // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
+  // put this fd in epoll (SetWaitConnectOnEpoll), process in
+  // ProcessConnectStatus
   pstd::Status ScheduleConnect(const std::string& dst_ip, int dst_port);
   void CloseFd(const std::shared_ptr<NetConn>& conn);
   void CloseFd(int fd, const std::string& ip_port);
@@ -147,7 +150,8 @@ class ClientThread : public Thread {
   ConnFactory* conn_factory_;
 
   pstd::Mutex mu_;
-  std::map<std::string, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
+  std::map<std::string, std::vector<std::string>>
+      to_send_;  // ip+":"+port, to_send_msg
 
   std::map<int, std::shared_ptr<NetConn>> fd_conns_;
   std::map<std::string, std::shared_ptr<NetConn>> ipport_conns_;

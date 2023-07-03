@@ -91,9 +91,11 @@ class BackendHandle {
   }
 
   /*
-   * DestConnectFailedHandle(...) will run the invoker's logic when socket connect failed
+   * DestConnectFailedHandle(...) will run the invoker's logic when socket
+   * connect failed
    */
-  virtual void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const {
+  virtual void DestConnectFailedHandle(const std::string& ip_port,
+                                       const std::string& reason) const {
     UNUSED(ip_port);
     UNUSED(reason);
   }
@@ -101,7 +103,8 @@ class BackendHandle {
 
 class BackendThread : public Thread {
  public:
-  BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
+  BackendThread(ConnFactory* conn_factory, int cron_interval,
+                int keepalive_timeout, BackendHandle* handle,
                 void* private_data);
   ~BackendThread() override;
   /*
@@ -113,7 +116,8 @@ class BackendThread : public Thread {
   pstd::Status Write(int fd, const std::string& msg);
   pstd::Status Close(int fd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
-  // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
+  // put this fd in epoll (SetWaitConnectOnEpoll), process in
+  // ProcessConnectStatus
   pstd::Status Connect(const std::string& dst_ip, int dst_port, int* fd);
   std::shared_ptr<NetConn> GetConn(int fd);
 

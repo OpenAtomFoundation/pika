@@ -4,10 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_zset.h"
-#include "include/pika_slot_command.h"
 
 #include <cstdint>
 
+#include "include/pika_slot_command.h"
 #include "pstd/include/pstd_string.h"
 
 void ZAddCmd::DoInitial() {
@@ -76,7 +76,8 @@ void ZScanCmd::DoInitial() {
   size_t index = 3;
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -84,7 +85,8 @@ void ZScanCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      } else if (pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                  &count_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -103,7 +105,8 @@ void ZScanCmd::DoInitial() {
 void ZScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  rocksdb::Status s = slot->db()->ZScan(key_, cursor_, pattern_, count_,
+                                        &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
@@ -214,7 +217,8 @@ void ZRevrangeCmd::DoInitial() {
 
 void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZRevrange(key_, start_, stop_, &score_members);
+  rocksdb::Status s =
+      slot->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -239,8 +243,9 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool* left_close, bool* right_close,
-                        double* min_score, double* max_score) {
+int32_t DoScoreStrRange(std::string begin_score, std::string end_score,
+                        bool* left_close, bool* right_close, double* min_score,
+                        double* max_score) {
   if (!begin_score.empty() && begin_score.at(0) == '(') {
     *left_close = false;
     begin_score.erase(begin_score.begin());
@@ -249,7 +254,8 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool* le
     *min_score = storage::ZSET_SCORE_MIN;
   } else if (begin_score == "inf" || begin_score == "+inf") {
     *min_score = storage::ZSET_SCORE_MAX;
-  } else if (pstd::string2d(begin_score.data(), begin_score.size(), min_score) == 0) {
+  } else if (pstd::string2d(begin_score.data(), begin_score.size(),
+                            min_score) == 0) {
     return -1;
   }
 
@@ -261,7 +267,8 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool* le
     *max_score = storage::ZSET_SCORE_MAX;
   } else if (end_score == "-inf") {
     *max_score = storage::ZSET_SCORE_MIN;
-  } else if (pstd::string2d(end_score.data(), end_score.size(), max_score) == 0) {
+  } else if (pstd::string2d(end_score.data(), end_score.size(), max_score) ==
+             0) {
     return -1;
   }
   return 0;
@@ -275,7 +282,8 @@ static void FitLimit(int64_t& count, int64_t& offset, const int64_t size) {
 
 void ZsetRangebyscoreParentCmd::DoInitial() {
   key_ = argv_[1];
-  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                                &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
@@ -294,12 +302,14 @@ void ZsetRangebyscoreParentCmd::DoInitial() {
         return;
       }
       index++;
-      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &offset_) == 0) {
+      if (pstd::string2int(argv_[index].data(), argv_[index].size(),
+                           &offset_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
       index++;
-      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) ==
+          0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -320,13 +330,14 @@ void ZRangebyscoreCmd::DoInitial() {
 }
 
 void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
-  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX ||
+      max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = slot->db()->ZRangebyscore(
+      key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -372,13 +383,14 @@ void ZRevrangebyscoreCmd::DoInitial() {
 }
 
 void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
-  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX ||
+      max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = slot->db()->ZRevrangebyscore(
+      key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -412,7 +424,8 @@ void ZCountCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                                &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
@@ -420,13 +433,15 @@ void ZCountCmd::DoInitial() {
 }
 
 void ZCountCmd::Do(std::shared_ptr<Slot> slot) {
-  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX ||
+      max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
 
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = slot->db()->ZCount(key_, min_score_, max_score_,
+                                         left_close_, right_close_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -462,7 +477,8 @@ void ZsetUIstoreParentCmd::DoInitial() {
     return;
   }
   if (num_keys_ < 1) {
-    res_.SetRes(CmdRes::kErrOther, "at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE");
+    res_.SetRes(CmdRes::kErrOther,
+                "at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE");
     return;
   }
   int argc = argv_.size();
@@ -483,7 +499,8 @@ void ZsetUIstoreParentCmd::DoInitial() {
       double weight;
       int base = index;
       for (; index < base + num_keys_; index++) {
-        if (pstd::string2d(argv_[index].data(), argv_[index].size(), &weight) == 0) {
+        if (pstd::string2d(argv_[index].data(), argv_[index].size(), &weight) ==
+            0) {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");
           return;
         }
@@ -523,7 +540,8 @@ void ZUnionstoreCmd::DoInitial() {
 
 void ZUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s =
+      slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
     AddSlotKey("z", dest_key_, slot);
@@ -542,7 +560,8 @@ void ZInterstoreCmd::DoInitial() {
 
 void ZInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s =
+      slot->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -619,8 +638,10 @@ void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-static int32_t DoMemberRange(const std::string& raw_min_member, const std::string& raw_max_member, bool* left_close,
-                             bool* right_close, std::string* min_member, std::string* max_member) {
+static int32_t DoMemberRange(const std::string& raw_min_member,
+                             const std::string& raw_max_member,
+                             bool* left_close, bool* right_close,
+                             std::string* min_member, std::string* max_member) {
   if (raw_min_member == "-") {
     *min_member = "-";
   } else if (raw_min_member == "+") {
@@ -655,7 +676,8 @@ static int32_t DoMemberRange(const std::string& raw_min_member, const std::strin
 
 void ZsetRangebylexParentCmd::DoInitial() {
   key_ = argv_[1];
-  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                              &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
@@ -691,7 +713,8 @@ void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = slot->db()->ZRangebylex(
+      key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -731,7 +754,8 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = slot->db()->ZRangebylex(
+      key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -753,7 +777,8 @@ void ZLexcountCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                              &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
@@ -766,7 +791,8 @@ void ZLexcountCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = slot->db()->ZLexcount(key_, min_member_, max_member_,
+                                            left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -792,7 +818,8 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
+  rocksdb::Status s =
+      slot->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -806,7 +833,8 @@ void ZRemrangebyscoreCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                                &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
@@ -814,13 +842,14 @@ void ZRemrangebyscoreCmd::DoInitial() {
 }
 
 void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
-  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX ||
+      max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s =
-      slot->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = slot->db()->ZRemrangebyscore(
+      key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -834,7 +863,8 @@ void ZRemrangebylexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_,
+                              &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
@@ -847,8 +877,8 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s =
-      slot->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = slot->db()->ZRemrangebylex(
+      key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -866,7 +896,8 @@ void ZPopmaxCmd::DoInitial() {
     count_ = 1;
     return;
   }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(),
+                       static_cast<int64_t*>(&count_)) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -900,7 +931,8 @@ void ZPopminCmd::DoInitial() {
     count_ = 1;
     return;
   }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(),
+                       static_cast<int64_t*>(&count_)) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }

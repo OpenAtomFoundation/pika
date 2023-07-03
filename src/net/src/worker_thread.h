@@ -13,13 +13,12 @@
 #include <string>
 #include <vector>
 
-#include "pstd/include/pstd_mutex.h"
-#include "pstd/include/xdebug.h"
-
 #include "net/include/net_define.h"
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -30,7 +29,8 @@ class ConnFactory;
 
 class WorkerThread : public Thread {
  public:
-  explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval = 0);
+  explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread,
+                        int queue_limit, int cron_interval = 0);
 
   ~WorkerThread() override;
 
@@ -42,7 +42,8 @@ class WorkerThread : public Thread {
 
   std::shared_ptr<NetConn> MoveConnOut(int fd);
 
-  bool MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type, bool force);
+  bool MoveConnIn(const std::shared_ptr<NetConn>& conn,
+                  const NotifyType& notify_type, bool force);
 
   bool MoveConnIn(const NetItem& it, bool force);
 

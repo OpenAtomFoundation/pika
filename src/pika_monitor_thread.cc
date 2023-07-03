@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaMonitorThread::PikaMonitorThread()  {
+PikaMonitorThread::PikaMonitorThread() {
   set_thread_name("MonitorThread");
   has_monitor_clients_.store(false);
 }
@@ -18,16 +18,18 @@ PikaMonitorThread::~PikaMonitorThread() {
     monitor_cond_.notify_all();
     StopThread();
   }
-  for (auto & monitor_client : monitor_clients_) {
+  for (auto& monitor_client : monitor_clients_) {
     close(monitor_client.fd);
   }
   LOG(INFO) << "PikaMonitorThread " << pthread_self() << " exit!!!";
 }
 
-void PikaMonitorThread::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
+void PikaMonitorThread::AddMonitorClient(
+    const std::shared_ptr<PikaClientConn>& client_ptr) {
   StartThread();
   std::lock_guard lm(monitor_mutex_protector_);
-  monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
+  monitor_clients_.push_back(
+      ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
   has_monitor_clients_.store(true);
 }
 
@@ -61,9 +63,10 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
   }
 }
 
-int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
+int32_t PikaMonitorThread::ThreadClientList(
+    std::vector<ClientInfo>* clients_ptr) {
   if (clients_ptr) {
-    for (auto & monitor_client : monitor_clients_) {
+    for (auto& monitor_client : monitor_clients_) {
       clients_ptr->push_back(monitor_client);
     }
   }
@@ -82,7 +85,7 @@ void PikaMonitorThread::AddCronTask(const MonitorCronTask& task) {
 
 bool PikaMonitorThread::FindClient(const std::string& ip_port) {
   std::lock_guard lm(monitor_mutex_protector_);
-  for (auto & monitor_client : monitor_clients_) {
+  for (auto& monitor_client : monitor_clients_) {
     if (monitor_client.ip_port == ip_port) {
       return true;
     }
@@ -103,9 +106,12 @@ bool PikaMonitorThread::ThreadClientKill(const std::string& ip_port) {
   return true;
 }
 
-bool PikaMonitorThread::HasMonitorClients() { return has_monitor_clients_.load(); }
+bool PikaMonitorThread::HasMonitorClients() {
+  return has_monitor_clients_.load();
+}
 
-net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
+net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd,
+                                                std::string& message) {
   size_t retry = 0;
   ssize_t nwritten = 0;
   ssize_t message_len_sended = 0;
@@ -114,8 +120,8 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
     if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       // If the write buffer is full, but the client no longer consumes, it will
-      // get stuck in the loop and cause the entire Pika to block becase of monitor_mutex_protector_.
-      // So we put a limit on the number of retries
+      // get stuck in the loop and cause the entire Pika to block becase of
+      // monitor_mutex_protector_. So we put a limit on the number of retries
       if (++retry >= 10) {
         return net::kWriteError;
       } else {
@@ -143,7 +149,10 @@ void* PikaMonitorThread::ThreadMain() {
   while (!should_stop()) {
     {
       std::unique_lock lm(monitor_mutex_protector_);
-      monitor_cond_.wait(lm, [this]() { return !monitor_messages_.empty() || !cron_tasks_.empty() || should_stop(); });
+      monitor_cond_.wait(lm, [this]() {
+        return !monitor_messages_.empty() || !cron_tasks_.empty() ||
+               should_stop();
+      });
     }
     if (should_stop()) {
       break;
@@ -178,11 +187,11 @@ void* PikaMonitorThread::ThreadMain() {
       continue;
     }
 
-    messages_transfer.pop_back(); // no space follow last param
+    messages_transfer.pop_back();  // no space follow last param
     messages_transfer.append("\r\n", 2);
 
     std::lock_guard lm(monitor_mutex_protector_);
-    for (auto & monitor_client : monitor_clients_) {
+    for (auto& monitor_client : monitor_clients_) {
       write_status = SendMessage(monitor_client.fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, monitor_client.ip_port});

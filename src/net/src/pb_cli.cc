@@ -10,10 +10,9 @@
 
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
+#include "pstd/include/noncopyable.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
-#include "pstd/include/noncopyable.h"
-
 
 using pstd::Status;
 
@@ -35,7 +34,6 @@ class PbCli : public NetCli {
   // BuildWbuf need to access rbuf_, wbuf_;
   char* rbuf_;
   char* wbuf_;
-
 };
 
 PbCli::PbCli(const std::string& ip, const int port) : NetCli(ip, port) {
@@ -86,6 +84,8 @@ Status PbCli::Recv(void* msg_res) {
   return Status::OK();
 }
 
-NetCli* NewPbCli(const std::string& peer_ip, const int peer_port) { return new PbCli(peer_ip, peer_port); }
+NetCli* NewPbCli(const std::string& peer_ip, const int peer_port) {
+  return new PbCli(peer_ip, peer_port);
+}
 
 }  // namespace net

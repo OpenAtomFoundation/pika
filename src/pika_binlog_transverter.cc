@@ -6,14 +6,13 @@
 #include "include/pika_binlog_transverter.h"
 
 #include <glog/logging.h>
+
 #include <cassert>
 #include <sstream>
 
-#include "pstd/include/pstd_coding.h"
-
 #include "include/pika_command.h"
+#include "pstd/include/pstd_coding.h"
 #include "storage/storage.h"
-
 
 uint32_t BinlogItem::exec_time() const { return exec_time_; }
 
@@ -58,9 +57,10 @@ std::string BinlogItem::ToString() const {
   return str;
 }
 
-std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_time, uint32_t term_id,
-                                                uint64_t logic_id, uint32_t filenum, uint64_t offset,
-                                                const std::string& content, const std::vector<std::string>& extends) {
+std::string PikaBinlogTransverter::BinlogEncode(
+    BinlogType type, uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
+    uint32_t filenum, uint64_t offset, const std::string& content,
+    const std::vector<std::string>& extends) {
   std::string binlog;
   pstd::PutFixed16(&binlog, type);
   pstd::PutFixed32(&binlog, exec_time);
@@ -74,13 +74,16 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_t
   return binlog;
 }
 
-bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item) {
+bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
+                                         const std::string& binlog,
+                                         BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
   pstd::Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
-    LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
+    LOG(ERROR) << "Binlog Item type error, expect type:" << type
+               << " actualy type: " << binlog_type;
     return false;
   }
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
@@ -92,8 +95,8 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
   if (binlog_str.size() == content_length) {
     binlog_item->content_.assign(binlog_str.data(), content_length);
   } else {
-    LOG(ERROR) << "Binlog Item get content error, expect length:" << content_length
-               << " left length:" << binlog_str.size();
+    LOG(ERROR) << "Binlog Item get content error, expect length:"
+               << content_length << " left length:" << binlog_str.size();
     return false;
   }
   return true;
@@ -101,23 +104,27 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
 
 /*
 ******************* Type First Binlog Item Format ******************
- * +-----------------------------------------------------------------+
- * | Type (2 bytes) | Create Time (4 bytes) | Term Id (4 bytes)      |
- * |-----------------------------------------------------------------|
- * | Logic Id (8 bytes) | File Num (4 bytes) | Offset (8 bytes)      |
- * |-----------------------------------------------------------------|
- * | Content Length (4 bytes) | Content (content length bytes)       |
- * +-----------------------------------------------------------------+
- * |------------------------ 34 Bytes -------------------------------|
- *
- * content: *2\r\n$7\r\npadding\r\n$00001\r\n***\r\n
- *          length of *** -> total_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
- *
- * We allocate five bytes to store the length of the parameter
- */
-std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint32_t size) {
+* +-----------------------------------------------------------------+
+* | Type (2 bytes) | Create Time (4 bytes) | Term Id (4 bytes)      |
+* |-----------------------------------------------------------------|
+* | Logic Id (8 bytes) | File Num (4 bytes) | Offset (8 bytes)      |
+* |-----------------------------------------------------------------|
+* | Content Length (4 bytes) | Content (content length bytes)       |
+* +-----------------------------------------------------------------+
+* |------------------------ 34 Bytes -------------------------------|
+*
+* content: *2\r\n$7\r\npadding\r\n$00001\r\n***\r\n
+*          length of *** -> total_len - PADDING_BINLOG_PROTOCOL_SIZE -
+*SPACE_STROE_PARAMETER_LENGTH;
+*
+* We allocate five bytes to store the length of the parameter
+*/
+std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type,
+                                                          uint32_t size) {
   assert(size <= kBlockSize - kHeaderSize);
-  assert(BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH <= size);
+  assert(BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE +
+             SPACE_STROE_PARAMETER_LENGTH <=
+         size);
 
   std::string binlog;
   pstd::PutFixed16(&binlog, type);
@@ -127,7 +134,8 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
   pstd::PutFixed32(&binlog, 0);
   pstd::PutFixed64(&binlog, 0);
   int32_t content_len = size - BINLOG_ITEM_HEADER_SIZE;
-  int32_t parameter_len = content_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
+  int32_t parameter_len =
+      content_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
   if (parameter_len < 0) {
     return {};
   }
@@ -157,13 +165,14 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
   return binlog;
 }
 
-bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type, const std::string& binlog,
-                                                           BinlogItem* binlog_item) {
+bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(
+    BinlogType type, const std::string& binlog, BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   pstd::Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
-    LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
+    LOG(ERROR) << "Binlog Item type error, expect type:" << type
+               << " actualy type: " << binlog_type;
     return false;
   }
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);

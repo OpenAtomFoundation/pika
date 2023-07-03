@@ -13,9 +13,9 @@
 
 /*
  * *****************Type First PortBinlog Item Format*****************
- * | <Type> | <Create Time> | <Server Id> | <PortBinlog Logic Id> | <File Num> | <Offset> | <Content Length> | <Content>
- * | 2 Bytes      4 Bytes        4 Bytes          8 Bytes         4 Bytes     8 Bytes         4 Bytes      content
- * length Bytes
+ * | <Type> | <Create Time> | <Server Id> | <PortBinlog Logic Id> | <File Num> |
+ * <Offset> | <Content Length> | <Content> | 2 Bytes      4 Bytes        4 Bytes
+ * 8 Bytes         4 Bytes     8 Bytes         4 Bytes      content length Bytes
  *
  */
 
@@ -25,7 +25,13 @@ enum PortBinlogType {
 
 class PortBinlogItem {
  public:
-  PortBinlogItem() : exec_time_(0), server_id_(0), logic_id_(0), filenum_(0), offset_(0), content_("") {}
+  PortBinlogItem()
+      : exec_time_(0),
+        server_id_(0),
+        logic_id_(0),
+        filenum_(0),
+        offset_(0),
+        content_("") {}
 
   friend class PortBinlogTransverter;
 
@@ -56,11 +62,14 @@ class PortBinlogItem {
 class PortBinlogTransverter {
  public:
   PortBinlogTransverter(){};
-  static std::string PortBinlogEncode(PortBinlogType type, uint32_t exec_time, uint32_t server_id, uint64_t logic_id,
-                                      uint32_t filenum, uint64_t offset, const std::string& content,
+  static std::string PortBinlogEncode(PortBinlogType type, uint32_t exec_time,
+                                      uint32_t server_id, uint64_t logic_id,
+                                      uint32_t filenum, uint64_t offset,
+                                      const std::string& content,
                                       const std::vector<std::string>& extends);
 
-  static bool PortBinlogDecode(PortBinlogType type, const std::string& binlog, PortBinlogItem* binlog_item);
+  static bool PortBinlogDecode(PortBinlogType type, const std::string& binlog,
+                               PortBinlogItem* binlog_item);
 };
 
 #endif

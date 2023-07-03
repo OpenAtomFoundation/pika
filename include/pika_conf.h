@@ -11,12 +11,11 @@
 #include <set>
 #include <unordered_set>
 
+#include "include/pika_define.h"
+#include "include/pika_meta.h"
 #include "pstd/include/base_conf.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
-
-#include "include/pika_define.h"
-#include "include/pika_meta.h"
 #include "rocksdb/compression_type.h"
 
 #define kBinlogReadWinDefaultSize 9000
@@ -302,9 +301,15 @@ class PikaConf : public pstd::BaseConf {
   int64_t min_blob_size() { return min_blob_size_; }
   int64_t blob_file_size() { return blob_file_size_; }
   std::string blob_compression_type() { return blob_compression_type_; }
-  bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_; }
-  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; }
-  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; }
+  bool enable_blob_garbage_collection() {
+    return enable_blob_garbage_collection_;
+  }
+  double blob_garbage_collection_age_cutoff() {
+    return blob_garbage_collection_age_cutoff_;
+  }
+  double blob_garbage_collection_force_threshold() {
+    return blob_garbage_collection_force_threshold_;
+  }
   int64_t blob_cache() { return blob_cache_; }
   int64_t blob_num_shard_bits() { return blob_num_shard_bits_; }
 
@@ -404,7 +409,7 @@ class PikaConf : public pstd::BaseConf {
       pstd::StringToLower(item);
     }
   }
-  void SetSlotMigrate(const std::string &value) {
+  void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
   }
@@ -492,10 +497,13 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
-  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                    bool is_add);
-  pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
-  pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status DBSlotsSanityCheck(const std::string& db_name,
+                                  const std::set<uint32_t>& slot_ids,
+                                  bool is_add);
+  pstd::Status AddDBSlots(const std::string& db_name,
+                          const std::set<uint32_t>& slot_ids);
+  pstd::Status RemoveDBSlots(const std::string& db_name,
+                             const std::set<uint32_t>& slot_ids);
   pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
   pstd::Status AddDBSanityCheck(const std::string& db_name);
   pstd::Status DelDB(const std::string& db_name);
@@ -505,7 +513,8 @@ class PikaConf : public pstd::BaseConf {
   int ConfigRewrite();
 
  private:
-  pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
+  pstd::Status InternalGetTargetDB(const std::string& db_name,
+                                   uint32_t* target);
 
   int port_ = 0;
   std::string slaveof_;
@@ -586,7 +595,8 @@ class PikaConf : public pstd::BaseConf {
 
   // diff commands between cached commands and config file commands
   std::map<std::string, std::string> diff_commands_;
-  void TryPushDiffCommands(const std::string& command, const std::string& value);
+  void TryPushDiffCommands(const std::string& command,
+                           const std::string& value);
 
   //
   // Critical configure items

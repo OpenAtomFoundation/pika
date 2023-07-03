@@ -5,10 +5,9 @@
 
 #include "include/pika_bit.h"
 
-#include "pstd/include/pstd_string.h"
-
 #include "include/pika_define.h"
 #include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -85,7 +84,8 @@ void BitCountCmd::DoInitial() {
   key_ = argv_[1];
   if (argv_.size() == 4) {
     count_all_ = false;
-    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &start_offset_) == 0) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &start_offset_) ==
+        0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -136,14 +136,16 @@ void BitPosCmd::DoInitial() {
   } else if (argv_.size() == 4) {
     pos_all_ = false;
     endoffset_set_ = false;
-    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_) == 0) {
+    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_) ==
+        0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
   } else if (argv_.size() == 5) {
     pos_all_ = false;
     endoffset_set_ = true;
-    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_) == 0) {
+    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_) ==
+        0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -210,7 +212,8 @@ void BitOpCmd::DoInitial() {
 
 void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t result_length;
-  rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  rocksdb::Status s =
+      slot->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);
   } else {

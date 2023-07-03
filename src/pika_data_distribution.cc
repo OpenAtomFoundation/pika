@@ -45,7 +45,8 @@ uint32_t Crc32::Crc32Update(uint32_t crc, const char* buf, int len) {
   int i;
   crc = ~crc;
   for (i = 0; i < len; i++) {
-    crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^ (crc >> 8);
+    crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^
+          (crc >> 8);
   }
   return ~crc;
 }

@@ -12,9 +12,9 @@
 #include <vector>
 
 #ifdef __ENABLE_SSL
-#  include <openssl/conf.h>
-#  include <openssl/err.h>
-#  include <openssl/ssl.h>
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #endif
 
 #include "net/include/net_define.h"
@@ -112,8 +112,10 @@ const int kDefaultKeepAliveTime = 60;  // (s)
 class ServerThread : public Thread {
  public:
   ServerThread(int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval, const ServerHandle* handle);
+  ServerThread(const std::string& bind_ip, int port, int cron_interval,
+               const ServerHandle* handle);
+  ServerThread(const std::set<std::string>& bind_ips, int port,
+               int cron_interval, const ServerHandle* handle);
 
 #ifdef __ENABLE_SSL
   /*
@@ -147,7 +149,8 @@ class ServerThread : public Thread {
   // Move out from server thread
   virtual std::shared_ptr<NetConn> MoveConnOut(int fd) = 0;
   // Move into server thread
-  virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) = 0;
+  virtual void MoveConnIn(std::shared_ptr<NetConn> conn,
+                          const NotifyType& type) = 0;
 
   virtual void KillAllConns() = 0;
   virtual bool KillConn(const std::string& ip_port) = 0;
@@ -201,16 +204,23 @@ class ServerThread : public Thread {
 
 // !!!Attention: If u use this constructor, the keepalive_timeout_ will
 // be equal to kDefaultKeepAliveTime(60s). In master-slave mode, the slave
-// binlog receiver will close the binlog sync connection in HolyThread::DoCronTask
-// if master did not send data in kDefaultKeepAliveTime.
-extern ServerThread* NewHolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0,
+// binlog receiver will close the binlog sync connection in
+// HolyThread::DoCronTask if master did not send data in kDefaultKeepAliveTime.
+extern ServerThread* NewHolyThread(int port, ConnFactory* conn_factory,
+                                   int cron_interval = 0,
                                    const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory,
-                                   int cron_interval = 0, const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   int cron_interval = 0, const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   bool async, int cron_interval = 0, const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::string& bind_ip, int port,
+                                   ConnFactory* conn_factory,
+                                   int cron_interval = 0,
+                                   const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips,
+                                   int port, ConnFactory* conn_factory,
+                                   int cron_interval = 0,
+                                   const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips,
+                                   int port, ConnFactory* conn_factory,
+                                   bool async, int cron_interval = 0,
+                                   const ServerHandle* handle = nullptr);
 
 /**
  * This type Dispatch thread just get Connection and then Dispatch the fd to
@@ -225,13 +235,21 @@ extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int po
  * @param handle        the server's handle (e.g. CronHandle, AccessHandle...)
  * @param ehandle       the worker's enviroment setting handle
  */
-extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval = 0,
-                                       int queue_limit = 1000, const ServerHandle* handle = nullptr);
-extern ServerThread* NewDispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
-                                       int cron_interval = 0, int queue_limit = 1000,
+extern ServerThread* NewDispatchThread(int port, int work_num,
+                                       ConnFactory* conn_factory,
+                                       int cron_interval = 0,
+                                       int queue_limit = 1000,
                                        const ServerHandle* handle = nullptr);
-extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int port, int work_num,
-                                       ConnFactory* conn_factory, int cron_interval = 0, int queue_limit = 1000,
+extern ServerThread* NewDispatchThread(const std::string& ip, int port,
+                                       int work_num, ConnFactory* conn_factory,
+                                       int cron_interval = 0,
+                                       int queue_limit = 1000,
+                                       const ServerHandle* handle = nullptr);
+extern ServerThread* NewDispatchThread(const std::set<std::string>& ips,
+                                       int port, int work_num,
+                                       ConnFactory* conn_factory,
+                                       int cron_interval = 0,
+                                       int queue_limit = 1000,
                                        const ServerHandle* handle = nullptr);
 
 }  // namespace net

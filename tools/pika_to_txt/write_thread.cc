@@ -6,13 +6,15 @@
 #include "write_thread.h"
 
 #include <utility>
+
 #include "fstream"
 #include "iostream"
 #include "string"
 
 #define MAX_QUEUE_SIZE 1024
 
-WriteThread::WriteThread(std::string  file_name) : should_stop_(false), file_name_(std::move(file_name)) {}
+WriteThread::WriteThread(std::string file_name)
+    : should_stop_(false), file_name_(std::move(file_name)) {}
 
 void WriteThread::Load(const std::string& data) {
   std::unique_lock lock(data_queue_mutex_);
@@ -42,7 +44,8 @@ void* WriteThread::ThreadMain() {
     while (!should_stop_ || !data_queue_.empty()) {
       {
         std::unique_lock lock(data_queue_mutex_);
-        rsignal_.wait(lock, [this] { return !data_queue_.empty() || should_stop_; });
+        rsignal_.wait(lock,
+                      [this] { return !data_queue_.empty() || should_stop_; });
       }
 
       if (!data_queue_.empty()) {

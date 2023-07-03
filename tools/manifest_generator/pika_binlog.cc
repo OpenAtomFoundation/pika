@@ -3,12 +3,12 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <iostream>
-#include <utility>
-
 #include "include/pika_binlog.h"
 
 #include <sys/time.h>
+
+#include <iostream>
+#include <utility>
 
 std::string NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];
@@ -19,7 +19,10 @@ std::string NewFileName(const std::string& name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(std::shared_ptr<pstd::RWFile> save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) { assert(save_); }
+Version::Version(std::shared_ptr<pstd::RWFile> save)
+    : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
+  assert(save_);
+}
 
 Version::~Version() { StableSave(); }
 
@@ -37,9 +40,12 @@ Status Version::StableSave() {
 Status Version::Init() {
   Status s;
   if (save_->GetData()) {
-    memcpy(reinterpret_cast<char*>(&pro_num_), save_->GetData(), sizeof(uint32_t));
-    memcpy(reinterpret_cast<char*>(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
-    memcpy(reinterpret_cast<char*>(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+    memcpy(reinterpret_cast<char*>(&pro_num_), save_->GetData(),
+           sizeof(uint32_t));
+    memcpy(reinterpret_cast<char*>(&pro_offset_), save_->GetData() + 4,
+           sizeof(uint64_t));
+    memcpy(reinterpret_cast<char*>(&logic_id_), save_->GetData() + 12,
+           sizeof(uint64_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -49,7 +55,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(std::string  binlog_path, const int file_size)
+Binlog::Binlog(std::string binlog_path, const int file_size)
     : consumer_num_(0),
       version_(nullptr),
       queue_(nullptr),
@@ -128,7 +134,8 @@ void Binlog::InitLogFile() {
   block_offset_ = filesize % kBlockSize;
 }
 
-Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id) {
+Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset,
+                                 uint64_t* logic_id) {
   std::shared_lock l(version_->rwlock_);
 
   *filenum = version_->pro_num_;
@@ -141,7 +148,9 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
 }
 
 // Note: mutex lock should be held
-Status Binlog::Put(const std::string& item) { return Put(item.c_str(), item.size()); }
+Status Binlog::Put(const std::string& item) {
+  return Put(item.c_str(), item.size());
+}
 
 // Note: mutex lock should be held
 Status Binlog::Put(const char* item, int len) {
@@ -178,7 +187,8 @@ Status Binlog::Put(const char* item, int len) {
   return s;
 }
 
-Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset) {
+Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n,
+                                  int* temp_pro_offset) {
   Status s;
   assert(n <= 0xffffff);
   assert(block_offset_ + kHeaderSize + n <= kBlockSize);
@@ -268,7 +278,8 @@ Status Binlog::AppendBlank(pstd::WritableFile* file, uint64_t len) {
   }
 
   // Append a msg which occupy the remain part of the last block
-  // We simply increase the remain length to kHeaderSize when remain part < kHeaderSize
+  // We simply increase the remain length to kHeaderSize when remain part <
+  // kHeaderSize
   uint32_t n;
   if (len % kBlockSize < kHeaderSize) {
     n = 0;

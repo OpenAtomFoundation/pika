@@ -4,6 +4,7 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
+
 #include <iostream>
 #include <thread>
 
@@ -60,7 +61,8 @@ static bool members_match(storage::Storage* const db, const Slice& key,
   return true;
 }
 
-static bool members_match(const std::vector<std::string>& mm_out, const std::vector<std::string>& expect_members) {
+static bool members_match(const std::vector<std::string>& mm_out,
+                          const std::vector<std::string>& expect_members) {
   if (mm_out.size() != expect_members.size()) {
     return false;
   }
@@ -72,9 +74,11 @@ static bool members_match(const std::vector<std::string>& mm_out, const std::vec
   return true;
 }
 
-static bool members_contains(const std::vector<std::string>& mm_out, const std::vector<std::string>& total_members) {
+static bool members_contains(const std::vector<std::string>& mm_out,
+                             const std::vector<std::string>& total_members) {
   for (const auto& member : mm_out) {
-    if (find(total_members.begin(), total_members.end(), member) == total_members.end()) {
+    if (find(total_members.begin(), total_members.end(), member) ==
+        total_members.end()) {
       return false;
     }
   }
@@ -92,7 +96,8 @@ static bool members_uniquen(const std::vector<std::string>& members) {
   return true;
 }
 
-static bool size_match(storage::Storage* const db, const Slice& key, int32_t expect_size) {
+static bool size_match(storage::Storage* const db, const Slice& key,
+                       int32_t expect_size) {
   int32_t size = 0;
   Status s = db->SCard(key, &size);
   if (!s.ok() && !s.IsNotFound()) {
@@ -199,7 +204,8 @@ TEST_F(SetsTest, SDiffTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp1_keys{"GP1_SDIFF_KEY1", "GP1_SDIFF_KEY2", "GP1_SDIFF_KEY3"};
+  std::vector<std::string> gp1_keys{"GP1_SDIFF_KEY1", "GP1_SDIFF_KEY2",
+                                    "GP1_SDIFF_KEY3"};
   std::vector<std::string> gp1_members_out;
   s = db.SDiff(gp1_keys, &gp1_members_out);
   ASSERT_TRUE(s.ok());
@@ -248,7 +254,8 @@ TEST_F(SetsTest, SDiffTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SDIFF_KEY1", "GP2_SDIFF_KEY2", "GP2_SDIFF_KEY3"};
+  std::vector<std::string> gp2_keys{"GP2_SDIFF_KEY1", "GP2_SDIFF_KEY2",
+                                    "GP2_SDIFF_KEY3"};
   std::vector<std::string> gp2_members_out;
   s = db.SDiff(gp2_keys, &gp2_members_out);
   ASSERT_TRUE(s.ok());
@@ -288,7 +295,8 @@ TEST_F(SetsTest, SDiffTest) {  // NOLINT
 
   ASSERT_TRUE(make_expired(&db, "GP4_SDIFF_KEY1"));
 
-  std::vector<std::string> gp4_keys{"GP4_SDIFF_KEY1", "GP4_SDIFF_KEY2", "GP4_SDIFF_KEY3"};
+  std::vector<std::string> gp4_keys{"GP4_SDIFF_KEY1", "GP4_SDIFF_KEY2",
+                                    "GP4_SDIFF_KEY3"};
   std::vector<std::string> gp4_members_out;
   s = db.SDiff(gp4_keys, &gp4_members_out);
   ASSERT_TRUE(s.ok());
@@ -359,7 +367,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp1_members_out;
-  std::vector<std::string> gp1_keys{"GP1_SDIFFSTORE_KEY1", "GP1_SDIFFSTORE_KEY2", "GP1_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp1_keys{
+      "GP1_SDIFFSTORE_KEY1", "GP1_SDIFFSTORE_KEY2", "GP1_SDIFFSTORE_KEY3"};
   s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION1", gp1_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -382,7 +391,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_SDIFFSTORE_DESTINATION2", 3));
-  ASSERT_TRUE(members_match(&db, "GP1_SDIFFSTORE_DESTINATION2", {"a", "b", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP1_SDIFFSTORE_DESTINATION2", {"a", "b", "d"}));
 
   // destination = {};
   // key1 = {a, b, c, d}
@@ -397,7 +407,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_SDIFFSTORE_DESTINATION3", 3));
-  ASSERT_TRUE(members_match(&db, "GP1_SDIFFSTORE_DESTINATION3", {"a", "b", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP1_SDIFFSTORE_DESTINATION3", {"a", "b", "d"}));
 
   // ***************** Group 2 Test *****************
   // destination = {};
@@ -419,7 +430,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SDIFFSTORE_KEY1", "GP2_SDIFFSTORE_KEY2", "GP2_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp2_keys{
+      "GP2_SDIFFSTORE_KEY1", "GP2_SDIFFSTORE_KEY2", "GP2_SDIFFSTORE_KEY3"};
   std::vector<std::string> gp2_members_out;
   s = db.SDiffstore("GP2_SDIFFSTORE_DESTINATION1", gp2_keys, &ret);
   ASSERT_TRUE(s.ok());
@@ -443,7 +455,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP3_SDIFFSTORE_DESTINATION1", 4));
-  ASSERT_TRUE(members_match(&db, "GP3_SDIFFSTORE_DESTINATION1", {"a", "b", "c", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP3_SDIFFSTORE_DESTINATION1", {"a", "b", "c", "d"}));
 
   // ***************** Group 4 Test *****************
   // destination = {};
@@ -467,7 +480,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
 
   ASSERT_TRUE(make_expired(&db, "GP4_SDIFFSTORE_KEY1"));
 
-  std::vector<std::string> gp4_keys{"GP4_SDIFFSTORE_KEY1", "GP4_SDIFFSTORE_KEY2", "GP4_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp4_keys{
+      "GP4_SDIFFSTORE_KEY1", "GP4_SDIFFSTORE_KEY2", "GP4_SDIFFSTORE_KEY3"};
   std::vector<std::string> gp4_members_out;
   s = db.SDiffstore("GP4_SDIFFSTORE_DESTINATION1", gp4_keys, &ret);
   ASSERT_TRUE(s.ok());
@@ -500,7 +514,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp5_keys{"GP5_SDIFFSTORE_KEY1", "GP5_SDIFFSTORE_KEY2", "GP5_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp5_keys{
+      "GP5_SDIFFSTORE_KEY1", "GP5_SDIFFSTORE_KEY2", "GP5_SDIFFSTORE_KEY3"};
   s = db.SDiffstore("GP5_SDIFFSTORE_DESTINATION1", gp5_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -528,7 +543,9 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp6_keys{"GP6_SDIFFSTORE_DESTINATION1", "GP6_SDIFFSTORE_KEY2", "GP6_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp6_keys{"GP6_SDIFFSTORE_DESTINATION1",
+                                    "GP6_SDIFFSTORE_KEY2",
+                                    "GP6_SDIFFSTORE_KEY3"};
   s = db.SDiffstore("GP6_SDIFFSTORE_DESTINATION1", gp6_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -563,7 +580,8 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
 
   ASSERT_TRUE(make_expired(&db, "GP7_SDIFFSTORE_DESTINATION1"));
 
-  std::vector<std::string> gp7_keys{"GP7_SDIFFSTORE_KEY1", "GP7_SDIFFSTORE_KEY2", "GP7_SDIFFSTORE_KEY3"};
+  std::vector<std::string> gp7_keys{
+      "GP7_SDIFFSTORE_KEY1", "GP7_SDIFFSTORE_KEY2", "GP7_SDIFFSTORE_KEY3"};
   s = db.SDiffstore("GP7_SDIFFSTORE_DESTINATION1", gp7_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -593,7 +611,8 @@ TEST_F(SetsTest, SInterTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp1_keys{"GP1_SINTER_KEY1", "GP1_SINTER_KEY2", "GP1_SINTER_KEY3"};
+  std::vector<std::string> gp1_keys{"GP1_SINTER_KEY1", "GP1_SINTER_KEY2",
+                                    "GP1_SINTER_KEY3"};
   std::vector<std::string> gp1_members_out;
   s = db.SInter(gp1_keys, &gp1_members_out);
   ASSERT_TRUE(s.ok());
@@ -628,7 +647,8 @@ TEST_F(SetsTest, SInterTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SINTER_KEY1", "GP2_SINTER_KEY2", "GP2_SINTER_KEY3", "NOT_EXIST_KEY"};
+  std::vector<std::string> gp2_keys{"GP2_SINTER_KEY1", "GP2_SINTER_KEY2",
+                                    "GP2_SINTER_KEY3", "NOT_EXIST_KEY"};
   std::vector<std::string> gp2_members_out;
   s = db.SInter(gp2_keys, &gp2_members_out);
   ASSERT_TRUE(s.ok());
@@ -664,7 +684,8 @@ TEST_F(SetsTest, SInterTest) {  // NOLINT
   ASSERT_TRUE(members_match(gp3_members_out, {}));
 
   gp3_members_out.clear();
-  std::vector<std::string> gp3_keys{"GP3_SINTER_KEY1", "GP3_SINTER_KEY2", "GP3_SINTER_KEY3"};
+  std::vector<std::string> gp3_keys{"GP3_SINTER_KEY1", "GP3_SINTER_KEY2",
+                                    "GP3_SINTER_KEY3"};
   s = db.SInter(gp3_keys, &gp3_members_out);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(members_match(gp3_members_out, {}));
@@ -699,7 +720,8 @@ TEST_F(SetsTest, SInterTest) {  // NOLINT
   ASSERT_EQ(gp4_members_out.size(), 0);
 
   gp4_members_out.clear();
-  std::vector<std::string> gp4_keys{"GP4_SINTER_KEY1", "GP4_SINTER_KEY2", "GP4_SINTER_KEY3"};
+  std::vector<std::string> gp4_keys{"GP4_SINTER_KEY1", "GP4_SINTER_KEY2",
+                                    "GP4_SINTER_KEY3"};
   s = db.SInter(gp4_keys, &gp4_members_out);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(members_match(gp4_members_out, {}));
@@ -723,7 +745,8 @@ TEST_F(SetsTest, SInterTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp5_members_out;
-  std::vector<std::string> gp5_keys{"GP5_SINTER_KEY1", "GP5_SINTER_KEY2", "GP5_SINTER_KEY2", "GP5_SINTER_KEY3"};
+  std::vector<std::string> gp5_keys{"GP5_SINTER_KEY1", "GP5_SINTER_KEY2",
+                                    "GP5_SINTER_KEY2", "GP5_SINTER_KEY3"};
   s = db.SInter(gp5_keys, &gp5_members_out);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(members_match(gp5_members_out, {"a", "c"}));
@@ -753,7 +776,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp1_keys{"GP1_SINTERSTORE_KEY1", "GP1_SINTERSTORE_KEY2", "GP1_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp1_keys{
+      "GP1_SINTERSTORE_KEY1", "GP1_SINTERSTORE_KEY2", "GP1_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP1_SINTERSTORE_DESTINATION1", gp1_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -785,7 +809,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SINTERSTORE_KEY1", "GP2_SINTERSTORE_KEY2", "GP2_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp2_keys{
+      "GP2_SINTERSTORE_KEY1", "GP2_SINTERSTORE_KEY2", "GP2_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP2_SINTERSTORE_DESTINATION1", gp2_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
@@ -812,8 +837,9 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp3_keys{"GP3_SINTERSTORE_KEY1", "GP3_SINTERSTORE_KEY2", "GP3_SINTERSTORE_KEY3",
-                                    "GP3_SINTERSTORE_NOT_EXIST_KEY"};
+  std::vector<std::string> gp3_keys{
+      "GP3_SINTERSTORE_KEY1", "GP3_SINTERSTORE_KEY2", "GP3_SINTERSTORE_KEY3",
+      "GP3_SINTERSTORE_NOT_EXIST_KEY"};
   s = db.SInterstore("GP3_SINTERSTORE_DESTINATION1", gp3_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
@@ -842,7 +868,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
 
   ASSERT_TRUE(make_expired(&db, "GP4_SINTERSTORE_KEY2"));
 
-  std::vector<std::string> gp4_keys{"GP4_SINTERSTORE_KEY1", "GP4_SINTERSTORE_KEY2", "GP4_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp4_keys{
+      "GP4_SINTERSTORE_KEY1", "GP4_SINTERSTORE_KEY2", "GP4_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP4_SINTERSTORE_DESTINATION1", gp4_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
@@ -871,7 +898,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
 
   ASSERT_TRUE(make_expired(&db, "GP5_SINTERSTORE_KEY1"));
 
-  std::vector<std::string> gp5_keys{"GP5_SINTERSTORE_KEY1", "GP5_SINTERSTORE_KEY2", "GP5_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp5_keys{
+      "GP5_SINTERSTORE_KEY1", "GP5_SINTERSTORE_KEY2", "GP5_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP5_SINTERSTORE_DESTINATION1", gp5_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
@@ -905,7 +933,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, 0);
 
-  std::vector<std::string> gp6_keys{"GP6_SINTERSTORE_KEY1", "GP6_SINTERSTORE_KEY2", "GP6_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp6_keys{
+      "GP6_SINTERSTORE_KEY1", "GP6_SINTERSTORE_KEY2", "GP6_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP6_SINTERSTORE_DESTINATION1", gp6_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
@@ -932,8 +961,9 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp7_keys{"GP7_SINTERSTORE_NOT_EXIST_KEY", "GP7_SINTERSTORE_KEY1", "GP7_SINTERSTORE_KEY2",
-                                    "GP7_SINTERSTORE_KEY3"};
+  std::vector<std::string> gp7_keys{
+      "GP7_SINTERSTORE_NOT_EXIST_KEY", "GP7_SINTERSTORE_KEY1",
+      "GP7_SINTERSTORE_KEY2", "GP7_SINTERSTORE_KEY3"};
   s = db.SInterstore("GP7_SINTERSTORE_DESTINATION1", gp7_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
@@ -970,7 +1000,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP8_SINTERSTORE_DESTINATION1", 4));
-  ASSERT_TRUE(members_match(&db, "GP8_SINTERSTORE_DESTINATION1", {"a", "b", "c", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP8_SINTERSTORE_DESTINATION1", {"a", "b", "c", "d"}));
 }
 
 // SIsmember
@@ -1299,7 +1330,6 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(size_match(&db, "GP1_SPOP_KEY", 1));
-  
 
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
@@ -1326,7 +1356,6 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP2_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP2_SPOP_KEY", 1 - idx));
-    
   }
 
   gp2_out_all.swap(members);
@@ -1350,7 +1379,6 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP3_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP3_SPOP_KEY", 100 - idx));
-    
   }
 
   gp3_out_all.swap(members);
@@ -1374,7 +1402,6 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP4_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP4_SPOP_KEY", 10000 - idx));
-    
   }
 
   gp4_out_all.swap(members);
@@ -1414,7 +1441,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP6_SPOP_KEY", 0));
   ASSERT_TRUE(members_match(&db, "GP6_SPOP_KEY", {}));
 
-    // ***************** Group 7 Test *****************
+  // ***************** Group 7 Test *****************
   std::vector<std::string> gp7_members{"gp7_aa", "gp7_bb", "gp7_cc"};
   s = db.SAdd("GP7_SPOP_KEY", gp7_members, &ret);
   ASSERT_TRUE(s.ok());
@@ -1437,7 +1464,8 @@ TEST_F(SetsTest, SRanmemberTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
-  std::vector<std::string> gp1_members{"gp1_aa", "gp1_bb", "gp1_cc", "gp1_dd", "gp1_ee", "gp1_ff", "gp1_gg", "gp1_hh"};
+  std::vector<std::string> gp1_members{"gp1_aa", "gp1_bb", "gp1_cc", "gp1_dd",
+                                       "gp1_ee", "gp1_ff", "gp1_gg", "gp1_hh"};
   s = db.SAdd("GP1_SRANDMEMBER_KEY", gp1_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 8);
@@ -1526,7 +1554,8 @@ TEST_F(SetsTest, SRanmemberTest) {  // NOLINT
   ASSERT_TRUE(members_match(gp2_out, {"MM", "MM", "MM"}));
 
   // ***************** Group 3 Test *****************
-  std::vector<std::string> gp3_members{"gp1_aa", "gp1_bb", "gp1_cc", "gp1_dd", "gp1_ee", "gp1_ff", "gp1_gg", "gp1_hh"};
+  std::vector<std::string> gp3_members{"gp1_aa", "gp1_bb", "gp1_cc", "gp1_dd",
+                                       "gp1_ee", "gp1_ff", "gp1_gg", "gp1_hh"};
   s = db.SAdd("GP3_SRANDMEMBER_KEY", gp3_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 8);
@@ -1619,7 +1648,8 @@ TEST_F(SetsTest, SUnionTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp1_keys{"GP1_SUNION_KEY1", "GP1_SUNION_KEY2", "GP1_SUNION_KEY3"};
+  std::vector<std::string> gp1_keys{"GP1_SUNION_KEY1", "GP1_SUNION_KEY2",
+                                    "GP1_SUNION_KEY3"};
   std::vector<std::string> gp1_members_out;
   s = db.SUnion(gp1_keys, &gp1_members_out);
   ASSERT_TRUE(s.ok());
@@ -1657,7 +1687,8 @@ TEST_F(SetsTest, SUnionTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SUNION_KEY1", "GP2_SUNION_KEY2", "GP2_SUNION_KEY3", "GP2_NOT_EXIST_KEY"};
+  std::vector<std::string> gp2_keys{"GP2_SUNION_KEY1", "GP2_SUNION_KEY2",
+                                    "GP2_SUNION_KEY3", "GP2_NOT_EXIST_KEY"};
   std::vector<std::string> gp2_members_out;
   s = db.SUnion(gp2_keys, &gp2_members_out);
   ASSERT_TRUE(s.ok());
@@ -1692,7 +1723,8 @@ TEST_F(SetsTest, SUnionTest) {  // NOLINT
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(gp3_members_out.size(), 0);
 
-  std::vector<std::string> gp3_keys{"GP3_SUNION_KEY1", "GP3_SUNION_KEY2", "GP3_SUNION_KEY3"};
+  std::vector<std::string> gp3_keys{"GP3_SUNION_KEY1", "GP3_SUNION_KEY2",
+                                    "GP3_SUNION_KEY3"};
   gp3_members_out.clear();
   s = db.SUnion(gp3_keys, &gp3_members_out);
   ASSERT_TRUE(s.ok());
@@ -1737,12 +1769,14 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp1_keys{"GP1_SUNIONSTORE_KEY1", "GP1_SUNIONSTORE_KEY2", "GP1_SUNIONSTORE_KEY3"};
+  std::vector<std::string> gp1_keys{
+      "GP1_SUNIONSTORE_KEY1", "GP1_SUNIONSTORE_KEY2", "GP1_SUNIONSTORE_KEY3"};
   s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 5));
-  ASSERT_TRUE(members_match(&db, "GP1_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d", "e"}));
+  ASSERT_TRUE(members_match(&db, "GP1_SUNIONSTORE_DESTINATION1",
+                            {"a", "b", "c", "d", "e"}));
 
   // destination = {}
   // key1 = {a, b, c, d}
@@ -1756,7 +1790,8 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 4));
-  ASSERT_TRUE(members_match(&db, "GP1_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP1_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d"}));
 
   // ***************** Group 2 Test *****************
   // destination already exists, it is overwritten.
@@ -1779,12 +1814,14 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp2_keys{"GP2_SUNIONSTORE_KEY1", "GP2_SUNIONSTORE_KEY2", "GP2_SUNIONSTORE_KEY3"};
+  std::vector<std::string> gp2_keys{
+      "GP2_SUNIONSTORE_KEY1", "GP2_SUNIONSTORE_KEY2", "GP2_SUNIONSTORE_KEY3"};
   s = db.SUnionstore("GP2_SUNIONSTORE_DESTINATION1", gp2_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP2_SUNIONSTORE_DESTINATION1", 5));
-  ASSERT_TRUE(members_match(&db, "GP2_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d", "e"}));
+  ASSERT_TRUE(members_match(&db, "GP2_SUNIONSTORE_DESTINATION1",
+                            {"a", "b", "c", "d", "e"}));
 
   // ***************** Group 3 Test *****************
   // destination = {}
@@ -1812,12 +1849,14 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP3_SUNIONSTORE_KEY3", 0));
   ASSERT_TRUE(members_match(&db, "GP3_SUNIONSTORE_KEY3", {}));
 
-  std::vector<std::string> gp3_keys{"GP3_SUNIONSTORE_KEY1", "GP3_SUNIONSTORE_KEY2", "GP3_SUNIONSTORE_KEY3"};
+  std::vector<std::string> gp3_keys{
+      "GP3_SUNIONSTORE_KEY1", "GP3_SUNIONSTORE_KEY2", "GP3_SUNIONSTORE_KEY3"};
   s = db.SUnionstore("GP3_SUNIONSTORE_DESTINATION1", gp3_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP3_SUNIONSTORE_DESTINATION1", 4));
-  ASSERT_TRUE(members_match(&db, "GP3_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP3_SUNIONSTORE_DESTINATION1", {"a", "b", "c", "d"}));
 
   // ***************** Group 4 Test *****************
   // destination = {}
@@ -1829,13 +1868,15 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
 
-  std::vector<std::string> gp4_keys{"GP4_SUNIONSTORE_KEY1", "GP4_SUNIONSTORE_NOT_EXIST_KEY"};
+  std::vector<std::string> gp4_keys{"GP4_SUNIONSTORE_KEY1",
+                                    "GP4_SUNIONSTORE_NOT_EXIST_KEY"};
   std::vector<std::string> gp4_members_out;
   s = db.SUnionstore("GP4_SUNIONSTORE_DESTINATION1", gp4_keys, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP4_SUNIONSTORE_DESTINATION1", 3));
-  ASSERT_TRUE(members_match(&db, "GP4_SUNIONSTORE_DESTINATION1", {"a", "x", "l"}));
+  ASSERT_TRUE(
+      members_match(&db, "GP4_SUNIONSTORE_DESTINATION1", {"a", "x", "l"}));
 }
 
 // SScan
@@ -1984,12 +2025,14 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(member_out.size(), 8);
   ASSERT_EQ(next_cursor, 0);
-  ASSERT_TRUE(members_match(member_out, {"a", "b", "c", "d", "e", "f", "g", "h"}));
+  ASSERT_TRUE(
+      members_match(member_out, {"a", "b", "c", "d", "e", "f", "g", "h"}));
 
   // ***************** Group 5 Test *****************
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3
   //  0    1    2    3    4    5    6    7    8
-  std::vector<std::string> gp5_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp5_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                       "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP5_SSCAN_KEY", gp5_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
@@ -2021,7 +2064,8 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   // ***************** Group 6 Test *****************
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3_
   //  0    1    2    3    4    5    6    7    8
-  std::vector<std::string> gp6_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp6_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                       "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP6_SSCAN_KEY", gp6_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
@@ -2077,7 +2121,8 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   // ***************** Group 7 Test *****************
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3
   //  0    1    2    3    4    5    6    7    8
-  std::vector<std::string> gp7_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp7_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                       "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP7_SSCAN_KEY", gp7_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
@@ -2133,7 +2178,8 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   // ***************** Group 8 Test *****************
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3
   //  0    1    2    3    4    5    6    7    8
-  std::vector<std::string> gp8_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp8_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                       "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP8_SSCAN_KEY", gp8_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
@@ -2189,7 +2235,8 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   // ***************** Group 9 Test *****************
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3
   //  0    1    2    3    4    5    6    7    8
-  std::vector<std::string> gp9_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp9_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                       "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP9_SSCAN_KEY", gp9_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
@@ -2206,7 +2253,8 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
   // a_1_ a_2_ a_3_ b_1_ b_2_ b_3_ c_1_ c_2_ c_3
   //  0    1    2    3    4    5    6    7    8
   // SScan Expired Key
-  std::vector<std::string> gp10_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_", "b_3_", "c_1_", "c_2_", "c_3_"};
+  std::vector<std::string> gp10_members{"a_1_", "a_2_", "a_3_", "b_1_", "b_2_",
+                                        "b_3_", "c_1_", "c_2_", "c_3_"};
   s = db.SAdd("GP10_SSCAN_KEY", gp10_members, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);

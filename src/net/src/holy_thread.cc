@@ -3,11 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <vector>
-
 #include "net/src/holy_thread.h"
 
 #include <glog/logging.h>
+
+#include <vector>
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
@@ -16,20 +16,27 @@
 
 namespace net {
 
-HolyThread::HolyThread(int port, ConnFactory* conn_factory, int cron_interval, const ServerHandle* handle, bool async)
+HolyThread::HolyThread(int port, ConnFactory* conn_factory, int cron_interval,
+                       const ServerHandle* handle, bool async)
     : ServerThread::ServerThread(port, cron_interval, handle),
       conn_factory_(conn_factory),
-      
+
       keepalive_timeout_(kDefaultKeepAliveTime),
       async_(async) {}
 
-HolyThread::HolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory, int cron_interval,
+HolyThread::HolyThread(const std::string& bind_ip, int port,
+                       ConnFactory* conn_factory, int cron_interval,
                        const ServerHandle* handle, bool async)
-    : ServerThread::ServerThread(bind_ip, port, cron_interval, handle), conn_factory_(conn_factory), async_(async) {}
+    : ServerThread::ServerThread(bind_ip, port, cron_interval, handle),
+      conn_factory_(conn_factory),
+      async_(async) {}
 
-HolyThread::HolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory, int cron_interval,
+HolyThread::HolyThread(const std::set<std::string>& bind_ips, int port,
+                       ConnFactory* conn_factory, int cron_interval,
                        const ServerHandle* handle, bool async)
-    : ServerThread::ServerThread(bind_ips, port, cron_interval, handle), conn_factory_(conn_factory), async_(async) {}
+    : ServerThread::ServerThread(bind_ips, port, cron_interval, handle),
+      conn_factory_(conn_factory),
+      async_(async) {}
 
 HolyThread::~HolyThread() { Cleanup(); }
 
@@ -42,7 +49,8 @@ std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   std::shared_lock l(rwlock_);
   for (auto& conn : conns_) {
-    result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
+    result.push_back(
+        {conn.first, conn.second->ip_port(), conn.second->last_interaction()});
   }
   return result;
 }
@@ -90,7 +98,8 @@ int HolyThread::StopThread() {
 }
 
 void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(connfd, ip_port, this, private_data_, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
+      connfd, ip_port, this, private_data_, net_multiplexer_.get());
   tc->SetNonblock();
   {
     std::lock_guard l(rwlock_);
@@ -216,7 +225,8 @@ void HolyThread::DoCronTask() {
       }
 
       // Check keepalive timeout connection
-      if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+      if (keepalive_timeout_ > 0 &&
+          (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
         continue;
@@ -307,19 +317,27 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
   }
 }
 
-extern ServerThread* NewHolyThread(int port, ConnFactory* conn_factory, int cron_interval, const ServerHandle* handle) {
+extern ServerThread* NewHolyThread(int port, ConnFactory* conn_factory,
+                                   int cron_interval,
+                                   const ServerHandle* handle) {
   return new HolyThread(port, conn_factory, cron_interval, handle);
 }
-extern ServerThread* NewHolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory, int cron_interval,
+extern ServerThread* NewHolyThread(const std::string& bind_ip, int port,
+                                   ConnFactory* conn_factory, int cron_interval,
                                    const ServerHandle* handle) {
   return new HolyThread(bind_ip, port, conn_factory, cron_interval, handle);
 }
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   int cron_interval, const ServerHandle* handle) {
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips,
+                                   int port, ConnFactory* conn_factory,
+                                   int cron_interval,
+                                   const ServerHandle* handle) {
   return new HolyThread(bind_ips, port, conn_factory, cron_interval, handle);
 }
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   bool async, int cron_interval, const ServerHandle* handle) {
-  return new HolyThread(bind_ips, port, conn_factory, cron_interval, handle, async);
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips,
+                                   int port, ConnFactory* conn_factory,
+                                   bool async, int cron_interval,
+                                   const ServerHandle* handle) {
+  return new HolyThread(bind_ips, port, conn_factory, cron_interval, handle,
+                        async);
 }
 };  // namespace net

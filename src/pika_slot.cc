@@ -11,7 +11,6 @@
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-
 #include "pstd/include/mutex_impl.h"
 
 using pstd::Status;
@@ -38,14 +37,16 @@ std::string BgsaveSubPath(const std::string& db_name, uint32_t slot_id) {
   return {buf};
 }
 
-std::string DbSyncPath(const std::string& sync_path, const std::string& db_name, const uint32_t slot_id) {
+std::string DbSyncPath(const std::string& sync_path, const std::string& db_name,
+                       const uint32_t slot_id) {
   char buf[256];
   std::string slot_id_str = std::to_string(slot_id);
   snprintf(buf, sizeof(buf), "%s/", db_name.data());
   return sync_path + buf;
 }
 
-Slot::Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path)
+Slot::Slot(const std::string& db_name, uint32_t slot_id,
+           const std::string& table_db_path)
     : db_name_(db_name), slot_id_(slot_id), bgsave_engine_(nullptr) {
   db_path_ = table_db_path;
   bgsave_sub_path_ = db_name;
@@ -55,7 +56,8 @@ Slot::Slot(const std::string& db_name, uint32_t slot_id, const std::string& tabl
   db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
-  lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
+  lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(
+      1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
 
   opened_ = s.ok();
   assert(db_);
@@ -63,9 +65,7 @@ Slot::Slot(const std::string& db_name, uint32_t slot_id, const std::string& tabl
   LOG(INFO) << slot_name_ << " DB Success";
 }
 
-Slot::~Slot() {
-  Close();
-}
+Slot::~Slot() { Close(); }
 
 void Slot::Leave() {
   Close();
@@ -139,7 +139,8 @@ void Slot::PrepareRsync() {
 // Here we do:
 // 1, Check dbsync finished, got the new binlog offset
 // 2, Replace the old db
-// 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
+// 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do
+// slaveof task with master
 bool Slot::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
   if (!pstd::FileExists(info_path)) {
@@ -156,7 +157,8 @@ bool Slot::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Slot: " << slot_name_ << ", Failed to open info file after db sync";
+    LOG(WARNING) << "Slot: " << slot_name_
+                 << ", Failed to open info file after db sync";
     slave_slot->SetReplState(ReplState::kError);
     return false;
   }
@@ -176,7 +178,8 @@ bool Slot::TryUpdateMasterOffset() {
     } else if (lineno > 2 && lineno < 8) {
       if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
         LOG(WARNING) << "Slot: " << slot_name_
-                     << ", Format of info file after db sync error, line : " << line;
+                     << ", Format of info file after db sync error, line : "
+                     << line;
         is.close();
         slave_slot->SetReplState(ReplState::kError);
         return false;
@@ -193,7 +196,9 @@ bool Slot::TryUpdateMasterOffset() {
         index = tmp;
       }
     } else if (lineno > 8) {
-      LOG(WARNING) << "Slot: " << slot_name_ << ", Format of info file after db sync error, line : " << line;
+      LOG(WARNING) << "Slot: " << slot_name_
+                   << ", Format of info file after db sync error, line : "
+                   << line;
       is.close();
       slave_slot->SetReplState(ReplState::kError);
       return false;
@@ -202,12 +207,15 @@ bool Slot::TryUpdateMasterOffset() {
   is.close();
 
   LOG(INFO) << "Slot: " << slot_name_ << " Information from dbsync info"
-            << ",  master_ip: " << master_ip << ", master_port: " << master_port << ", filenum: " << filenum
-            << ", offset: " << offset << ", term: " << term << ", index: " << index;
+            << ",  master_ip: " << master_ip << ", master_port: " << master_port
+            << ", filenum: " << filenum << ", offset: " << offset
+            << ", term: " << term << ", index: " << index;
 
   // Sanity check
-  if (master_ip != slave_slot->MasterIp() || master_port != slave_slot->MasterPort()) {
-    LOG(WARNING) << "Slot: " << slot_name_ << " Error master node ip port: " << master_ip << ":"
+  if (master_ip != slave_slot->MasterIp() ||
+      master_port != slave_slot->MasterPort()) {
+    LOG(WARNING) << "Slot: " << slot_name_
+                 << " Error master node ip port: " << master_ip << ":"
                  << master_port;
     slave_slot->SetReplState(ReplState::kError);
     return false;
@@ -228,7 +236,8 @@ bool Slot::TryUpdateMasterOffset() {
     return false;
   }
   if (g_pika_conf->consensus_level() != 0) {
-    master_slot->ConsensusReset(LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
+    master_slot->ConsensusReset(
+        LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
   } else {
     master_slot->Logger()->SetProducerStatus(filenum, offset);
   }
@@ -250,18 +259,21 @@ bool Slot::ChangeDb(const std::string& new_path) {
   pstd::DeleteDirIfExist(tmp_path);
 
   std::lock_guard l(db_rwlock_);
-  LOG(INFO) << "Slot: " << slot_name_ << ", Prepare change db from: " << tmp_path;
+  LOG(INFO) << "Slot: " << slot_name_
+            << ", Prepare change db from: " << tmp_path;
   db_.reset();
 
   if (0 != pstd::RenameFile(db_path_, tmp_path)) {
     LOG(WARNING) << "Slot: " << slot_name_
-                 << ", Failed to rename db path when change db, error: " << strerror(errno);
+                 << ", Failed to rename db path when change db, error: "
+                 << strerror(errno);
     return false;
   }
 
   if (0 != pstd::RenameFile(new_path, db_path_)) {
     LOG(WARNING) << "Slot: " << slot_name_
-                 << ", Failed to rename new db path when change db, error: " << strerror(errno);
+                 << ", Failed to rename new db path when change db, error: "
+                 << strerror(errno);
     return false;
   }
 
@@ -312,7 +324,8 @@ void Slot::DoBgSave(void* arg) {
         << info.offset.b_offset.filenum << "\n"
         << info.offset.b_offset.offset << "\n";
     if (g_pika_conf->consensus_level() != 0) {
-      out << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
+      out << info.offset.l_offset.term << "\n"
+          << info.offset.l_offset.index << "\n";
     }
     out.close();
   }
@@ -321,7 +334,6 @@ void Slot::DoBgSave(void* arg) {
     pstd::RenameFile(info.path, fail_path);
   }
   bg_task_arg->slot->FinishBgsave();
-
 }
 
 bool Slot::RunBgsaveEngine() {
@@ -333,7 +345,8 @@ bool Slot::RunBgsaveEngine() {
   LOG(INFO) << slot_name_ << " after prepare bgsave";
 
   BgSaveInfo info = bgsave_info();
-  LOG(INFO) << slot_name_ << " bgsave_info: path=" << info.path << ",  filenum=" << info.offset.b_offset.filenum
+  LOG(INFO) << slot_name_ << " bgsave_info: path=" << info.path
+            << ",  filenum=" << info.offset.b_offset.filenum
             << ", offset=" << info.offset.b_offset.offset;
 
   // Backup to tmp dir
@@ -354,10 +367,13 @@ bool Slot::InitBgsaveEnv() {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S",
+                     localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
-  std::string time_sub_path = g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
-  bgsave_info_.path = g_pika_conf->bgsave_path() + time_sub_path + "/" + bgsave_sub_path_;
+  std::string time_sub_path =
+      g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
+  bgsave_info_.path =
+      g_pika_conf->bgsave_path() + time_sub_path + "/" + bgsave_sub_path_;
   if (!pstd::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(WARNING) << slot_name_ << " remove exist bgsave dir failed";
     return false;
@@ -394,7 +410,8 @@ bool Slot::InitBgsaveEngine() {
       bgsave_offset = slot->ConsensusAppliedIndex();
     } else {
       // term, index are 0
-      slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
+      slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum),
+                                        &(bgsave_offset.b_offset.offset));
     }
     {
       std::lock_guard l(bgsave_protector_);
@@ -402,7 +419,8 @@ bool Slot::InitBgsaveEngine() {
     }
     s = bgsave_engine_->SetBackupContent();
     if (!s.ok()) {
-      LOG(WARNING) << slot_name_ << " set backup content failed " << s.ToString();
+      LOG(WARNING) << slot_name_ << " set backup content failed "
+                   << s.ToString();
       return false;
     }
   }
@@ -476,7 +494,8 @@ bool Slot::FlushSubDB(const std::string& db_name) {
 void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S",
+                     localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
@@ -505,4 +524,3 @@ Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
   return Status::OK();
 }
-

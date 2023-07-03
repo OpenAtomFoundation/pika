@@ -2,6 +2,7 @@
 #define __PSTD_STATUS_H__
 
 #include <string>
+
 #include "pstd/include/pstd_slice.h"
 
 namespace pstd {
@@ -20,24 +21,44 @@ class Status {
   static Status OK() { return {}; }
 
   // Return error status of an appropriate type.
-  static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotFound, msg, msg2); }
-  static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kCorruption, msg, msg2); }
-  static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotSupported, msg, msg2); }
+  static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kNotFound, msg, msg2);
+  }
+  static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kCorruption, msg, msg2);
+  }
+  static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kNotSupported, msg, msg2);
+  }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
     return {kInvalidArgument, msg, msg2};
   }
-  static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIOError, msg, msg2); }
-  static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kEndFile, msg, msg2); }
+  static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kIOError, msg, msg2);
+  }
+  static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kEndFile, msg, msg2);
+  }
 
-  static Status Incomplete(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIncomplete, msg, msg2); }
+  static Status Incomplete(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kIncomplete, msg, msg2);
+  }
 
-  static Status Complete(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kComplete, msg, msg2); }
+  static Status Complete(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kComplete, msg, msg2);
+  }
 
-  static Status Timeout(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kTimeout, msg, msg2); }
+  static Status Timeout(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kTimeout, msg, msg2);
+  }
 
-  static Status AuthFailed(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kAuthFailed, msg, msg2); }
+  static Status AuthFailed(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kAuthFailed, msg, msg2);
+  }
 
-  static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
+  static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) {
+    return Status(kBusy, msg, msg2);
+  }
 
   // Returns true if the status indicates success.
   bool ok() const { return !state_; }
@@ -108,7 +129,9 @@ class Status {
   static const char* CopyState(const char* s);
 };
 
-inline Status::Status(const Status& s) { state_ = !s.state_ ? nullptr : CopyState(s.state_); }
+inline Status::Status(const Status& s) {
+  state_ = !s.state_ ? nullptr : CopyState(s.state_);
+}
 inline void Status::operator=(const Status& s) {
   // The following condition catches both aliasing (when this == &s),
   // and the common case where both s and *this are ok.

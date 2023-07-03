@@ -3,9 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "src/lock_mgr.h"
+
 #include <thread>
 
-#include "src/lock_mgr.h"
 #include "src/mutex_impl.h"
 
 using namespace storage;

@@ -4,11 +4,12 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/thread_pool.h"
-#include "net/src/net_thread_name.h"
 
 #include <sys/time.h>
 
 #include <utility>
+
+#include "net/src/net_thread_name.h"
 
 namespace net {
 
@@ -41,7 +42,8 @@ int ThreadPool::Worker::stop() {
   return 0;
 }
 
-ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name)
+ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size,
+                       std::string thread_pool_name)
     : worker_num_(worker_num),
       max_queue_size_(max_queue_size),
       thread_pool_name_(std::move(thread_pool_name)),
@@ -91,7 +93,9 @@ void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
   std::unique_lock lock(mu_);
-  wsignal_.wait(lock, [this]() { return queue_.size() < max_queue_size_ || should_stop(); });
+  wsignal_.wait(lock, [this]() {
+    return queue_.size() < max_queue_size_ || should_stop();
+  });
 
   if (!should_stop()) {
     queue_.emplace(func, arg);
@@ -104,7 +108,9 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
  */
 void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
   auto now = std::chrono::system_clock::now();
-  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(
+                      now.time_since_epoch())
+                      .count();
   uint64_t exec_time = unow + timeout * 1000;
 
   std::lock_guard lock(mu_);
@@ -131,17 +137,21 @@ std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 void ThreadPool::runInThread() {
   while (!should_stop()) {
     std::unique_lock lock(mu_);
-    rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
+    rsignal_.wait(lock, [this]() {
+      return !queue_.empty() || !time_queue_.empty() || should_stop();
+    });
 
     if (should_stop()) {
       break;
     }
     if (!time_queue_.empty()) {
       auto now = std::chrono::system_clock::now();
-      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(
+                          now.time_since_epoch())
+                          .count();
 
       auto [exec_time, func, arg] = time_queue_.top();
-      if (unow  >= exec_time) {
+      if (unow >= exec_time) {
         time_queue_.pop();
         lock.unlock();
         (*func)(arg);

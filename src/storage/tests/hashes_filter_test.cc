@@ -45,8 +45,8 @@
 //   column_families.push_back(rocksdb::ColumnFamilyDescriptor(
 //       "data_cf", data_cf_ops));
 
-//   s = rocksdb::DB::Open(options, db_path, column_families, &handles, &meta_db);
-//   ASSERT_TRUE(s.ok());
+//   s = rocksdb::DB::Open(options, db_path, column_families, &handles,
+//   &meta_db); ASSERT_TRUE(s.ok());
 
 //   char str[4];
 //   bool filter_result;
@@ -109,8 +109,9 @@
 //   s = meta_db->Put(rocksdb::WriteOptions(), handles[0],
 //       "FILTER_TEST_KEY", tdf_meta_value1.Encode());
 //   ASSERT_TRUE(s.ok());
-//   HashesDataKey tdf_data_key1("FILTER_TEST_KEY", version, "FILTER_TEST_FIELD");
-//   filter_result = hashes_data_filter1->Filter(0, tdf_data_key1.Encode(),
+//   HashesDataKey tdf_data_key1("FILTER_TEST_KEY", version,
+//   "FILTER_TEST_FIELD"); filter_result = hashes_data_filter1->Filter(0,
+//   tdf_data_key1.Encode(),
 //       "FILTER_TEST_VALUE", &new_value, &value_changed);
 //   ASSERT_EQ(filter_result, false);
 //   s = meta_db->Delete(rocksdb::WriteOptions(),
@@ -129,8 +130,9 @@
 //   s = meta_db->Put(rocksdb::WriteOptions(), handles[0],
 //       "FILTER_TEST_KEY", tdf_meta_value2.Encode());
 //   ASSERT_TRUE(s.ok());
-//   HashesDataKey tdf_data_key2("FILTER_TEST_KEY", version, "FILTER_TEST_FIELD");
-//   filter_result = hashes_data_filter2->Filter(0, tdf_data_key2.Encode(),
+//   HashesDataKey tdf_data_key2("FILTER_TEST_KEY", version,
+//   "FILTER_TEST_FIELD"); filter_result = hashes_data_filter2->Filter(0,
+//   tdf_data_key2.Encode(),
 //       "FILTER_TEST_VALUE", &new_value, &value_changed);
 //   ASSERT_EQ(filter_result, false);
 //   s = meta_db->Delete(rocksdb::WriteOptions(),
@@ -150,8 +152,9 @@
 //       "FILTER_TEST_KEY", tdf_meta_value3.Encode());
 //   ASSERT_TRUE(s.ok());
 //   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-//   HashesDataKey tdf_data_key3("FILTER_TEST_KEY", version, "FILTER_TEST_FIELD");
-//   filter_result = hashes_data_filter3->Filter(0, tdf_data_key3.Encode(),
+//   HashesDataKey tdf_data_key3("FILTER_TEST_KEY", version,
+//   "FILTER_TEST_FIELD"); filter_result = hashes_data_filter3->Filter(0,
+//   tdf_data_key3.Encode(),
 //       "FILTER_TEST_VALUE", &new_value, &value_changed);
 //   ASSERT_EQ(filter_result, true);
 //   s = meta_db->Delete(rocksdb::WriteOptions(),
@@ -169,9 +172,9 @@
 //   s = meta_db->Put(rocksdb::WriteOptions(), handles[0],
 //       "FILTER_TEST_KEY", tdf_meta_value4.Encode());
 //   ASSERT_TRUE(s.ok());
-//   HashesDataKey tdf_data_key4("FILTER_TEST_KEY", version, "FILTER_TEST_FIELD");
-//   version = tdf_meta_value4.UpdateVersion();
-//   s = meta_db->Put(rocksdb::WriteOptions(), handles[0],
+//   HashesDataKey tdf_data_key4("FILTER_TEST_KEY", version,
+//   "FILTER_TEST_FIELD"); version = tdf_meta_value4.UpdateVersion(); s =
+//   meta_db->Put(rocksdb::WriteOptions(), handles[0],
 //       "FILTER_TEST_KEY", tdf_meta_value4.Encode());
 //   ASSERT_TRUE(s.ok());
 //   filter_result = hashes_data_filter4->Filter(0, tdf_data_key4.Encode(),
@@ -192,8 +195,8 @@
 //   s = meta_db->Put(rocksdb::WriteOptions(), handles[0],
 //       "FILTER_TEST_KEY", tdf_meta_value5.Encode());
 //   ASSERT_TRUE(s.ok());
-//   HashesDataKey tdf_data_key5("FILTER_TEST_KEY", version, "FILTER_TEST_FIELD");
-//   s = meta_db->Delete(rocksdb::WriteOptions(),
+//   HashesDataKey tdf_data_key5("FILTER_TEST_KEY", version,
+//   "FILTER_TEST_FIELD"); s = meta_db->Delete(rocksdb::WriteOptions(),
 //       handles[0], "FILTER_TEST_KEY");
 //   ASSERT_TRUE(s.ok());
 //   filter_result = hashes_data_filter5->Filter(0, tdf_data_key5.Encode(),

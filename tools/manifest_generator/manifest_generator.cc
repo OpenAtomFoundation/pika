@@ -3,9 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <cstring>
-
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -44,7 +43,8 @@ void ParseInfoFile(const std::string& path) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
       if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
-        std::cout << "Format of info file " << info_file << " error, line : " << line;
+        std::cout << "Format of info file " << info_file
+                  << " error, line : " << line;
         is.close();
         exit(-1);
       }
@@ -57,7 +57,8 @@ void ParseInfoFile(const std::string& path) {
       }
 
     } else if (lineno > 5) {
-      std::cout << "Format of info file " << info_file << " error, line : " << line;
+      std::cout << "Format of info file " << info_file
+                << " error, line : " << line;
       is.close();
       exit(-1);
     }
@@ -75,10 +76,12 @@ void ParseInfoFile(const std::string& path) {
 
 void PrintInfo() {
   std::cout << std::endl;
-  std::cout << "==================== Configuration =====================" << std::endl;
+  std::cout << "==================== Configuration ====================="
+            << std::endl;
   std::cout << "Db dump path:          " << db_dump_path << std::endl;
   std::cout << "New Pika log_path:     " << new_pika_log_path << std::endl;
-  std::cout << "========================================================" << std::endl;
+  std::cout << "========================================================"
+            << std::endl;
   std::cout << std::endl;
 }
 
@@ -86,7 +89,8 @@ void Usage() {
   std::cout << "Usage: " << std::endl;
   std::cout << "  -d   -- db dump path (required)" << std::endl;
   std::cout << "  -l   -- new pika log_path (required)" << std::endl;
-  std::cout << "  example: ./manifest_generator -d /data1/pika_old/dump/20190508/ -l /data01/pika_new/log/db0"
+  std::cout << "  example: ./manifest_generator -d "
+               "/data1/pika_old/dump/20190508/ -l /data01/pika_new/log/db0"
             << std::endl;
 }
 
@@ -117,15 +121,19 @@ int main(int argc, char* argv[]) {
   }
   // if this dir exist
   if (pstd::IsDir(new_pika_log_path) == 0) {
-    std::cout << "Dir " << new_pika_log_path << "exist, please delete it!" << std::endl;
+    std::cout << "Dir " << new_pika_log_path << "exist, please delete it!"
+              << std::endl;
     exit(-1);
   }
 
   PrintInfo();
-  std::cout << std::endl << "Step 1, Parse Info file from " << db_dump_path << std::endl;
+  std::cout << std::endl
+            << "Step 1, Parse Info file from " << db_dump_path << std::endl;
   ParseInfoFile(db_dump_path);
 
-  std::cout << std::endl << "Step 2, Generate manifest file to " << new_pika_log_path << std::endl;
+  std::cout << std::endl
+            << "Step 2, Generate manifest file to " << new_pika_log_path
+            << std::endl;
   // generate manifest and newest binlog
   Binlog binlog(new_pika_log_path);
   pstd::Status s = binlog.SetProducerStatus(db_dump_filenum, db_dump_offset);
@@ -133,6 +141,7 @@ int main(int argc, char* argv[]) {
     std::cout << s.ToString() << std::endl;
     exit(-1);
   }
-  std::cout << std::endl << "DB Sync done ! Try Incremental Sync Maybe." << std::endl;
+  std::cout << std::endl
+            << "DB Sync done ! Try Incremental Sync Maybe." << std::endl;
   return 0;
 }

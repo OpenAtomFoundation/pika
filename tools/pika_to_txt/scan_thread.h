@@ -7,18 +7,19 @@
 #define INCLUDE_SCAN_THREAD_H_
 
 #include "iostream"
-#include "vector"
-
-#include "storage/storage.h"
 #include "net/include/net_thread.h"
 #include "pstd/include/pstd_coding.h"
-
+#include "storage/storage.h"
+#include "vector"
 #include "write_thread.h"
 
 class ScanThread : public net::Thread {
  public:
   ScanThread(WriteThread* write_thread, storage::Storage* storage_db)
-      : is_finish_(false), scan_number_(0), write_thread_(write_thread), storage_db_(storage_db) {}
+      : is_finish_(false),
+        scan_number_(0),
+        write_thread_(write_thread),
+        storage_db_(storage_db) {}
   bool is_finish();
   int32_t scan_number();
 

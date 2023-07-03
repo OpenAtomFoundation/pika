@@ -23,11 +23,13 @@ class NetConn;
 class HolyThread : public ServerThread {
  public:
   // This type thread will listen and work self list redis thread
-  HolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0, const ServerHandle* handle = nullptr,
-             bool async = true);
-  HolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory, int cron_interval = 0,
+  HolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0,
              const ServerHandle* handle = nullptr, bool async = true);
-  HolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory, int cron_interval = 0,
+  HolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory,
+             int cron_interval = 0, const ServerHandle* handle = nullptr,
+             bool async = true);
+  HolyThread(const std::set<std::string>& bind_ips, int port,
+             ConnFactory* conn_factory, int cron_interval = 0,
              const ServerHandle* handle = nullptr, bool async = true);
   ~HolyThread() override;
 
@@ -35,7 +37,9 @@ class HolyThread : public ServerThread {
 
   int StopThread() override;
 
-  void set_keepalive_timeout(int timeout) override { keepalive_timeout_ = timeout; }
+  void set_keepalive_timeout(int timeout) override {
+    keepalive_timeout_ = timeout;
+  }
 
   int conn_num() const override;
 
@@ -43,7 +47,8 @@ class HolyThread : public ServerThread {
 
   std::shared_ptr<NetConn> MoveConnOut(int fd) override;
 
-  void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override {}
+  void MoveConnIn(std::shared_ptr<NetConn> conn,
+                  const NotifyType& type) override {}
 
   void KillAllConns() override;
 

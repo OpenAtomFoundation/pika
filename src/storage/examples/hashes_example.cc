@@ -60,7 +60,8 @@ int main() {
   s = db.HMGet("TEST_HASH", fields, &vss);
   printf("HMget return: %s\n", s.ToString().c_str());
   for (uint32_t idx = 0; idx != fields.size(); idx++) {
-    printf("idx = %d, field = %s, value = %s\n", idx, fields[idx].c_str(), vss[idx].value.c_str());
+    printf("idx = %d, field = %s, value = %s\n", idx, fields[idx].c_str(),
+           vss[idx].value.c_str());
   }
 
   // HLEN
@@ -108,6 +109,7 @@ int main() {
   // HIncrby
   int64_t hincrby_value;
   s = db.HIncrby("TEST_KEY1", "TEST_HINCRBY_FIELD", 100, &hincrby_value);
-  printf("HIncrby return: %s, value = %lld\n", s.ToString().c_str(), hincrby_value);
+  printf("HIncrby return: %s, value = %lld\n", s.ToString().c_str(),
+         hincrby_value);
   return 0;
 }

@@ -43,7 +43,8 @@ namespace pstd {
 // }
 //
 
-// CTAD: See https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
+// CTAD: See
+// https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
 #if __cpp_deduction_guides >= 201606
 
 template <class F>

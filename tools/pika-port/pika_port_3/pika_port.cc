@@ -3,22 +3,23 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "pika_port.h"
+
 #include <arpa/inet.h>
+#include <glog/logging.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <cassert>
 
-#include <glog/logging.h>
+#include <cassert>
 #include <functional>
 
 #include "conf.h"
 #include "const.h"
-#include "pika_port.h"
 #include "pstd/include/env.h"
-#include "pstd/include/rsync.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd/include/rsync.h"
 
 PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
     : ping_thread_(nullptr),
@@ -38,11 +39,14 @@ PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
   // Create redis sender
   size_t thread_num = g_conf.forward_thread_num;
   for (size_t i = 0; i < thread_num; i++) {
-    senders_.emplace_back(new RedisSender(static_cast<int>(i), g_conf.forward_ip, g_conf.forward_port, g_conf.forward_passwd));
+    senders_.emplace_back(
+        new RedisSender(static_cast<int>(i), g_conf.forward_ip,
+                        g_conf.forward_port, g_conf.forward_passwd));
   }
 
   // Create thread
-  binlog_receiver_thread_ = new BinlogReceiverThread(g_conf.local_ip, g_conf.local_port + 1000, 1000);
+  binlog_receiver_thread_ =
+      new BinlogReceiverThread(g_conf.local_ip, g_conf.local_port + 1000, 1000);
   trysync_thread_ = new TrysyncThread();
 
   logger_ = new Binlog(g_conf.log_path, 104857600);
@@ -102,7 +106,8 @@ void PikaPort::Start() {
   trysync_thread_->StartThread();
   binlog_receiver_thread_->StartThread();
 
-  // if (g_conf.filenum >= 0 && g_conf.filenum != UINT32_MAX && g_conf.offset >= 0) {
+  // if (g_conf.filenum >= 0 && g_conf.filenum != UINT32_MAX && g_conf.offset >=
+  // 0) {
   if (g_conf.filenum != UINT32_MAX) {
     logger_->SetProducerStatus(g_conf.filenum, g_conf.offset);
   }
@@ -117,7 +122,8 @@ void PikaPort::Start() {
 
 void PikaPort::Stop() { mutex_.unlock(); }
 
-int PikaPort::SendRedisCommand(const std::string& command, const std::string& key) {
+int PikaPort::SendRedisCommand(const std::string& command,
+                               const std::string& key) {
   // Send command
   size_t idx = std::hash<std::string>()(key) % g_conf.forward_thread_num;
   senders_[idx]->SendRedisCommand(command);
@@ -157,8 +163,8 @@ void PikaPort::ConnectMasterDone() {
 
 bool PikaPort::ShouldStartPingMaster() {
   std::shared_lock l(state_protector_);
-  LOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << ", repl_state "
-            << PikaState(repl_state_);
+  LOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_
+            << ", repl_state " << PikaState(repl_state_);
   return repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2;
 }
 
@@ -168,10 +174,12 @@ void PikaPort::MinusMasterConnection() {
     if ((--master_connection_) <= 0) {
       // two connection with master has been deleted
       if (((role_ & PIKA_ROLE_SLAVE) != 0) || ((role_ & PIKA_ROLE_PORT) != 0)) {
-        // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT, continue to connect master
+        // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT,
+        // continue to connect master
         repl_state_ = PIKA_REPL_CONNECT;
       } else {
-        // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT, reset to SINGLE state
+        // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT,
+        // reset to SINGLE state
         repl_state_ = PIKA_REPL_NO_CONNECT;
       }
       master_connection_ = 0;
@@ -193,7 +201,8 @@ void PikaPort::PlusMasterConnection() {
 
 bool PikaPort::ShouldAccessConnAsMaster(const std::string& ip) {
   std::shared_lock l(state_protector_);
-  LOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << PikaState(repl_state_) << ", ip: " << ip
+  LOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: "
+            << PikaState(repl_state_) << ", ip: " << ip
             << ", master_ip: " << master_ip_;
   return repl_state_ != PIKA_REPL_NO_CONNECT && ip == master_ip_;
 }

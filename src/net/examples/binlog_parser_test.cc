@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/pstd_coding.h"
@@ -20,7 +21,8 @@ int main(int argc, char* argv[]) {
   rcli->set_connect_timeout(3000);
 
   Status s = rcli->Connect(ip, port, "127.0.0.1");
-  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port, s.ToString().c_str());
+  printf(" RedisCli Connect(%s:%d) return %s\n", ip.c_str(), port,
+         s.ToString().c_str());
   if (!s.ok()) {
     printf("Connect failed, %s\n", s.ToString().c_str());
     exit(-1);

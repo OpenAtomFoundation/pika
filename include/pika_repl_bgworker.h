@@ -9,14 +9,12 @@
 #include <memory>
 #include <string>
 
+#include "include/pika_binlog_transverter.h"
+#include "include/pika_command.h"
 #include "net/include/bg_thread.h"
 #include "net/include/pb_conn.h"
 #include "net/include/thread_pool.h"
-
 #include "pika_inner_message.pb.h"
-
-#include "include/pika_binlog_transverter.h"
-#include "include/pika_command.h"
 
 class PikaReplBgWorker {
  public:
@@ -36,8 +34,10 @@ class PikaReplBgWorker {
 
  private:
   net::BGThread bg_thread_;
-  static int HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
-  static void ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset);
+  static int HandleWriteBinlog(net::RedisParser* parser,
+                               const net::RedisCmdArgsType& argv);
+  static void ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset,
+                                LogOffset* offset);
 };
 
 #endif  // PIKA_REPL_BGWROKER_H_

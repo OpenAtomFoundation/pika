@@ -108,13 +108,16 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
  * Since this function is currently only used as an optimization, the
  * optimization is not used for very big radiuses, however the function
  * should be fixed. */
-int geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds) {
+int geohashBoundingBox(double longitude, double latitude, double radius_meters,
+                       double* bounds) {
   if (!bounds) {
     return 0;
   }
 
-  bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
-  bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
+  bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS /
+                                  cos(deg_rad(latitude)));
+  bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS /
+                                  cos(deg_rad(latitude)));
   bounds[1] = latitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
   bounds[3] = latitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
   return 1;
@@ -122,7 +125,8 @@ int geohashBoundingBox(double longitude, double latitude, double radius_meters, 
 
 /* Return a set of areas (center + 8) that are able to cover a range query
  * for the specified position and radius. */
-GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double radius_meters) {
+GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude,
+                                      double radius_meters) {
   GeoHashRange long_range;
   GeoHashRange lat_range;
   GeoHashRadius radius;
@@ -166,16 +170,20 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
     geohashDecode(long_range, lat_range, neighbors.east, &east);
     geohashDecode(long_range, lat_range, neighbors.west, &west);
 
-    if (geohashGetDistance(longitude, latitude, longitude, north.latitude.max) < radius_meters) {
+    if (geohashGetDistance(longitude, latitude, longitude, north.latitude.max) <
+        radius_meters) {
       decrease_step = 1;
     }
-    if (geohashGetDistance(longitude, latitude, longitude, south.latitude.min) < radius_meters) {
+    if (geohashGetDistance(longitude, latitude, longitude, south.latitude.min) <
+        radius_meters) {
       decrease_step = 1;
     }
-    if (geohashGetDistance(longitude, latitude, east.longitude.max, latitude) < radius_meters) {
+    if (geohashGetDistance(longitude, latitude, east.longitude.max, latitude) <
+        radius_meters) {
       decrease_step = 1;
     }
-    if (geohashGetDistance(longitude, latitude, west.longitude.min, latitude) < radius_meters) {
+    if (geohashGetDistance(longitude, latitude, west.longitude.min, latitude) <
+        radius_meters) {
       decrease_step = 1;
     }
   }
@@ -216,7 +224,8 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   return radius;
 }
 
-GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude, double radius_meters) {
+GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude,
+                                           double radius_meters) {
   return geohashGetAreasByRadius(longitude, latitude, radius_meters);
 }
 
@@ -227,7 +236,8 @@ GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits& hash) {
 }
 
 /* Calculate distance using haversin great circle distance formula. */
-double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d) {
+double geohashGetDistance(double lon1d, double lat1d, double lon2d,
+                          double lat2d) {
   double lat1r;
   double lon1r;
   double lat2r;
@@ -240,10 +250,12 @@ double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d
   lon2r = deg_rad(lon2d);
   u = sin((lat2r - lat1r) / 2);
   v = sin((lon2r - lon1r) / 2);
-  return 2.0 * EARTH_RADIUS_IN_METERS * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+  return 2.0 * EARTH_RADIUS_IN_METERS *
+         asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }
 
-int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance) {
+int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2,
+                                 double radius, double* distance) {
   *distance = geohashGetDistance(x1, y1, x2, y2);
   if (*distance > radius) {
     return 0;
@@ -251,6 +263,8 @@ int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, dou
   return 1;
 }
 
-int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance) {
+int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2,
+                                      double y2, double radius,
+                                      double* distance) {
   return geohashGetDistanceIfInRadius(x1, y1, x2, y2, radius, distance);
 }

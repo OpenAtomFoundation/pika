@@ -6,11 +6,10 @@
 #ifndef SRC_MUTEX_IMPL_H_
 #define SRC_MUTEX_IMPL_H_
 
-#include "src/mutex.h"
+#include <memory>
 
 #include "pstd/include/mutex_impl.h"
-
-#include <memory>
+#include "src/mutex.h"
 
 namespace storage {
 

@@ -3,7 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "storage/util.h"
+
 #include <unistd.h>
+
 #include <cctype>
 #include <climits>
 #include <cstdint>
@@ -11,9 +14,7 @@
 #include <memory>
 
 #include "pstd/include/pstd_string.h"
-
 #include "src/coding.h"
-#include "storage/util.h"
 
 namespace storage {
 
@@ -40,7 +41,8 @@ int StrToInt64(const char* s, size_t slen, int64_t* value) {
 }
 
 /* Glob-style pattern matching. */
-int StringMatch(const char* pattern, int pattern_len, const char* str, int string_len, int nocase) {
+int StringMatch(const char* pattern, int pattern_len, const char* str,
+                int string_len, int nocase) {
   return pstd::stringmatchlen(pattern, pattern_len, str, string_len, nocase);
 }
 
@@ -205,7 +207,9 @@ int is_dir(const char* filename) {
   return -1;
 }
 
-int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
+int CalculateMetaStartAndEndKey(const std::string& key,
+                                std::string* meta_start_key,
+                                std::string* meta_end_key) {
   size_t needed = key.size() + 1;
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
@@ -217,7 +221,9 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
   return 0;
 }
 
-int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
+int CalculateDataStartAndEndKey(const std::string& key,
+                                std::string* data_start_key,
+                                std::string* data_end_key) {
   size_t needed = sizeof(int32_t) + key.size() + 1;
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
@@ -243,7 +249,8 @@ bool isTailWildcard(const std::string& pattern) {
       return false;
     } else {
       for (uint32_t idx = 0; idx < pattern.size() - 1; ++idx) {
-        if (pattern[idx] == '*' || pattern[idx] == '?' || pattern[idx] == '[' || pattern[idx] == ']') {
+        if (pattern[idx] == '*' || pattern[idx] == '?' || pattern[idx] == '[' ||
+            pattern[idx] == ']') {
           return false;
         }
       }
@@ -277,7 +284,8 @@ bool DeleteFiles(const char* path) {
     }
     while ((dirinfo = readdir(dir)) != nullptr) {
       GetFilepath(path, dirinfo->d_name, filepath);
-      if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0) {  // 判断是否是特殊目录
+      if (strcmp(dirinfo->d_name, ".") == 0 ||
+          strcmp(dirinfo->d_name, "..") == 0) {  // 判断是否是特殊目录
         continue;
       }
       DeleteFiles(filepath);

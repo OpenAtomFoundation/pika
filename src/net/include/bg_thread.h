@@ -10,7 +10,6 @@
 #include <queue>
 
 #include "net/include/net_thread.h"
-
 #include "pstd/include/pstd_mutex.h"
 
 namespace net {
@@ -21,12 +20,14 @@ struct TimerItem {
   void* arg;
   TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg)
       : exec_time(_exec_time), function(_function), arg(_arg) {}
-  bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
+  bool operator<(const TimerItem& item) const {
+    return exec_time > item.exec_time;
+  }
 };
 
 class BGThread final : public Thread {
  public:
-  explicit BGThread(int full = 100000) :  full_(full) {}
+  explicit BGThread(int full = 100000) : full_(full) {}
 
   ~BGThread() override {
     // call virtual in destructor, BGThread must be final
@@ -55,7 +56,8 @@ class BGThread final : public Thread {
   struct BGItem {
     void (*function)(void*);
     void* arg;
-    BGItem(void (*_function)(void*), void* _arg) : function(_function), arg(_arg) {}
+    BGItem(void (*_function)(void*), void* _arg)
+        : function(_function), arg(_arg) {}
   };
 
   std::queue<BGItem> queue_;

@@ -5,9 +5,8 @@
 
 #include "include/pika_statistic.h"
 
-#include "pstd/include/env.h"
-
 #include "include/pika_command.h"
+#include "pstd/include/env.h"
 
 /* QpsStatistic */
 
@@ -29,8 +28,6 @@ QpsStatistic::QpsStatistic(const QpsStatistic& other) {
   last_sec_write_querynum = other.last_sec_write_querynum.load();
   last_time_us = other.last_time_us.load();
 }
-
-
 
 void QpsStatistic::IncreaseQueryNum(bool is_write) {
   querynum++;
@@ -89,7 +86,8 @@ std::unordered_map<std::string, QpsStatistic> Statistic::AllDBStat() {
   return db_stat;
 }
 
-void Statistic::UpdateDBQps(const std::string& db_name, const std::string& command, bool is_write) {
+void Statistic::UpdateDBQps(const std::string& db_name,
+                            const std::string& command, bool is_write) {
   bool db_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {

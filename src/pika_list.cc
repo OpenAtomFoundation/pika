@@ -4,9 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_list.h"
+
 #include "include/pika_data_distribution.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -216,7 +217,8 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
     AddSlotKey("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: index out of range") {
     // TODO(): refine return value
     res_.SetRes(CmdRes::kOutOfRange);
   } else {
@@ -297,7 +299,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!is_write_binlog_){
+  if (!is_write_binlog_) {
     return;
   }
   PikaCmdArgsType rpop_args;

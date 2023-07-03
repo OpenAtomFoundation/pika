@@ -5,11 +5,13 @@
 
 #include "progress_thread.h"
 
-ProgressThread::ProgressThread(BinlogConsumer* binlog_consumer) : binlog_consumer_(binlog_consumer) {}
+ProgressThread::ProgressThread(BinlogConsumer* binlog_consumer)
+    : binlog_consumer_(binlog_consumer) {}
 
 void* ProgressThread::ThreadMain() {
   while (!should_stop_) {
-    printf("\rSending binlog, current file num: %d, offset: %9lu", binlog_consumer_->current_filenum(),
+    printf("\rSending binlog, current file num: %d, offset: %9lu",
+           binlog_consumer_->current_filenum(),
            binlog_consumer_->current_offset());  // NOLINT
     fflush(stdout);
   }

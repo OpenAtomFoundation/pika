@@ -1,23 +1,32 @@
 
 #include "redis_sender.h"
 
-#include <unistd.h>
-#include <ctime>
-
 #include <glog/logging.h>
+#include <unistd.h>
 
+#include <ctime>
 #include <utility>
 
 #include "pstd/include/xdebug.h"
 
 static time_t kCheckDiff = 1;
 
-RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password)
-    : id_(id), cli_(nullptr), ip_(std::move(ip)), port_(port), password_(std::move(password)), should_exit_(false), cnt_(0), elements_(0) {
+RedisSender::RedisSender(int id, std::string ip, int64_t port,
+                         std::string password)
+    : id_(id),
+      cli_(nullptr),
+      ip_(std::move(ip)),
+      port_(port),
+      password_(std::move(password)),
+      should_exit_(false),
+      cnt_(0),
+      elements_(0) {
   last_write_time_ = ::time(nullptr);
 }
 
-RedisSender::~RedisSender() { LOG(INFO) << "RedisSender thread " << id_ << " exit!!!"; }
+RedisSender::~RedisSender() {
+  LOG(INFO) << "RedisSender thread " << id_ << " exit!!!";
+}
 
 void RedisSender::ConnectRedis() {
   while (!cli_) {
@@ -30,7 +39,8 @@ void RedisSender::ConnectRedis() {
     if (!s.ok()) {
       delete cli_;
       cli_ = nullptr;
-      LOG(WARNING) << "Can not connect to " << ip_ << ":" << port_ << ", status: " << s.ToString();
+      LOG(WARNING) << "Can not connect to " << ip_ << ":" << port_
+                   << ", status: " << s.ToString();
       sleep(3);
       continue;
     } else {
@@ -134,7 +144,8 @@ int RedisSender::SendCommand(std::string& command) {
       return 0;
     }
 
-    LOG(WARNING) << "RedisSender " << id_ << "fails to send redis command " << command << ", times: " << idx + 1;
+    LOG(WARNING) << "RedisSender " << id_ << "fails to send redis command "
+                 << command << ", times: " << idx + 1;
     cnt_ = 0;
     cli_->Close();
     delete cli_;

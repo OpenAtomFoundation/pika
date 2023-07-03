@@ -35,6 +35,8 @@
 
 #include <sys/time.h>
 #include <unistd.h>
+
+#include <algorithm>
 #include <cctype>
 #include <cfloat>
 #include <climits>
@@ -45,14 +47,13 @@
 #include <cstring>
 #include <sstream>
 
-#include <algorithm>
-
 #include "pstd/include/pstd_defer.h"
 
 namespace pstd {
 
 /* Glob-style pattern matching. */
-int stringmatchlen(const char* pattern, int patternLen, const char* string, int stringLen, int nocase) {
+int stringmatchlen(const char* pattern, int patternLen, const char* string,
+                   int stringLen, int nocase) {
   while (patternLen != 0) {
     switch (pattern[0]) {
       case '*':
@@ -64,7 +65,8 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
           return 1; /* match */
         }
         while (stringLen != 0) {
-          if (stringmatchlen(pattern + 1, patternLen - 1, string, stringLen, nocase) != 0) {
+          if (stringmatchlen(pattern + 1, patternLen - 1, string, stringLen,
+                             nocase) != 0) {
             return 1; /* match */
           }
           string++;
@@ -129,7 +131,8 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
                 match = 1;
               }
             } else {
-              if (tolower(static_cast<int>(pattern[0])) == tolower(static_cast<int>(string[0]))) {
+              if (tolower(static_cast<int>(pattern[0])) ==
+                  tolower(static_cast<int>(string[0]))) {
                 match = 1;
               }
             }
@@ -159,7 +162,8 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
             return 0; /* no match */
           }
         } else {
-          if (tolower(static_cast<int>(pattern[0])) != tolower(static_cast<int>(string[0]))) {
+          if (tolower(static_cast<int>(pattern[0])) !=
+              tolower(static_cast<int>(string[0]))) {
             return 0; /* no match */
           }
         }
@@ -184,7 +188,8 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
 }
 
 int stringmatch(const char* pattern, const char* string, int nocase) {
-  return stringmatchlen(pattern, strlen(pattern), string, strlen(string), nocase);
+  return stringmatchlen(pattern, strlen(pattern), string, strlen(string),
+                        nocase);
 }
 
 /* Convert a string representing an amount of memory into the number of
@@ -420,7 +425,8 @@ int string2int(const char* s, size_t slen, long long* value) {
   }
 
   if (negative != 0) {
-    if (v > (static_cast<unsigned long long>(-(LLONG_MIN + 1)) + 1)) { /* Overflow. */
+    if (v > (static_cast<unsigned long long>(-(LLONG_MIN + 1)) +
+             1)) { /* Overflow. */
       return 0;
     }
     if (value) {
@@ -455,9 +461,9 @@ int string2int(const char* s, size_t slen, long* lval) {
   return 1;
 }
 
-/* Convert a string into a unsigned long. Returns 1 if the string could be parsed into a
- * (non-overflowing) unsigned long, 0 otherwise. The value will be set to the parsed
- * value when appropriate. */
+/* Convert a string into a unsigned long. Returns 1 if the string could be
+ * parsed into a (non-overflowing) unsigned long, 0 otherwise. The value will be
+ * set to the parsed value when appropriate. */
 int string2int(const char* s, size_t slen, unsigned long* lval) {
   long long llval;
 
@@ -504,7 +510,8 @@ int d2string(char* buf, size_t len, double value) {
      * integer printing function that is much faster. */
     double min = -4503599627370495; /* (2^52)-1 */
     double max = 4503599627370496;  /* -(2^52) */
-    if (value > min && value < max && value == (static_cast<double>(static_cast<long long>(value)))) {
+    if (value > min && value < max &&
+        value == (static_cast<double>(static_cast<long long>(value)))) {
       len = ll2string(buf, len, static_cast<long long>(value));
     } else  // NOLINT
 #endif
@@ -583,7 +590,8 @@ std::string getRandomHexChars(size_t len) {
   return std::string(p, len);
 }
 
-std::vector<std::string>& StringSplit(const std::string& s, char delim, std::vector<std::string>& elems) {
+std::vector<std::string>& StringSplit(const std::string& s, char delim,
+                                      std::vector<std::string>& elems) {
   elems.clear();
   std::stringstream ss(s);
   std::string item;
@@ -664,7 +672,8 @@ std::string ToRead(const std::string& str) {
         if (isprint(*iter) != 0) {
           read.append(1, *iter);
         } else {
-          snprintf(buf, sizeof(buf), "\\x%02x", static_cast<unsigned char>(*iter));
+          snprintf(buf, sizeof(buf), "\\x%02x",
+                   static_cast<unsigned char>(*iter));
           read.append(buf);
         }
         break;

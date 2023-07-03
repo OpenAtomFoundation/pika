@@ -1,12 +1,11 @@
 #include "pstd/include/pstd_mutex.h"
 
+#include <glog/logging.h>
+
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-
-#include <algorithm>
-
-#include <glog/logging.h>
 
 namespace pstd {
 

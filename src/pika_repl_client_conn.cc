@@ -11,25 +11,29 @@
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd/include/pstd_string.h"
 #include "pika_inner_message.pb.h"
+#include "pstd/include/pstd_string.h"
 
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread,
-                                       void* worker_specific_data, net::NetMultiplexer* mpx)
+PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port,
+                                       net::Thread* thread,
+                                       void* worker_specific_data,
+                                       net::NetMultiplexer* mpx)
     : net::PbConn(fd, ip_port, thread, mpx) {}
 
-bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
-                                                 const std::vector<DBStruct>& expect_dbs) {
+bool PikaReplClientConn::IsDBStructConsistent(
+    const std::vector<DBStruct>& current_dbs,
+    const std::vector<DBStruct>& expect_dbs) {
   if (current_dbs.size() != expect_dbs.size()) {
     return false;
   }
   for (const auto& db_struct : current_dbs) {
-    if (find(expect_dbs.begin(), expect_dbs.end(), db_struct) == expect_dbs.end()) {
+    if (find(expect_dbs.begin(), expect_dbs.end(), db_struct) ==
+        expect_dbs.end()) {
       return false;
     }
   }
@@ -37,11 +41,14 @@ bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& curre
 }
 
 int PikaReplClientConn::DealMessage() {
-  std::shared_ptr<InnerMessage::InnerResponse> response = std::make_shared<InnerMessage::InnerResponse>();
-  ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, header_len_);
+  std::shared_ptr<InnerMessage::InnerResponse> response =
+      std::make_shared<InnerMessage::InnerResponse>();
+  ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_,
+                                                 header_len_);
   ::google::protobuf::io::CodedInputStream decoder(&input);
   decoder.SetTotalBytesLimit(g_pika_conf->max_conn_rbuf_size());
-  bool success = response->ParseFromCodedStream(&decoder) && decoder.ConsumedEntireMessage();
+  bool success = response->ParseFromCodedStream(&decoder) &&
+                 decoder.ConsumedEntireMessage();
   if (!success) {
     LOG(WARNING) << "ParseFromArray FAILED! "
                  << " msg_len: " << header_len_;
@@ -50,21 +57,30 @@ int PikaReplClientConn::DealMessage() {
   }
   switch (response->type()) {
     case InnerMessage::kMetaSync: {
-      auto task_arg =
-          new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
+      auto task_arg = new ReplClientTaskArg(
+          response,
+          std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_rm->ScheduleReplClientBGTask(
+          &PikaReplClientConn::HandleMetaSyncResponse,
+          static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kDBSync: {
-      auto task_arg =
-          new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
+      auto task_arg = new ReplClientTaskArg(
+          response,
+          std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_rm->ScheduleReplClientBGTask(
+          &PikaReplClientConn::HandleDBSyncResponse,
+          static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kTrySync: {
-      auto task_arg =
-          new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
+      auto task_arg = new ReplClientTaskArg(
+          response,
+          std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_rm->ScheduleReplClientBGTask(
+          &PikaReplClientConn::HandleTrySyncResponse,
+          static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kBinlogSync: {
@@ -72,10 +88,12 @@ int PikaReplClientConn::DealMessage() {
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto task_arg =
-          new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleRemoveSlaveNodeResponse,
-                                          static_cast<void*>(task_arg));
+      auto task_arg = new ReplClientTaskArg(
+          response,
+          std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_rm->ScheduleReplClientBGTask(
+          &PikaReplClientConn::HandleRemoveSlaveNodeResponse,
+          static_cast<void*>(task_arg));
       break;
     }
     default:
@@ -85,14 +103,16 @@ int PikaReplClientConn::DealMessage() {
 }
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(
+      static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   if (response->code() == InnerMessage::kOther) {
     std::string reply = response->has_reply() ? response->reply() : "";
     // keep sending MetaSync
-    LOG(WARNING) << "Meta Sync Failed: " << reply << " will keep sending MetaSync msg";
+    LOG(WARNING) << "Meta Sync Failed: " << reply
+                 << " will keep sending MetaSync msg";
     return;
   }
 
@@ -108,14 +128,19 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
   std::vector<DBStruct> master_db_structs;
   for (int idx = 0; idx < meta_sync.dbs_info_size(); ++idx) {
-    const InnerMessage::InnerResponse_MetaSync_DBInfo& db_info = meta_sync.dbs_info(idx);
-    master_db_structs.push_back({db_info.db_name(), static_cast<uint32_t>(db_info.slot_num()), {0}});
+    const InnerMessage::InnerResponse_MetaSync_DBInfo& db_info =
+        meta_sync.dbs_info(idx);
+    master_db_structs.push_back(
+        {db_info.db_name(), static_cast<uint32_t>(db_info.slot_num()), {0}});
   }
 
   std::vector<DBStruct> self_db_structs = g_pika_conf->db_structs();
-  if (!PikaReplClientConn::IsDBStructConsistent(self_db_structs, master_db_structs)) {
-    LOG(WARNING) << "Self db structs(number of databases: " << self_db_structs.size()
-                 << ") inconsistent with master(number of databases: " << master_db_structs.size()
+  if (!PikaReplClientConn::IsDBStructConsistent(self_db_structs,
+                                                master_db_structs)) {
+    LOG(WARNING) << "Self db structs(number of databases: "
+                 << self_db_structs.size()
+                 << ") inconsistent with master(number of databases: "
+                 << master_db_structs.size()
                  << "), failed to establish master-slave relationship";
     g_pika_server->SyncError();
     conn->NotifyClose();
@@ -129,11 +154,13 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(
+      static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
-  const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
+  const InnerMessage::InnerResponse_DBSync db_sync_response =
+      response->db_sync();
   int32_t session_id = db_sync_response.session_id();
   const InnerMessage::Slot& slot_response = db_sync_response.slot();
   const std::string& db_name = slot_response.db_name();
@@ -161,7 +188,8 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(
+      static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -171,7 +199,8 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     return;
   }
 
-  const InnerMessage::InnerResponse_TrySync& try_sync_response = response->try_sync();
+  const InnerMessage::InnerResponse_TrySync& try_sync_response =
+      response->try_sync();
   const InnerMessage::Slot& slot_response = try_sync_response.slot();
   std::string db_name = slot_response.db_name();
   uint32_t slot_id = slot_response.slot_id();
@@ -193,17 +222,19 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   if (response->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
     if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
+      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from "
+                << slot->ConsensusTerm() << " to " << meta.term();
       slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated trysync response " << db_name << ":" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
+      LOG(WARNING) << "Drop outdated trysync response " << db_name << ":"
+                   << slot_id << " recv term: " << meta.term()
+                   << " local term: " << slot->ConsensusTerm();
       return;
     }
 
     if (response->consensus_meta().reject()) {
-      Status s = TrySyncConsensusCheck(response->consensus_meta(), slot, slave_slot);
+      Status s =
+          TrySyncConsensusCheck(response->consensus_meta(), slot, slave_slot);
       if (!s.ok()) {
         slave_slot->SetReplState(ReplState::kError);
         LOG(WARNING) << "Consensus Check failed " << s.ToString();
@@ -215,33 +246,40 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 
   std::string slot_name = slot->SlotName();
-  if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
+  if (try_sync_response.reply_code() ==
+      InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
     slot->Logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
     slave_slot->SetMasterSessionId(session_id);
     LogOffset offset(boffset, logic_last_offset);
-    g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, offset, offset, true);
+    g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, offset, offset,
+                                            true);
     slave_slot->SetReplState(ReplState::kConnected);
     // after connected, update receive time first to avoid connection timeout
     slave_slot->SetLastRecvTime(pstd::NowMicros());
 
     LOG(INFO) << "Slot: " << slot_name << " TrySync Ok";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
+  } else if (try_sync_response.reply_code() ==
+             InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
     slave_slot->SetReplState(ReplState::kTryDBSync);
     LOG(INFO) << "Slot: " << slot_name << " Need To Try DBSync";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointLarger) {
+  } else if (try_sync_response.reply_code() ==
+             InnerMessage::InnerResponse::TrySync::kSyncPointLarger) {
     slave_slot->SetReplState(ReplState::kError);
-    LOG(WARNING) << "Slot: " << slot_name << " TrySync Error, Because the invalid filenum and offset";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
+    LOG(WARNING) << "Slot: " << slot_name
+                 << " TrySync Error, Because the invalid filenum and offset";
+  } else if (try_sync_response.reply_code() ==
+             InnerMessage::InnerResponse::TrySync::kError) {
     slave_slot->SetReplState(ReplState::kError);
     LOG(WARNING) << "Slot: " << slot_name << " TrySync Error";
   }
 }
 
-Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                                 const std::shared_ptr<SyncMasterSlot>& slot,
-                                                 const std::shared_ptr<SyncSlaveSlot>& slave_slot) {
+Status PikaReplClientConn::TrySyncConsensusCheck(
+    const InnerMessage::ConsensusMeta& consensus_meta,
+    const std::shared_ptr<SyncMasterSlot>& slot,
+    const std::shared_ptr<SyncSlaveSlot>& slave_slot) {
   std::vector<LogOffset> hints;
   for (int i = 0; i < consensus_meta.hint_size(); ++i) {
     const InnerMessage::BinlogOffset& pb_offset = consensus_meta.hint(i);
@@ -262,11 +300,13 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
   return s;
 }
 
-void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
+void PikaReplClientConn::DispatchBinlogRes(
+    const std::shared_ptr<InnerMessage::InnerResponse>& res) {
   // slot to a bunch of binlog chips
   std::unordered_map<SlotInfo, std::vector<int>*, hash_slot_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res =
+        res->binlog_sync(i);
     // hash key: db + slot_id
     SlotInfo p_info(binlog_res.slot().db_name(), binlog_res.slot().slot_id());
     if (par_binlog.find(p_info) == par_binlog.end()) {
@@ -281,19 +321,21 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
     slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
         SlotInfo(binlog_nums.first.db_name_, binlog_nums.first.slot_id_));
     if (!slave_slot) {
-      LOG(WARNING) << "Slave Slot: " << binlog_nums.first.db_name_ << "_" << binlog_nums.first.slot_id_
-                   << " not exist";
+      LOG(WARNING) << "Slave Slot: " << binlog_nums.first.db_name_ << "_"
+                   << binlog_nums.first.slot_id_ << " not exist";
       break;
     }
     slave_slot->SetLastRecvTime(pstd::NowMicros());
-    g_pika_rm->ScheduleWriteBinlogTask(binlog_nums.first.db_name_ + std::to_string(binlog_nums.first.slot_id_),
-                                       res, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
-                                       reinterpret_cast<void*>(binlog_nums.second));
+    g_pika_rm->ScheduleWriteBinlogTask(
+        binlog_nums.first.db_name_ + std::to_string(binlog_nums.first.slot_id_),
+        res, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
+        reinterpret_cast<void*>(binlog_nums.second));
   }
 }
 
 void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(
+      static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   if (response->code() != InnerMessage::kOk) {

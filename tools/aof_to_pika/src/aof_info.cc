@@ -1,4 +1,5 @@
 #include "include/aof_info.h"
+
 #include <iostream>
 
 short aof_info_level_ = AOF_LOG_INFO;

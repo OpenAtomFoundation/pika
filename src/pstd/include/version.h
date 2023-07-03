@@ -10,10 +10,10 @@
 
 #
 #ifndef __PSTD_VERSION__
-#  define __PSTD_VERSION__
+#define __PSTD_VERSION__
 
-#  define PSTD_MAJOR 1
-#  define PSTD_MINOR 0
-#  define PSTD_PATCH 1
+#define PSTD_MAJOR 1
+#define PSTD_MINOR 0
+#define PSTD_PATCH 1
 
 #endif

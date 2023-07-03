@@ -3,11 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 #include "net/include/http_conn.h"
+
+#include <algorithm>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
-
-#include <algorithm>
 #include <string>
 #include <utility>
 
@@ -71,7 +71,8 @@ inline int find_lf(const char* data, int size) {
   return count;
 }
 
-bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) {
+bool HTTPRequest::ParseHeadLine(const char* data, int line_start,
+                                int line_end) {
   std::string param_key;
   std::string param_value;
   for (int i = line_start; i <= line_end; i++) {
@@ -123,7 +124,8 @@ bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) 
 bool HTTPRequest::ParseGetUrl() {
   path_ = url_;
   // Format path
-  if (headers_.count("host") && path_.find(headers_["host"]) != std::string::npos &&
+  if (headers_.count("host") &&
+      path_.find(headers_["host"]) != std::string::npos &&
       path_.size() > (7 + headers_["host"].size())) {
     // http://www.xxx.xxx/path_/to
     path_.assign(path_.substr(7 + headers_["host"].size()));
@@ -159,7 +161,8 @@ bool HTTPRequest::ParseParameters(std::string& data, size_t line_start) {
       query_params_[data.substr(pre, end - pre)] = std::string();
       pre = end + 1;
     } else {
-      query_params_[data.substr(pre, mid - pre)] = data.substr(mid + 1, end - mid - 1);
+      query_params_[data.substr(pre, mid - pre)] =
+          data.substr(mid + 1, end - mid - 1);
       pre = end + 1;
     }
   }
@@ -200,14 +203,16 @@ int HTTPRequest::ParseHeader() {
     return -1;
   }
 
-  remain_recv_len_ = headers_.count("content-length") ? std::stoul(headers_.at("content-length")) : 0;
+  remain_recv_len_ = headers_.count("content-length")
+                         ? std::stoul(headers_.at("content-length"))
+                         : 0;
 
   if (headers_.count("content-type")) {
     content_type_.assign(headers_.at("content-type"));
   }
 
-  if (headers_.count("expect") &&
-      (headers_.at("expect") == "100-Continue" || headers_.at("expect") == "100-continue")) {
+  if (headers_.count("expect") && (headers_.at("expect") == "100-Continue" ||
+                                   headers_.at("expect") == "100-continue")) {
     reply_100continue_ = true;
   }
 
@@ -221,7 +226,8 @@ void HTTPRequest::Dump() const {
   std::cout << "Version: " << version_ << std::endl;
   std::cout << "Headers: " << std::endl;
   for (auto& header : headers_) {
-    std::cout << "  ----- " << header.first << ": " << header.second << std::endl;
+    std::cout << "  ----- " << header.first << ": " << header.second
+              << std::endl;
   }
   std::cout << "Query params: " << std::endl;
   for (auto& item : query_params_) {
@@ -237,15 +243,16 @@ bool HTTPResponse::SerializeHeader() {
   const std::string& reason_phrase = http_status_map.at(status_code_);
 
   // Serialize statues line
-  ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase.c_str());
+  ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_,
+                 reason_phrase.c_str());
   serial_size += ret;
   if (ret < 0 || ret == static_cast<int>(kHTTPMaxHeader)) {
     return false;
   }
 
   for (auto& line : headers_) {
-    ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size, "%s: %s\r\n", line.first.c_str(),
-                   line.second.c_str());
+    ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size,
+                   "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     serial_size += ret;
     if (ret < 0 || serial_size == static_cast<int>(kHTTPMaxHeader)) {
       return false;
@@ -262,11 +269,12 @@ bool HTTPResponse::SerializeHeader() {
   return true;
 }
 
-HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std::shared_ptr<HTTPHandles> handles,
+HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread,
+                   std::shared_ptr<HTTPHandles> handles,
                    void* worker_specific_data)
     : NetConn(fd, ip_port, thread),
 #ifdef __ENABLE_SSL
-      // security_(thread->security()),
+// security_(thread->security()),
 #endif
       handles_(std::move(handles)) {
   handles_->worker_specific_data_ = worker_specific_data;
@@ -314,11 +322,17 @@ std::string HTTPRequest::method() const { return method_; }
 
 std::string HTTPRequest::content_type() const { return content_type_; }
 
-std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
+std::map<std::string, std::string> HTTPRequest::query_params() const {
+  return query_params_;
+}
 
-std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
+std::map<std::string, std::string> HTTPRequest::postform_params() const {
+  return postform_params_;
+}
 
-std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
+std::map<std::string, std::string> HTTPRequest::headers() const {
+  return headers_;
+}
 
 std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
 
@@ -342,7 +356,8 @@ ReadStatus HTTPRequest::DoRead() {
   ssize_t nread;
 #ifdef __ENABLE_SSL
   if (conn_->security_) {
-    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_, static_cast<int>(kHTTPMaxMessage));
+    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_,
+                     static_cast<int>(kHTTPMaxMessage));
     if (nread <= 0) {
       int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nread));
       switch (sslerr) {
@@ -487,14 +502,20 @@ void HTTPResponse::Reset() {
 bool HTTPResponse::Finished() { return finished_; }
 
 void HTTPResponse::SetStatusCode(int code) {
-  assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) || (code >= 400 && code <= 409) ||
-         (code == 416) || (code >= 500 && code <= 509));
+  assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) ||
+         (code >= 400 && code <= 409) || (code == 416) ||
+         (code >= 500 && code <= 509));
   status_code_ = code;
 }
 
-void HTTPResponse::SetHeaders(const std::string& key, const std::string& value) { headers_[key] = value; }
+void HTTPResponse::SetHeaders(const std::string& key,
+                              const std::string& value) {
+  headers_[key] = value;
+}
 
-void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { headers_[key] = std::to_string(value); }
+void HTTPResponse::SetHeaders(const std::string& key, const size_t value) {
+  headers_[key] = std::to_string(value);
+}
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
@@ -515,7 +536,8 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_,
+                           static_cast<int>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
         int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));
@@ -566,7 +588,8 @@ bool HTTPResponse::Flush() {
     if (buf_len_ == 0) {
       size_t remain_buf = static_cast<uint64_t>(kHTTPMaxMessage) - wbuf_pos_;
       size_t needed_size = std::min<uint64_t>(remain_buf, remain_send_len_);
-      buf_len_ = conn_->handles_->WriteResponseBody(wbuf_ + wbuf_pos_, needed_size);
+      buf_len_ =
+          conn_->handles_->WriteResponseBody(wbuf_ + wbuf_pos_, needed_size);
     }
 
     if (buf_len_ == -1) {
@@ -576,7 +599,8 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_,
+                           static_cast<int>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
         int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));

@@ -5,11 +5,10 @@
 
 #include "include/pika_kv.h"
 
-#include "pstd/include/pstd_string.h"
-
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -39,14 +38,16 @@ void SetCmd::DoInitial() {
       } else {
         target_ = argv_[index];
       }
-    } else if ((strcasecmp(opt.data(), "ex") == 0) || (strcasecmp(opt.data(), "px") == 0)) {
+    } else if ((strcasecmp(opt.data(), "ex") == 0) ||
+               (strcasecmp(opt.data(), "px") == 0)) {
       condition_ = (condition_ == SetCmd::kNONE) ? SetCmd::kEXORPX : condition_;
       index++;
       if (index == argv_.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) == 0) {
+      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) ==
+          0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -99,7 +100,8 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                             uint64_t logic_id, uint32_t filenum,
                              uint64_t offset) {
   if (condition_ == SetCmd::kEXORPX) {
     std::string content;
@@ -123,8 +125,9 @@ std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logi
     // value
     RedisAppendLen(content, value_.size(), "$");
     RedisAppendContent(content, value_);
-    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                               content, {});
+    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                               term_id, logic_id, filenum,
+                                               offset, content, {});
   } else {
     return Cmd::ToBinlog(exec_time, term_id, logic_id, filenum, offset);
   }
@@ -199,7 +202,8 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("k", key_, slot);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -225,7 +229,8 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("k", key_, slot);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -253,7 +258,8 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
     AddSlotKey("k", key_, slot);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: Value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::KIncrByOverFlow);
@@ -274,7 +280,8 @@ void DecrCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Decrby(key_, 1, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -299,7 +306,8 @@ void DecrbyCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Decrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
+  } else if (s.IsCorruption() &&
+             s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -444,13 +452,15 @@ void KeysCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> keys;
   do {
     keys.clear();
-    cursor = slot->db()->Scan(type_, cursor, pattern_, PIKA_SCAN_STEP_LENGTH, &keys);
+    cursor =
+        slot->db()->Scan(type_, cursor, pattern_, PIKA_SCAN_STEP_LENGTH, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
     }
     if (raw.size() >= raw_limit) {
-      res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+      res_.SetRes(CmdRes::kErrOther,
+                  "Response exceeds the max-client-response-size limit");
       return;
     }
     total_key += keys.size();
@@ -480,14 +490,15 @@ void SetnxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                               uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 3, "*");
 
-  // don't check variable 'success_', because if 'success_' was false, an empty binlog will be saved into file.
-  // to setnx cmd
+  // don't check variable 'success_', because if 'success_' was false, an empty
+  // binlog will be saved into file. to setnx cmd
   std::string set_cmd("setnx");
   RedisAppendLen(content, set_cmd.size(), "$");
   RedisAppendContent(content, set_cmd);
@@ -498,7 +509,8 @@ std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -525,7 +537,8 @@ void SetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                               uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -548,7 +561,8 @@ std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
   // value
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -574,7 +588,8 @@ void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                                uint64_t logic_id, uint32_t filenum,
                                 uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -597,7 +612,8 @@ std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
   // value
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -826,7 +842,8 @@ void ExpireCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                                uint64_t logic_id, uint32_t filenum,
                                 uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -847,7 +864,8 @@ std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -873,7 +891,8 @@ void PexpireCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                                 uint64_t logic_id, uint32_t filenum,
                                  uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -894,7 +913,8 @@ std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -926,13 +946,15 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_) ==
+      0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
-std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id,
+                                   uint64_t logic_id, uint32_t filenum,
                                    uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -953,7 +975,8 @@ std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time,
+                                             term_id, logic_id, filenum, offset,
                                              content, {});
 }
 
@@ -1130,7 +1153,8 @@ void ScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0) ||
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0) ||
         (strcasecmp(opt.data(), "type") == 0)) {
       index++;
       if (index >= argc) {
@@ -1154,7 +1178,9 @@ void ScanCmd::DoInitial() {
         } else {
           res_.SetRes(CmdRes::kSyntaxErr);
         }
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) || count_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &count_) == 0) ||
+                 count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1179,13 +1205,15 @@ void ScanCmd::Do(std::shared_ptr<Slot> slot) {
     keys.clear();
     batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
-    cursor_ret = slot->db()->Scan(type_, cursor_ret, pattern_, batch_count, &keys);
+    cursor_ret =
+        slot->db()->Scan(type_, cursor_ret, pattern_, batch_count, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
     }
     if (raw.size() >= raw_limit) {
-      res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+      res_.SetRes(CmdRes::kErrOther,
+                  "Response exceeds the max-client-response-size limit");
       return;
     }
     total_key += keys.size();
@@ -1227,7 +1255,8 @@ void ScanxCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1235,7 +1264,9 @@ void ScanxCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) || count_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &count_) == 0) ||
+                 count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1250,7 +1281,8 @@ void ScanxCmd::DoInitial() {
 void ScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
-  rocksdb::Status s = slot->db()->Scanx(type_, start_key_, pattern_, count_, &keys, &next_key);
+  rocksdb::Status s =
+      slot->db()->Scanx(type_, start_key_, pattern_, count_, &keys, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1274,7 +1306,8 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if ((pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) || time_stamp_ >= INT32_MAX) {
+  if ((pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) ||
+      time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1323,7 +1356,8 @@ void PKScanRangeCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1331,7 +1365,9 @@ void PKScanRangeCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &limit_) == 0) ||
+                 limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1347,7 +1383,8 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKScanRange(
+      type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1407,7 +1444,8 @@ void PKRScanRangeCmd::DoInitial() {
   size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
+    if ((strcasecmp(opt.data(), "match") == 0) ||
+        (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1415,7 +1453,9 @@ void PKRScanRangeCmd::DoInitial() {
       }
       if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(),
+                                   &limit_) == 0) ||
+                 limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1431,7 +1471,8 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKRScanRange(
+      type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);

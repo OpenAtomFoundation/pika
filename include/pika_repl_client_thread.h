@@ -10,7 +10,6 @@
 #include <string>
 
 #include "include/pika_repl_client_conn.h"
-
 #include "net/include/client_thread.h"
 #include "net/include/net_conn.h"
 
@@ -23,11 +22,12 @@ class PikaReplClientThread : public net::ClientThread {
  private:
   class ReplClientConnFactory : public net::ConnFactory {
    public:
-    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
-                                                     void* worker_specific_data,
-                                                     net::NetMultiplexer* net) const override {
+    std::shared_ptr<net::NetConn> NewNetConn(
+        int connfd, const std::string& ip_port, net::Thread* thread,
+        void* worker_specific_data, net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
-          std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, net));
+          std::make_shared<PikaReplClientConn>(connfd, ip_port, thread,
+                                               worker_specific_data, net));
     }
   };
   class ReplClientHandle : public net::ClientHandle {
@@ -45,7 +45,8 @@ class PikaReplClientThread : public net::ClientThread {
     }
     int CreateWorkerSpecificData(void** data) const override { return 0; }
     int DeleteWorkerSpecificData(void* data) const override { return 0; }
-    void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const override {}
+    void DestConnectFailedHandle(const std::string& ip_port,
+                                 const std::string& reason) const override {}
   };
 
   ReplClientConnFactory conn_factory_;

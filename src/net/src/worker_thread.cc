@@ -3,21 +3,22 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <vector>
+#include "net/src/worker_thread.h"
 
 #include <glog/logging.h>
 
-#include "pstd/include/testutil.h"
-#include "net/src/worker_thread.h"
+#include <vector>
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
-WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
-    : 
-      server_thread_(server_thread),
+WorkerThread::WorkerThread(ConnFactory* conn_factory,
+                           ServerThread* server_thread, int queue_limit,
+                           int cron_interval)
+    : server_thread_(server_thread),
       conn_factory_(conn_factory),
       cron_interval_(cron_interval),
       keepalive_timeout_(kDefaultKeepAliveTime) {
@@ -39,7 +40,8 @@ std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   std::shared_lock lock(rwlock_);
   for (auto& conn : conns_) {
-    result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
+    result.push_back(
+        {conn.first, conn.second->ip_port(), conn.second->last_interaction()});
   }
   return result;
 }
@@ -58,7 +60,8 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
   }
 }
 
-bool WorkerThread::MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type, bool force) {
+bool WorkerThread::MoveConnIn(const std::shared_ptr<NetConn>& conn,
+                              const NotifyType& notify_type, bool force) {
   NetItem it(conn->fd(), conn->ip_port(), notify_type);
   bool success = MoveConnIn(it, force);
   if (success) {
@@ -68,7 +71,9 @@ bool WorkerThread::MoveConnIn(const std::shared_ptr<NetConn>& conn, const Notify
   return success;
 }
 
-bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multiplexer_->Register(it, force); }
+bool WorkerThread::MoveConnIn(const NetItem& it, bool force) {
+  return net_multiplexer_->Register(it, force);
+}
 
 void* WorkerThread::ThreadMain() {
   int nfds;
@@ -91,8 +96,10 @@ void* WorkerThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec ||
+          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 +
+                  (when.tv_usec - now.tv_usec) / 1000;
       } else {
         DoCronTask();
         when.tv_sec = now.tv_sec + (cron_interval_ / 1000);
@@ -106,7 +113,7 @@ void* WorkerThread::ThreadMain() {
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       if (!pfe) {
-          continue;
+        continue;
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if ((pfe->mask & kReadable) != 0) {
@@ -117,15 +124,17 @@ void* WorkerThread::ThreadMain() {
             for (int32_t idx = 0; idx < nread; ++idx) {
               NetItem ti = net_multiplexer_->NotifyQueuePop();
               if (ti.notify_type() == kNotiConnect) {
-                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(ti.fd(), ti.ip_port(), server_thread_,
-                                                                        private_data_, net_multiplexer_.get());
+                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
+                    ti.fd(), ti.ip_port(), server_thread_, private_data_,
+                    net_multiplexer_.get());
                 if (!tc || !tc->SetNonblock()) {
                   continue;
                 }
 
 #ifdef __ENABLE_SSL
                 // Create SSL failed
-                if (server_thread_->security() && !tc->CreateSSL(server_thread_->ssl_ctx())) {
+                if (server_thread_->security() &&
+                    !tc->CreateSSL(server_thread_->ssl_ctx())) {
                   CloseFd(tc);
                   continue;
                 }
@@ -143,7 +152,8 @@ void* WorkerThread::ThreadMain() {
               } else if (ti.notify_type() == kNotiEpollin) {
                 net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable);
               } else if (ti.notify_type() == kNotiEpolloutAndEpollin) {
-                net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable | kWritable);
+                net_multiplexer_->NetModEvent(ti.fd(), 0,
+                                              kReadable | kWritable);
               } else if (ti.notify_type() == kNotiWait) {
                 // do not register events
                 net_multiplexer_->NetAddEvent(ti.fd(), 0);
@@ -248,10 +258,13 @@ void WorkerThread::DoCronTask() {
       }
 
       // Check keepalive timeout connection
-      if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+      if (keepalive_timeout_ > 0 &&
+          (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
-        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
+        LOG(INFO) << "connection " << conn->String()
+                  << " keepalive timeout, the keepalive_timeout_ is "
+                  << keepalive_timeout_.load();
         continue;
       }
 
