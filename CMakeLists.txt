@@ -118,6 +118,10 @@ else ()
     message(STATUS "found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
 endif ()
 
+option(WITH_COMMAND_DOCS "build with command docs support" OFF)
+if (WITH_COMMAND_DOCS)
+  add_definitions(-DWITH_COMMAND_DOCS)
+endif()
 
 include(protogen.cmake)
 include(ExternalProject)

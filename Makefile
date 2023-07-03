@@ -26,6 +26,7 @@ export PRINT_HELP_PYSCRIPT
 
 BROWSER := python -c "$$BROWSER_PYSCRIPT"
 INSTALL_LOCATION := ~/.local
+WITH_COMMAND_DOCS ?= ${WITH_COMMAND_DOCS:-OFF}
 
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
@@ -33,7 +34,7 @@ help:
 pika:
 	rm -rf build/
 	rm -rf buildtrees/
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION)
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DWITH_COMMAND_DOCS=$(WITH_COMMAND_DOCS)
 	cmake --build build --config Release
 
 codis:

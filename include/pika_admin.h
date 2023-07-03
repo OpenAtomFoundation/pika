@@ -446,6 +446,7 @@ class HelloCmd : public Cmd {
   void DoInitial() override;
 };
 
+#ifdef WITH_COMMAND_DOCS
 class CommandCmd : public Cmd {
  public:
   CommandCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -587,5 +588,7 @@ static CommandCmd::EncodablePtr operator""_RedisStatus(const char* value);
 static CommandCmd::EncodablePtr RedisMap(CommandCmd::EncodableMap::RedisMap values);
 static CommandCmd::EncodablePtr RedisSet(std::vector<CommandCmd::EncodablePtr> values);
 static CommandCmd::EncodablePtr RedisArray(std::vector<CommandCmd::EncodablePtr> values);
+
+#endif  // WITH_COMMAND_DOCS
 
 #endif  // PIKA_ADMIN_H_
