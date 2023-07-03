@@ -70,6 +70,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
     TRACE("==========================START==========================");
     TRACE("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
           parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.version());
+
     if (parsed_base_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_base_data_key.key().ToString();
       std::string meta_value;

@@ -71,6 +71,7 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
     TRACE("==========================START==========================");
     TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
           parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.version());
+
     if (parsed_lists_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_lists_data_key.key().ToString();
       std::string meta_value;
