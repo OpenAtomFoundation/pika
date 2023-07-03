@@ -1567,6 +1567,7 @@ void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
   {
     std::lock_guard ml(bgsave_protector_);
     if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+      LOG(INFO) << "cann't execute reload, reloading = " << bgslots_reload_.reloading << ", bgsaving = " << bgsave_info_.bgsaving;
       return;
     }
     bgslots_reload_.reloading = true;
@@ -1598,6 +1599,13 @@ void DoBgslotsreload(void* arg) {
   int64_t cursor_ret = -1;
   while(cursor_ret != 0 && p->GetSlotsreloading()){
     cursor_ret = reload.slot->db()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
+
+    std::string keystr = "";
+    for (const auto& item : keys) {
+      keystr += item;
+      keystr += ",";
+    }
+    LOG(INFO) << "pika scan keys = " << keystr
 
     std::vector<std::string>::const_iterator iter;
     for (iter = keys.begin(); iter != keys.end(); iter++){
