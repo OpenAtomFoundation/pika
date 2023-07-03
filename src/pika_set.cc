@@ -25,9 +25,9 @@ void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SAdd(key_, members_, &count);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
-    AddSlotKey("s", key_, slot);
     return;
   }
+  AddSlotKey("s", key_, slot);
   res_.AppendInteger(count);
 }
 

@@ -1613,14 +1613,14 @@ void DoBgslotsreload(void* arg) {
 
       int s = GetKeyType(*iter, key_type, reload.slot);
       //if key is slotkey, can't add to SlotKey
-      LOG(INFO) << "slots reload: get keyType, key" << *iter << ", keyType = " << s;
+      LOG(INFO) << "slots reload: get keyType, key = " << *iter << ", keyType = " << s;
       if (s > 0){
-        LOG(INFO) << "slots reload: s > 0, key" << *iter << ", keyType = " << s;
+        LOG(INFO) << "slots reload: s > 0, key = " << *iter << ", keyType = " << s;
         if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
           LOG(INFO) << "slots reload: continue, key" << *iter << ", keyType = " << s;
           continue;
         }
-        LOG(INFO) << "slots reload: add slot key, key" << *iter << ", keyType = " << s;
+        LOG(INFO) << "slots reload: add slot key, key = " << *iter << ", keyType = " << s;
         AddSlotKey(key_type, *iter, reload.slot);
       }
     }
