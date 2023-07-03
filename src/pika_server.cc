@@ -1605,7 +1605,7 @@ void DoBgslotsreload(void* arg) {
       keystr += item;
       keystr += ",";
     }
-    LOG(INFO) << "pika scan keys = " << keystr
+    LOG(INFO) << "pika scan keys = " << keystr;
 
     std::vector<std::string>::const_iterator iter;
     for (iter = keys.begin(); iter != keys.end(); iter++){
