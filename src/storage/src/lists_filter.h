@@ -27,6 +27,10 @@ class ListsMetaFilter : public rocksdb::CompactionFilter {
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     auto cur_time = static_cast<int32_t>(unix_time);
     ParsedListsMetaValue parsed_lists_meta_value(value);
+    TRACE("==========================START==========================");
+    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
+          parsed_lists_meta_value.count(), parsed_lists_meta_value.timestamp(), cur_time,
+          parsed_lists_meta_value.version());
 
     if (parsed_lists_meta_value.timestamp() != 0 && parsed_lists_meta_value.timestamp() < cur_time &&
         parsed_lists_meta_value.version() < cur_time) {
@@ -64,7 +68,9 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedListsDataKey parsed_lists_data_key(key);
-
+    TRACE("==========================START==========================");
+    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
+          parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.version());
     if (parsed_lists_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_lists_data_key.key().ToString();
       std::string meta_value;

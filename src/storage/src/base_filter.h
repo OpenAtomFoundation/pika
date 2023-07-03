@@ -67,7 +67,9 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
   bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedBaseDataKey parsed_base_data_key(key);
-
+    TRACE("==========================START==========================");
+    TRACE("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
+          parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.version());
     if (parsed_base_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_base_data_key.key().ToString();
       std::string meta_value;
@@ -103,6 +105,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
     }
 
     if (cur_meta_version_ > parsed_base_data_key.version()) {
+      TRACE("Drop[data_key_version < cur_meta_version]");
       return true;
     } else {
       TRACE("Reserve[data_key_version == cur_meta_version]");
