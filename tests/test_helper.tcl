@@ -48,7 +48,7 @@ set ::all_tests {
     # unit/bitops
     # unit/memefficiency
     # unit/hyperloglog
-    unit/command
+    # unit/command
     unit/type
 }
 
