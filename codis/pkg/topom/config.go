@@ -38,6 +38,9 @@ product_auth = ""
 # Set bind address for admin(rpc), tcp only.
 admin_addr = "0.0.0.0:18080"
 
+# Set slot num
+max_slot_num = 1024
+
 # Set arguments for data migration (only accept 'sync' & 'semi-async').
 migration_method = "semi-async"
 migration_parallel_slots = 100
@@ -77,6 +80,8 @@ type Config struct {
 	MigrationAsyncMaxBytes bytesize.Int64    `toml:"migration_async_maxbytes" json:"migration_async_maxbytes"`
 	MigrationAsyncNumKeys  int               `toml:"migration_async_numkeys" json:"migration_async_numkeys"`
 	MigrationTimeout       timesize.Duration `toml:"migration_timeout" json:"migration_timeout"`
+
+	MaxSlotNum int `toml:"max_slot_num" json:"max_slot_num"`
 
 	SentinelCheckServerStateInterval    timesize.Duration `toml:"sentinel_check_server_state_interval" json:"sentinel_client_timeout"`
 	SentinelCheckMasterFailoverInterval timesize.Duration `toml:"sentinel_check_master_failover_interval" json:"sentinel_check_master_failover_interval"`
@@ -129,6 +134,9 @@ func (c *Config) Validate() error {
 	}
 	if c.ProductName == "" {
 		return errors.New("invalid product_name")
+	}
+	if c.MaxSlotNum <= 0 {
+		return errors.New("invalid max_slot_num")
 	}
 	if _, ok := models.ParseForwardMethod(c.MigrationMethod); !ok {
 		return errors.New("invalid migration_method")

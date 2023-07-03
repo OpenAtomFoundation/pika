@@ -128,7 +128,7 @@ func (s *Store) LoadTopom(must bool) (*Topom, error) {
 }
 
 func (s *Store) SlotMappings() ([]*SlotMapping, error) {
-	slots := make([]*SlotMapping, MaxSlotNum)
+	slots := make([]*SlotMapping, GetMaxSlotNum())
 	for i := range slots {
 		m, err := s.LoadSlotMapping(i, false)
 		if err != nil {

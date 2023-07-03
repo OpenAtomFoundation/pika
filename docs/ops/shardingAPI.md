@@ -55,9 +55,9 @@
 ## 自pika3.3开始，分片模式支持动态创建table的功能。为了保持与原命令的兼容性和减少对多table不使用者的学习成本，pika默认会自动创建table 0，slot num为配置文件中的配置。使用其他table时，需要手动创建。
 ### 1. `pkcluster addtable` 命令：
 
-作用：用于创建table，创建时需指定table-id,max-slot-num。默认table-id为0。
+作用：用于创建table，创建时需指定table-id,default-slot-num。默认table-id为0。
 
-`pkcluster addtable 1 64`:创建table-id为1，max-slot-num为64的表。
+`pkcluster addtable 1 64`:创建table-id为1，default-slot-num为64的表。
 
 ### 2. `pkcluster deltalbe` 命令：
 
@@ -67,7 +67,7 @@
 
 ### 3.`pkcluster addslots`命令：
 
-作用:在table-id的表中中添加指定ID的slot，ID的区间为[0，max-slot-num - 1]，支持以下三种指定ID的语法.不指定table-id时在默认表中添加。
+作用:在table-id的表中中添加指定ID的slot，ID的区间为[0，default-slot-num - 1]，支持以下三种指定ID的语法.不指定table-id时在默认表中添加。
 
 `pkcluster addslots 0-2 1`: 在table-id为1的表中添加id为0,1,2的三个slot
 
@@ -77,7 +77,7 @@
 
 ### 4.`pkcluster delslots`命令：
 
-作用:在table-id的表中删除指定ID的slot，ID的区间为[0，max-slot-num - 1]，支持以下三种指定ID的语法
+作用:在table-id的表中删除指定ID的slot，ID的区间为[0，default-slot-num - 1]，支持以下三种指定ID的语法
 
 `pkcluster delslots 0-2 1`: 在table-id为1的表中删除id为0,1,2的三个slot
 

@@ -265,7 +265,7 @@ func (t *cmdAdmin) handleConfigConvert(d map[string]interface{}) {
 		for _, v := range slots.(map[string]interface{}) {
 			t.convertSlotsV1(temp, v)
 		}
-		for i := 0; i < models.MaxSlotNum; i++ {
+		for i := 0; i < models.GetMaxSlotNum(); i++ {
 			if temp[i] == nil {
 				continue
 			}
@@ -333,7 +333,7 @@ func (t *cmdAdmin) loadJsonConfigV3(file string) *ConfigV3 {
 
 	var slots = make(map[int]*models.SlotMapping)
 	for _, s := range config.Slots {
-		if s.Id < 0 || s.Id >= models.MaxSlotNum {
+		if s.Id < 0 || s.Id >= models.GetMaxSlotNum() {
 			log.Panicf("invalid slot id = %d", s.Id)
 		}
 		if slots[s.Id] != nil {
