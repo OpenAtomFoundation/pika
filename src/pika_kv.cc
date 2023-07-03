@@ -184,9 +184,7 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void DelCmd::Merge() {
-  res_.AppendInteger(split_res_);
-}
+void DelCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -804,9 +802,7 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void ExistsCmd::Merge() {
-  res_.AppendInteger(split_res_);
-}
+void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExpireCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1088,10 +1084,33 @@ void TypeCmd::DoInitial() {
 }
 
 void TypeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string res;
-  rocksdb::Status s = slot->db()->Type(key_, &res);
+  std::vector<std::string> types(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, types);
   if (s.ok()) {
-    res_.AppendContent("+" + res);
+    res_.AppendContent("+" + types[0]);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void PTypeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameType);
+    return;
+  }
+  key_ = argv_[1];
+}
+
+void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
+  std::vector<std::string> types(5);
+  rocksdb::Status s = slot->db()->GetType(key_, false, types);
+
+  if (s.ok()) {
+    res_.AppendArrayLen(types.size());
+    for (const auto& vs : types) {
+      res_.AppendStringLen(vs.size());
+      res_.AppendContent(vs);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -1328,8 +1347,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s =
-      slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);

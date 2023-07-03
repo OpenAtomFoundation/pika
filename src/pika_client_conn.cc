@@ -138,7 +138,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       bool trim = false;
       std::string slow_log;
       uint32_t cmd_size = 0;
-      for (const auto & i : argv) {
+      for (const auto& i : argv) {
         cmd_size += 1 + i.size();  // blank space and argument length
         if (!trim) {
           slow_log.append(" ");
@@ -162,7 +162,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string db_name = current_db_.substr(2);
   monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
-  for (const auto & iter : argv) {
+  for (const auto& iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }
   g_pika_server->AddMonitorMessage(monitor_message);
@@ -217,8 +217,7 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
     return;
@@ -238,7 +237,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
   resp_num.store(argvs.size());
-  for (const auto & argv : argvs) {
+  for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);
     ExecRedisCmd(argv, resp_ptr);
