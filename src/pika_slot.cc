@@ -143,6 +143,7 @@ void Slot::PrepareRsync() {
 bool Slot::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
   if (!pstd::FileExists(info_path)) {
+    LOG(WARNING) << "info path: " << info_path << " not exist";
     return false;
   }
 
