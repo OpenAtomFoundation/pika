@@ -201,7 +201,7 @@ proc start_server {options {code undefined}} {
         if {$directive == "port"} {
             puts -nonewline $fp "$directive : "
             puts $fp [dict get $config $directive]
-        } elseif {$directive == "requirepass" || $directive == "userpass"} {
+        } elseif {$directive == "requirepass"} {
             if {[dict get $config $directive] eq ":"} {
                 puts $fp "$directive: "
             } else {
