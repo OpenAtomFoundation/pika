@@ -787,24 +787,41 @@ master_port = '9221'
 slave_ip = '127.0.0.1'
 slave_port = '9231'
 
+
+# ---------For Github Action---------Start
 # Simulate the slave server goes down and After being disconnected for a while, it reconnects to the master server.
 delay_slave_of = True
+test_rpoplpush_replication()
+test_bitop_replication()
+test_msetnx_replication()
+test_mset_replication()
+test_smove_replication()
+test_del_replication()
+delay_slave_of = not delay_slave_of
+test_pfmerge_replication()
+test_sdiffstore_replication()
+test_sinterstore_replication()
+test_zunionstore_replication()
+test_zinterstore_replication()
+test_sunionstore_replication()
+# ---------For Github Action---------End
 
 
-
-for i in range(0, 2):
-    test_rpoplpush_replication()
-    test_bitop_replication()
-    test_del_replication()
-    test_msetnx_replication()
-    test_mset_replication()
-    test_smove_replication()
-    test_pfmerge_replication()
-    test_sdiffstore_replication()
-    test_sinterstore_replication()
-    test_zunionstore_replication()
-    test_zinterstore_replication()
-    test_sunionstore_replication()
-    delay_slave_of = not delay_slave_of
-
+# ---------For Local Stress Test---------Start
+# delay_slave_of = False
+# for i in range(0, 200):
+#     test_rpoplpush_replication()
+#     test_bitop_replication()
+#     test_del_replication()
+#     test_msetnx_replication()
+#     test_mset_replication()
+#     test_smove_replication()
+#     test_pfmerge_replication()
+#     test_sunionstore_replication()
+#     test_sdiffstore_replication()
+#     test_sinterstore_replication()
+#     test_zunionstore_replication()
+#     test_zinterstore_replication()
+#     delay_slave_of = not delay_slave_of
+# ---------For Local Stress Test---------End
 
