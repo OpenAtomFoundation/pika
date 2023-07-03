@@ -111,7 +111,6 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    AddSlotKey("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -190,7 +189,6 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
-    RemKeyNotExists("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -261,7 +259,6 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    RemKeyNotExists("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -284,6 +281,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
+    AddSlotKey("k", receiver_, slot);
     res_.AppendString(value);
     value_poped_from_source_ = value;
     is_write_binlog_ = true;
@@ -336,7 +334,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
-    RemKeyNotExists("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -358,7 +356,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    RemKeyNotExists("l", key_, slot);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

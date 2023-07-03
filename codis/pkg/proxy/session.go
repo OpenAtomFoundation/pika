@@ -354,7 +354,7 @@ func (s *Session) handleRequestPing(r *Request, d *Router) error {
 	var nblks = len(r.Multi) - 1
 	switch {
 	case nblks == 0:
-		slot := uint32(time.Now().Nanosecond()) % MaxSlotNum
+		slot := uint32(time.Now().Nanosecond()) % uint32(models.GetMaxSlotNum())
 		return d.dispatchSlot(r, int(slot))
 	default:
 		addr = string(r.Multi[1].Value)
@@ -373,7 +373,7 @@ func (s *Session) handleRequestInfo(r *Request, d *Router) error {
 	var nblks = len(r.Multi) - 1
 	switch {
 	case nblks == 0:
-		slot := uint32(time.Now().Nanosecond()) % MaxSlotNum
+		slot := uint32(time.Now().Nanosecond()) % uint32(models.GetMaxSlotNum())
 		return d.dispatchSlot(r, int(slot))
 	default:
 		addr = string(r.Multi[1].Value)
@@ -578,7 +578,7 @@ func (s *Session) handleRequestSlotsScan(r *Request, d *Router) error {
 	case err != nil:
 		r.Resp = redis.NewErrorf("ERR parse slotnum '%s' failed, %s", r.Multi[1].Value, err)
 		return nil
-	case slot < 0 || slot >= MaxSlotNum:
+	case slot < 0 || slot >= int64(models.GetMaxSlotNum()):
 		r.Resp = redis.NewErrorf("ERR parse slotnum '%s' failed, out of range", r.Multi[1].Value)
 		return nil
 	default:
@@ -613,7 +613,7 @@ func (s *Session) handleRequestSlotsMapping(r *Request, d *Router) error {
 		})
 	}
 	if nblks == 0 {
-		var array = make([]*redis.Resp, MaxSlotNum)
+		var array = make([]*redis.Resp, uint32(models.GetMaxSlotNum()))
 		for i, m := range d.GetSlots() {
 			array[i] = marshalToResp(m)
 		}
@@ -624,7 +624,7 @@ func (s *Session) handleRequestSlotsMapping(r *Request, d *Router) error {
 	case err != nil:
 		r.Resp = redis.NewErrorf("ERR parse slotnum '%s' failed, %s", r.Multi[1].Value, err)
 		return nil
-	case slot < 0 || slot >= MaxSlotNum:
+	case slot < 0 || slot >= int64(models.GetMaxSlotNum()):
 		r.Resp = redis.NewErrorf("ERR parse slotnum '%s' failed, out of range", r.Multi[1].Value)
 		return nil
 	default:

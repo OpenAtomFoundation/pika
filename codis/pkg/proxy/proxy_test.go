@@ -63,7 +63,7 @@ func verifySlots(c *ApiClient, expect map[int]*models.Slot) {
 	slots, err := c.Slots()
 	assert.MustNoError(err)
 
-	assert.Must(len(slots) == models.MaxSlotNum)
+	assert.Must(len(slots) == models.GetMaxSlotNum())
 
 	for i, slot := range expect {
 		if slot != nil {
