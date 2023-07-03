@@ -1471,7 +1471,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
     result = first_log.Merge(log);
   }
   s = strings_db_->Set(keys[0], result);
-  value_to_dest = result;
+  value_to_dest = std::move(result);
   return s;
 }
 
