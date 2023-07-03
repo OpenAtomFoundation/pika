@@ -270,9 +270,8 @@ void RPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  size_t argc = argv_.size();
   size_t index = 2;
-  if (index < argc) {
+  if (index < argv_.size()) {
     if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
       return;
