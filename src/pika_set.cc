@@ -62,7 +62,6 @@ void SPopCmd::Do(std::shared_ptr<Slot> slot) {
     for (const auto& member : members) {
       res_.AppendStringLen(member.size());
       res_.AppendContent(member);
-      AddSlotKey("s", key_, slot);
     }
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
@@ -185,7 +184,6 @@ void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->SRem(key_, members_, &count);
   res_.AppendInteger(count);
-  AddSlotKey("s", key_, slot);
 }
 
 void SUnionCmd::DoInitial() {
@@ -342,7 +340,6 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
-    AddSlotKey("s", src_key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
