@@ -781,7 +781,7 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoDebug(info);
       break;
     case kInfoCommandstats:
-      InfoCommandstats(info);
+      InfoCommandStats(info);
       break;
     default:
       // kInfoErr is nothing

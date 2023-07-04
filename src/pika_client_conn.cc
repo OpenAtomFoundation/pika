@@ -120,8 +120,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->Execute();
   int64_t duration = pstd::NowMicros() - start_us;
   auto iter = g_pika_cmd_table_manager->Getcmdtable();
-  (*iter)[opt]->state.cmd_count++;
-  (*iter)[opt]->state.cmd_time_consuming += duration;
+  (*iter)[opt]->state.cmd_count.fetch_add(1);
+  (*iter)[opt]->state.cmd_time_consuming.fetch_add(duration);
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
