@@ -20,6 +20,8 @@ type Proxy struct {
 	Pwd string `json:"pwd"`
 	Sys string `json:"sys"`
 
+	MaxSlotNum int `toml:"max_slot_num" json:"max_slot_num"`
+
 	Hostname   string `json:"hostname"`
 	DataCenter string `json:"datacenter"`
 }

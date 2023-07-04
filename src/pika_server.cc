@@ -526,7 +526,6 @@ bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot
   return s.ok();
 }
 
-// Only use in classic mode
 std::shared_ptr<Slot> PikaServer::GetSlotByDBName(const std::string& db_name) {
   std::shared_ptr<DB> db = GetDB(db_name);
   return db ? db->GetSlotById(0) : nullptr;
@@ -562,8 +561,8 @@ Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
           std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(
               SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
           if (!slot) {
-            LOG(WARNING) << db_item.second->GetDBName() << slot_item.second->GetSlotID()
-                         << " Not Found.";
+            LOG(WARNING) << "Slot: " << db_item.second->GetDBName() << ":"
+                         << slot_item.second->GetSlotID() << " Not Found.";
             break;
           }
           slot->StableLogger()->PurgeStableLogs();

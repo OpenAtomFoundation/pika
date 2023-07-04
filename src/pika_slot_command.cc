@@ -16,13 +16,6 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 #include "storage/include/storage/storage.h"
-#include "include/pika_command.h"
-#include "include/pika_define.h"
-#include "include/pika_migrate_thread.h"
-
-#include "include/pika_admin.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
@@ -799,7 +792,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   if (phastag != NULL) {
     *phastag = hastag;
   }
-  return (int)(crc & HASH_SLOTS_MASK);
+  return crc % g_pika_conf->default_slot_num();
 }
 
 uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
@@ -898,22 +891,22 @@ void RemSlotKey(const std::string key, const std::shared_ptr<Slot>& slot) {
 }
 
 int GetKeyType(const std::string key, std::string &key_type, const std::shared_ptr<Slot>& slot) {
-  std::string type_str;
-  rocksdb::Status s = slot->db()->Type(key, &type_str);
+  std::vector<std::string> type_str(1);
+  rocksdb::Status s = slot->db()->GetType(key, true, type_str);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  if (type_str == "string") {
+  if (type_str[0] == "string") {
     key_type = "k";
-  } else if (type_str == "hash") {
+  } else if (type_str[0] == "hash") {
     key_type = "h";
-  } else if (type_str == "list") {
+  } else if (type_str[0] == "list") {
     key_type = "l";
-  } else if (type_str == "set") {
+  } else if (type_str[0] == "set") {
     key_type = "s";
-  } else if (type_str == "zset") {
+  } else if (type_str[0] == "zset") {
     key_type = "z";
   } else {
     LOG(WARNING) << "Get key type error: " << key;
@@ -1024,7 +1017,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (slot_id_ < 0 || slot_id_ >= HASH_SLOTS_SIZE) {
+  if (slot_id_ < 0 || slot_id_ >= g_pika_conf->default_slot_num()) {
     std::string detail = "invalid slot number " + std::to_string(slot_id_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
@@ -1086,8 +1079,8 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot>& slot) {
-  std::string type_str;
-  rocksdb::Status s = slot->db()->Type(key_, &type_str);
+  std::vector<std::string> type_str(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(INFO) << "Migrate slot key " << key_ << " not found";
@@ -1098,15 +1091,15 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot>& slot) {
     }
     return -1;
   }
-  if (type_str == "string") {
+  if (type_str[0] == "string") {
     key_type_ = 'k';
-  } else if (type_str == "hash") {
+  } else if (type_str[0] == "hash") {
     key_type_ = 'h';
-  } else if (type_str == "list") {
+  } else if (type_str[0] == "list") {
     key_type_ = 'l';
-  } else if (type_str == "set") {
+  } else if (type_str[0] == "set") {
     key_type_ = 's';
-  } else if (type_str == "zset") {
+  } else if (type_str[0] == "zset") {
     key_type_ = 'z';
   } else {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
@@ -1305,8 +1298,11 @@ void SlotsInfoCmd::DoInitial() {
 }
 
 void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
-  int slots_slot[HASH_SLOTS_SIZE] = {0};
-  int slots_size[HASH_SLOTS_SIZE] = {0};
+  int slotNum = g_pika_conf->default_slot_num();
+  int slots_slot[slotNum];
+  int slots_size[slotNum];
+  memset(slots_slot, 0, slotNum);
+  memset(slots_size, 0, slotNum);
   int n = 0;
   int i = 0;
   int32_t len = 0;
@@ -1375,7 +1371,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
   std::string str_slot_num = *it++;
   if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_id_) || slot_id_ < 0 ||
-      slot_id_ >= HASH_SLOTS_SIZE) {
+      slot_id_ >= g_pika_conf->default_slot_num()) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1529,7 +1525,7 @@ void SlotsScanCmd::DoInitial() {
     return;
   }
   key_ = SlotKeyPrefix + argv_[1];
-  if (std::stoll(argv_[1].data()) < 0 || std::stoll(argv_[1].data()) >= HASH_SLOTS_SIZE) {
+  if (std::stoll(argv_[1].data()) < 0 || std::stoll(argv_[1].data()) >= g_pika_conf->default_slot_num()) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
     return;
   }

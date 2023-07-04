@@ -183,7 +183,7 @@ function renderSlotsCharts(slots_array) {
         },
         yAxis: {
             min: 0,
-            max: 1024,
+            max: n,
             tickInterval: 64,
             title: {
                 style: {
@@ -623,6 +623,7 @@ dashboard.controller('MainCodisCtrl', ['$scope', '$http', '$uibModal', '$timeout
                 $scope.codis_addr = overview.model.admin_addr;
                 $scope.codis_coord_name = "[" + overview.config.coordinator_name.charAt(0).toUpperCase() + overview.config.coordinator_name.slice(1) + "]";
                 $scope.codis_coord_addr = overview.config.coordinator_addr;
+                $scope.max_slot_num = overview.config.max_slot_num;
                 $scope.updateStats(overview.stats);
             });
         }

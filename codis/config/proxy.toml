@@ -71,11 +71,14 @@ backend_primary_only = false
 backend_primary_parallel = 1
 backend_replica_parallel = 1
 
+# Set slot num
+max_slot_num = 1024
+
 # Set backend tcp keepalive period. (0 to disable)
 backend_keepalive_period = "75s"
 
 # Set number of databases of backend.
-backend_number_databases = 6
+backend_number_databases = 1
 
 # If there is no request from client for a long time, the connection will be closed. (0 to disable)
 # Set session recv buffer size & timeout.

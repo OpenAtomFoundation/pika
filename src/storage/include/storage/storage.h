@@ -131,8 +131,7 @@ struct BGTask {
   Operation operation;
   std::string argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
-         std::string  _argv = "")
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
       : type(_type), operation(_opeation), argv(std::move(_argv)) {}
 };
 
@@ -424,7 +423,7 @@ class Storage {
 
   // Removes and returns several random elements specified by count from the set value store at key.
   Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
-  
+
   // When called with just the key argument, return a random element from the
   // set value stored at key.
   // when called with the additional count argument, return an array of count
@@ -968,8 +967,12 @@ class Storage {
   // return > 0 TTL in seconds
   std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
 
-  // Reutrns the data type of the key
-  Status Type(const std::string& key, std::string* type);
+  // Reutrns the data all type of the key
+  // if single is true, the query will return the first one
+  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
+
+  // Reutrns the data all type of the key
+  Status Type(const std::string& key, std::vector<std::string>& types);
 
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 
@@ -1019,7 +1022,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
-  void GetRocksDBInfo(std::string &info);
+  void GetRocksDBInfo(std::string& info);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
@@ -1027,21 +1030,21 @@ class Storage {
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
   std::unique_ptr<RedisLists> lists_db_;
-  std::atomic<bool> is_opened_;
+  std::atomic<bool> is_opened_ = false;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
   // Storage start the background thread for compaction task
-  pthread_t bg_tasks_thread_id_;
+  pthread_t bg_tasks_thread_id_ = 0;
   pstd::Mutex bg_tasks_mutex_;
   pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
-  std::atomic<int> current_task_type_;
-  std::atomic<bool> bg_tasks_should_exit_;
+  std::atomic<int> current_task_type_ = kNone;
+  std::atomic<bool> bg_tasks_should_exit_ = false;
 
   // For scan keys in data base
-  std::atomic<bool> scan_keynum_exit_;
+  std::atomic<bool> scan_keynum_exit_ = false;
 };
 
 }  //  namespace storage

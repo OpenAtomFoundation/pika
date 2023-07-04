@@ -28,8 +28,6 @@
 #define PIKA_MAX_CONN_RBUF_LB (1 << 26)  // 64MB
 #define PIKA_MAX_CONN_RBUF_HB (1 << 29)  // 512MB
 #define PIKA_SERVER_ID_MAX 65535
-#define HASH_SLOTS_MASK 0x000003ff
-#define HASH_SLOTS_SIZE (HASH_SLOTS_MASK + 1)
 
 class PikaServer;
 
@@ -240,8 +238,8 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  partition_info)
-      : Node(ip, port), slot_info_(std::move(partition_info)) {}
+  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
+      : Node(ip, port), slot_info_(std::move(slot_info)) {}
 
   RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
       : Node(ip, port),
@@ -270,7 +268,7 @@ class RmNode : public Node {
   void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "partition=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
+    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
            std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }

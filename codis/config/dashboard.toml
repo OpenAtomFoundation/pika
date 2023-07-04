@@ -21,6 +21,9 @@ product_auth = ""
 # Set bind address for admin(rpc), tcp only.
 admin_addr = "0.0.0.0:18080"
 
+# Set slot num
+max_slot_num = 1024
+
 # Set arguments for data migration (only accept 'sync' & 'semi-async').
 migration_method = "semi-async"
 migration_parallel_slots = 100
@@ -33,7 +36,6 @@ migration_timeout = "30s"
 sentinel_check_server_state_interval = "5s"
 sentinel_check_master_failover_interval = "1s"
 sentinel_master_dead_check_times = 5
-
 sentinel_client_timeout = "10s"
 sentinel_quorum = 2
 sentinel_parallel_syncs = 1

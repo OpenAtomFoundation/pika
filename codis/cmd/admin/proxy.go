@@ -145,7 +145,7 @@ func (t *cmdProxy) handleFillSlots(d map[string]interface{}) {
 	}
 
 	for _, m := range slots {
-		if m.Id < 0 || m.Id >= models.MaxSlotNum {
+		if m.Id < 0 || m.Id >= models.GetMaxSlotNum() {
 			log.Panicf("invalid slot id = %d", m.Id)
 		}
 	}

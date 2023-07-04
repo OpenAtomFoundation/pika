@@ -150,6 +150,7 @@ func (s *Proxy) setup(config *Config) error {
 		}
 		s.jodis = NewJodis(c, s.model)
 	}
+	s.model.MaxSlotNum = config.MaxSlotNum
 
 	return nil
 }
