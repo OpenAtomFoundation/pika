@@ -19,6 +19,7 @@ class PikaCmdTableManager {
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t slot_num);
   bool CmdExist(const std::string& cmd) const;
+  CmdTable* GetCmdTable();
 
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
