@@ -371,7 +371,8 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
                                         std::shared_ptr<std::string> resp_ptr) {
   std::vector<std::string> keys = cmd_ptr->current_key();
   // slotkey shouldn't add binlog
-  if (cmd_ptr->name() == kCmdNameSAdd && !keys.empty() && keys[0].compare(0, KSlotKeyPrefixLen, SlotKeyPrefix) == 0) {
+  if (cmd_ptr->name() == kCmdNameSAdd && !keys.empty() &&
+      (keys[0].compare(0, KSlotKeyPrefixLen, SlotKeyPrefix) == 0 || keys[0].compare(0, KSlotKeyPrefixLen, SlotTagPrefix) == 0)) {
     return Status::OK();
   }
 
