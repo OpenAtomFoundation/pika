@@ -4,6 +4,9 @@
 package proxy
 
 import (
+    "sync"
+	"unsafe"
+
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
