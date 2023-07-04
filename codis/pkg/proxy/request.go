@@ -6,16 +6,12 @@ package proxy
 import (
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
-	"sync"
 )
 
 type Request struct {
 	Multi []*redis.Resp
 	Batch *sync.WaitGroup
 	Group *sync.WaitGroup
-
-	// used to select backend connection
-	HashID uint32
 
 	Broken *atomic2.Bool
 
@@ -52,7 +48,9 @@ func (r *Request) MakeSubRequest(n int) []Request {
 const GOLDEN_RATIO_PRIME_32 = 0x9e370001
 
 func (r *Request) Seed16() uint {
-	return uint(r.HashID)
+	h32 := uint32(r.UnixNano) + uint32(uintptr(unsafe.Pointer(r)))
+	h32 *= GOLDEN_RATIO_PRIME_32
+	return uint(h32 >> 16)
 }
 
 type RequestChan struct {
