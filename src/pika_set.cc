@@ -392,16 +392,16 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   }
   PikaCmdArgsType srem_args;
   //SremCmd use "SREM", SMove use "srem"
-  srem_args.push_back("srem");
-  srem_args.push_back(src_key_);
-  srem_args.push_back(member_);
+  srem_args.emplace_back("srem");
+  srem_args.emplace_back(src_key_);
+  srem_args.emplace_back(member_);
   srem_cmd_->Initial(std::move(srem_args), db_name_);
 
   PikaCmdArgsType sadd_args;
   //Saddcmd use "SADD", Smovecmd use "sadd"
-  sadd_args.push_back("sadd");
-  sadd_args.push_back(dest_key_);
-  sadd_args.push_back(member_);
+  sadd_args.emplace_back("sadd");
+  sadd_args.emplace_back(dest_key_);
+  sadd_args.emplace_back(member_);
   sadd_cmd_->Initial(std::move(sadd_args), db_name_);
 
   srem_cmd_->SetConn(GetConn());
