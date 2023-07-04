@@ -634,7 +634,7 @@ const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
-const std::string InfoCmd::kCommandstatsSection = "commandstats";
+const std::string InfoCmd::kCommandStatsSection = "commandstats";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -703,8 +703,8 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoRocksDB;
   } else if (strcasecmp(argv_[1].data(), kDebugSection.data()) == 0) {
     info_section_ = kInfoDebug;
-  } else if (strcasecmp(argv_[1].data(), kCommandstatsSection.data()) == 0) {
-    info_section_ = kInfoCommandstats;
+  } else if (strcasecmp(argv_[1].data(), kCommandStatsSection.data()) == 0) {
+    info_section_ = kInfoCommandStats;
   } else {
     info_section_ = kInfoErr;
   }
@@ -780,7 +780,7 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
     case kInfoDebug:
       InfoDebug(info);
       break;
-    case kInfoCommandstats:
+    case kInfoCommandStats:
       InfoCommandStats(info);
       break;
     default:
@@ -1224,7 +1224,7 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.precision(2);
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
-    for (auto& iter : *g_pika_cmd_table_manager->Getcmdtable()) {
+    for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
         if (iter.second->state.cmd_count != 0) {
             tmp_stream << "cmdstat_" << iter.first << ":"
                        << "calls=" << iter.second->state.cmd_count << ",usec="

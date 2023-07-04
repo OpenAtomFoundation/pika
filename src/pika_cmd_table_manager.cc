@@ -32,7 +32,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
-CmdTable* PikaCmdTableManager::Getcmdtable() {
+CmdTable* PikaCmdTableManager::GetCmdTable() {
   return cmds_.get();
 }
 

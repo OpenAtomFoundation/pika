@@ -211,7 +211,7 @@ class InfoCmd : public Cmd {
     kInfo,
     kInfoAll,
     kInfoDebug,
-    kInfoCommandstats
+    kInfoCommandStats
   };
 
   InfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -238,7 +238,7 @@ class InfoCmd : public Cmd {
   const static std::string kDataSection;
   const static std::string kRocksDBSection;
   const static std::string kDebugSection;
-  const static std::string kCommandstatsSection;
+  const static std::string kCommandStatsSection;
 
   void DoInitial() override;
   void Clear() override {
