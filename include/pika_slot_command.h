@@ -11,6 +11,8 @@
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
+const size_t KSlotKeyPrefixLen = 27;
+
 const size_t MaxKeySendSize = 10 * 1024;
 
 extern uint32_t crc32tab[256];
@@ -32,7 +34,6 @@ std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
 void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot);
-void WriteSAddToBinlog(const std::string &key, const std::string &value, const std::shared_ptr<Slot>& slot);
 
 class PikaMigrate {
  public:

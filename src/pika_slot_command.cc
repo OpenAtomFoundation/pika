@@ -816,7 +816,6 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
     LOG(ERROR) << "sadd key[" << key << "] to slotKey[" << slot_key << "] failed, error: " << s.ToString();
     return;
   }
-  WriteSAddToBinlog(slot_key, members.front(), slot);
 
   // if res == 0, indicate the key is existed; may return,
   // prevent write slot_key success, but write tag_key failed, so always write tag_key
@@ -827,24 +826,6 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
       LOG(ERROR) << "sadd key[" << key << "] to tagKey[" << tag_key << "] failed, error: " << s.ToString();
       return;
     }
-    WriteSAddToBinlog(tag_key, members.front(), slot);
-  }
-}
-
-// write sadd key to binlog for slave
-void WriteSAddToBinlog(const std::string &key, const std::string &value, const std::shared_ptr<Slot>& slot) {
-  std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("sadd");
-  std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
-  args->push_back("SADD");
-  args->push_back(key);
-  args->push_back(value);
-  cmd_ptr->Initial(*args, slot->GetDBName());
-
-  std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
-  Status s = sync_slot->ConsensusProposeLog(cmd_ptr);
-  if (!s.ok()) {
-    LOG(ERROR) << "write sadd key to binlog failed, key: " << key;
   }
 }
 

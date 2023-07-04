@@ -138,6 +138,7 @@ func (s *Router) isOnline() bool {
 func (s *Router) dispatch(r *Request) error {
 	hkey := getHashKey(r.Multi, r.OpStr)
 	var id = Hash(hkey) % uint32(models.GetMaxSlotNum())
+	r.HashID = id
 	slot := &s.slots[id]
 	return slot.forward(r, hkey)
 }

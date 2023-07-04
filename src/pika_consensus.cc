@@ -369,6 +369,12 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
 
 Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                                         std::shared_ptr<std::string> resp_ptr) {
+  std::vector<std::string> keys = cmd_ptr->current_key();
+  // slotkey shouldn't add binlog
+  if (cmd_ptr->name() == kCmdNameSAdd && !keys.empty() && keys[0].compare(0, KSlotKeyPrefixLen, SlotKeyPrefix) == 0) {
+    return Status::OK();
+  }
+
   LogOffset log_offset;
 
   stable_logger_->Logger()->Lock();
