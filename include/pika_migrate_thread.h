@@ -11,7 +11,7 @@
 #include "strings.h"
 
 void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot);
-static int DoMigrate(net::NetCli *cli, std::string send_str);
+static int DoMigrate(std::unique_ptr<net::NetCli> cli, std::string send_str);
 
 class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
@@ -23,7 +23,7 @@ class PikaParseSendThread : public net::Thread {
   void ExitThread(void);
 
  private:
-  int MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async);
+  int MigrateOneKey(std::unique_ptr<net::NetCli> cli, const std::string key, const char key_type, bool async);
   void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
   virtual void *ThreadMain();
