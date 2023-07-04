@@ -379,7 +379,7 @@ void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &db_keys) {
 
   auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
   if (dispatcher != nullptr) {
-    dispatcher->AddWatchKeys(db_keys, shared_from_this());
+    dispatcher->AddWatchKeys(watched_db_keys_, shared_from_this());
   }
 }
 

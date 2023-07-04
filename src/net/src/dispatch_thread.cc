@@ -173,7 +173,7 @@ void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit
 /**
  * @param keys format: tablename + key,because can watch the key of different db
  */
-void DispatchThread::AddWatchKeys(const std::vector<std::string> &keys, const std::shared_ptr<NetConn>& client_conn) {
+void DispatchThread::AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn) {
   std::lock_guard lg(watch_keys_mu_);
   for (const auto &key : keys) {
     if (key_conns_map_.count(key) == 0) {

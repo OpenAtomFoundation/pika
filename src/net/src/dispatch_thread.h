@@ -56,7 +56,7 @@ class DispatchThread : public ServerThread {
 
   void SetQueueLimit(int queue_limit) override;
 
-  void AddWatchKeys(const std::vector<std::string> &keys, const std::shared_ptr<NetConn>& client_conn);
+  void AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn);
 
   void RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn);
 

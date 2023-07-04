@@ -110,7 +110,7 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::CmdRet::kErrOther, "ERR WATCH inside MULTI is not allowed");
     return;
   }
-  client_conn->AddKeysToWatch(table_keys_);
+  client_conn->AddKeysToWatch(db_keys_);
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -124,7 +124,7 @@ void WatchCmd::DoInitial() {
   size_t pos = 1;
   while (pos < argv_.size()) {
     keys_.emplace_back(argv_[pos]);
-    table_keys_.push_back(db_name() + argv_[pos++]);
+    db_keys_.push_back(db_name() + argv_[pos++]);
   }
 }
 

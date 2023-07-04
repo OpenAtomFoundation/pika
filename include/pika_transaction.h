@@ -63,7 +63,7 @@ class WatchCmd : public Cmd {
  private:
   void DoInitial() override;
   std::vector<std::string> keys_;
-  std::vector<std::string> table_keys_;
+  std::vector<std::string> db_keys_;  // cause the keys watched may cross different dbs, so add dbname as keys prefix
 };
 
 class UnwatchCmd : public Cmd {

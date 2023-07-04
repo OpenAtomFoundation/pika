@@ -297,7 +297,7 @@ class CmdRes {
     kInconsistentHashTag,
     kErrOther,
     KIncrByOverFlow,
-    kInvaildTranscation,
+    kInvalidTransaction,
     kTxnQueued
   };
 
@@ -370,7 +370,7 @@ class CmdRes {
         result.append(message_);
         result.append("'\r\n");
         break;
-      case kInvaildTranscation:
+      case kInvalidTransaction:
         return "-ERR WATCH inside MULTI is not allowed\r\n";
       case kTxnQueued:
         result = "+Queued";
