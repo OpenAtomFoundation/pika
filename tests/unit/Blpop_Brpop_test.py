@@ -693,19 +693,23 @@ def test_master_slave_replication(db_):
         t5 = threading.Thread(target=blpop_thread, args=('blist1', random_str5,))
 
         t1.start()
-        time.sleep(0.2)  # 确保阻塞顺序
+        time.sleep(0.5)  # 确保阻塞顺序
         t2.start()
-        time.sleep(0.2)
+        time.sleep(0.5)
         t3.start()
-        time.sleep(0.2)
+        time.sleep(0.5)
         t4.start()
-        time.sleep(0.2)
+        time.sleep(0.5)
         t5.start()
-        time.sleep(0.2)
+        time.sleep(0.5)
         master.lpush('blist1', random_str1)
+        time.sleep(0.1)
         master.rpush('blist0', random_str2)
+        time.sleep(0.1)
         master.lpush('blist1', random_str3)
+        time.sleep(0.1)
         master.rpush('blist0', random_str4)
+        time.sleep(0.1)
         master.lpush('blist1', random_str5)
 
         t1.join()
@@ -718,8 +722,6 @@ def test_master_slave_replication(db_):
         s_keys = slave.keys()
         assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
         for i in range(0, master.llen('blist0')):
-            print(master.lindex('blist0', i))
-            print(slave.lindex('blist0', i))
             assert master.lindex('blist0', i) == slave.lindex('blist0', i), \
                 f"Expected:master.lindex('blist0', i) == slave.linex('blist0', i), but got False when i = {i}"
 
@@ -831,7 +833,7 @@ pika_instance_port = '9221'
 pika_slave_ip = '127.0.0.1'
 pika_slave_port = '9231'
 
-
+# for i in range(0,  100):
 #请给主从节点都开启2个db，否则注释掉db1_t相关的行，只做单db测试
 #如果不做主从复制测试，把test_master_slave_replication(db_id)注释掉
 db0_t = threading.Thread(target=test_with_db, args=(0,))
