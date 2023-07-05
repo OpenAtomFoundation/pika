@@ -1117,7 +1117,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
 }
 
 void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
-  if (g_pika_conf->slotmigrate() != true) {
+  if (!g_pika_conf->slotmigrate()) {
     LOG(WARNING) << "Not in slotmigrate mode";
     res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
     return;
@@ -1267,11 +1267,10 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   memset(slots_slot, 0, slotNum);
   memset(slots_size, 0, slotNum);
   int n = 0;
-  int i = 0;
   int32_t len = 0;
   std::string slot_key;
 
-  for (i = begin_; i < end_; i++) {
+  for (int i = begin_; i < end_; i++) {
     slot_key = GetSlotKey(i);
     len = 0;
     rocksdb::Status s = slot->db()->SCard(slot_key, &len);
@@ -1285,7 +1284,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   res_.AppendArrayLen(n);
-  for (i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     res_.AppendArrayLen(2);
     res_.AppendInteger(slots_slot[i]);
     res_.AppendInteger(slots_size[i]);
