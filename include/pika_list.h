@@ -234,7 +234,7 @@ class RPopLPushCmd : public Cmd {
     lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_),
+      : Cmd(other),
         source_(other.source_),
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
