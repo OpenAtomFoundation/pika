@@ -6,9 +6,9 @@ package models
 import (
 	"time"
 
-	"pika/codis/v2/pkg/models/etcd"
-	"pika/codis/v2/pkg/models/fs"
-	"pika/codis/v2/pkg/models/zk"
+	etcdclient "pika/codis/v2/pkg/models/etcd"
+	fsclient "pika/codis/v2/pkg/models/fs"
+	zkclient "pika/codis/v2/pkg/models/zk"
 	"pika/codis/v2/pkg/utils/errors"
 )
 

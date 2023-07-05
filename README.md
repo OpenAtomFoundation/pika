@@ -151,7 +151,7 @@ docker run -d \
   -v <db_dir>:/pika/db \
   -v <dump_dir>:/pika/dump \
   -v <dbsync_dir>:/pika/dbsync \
-  pikadb/pika:v3.3.6 
+  pikadb/pika:v3.3.6
 
 redis-cli -p 9221 "info"
 
@@ -165,13 +165,13 @@ Meaning of dirs:
 
 
 ### Build Image
-If you want to build the image yourself, we have provided a script `build_docker.sh` to simplify this process. 
+If you want to build the image yourself, we have provided a script `build_docker.sh` to simplify this process.
 
 The script accepts several optional arguments:
 
 - `-t tag`: Specify the Docker tag for the image. By default, the tag is `pikadb/pika:<git tag>`.
-- `-p platform`: Specify the platform for the Docker image. By default is current docker's platform. `all`, `linux/amd64`, `linux/arm`, `linux/arm64`. 
-- `--proxy`: Use a proxy to download packages to speed up the build process. This is particularly useful if you are in China. 
+- `-p platform`: Specify the platform for the Docker image. By default is current docker's platform. `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
+- `--proxy`: Use a proxy to download packages to speed up the build process. This is particularly useful if you are in China.
 - `--help`: Display help information.
 
 Here is an example usage of the script:
@@ -195,6 +195,8 @@ More details on [Performance](docs/benchmark/performance.md).
 ## Contact Us
 
 ![](docs/images/pika-wechat.png)
+
+* [Slack Channel](https://join.slack.com/t/w1687838400-twm937235/shared_invite/zt-1y72dch5d-~9CuERHYUSmfeJZh32Z~qQ)
 
 QQ group: 294254078
 

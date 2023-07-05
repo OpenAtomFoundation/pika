@@ -52,7 +52,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   virtual ~Slot();
 
   std::string GetDBName() const;
-  uint32_t GetSlotId() const;
+  uint32_t GetSlotID() const;
   std::string GetSlotName() const;
   std::shared_ptr<storage::Storage> db() const;
 
@@ -84,6 +84,11 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   // key scan info use
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
+
+  /*
+   * SlotsMgrt used
+   */
+  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
 
  private:
   std::string db_name_;

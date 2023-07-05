@@ -10,6 +10,7 @@
 
 #include <utility>
 
+#include "scope_snapshot.h"
 #include "src/lru_cache.h"
 #include "src/mutex_impl.h"
 #include "src/options_helper.h"
@@ -48,12 +49,7 @@ Status StorageOptions::ResetOptions(const OptionType& option_type,
   return Status::OK();
 }
 
-Storage::Storage()
-    : 
-      is_opened_(false),
-      current_task_type_(kNone),
-      bg_tasks_should_exit_(false),
-      scan_keynum_exit_(false) {
+Storage::Storage() {
   cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
 
@@ -191,8 +187,8 @@ Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_off
 }
 
 Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
-                      int64_t* ret) {
-  return strings_db_->BitOp(op, dest_key, src_keys, ret);
+                      std::string &value_to_dest, int64_t* ret) {
+  return strings_db_->BitOp(op, dest_key, src_keys, value_to_dest, ret);
 }
 
 Status Storage::BitPos(const Slice& key, int32_t bit, int64_t* ret) { return strings_db_->BitPos(key, bit, ret); }
@@ -299,16 +295,16 @@ Status Storage::SDiff(const std::vector<std::string>& keys, std::vector<std::str
   return sets_db_->SDiff(keys, members);
 }
 
-Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SDiffstore(destination, keys, ret);
+Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SDiffstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SInter(const std::vector<std::string>& keys, std::vector<std::string>* members) {
   return sets_db_->SInter(keys, members);
 }
 
-Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SInterstore(destination, keys, ret);
+Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SInterstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SIsmember(const Slice& key, const Slice& member, int32_t* ret) {
@@ -344,8 +340,8 @@ Status Storage::SUnion(const std::vector<std::string>& keys, std::vector<std::st
   return sets_db_->SUnion(keys, members);
 }
 
-Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  return sets_db_->SUnionstore(destination, keys, ret);
+Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+  return sets_db_->SUnionstore(destination, keys, value_to_dest, ret);
 }
 
 Status Storage::SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -382,12 +378,12 @@ Status Storage::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, 
   return lists_db_->LInsert(key, before_or_after, pivot, value, ret);
 }
 
-Status Storage::LPushx(const Slice& key, const Slice& value, uint64_t* len) {
-  return lists_db_->LPushx(key, value, len);
+Status Storage::LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len) {
+  return lists_db_->LPushx(key, values, len);
 }
 
-Status Storage::RPushx(const Slice& key, const Slice& value, uint64_t* len) {
-  return lists_db_->RPushx(key, value, len);
+Status Storage::RPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len) {
+  return lists_db_->RPushx(key, values, len);
 }
 
 Status Storage::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret) {
@@ -480,13 +476,13 @@ Status Storage::ZScore(const Slice& key, const Slice& member, double* ret) {
 }
 
 Status Storage::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
-  return zsets_db_->ZUnionstore(destination, keys, weights, agg, ret);
+                            const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
+  return zsets_db_->ZUnionstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
 Status Storage::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
-  return zsets_db_->ZInterstore(destination, keys, weights, agg, ret);
+                            const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
+  return zsets_db_->ZInterstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
 Status Storage::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
@@ -1237,57 +1233,64 @@ std::map<DataType, int64_t> Storage::TTL(const Slice& key, std::map<DataType, St
   return ret;
 }
 
-// the sequence is kv, hash, list, zset, set
-Status Storage::Type(const std::string& key, std::string* type) {
-  type->clear();
+Status Storage::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
+  types.clear();
 
   Status s;
   std::string value;
   s = strings_db_->Get(key, &value);
   if (s.ok()) {
-    *type = "string";
-    return s;
+    types.emplace_back("string");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t hashes_len = 0;
   s = hashes_db_->HLen(key, &hashes_len);
   if (s.ok() && hashes_len != 0) {
-    *type = "hash";
-    return s;
+    types.emplace_back("hash");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   uint64_t lists_len = 0;
   s = lists_db_->LLen(key, &lists_len);
   if (s.ok() && lists_len != 0) {
-    *type = "list";
-    return s;
+    types.emplace_back("list");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t zsets_size = 0;
   s = zsets_db_->ZCard(key, &zsets_size);
   if (s.ok() && zsets_size != 0) {
-    *type = "zset";
-    return s;
+    types.emplace_back("zset");
   } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
     return s;
   }
 
   int32_t sets_size = 0;
   s = sets_db_->SCard(key, &sets_size);
   if (s.ok() && sets_size != 0) {
-    *type = "set";
-    return s;
+    types.emplace_back("set");
   } else if (!s.IsNotFound()) {
     return s;
   }
-
-  *type = "none";
+  if (single && types.empty()) {
+    types.emplace_back("none");
+  }
   return Status::OK();
 }
 
@@ -1390,7 +1393,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   }
   HyperLogLog log(kPrecision, registers);
   auto previous = static_cast<int32_t>(log.Estimate());
-  for (const auto & value : values) {
+  for (const auto& value : values) {
     result = log.Add(value.data(), value.size());
   }
   HyperLogLog update_log(kPrecision, result);
@@ -1435,7 +1438,7 @@ Status Storage::PfCount(const std::vector<std::string>& keys, int64_t* result) {
   return Status::OK();
 }
 
-Status Storage::PfMerge(const std::vector<std::string>& keys) {
+Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value_to_dest) {
   if (keys.size() >= kMaxKeys || keys.empty()) {
     return Status::InvalidArgument("Invalid the number of key");
   }
@@ -1468,6 +1471,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
     result = first_log.Merge(log);
   }
   s = strings_db_->Set(keys[0], result);
+  value_to_dest = std::move(result);
   return s;
 }
 
@@ -1749,12 +1753,12 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   return s;
 }
 
-void Storage::GetRocksDBInfo(std::string &info) {
-    strings_db_->GetRocksDBInfo(info, "strings_");
-    hashes_db_->GetRocksDBInfo(info, "hashes_");
-    lists_db_->GetRocksDBInfo(info, "lists_");
-    sets_db_->GetRocksDBInfo(info, "sets_");
-    zsets_db_->GetRocksDBInfo(info, "zsets_");
+void Storage::GetRocksDBInfo(std::string& info) {
+  strings_db_->GetRocksDBInfo(info, "strings_");
+  hashes_db_->GetRocksDBInfo(info, "hashes_");
+  lists_db_->GetRocksDBInfo(info, "lists_");
+  sets_db_->GetRocksDBInfo(info, "sets_");
+  zsets_db_->GetRocksDBInfo(info, "zsets_");
 }
 
 }  //  namespace storage

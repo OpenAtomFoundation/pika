@@ -33,6 +33,7 @@ jobs:
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt install autoconf libprotobuf-dev protobuf-compiler -y
+          sudo apt-get install -y clang-tidy-12
           sudo apt-get install -y python3-pip
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
@@ -67,7 +68,7 @@ jobs:
       - name: Run Python E2E Tests
         working-directory: ${{github.workspace}}/build
         run: |
-          python3 ../tests/integration/rpoplpush_replication_test.py
+          python3 ../tests/integration/pika_replication_test.py
 
 
   build_on_centos:
@@ -85,6 +86,8 @@ jobs:
         run: |
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+          yum install -y llvm-toolset-7
+          yum install -y llvm-toolset-7-clang
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version

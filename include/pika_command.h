@@ -6,9 +6,10 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
-#include <unordered_map>
-#include <utility>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
@@ -48,7 +49,26 @@ const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
 const std::string kCmdNameHello = "hello";
+const std::string kCmdNameCommand = "command";
 
+// Migrate slot
+const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
+const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
+const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
+const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
+const std::string kCmdNameSlotsInfo = "slotsinfo";
+const std::string kCmdNameSlotsHashKey = "slotshashkey";
+const std::string kCmdNameSlotsReload = "slotsreload";
+const std::string kCmdNameSlotsReloadOff = "slotsreloadoff";
+const std::string kCmdNameSlotsDel = "slotsdel";
+const std::string kCmdNameSlotsScan = "slotsscan";
+const std::string kCmdNameSlotsCleanup = "slotscleanup";
+const std::string kCmdNameSlotsCleanupOff = "slotscleanupoff";
+const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
+const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
+const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
+const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
+const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
 // Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
@@ -81,6 +101,7 @@ const std::string kCmdNameTtl = "ttl";
 const std::string kCmdNamePttl = "pttl";
 const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
+const std::string kCmdNamePType = "ptype";
 const std::string kCmdNameScan = "scan";
 const std::string kCmdNameScanx = "scanx";
 const std::string kCmdNamePKSetexAt = "pksetexat";
@@ -206,7 +227,10 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskSlot = 1536
+  kCmdFlagsMaskPreDo = 512,
+  kCmdFlagsMaskCacheDo = 1024,
+  kCmdFlagsMaskPostDo = 2048,
+  kCmdFlagsMaskSlot = 1536,
 };
 
 enum CmdFlags {
@@ -230,9 +254,10 @@ enum CmdFlags {
   kCmdFlagsPrior = 128,
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
-  kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
+  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024
+  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsPreDo = 2048,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -265,7 +290,8 @@ class CmdRes {
     kInvalidDbType,
     kInvalidDB,
     kInconsistentHashTag,
-    kErrOther
+    kErrOther,
+    KIncrByOverFlow,
   };
 
   CmdRes() = default;
@@ -342,6 +368,11 @@ class CmdRes {
         result.append(message_);
         result.append(kNewLine);
         break;
+      case KIncrByOverFlow:
+        result = "-ERR increment would produce NaN or Infinity";
+        result.append(message_);
+        result.append(kNewLine);
+        break;
       default:
         break;
     }
@@ -397,15 +428,23 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   };
   struct ProcessArg {
     ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot,
-               HintKeys _hint_keys)
+    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot, HintKeys _hint_keys)
         : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Slot> slot;
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(std::string  name, int arity, uint16_t flag)
-      : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  struct CommandStatistics {
+    CommandStatistics() = default;
+    CommandStatistics(const CommandStatistics& other) {
+      cmd_time_consuming.store(other.cmd_time_consuming.load());
+      cmd_count.store(other.cmd_count.load());
+    }
+    std::atomic<int32_t> cmd_count = {0};
+    std::atomic<int32_t> cmd_time_consuming = {0};
+  };
+  CommandStatistics state;
+  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -423,6 +462,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
+  bool is_read() const;
   bool is_write() const;
 
   bool is_local() const;
@@ -437,7 +477,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdRes& res();
   std::string db_name() const;
   BinlogOffset binlog_offset() const;
-  const PikaCmdArgsType& argv() const;
+  PikaCmdArgsType& argv();
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
 
@@ -450,6 +490,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void SetStage(CmdStage stage);
 
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -464,7 +505,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string name_;
   int arity_ = -2;
   uint16_t flag_ = 0;
-
 
  protected:
   CmdRes res_;
@@ -483,7 +523,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
+using CmdTable = std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);

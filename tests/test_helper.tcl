@@ -22,6 +22,7 @@ set ::all_tests {
     unit/type/list-3
     unit/type/set
     unit/type/zset
+    unit/type/string
     # unit/type/hash
     # unit/sort
     # unit/expire
@@ -48,6 +49,8 @@ set ::all_tests {
     # unit/bitops
     # unit/memefficiency
     # unit/hyperloglog
+    # unit/command
+    unit/type
 }
 
 # because the comment not works in tcl list, use regsub to ignore the item starting with '#'

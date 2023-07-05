@@ -51,7 +51,7 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
   set(LIB_BUILD_TYPE RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RElEASE)
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -101,6 +101,8 @@ if (${AUTOCONF} MATCHES AUTOCONF-NOTFOUND)
   message(FATAL_ERROR "not find autoconf on localhost")
 endif()
 
+#set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin"
+#                      "/usr/local/opt/llvm@12/bin")
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
         HINTS ${CLANG_SEARCH_PATH})
@@ -120,6 +122,10 @@ else ()
     message(STATUS "found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
 endif ()
 
+option(WITH_COMMAND_DOCS "build with command docs support" OFF)
+if (WITH_COMMAND_DOCS)
+  add_definitions(-DWITH_COMMAND_DOCS)
+endif()
 
 include(protogen.cmake)
 include(ExternalProject)

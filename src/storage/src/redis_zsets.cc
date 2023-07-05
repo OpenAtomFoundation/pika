@@ -1029,7 +1029,7 @@ Status RedisZSets::ZScore(const Slice& key, const Slice& member, double* score) 
 }
 
 Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
   *ret = 0;
   uint32_t statistic = 0;
   rocksdb::WriteBatch batch;
@@ -1117,11 +1117,12 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
   *ret = member_score_map.size();
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(member_score_map);
   return s;
 }
 
 Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return Status::Corruption("ZInterstore invalid parameter, no keys");
   }
@@ -1242,6 +1243,7 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
   *ret = final_score_members.size();
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(final_score_members);
   return s;
 }
 

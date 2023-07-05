@@ -87,11 +87,14 @@ backend_primary_only = false
 backend_primary_parallel = 1
 backend_replica_parallel = 1
 
+# Set slot num
+max_slot_num = 1024
+
 # Set backend tcp keepalive period. (0 to disable)
 backend_keepalive_period = "75s"
 
 # Set number of databases of backend.
-backend_number_databases = 16
+backend_number_databases = 1
 
 # If there is no request from client for a long time, the connection will be closed. (0 to disable)
 # Set session recv buffer size & timeout.
@@ -160,6 +163,7 @@ type Config struct {
 	BackendMaxPipeline     int               `toml:"backend_max_pipeline" json:"backend_max_pipeline"`
 	BackendPrimaryOnly     bool              `toml:"backend_primary_only" json:"backend_primary_only"`
 	BackendPrimaryParallel int               `toml:"backend_primary_parallel" json:"backend_primary_parallel"`
+	MaxSlotNum             int               `toml:"max_slot_num" json:"max_slot_num"`
 	BackendReplicaParallel int               `toml:"backend_replica_parallel" json:"backend_replica_parallel"`
 	BackendKeepAlivePeriod timesize.Duration `toml:"backend_keepalive_period" json:"backend_keepalive_period"`
 	BackendNumberDatabases int32             `toml:"backend_number_databases" json:"backend_number_databases"`
@@ -262,6 +266,9 @@ func (c *Config) Validate() error {
 	}
 	if c.BackendMaxPipeline < 0 {
 		return errors.New("invalid backend_max_pipeline")
+	}
+	if c.MaxSlotNum <= 0 {
+		return errors.New("invalid max_slot_num")
 	}
 	if c.BackendPrimaryParallel < 0 {
 		return errors.New("invalid backend_primary_parallel")

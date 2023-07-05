@@ -32,6 +32,10 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
+CmdTable* PikaCmdTableManager::GetCmdTable() {
+  return cmds_.get();
+}
+
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);
   return thread_distribution_map_.find(tid) != thread_distribution_map_.end();
@@ -54,3 +58,5 @@ uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t slo
   std::shared_lock l(map_protector_);
   return thread_distribution_map_[tid]->Distribute(key, slot_num);
 }
+
+bool PikaCmdTableManager::CmdExist(const std::string& cmd) const { return cmds_->find(cmd) != cmds_->end(); }

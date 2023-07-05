@@ -64,10 +64,22 @@ void PfMergeCmd::DoInitial() {
 }
 
 void PfMergeCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->PfMerge(keys_);
+  rocksdb::Status s = slot->db()->PfMerge(keys_, value_to_dest_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType set_args;
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  set_args.emplace_back("set");
+  set_args.emplace_back(keys_[0]);
+  set_args.emplace_back(value_to_dest_);
+  set_cmd_->Initial(std::move(set_args),  db_name_);
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  //value of this binlog might be strange, it's an string with size of 128KB
+  set_cmd_->DoBinlog(slot);
 }

@@ -9,7 +9,7 @@
 
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_conf.h"
-#include "include/pika_data_distribution.h"
+#include "include/pika_slot_command.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -89,6 +89,7 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
     } else {
       if (res == 1) {
         res_.SetRes(CmdRes::kOk);
+        AddSlotKey("k", key_, slot);
       } else {
         res_.AppendStringLen(-1);
       }
@@ -164,6 +165,10 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t count = slot->db()->Del(keys_, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
+    std::vector<std::string>::const_iterator it;
+    for (it = keys_.begin(); it != keys_.end(); it++) {
+      RemSlotKey(*it, slot);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
@@ -179,8 +184,16 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void DelCmd::Merge() {
-  res_.AppendInteger(split_res_);
+void DelCmd::Merge() { res_.AppendInteger(split_res_); }
+
+void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  std::string opt = argv_.at(0);
+  for(auto& key: keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog(slot);
+  }
 }
 
 void IncrCmd::DoInitial() {
@@ -195,6 +208,7 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
+    AddSlotKey("k", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -220,6 +234,7 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Incrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
+    AddSlotKey("k", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -247,10 +262,11 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
+    AddSlotKey("k", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
-    res_.SetRes(CmdRes::kOverFlow);
+    res_.SetRes(CmdRes::KIncrByOverFlow);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -321,6 +337,7 @@ void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendStringLen(old_value.size());
       res_.AppendContent(old_value);
     }
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -340,6 +357,7 @@ void AppendCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -466,6 +484,7 @@ void SetnxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Setnx(key_, value_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -510,6 +529,7 @@ void SetexCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -623,12 +643,16 @@ void MsetCmd::DoInitial() {
   for (size_t index = 1; index != argc; index += 2) {
     kvs_.push_back({argv_[index], argv_[index + 1]});
   }
- }
+}
 
 void MsetCmd::Do(std::shared_ptr<Slot> slot) {
   storage::Status s = slot->db()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    std::vector<storage::KeyValue>::const_iterator it;
+    for (it = kvs_.begin(); it != kvs_.end(); it++) {
+      AddSlotKey("k", it->key, slot);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -659,6 +683,20 @@ void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void MsetCmd::Merge() {}
+void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType set_argv;
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of Set
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(set_argv, db_name_);
+    set_cmd_->DoBinlog(slot);
+  }
+}
 
 void MsetnxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -681,8 +719,30 @@ void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
+    std::vector<storage::KeyValue>::const_iterator it;
+    for (it = kvs_.begin(); it != kvs_.end(); it++) {
+      AddSlotKey("k", it->key, slot);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!success_){
+    //some keys already exist, set operations aborted, no need of binlog
+    return;
+  }
+  PikaCmdArgsType set_argv;
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(set_argv, db_name_);
+    set_cmd_->DoBinlog(slot);
   }
 }
 
@@ -731,6 +791,7 @@ void SetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
+    AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -783,9 +844,7 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   }
 }
 
-void ExistsCmd::Merge() {
-  res_.AppendInteger(split_res_);
-}
+void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExpireCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1067,10 +1126,33 @@ void TypeCmd::DoInitial() {
 }
 
 void TypeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string res;
-  rocksdb::Status s = slot->db()->Type(key_, &res);
+  std::vector<std::string> types(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, types);
   if (s.ok()) {
-    res_.AppendContent("+" + res);
+    res_.AppendContent("+" + types[0]);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void PTypeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameType);
+    return;
+  }
+  key_ = argv_[1];
+}
+
+void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
+  std::vector<std::string> types(5);
+  rocksdb::Status s = slot->db()->GetType(key_, false, types);
+
+  if (s.ok()) {
+    res_.AppendArrayLen(types.size());
+    for (const auto& vs : types) {
+      res_.AppendStringLen(vs.size());
+      res_.AppendContent(vs);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -1205,7 +1287,7 @@ void ScanxCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void ScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
@@ -1225,7 +1307,7 @@ void ScanxCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void PKSetexAtCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1307,8 +1389,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s =
-      slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1392,8 +1473,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s =
-      slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);

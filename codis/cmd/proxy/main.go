@@ -113,6 +113,7 @@ Options:
 			log.PanicErrorf(err, "load config %s failed", s)
 		}
 	}
+	models.SetMaxSlotNum(config.MaxSlotNum)
 	if s, ok := utils.Argument(d, "--host-admin"); ok {
 		config.HostAdmin = s
 		log.Warnf("option --host-admin = %s", s)

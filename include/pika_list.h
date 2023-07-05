@@ -170,7 +170,7 @@ class LPushxCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string value_;
+  std::vector<std::string> values_;
   void DoInitial() override;
 };
 
@@ -299,7 +299,7 @@ class RPopLPushCmd : public BlockingBaseCmd {
     lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
-      : BlockingBaseCmd(other.name_, other.arity_, other.flag_),
+      : BlockingBaseCmd(other),
         source_(other.source_),
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
@@ -365,7 +365,7 @@ class RPushxCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string value_;
-  void DoInitial() override;
+  std::vector<std::string> values_;
+  virtual void DoInitial() override;
 };
 #endif
