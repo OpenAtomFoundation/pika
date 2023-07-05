@@ -31,7 +31,7 @@ class RedisStrings : public Redis {
   // Strings Commands
   Status Append(const Slice& key, const Slice& value, int32_t* ret);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);

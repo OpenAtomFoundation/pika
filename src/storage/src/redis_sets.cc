@@ -348,7 +348,7 @@ rocksdb::Status RedisSets::SDiff(const std::vector<std::string>& keys, std::vect
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
+rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return rocksdb::Status::Corruption("SDiffsotre invalid parameter, no keys");
   }
@@ -438,6 +438,7 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
   *ret = members.size();
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(members);
   return s;
 }
 
@@ -516,7 +517,7 @@ rocksdb::Status RedisSets::SInter(const std::vector<std::string>& keys, std::vec
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
+rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return rocksdb::Status::Corruption("SInterstore invalid parameter, no keys");
   }
@@ -620,6 +621,7 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
   *ret = members.size();
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(members);
   return s;
 }
 
@@ -1031,7 +1033,7 @@ rocksdb::Status RedisSets::SUnion(const std::vector<std::string>& keys, std::vec
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
+rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return rocksdb::Status::Corruption("SUnionstore invalid parameter, no keys");
   }
@@ -1102,6 +1104,7 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
   *ret = members.size();
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(members);
   return s;
 }
 

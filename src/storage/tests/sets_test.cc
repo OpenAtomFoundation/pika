@@ -359,8 +359,10 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp1_members_out;
+  std::vector<std::string> value_to_dest;
   std::vector<std::string> gp1_keys{"GP1_SDIFFSTORE_KEY1", "GP1_SDIFFSTORE_KEY2", "GP1_SDIFFSTORE_KEY3"};
-  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION1", gp1_keys, &ret);
+
+  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP1_SDIFFSTORE_DESTINATION1", 2));
@@ -378,7 +380,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
   gp1_members_out.clear();
-  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION2", gp1_keys, &ret);
+  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION2", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_SDIFFSTORE_DESTINATION2", 3));
@@ -393,7 +395,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   // destination = {a, b, d}
   gp1_keys.emplace_back("GP1_SDIFFSTORE_KEY4");
   gp1_members_out.clear();
-  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION3", gp1_keys, &ret);
+  s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION3", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_SDIFFSTORE_DESTINATION3", 3));
@@ -421,7 +423,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
 
   std::vector<std::string> gp2_keys{"GP2_SDIFFSTORE_KEY1", "GP2_SDIFFSTORE_KEY2", "GP2_SDIFFSTORE_KEY3"};
   std::vector<std::string> gp2_members_out;
-  s = db.SDiffstore("GP2_SDIFFSTORE_DESTINATION1", gp2_keys, &ret);
+  s = db.SDiffstore("GP2_SDIFFSTORE_DESTINATION1", gp2_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP2_SDIFFSTORE_DESTINATION1", 0));
@@ -439,7 +441,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
 
   std::vector<std::string> gp3_keys{"GP3_SDIFFSTORE_KEY1"};
   std::vector<std::string> gp3_members_out;
-  s = db.SDiffstore("GP3_SDIFFSTORE_DESTINATION1", gp3_keys, &ret);
+  s = db.SDiffstore("GP3_SDIFFSTORE_DESTINATION1", gp3_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP3_SDIFFSTORE_DESTINATION1", 4));
@@ -469,7 +471,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
 
   std::vector<std::string> gp4_keys{"GP4_SDIFFSTORE_KEY1", "GP4_SDIFFSTORE_KEY2", "GP4_SDIFFSTORE_KEY3"};
   std::vector<std::string> gp4_members_out;
-  s = db.SDiffstore("GP4_SDIFFSTORE_DESTINATION1", gp4_keys, &ret);
+  s = db.SDiffstore("GP4_SDIFFSTORE_DESTINATION1", gp4_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP4_SDIFFSTORE_DESTINATION1", 0));
@@ -501,7 +503,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp5_keys{"GP5_SDIFFSTORE_KEY1", "GP5_SDIFFSTORE_KEY2", "GP5_SDIFFSTORE_KEY3"};
-  s = db.SDiffstore("GP5_SDIFFSTORE_DESTINATION1", gp5_keys, &ret);
+  s = db.SDiffstore("GP5_SDIFFSTORE_DESTINATION1", gp5_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP5_SDIFFSTORE_DESTINATION1", 2));
@@ -529,7 +531,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp6_keys{"GP6_SDIFFSTORE_DESTINATION1", "GP6_SDIFFSTORE_KEY2", "GP6_SDIFFSTORE_KEY3"};
-  s = db.SDiffstore("GP6_SDIFFSTORE_DESTINATION1", gp6_keys, &ret);
+  s = db.SDiffstore("GP6_SDIFFSTORE_DESTINATION1", gp6_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP6_SDIFFSTORE_DESTINATION1", 2));
@@ -564,7 +566,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP7_SDIFFSTORE_DESTINATION1"));
 
   std::vector<std::string> gp7_keys{"GP7_SDIFFSTORE_KEY1", "GP7_SDIFFSTORE_KEY2", "GP7_SDIFFSTORE_KEY3"};
-  s = db.SDiffstore("GP7_SDIFFSTORE_DESTINATION1", gp7_keys, &ret);
+  s = db.SDiffstore("GP7_SDIFFSTORE_DESTINATION1", gp7_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP7_SDIFFSTORE_DESTINATION1", 2));
@@ -754,7 +756,8 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp1_keys{"GP1_SINTERSTORE_KEY1", "GP1_SINTERSTORE_KEY2", "GP1_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP1_SINTERSTORE_DESTINATION1", gp1_keys, &ret);
+  std::vector<std::string> value_to_dest;
+  s = db.SInterstore("GP1_SINTERSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP1_SINTERSTORE_DESTINATION1", 2));
@@ -786,7 +789,9 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp2_keys{"GP2_SINTERSTORE_KEY1", "GP2_SINTERSTORE_KEY2", "GP2_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP2_SINTERSTORE_DESTINATION1", gp2_keys, &ret);
+  s = db.SInterstore("GP2_SINTERSTORE_DESTINATION1", gp2_keys, value_to_dest, &ret);
+
+
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP2_SINTERSTORE_DESTINATION1", 2));
@@ -814,7 +819,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
 
   std::vector<std::string> gp3_keys{"GP3_SINTERSTORE_KEY1", "GP3_SINTERSTORE_KEY2", "GP3_SINTERSTORE_KEY3",
                                     "GP3_SINTERSTORE_NOT_EXIST_KEY"};
-  s = db.SInterstore("GP3_SINTERSTORE_DESTINATION1", gp3_keys, &ret);
+  s = db.SInterstore("GP3_SINTERSTORE_DESTINATION1", gp3_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP3_SINTERSTORE_DESTINATION1", 0));
@@ -843,7 +848,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP4_SINTERSTORE_KEY2"));
 
   std::vector<std::string> gp4_keys{"GP4_SINTERSTORE_KEY1", "GP4_SINTERSTORE_KEY2", "GP4_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP4_SINTERSTORE_DESTINATION1", gp4_keys, &ret);
+  s = db.SInterstore("GP4_SINTERSTORE_DESTINATION1", gp4_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP4_SINTERSTORE_DESTINATION1", 0));
@@ -872,7 +877,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP5_SINTERSTORE_KEY1"));
 
   std::vector<std::string> gp5_keys{"GP5_SINTERSTORE_KEY1", "GP5_SINTERSTORE_KEY2", "GP5_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP5_SINTERSTORE_DESTINATION1", gp5_keys, &ret);
+  s = db.SInterstore("GP5_SINTERSTORE_DESTINATION1", gp5_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP5_SINTERSTORE_DESTINATION1", 0));
@@ -906,7 +911,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 0);
 
   std::vector<std::string> gp6_keys{"GP6_SINTERSTORE_KEY1", "GP6_SINTERSTORE_KEY2", "GP6_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP6_SINTERSTORE_DESTINATION1", gp6_keys, &ret);
+  s = db.SInterstore("GP6_SINTERSTORE_DESTINATION1", gp6_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP6_SINTERSTORE_DESTINATION1", 0));
@@ -934,7 +939,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
 
   std::vector<std::string> gp7_keys{"GP7_SINTERSTORE_NOT_EXIST_KEY", "GP7_SINTERSTORE_KEY1", "GP7_SINTERSTORE_KEY2",
                                     "GP7_SINTERSTORE_KEY3"};
-  s = db.SInterstore("GP7_SINTERSTORE_DESTINATION1", gp7_keys, &ret);
+  s = db.SInterstore("GP7_SINTERSTORE_DESTINATION1", gp7_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP7_SINTERSTORE_DESTINATION1", 0));
@@ -966,7 +971,7 @@ TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
       "GP8_SINTERSTORE_KEY3",
   };
   std::vector<std::string> gp8_members_out;
-  s = db.SInterstore("GP8_SINTERSTORE_DESTINATION1", gp8_keys, &ret);
+  s = db.SInterstore("GP8_SINTERSTORE_DESTINATION1", gp8_keys,  value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP8_SINTERSTORE_DESTINATION1", 4));
@@ -1738,7 +1743,8 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp1_keys{"GP1_SUNIONSTORE_KEY1", "GP1_SUNIONSTORE_KEY2", "GP1_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, &ret);
+  std::vector<std::string> value_to_dest;
+  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 5));
@@ -1752,7 +1758,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   // destination = {a, b, c, d}
   ASSERT_TRUE(make_expired(&db, "GP1_SUNIONSTORE_KEY3"));
 
-  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, &ret);
+  s = db.SUnionstore("GP1_SUNIONSTORE_DESTINATION1", gp1_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP1_SUNIONSTORE_DESTINATION1", 4));
@@ -1780,7 +1786,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_EQ(ret, 3);
 
   std::vector<std::string> gp2_keys{"GP2_SUNIONSTORE_KEY1", "GP2_SUNIONSTORE_KEY2", "GP2_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP2_SUNIONSTORE_DESTINATION1", gp2_keys, &ret);
+  s = db.SUnionstore("GP2_SUNIONSTORE_DESTINATION1", gp2_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP2_SUNIONSTORE_DESTINATION1", 5));
@@ -1813,7 +1819,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(members_match(&db, "GP3_SUNIONSTORE_KEY3", {}));
 
   std::vector<std::string> gp3_keys{"GP3_SUNIONSTORE_KEY1", "GP3_SUNIONSTORE_KEY2", "GP3_SUNIONSTORE_KEY3"};
-  s = db.SUnionstore("GP3_SUNIONSTORE_DESTINATION1", gp3_keys, &ret);
+  s = db.SUnionstore("GP3_SUNIONSTORE_DESTINATION1", gp3_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP3_SUNIONSTORE_DESTINATION1", 4));
@@ -1831,7 +1837,7 @@ TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
 
   std::vector<std::string> gp4_keys{"GP4_SUNIONSTORE_KEY1", "GP4_SUNIONSTORE_NOT_EXIST_KEY"};
   std::vector<std::string> gp4_members_out;
-  s = db.SUnionstore("GP4_SUNIONSTORE_DESTINATION1", gp4_keys, &ret);
+  s = db.SUnionstore("GP4_SUNIONSTORE_DESTINATION1", gp4_keys, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP4_SUNIONSTORE_DESTINATION1", 3));

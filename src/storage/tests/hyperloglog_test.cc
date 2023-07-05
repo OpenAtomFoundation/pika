@@ -146,7 +146,8 @@ TEST_F(HyperLogLogTest, PfMergeTest) {
   ASSERT_TRUE(update);
 
   std::vector<std::string> keys{"HLL1", "HLL2", "HLL3"};
-  s = db.PfMerge(keys);
+  std::string result_value;
+  s = db.PfMerge(keys, result_value);
   ASSERT_TRUE(s.ok());
   int64_t result;
   s = db.PfCount(keys, &result);

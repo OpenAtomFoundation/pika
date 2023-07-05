@@ -38,10 +38,10 @@ static int doAuth(net::NetCli *cli) {
   std::string wbuf_str;
   std::string requirepass = g_pika_conf->requirepass();
   if (requirepass != "") {
-    argv.push_back("auth");
-    argv.push_back(requirepass);
+    argv.emplace_back("auth");
+    argv.emplace_back(requirepass);
   } else {
-    argv.push_back("ping");
+    argv.emplace_back("ping");
   }
   net::SerializeRedisCommand(argv, &wbuf_str);
 
@@ -65,23 +65,6 @@ static int doAuth(net::NetCli *cli) {
   return 0;
 }
 
-// get kv key value
-static int kvGet(const std::string key, std::string &value, const std::shared_ptr<Slot>& slot) {
-  rocksdb::Status s = slot->db()->Get(key, &value);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      value = "";
-      LOG(WARNING) << "Get kv key: " << key << " not found ";
-      return 0;
-    } else {
-      value = "";
-      LOG(WARNING) << "Get kv key: " << key << " error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 0;
-}
-
 static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataType data_type,
                          const std::shared_ptr<Slot>& slot) {
   net::RedisCmdArgsType argv;
@@ -90,13 +73,13 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataT
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = slot->db()->TTL(key, &type_status);
   if (PIKA_TTL_ZERO == type_timestamp[data_type] || PIKA_TTL_STALE == type_timestamp[data_type]) {
-    argv.push_back("del");
-    argv.push_back(key);
+    argv.emplace_back("del");
+    argv.emplace_back(key);
     net::SerializeRedisCommand(argv, &send_str);
   } else if (0 < type_timestamp[data_type]) {
-    argv.push_back("expire");
-    argv.push_back(key);
-    argv.push_back(std::to_string(type_timestamp[data_type]));
+    argv.emplace_back("expire");
+    argv.emplace_back(key);
+    argv.emplace_back(std::to_string(type_timestamp[data_type]));
     net::SerializeRedisCommand(argv, &send_str);
   } else {
     // no expire
@@ -140,9 +123,9 @@ static int MigrateKv(net::NetCli *cli, const std::string key, const std::shared_
 
   net::RedisCmdArgsType argv;
   std::string send_str;
-  argv.push_back("SET");
-  argv.push_back(key);
-  argv.push_back(value);
+  argv.emplace_back("SET");
+  argv.emplace_back(key);
+  argv.emplace_back(value);
   net::SerializeRedisCommand(argv, &send_str);
 
   int send_num = 0;
@@ -173,11 +156,11 @@ static int MigrateHash(net::NetCli *cli, const std::string key, const std::share
     if (s.ok() && field_values.size() > 0) {
       net::RedisCmdArgsType argv;
       std::string send_str;
-      argv.push_back("HMSET");
-      argv.push_back(key);
+      argv.emplace_back("HMSET");
+      argv.emplace_back(key);
       for (const auto &field_value : field_values) {
-        argv.push_back(field_value.field);
-        argv.push_back(field_value.value);
+        argv.emplace_back(field_value.field);
+        argv.emplace_back(field_value.value);
       }
       net::SerializeRedisCommand(argv, &send_str);
       if (doMigrate(cli, send_str) < 0) {
@@ -205,8 +188,8 @@ static int MigrateList(net::NetCli *cli, const std::string key, const std::share
   int send_num = 0;
   net::RedisCmdArgsType argv;
   std::string send_str;
-  argv.push_back("DEL");
-  argv.push_back(key);
+  argv.emplace_back("DEL");
+  argv.emplace_back(key);
   net::SerializeRedisCommand(argv, &send_str);
   if (doMigrate(cli, send_str) < 0) {
     return -1;
@@ -221,11 +204,11 @@ static int MigrateList(net::NetCli *cli, const std::string key, const std::share
     while (iter != values.end()) {
       net::RedisCmdArgsType argv;
       std::string send_str;
-      argv.push_back("RPUSH");
-      argv.push_back(key);
+      argv.emplace_back("RPUSH");
+      argv.emplace_back(key);
 
       for (int i = 0; iter != values.end() && i < MAX_MEMBERS_NUM; ++iter, ++i) {
-        argv.push_back(*iter);
+        argv.emplace_back(*iter);
       }
 
       net::SerializeRedisCommand(argv, &send_str);
@@ -261,11 +244,11 @@ static int MigrateSet(net::NetCli *cli, const std::string key, const std::shared
     if (s.ok() && members.size() > 0) {
       net::RedisCmdArgsType argv;
       std::string send_str;
-      argv.push_back("SADD");
-      argv.push_back(key);
+      argv.emplace_back("SADD");
+      argv.emplace_back(key);
 
       for (const auto &member : members) {
-        argv.push_back(member);
+        argv.emplace_back(member);
       }
       net::SerializeRedisCommand(argv, &send_str);
       if (doMigrate(cli, send_str) < 0) {
@@ -299,12 +282,12 @@ static int MigrateZset(net::NetCli *cli, const std::string key, const std::share
     if (s.ok() && score_members.size() > 0) {
       net::RedisCmdArgsType argv;
       std::string send_str;
-      argv.push_back("ZADD");
-      argv.push_back(key);
+      argv.emplace_back("ZADD");
+      argv.emplace_back(key);
 
       for (const auto &score_member : score_members) {
-        argv.push_back(std::to_string(score_member.score));
-        argv.push_back(score_member.member);
+        argv.emplace_back(std::to_string(score_member.score));
+        argv.emplace_back(score_member.member);
       }
       net::SerializeRedisCommand(argv, &send_str);
       if (doMigrate(cli, send_str) < 0) {
@@ -363,10 +346,10 @@ static int migrateList(net::NetCli *cli, const std::string key, bool async, cons
     }
     argv.clear();
     send_str = "";
-    argv.push_back("lpush");
-    argv.push_back(key);
+    argv.emplace_back("lpush");
+    argv.emplace_back(key);
     for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.push_back(values[j]);
+      argv.emplace_back(values[j]);
     }
     net::SerializeRedisCommand(argv, &send_str);
     if (doMigrate(cli, send_str) < 0) {
@@ -487,8 +470,8 @@ void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char,
 void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot) {
   std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("del");
   std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
-  args->push_back("DEL");
-  args->push_back(key);
+  args->emplace_back("DEL");
+  args->emplace_back(key);
   cmd_ptr->Initial(*args, slot->GetDBName());
 
   std::shared_ptr<SyncMasterSlot> sync_slot =
@@ -547,7 +530,7 @@ void *PikaParseSendThread::ThreadMain() {
         if (migrate_thread_->mgrtkeys_queue_.empty()) {
           break;
         }
-        send_keys.push_back(migrate_thread_->mgrtkeys_queue_.front());
+        send_keys.emplace_back(migrate_thread_->mgrtkeys_queue_.front());
         migrate_thread_->mgrtkeys_queue_.pop_front();
       }
     }
@@ -719,7 +702,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
       return 1;
     } else {
       std::unique_lock lo(mgrtone_queue_mutex_);
-      mgrtone_queue_.push_back(kpair);
+      mgrtone_queue_.emplace_back(kpair);
       NotifyRequestMigrate();
     }
   }
@@ -851,7 +834,7 @@ void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey, int64_t need_re
         key.erase(key.begin());
         std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
         if (mgrtkeys_map_.find(kpair) == mgrtkeys_map_.end()) {
-          mgrtkeys_queue_.push_back(kpair);
+          mgrtkeys_queue_.emplace_back(kpair);
           mgrtkeys_map_[kpair] = INVALID_STR;
           ++real_read_num;
         }
@@ -880,7 +863,7 @@ bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
         DestroyParseSendThreads();
         return false;
       } else {
-        workers_.push_back(worker);
+        workers_.emplace_back(worker);
       }
     }
   }

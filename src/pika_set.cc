@@ -218,12 +218,52 @@ void SUnionstoreCmd::DoInitial() {
 
 void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->SUnionstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SUnionstore(dest_key_, keys_, value_to_dest_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType del_args;
+  del_args.emplace_back("del");
+  del_args.emplace_back(dest_key_);
+  del_cmd_->Initial(std::move(del_args), db_name_);
+  del_cmd_->SetConn(GetConn());
+  del_cmd_->SetResp(resp_.lock());
+  del_cmd_->DoBinlog(slot);
+
+  if(value_to_dest_.size() == 0){
+    //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
+    return;
+  }
+
+  PikaCmdArgsType initial_args;
+  initial_args.emplace_back("sadd");//use "sadd" to distinguish the binlog of SaddCmd which use "SADD" for binlog
+  initial_args.emplace_back(dest_key_);
+  initial_args.emplace_back(value_to_dest_[0]);
+  sadd_cmd_->Initial(std::move(initial_args), db_name_);
+  sadd_cmd_->SetConn(GetConn());
+  sadd_cmd_->SetResp(resp_.lock());
+
+  auto& sadd_argv = sadd_cmd_->argv();
+  size_t data_size = value_to_dest_[0].size();
+
+  for(int i = 1; i < value_to_dest_.size(); i++){
+    if(data_size >= 131072){
+      // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
+      sadd_cmd_->DoBinlog(slot);
+      sadd_argv.clear();
+      sadd_argv.emplace_back("sadd");
+      sadd_argv.emplace_back(dest_key_);
+      data_size = 0;
+    }
+    sadd_argv.emplace_back(value_to_dest_[i]);
+    data_size += value_to_dest_[i].size();
+  }
+  sadd_cmd_->DoBinlog(slot);
 }
 
 void SInterCmd::DoInitial() {
@@ -258,7 +298,7 @@ void SInterstoreCmd::DoInitial() {
 
 void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->SInterstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -317,7 +357,7 @@ void SDiffstoreCmd::DoInitial() {
 
 void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->SDiffstore(dest_key_, keys_, &count);
+  rocksdb::Status s = slot->db()->SDiffstore(dest_key_, keys_, value_to_dest_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -340,9 +380,37 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
+    move_success_ = res;
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!move_success_){
+    //the member is not in the source set, nothing changed
+    return;
+  }
+  PikaCmdArgsType srem_args;
+  //SremCmd use "SREM", SMove use "srem"
+  srem_args.emplace_back("srem");
+  srem_args.emplace_back(src_key_);
+  srem_args.emplace_back(member_);
+  srem_cmd_->Initial(std::move(srem_args), db_name_);
+
+  PikaCmdArgsType sadd_args;
+  //Saddcmd use "SADD", Smovecmd use "sadd"
+  sadd_args.emplace_back("sadd");
+  sadd_args.emplace_back(dest_key_);
+  sadd_args.emplace_back(member_);
+  sadd_cmd_->Initial(std::move(sadd_args), db_name_);
+
+  srem_cmd_->SetConn(GetConn());
+  srem_cmd_->SetResp(resp_.lock());
+  sadd_cmd_->SetConn(GetConn());
+  sadd_cmd_->SetResp(resp_.lock());
+
+  srem_cmd_->DoBinlog(slot);
+  sadd_cmd_->DoBinlog(slot);
 }
 
 void SRandmemberCmd::DoInitial() {
@@ -382,3 +450,4 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+

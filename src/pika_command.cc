@@ -924,7 +924,7 @@ CmdRes& Cmd::res() { return res_; }
 
 std::string Cmd::db_name() const { return db_name_; }
 
-const PikaCmdArgsType& Cmd::argv() const { return argv_; }
+PikaCmdArgsType& Cmd::argv() { return argv_; }
 
 std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum, uint64_t offset) {
   std::string content;

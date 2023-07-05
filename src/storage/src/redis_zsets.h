@@ -47,9 +47,9 @@ class RedisZSets : public Redis {
   Status ZRevrank(const Slice& key, const Slice& member, int32_t* rank);
   Status ZScore(const Slice& key, const Slice& member, double* score);
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret);
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret);
   Status ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                      std::vector<std::string>* members);
   Status ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
