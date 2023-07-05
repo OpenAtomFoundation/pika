@@ -829,23 +829,6 @@ void AddSlotKey(const std::string type, const std::string key, const std::shared
   }
 }
 
-// write sadd key to binlog for slave
-void WriteSAddToBinlog(const std::string &key, const std::string &value, const std::shared_ptr<Slot>& slot) {
-  std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("sadd");
-  std::unique_ptr<PikaCmdArgsType> args = std::unique_ptr<PikaCmdArgsType>(new PikaCmdArgsType());
-  args->emplace_back("SADD");
-  args->emplace_back(key);
-  args->emplace_back(value);
-  cmd_ptr->Initial(*args, slot->GetDBName());
-
-  std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
-  Status s = sync_slot->ConsensusProposeLog(cmd_ptr);
-  if (!s.ok()) {
-    LOG(ERROR) << "write sadd key to binlog failed, key: " << key;
-  }
-}
-
 // del key from slotkey
 void RemSlotKey(const std::string key, const std::shared_ptr<Slot>& slot) {
   if (g_pika_conf->slotmigrate() != true) {
