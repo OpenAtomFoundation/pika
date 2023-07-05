@@ -4,7 +4,7 @@
 package proxy
 
 import (
-   "sync"
+	"sync"
 	"unsafe"
 
 	"pika/codis/v2/pkg/proxy/redis"
