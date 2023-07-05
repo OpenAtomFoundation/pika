@@ -11,7 +11,7 @@
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
-const size_t KSlotKeyPrefixLen = 27;
+const size_t kSlotKeyPrefixLen = 27;
 
 const size_t MaxKeySendSize = 10 * 1024;
 
