@@ -173,7 +173,7 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     args.push_back(pop_arg.key);
     pop_cmd->Initial(args, pop_arg.slot->GetDBName());
     std::shared_ptr<SyncMasterSlot> sync_slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(pop_arg.slot->GetDBName(), pop_arg.slot->GetSlotId()));
+        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(pop_arg.slot->GetDBName(), pop_arg.slot->GetSlotID()));
     if (!sync_slot) {
       LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
     } else {

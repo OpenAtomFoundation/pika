@@ -69,7 +69,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
-
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_centos:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
