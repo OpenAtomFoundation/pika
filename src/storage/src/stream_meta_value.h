@@ -2,9 +2,13 @@
 #ifndef SRC_STREAM_META_VALUE_FORMAT_H_
 #define SRC_STREAM_META_VALUE_FORMAT_H_
 
+#include <sys/types.h>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
+#include "rocksdb/slice.h"
 #include "src/base_value_format.h"
 #include "src/coding.h"
 
@@ -15,23 +19,23 @@ namespace storage {
  * millisecond if the clock jumped backward) will use the millisecond time
  * of the latest generated ID and an incremented sequence. */
 using streamID = struct streamID {
-  streamID(uint64_t _ms , uint64_t  _seq) : ms(_ms), seq(_seq) {}
+  streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
   streamID() = default;
-    uint64_t ms = 0;        /* Unix time in milliseconds. */
-    uint64_t seq = 0;       /* Sequence number. */
+  uint64_t ms = 0;  /* Unix time in milliseconds. */
+  uint64_t seq = 0; /* Sequence number. */
 };
 
 // FIXME: Where should I put this statement?
 using treeID = uint32_t;
+using mstime_t = uint64_t;
 
-
+// used when create a new stream
 class StreamMetaValue : public InternalValue {
  public:
-
   //  user value is the length of stream
   // FIXME: should I initialize last_id_ and first_id_ here ？
-  explicit StreamMetaValue(const rocksdb::Slice& user_value)
-      : InternalValue(user_value) {}
+  explicit StreamMetaValue(const rocksdb::Slice& user_value, treeID group_id)
+      : InternalValue(user_value), groups_id_(group_id) {}
 
   static const size_t kStreamAdditionalMetaValueLength = sizeof(uint32_t) + sizeof(uint64_t) * 7;
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2 + kStreamAdditionalMetaValueLength;
@@ -83,7 +87,7 @@ class StreamMetaValue : public InternalValue {
     }
     start_ = dst;
     size_t len = AppendTimestampAndVersion() + AppendStreamMetaValue();
-    return rocksdb::Slice(start_, len);
+    return {start_, len};
   }
 
   int32_t UpdateVersion() {
@@ -126,29 +130,32 @@ class StreamMetaValue : public InternalValue {
   streamID max_deleted_entry_id_;
 };
 
+// used when reading a stream meta value
 class ParsedStreamMetaValue : public ParsedInternalValue {
  public:
   static const size_t kStreamMetaValueSuffixLength = sizeof(int32_t) * 2 + sizeof(uint32_t) + sizeof(uint64_t) * 7;
 
   // Use this constructor after rocksdb::DB::Get();
-  explicit ParsedStreamMetaValue(std::string* internal_value_str)
-      : ParsedInternalValue(internal_value_str) {
+  explicit ParsedStreamMetaValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
     assert(internal_value_str->size() >= kStreamMetaValueSuffixLength);
     if (internal_value_str->size() >= kStreamMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kStreamMetaValueSuffixLength);
+      user_value_ =
+          rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kStreamMetaValueSuffixLength);
       version_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - kStreamMetaValueSuffixLength);
       timestamp_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(uint32_t) -
                                  sizeof(uint32_t) - sizeof(uint64_t) * 7);
 
-      groups_id_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() -
-                                 sizeof(uint32_t) - sizeof(uint64_t) * 7);
+      groups_id_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(uint32_t) -
+                                 sizeof(uint64_t) * 7);
       entries_added_ = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 7);
       first_id_.ms = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 6);
       first_id_.seq = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 5);
       last_id_.ms = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 4);
       last_id_.seq = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 3);
-      max_deleted_entry_id_.ms = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 2);
-      max_deleted_entry_id_.seq = DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t));
+      max_deleted_entry_id_.ms =
+          DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t) * 2);
+      max_deleted_entry_id_.seq =
+          DecodeFixed64(internal_value_str->data() + internal_value_str->size() - sizeof(uint64_t));
     }
     stream_size_ = DecodeFixed64(internal_value_str->data());
   }
@@ -158,21 +165,24 @@ class ParsedStreamMetaValue : public ParsedInternalValue {
       : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kStreamMetaValueSuffixLength);
     if (internal_value_slice.size() >= kStreamMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStreamMetaValueSuffixLength);
+      user_value_ =
+          rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStreamMetaValueSuffixLength);
       version_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint32_t) * 2 -
                                sizeof(uint32_t) - sizeof(uint64_t) * 7);
       timestamp_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint32_t) -
                                  sizeof(uint32_t) - sizeof(uint64_t) * 7);
 
-      groups_id_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() -
-                                 sizeof(uint32_t) - sizeof(uint64_t) * 7);
+      groups_id_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint32_t) -
+                                 sizeof(uint64_t) * 7);
       entries_added_ = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 7);
       first_id_.ms = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 6);
       first_id_.seq = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 5);
       last_id_.ms = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 4);
       last_id_.seq = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 3);
-      max_deleted_entry_id_.ms = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 2);
-      max_deleted_entry_id_.seq = DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t));
+      max_deleted_entry_id_.ms =
+          DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t) * 2);
+      max_deleted_entry_id_.seq =
+          DecodeFixed64(internal_value_slice.data() + internal_value_slice.size() - sizeof(uint64_t));
     }
     stream_size_ = DecodeFixed64(internal_value_slice.data());
   }
@@ -239,7 +249,7 @@ class ParsedStreamMetaValue : public ParsedInternalValue {
     return version_;
   }
 
-  treeID  groups_id() { return groups_id_; }
+  treeID groups_id() { return groups_id_; }
 
   void set_groups_id(treeID groups_id) {
     groups_id_ = groups_id;
@@ -259,9 +269,7 @@ class ParsedStreamMetaValue : public ParsedInternalValue {
     }
   }
 
-  void ModifyEntriesAdded(uint64_t delta) {
-    set_entries_added(entries_added_ + delta);
-  }
+  void ModifyEntriesAdded(uint64_t delta) { set_entries_added(entries_added_ + delta); }
 
   streamID first_id() { return first_id_; }
 
