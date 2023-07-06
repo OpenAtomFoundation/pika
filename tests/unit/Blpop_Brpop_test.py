@@ -815,7 +815,6 @@ def test_master_slave_replication(db_):
     print("test_master_slave_replication Passed [✓], db:db%d" % (db_))
 
 def test_with_db(db_id):
-    start_time = time.time()
     test_single_existing_list(db_id)
     test_blpop_brpop_unblock_lrpush_rpoplpush(db_id)
     test_concurrency_block_unblock(db_id)
@@ -824,8 +823,6 @@ def test_with_db(db_id):
     test_blpop_brpop_variadic_lpush(db_id)
     test_serve_priority(db_id)
     test_master_slave_replication(db_id)
-    end_time = time.time()
-    print(f"this set of tests costed: {end_time - start_time} seconds")
 
 
 pika_instance_ip = '127.0.0.1'
