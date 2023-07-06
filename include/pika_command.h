@@ -298,7 +298,8 @@ class CmdRes {
     kErrOther,
     KIncrByOverFlow,
     kInvalidTransaction,
-    kTxnQueued
+    kTxnQueued,
+    kTxnAbort,
   };
 
   CmdRes() = default;
@@ -373,8 +374,13 @@ class CmdRes {
       case kInvalidTransaction:
         return "-ERR WATCH inside MULTI is not allowed\r\n";
       case kTxnQueued:
-        result = "+Queued";
+        result = "+QUEUED";
         result.append("\r\n");
+        break;
+      case kTxnAbort:
+        result = "-EXECABORT ";
+        result.append(message_);
+        result.append(kNewLine);
         break;
       case kErrOther:
         result = "-ERR ";

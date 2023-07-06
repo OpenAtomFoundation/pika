@@ -202,6 +202,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, ack_start, ack_end);
 }
 
+//! 这里会去接收来自主机的命令数据
+//TODO(leeHao): 需要测试客户端在执行binlog的时候
+// https://github.com/OpenAtomFoundation/pika/pull/1585#discussion_r1225767468
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);

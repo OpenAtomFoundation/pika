@@ -44,7 +44,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   if (client_conn->IsTxnInitFailed()) {
-    res_.SetRes(CmdRes::kErrOther, "EXEC ABORT Transaction discarded because of previous errors.");
+    res_.SetRes(CmdRes::kTxnAbort, "Transaction discarded because of previous errors.");
     client_conn->ExitTxn();
     return;
   }
