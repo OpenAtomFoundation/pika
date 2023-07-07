@@ -845,6 +845,15 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_compact:" << (g_pika_server->IsCompacting() ? "Yes" : "No") << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
+  time_t current_time_s = time(nullptr);
+  PikaServer::BGSlotsReload bgslotsreload_info = g_pika_server->bgslots_reload();
+  bool is_reloading = g_pika_server->GetSlotsreloading();
+  tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
+             << (is_reloading ? (current_time_s - bgslotsreload_info.start_time) : 0) << "\r\n";
+  PikaServer::BGSlotsCleanup bgslotscleanup_info = g_pika_server->bgslots_cleanup();
+  bool is_cleaningup = g_pika_server->GetSlotscleaningup();
+  tmp_stream << "is_slots_cleaningup:" << (is_cleaningup ? "Yes, " : "No, ") << bgslotscleanup_info.s_start_time << ", "
+             << (is_cleaningup ? (current_time_s - bgslotscleanup_info.start_time) : 0) << "\r\n";
 
   info.append(tmp_stream.str());
 }
