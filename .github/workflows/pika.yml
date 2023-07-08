@@ -124,7 +124,10 @@ jobs:
           cd ${{github.workspace}}/build
           pwd
           ls
-          ls ..
+          echo "pwd and ls of {{github.workspace}}"
+          cd ..
+          ls 
+          echo "pwd and ls .. of {{github.workspace}} end"
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
