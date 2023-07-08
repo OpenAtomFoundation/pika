@@ -135,6 +135,7 @@ jobs:
       - name: Start pika master and slave
         run: |
           cd ${{github.workspace}}/build
+          cp -rf /__w/pika/pika/conf ../
           chmod +x /__w/pika/pika/tests/integration/start_master_and_slave.sh
           /__w/pika/pika/tests/integration/start_master_and_slave.sh
 
