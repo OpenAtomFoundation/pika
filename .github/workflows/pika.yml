@@ -119,6 +119,12 @@ jobs:
       - name: Build
         # Build your program with the given configuration
         run: |
+          pwd
+          ll
+          cd ${{github.workspace}}/build
+          pwd
+          ll
+          ll ..
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -134,7 +140,12 @@ jobs:
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
         run: |
+          pwd
+          ll
           cd ${{github.workspace}}/build
+          pwd
+          ll
+          ll ..
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
