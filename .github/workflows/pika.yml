@@ -119,15 +119,6 @@ jobs:
       - name: Build
         # Build your program with the given configuration
         run: |
-          pwd
-          ls
-          cd ${{github.workspace}}/build
-          pwd
-          ls
-          echo "pwd and ls of {{github.workspace}}"
-          cd ..
-          ls 
-          echo "pwd and ls .. of {{github.workspace}} end"
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -143,16 +134,11 @@ jobs:
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
         run: |
-          pwd
-          ls
           cd ${{github.workspace}}/build
-          pwd
-          ls
-          ls ..
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
+          chmod +x /__w/pika/pika/tests/integration/start_master_and_slave.sh
+          /__w/pika/pika/tests/integration/start_master_and_slave.sh
 
       - name: Run Python E2E Tests
         run: |
           cd ${{github.workspace}}/build
-          python3 ../tests/integration/pika_replication_test.py
+          python3 /__w/pika/pika/tests/integration/pika_replication_test.py
