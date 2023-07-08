@@ -15,6 +15,7 @@ import time
 import redis
 import random
 import string
+# -*- coding: utf-8 -*-
 
 
 def test_del_replication():
