@@ -91,7 +91,9 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
-
+          yum install -y python3
+          python3 --version
+          python3 -m pip install redis
 
       - name: Install cmake
         run: |
@@ -129,3 +131,19 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
+      - name: Unit Test
+        run: |
+          cd ${{github.workspace}}
+          ./pikatests.sh all
+
+        # master on port 9221, slave on port 9231, all with 2 db
+      - name: Start pika master and slave
+        run: |
+          cd ${{github.workspace}}/build
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        run: |
+          cd ${{github.workspace}}/build
+          python3 ../tests/integration/pika_replication_test.py
