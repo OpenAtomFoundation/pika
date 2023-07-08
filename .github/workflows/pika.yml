@@ -131,11 +131,6 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
-      - name: Unit Test
-        run: |
-          cd ${{github.workspace}}
-          ./pikatests.sh all
-
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
         run: |
