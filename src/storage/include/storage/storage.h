@@ -131,8 +131,7 @@ struct BGTask {
   Operation operation;
   std::string argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
-         std::string  _argv = "")
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
       : type(_type), operation(_opeation), argv(std::move(_argv)) {}
 };
 
@@ -221,7 +220,7 @@ class Storage {
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
 
   // Return the position of the first bit set to 1 or 0 in a string
   // BitPos key 0
@@ -385,7 +384,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SDIFFSTORE destination key1 key2 key3
   //   destination = {b, d}
-  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns the members of the set resulting from the intersection of all the
   // given sets.
@@ -408,7 +407,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SINTERSTORE destination key1 key2 key3
   //   destination = {a, c}
-  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns if member is a member of the set stored at key.
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
@@ -424,7 +423,7 @@ class Storage {
 
   // Removes and returns several random elements specified by count from the set value store at key.
   Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
-  
+
   // When called with just the key argument, return a random element from the
   // set value stored at key.
   // when called with the additional count argument, return an array of count
@@ -465,7 +464,7 @@ class Storage {
   //   key3 = {c, d, e}
   //   SUNIONSTORE destination key1 key2 key3
   //   destination = {a, b, c, d, e}
-  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // See SCAN for SSCAN documentation.
   Status SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -819,7 +818,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret);
 
   // Computes the intersection of numkeys sorted sets given by the specified
   // keys, and stores the result in destination. It is mandatory to provide the
@@ -836,7 +835,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command returns all the
@@ -968,8 +967,12 @@ class Storage {
   // return > 0 TTL in seconds
   std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
 
-  // Reutrns the data type of the key
-  Status Type(const std::string& key, std::string* type);
+  // Reutrns the data all type of the key
+  // if single is true, the query will return the first one
+  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
+
+  // Reutrns the data all type of the key
+  Status Type(const std::string& key, std::vector<std::string>& types);
 
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 
@@ -993,7 +996,7 @@ class Storage {
   // Merge multiple HyperLogLog values into an unique value that will
   // approximate the cardinality of the union of the observed Sets of the source
   // HyperLogLog structures.
-  Status PfMerge(const std::vector<std::string>& keys);
+  Status PfMerge(const std::vector<std::string>& keys, std::string& value_to_dest);
 
   // Admin Commands
   Status StartBGThread();
@@ -1019,7 +1022,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
-  void GetRocksDBInfo(std::string &info);
+  void GetRocksDBInfo(std::string& info);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
@@ -1027,21 +1030,21 @@ class Storage {
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
   std::unique_ptr<RedisLists> lists_db_;
-  std::atomic<bool> is_opened_;
+  std::atomic<bool> is_opened_ = false;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
   // Storage start the background thread for compaction task
-  pthread_t bg_tasks_thread_id_;
+  pthread_t bg_tasks_thread_id_ = 0;
   pstd::Mutex bg_tasks_mutex_;
   pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
-  std::atomic<int> current_task_type_;
-  std::atomic<bool> bg_tasks_should_exit_;
+  std::atomic<int> current_task_type_ = kNone;
+  std::atomic<bool> bg_tasks_should_exit_ = false;
 
   // For scan keys in data base
-  std::atomic<bool> scan_keynum_exit_;
+  std::atomic<bool> scan_keynum_exit_ = false;
 };
 
 }  //  namespace storage

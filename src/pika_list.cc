@@ -6,6 +6,7 @@
 #include "include/pika_list.h"
 #include "include/pika_data_distribution.h"
 #include "pstd/include/pstd_string.h"
+#include "include/pika_slot_command.h"
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -53,6 +54,7 @@ void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -91,6 +93,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -131,6 +134,7 @@ void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -207,6 +211,7 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LSet(key_, index_, value_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    AddSlotKey("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
@@ -276,6 +281,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
+    AddSlotKey("k", receiver_, slot);
     res_.AppendString(value);
     value_poped_from_source_ = value;
     is_write_binlog_ = true;
@@ -328,6 +334,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -349,6 +356,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->RPushx(key_, values_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
+    AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

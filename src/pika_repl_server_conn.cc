@@ -251,7 +251,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
     LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: " << node.ip()
                  << ", Slave port: " << node.port() << ", Slot: " << slot_name
-                 << ", cloest start point, filenum: " << seeked_offset.filenum << ", offset: " << seeked_offset.offset;
+                 << ", closest start point, filenum: " << seeked_offset.filenum << ", offset: " << seeked_offset.offset;
     return false;
   }
   return true;

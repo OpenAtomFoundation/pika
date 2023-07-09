@@ -3704,9 +3704,10 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP1_ZUNIONSTORE_SM1", gp1_sm1, &ret);
   s = db.ZAdd("GP1_ZUNIONSTORE_SM2", gp1_sm2, &ret);
   s = db.ZAdd("GP1_ZUNIONSTORE_SM3", gp1_sm3, &ret);
+  std::map<std::string, double> value_to_dest;
   s = db.ZUnionstore("GP1_ZUNIONSTORE_DESTINATION",
                      {"GP1_ZUNIONSTORE_SM1", "GP1_ZUNIONSTORE_SM2", "GP1_ZUNIONSTORE_SM3"}, {1, 1, 1}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_ZUNIONSTORE_DESTINATION", 3));
@@ -3728,7 +3729,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP2_ZUNIONSTORE_SM3", gp2_sm3, &ret);
   s = db.ZUnionstore("GP2_ZUNIONSTORE_DESTINATION",
                      {"GP2_ZUNIONSTORE_SM1", "GP2_ZUNIONSTORE_SM2", "GP2_ZUNIONSTORE_SM3"}, {1, 1, 1}, storage::MIN,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP2_ZUNIONSTORE_DESTINATION", 3));
@@ -3749,7 +3750,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP3_ZUNIONSTORE_SM3", gp3_sm3, &ret);
   s = db.ZUnionstore("GP3_ZUNIONSTORE_DESTINATION",
                      {"GP3_ZUNIONSTORE_SM1", "GP3_ZUNIONSTORE_SM2", "GP3_ZUNIONSTORE_SM3"}, {1, 1, 1}, storage::MAX,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP3_ZUNIONSTORE_DESTINATION", 3));
@@ -3771,7 +3772,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP4_ZUNIONSTORE_SM3", gp4_sm3, &ret);
   s = db.ZUnionstore("GP4_ZUNIONSTORE_DESTINATION",
                      {"GP4_ZUNIONSTORE_SM1", "GP4_ZUNIONSTORE_SM2", "GP4_ZUNIONSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP4_ZUNIONSTORE_DESTINATION", 3));
@@ -3793,7 +3794,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP5_ZUNIONSTORE_SM3", gp5_sm3, &ret);
   s = db.ZUnionstore("GP5_ZUNIONSTORE_DESTINATION",
                      {"GP5_ZUNIONSTORE_SM1", "GP5_ZUNIONSTORE_SM2", "GP5_ZUNIONSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP5_ZUNIONSTORE_DESTINATION", 3));
@@ -3816,7 +3817,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP6_ZUNIONSTORE_SM2"));
   s = db.ZUnionstore("GP6_ZUNIONSTORE_DESTINATION",
                      {"GP6_ZUNIONSTORE_SM1", "GP6_ZUNIONSTORE_SM2", "GP6_ZUNIONSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP6_ZUNIONSTORE_DESTINATION", 3));
@@ -3839,7 +3840,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP7_ZUNIONSTORE_SM2"));
   s = db.ZUnionstore("GP7_ZUNIONSTORE_DESTINATION",
                      {"GP7_ZUNIONSTORE_SM1", "GP7_ZUNIONSTORE_SM2", "GP7_ZUNIONSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP7_ZUNIONSTORE_DESTINATION", 4));
@@ -3861,7 +3862,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP8_ZUNIONSTORE_SM3", gp8_sm3, &ret);
   s = db.ZUnionstore("GP8_ZUNIONSTORE_DESTINATION",
                      {"GP8_ZUNIONSTORE_SM1", "GP8_ZUNIONSTORE_SM2", "GP8_ZUNIONSTORE_SM3"}, {1, 1, 1}, storage::MIN,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP8_ZUNIONSTORE_DESTINATION", 3));
@@ -3889,7 +3890,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
 
   s = db.ZUnionstore("GP9_ZUNIONSTORE_DESTINATION",
                      {"GP9_ZUNIONSTORE_SM1", "GP9_ZUNIONSTORE_SM2", "GP9_ZUNIONSTORE_SM3"}, {1, 1, 1}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP9_ZUNIONSTORE_DESTINATION", 3));
@@ -3911,7 +3912,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   s = db.ZAdd("GP10_ZUNIONSTORE_SM3", gp10_sm3, &ret);
   s = db.ZUnionstore("GP10_ZUNIONSTORE_DESTINATION",
                      {"GP10_ZUNIONSTORE_SM1", "GP10_ZUNIONSTORE_SM2", "GP10_ZUNIONSTORE_SM3", "GP10_ZUNIONSTORE_SM4"},
-                     {1, 1, 1, 1}, storage::SUM, &ret);
+                     {1, 1, 1, 1}, storage::SUM, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP10_ZUNIONSTORE_DESTINATION", 3));
@@ -3925,7 +3926,7 @@ TEST_F(ZSetsTest, ZUnionstoreTest) {  // NOLINT
   //
   std::vector<storage::ScoreMember> gp11_sm1{{-999999999, "MM1"}};
   s = db.ZAdd("GP11_ZUNIONSTORE_SM1", gp11_sm1, &ret);
-  s = db.ZUnionstore("GP11_ZUNIONSTORE_DESTINATION", {"GP11_ZUNIONSTORE_SM1"}, {0}, storage::SUM, &ret);
+  s = db.ZUnionstore("GP11_ZUNIONSTORE_DESTINATION", {"GP11_ZUNIONSTORE_SM1"}, {0}, storage::SUM, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(size_match(&db, "GP11_ZUNIONSTORE_DESTINATION", 1));
@@ -3949,9 +3950,10 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP1_ZINTERSTORE_SM1", gp1_sm1, &ret);
   s = db.ZAdd("GP1_ZINTERSTORE_SM2", gp1_sm2, &ret);
   s = db.ZAdd("GP1_ZINTERSTORE_SM3", gp1_sm3, &ret);
+  std::vector<storage::ScoreMember> value_to_dest;
   s = db.ZInterstore("GP1_ZINTERSTORE_DESTINATION",
                      {"GP1_ZINTERSTORE_SM1", "GP1_ZINTERSTORE_SM2", "GP1_ZINTERSTORE_SM3"}, {1, 1, 1}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP1_ZINTERSTORE_DESTINATION", 3));
@@ -3973,7 +3975,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP2_ZINTERSTORE_SM3", gp2_sm3, &ret);
   s = db.ZInterstore("GP2_ZINTERSTORE_DESTINATION",
                      {"GP2_ZINTERSTORE_SM1", "GP2_ZINTERSTORE_SM2", "GP2_ZINTERSTORE_SM3"}, {1, 1, 1}, storage::MIN,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP2_ZINTERSTORE_DESTINATION", 3));
@@ -3982,7 +3984,8 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   // ***************** Group 3 Test *****************
   // {      1, MM1} {      10, MM2} {      100, MM3}  weight 1
   // {   1000, MM1} {   10000, MM2} {   100000, MM3}  weight 1
-  // {1000000, MM1} {10000000, MM2} {100000000, MM3}  weight 1
+  // {10000
+  // 00, MM1} {10000000, MM2} {100000000, MM3}  weight 1
   //
   // {1000000, MM1} {10000000, MM2} {100000000, MM3}
   //
@@ -3994,7 +3997,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP3_ZINTERSTORE_SM3", gp3_sm3, &ret);
   s = db.ZInterstore("GP3_ZINTERSTORE_DESTINATION",
                      {"GP3_ZINTERSTORE_SM1", "GP3_ZINTERSTORE_SM2", "GP3_ZINTERSTORE_SM3"}, {1, 1, 1}, storage::MAX,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP3_ZINTERSTORE_DESTINATION", 3));
@@ -4016,7 +4019,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP4_ZINTERSTORE_SM3", gp4_sm3, &ret);
   s = db.ZInterstore("GP4_ZINTERSTORE_DESTINATION",
                      {"GP4_ZINTERSTORE_SM1", "GP4_ZINTERSTORE_SM2", "GP4_ZINTERSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP4_ZINTERSTORE_DESTINATION", 3));
@@ -4038,7 +4041,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP5_ZINTERSTORE_SM3", gp5_sm3, &ret);
   s = db.ZInterstore("GP5_ZINTERSTORE_DESTINATION",
                      {"GP5_ZINTERSTORE_SM1", "GP5_ZINTERSTORE_SM2", "GP5_ZINTERSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP5_ZINTERSTORE_DESTINATION", 2));
@@ -4060,7 +4063,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP6_ZINTERSTORE_SM2"));
   s = db.ZInterstore("GP6_ZINTERSTORE_DESTINATION",
                      {"GP6_ZINTERSTORE_SM1", "GP6_ZINTERSTORE_SM2", "GP6_ZINTERSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP6_ZINTERSTORE_DESTINATION", 0));
@@ -4082,7 +4085,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP7_ZINTERSTORE_SM2"));
   s = db.ZInterstore("GP7_ZINTERSTORE_DESTINATION",
                      {"GP7_ZINTERSTORE_SM1", "GP7_ZINTERSTORE_SM2", "GP7_ZINTERSTORE_SM3"}, {1, 2, 3}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP7_ZINTERSTORE_DESTINATION", 0));
@@ -4103,7 +4106,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP8_ZINTERSTORE_SM3", gp8_sm3, &ret);
   s = db.ZInterstore("GP8_ZINTERSTORE_DESTINATION",
                      {"GP8_ZINTERSTORE_SM1", "GP8_ZINTERSTORE_SM2", "GP8_ZINTERSTORE_SM3"}, {1, 1, 1}, storage::MIN,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP8_ZINTERSTORE_DESTINATION", 0));
@@ -4131,7 +4134,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
 
   s = db.ZInterstore("GP9_ZINTERSTORE_DESTINATION",
                      {"GP9_ZINTERSTORE_SM1", "GP9_ZINTERSTORE_SM2", "GP9_ZINTERSTORE_SM3"}, {1, 1, 1}, storage::SUM,
-                     &ret);
+                     value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP9_ZINTERSTORE_DESTINATION", 3));
@@ -4153,7 +4156,7 @@ TEST_F(ZSetsTest, ZInterstoreTest) {  // NOLINT
   s = db.ZAdd("GP10_ZINTERSTORE_SM3", gp10_sm3, &ret);
   s = db.ZInterstore("GP10_ZINTERSTORE_DESTINATION",
                      {"GP10_ZINTERSTORE_SM1", "GP10_ZINTERSTORE_SM2", "GP10_ZINTERSTORE_SM3", "GP10_ZINTERSTORE_SM4"},
-                     {1, 1, 1, 1}, storage::SUM, &ret);
+                     {1, 1, 1, 1}, storage::SUM, value_to_dest, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP10_ZINTERSTORE_DESTINATION", 0));

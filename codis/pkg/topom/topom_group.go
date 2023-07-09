@@ -4,6 +4,7 @@
 package topom
 
 import (
+	"encoding/json"
 	"time"
 
 	"pika/codis/v2/pkg/models"
@@ -273,11 +274,6 @@ func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 			if err := s.storeUpdateSentinel(p); err != nil {
 				return err
 			}
-			groupIds := map[int]bool{g.Id: true}
-			sentinel := redis.NewSentinel(s.config.ProductName, s.config.ProductAuth)
-			if err := sentinel.RemoveGroups(p.Servers, s.config.SentinelClientTimeout.Duration(), groupIds); err != nil {
-				log.WarnErrorf(err, "group-[%d] remove sentinels failed", g.Id)
-			}
 			if s.ha.masters != nil {
 				delete(s.ha.masters, gid)
 			}
@@ -307,16 +303,17 @@ func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 			return err
 		}
 
-		var master = slice[0].Addr
-		if c, err := redis.NewClient(master, s.config.ProductAuth, time.Second); err != nil {
+		var (
+			master = slice[0].Addr
+			client *redis.Client
+		)
+		if client, err = redis.NewClient(master, s.config.ProductAuth, time.Second); err != nil {
 			log.WarnErrorf(err, "create redis client to %s failed", master)
-		} else {
-			defer c.Close()
-			if err := c.SetMaster("NO:ONE"); err != nil {
-				log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
-			}
 		}
-
+		defer client.Close()
+		if err = client.SetMaster("NO:ONE"); err != nil {
+			log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
+		}
 		fallthrough
 
 	case models.ActionFinished:
@@ -344,7 +341,61 @@ func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 	}
 }
 
-func (s *Topom) trySwitchGroupMaster(gid int, master string, cache *redis.InfoCache) error {
+func (s *Topom) trySwitchGroupMaster(gid int, cache *redis.InfoCache) error {
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+	g, err := ctx.getGroup(gid)
+	if err != nil {
+		return err
+	}
+
+	master := s.selectNextMaster(g.Servers)
+
+	if master == "" {
+		servers, _ := json.Marshal(g)
+		log.Errorf("group %d donn't has any slaves to switch master, %s", gid, servers)
+		return errors.Errorf("cann't switch slave to master")
+	}
+
+	return s.doSwitchGroupMaster(gid, master, cache)
+}
+
+// Choose to change to the next master node in the group
+func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
+	if len(servers) == 0 {
+		return ""
+	}
+
+	var masterServer *models.GroupServer
+
+	for _, server := range servers {
+		if server.State != models.GroupServerStateNormal {
+			continue
+		}
+
+		// If there is already a master node in the group working normally, return directly
+		if server.Role == "master" {
+			return server.Addr
+		}
+
+		if masterServer == nil {
+			masterServer = server
+		} else if server.ReplyOffset > masterServer.ReplyOffset {
+			// Select the slave node with the latest offset as the master node
+			masterServer = server
+		}
+	}
+
+	if masterServer == nil {
+		return ""
+	}
+
+	return masterServer.Addr
+}
+
+func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCache) error {
 	ctx, err := s.newContext()
 	if err != nil {
 		return err
@@ -379,7 +430,38 @@ func (s *Topom) trySwitchGroupMaster(gid int, master string, cache *redis.InfoCa
 
 	log.Warnf("group-[%d] will switch master to server[%d] = %s", g.Id, index, g.Servers[index].Addr)
 
+	// Set the slave node as the new master node
+	var client *redis.Client
+	if client, err = redis.NewClient(master, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+		log.WarnErrorf(err, "create redis client to %s failed", master)
+		return err
+	}
+
+	defer client.Close()
+	if err = client.SetMaster("NO:ONE"); err != nil {
+		log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
+		return err
+	}
+
+	// Set other nodes in the group as slave nodes of the new master node
+	for _, server := range g.Servers {
+		if server.State != models.GroupServerStateNormal || server.Addr == master {
+			continue
+		}
+		var client2 *redis.Client
+		if client2, err = redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+			log.WarnErrorf(err, "create redis client to %s failed", master)
+			return err
+		}
+		defer client2.Close()
+		if err = client2.SetMaster(master); err != nil {
+			log.WarnErrorf(err, "redis %s set master to %s failed", server.Addr, master)
+			return err
+		}
+	}
+
 	g.Servers[0], g.Servers[index] = g.Servers[index], g.Servers[0]
+	g.Servers[0].Role = "master"
 	g.OutOfSync = true
 	return s.storeUpdateGroup(g)
 }

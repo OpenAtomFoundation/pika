@@ -17,7 +17,7 @@ class PikaDataDistribution {
   virtual ~PikaDataDistribution() = default;
   // Initialization
   virtual void Init() = 0;
-  // key map to partition id
+  // key map to slot id
   virtual uint32_t Distribute(const std::string& str, uint32_t slot_num) = 0;
 };
 

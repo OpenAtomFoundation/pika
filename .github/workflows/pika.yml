@@ -47,10 +47,6 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Clang-tidy Check
-        working-directory: ${{github.workspace}}/build
-        run: make clang-tidy
-
       - name: Test
         working-directory: ${{github.workspace}}/build
         # Execute tests defined by the CMake configuration.
@@ -72,7 +68,7 @@ jobs:
       - name: Run Python E2E Tests
         working-directory: ${{github.workspace}}/build
         run: |
-          python3 ../tests/integration/rpoplpush_replication_test.py
+          python3 ../tests/integration/pika_replication_test.py
 
 
   build_on_centos:
@@ -124,10 +120,6 @@ jobs:
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-      - name: Clang-tidy Check
-        working-directory: ${{github.workspace}}/build
-        run: make clang-tidy
 
       - name: Test
         # Execute tests defined by the CMake configuration.

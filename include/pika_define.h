@@ -12,6 +12,13 @@
 
 #include "net/include/redis_cli.h"
 
+/*
+ * TTL type
+ */
+#define PIKA_TTL_ZERO 0
+#define PIKA_TTL_NONE -1
+#define PIKA_TTL_STALE -2
+
 #define PIKA_SYNC_BUFFER_SIZE 1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 #define PIKA_REPL_SERVER_TP_SIZE 3
@@ -33,7 +40,7 @@ const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
 
 struct DBStruct {
-  DBStruct(std::string  tn, const uint32_t pn, std::set<uint32_t>  pi)
+  DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)
       : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
 
   bool operator==(const DBStruct& db_struct) const {
@@ -156,7 +163,7 @@ struct DBSyncArg {
   int port;
   std::string db_name;
   uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string  _ip, int _port, std::string  _db_name,
+  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
             uint32_t _slot_id)
       : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
 };
@@ -191,7 +198,7 @@ struct BinlogChip {
 };
 
 struct SlotInfo {
-  SlotInfo(std::string  db_name, uint32_t slot_id)
+  SlotInfo(std::string db_name, uint32_t slot_id)
       : db_name_(std::move(db_name)), slot_id_(slot_id) {}
 
   SlotInfo() = default;
@@ -231,8 +238,8 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  partition_info)
-      : Node(ip, port), slot_info_(std::move(partition_info)) {}
+  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
+      : Node(ip, port), slot_info_(std::move(slot_info)) {}
 
   RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
       : Node(ip, port),
@@ -261,7 +268,7 @@ class RmNode : public Node {
   void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "partition=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
+    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
            std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }

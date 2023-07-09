@@ -74,6 +74,8 @@ PikaServer::PikaServer()
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
+  pika_migrate_ = std::make_unique<PikaMigrate>();
+  pika_migrate_thread_ = std::make_unique<PikaMigrateThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
   exit_mutex_.lock();
@@ -94,6 +96,7 @@ PikaServer::~PikaServer() {
   }
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
+  pika_migrate_thread_->StopThread();
 
   dbs_.clear();
 
@@ -358,7 +361,7 @@ std::set<uint32_t> PikaServer::GetDBSlotIds(const std::string& db_name) {
   std::set<uint32_t> empty;
   std::shared_lock l(dbs_rw_);
   auto iter = dbs_.find(db_name);
-  return (iter == dbs_.end()) ? empty : iter->second->GetSlotIds();
+  return (iter == dbs_.end()) ? empty : iter->second->GetSlotIDs();
 }
 
 bool PikaServer::IsBgSaving() {
@@ -478,7 +481,7 @@ void PikaServer::PrepareSlotTrySync() {
     for (const auto& slot_item : db_item.second->slots_) {
       Status s = g_pika_rm->ActivateSyncSlaveSlot(
           RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_item.second->GetDBName(),
-                 slot_item.second->GetSlotId()),
+                 slot_item.second->GetSlotID()),
           state);
       if (!s.ok()) {
         LOG(WARNING) << s.ToString();
@@ -523,7 +526,6 @@ bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot
   return s.ok();
 }
 
-// Only use in classic mode
 std::shared_ptr<Slot> PikaServer::GetSlotByDBName(const std::string& db_name) {
   std::shared_ptr<DB> db = GetDB(db_name);
   return db ? db->GetSlotById(0) : nullptr;
@@ -547,20 +549,20 @@ Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
       switch (type) {
         case TaskType::kResetReplState: {
           slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
           if (!slave_slot) {
             LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                         << slot_item.second->GetSlotId() << " Not Found";
+                         << slot_item.second->GetSlotID() << " Not Found";
           }
           slave_slot->SetReplState(ReplState::kNoConnect);
           break;
         }
         case TaskType::kPurgeLog: {
           std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
           if (!slot) {
-            LOG(WARNING) << db_item.second->GetDBName() << slot_item.second->GetSlotId()
-                         << " Not Found.";
+            LOG(WARNING) << "Slot: " << db_item.second->GetDBName() << ":"
+                         << slot_item.second->GetSlotID() << " Not Found.";
             break;
           }
           slot->StableLogger()->PurgeStableLogs();
@@ -790,10 +792,10 @@ bool PikaServer::AllSlotConnectSuccess() {
   for (const auto& db_item : dbs_) {
     for (const auto& slot_item : db_item.second->slots_) {
       slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
+          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
       if (!slave_slot) {
         LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                     << slot_item.second->GetSlotId() << ", NotFound";
+                     << slot_item.second->GetSlotID() << ", NotFound";
         return false;
       }
 
@@ -1461,7 +1463,7 @@ void PikaServer::InitStorageOptions() {
     storage_options_.options.compression_per_level.push_back(storage_options_.options.compression);
   }
 
-  // For rocksdb::BlockBasedTableOptions
+  // For rocksdb::BlockBasedDBOptions
   storage_options_.table_options.block_size = g_pika_conf->block_size();
   storage_options_.table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
   storage_options_.block_cache_size = g_pika_conf->block_cache();
@@ -1540,4 +1542,163 @@ void PikaServer::ServerStatus(std::string* info) {
   size_t q_size = ClientProcessorThreadPoolCurQueueSize();
   tmp_stream << "Client Processor thread-pool queue size: " << q_size << "\r\n";
   info->append(tmp_stream.str());
+}
+
+bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, std::shared_ptr<Slot>slot) {
+  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
+}
+
+void PikaServer:: GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained){
+  return pika_migrate_thread_->GetMigrateStatus(ip, port, slot, migrating, moved, remained);
+}
+
+int PikaServer:: SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot) {
+  return pika_migrate_thread_->ReqMigrateOne(key, slot);
+}
+
+bool PikaServer::SlotsMigrateAsyncCancel() {
+  pika_migrate_thread_->CancelMigrate();
+  return true;
+}
+
+void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
+  // Only one thread can go through
+  {
+    std::lock_guard ml(bgsave_protector_);
+    if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+      return;
+    }
+    bgslots_reload_.reloading = true;
+  }
+
+  bgslots_reload_.start_time = time(nullptr);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
+  bgslots_reload_.s_start_time.assign(s_time, len);
+  bgslots_reload_.cursor = 0;
+  bgslots_reload_.pattern = "*";
+  bgslots_reload_.count = 100;
+  bgslots_reload_.slot = slot;
+
+  LOG(INFO) << "Start slot reloading";
+
+  // Start new thread if needed
+  bgsave_thread_.StartThread();
+  bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
+}
+
+void DoBgslotsreload(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  PikaServer::BGSlotsReload reload = p->bgslots_reload();
+
+  // Do slotsreload
+  rocksdb::Status s;
+  std::vector<std::string> keys;
+  int64_t cursor_ret = -1;
+  while(cursor_ret != 0 && p->GetSlotsreloading()){
+    cursor_ret = reload.slot->db()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
+
+    std::vector<std::string>::const_iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++){
+      std::string key_type;
+
+      int s = GetKeyType(*iter, key_type, reload.slot);
+      //if key is slotkey, can't add to SlotKey
+      if (s > 0){
+        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
+          continue;
+        }
+
+        AddSlotKey(key_type, *iter, reload.slot);
+      }
+    }
+
+    reload.cursor = cursor_ret;
+    p->SetSlotsreloadingCursor(cursor_ret);
+    keys.clear();
+  }
+  p->SetSlotsreloading(false);
+
+  if (cursor_ret == 0) {
+    LOG(INFO) << "Finish slot reloading";
+  } else{
+    LOG(INFO) << "Stop slot reloading";
+  }
+}
+
+void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<Slot> slot) {
+  // Only one thread can go through
+  {
+    std::lock_guard ml(bgsave_protector_);
+    if (bgslots_cleanup_.cleaningup || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+      return;
+    }
+    bgslots_cleanup_.cleaningup = true;
+  }
+
+  bgslots_cleanup_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
+  bgslots_cleanup_.s_start_time.assign(s_time, len);
+  bgslots_cleanup_.cursor = 0;
+  bgslots_cleanup_.pattern = "*";
+  bgslots_cleanup_.count = 100;
+  bgslots_cleanup_.slot = slot;
+  bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
+
+  std::string slotsStr;
+  slotsStr.assign(cleanupSlots.begin(), cleanupSlots.end());
+  LOG(INFO) << "Start slot cleanup, slots: " << slotsStr << std::endl;
+
+  // Start new thread if needed
+  bgslots_cleanup_thread_.StartThread();
+  bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
+}
+
+void DoBgslotscleanup(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
+
+  // Do slotscleanup
+  std::vector<std::string> keys;
+  int64_t cursor_ret = -1;
+  std::vector<int> cleanupSlots(cleanup.cleanup_slots);
+  while (cursor_ret != 0 && p->GetSlotscleaningup()){
+    cursor_ret = g_pika_server->bgslots_cleanup_.slot->db()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
+
+    std::string key_type;
+    std::vector<std::string>::const_iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++){
+      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos){
+        continue;
+      }
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
+        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.slot) <= 0) {
+          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
+          continue ;
+        }
+
+        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.slot) <= 0){
+          LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
+        }
+      }
+    }
+
+    cleanup.cursor = cursor_ret;
+    p->SetSlotscleaningupCursor(cursor_ret);
+    keys.clear();
+  }
+
+  for (std::vector<int>::const_iterator iter = cleanupSlots.begin(); iter != cleanupSlots.end(); iter++){
+    WriteDelKeyToBinlog(GetSlotKey(*iter), g_pika_server->bgslots_cleanup_.slot);
+    WriteDelKeyToBinlog(GetSlotsTagKey(*iter), g_pika_server->bgslots_cleanup_.slot);
+  }
+
+  p->SetSlotscleaningup(false);
+  std::vector<int> empty;
+  p->SetCleanupSlots(empty);
+
+  std::string slotsStr;
+  slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
+  LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
 }
