@@ -405,14 +405,7 @@ bool PikaServer::IsCompacting() {
 
 bool PikaServer::IsDBExist(const std::string& db_name) { return static_cast<bool>(GetDB(db_name)); }
 
-bool PikaServer::IsDBSlotExist(const std::string& db_name, uint32_t slot_id) {
-  std::shared_ptr<DB> db_ptr = GetDB(db_name);
-  if (!db_ptr) {
-    return false;
-  } else {
-    return static_cast<bool>(db_ptr->GetSlotById(slot_id));
-  }
-}
+bool PikaServer::Is
 
 bool PikaServer::IsCommandSupport(const std::string& command) {
   if (g_pika_conf->consensus_level() != 0) {
