@@ -93,21 +93,6 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string key, storage::DataT
   return 1;
 }
 
-// get set key all values
-static int setGetall(const std::string key, std::vector<std::string> *members, const std::shared_ptr<Slot>& slot) {
-  rocksdb::Status s = slot->db()->SMembers(key, members);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(WARNING) << "Set get key: " << key << " value not found ";
-      return 0;
-    } else {
-      LOG(WARNING) << "Set get key: " << key << " value error: " << s.ToString();
-      return -1;
-    }
-  }
-  return 1;
-}
-
 static int MigrateKv(net::NetCli *cli, const std::string key, const std::shared_ptr<Slot>& slot) {
   std::string value;
   rocksdb::Status s = slot->db()->Get(key, &value);
@@ -325,52 +310,6 @@ static int listGetall(const std::string key, std::vector<std::string> *values, c
   return 1;
 }
 
-// migrate one list key
-static int migrateList(net::NetCli *cli, const std::string key, bool async, const std::shared_ptr<Slot>& slot) {
-  int r, ret = 0;
-  std::vector<std::string> values;
-  if (listGetall(key, &values, slot) < 0) {
-    return -1;
-  }
-  size_t keySize = values.size();
-  if (keySize == 0) {
-    return 0;
-  }
-
-  net::RedisCmdArgsType argv;
-  std::string send_str;
-  for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
-    if (i > 0) {
-      LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
-    }
-    argv.clear();
-    send_str = "";
-    argv.emplace_back("lpush");
-    argv.emplace_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.emplace_back(values[j]);
-    }
-    net::SerializeRedisCommand(argv, &send_str);
-    if (doMigrate(cli, send_str) < 0) {
-      return -1;
-    } else {
-      ret++;
-    }
-  }
-
-  if ((r = migrateKeyTTl(cli, key, storage::kLists, slot)) < 0) {
-    return -1;
-  } else {
-    ret += r;
-  }
-
-  if (!async) {
-    DeleteKey(key, 'l', slot);  // key already been migrated successfully, del error doesn't matter
-  }
-  return ret;
-}
-
 PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot)
     : dest_ip_("none"),
       dest_port_(-1),
@@ -555,7 +494,7 @@ void *PikaParseSendThread::ThreadMain() {
       LOG(INFO) << "PikaMigrateThread::ThreadMain CheckMigrateRecv failed !!!";
       migrate_thread_->OnTaskFailed();
       migrate_thread_->DecWorkingThreadNum();
-      return NULL;
+      return nullptr;
     } else {
       DelKeysAndWriteBinlog(send_keys, slot_);
     }
@@ -564,7 +503,7 @@ void *PikaParseSendThread::ThreadMain() {
     migrate_thread_->DecWorkingThreadNum();
   }
 
-  return NULL;
+  return nullptr;
 }
 
 PikaMigrateThread::PikaMigrateThread()
@@ -896,7 +835,7 @@ void *PikaMigrateThread::ThreadMain() {
   if (!CreateParseSendThreads(dispatch_num)) {
     LOG(INFO) << "PikaMigrateThread::ThreadMain CreateParseSendThreads failed !!!";
     DestroyThread(true);
-    return NULL;
+    return nullptr;
   }
 
   std::string slotKey = GetSlotKey(slot_id_);
@@ -915,7 +854,7 @@ void *PikaMigrateThread::ThreadMain() {
       if (should_exit_) {
         LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit1 !!!";
         DestroyThread(false);
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -961,14 +900,14 @@ void *PikaMigrateThread::ThreadMain() {
     if (should_exit_) {
       LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit2 !!!";
       DestroyThread(false);
-      return NULL;
+      return nullptr;
     }
 
     // check one round migrate task success
     if (!is_task_success_) {
       LOG(ERROR) << "PikaMigrateThread::ThreadMain one round migrate task failed !!!";
       DestroyThread(true);
-      return NULL;
+      return nullptr;
     } else {
       moved_num_ += response_num_;
 
@@ -985,11 +924,11 @@ void *PikaMigrateThread::ThreadMain() {
         LOG(ERROR) << "PikaMigrateThread::ThreadMain moved_num != slot_size !!!";
       }
       DestroyThread(true);
-      return NULL;
+      return nullptr;
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 /* EOF */
