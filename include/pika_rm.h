@@ -87,7 +87,7 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
   pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                              std::shared_ptr<std::string> resp_ptr);
-  Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
+  pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status ConsensusSanityCheck();
   pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
   pstd::Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
@@ -160,14 +160,14 @@ class SyncSlaveSlot : public SyncSlot {
  private:
   pstd::Mutex slot_mu_;
   RmNode m_info_;
-  ReplState repl_state_;
+  ReplState repl_state_{kNoConnect};
   std::string local_ip_;
 };
 
 class PikaReplicaManager {
  public:
   PikaReplicaManager();
-  ~PikaReplicaManager(){};
+  ~PikaReplicaManager() = default;
 
   friend Cmd;
 

@@ -277,14 +277,8 @@ void Response::SetStatusCode(int code) {
 }
 
 SimpleHTTPConn::SimpleHTTPConn(const int fd, const std::string& ip_port, Thread* thread)
-    : NetConn(fd, ip_port, thread),
-      conn_status_(kHeader),
-      rbuf_pos_(0),
-      wbuf_len_(0),
-      wbuf_pos_(0),
-      header_len_(0),
-      remain_packet_len_(0),
-      response_pos_(-1) {
+    : NetConn(fd, ip_port, thread)
+      {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kHTTPMaxMessage));
   wbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kHTTPMaxMessage));
   request_ = new Request();

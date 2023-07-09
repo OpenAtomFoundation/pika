@@ -537,7 +537,7 @@ Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return 
 
 /* SyncSlaveSlot */
 SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id),  repl_state_(kNoConnect) {
+    : SyncSlot(db_name, slot_id)  {
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 

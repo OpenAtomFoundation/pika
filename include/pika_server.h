@@ -279,7 +279,7 @@ class PikaServer : public pstd::noncopyable {
    */
   bool HasMonitorClients() const;
   void AddMonitorMessage(const std::string& monitor_message);
-  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
+  void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
 
   /*
    * Slowlog used
@@ -331,8 +331,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, std::shared_ptr<Slot>slot);
+  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot>&slot);
+  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot>&slot);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
 
@@ -350,7 +350,7 @@ class PikaServer : public pstd::noncopyable {
     std::string pattern = "*";
     int64_t count = 0;
     std::shared_ptr<Slot> slot;
-    BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100) {}
+    BGSlotsReload() :  pattern("*"), count(100) {}
     void Clear() {
       reloading = false;
       pattern = "*";
@@ -396,7 +396,7 @@ class PikaServer : public pstd::noncopyable {
     std::shared_ptr<Slot> slot;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
-    BGSlotsCleanup() : cleaningup(false), cursor(0), pattern("*"), count(100){}
+    BGSlotsCleanup() :  pattern("*"), count(100){}
     void Clear() {
       cleaningup = false;
       pattern = "*";
