@@ -64,12 +64,12 @@ class PikaClientConn : public net::RedisConn {
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentDb(const std::string& db_name) { current_db_ = db_name; }
+  std::string GetCurrentDb() { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   // Txn
   void PushCmdToQue(std::shared_ptr<Cmd> cmd);
-  std::vector<CmdRes> ExecTxnCmds();
-  std::shared_ptr<Cmd> PopCmdFromQue();
+  std::queue<std::shared_ptr<Cmd>> GetTxnCmdQue();
   void ClearTxnCmdQue();
   bool IsInTxn();
   bool IsTxnFailed();
@@ -82,9 +82,7 @@ class PikaClientConn : public net::RedisConn {
 
   void AddKeysToWatch(const std::vector<std::string> &db_keys);
   void RemoveWatchedKeys();
-  void SetTxnFailedFromKeys(const std::vector<std::string> &table_keys = {});
-  std::vector<std::string> GetTxnInvolvedDbs() { return txn_exec_dbs_; }
-  std::mutex& GetTxnDbMutex() { return txn_db_mu_; }
+  void SetTxnFailedFromKeys(const std::vector<std::string> & db_keys = {});
   void ExitTxn();
 
   net::ServerThread* server_thread() { return server_thread_; }
@@ -102,10 +100,7 @@ class PikaClientConn : public net::RedisConn {
   std::queue<std::shared_ptr<Cmd>> txn_cmd_que_; // redis事务的队列
   std::bitset<16> txn_state_;  // class TxnStateBitMask
   std::unordered_set<std::string> watched_db_keys_;
-  std::vector<std::string> txn_exec_dbs_;
   std::mutex txn_state_mu_;  // 用于锁事务状态
-  std::mutex txn_db_mu_;  // 在执行事务的时候，采用加db锁的方式加锁，那么就会有多个db被加锁，那么就会有加锁顺序的问题，所以加了这把大锁
-  // 在void Cmd::ProcessExecCmd();中使用这把锁
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);

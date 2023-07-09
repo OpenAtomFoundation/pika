@@ -538,7 +538,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_args.emplace_back(dest_key_);
   del_cmd_->Initial(del_args, db_name_);
   del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
+  del_cmd_->SetResp(resp_);
   del_cmd_->DoBinlog(slot);
 
   if(value_to_dest_.empty()){
@@ -557,7 +557,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   value_to_dest_.erase(value_to_dest_.begin());
   zadd_cmd_->Initial(initial_args, db_name_);
   zadd_cmd_->SetConn(GetConn());
-  zadd_cmd_->SetResp(resp_.lock());
+  zadd_cmd_->SetResp(resp_);
 
   auto& zadd_argv = zadd_cmd_->argv();
   size_t data_size = d_len + zadd_argv[3].size();
@@ -603,7 +603,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_args.emplace_back(dest_key_);
   del_cmd_->Initial(del_args, db_name_);
   del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
+  del_cmd_->SetResp(resp_);
   del_cmd_->DoBinlog(slot);
 
   if(value_to_dest_.size() == 0){
@@ -620,7 +620,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   initial_args.emplace_back(value_to_dest_[0].member);
   zadd_cmd_->Initial(initial_args, db_name_);
   zadd_cmd_->SetConn(GetConn());
-  zadd_cmd_->SetResp(resp_.lock());
+  zadd_cmd_->SetResp(resp_);
 
   auto& zadd_argv = zadd_cmd_->argv();
   size_t data_size = d_len + value_to_dest_[0].member.size();

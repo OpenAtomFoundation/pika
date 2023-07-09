@@ -7,6 +7,12 @@
 #include <memory>
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "pstd_defer.h"
+
+extern std::unique_ptr<PikaServer> g_pika_server;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 void MultiCmd::Do(std::shared_ptr<Slot> partition) {
   auto conn = GetConn();
@@ -42,29 +48,71 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, "ERR EXEC without MULTI");
     return;
   }
+  DEFER {
+    client_conn->ExitTxn();
+  };
 
   if (client_conn->IsTxnInitFailed()) {
     res_.SetRes(CmdRes::kTxnAbort, "Transaction discarded because of previous errors.");
-    client_conn->ExitTxn();
     return;
   }
   if (client_conn->IsTxnWatchFailed()) {
     res_.AppendStringLen(-1);
-    client_conn->ExitTxn();
     return;
   }
-  auto cmd_res = client_conn->ExecTxnCmds();
-  if (cmd_res.empty()) {
-    res_.AppendStringLen(-1);
-    client_conn->ExitTxn();
-    return;
+  // TODO(leehao) 加锁，不太确定下面这个加锁方案行不行
+  auto cmd_que = client_conn->GetTxnCmdQue();
+  auto res_vec = std::vector<CmdRes>{};
+  auto cmd_slot_vec = std::vector<std::pair<std::shared_ptr<Cmd>, std::shared_ptr<Slot>>>{};
+  auto slot_set = std::unordered_set<std::shared_ptr<Slot>>{};  // 去重,以免重复给一个slot加锁
+  // 先统一加锁
+  while (!cmd_que.empty()) {
+    auto cmd = cmd_que.front();
+    auto cmd_db = client_conn->GetCurrentDb();  // 由于有可能是select命令，所以需要每次都从这个conn中去拿去最新的dbname
+    auto cmd_slot = g_pika_server->GetSlotByDBName(cmd_db);
+    if (slot_set.count(cmd_slot) == 0) {
+      slot_set.emplace(cmd_slot);
+    }
+    cmd_slot_vec.emplace_back(cmd, cmd_slot);
+    cmd_que.pop();
   }
-  auto ret_string = std::string{};
-  res_.AppendArrayLen(cmd_res.size());
-  for (auto & cmd_re : cmd_res) {
-    res_.AppendStringRaw(cmd_re.message());
+  std::shared_lock l(g_pika_server->dbs_rw_);
+  std::for_each(slot_set.begin(), slot_set.end(), [](auto &slot){
+    slot->DbRWLockWriter();
+  });
+
+  // 再集中执行，最后再统一解锁
+  std::for_each(cmd_slot_vec.begin(), cmd_slot_vec.end(), [&client_conn, &res_vec](auto& each_cmd) {
+    auto& [cmd, cmd_slot] = each_cmd;
+    std::shared_ptr<SyncMasterSlot> sync_slot =
+        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(cmd_slot->GetDBName(), cmd_slot->GetSlotID()));
+    cmd->res() = {};
+    cmd->Do(cmd_slot);
+    if (cmd->res().ok() && cmd->is_write()) {
+      cmd->DoBinlog(sync_slot);
+      auto db_keys = cmd->current_key();
+      for (auto& item : db_keys) {
+        item = cmd->db_name().append(item);
+      }
+      client_conn->SetTxnFailedFromKeys(db_keys);
+    }
+    res_vec.emplace_back(cmd->res());
+  });
+
+  std::for_each(cmd_slot_vec.begin(), cmd_slot_vec.end(),[](auto &each_cmd) {
+    auto cmd_slot = each_cmd.second;
+    cmd_slot->DbRWUnLock();
+  });
+  res_.AppendArrayLen(res_vec.size());
+  for (auto &r : res_vec) {
+    res_.AppendStringRaw(r.message());
   }
-  client_conn->ExitTxn();
+}
+// 如果是multi和exec的话，不应该写binlog
+void ExecCmd::Execute() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 //! 在这里还没法得到涉及到的key，因为客户端连接对象中有一些的key他们的db不一样
@@ -79,16 +127,6 @@ void ExecCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
   }
-}
-
-std::vector<std::string> ExecCmd::GetInvolvedSlots() {
-  auto conn = GetConn();
-  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  if (client_conn == nullptr) {
-    res_.SetRes(CmdRes::kErrOther, name());
-    return {};
-  }
-  return client_conn->GetTxnInvolvedDbs();
 }
 
 void WatchCmd::Do(std::shared_ptr<Slot> slot) {
@@ -114,7 +152,12 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk);
 }
 
-
+// 如果是multi和exec的话，不应该写binlog
+void WatchCmd::Execute() {
+    std::shared_ptr<Slot> slot;
+    slot = g_pika_server->GetSlotByDBName(db_name_);
+    Do(slot);
+}
 
 void WatchCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -128,7 +171,6 @@ void WatchCmd::DoInitial() {
   }
 }
 
-//NOTE(leeHao): 在redis中，如果unwatch出现在队列之中，其实不会生效
 void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);

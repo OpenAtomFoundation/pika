@@ -225,7 +225,7 @@ void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_args.emplace_back(value_to_dest_);
   set_cmd_->Initial(set_args, db_name_);
   set_cmd_->SetConn(GetConn());
-  set_cmd_->SetResp(resp_.lock());
+  set_cmd_->SetResp(resp_);
   //value of this binlog might be strange if you print it out(eg. set bitkey_out1 «ѦFO<t·), but it's ok.
   set_cmd_->DoBinlog(slot);
 }

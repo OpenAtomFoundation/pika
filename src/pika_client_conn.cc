@@ -79,7 +79,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
   }
-  //! 更新一下qps之类的
   g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
 
   // PubSub connection
@@ -117,9 +116,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;
     }
-    //! 这里有个问题，就是exec这个命令应该算是write的，那么该如何得到他的key呢
-    // 所以我在下面的这里加了opt != exec,因为exec没法得到key,
-    //TODO(leeHao): 这里还是看看吧
     std::vector<std::string> cur_key = c_ptr->current_key();
     if (cur_key.empty() && opt != kCmdNameExec) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
@@ -141,10 +137,9 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
 
-  //NOTE(leeHao): exec命令的话，会在ExecTxnCmds函数中去设置，因为可能部分成功，部分不成功，并且里面可能还会有select命令
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
     if (c_ptr->name() == kCmdNameFlushdb || c_ptr->name() == kCmdNameFlushall) {
-
+      SetTxnFailedFromKeys();  // 这里就将所有watch的事务给设置成为失败状态
     } else {
       auto table_keys = c_ptr->current_key();
       for (auto& key : table_keys) {
@@ -290,7 +285,6 @@ void PikaClientConn::TryWriteResp() {
       write_completed_cb_();
       write_completed_cb_ = nullptr;
     }
-    //! 这里会将resp的string指针给清掉，所以后面执行的时候就会error
     resp_array.clear();
     NotifyEpoll(true);
   }
@@ -298,7 +292,6 @@ void PikaClientConn::TryWriteResp() {
 void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
   txn_cmd_que_.push(cmd);
   cmd->SetResp(std::make_shared<std::string>());
-  txn_exec_dbs_.emplace_back(cmd->db_name());
 }
 
 bool PikaClientConn::IsInTxn() {
@@ -339,34 +332,6 @@ void PikaClientConn::SetTxnStartState(bool is_start) {
   txn_state_[TxnStateBitMask::Start] = is_start;
 }
 
-
-std::vector<CmdRes> PikaClientConn::ExecTxnCmds() {
-  auto ret_res = std::vector<CmdRes>{};
-  while (!txn_cmd_que_.empty()) {
-    auto cmd = txn_cmd_que_.front();
-    txn_cmd_que_.pop();
-    cmd->res().SetRes(CmdRes::CmdRet::kNone);
-    cmd->SetDbName(current_db_);
-    cmd->ProcessSingleSlotCmd();
-    if (cmd->res().ok() && cmd->is_write()) {
-      auto db_keys = cmd->current_key();
-      for (auto& item : db_keys) {
-        item = cmd->db_name().append(item);
-      }
-      SetTxnFailedFromKeys(db_keys);
-    }
-    ret_res.emplace_back(cmd->res());
-  }
-  return ret_res;
-}
-std::shared_ptr<Cmd> PikaClientConn::PopCmdFromQue() {
-  if (txn_cmd_que_.empty()) {
-    return nullptr;
-  }
-  auto ret = txn_cmd_que_.front();
-  txn_cmd_que_.pop();
-  return ret;
-}
 void PikaClientConn::ClearTxnCmdQue() {
   txn_cmd_que_ = std::queue<std::shared_ptr<Cmd>>{};
 }
@@ -384,25 +349,25 @@ void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &db_keys) {
 }
 
 void PikaClientConn::RemoveWatchedKeys() {
-  auto worker_thread = dynamic_cast<net::WorkerThread *>(server_thread());
-  if (worker_thread != nullptr) {
-    auto dispatcher = dynamic_cast<net::DispatchThread *>(worker_thread->GetServerThread());
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
     watched_db_keys_.clear();
     dispatcher->RemoveWatchKeys(shared_from_this());
   }
 }
 
 /**
+ * @param db_keys 如果为空的话，代表将所有事务都设置成为失败，一般给flush此类命令使用
  * @brief 去修改被watch的key的一些连接
  */
-void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &table_keys) {
+void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> & db_keys) {
   auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
   if (dispatcher != nullptr) {
     auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
-    if (table_keys.empty()) {
+    if (db_keys.empty()) {
       involved_conns = dispatcher->GetAllTxns();
     } else {
-      involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+      involved_conns = dispatcher->GetInvolvedTxn(db_keys);
     }
     for (auto &conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
@@ -438,6 +403,9 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
     *resp_ptr = std::move(cmd_ptr->res().message());
     resp_num--;
   }
+}
+std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() {
+  return txn_cmd_que_;
 }
 
 // Initial permission status

@@ -424,7 +424,6 @@ class CmdRes {
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
  public:
- //! TODO(lee) : 这里是不是加一个queued比较好？
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
@@ -470,9 +469,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_multi_slot() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
-  void SetDbName(const std::string& db_name) {
-    db_name_ = db_name;
-  }
+  void SetDbName(const std::string& db_name) { db_name_ = db_name; }
+  std::string GetDBName() { return db_name_; }
 
   std::string name() const;
   CmdRes& res();
@@ -510,7 +508,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   CmdRes res_;
   PikaCmdArgsType argv_;
-  std::string db_name_;
+  std::string db_name_{};
 
   std::weak_ptr<net::NetConn> conn_;
   std::shared_ptr<std::string> resp_;

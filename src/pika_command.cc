@@ -678,13 +678,15 @@ void InitCmdTable(CmdTable* cmd_table) {
 
   // Transaction
   ////Multi
-  std::unique_ptr<Cmd> multiptr = std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  std::unique_ptr<Cmd> multiptr =
+      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsMultiSlot);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
   ////Exec
-  std::unique_ptr<Cmd> execptr = std::make_unique<ExecCmd>(kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  std::unique_ptr<Cmd> execptr =
+      std::make_unique<ExecCmd>(kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
   ////Discard
-  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
   ////Watch
   std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead);
@@ -777,17 +779,8 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
   }
 }
 
-//NOTE 这里会加锁
-// 这不是一个override的函数
 void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
   if (!is_suspend()) {
-    auto cli_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
-    if (cli_conn != nullptr) {
-      if (cli_conn->IsInTxn()) {
-        Do(slot);
-        return ;
-      }
-    }
     slot->DbRWLockReader();
   }
 
@@ -825,7 +818,6 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   }
 }
 
-//NOTE 虽然这里multiSlot，但是好像只能针对于一个db,所以这里无法在exec中使用
 void Cmd::ProcessMultiSlotCmd() {
   std::shared_ptr<Slot> slot;
   std::vector<std::string> cur_key = current_key();
