@@ -574,6 +574,7 @@ PikaMigrateThread::PikaMigrateThread()
       timeout_ms_(3000),
       slot_id_(-1),
       keys_num_(-1),
+      s_start_time_(""),
       is_migrating_(false),
       should_exit_(false),
       is_task_success_(true),
@@ -619,6 +620,10 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
       timeout_ms_ = time_out;
       slot_id_ = slot_id;
       keys_num_ = keys_num;
+      start_time_ = time(nullptr);
+      char s_time[32];
+      int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&start_time_));
+      s_start_time_.assign(s_time, len);
       should_exit_ = false;
       slot_ = slot;
 
@@ -788,6 +793,7 @@ void PikaMigrateThread::DestroyThread(bool is_self_exit) {
 
   cursor_ = 0;
   is_migrating_ = false;
+  end_time_ = time(nullptr);
   is_task_success_ = true;
   moved_num_ = 0;
 }
@@ -893,6 +899,7 @@ void *PikaMigrateThread::ThreadMain() {
 
   // Create parse_send_threads
   int32_t dispatch_num = g_pika_conf->thread_migrate_keys_num();
+
   if (!CreateParseSendThreads(dispatch_num)) {
     LOG(INFO) << "PikaMigrateThread::ThreadMain CreateParseSendThreads failed !!!";
     DestroyThread(true);
@@ -959,7 +966,7 @@ void *PikaMigrateThread::ThreadMain() {
     LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;
 
     if (should_exit_) {
-      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit2 !!!";
+      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit !!!";
       DestroyThread(false);
       return NULL;
     }
