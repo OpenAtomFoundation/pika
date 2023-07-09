@@ -87,6 +87,7 @@ class LPopCmd : public Cmd {
 
  private:
   std::string key_;
+  std::int64_t count_ = 1;
   void DoInitial() override;
 };
 
@@ -224,6 +225,7 @@ class RPopCmd : public Cmd {
 
  private:
   std::string key_;
+  std::int64_t count_ = 1;
   void DoInitial() override;
 };
 
@@ -259,7 +261,7 @@ class RPopLPushCmd : public Cmd {
   std::string receiver_;
   std::string value_poped_from_source_;
   bool is_write_binlog_ = false;
-  //used for write binlog
+  // used for write binlog
   std::shared_ptr<Cmd> rpop_cmd_;
   std::shared_ptr<Cmd> lpush_cmd_;
   void DoInitial() override;
