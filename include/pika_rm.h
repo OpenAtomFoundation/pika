@@ -147,8 +147,6 @@ class SyncSlaveSlot : public SyncSlot {
 
   const std::string& MasterIp();
 
-  const std::string& MasterRunId();
-
   int MasterPort();
 
   void SetMasterSessionId(int32_t session_id);
