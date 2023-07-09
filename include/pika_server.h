@@ -345,6 +345,7 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsReload {
     bool reloading = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
@@ -373,6 +374,10 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_reload_.reloading = reloading;
   }
+  void SetSlotsreloadingEndTime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_reload_.end_time = time(nullptr);
+  }
   void SetSlotsreloadingCursor(int64_t cursor) {
     std::lock_guard ml(bgsave_protector_);
     bgslots_reload_.cursor = cursor;
@@ -389,6 +394,7 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsCleanup {
     bool cleaningup = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
@@ -423,6 +429,10 @@ class PikaServer : public pstd::noncopyable {
   void SetSlotscleaningup(bool cleaningup) {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = cleaningup;
+  }
+  void SetSlotscleaningupEndtime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.end_time = time(nullptr);
   }
   void SetSlotscleaningupCursor(int64_t cursor) {
     std::lock_guard ml(bgsave_protector_);

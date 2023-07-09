@@ -1618,6 +1618,7 @@ void DoBgslotsreload(void* arg) {
     keys.clear();
   }
   p->SetSlotsreloading(false);
+  p->SetSlotsreloadingEndTime();
 
   if (cursor_ret == 0) {
     LOG(INFO) << "Finish slot reloading";
@@ -1695,6 +1696,7 @@ void DoBgslotscleanup(void* arg) {
   }
 
   p->SetSlotscleaningup(false);
+  p->SetSlotscleaningupEndtime();
   std::vector<int> empty;
   p->SetCleanupSlots(empty);
 
