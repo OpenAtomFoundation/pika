@@ -153,6 +153,8 @@ int PikaConf::Load() {
   GetConfStr("run-id", &run_id_);
   if (run_id_.empty()) {
     run_id_ = pstd::getRandomHexChars(configRunIdSize);
+    // try rewrite run_id_ to diff_commands_
+    SetRunId(run_id_);
   } else if (run_id_.length() != configRunIdSize) {
     LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIdSize;
   }
@@ -530,6 +532,13 @@ int PikaConf::Load() {
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
+  if (slaveof_ != "") {
+    std::string master_run_id;
+    GetConfStr("master-run-id", &master_run_id);
+    if (master_run_id_.length() == configRunIdSize) {
+     master_run_id_ = master_run_id;
+    }
+  }
 
   // sync window size
   int tmp_sync_window_size = kBinlogReadWinDefaultSize;
@@ -603,6 +612,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_.load());
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
+  SetConfStr("run-id", run_id_);
+  SetConfStr("master-run-id", master_run_id_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
   SetConfInt("max-client-response-size", max_client_response_size_);

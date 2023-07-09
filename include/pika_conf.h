@@ -130,6 +130,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return run_id_;
   }
+  std::string master_run_id() {
+    std::shared_lock l(rwlock_);
+    return master_run_id_;
+  }
   std::string requirepass() {
     std::shared_lock l(rwlock_);
     return requirepass_;
@@ -339,6 +343,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
   }
+  void SetMasterRunId(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("master-run-id", value);
+    master_run_id_ = value;
+  }
   void SetSlavePriority(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slave-priority", std::to_string(value));
@@ -380,6 +389,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("dump-prefix", value);
     bgsave_prefix_ = value;
+  }
+  void SetRunId(const std::string& runId) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("run-id", runId);
+    run_id_ = runId;
   }
   void SetRequirePass(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -531,6 +545,7 @@ class PikaConf : public pstd::BaseConf {
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
+  std::string master_run_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;

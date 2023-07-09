@@ -126,7 +126,6 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
-    RemKeyNotExists("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -205,7 +204,6 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
-    RemKeyNotExists("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -290,7 +288,6 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
-    RemKeyNotExists("l", key_, slot);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
