@@ -1637,7 +1637,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
     bgslots_cleanup_.cleaningup = true;
   }
 
-  bgslots_cleanup_.start_time = time(NULL);
+  bgslots_cleanup_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
   bgslots_cleanup_.s_start_time.assign(s_time, len);
@@ -1695,8 +1695,8 @@ void DoBgslotscleanup(void* arg) {
     WriteDelKeyToBinlog(GetSlotsTagKey(*iter), g_pika_server->bgslots_cleanup_.slot);
   }
 
-  p->SetSlotscleaningup(false);
   p->SetSlotscleaningupEndtime();
+  p->SetSlotscleaningup(false);
   std::vector<int> empty;
   p->SetCleanupSlots(empty);
 

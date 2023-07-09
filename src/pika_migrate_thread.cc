@@ -966,7 +966,7 @@ void *PikaMigrateThread::ThreadMain() {
     LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;
 
     if (should_exit_) {
-      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit !!!";
+      LOG(INFO) << "PikaMigrateThread::ThreadMain :" << pthread_self() << " exit2 !!!";
       DestroyThread(false);
       return NULL;
     }
