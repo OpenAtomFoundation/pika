@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # This is the basic replication tests for pika
 #
@@ -15,7 +16,8 @@ import time
 import redis
 import random
 import string
-# -*- coding: utf-8 -*-
+
+
 
 
 def test_del_replication():
