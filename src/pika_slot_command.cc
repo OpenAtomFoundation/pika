@@ -50,9 +50,8 @@ void InitCRC32Table() {
 }
 
 uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
-  int i;
   crc = ~crc;
-  for (i = 0; i < len; i++) {
+  for (int i = 0; i < len; i++) {
     crc = crc32tab[(uint8_t)((char)crc ^ buf[i])] ^ (crc >> 8);
   }
   return ~crc;
@@ -80,7 +79,7 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
       LOG(ERROR) << "GetMigrateClient: new  migrate_cli[" << ip_port.c_str() << "] failed";
 
       delete migrate_cli;
-      return NULL;
+      return nullptr;
     }
 
     LOG(INFO) << "GetMigrateClient: new  migrate_cli[" << ip_port.c_str() << "]";
@@ -97,20 +96,20 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
       if (!s.ok()) {
         LOG(ERROR) << "GetMigrateClient: new  migrate_cli Send, error: " << s.ToString();
         delete migrate_cli;
-        return NULL;
+        return nullptr;
       }
 
       s = migrate_cli->Recv(&argv);
       if (!s.ok()) {
         LOG(ERROR) << "GetMigrateClient: new  migrate_cli Recv, error: " << s.ToString();
         delete migrate_cli;
-        return NULL;
+        return nullptr;
       }
 
       if (strcasecmp(argv[0].data(), kInnerReplOk.data())) {
         LOG(ERROR) << "GetMigrateClient: new  migrate_cli auth error";
         delete migrate_cli;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -125,7 +124,7 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
   migrate_cli->set_recv_timeout(timeout);
 
   // modify the client last time
-  gettimeofday(&migrate_cli->last_interaction_, NULL);
+  gettimeofday(&migrate_cli->last_interaction_, nullptr);
 
   return migrate_cli;
 }
@@ -138,7 +137,7 @@ void PikaMigrate::KillMigrateClient(net::NetCli *migrate_cli) {
 
       migrate_cli->Close();
       delete migrate_cli;
-      migrate_cli = NULL;
+      migrate_cli = nullptr;
 
       migrate_clients_.erase(migrate_clients_iter);
       break;
@@ -157,7 +156,7 @@ void PikaMigrate::CleanMigrateClient() {
     return;
   }
 
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   std::map<std::string, void *>::iterator migrate_clients_iter = migrate_clients_.begin();
   while (migrate_clients_iter != migrate_clients_.end()) {
     net::NetCli *migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
@@ -258,7 +257,7 @@ bool PikaMigrate::MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::s
   std::string reply;
   int64_t ret;
 
-  if (NULL == migrate_cli || need_receive < 0) {
+  if (nullptr == migrate_cli || need_receive < 0) {
     return false;
   }
 
@@ -753,15 +752,15 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
   for (i = 0; i < n && s[i] != '{'; i++) {
   }
   if (i == n) {
-    return NULL;
+    return nullptr;
   }
   i++;
   for (j = i; j < n && s[j] != '}'; j++) {
   }
   if (j == n) {
-    return NULL;
+    return nullptr;
   }
-  if (plen != NULL) {
+  if (plen != nullptr) {
     *plen = j - i;
   }
   return s + i;
@@ -772,7 +771,7 @@ std::string GetSlotKey(int slot) {
 }
 
 // get slot number of the key
-int GetSlotID(const std::string &str) { return GetSlotsID(str, NULL, NULL); }
+int GetSlotID(const std::string &str) { return GetSlotsID(str, nullptr, nullptr); }
 
 // get the slot number by key
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
@@ -780,16 +779,16 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   int taglen;
   int hastag = 0;
   const char *tag = GetSlotsTag(str, &taglen);
-  if (tag == NULL) {
+  if (tag == nullptr) {
     tag = s, taglen = str.length();
   } else {
     hastag = 1;
   }
   uint32_t crc = CRC32CheckSum(tag, taglen);
-  if (pcrc != NULL) {
+  if (pcrc != nullptr) {
     *pcrc = crc;
   }
-  if (phastag != NULL) {
+  if (phastag != nullptr) {
     *phastag = hastag;
   }
   return crc % g_pika_conf->default_slot_num();
