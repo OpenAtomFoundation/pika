@@ -152,11 +152,11 @@ int PikaConf::Load() {
   }
   GetConfStr("run-id", &run_id_);
   if (run_id_.empty()) {
-    run_id_ = pstd::getRandomHexChars(configRunIdSize);
+    run_id_ = pstd::getRandomHexChars(configRunIDSize);
     // try rewrite run_id_ to diff_commands_
-    SetRunId(run_id_);
-  } else if (run_id_.length() != configRunIdSize) {
-    LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIdSize;
+    SetRunID(run_id_);
+  } else if (run_id_.length() != configRunIDSize) {
+    LOG(FATAL) << "run-id " << run_id_ << " is invalid, its string length should be " << configRunIDSize;
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
@@ -535,7 +535,7 @@ int PikaConf::Load() {
   if (slaveof_ != "") {
     std::string master_run_id;
     GetConfStr("master-run-id", &master_run_id);
-    if (master_run_id_.length() == configRunIdSize) {
+    if (master_run_id_.length() == configRunIDSize) {
      master_run_id_ = master_run_id;
     }
   }

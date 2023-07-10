@@ -21,7 +21,7 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
-#define configRunIdSize 40
+#define configRunIDSize 40
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
@@ -343,7 +343,7 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
   }
-  void SetMasterRunId(const std::string& value) {
+  void SetMasterRunID(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("master-run-id", value);
     master_run_id_ = value;
@@ -390,10 +390,10 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("dump-prefix", value);
     bgsave_prefix_ = value;
   }
-  void SetRunId(const std::string& runId) {
+  void SetRunID(const std::string& value) {
     std::lock_guard l(rwlock_);
-    TryPushDiffCommands("run-id", runId);
-    run_id_ = runId;
+    TryPushDiffCommands("run-id", value);
+    run_id_ = value;
   }
   void SetRequirePass(const std::string& value) {
     std::lock_guard l(rwlock_);

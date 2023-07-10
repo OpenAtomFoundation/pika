@@ -749,8 +749,7 @@ void PikaServer::RemoveMaster() {
 
     master_ip_ = "";
     master_port_ = -1;
-    // update master_run_id_ when running meta sync
-    // master_run_id_ = "";
+    master_run_id_ = std::string();
     DoSameThingEverySlot(TaskType::kResetReplState);
   }
 }
