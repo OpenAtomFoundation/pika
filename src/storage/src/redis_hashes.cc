@@ -9,6 +9,7 @@
 
 #include <fmt/core.h>
 #include <glog/logging.h>
+#include <iostream>
 
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
@@ -616,6 +617,7 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
+        std::cout << "A" << std::endl;
       version = parsed_hashes_meta_value.InitialMetaValue();
       parsed_hashes_meta_value.set_count(1);
       batch.Put(handles_[0], key, meta_value);
@@ -630,30 +632,36 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
       if (s.ok()) {
         *res = 0;
         if (data_value == value.ToString()) {
+            std::cout << "B" << std::endl;
           return Status::OK();
         } else {
+            std::cout << "C" << std::endl;
           batch.Put(handles_[1], hashes_data_key.Encode(), value);
           statistic++;
         }
       } else if (s.IsNotFound()) {
+          std::cout << "D" << std::endl;
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
         batch.Put(handles_[1], hashes_data_key.Encode(), value);
         *res = 1;
       } else {
+          std::cout << "E" << std::endl;
         return s;
       }
     }
   } else if (s.IsNotFound()) {
+      std::cout << "F" << std::endl;
     char str[4];
     EncodeFixed32(str, 1);
-    HashesMetaValue meta_value(std::string(str, sizeof(int32_t)));
+    HashesMetaValue meta_value(Slice(str, sizeof(int32_t)));
     version = meta_value.UpdateVersion();
     batch.Put(handles_[0], key, meta_value.Encode());
     HashesDataKey data_key(key, version, field);
     batch.Put(handles_[1], data_key.Encode(), value);
     *res = 1;
   } else {
+      std::cout << "G" << std::endl;
     return s;
   }
   s = db_->Write(default_write_options_, &batch);
