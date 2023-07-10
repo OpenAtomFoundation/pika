@@ -18,7 +18,6 @@ namespace storage {
 int Int64ToStr(char* dst, size_t dstlen, int64_t svalue);
 int StrToInt64(const char* s, size_t slen, int64_t* value);
 int StringMatch(const char* pattern, int pattern_len, const char* string, int string_len, int nocase);
-int StringMatch(const char* pattern, uint64_t pattern_len, const char* string, uint64_t string_len, int nocase);
 int StrToLongDouble(const char* s, size_t slen, long double* ldval);
 int LongDoubleToStr(long double ldval, std::string* value);
 int do_mkdir(const char* path, mode_t mode);

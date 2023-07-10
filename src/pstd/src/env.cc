@@ -255,7 +255,7 @@ class PosixSequentialFile : public SequentialFile {
   }
 
   Status Skip(uint64_t n) override {
-    if (fseek(file_, static_cast<int64_t>(n), SEEK_CUR) != 0) {
+    if (fseek(file_, n, SEEK_CUR) != 0) {
       return IOError(filename_, errno);
     }
     return Status::OK();
@@ -333,12 +333,12 @@ class PosixMmapFile : public WritableFile {
 #if defined(__APPLE__)
     if (ftruncate(fd_, file_offset_ + map_size_) != 0) {
 #else
-    if (posix_fallocate(fd_, static_cast<int64_t>(file_offset_), static_cast<int64_t>(map_size_)) != 0) {
+    if (posix_fallocate(fd_, file_offset_, map_size_) != 0) {
 #endif
       LOG(WARNING) << "ftruncate error";
       return false;
     }
-    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, static_cast<int64_t>(file_offset_));
+    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
     if (ptr == MAP_FAILED) {  // NOLINT
       LOG(WARNING) << "mmap failed";
       return false;
@@ -402,7 +402,7 @@ class PosixMmapFile : public WritableFile {
       s = IOError(filename_, errno);
     } else if (unused > 0) {
       // Trim the extra space at the end of the file
-      if (ftruncate(fd_, static_cast<int64_t>(file_offset_ - unused)) < 0) {
+      if (ftruncate(fd_, file_offset_ - unused) < 0) {
         s = IOError(filename_, errno);
       }
     }
@@ -485,7 +485,7 @@ class MmapRWFile : public RWFile {
 #if defined(__APPLE__)
     if (ftruncate(fd_, map_size_) != 0) {
 #else
-    if (posix_fallocate(fd_, 0, static_cast<int64_t>(map_size_)) != 0) {
+    if (posix_fallocate(fd_, 0, map_size_) != 0) {
 #endif
       return false;
     }
@@ -539,7 +539,7 @@ class PosixRandomRWFile : public RandomRWFile {
     pending_fsync_ = true;
 
     while (left != 0) {
-      ssize_t done = pwrite(fd_, src, left, static_cast<int64_t>(offset));
+      ssize_t done = pwrite(fd_, src, left, offset);
       if (done < 0) {
         if (errno == EINTR) {
           continue;

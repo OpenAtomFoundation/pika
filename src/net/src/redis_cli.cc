@@ -88,7 +88,7 @@ Status RedisCli::Send(void* msg) {
   const char* wbuf = storage->data();
   size_t nleft = storage->size();
 
-  ssize_t wbuf_pos = 0;
+  int wbuf_pos = 0;
 
   ssize_t nwritten;
   while (nleft > 0) {
@@ -164,7 +164,7 @@ ssize_t RedisCli::BufferRead() {
       return REDIS_EREAD_NULL;
     }
 
-    rbuf_offset_ += static_cast<int32_t>(nread);
+    rbuf_offset_ += nread;
     return nread;
   }
 }
@@ -172,7 +172,7 @@ ssize_t RedisCli::BufferRead() {
 /* Find pointer to \r\n. */
 static char* seekNewline(char* s, size_t len) {
   int pos = 0;
-  auto _len = static_cast<int32_t>(len - 1);
+  int _len = len - 1;
 
   /* Position should be < len-1 because the character at "pos" should be
    * followed by a \n. Note that strchr cannot be used because it doesn't
@@ -252,8 +252,8 @@ int RedisCli::ProcessBulkItem() {
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
   if (s) {
-    bytelen = static_cast<int32_t>(s - p + 2); /* include \r\n */
-    len = static_cast<int32_t>(readLongLong(p));
+    bytelen = s - p + 2; /* include \r\n */
+    len = readLongLong(p);
 
     if (len == -1) {
       elements_--;
@@ -280,7 +280,7 @@ int RedisCli::ProcessMultiBulkItem() {
   int len;
 
   if (p = ReadLine(&len); p) {
-    elements_ = static_cast<int32_t>(readLongLong(p));
+    elements_ = readLongLong(p);
     return REDIS_OK;
   }
 
@@ -294,7 +294,7 @@ int RedisCli::GetReply() {
   while (elements_ > 0) {
     // Should read again
     if (rbuf_offset_ == 0 || result == REDIS_HALF) {
-      if ((result = static_cast<int32_t>(BufferRead())) < 0) {
+      if ((result = BufferRead()) < 0) {
         return result;
       }
     }
@@ -312,8 +312,8 @@ char* RedisCli::ReadBytes(unsigned int bytes) {
   char* p = nullptr;
   if (static_cast<unsigned int>(rbuf_offset_) >= bytes) {
     p = rbuf_ + rbuf_pos_;
-    rbuf_pos_ += static_cast<int32_t>(bytes);
-    rbuf_offset_ -= static_cast<int32_t>(bytes);
+    rbuf_pos_ += bytes;
+    rbuf_offset_ -= bytes;
   }
   return p;
 }
@@ -326,7 +326,7 @@ char* RedisCli::ReadLine(int* _len) {
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
   if (s) {
-    len = static_cast<int32_t>(s - (rbuf_ + rbuf_pos_));
+    len = s - (rbuf_ + rbuf_pos_);
     rbuf_pos_ += len + 2; /* skip \r\n */
     rbuf_offset_ -= len + 2;
     if (_len) {
@@ -411,7 +411,7 @@ static int intlen(int i) {
 }
 
 // Helper that calculates the bulk length given a certain string length.
-static size_t bulklen(size_t len) { return 1 + intlen(static_cast<int32_t>(len)) + 2 + len + 2; }
+static size_t bulklen(size_t len) { return 1 + intlen(len) + 2 + len + 2; }
 
 int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
   const char* c = format;
@@ -573,7 +573,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
   }
 
   /* Add bytes needed to hold multi bulk count */
-  totlen += 1 + intlen(static_cast<int32_t>(args.size())) + 2;
+  totlen += 1 + intlen(args.size()) + 2;
 
   /* Build the command at protocol level */
   cmd->clear();
@@ -591,7 +591,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
   }
   assert(cmd->size() == totlen);
 
-  return static_cast<int32_t>(totlen);
+  return totlen;
 }
 
 int redisvAppendCommand(std::string* cmd, const char* format, va_list ap) {
@@ -606,7 +606,7 @@ int redisvAppendCommand(std::string* cmd, const char* format, va_list ap) {
 int redisFormatCommandArgv(RedisCmdArgsType argv, std::string* cmd) {
   size_t argc = argv.size();
 
-  size_t totlen = 1 + intlen(static_cast<int32_t>(argc)) + 2;
+  int totlen = 1 + intlen(argc) + 2;
   for (size_t i = 0; i < argc; i++) {
     totlen += bulklen(argv[i].size());
   }

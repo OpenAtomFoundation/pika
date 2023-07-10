@@ -482,7 +482,7 @@ ssize_t rio_readn(int fd, void* usrbuf, size_t n) {
     nleft -= nread;
     bufp += nread;
   }
-  return static_cast<ssize_t>(n - nleft); /* return >= 0 */
+  return (n - nleft); /* return >= 0 */
 }
 /* $end rio_readn */
 
@@ -506,7 +506,7 @@ ssize_t rio_writen(int fd, void* usrbuf, size_t n) {
     nleft -= nwritten;
     bufp += nwritten;
   }
-  return static_cast<ssize_t>(n);
+  return n;
 }
 /* $end rio_writen */
 
@@ -523,7 +523,7 @@ static ssize_t rio_read(rio_t* rp, char* usrbuf, size_t n) {
   int cnt;
 
   while (rp->rio_cnt <= 0) { /* refill if buf is empty */
-    rp->rio_cnt = static_cast<int32_t>(read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf)));
+    rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
     if (rp->rio_cnt < 0) {
       if (errno != EINTR) { /* interrupted by sig handler return */
         return -1;
@@ -536,7 +536,7 @@ static ssize_t rio_read(rio_t* rp, char* usrbuf, size_t n) {
   }
 
   /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
-  cnt = static_cast<int32_t>(n);
+  cnt = n;
   if (rp->rio_cnt < static_cast<int>(n)) {
     cnt = rp->rio_cnt;
   }
@@ -580,7 +580,7 @@ ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
     nleft -= nread;
     bufp += nread;
   }
-  return static_cast<ssize_t>(n - nleft); /* return >= 0 */
+  return (n - nleft); /* return >= 0 */
 }
 /* $end rio_readnb */
 
@@ -595,7 +595,7 @@ ssize_t rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen) {
   char *bufp = static_cast<char*>(usrbuf);
 
   for (n = 1; n < maxlen; n++) {
-    if ((rc = static_cast<int32_t>(rio_read(rp, &c, 1))) == 1) {
+    if ((rc = rio_read(rp, &c, 1)) == 1) {
       *bufp++ = c;
       if (c == '\n') { break;
 }
@@ -610,7 +610,7 @@ ssize_t rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen) {
 }
   }
   *bufp = 0;
-  return static_cast<ssize_t>(n);
+  return n;
 }
 /* $end rio_readlineb */
 

@@ -66,8 +66,8 @@ ReadStatus RedisConn::GetRequest() {
   ssize_t nread = 0;
   int next_read_pos = last_read_pos_ + 1;
 
-  int64_t remain = rbuf_len_ - next_read_pos;  // Remain buffer size
-  int64_t new_size = 0;
+  int remain = rbuf_len_ - next_read_pos;  // Remain buffer size
+  int new_size = 0;
   if (remain == 0) {
     new_size = rbuf_len_ + REDIS_IOBUF_LEN;
     remain += REDIS_IOBUF_LEN;
@@ -83,7 +83,7 @@ ReadStatus RedisConn::GetRequest() {
     if (!rbuf_) {
       return kFullError;
     }
-    rbuf_len_ = static_cast<int32_t>(new_size);
+    rbuf_len_ = new_size;
   }
 
   nread = read(fd(), rbuf_ + next_read_pos, remain);
@@ -100,16 +100,16 @@ ReadStatus RedisConn::GetRequest() {
     return kReadClose;
   }
   // assert(nread > 0);
-  last_read_pos_ += static_cast<int32_t>(nread);
+  last_read_pos_ += nread;
   msg_peak_ = last_read_pos_;
-  command_len_ += static_cast<int32_t> (nread);
+  command_len_ += nread;
   if (command_len_ >= rbuf_max_len_) {
     LOG(INFO) << "close conn command_len " << command_len_ << ", rbuf_max_len " << rbuf_max_len_;
     return kFullError;
   }
 
   int processed_len = 0;
-  RedisParserStatus ret = redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, static_cast<int32_t>(nread), &processed_len);
+  RedisParserStatus ret = redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, nread, &processed_len);
   ReadStatus read_status = ParseRedisParserStatus(ret);
   if (read_status == kReadAll || read_status == kReadHalf) {
     if (read_status == kReadAll) {
@@ -170,7 +170,7 @@ int RedisConn::WriteResp(const std::string& resp) {
 void RedisConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  time_t idletime = now.tv_sec - last_interaction().tv_sec;
+  int idletime = now.tv_sec - last_interaction().tv_sec;
   if (rbuf_len_ > REDIS_MBULK_BIG_ARG && ((rbuf_len_ / (msg_peak_ + 1)) > 2 || idletime > 2)) {
     int new_size = ((last_read_pos_ + REDIS_IOBUF_LEN) / REDIS_IOBUF_LEN) * REDIS_IOBUF_LEN;
     if (new_size < rbuf_len_) {

@@ -184,8 +184,7 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
 }
 
 int stringmatch(const char* pattern, const char* string, int nocase) {
-  return stringmatchlen(pattern, static_cast<int32_t>(strlen(pattern)), string, static_cast<int32_t>(strlen(string)),
-                        nocase);
+  return stringmatchlen(pattern, strlen(pattern), string, strlen(string), nocase);
 }
 
 /* Convert a string representing an amount of memory into the number of
@@ -321,7 +320,7 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
   dst[next] = '\0';
   next--;
   while (value >= 100) {
-    int const i = static_cast<int32_t>((value % 100) * 2);
+    int const i = (value % 100) * 2;
     value /= 100;
     dst[next] = digits[i + 1];
     dst[next - 1] = digits[i];
@@ -330,9 +329,9 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
 
   /* Handle last 1-2 digits. */
   if (value < 10) {
-    dst[next] = static_cast<char>('0' + value);
+    dst[next] = '0' + static_cast<uint32_t>(value);
   } else {
-    int i = static_cast<int32_t>(value) * 2;
+    int i = static_cast<uint32_t>(value) * 2;
     dst[next] = digits[i + 1];
     dst[next - 1] = digits[i];
   }
@@ -341,7 +340,7 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
   if (negative != 0) {
     dst[0] = '-';
   }
-  return static_cast<int32_t>(length);
+  return length;
 }
 
 /* Convert a string into a long long. Returns 1 if the string could be parsed
@@ -425,14 +424,14 @@ int string2int(const char* s, size_t slen, long long* value) {
       return 0;
     }
     if (value) {
-      *value = static_cast<long long>(-v);
+      *value = -v;
     }
   } else {
     if (v > LLONG_MAX) { /* Overflow. */
       return 0;
     }
     if (value) {
-      *value = static_cast<long long>(v);
+      *value = v;
     }
   }
   return 1;
@@ -512,7 +511,7 @@ int d2string(char* buf, size_t len, double value) {
       len = snprintf(buf, len, "%.17g", value);
   }
 
-  return static_cast<int32_t>(len);
+  return len;
 }
 
 int string2d(const char* s, size_t slen, double* dval) {
@@ -575,7 +574,7 @@ std::string getRandomHexChars(const size_t len) {
     /* Finally xor it with rand() output, that was already seeded with
      * time() at startup. */
     for (j = 0; j < len; j++) {
-      p[j] = static_cast<char>(p[j] ^ rand());
+      p[j] ^= rand();
     }
   }
   /* Turn it into hex digits taking just 4 bits out of 8 for every byte. */
@@ -702,7 +701,7 @@ std::string StringTrim(const std::string& ori, const std::string& charlist) {
   }
 
   size_t pos = 0;
-  size_t rpos = ori.size() - 1;
+  int rpos = ori.size() - 1;
   while (pos < ori.size()) {
     bool meet = false;
     for (char c : charlist) {

@@ -305,7 +305,7 @@ void ClientThread::NotifyWrite(const std::string& ip_port) {
 void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   if (pfe->mask & kReadable) {
     char bb[2048];
-    int64_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
+    int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
@@ -381,7 +381,7 @@ void* ClientThread::ThreadMain() {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
+        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // do user defined cron
         handle_->CronHandle();

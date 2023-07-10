@@ -26,8 +26,8 @@ void BGThread::Schedule(void (*function)(void*), void* arg) {
 
 void BGThread::QueueSize(int* pri_size, int* qu_size) {
   std::lock_guard lock(mu_);
-  *pri_size = static_cast<int32_t>(timer_queue_.size());
-  *qu_size = static_cast<int32_t>(queue_.size());
+  *pri_size = timer_queue_.size();
+  *qu_size = queue_.size();
 }
 
 void BGThread::QueueClear() {

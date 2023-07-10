@@ -239,7 +239,7 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
 
   // Serialize header
   if (headers_.find("Content-Length") == headers_.end()) {
-    SetHeaders("Content-Length", static_cast<int32_t>(body_.size()));
+    SetHeaders("Content-Length", body_.size());
   }
   for (auto& line : headers_) {
     ret = snprintf(data + serial_size, size - serial_size, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
@@ -260,13 +260,13 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
 // Serialize body begin from 'pos', return the new pos
 int Response::SerializeBodyToArray(char* data, size_t size, int* pos) {
   // Serialize body
-  size_t actual = size;
+  int actual = size;
   if (body_.size() - *pos < size) {
     actual = body_.size() - *pos;
   }
   memcpy(data, body_.data() + *pos, actual);
-  *pos += static_cast<int32_t>(actual);
-  return static_cast<int32_t>(actual);
+  *pos += actual;
+  return actual;
 }
 
 void Response::SetStatusCode(int code) {
@@ -297,7 +297,7 @@ SimpleHTTPConn::~SimpleHTTPConn() {
  */
 bool SimpleHTTPConn::BuildRequestHeader() {
   request_->Clear();
-  if (!request_->ParseHeadFromArray(rbuf_, static_cast<int32_t>(header_len_))) {
+  if (!request_->ParseHeadFromArray(rbuf_, header_len_)) {
     return false;
   }
   auto iter = request_->headers.find("content-length");
@@ -319,7 +319,7 @@ bool SimpleHTTPConn::BuildRequestHeader() {
 }
 
 bool SimpleHTTPConn::AppendRequestBody() {
-  return request_->ParseBodyFromArray(rbuf_ + header_len_, static_cast<int32_t>(rbuf_pos_ - header_len_));
+  return request_->ParseBodyFromArray(rbuf_ + header_len_, rbuf_pos_ - header_len_);
 }
 
 void SimpleHTTPConn::HandleMessage() {

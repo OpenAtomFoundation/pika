@@ -288,7 +288,7 @@ std::string sha256(const std::string& input, bool raw) {
   if (raw) {
     std::string res;
     for (unsigned char i : digest) {
-      res.append(1, static_cast<char>(i));
+      res.append(1, i);
     }
     return res;
   }
@@ -337,19 +337,19 @@ inline MD5::uint4 MD5::rotate_left(uint4 x, int n) { return (x << n) | (x >> (32
 // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 // Rotation is separate from addition to prevent recomputation.
 inline void MD5::FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
-  a = rotate_left(a + F(b, c, d) + x + ac, static_cast<int32_t>(s)) + b;
+  a = rotate_left(a + F(b, c, d) + x + ac, s) + b;
 }
 
 inline void MD5::GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
-  a = rotate_left(a + G(b, c, d) + x + ac, static_cast<int32_t>(s)) + b;
+  a = rotate_left(a + G(b, c, d) + x + ac, s) + b;
 }
 
 inline void MD5::HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
-  a = rotate_left(a + H(b, c, d) + x + ac, static_cast<int32_t>(s)) + b;
+  a = rotate_left(a + H(b, c, d) + x + ac, s) + b;
 }
 
 inline void MD5::II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
-  a = rotate_left(a + I(b, c, d) + x + ac, static_cast<int32_t>(s)) + b;
+  a = rotate_left(a + I(b, c, d) + x + ac, s) + b;
 }
 
 //////////////////////////////////////////////
@@ -600,7 +600,7 @@ std::string MD5::rawdigest() const {
   }
   std::string res;
   for (unsigned char i : digest) {
-    res.append(1, static_cast<char>(i));
+    res.append(1, i);
   }
   return res;
 }

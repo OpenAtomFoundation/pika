@@ -48,7 +48,7 @@ ReadStatus PbConn::GetRequest() {
             uint32_t integer = 0;
             memcpy(reinterpret_cast<char*>(&integer), rbuf_, sizeof(uint32_t));
             header_len_ = ntohl(integer);
-            remain_packet_len_ = static_cast<int32_t>(header_len_);
+            remain_packet_len_ = header_len_;
             connStatus_ = kPacket;
             continue;
           }
@@ -80,8 +80,8 @@ ReadStatus PbConn::GetRequest() {
         } else if (nread == 0) {
           return kReadClose;
         }
-        cur_pos_ += static_cast<uint32_t>(nread);
-        remain_packet_len_ -= static_cast<int32_t>(nread);
+        cur_pos_ += nread;
+        remain_packet_len_ -= nread;
         if (remain_packet_len_ == 0) {
           connStatus_ = kComplete;
           continue;
@@ -178,7 +178,7 @@ void PbConn::BuildInternalTag(const std::string& resp, std::string* tag) {
 void PbConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  time_t idletime = now.tv_sec - last_interaction().tv_sec;
+  int idletime = now.tv_sec - last_interaction().tv_sec;
   if (rbuf_len_ > PB_IOBUF_LEN && ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
     uint32_t new_size = ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
     if (new_size < rbuf_len_) {

@@ -49,7 +49,7 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
       while (done == 0) {
         if (inq != 0) {
           if (*p == '\\' && *(p + 1) == 'x' && IsHexDigit(*(p + 2)) && IsHexDigit(*(p + 3))) {
-            char byte = static_cast<char>(HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3)));
+            unsigned char byte = HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3));
             arg.append(1, byte);
             p += 3;
           } else if (*p == '\\' && (*(p + 1) != 0)) {
@@ -279,7 +279,7 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
       break;
     } else {
       argv_.emplace_back(input_buf_ + cur_pos_, bulk_len_);
-      cur_pos_ = static_cast<int32_t>(cur_pos_ + bulk_len_ + 2);
+      cur_pos_ = cur_pos_ + bulk_len_ + 2;
       bulk_len_ = -1;
       multibulk_len_--;
     }
@@ -316,7 +316,7 @@ RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int len
     std::string tmp_str(input_buf, length);
     input_str_ = half_argv_ + tmp_str;
     input_buf_ = input_str_.c_str();
-    length_ = static_cast<int32_t>(length + half_argv_.size());
+    length_ = length + half_argv_.size();
     if (redis_parser_type_ == REDIS_PARSER_REQUEST) {
       ProcessRequestBuffer();
     } else if (redis_parser_type_ == REDIS_PARSER_RESPONSE) {

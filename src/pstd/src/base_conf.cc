@@ -45,7 +45,7 @@ int BaseConf::LoadConf() {
     name_len = 0;
     value_len = 0;
     type = Rep::kComment;
-    line_len = static_cast<int32_t>(strlen(line));
+    line_len = strlen(line);
     for (int i = 0; i < line_len; i++) {
       if (i == 0 && line[i] == COMMENT) {
         type = Rep::kComment;
@@ -112,7 +112,7 @@ bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
     }
     if (name == i.name) {
       auto c_str = i.value.c_str();
-      (*value) = static_cast<int32_t>(strtoll(c_str, nullptr, 10));
+      (*value) = strtoll(c_str, nullptr, 10);
       char last = c_str[i.value.size() - 1];
       if (last == 'K' || last == 'k') {
         (*value) *= (1 << 10);
