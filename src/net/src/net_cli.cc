@@ -153,7 +153,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
 static int PollFd(int fd, int events, int ms) {
   pollfd fds[1];
   fds[0].fd = fd;
-  fds[0].events = events;
+  fds[0].events = static_cast<int16_t>(events);
   fds[0].revents = 0;
 
   int ret = ::poll(fds, 1, ms);
@@ -170,7 +170,7 @@ static int CheckSockAliveness(int fd) {
 
   ret = PollFd(fd, POLLIN | POLLPRI, 0);
   if (0 < ret) {
-    int num = ::recv(fd, buf, 1, MSG_PEEK);
+    int64_t num = ::recv(fd, buf, 1, MSG_PEEK);
     if (num == 0) {
       return -1;
     }
@@ -212,7 +212,7 @@ int NetCli::CheckAliveness() {
 Status NetCli::SendRaw(void* buf, size_t count) {
   char* wbuf = reinterpret_cast<char*>(buf);
   size_t nleft = count;
-  int pos = 0;
+  ssize_t pos = 0;
   ssize_t nwritten;
 
   while (nleft > 0) {
