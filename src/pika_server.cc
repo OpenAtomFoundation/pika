@@ -747,9 +747,9 @@ void PikaServer::RemoveMaster() {
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
-    master_ip_ = std::string();
+    master_ip_ = "";
     master_port_ = -1;
-    master_run_id_ = std::string();
+    master_run_id_ = "";
     DoSameThingEverySlot(TaskType::kResetReplState);
   }
 }
