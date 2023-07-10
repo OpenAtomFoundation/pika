@@ -426,22 +426,7 @@ void KeysCmd::DoInitial() {
     return;
   }
   pattern_ = argv_[1];
-  if (argv_.size() == 3) {
-    std::string opt = argv_[2];
-    if (strcasecmp(opt.data(), "string") == 0) {
-      type_ = storage::DataType::kStrings;
-    } else if (strcasecmp(opt.data(), "zset") == 0) {
-      type_ = storage::DataType::kZSets;
-    } else if (strcasecmp(opt.data(), "set") == 0) {
-      type_ = storage::DataType::kSets;
-    } else if (strcasecmp(opt.data(), "list") == 0) {
-      type_ = storage::DataType::kLists;
-    } else if (strcasecmp(opt.data(), "hash") == 0) {
-      type_ = storage::DataType::kHashes;
-    } else {
-      res_.SetRes(CmdRes::kSyntaxErr);
-    }
-  } else if (argv_.size() > 3) {
+  if (argv_.size() > 2) {
     res_.SetRes(CmdRes::kSyntaxErr);
   }
 }
