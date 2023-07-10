@@ -380,8 +380,7 @@ PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, cons
       mgrtkeys_num_(64),
       should_exit_(false),
       migrate_thread_(migrate_thread),
-      slot_(slot),
-      cli_(nullptr) {}
+      slot_(slot) {}
 
 PikaParseSendThread::~PikaParseSendThread() {
   if (is_running()) {
@@ -423,7 +422,7 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
   return true;
 }
 
-void PikaParseSendThread::ExitThread() { should_exit_ = true; }
+void PikaParseSendThread::ExitThread(void) { should_exit_ = true; }
 
 int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async) {
   int send_num;
@@ -738,7 +737,7 @@ void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port, int64_t
   }
 }
 
-void PikaMigrateThread::CancelMigrate() {
+void PikaMigrateThread::CancelMigrate(void) {
   LOG(INFO) << "PikaMigrateThread::CancelMigrate";
 
   if (is_running()) {
@@ -749,9 +748,9 @@ void PikaMigrateThread::CancelMigrate() {
   }
 }
 
-void PikaMigrateThread::IncWorkingThreadNum() { ++working_thread_num_; }
+void PikaMigrateThread::IncWorkingThreadNum(void) { ++working_thread_num_; }
 
-void PikaMigrateThread::DecWorkingThreadNum() {
+void PikaMigrateThread::DecWorkingThreadNum(void) {
   std::unique_lock lw(workers_mutex_);
   --working_thread_num_;
   workers_cond_.notify_one();
@@ -764,7 +763,7 @@ void PikaMigrateThread::OnTaskFailed() {
 
 void PikaMigrateThread::AddResponseNum(int32_t response_num) { response_num_ += response_num; }
 
-void PikaMigrateThread::ResetThread() {
+void PikaMigrateThread::ResetThread(void) {
   if (0 != thread_id()) {
     JoinThread();
   }
@@ -852,7 +851,7 @@ void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey, int64_t need_re
 bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
   workers_num_ = g_pika_conf->slotmigrate_thread_num();
   for (int32_t i = 0; i < workers_num_; ++i) {
-    auto *worker = new PikaParseSendThread(this, slot_);
+    auto worker = new PikaParseSendThread(this, slot_);
     if (!worker->Init(dest_ip_, dest_port_, timeout_ms_, dispatch_num)) {
       delete worker;
       DestroyParseSendThreads();
@@ -872,7 +871,7 @@ bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
   return true;
 }
 
-void PikaMigrateThread::DestroyParseSendThreads() {
+void PikaMigrateThread::DestroyParseSendThreads(void) {
   if (!workers_.empty()) {
     for (auto & worker : workers_) {
       worker->ExitThread();

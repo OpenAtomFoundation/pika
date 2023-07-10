@@ -181,7 +181,7 @@ void PikaMigrate::CleanMigrateClient() {
 void PikaMigrate::KillAllMigrateClient() {
   auto migrate_clients_iter = migrate_clients_.begin();
   while (migrate_clients_iter != migrate_clients_.end()) {
-    auto *migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
+    auto migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
 
     LOG(INFO) << "KillAllMigrateClient: kill  migrate_cli[" << migrate_clients_iter->first.c_str() << "]";
 

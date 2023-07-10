@@ -1562,7 +1562,7 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
   return true;
 }
 
-void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
+void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1579,7 +1579,7 @@ void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
   bgslots_reload_.cursor = 0;
   bgslots_reload_.pattern = "*";
   bgslots_reload_.count = 100;
-  bgslots_reload_.slot = std::move(slot);
+  bgslots_reload_.slot = slot;
 
   LOG(INFO) << "Start slot reloading";
 
@@ -1589,7 +1589,7 @@ void PikaServer::Bgslotsreload(std::shared_ptr<Slot>slot) {
 }
 
 void DoBgslotsreload(void* arg) {
-  auto* p = static_cast<PikaServer*>(arg);
+  auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsReload reload = p->bgslots_reload();
 
   // Do slotsreload
@@ -1627,7 +1627,7 @@ void DoBgslotsreload(void* arg) {
   }
 }
 
-void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<Slot> slot) {
+void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared_ptr<Slot>& slot) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1644,7 +1644,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
   bgslots_cleanup_.cursor = 0;
   bgslots_cleanup_.pattern = "*";
   bgslots_cleanup_.count = 100;
-  bgslots_cleanup_.slot = std::move(slot);
+  bgslots_cleanup_.slot = slot;
   bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
 
   std::string slotsStr;
@@ -1657,7 +1657,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, std::shared_ptr<S
 }
 
 void DoBgslotscleanup(void* arg) {
-  auto* p = static_cast<PikaServer*>(arg);
+  auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
 
   // Do slotscleanup

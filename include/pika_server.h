@@ -348,9 +348,9 @@ class PikaServer : public pstd::noncopyable {
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
-    int64_t count = 0;
+    int64_t count = 100;
     std::shared_ptr<Slot> slot;
-    BGSlotsReload() :  pattern("*"), count(100) {}
+    BGSlotsReload() = default;
     void Clear() {
       reloading = false;
       pattern = "*";
@@ -381,7 +381,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_reload_.cursor;
   }
-  void Bgslotsreload(std::shared_ptr<Slot> slot);
+  void Bgslotsreload(const std::shared_ptr<Slot>& slot);
 
   /*
    * BGSlotsCleanup used
@@ -392,11 +392,11 @@ class PikaServer : public pstd::noncopyable {
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
-    int64_t count = 0;
+    int64_t count = 100;
     std::shared_ptr<Slot> slot;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
-    BGSlotsCleanup() :  pattern("*"), count(100){}
+    BGSlotsCleanup() = default;
     void Clear() {
       cleaningup = false;
       pattern = "*";
@@ -440,7 +440,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
-  void Bgslotscleanup(std::vector<int> cleanup_slots, std::shared_ptr<Slot> slot);
+  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = false;

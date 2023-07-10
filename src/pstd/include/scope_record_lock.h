@@ -21,7 +21,7 @@ using Slice = rocksdb::Slice;
 
 class ScopeRecordLock final : public pstd::noncopyable {
  public:
-  ScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const Slice& key) : lock_mgr_(std::move(lock_mgr)), key_(key) {
+  ScopeRecordLock(const std::shared_ptr<LockMgr>& lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
     lock_mgr_->TryLock(key_.ToString());
   }
   ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
@@ -33,7 +33,7 @@ class ScopeRecordLock final : public pstd::noncopyable {
 
 class MultiScopeRecordLock final : public pstd::noncopyable {
  public:
-  MultiScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const std::vector<std::string>& keys);
+  MultiScopeRecordLock(const std::shared_ptr<LockMgr>& lock_mgr, const std::vector<std::string>& keys);
   ~MultiScopeRecordLock();
 
  private:

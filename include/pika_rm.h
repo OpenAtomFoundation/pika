@@ -236,7 +236,7 @@ class PikaReplicaManager {
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& db_slot,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                               std::shared_ptr<net::PbConn> conn, void* res_private_data);
+                               const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
                            uint32_t slot_id);
 
