@@ -1,7 +1,8 @@
 start_server {tags {"scan"}} {
     test "SCAN basic" {
         r flushdb
-        r debug populate 1000
+        populate 1000
+        #populate 1000
 
         set cur 0
         set keys {}
@@ -19,7 +20,7 @@ start_server {tags {"scan"}} {
 
     test "SCAN COUNT" {
         r flushdb
-        r debug populate 1000
+        populate 1000
 
         set cur 0
         set keys {}
@@ -37,7 +38,7 @@ start_server {tags {"scan"}} {
 
     test "SCAN MATCH" {
         r flushdb
-        r debug populate 1000
+        populate 1000
 
         set cur 0
         set keys {}
@@ -56,7 +57,7 @@ start_server {tags {"scan"}} {
     test "SCAN TYPE" {
         r flushdb
         # populate only creates strings
-        r debug populate 1000
+        populate 1000
 
         # Check non-strings are excluded
         set cur 0
@@ -214,7 +215,7 @@ start_server {tags {"scan"}} {
 
     test "SCAN guarantees check under write load" {
         r flushdb
-        r debug populate 100
+        populate 100
 
         # We start scanning here, so keys from 0 to 99 should all be
         # reported at the end of the iteration.

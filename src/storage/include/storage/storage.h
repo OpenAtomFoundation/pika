@@ -497,11 +497,11 @@ class Storage {
   // the value stored at key is not a list.
   Status LLen(const Slice& key, uint64_t* len);
 
-  // Removes and returns the first element of the list stored at key.
-  Status LPop(const Slice& key, std::string* element);
+  // Removes and returns the first elements of the list stored at key.
+  Status LPop(const Slice& key, int64_t count, std::vector<std::string>* elements);
 
-  // Removes and returns the last element of the list stored at key.
-  Status RPop(const Slice& key, std::string* element);
+  // Removes and returns the last elements of the list stored at key.
+  Status RPop(const Slice& key, int64_t count, std::vector<std::string>* elements);
 
   // Returns the element at index index in the list stored at key. The index is
   // zero-based, so 0 means the first element, 1 the second element and so on.

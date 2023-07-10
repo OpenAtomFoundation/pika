@@ -231,8 +231,8 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
       (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
     LOG(WARNING) << "Slave offset is larger than mine, Slave ip: " << node.ip() << ", Slave port: " << node.port()
-                 << ", Slot: " << slot_name << ", filenum: " << slave_boffset.filenum()
-                 << ", pro_offset_: " << slave_boffset.offset();
+                 << ", Slot: " << slot_name << ", slave filenum: " << slave_boffset.filenum()
+                 << ", slave pro_offset_: " << slave_boffset.offset() << ", local filenum: " << boffset.filenum << ", local pro_offset_: " << boffset.offset;
     return false;
   }
 
