@@ -17,8 +17,6 @@ import random
 import string
 
 
-
-
 def test_del_replication():
     print("start del multiple keys replication test")
     # 创建Redis客户端
@@ -113,7 +111,7 @@ def test_del_replication():
 
     master.close()
     slave.close()
-    print("Del multiple keys replication  OK [PASSED]")
+    print("Del multiple keys replication  OK [✓]")
 
 
 def test_msetnx_replication():
@@ -182,7 +180,7 @@ def test_msetnx_replication():
         m_v = master.get(key)
         s_v = slave.get(key)
         assert m_v == s_v, f'Expected: master_v == slave_v, but got slave_v:{s_v}, master_v:{m_v}, using key:{key}'
-    print("test_msetnx_replication  OK [PASSED]")
+    print("test_msetnx_replication  OK [✓]")
 
 
 def test_mset_replication():
@@ -247,7 +245,7 @@ def test_mset_replication():
         m_v = master.get(key)
         s_v = slave.get(key)
         assert m_v == s_v, f'Expected: master_v == slave_v, but got slave_v:{s_v}, master_v:{m_v}, using key:{key}'
-    print("test_mset_replication  OK [PASSED]")
+    print("test_mset_replication  OK [✓]")
 
 
 def test_smove_replication():
@@ -298,7 +296,7 @@ def test_smove_replication():
 
     assert m_source_set == s_source_set, f'Expected: source_set on master == source_set on slave, but got source_set on slave:{s_source_set}, source_set on master:{m_source_set}'
     assert m_dest_set == s_dest_set, f'Expected: dest_set on master == dest_set on slave, but got dest_set on slave:{s_dest_set}, dest_set on master:{m_dest_set}'
-    print("start test_smove_replication  OK [PASSED]")
+    print("start test_smove_replication  OK [✓]")
 
 
 def test_rpoplpush_replication():
@@ -380,7 +378,7 @@ def test_rpoplpush_replication():
         # print(slave.lindex('blist', i))
         assert master.lindex('blist', i) == slave.lindex('blist', i), \
             f"Expected:master.lindex('blist', i) == slave.linex('blist', i), but got False when i = {i}"
-    print("test_rpoplpush_replication OK [PASSED]")
+    print("test_rpoplpush_replication OK [✓]")
 
 
 def test_sdiffstore_replication():
@@ -445,7 +443,7 @@ def test_sdiffstore_replication():
     assert m_set1 == s_set1, f'Expected: set1 on master == set1 on slave, but got set1 on slave:{s_set1}, set1 on master:{m_set1}'
     assert m_set2 == s_set2, f'Expected: set2 on master == set2 on slave, but got set2 on slave:{s_set2}, set2 on master:{m_set2}'
     assert m_dest_set == s_dest_set, f'Expected: dest_set on master == dest_set on slave, but got dest_set on slave:{s_dest_set}, dest_set on master:{m_dest_set}'
-    print("test_sdiffstore_replication OK [PASSED]")
+    print("test_sdiffstore_replication OK [✓]")
 
 
 def test_sinterstore_replication():
@@ -507,7 +505,7 @@ def test_sinterstore_replication():
     s_dest_set = slave.smembers('dest_set')
 
     assert m_dest_set == s_dest_set, f'Expected: dest_set on master == dest_set on slave, but got dest_set on slave:{s_dest_set}, dest_set on master:{m_dest_set}'
-    print("test_sinterstore_replication OK [PASSED]")
+    print("test_sinterstore_replication OK [✓]")
 
 
 def test_zunionstore_replication():
@@ -561,7 +559,7 @@ def test_zunionstore_replication():
     s_zset_out = slave.zrange('zset_out', 0, -1, withscores=True)
 
     assert m_zset_out == s_zset_out, f'Expected: zset_out on master == zset_out on slave, but got zset_out on slave:{s_zset_out}, zset_out on master:{m_zset_out}'
-    print("test_zunionstore_replication OK [PASSED]")
+    print("test_zunionstore_replication OK [✓]")
 
 
 def test_zinterstore_replication():
@@ -623,7 +621,7 @@ def test_zinterstore_replication():
 
     assert m_zset_out == s_zset_out, f'Expected: zset_out on master == zset_out on slave, but got zset_out on slave:{s_zset_out}, zset_out on master:{m_zset_out}'
 
-    print("test_zinterstore_replication OK [PASSED]")
+    print("test_zinterstore_replication OK [✓]")
 
 
 def test_sunionstore_replication():
@@ -678,7 +676,7 @@ def test_sunionstore_replication():
     s_set_out = slave.smembers('set_out')
 
     assert m_set_out == s_set_out, f'Expected: set_out on master == set_out on slave, but got set_out on slave:{s_set_out}, set_out on master:{m_set_out}'
-    print("test_sunionstore_replication OK [PASSED]")
+    print("test_sunionstore_replication OK [✓]")
 
 
 def test_bitop_replication():
@@ -731,7 +729,7 @@ def test_bitop_replication():
 
     assert m_key_out_count1 == s_key_out_count1, f'Expected: bitcount of bitkey_out1 on master == bitcount of bitkey_out1 on slave, but got bitcount of bitkey_out1 on slave:{s_key_out_count1}, bitcount of bitkey_out1 on master:{m_key_out_count1}'
     assert m_key_out_count2 == s_key_out_count2, f'Expected: bitcount of bitkey_out2 on master == bitcount of bitkey_out2 on slave, but got bitcount of bitkey_out2 on slave:{s_key_out_count2}, bitcount of bitkey_out1 on master:{m_key_out_count2}'
-    print("test_bitop_replication OK [PASSED]")
+    print("test_bitop_replication OK [✓]")
 
 
 def test_pfmerge_replication():
@@ -781,7 +779,7 @@ def test_pfmerge_replication():
     s_hll_out = slave.pfcount('hll_out')
 
     assert m_hll_out == s_hll_out, f'Expected: hll_out on master == hll_out on slave, but got hll_out on slave:{s_hll_out}, hll_out on master:{m_hll_out}'
-    print("test_pfmerge_replication OK [PASSED]")
+    print("test_pfmerge_replication OK [✓]")
 
 def test_migrateslot_replication():
     print("start test_migrateslot_replication")
