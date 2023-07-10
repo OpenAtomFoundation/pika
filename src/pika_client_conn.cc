@@ -134,8 +134,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 }
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration) {
-  int32_t start_time = start_us / 1000000;
-  int64_t duration = pstd::NowMicros() - start_us;
+  auto start_time = static_cast<int32_t>(start_us / 1000000);
+  auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
   if (duration > g_pika_conf->slowlog_slower_than()) {
     g_pika_server->SlowlogPushEntry(argv, start_time, duration);
     if (g_pika_conf->slowlog_write_errorlog()) {
@@ -240,7 +240,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 }
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
-  resp_num.store(argvs.size());
+  resp_num.store(static_cast<int32_t>(argvs.size()));
   for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);

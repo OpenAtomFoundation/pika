@@ -169,7 +169,7 @@ void PikaServer::Start() {
 
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
-    int32_t sep = slaveof.find(':');
+    std::size_t sep = slaveof.find(':');
     std::string master_ip = slaveof.substr(0, sep);
     int32_t master_port = std::stoi(slaveof.substr(sep + 1));
     if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
@@ -608,7 +608,7 @@ void PikaServer::DeleteSlave(int fd) {
       }
       iter++;
     }
-    slave_num = slaves_.size();
+    slave_num = static_cast<int32_t>(slaves_.size());
   }
 
   if (is_find) {
@@ -625,14 +625,14 @@ void PikaServer::DeleteSlave(int fd) {
 
 int32_t PikaServer::CountSyncSlaves() {
   std::lock_guard ldb(db_sync_protector_);
-  return db_sync_slaves_.size();
+  return static_cast<int32_t>(db_sync_slaves_.size());
 }
 
 int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
   std::vector<std::string> complete_replica;
   g_pika_rm->FindCompleteReplica(&complete_replica);
   std::stringstream tmp_stream;
-  size_t index = 0;
+  int32_t index = 0;
   for (const auto& replica : complete_replica) {
     std::string ip;
     int port;
@@ -646,7 +646,7 @@ int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
 }
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
-  size_t index = 0;
+  int32_t index = 0;
   SlaveState slave_state;
   BinlogOffset master_boffset;
   BinlogOffset sent_slave_boffset;
@@ -690,9 +690,8 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
 
 // Try add Slave, return true if success,
 // return false when slave already exist
-bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
-                             const std::vector<DBStruct>& db_structs) {
-  std::string ip_port = pstd::IpPortString(ip, port);
+bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& db_structs) {
+  std::string ip_port = pstd::IpPortString(ip, static_cast<int32_t>(port));
 
   std::lock_guard l(slave_mutex_);
   auto iter = slaves_.begin();
@@ -709,7 +708,7 @@ bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
   SlaveItem s;
   s.ip_port = ip_port;
   s.ip = ip;
-  s.port = port;
+  s.port = static_cast<int32_t>(port);
   s.conn_fd = fd;
   s.stage = SLAVE_ITEM_STAGE_ONE;
   s.db_structs = db_structs;
@@ -828,11 +827,11 @@ int PikaServer::GetMetaSyncTimestamp() {
 
 void PikaServer::UpdateMetaSyncTimestamp() {
   std::lock_guard sp_l(state_protector_);
-  last_meta_sync_timestamp_ = time(nullptr);
+  last_meta_sync_timestamp_ = static_cast<int32_t>(time(nullptr));
 }
 
 void PikaServer::UpdateMetaSyncTimestampWithoutLock() {
-  last_meta_sync_timestamp_ = time(nullptr);
+  last_meta_sync_timestamp_ = static_cast<int32_t>(time(nullptr));
 }
 
 bool PikaServer::IsFirstMetaSync() {
@@ -1060,7 +1059,7 @@ int PikaServer::ClientKill(const std::string& ip_port) {
 
 int64_t PikaServer::ClientList(std::vector<ClientInfo>* clients) {
   int64_t clients_num = 0;
-  clients_num += pika_dispatch_thread_->ThreadClientList(clients);
+  clients_num += static_cast<int64_t>(pika_dispatch_thread_->ThreadClientList(clients));
   return clients_num;
 }
 
@@ -1152,7 +1151,7 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
 
   {
     std::lock_guard lock(slowlog_protector_);
-    entry.id = slowlog_entry_id_++;
+    entry.id = static_cast<int64_t>(slowlog_entry_id_++);
     entry.start_time = time;
     entry.duration = duration;
     slowlog_list_.push_front(entry);
@@ -1274,7 +1273,7 @@ void PikaServer::AutoCompactRange() {
     gettimeofday(&now, nullptr);
     if (last_check_compact_time_.tv_sec == 0 || now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, nullptr);
-      if ((static_cast<double>(free_size) / total_size) * 100 >= usage) {
+      if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
         Status s = DoSameThingSpecificDB(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size / 1048576
@@ -1295,7 +1294,7 @@ void PikaServer::AutoCompactRange() {
     bool have_week = false;
     std::string compact_cron;
     std::string week_str;
-    int slash_num = count(cc.begin(), cc.end(), '/');
+    int64_t slash_num = count(cc.begin(), cc.end(), '/');
     if (slash_num == 2) {
       have_week = true;
       std::string::size_type first_slash = cc.find('/');
@@ -1325,7 +1324,7 @@ void PikaServer::AutoCompactRange() {
     }
 
     if (!have_scheduled_crontask_ && in_window) {
-      if ((static_cast<double>(free_size) / total_size) * 100 >= usage) {
+      if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
         Status s = DoSameThingEverySlot(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size / 1048576
@@ -1410,7 +1409,7 @@ void PikaServer::AutoDeleteExpiredDump() {
     long dump_timestamp = mktime(&dump_time);
     long now_timestamp = mktime(&now_time);
     // How many days, 1 day = 86400s
-    int interval_days = (now_timestamp - dump_timestamp) / 86400;
+    int64_t interval_days = (now_timestamp - dump_timestamp) / 86400;
 
     if (interval_days >= expiry_days) {
       std::string dump_file = db_sync_path + i;
@@ -1480,15 +1479,10 @@ void PikaServer::InitStorageOptions() {
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 
-  storage_options_.options.rate_limiter =
-    std::shared_ptr<rocksdb::RateLimiter>(
-      rocksdb::NewGenericRateLimiter(
-        g_pika_conf->rate_limiter_bandwidth(),
-        g_pika_conf->rate_limiter_refill_period_us(),
-        g_pika_conf->rate_limiter_fairness(),
-        rocksdb::RateLimiter::Mode::kWritesOnly,
-        g_pika_conf->rate_limiter_auto_tuned()
-      ));
+  storage_options_.options.rate_limiter = std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(
+      g_pika_conf->rate_limiter_bandwidth(), g_pika_conf->rate_limiter_refill_period_us(),
+      static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()), rocksdb::RateLimiter::Mode::kWritesOnly,
+      g_pika_conf->rate_limiter_auto_tuned()));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
