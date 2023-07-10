@@ -111,7 +111,7 @@ void ZScanCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
-    res_.AppendArrayLenUint64(score_members.size() * 2);
+    res_.AppendArrayLen(score_members.size() * 2);
     for (const auto& score_member : score_members) {
       res_.AppendString(score_member.member);
 
@@ -179,24 +179,23 @@ void ZRangeCmd::DoInitial() {
 
 void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  rocksdb::Status s = slot->db()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
-      res_.AppendArrayLenUint64(score_members.size() * 2);
+      res_.AppendArrayLen(score_members.size() * 2);
       for (const auto& sm : score_members) {
-        res_.AppendStringLenUint64(sm.member.size());
+        res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
         len = pstd::d2string(buf, sizeof(buf), sm.score);
         res_.AppendStringLen(len);
         res_.AppendContent(buf);
       }
     } else {
-      res_.AppendArrayLenUint64(score_members.size());
+      res_.AppendArrayLen(score_members.size());
       for (const auto& sm : score_members) {
-        res_.AppendStringLenUint64(sm.member.size());
+        res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
       }
     }
@@ -215,24 +214,23 @@ void ZRevrangeCmd::DoInitial() {
 
 void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  rocksdb::Status s = slot->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
-      res_.AppendArrayLenUint64(score_members.size() * 2);
+      res_.AppendArrayLen(score_members.size() * 2);
       for (const auto& sm : score_members) {
-        res_.AppendStringLenUint64(sm.member.size());
+        res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
         len = pstd::d2string(buf, sizeof(buf), sm.score);
         res_.AppendStringLen(len);
         res_.AppendContent(buf);
       }
     } else {
-      res_.AppendArrayLenUint64(score_members.size());
+      res_.AppendArrayLen(score_members.size());
       for (const auto& sm : score_members) {
-        res_.AppendStringLenUint64(sm.member.size());
+        res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
       }
     }
@@ -333,7 +331,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  FitLimit(count_, offset_, static_cast<int64_t>(score_members.size()));
+  FitLimit(count_, offset_, score_members.size());
   size_t index = offset_;
   size_t end = offset_ + count_;
   if (with_scores_) {
@@ -341,7 +339,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     int64_t len;
     res_.AppendArrayLen(count_ * 2);
     for (; index < end; index++) {
-      res_.AppendStringLenUint64(score_members[index].member.size());
+      res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
       len = pstd::d2string(buf, sizeof(buf), score_members[index].score);
       res_.AppendStringLen(len);
@@ -350,7 +348,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.AppendArrayLen(count_);
     for (; index < end; index++) {
-      res_.AppendStringLenUint64(score_members[index].member.size());
+      res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
     }
   }
@@ -385,7 +383,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  FitLimit(count_, offset_, static_cast<int64_t>(score_members.size()));
+  FitLimit(count_, offset_, score_members.size());
   int64_t index = offset_;
   int64_t end = offset_ + count_;
   if (with_scores_) {
@@ -393,7 +391,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     int64_t len;
     res_.AppendArrayLen(count_ * 2);
     for (; index < end; index++) {
-      res_.AppendStringLenUint64(score_members[index].member.size());
+      res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
       len = pstd::d2string(buf, sizeof(buf), score_members[index].score);
       res_.AppendStringLen(len);
@@ -402,7 +400,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.AppendArrayLen(count_);
     for (; index < end; index++) {
-      res_.AppendStringLenUint64(score_members[index].member.size());
+      res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
     }
   }
@@ -467,14 +465,14 @@ void ZsetUIstoreParentCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE");
     return;
   }
-  size_t argc = argv_.size();
+  int argc = argv_.size();
   if (argc < num_keys_ + 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
   keys_.assign(argv_.begin() + 3, argv_.begin() + 3 + num_keys_);
   weights_.assign(num_keys_, 1);
-  int64_t index = num_keys_ + 3;
+  int index = num_keys_ + 3;
   while (index < argc) {
     if (strcasecmp(argv_[index].data(), "weights") == 0) {
       index++;
@@ -483,7 +481,7 @@ void ZsetUIstoreParentCmd::DoInitial() {
         return;
       }
       double weight;
-      int64_t base = index;
+      int base = index;
       for (; index < base + num_keys_; index++) {
         if (pstd::string2d(argv_[index].data(), argv_[index].size(), &weight) == 0) {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");
@@ -790,13 +788,13 @@ void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  FitLimit(count_, offset_, static_cast<int64_t>(members.size()));
+  FitLimit(count_, offset_, members.size());
 
   res_.AppendArrayLen(count_);
   size_t index = offset_;
   size_t end = offset_ + count_;
   for (; index < end; index++) {
-    res_.AppendStringLenUint64(members[index].size());
+    res_.AppendStringLen(members[index].size());
     res_.AppendContent(members[index]);
   }
 }
@@ -830,13 +828,13 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  FitLimit(count_, offset_, static_cast<int64_t>(members.size()));
+  FitLimit(count_, offset_, members.size());
 
   res_.AppendArrayLen(count_);
   int64_t index = members.size() - 1 - offset_;
   int64_t end = index - count_;
   for (; index > end; index--) {
-    res_.AppendStringLenUint64(members[index].size());
+    res_.AppendStringLen(members[index].size());
     res_.AppendContent(members[index]);
   }
 }
@@ -886,8 +884,7 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s =
-      slot->db()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  rocksdb::Status s = slot->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -973,7 +970,7 @@ void ZPopmaxCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len;
-    res_.AppendArrayLenUint64(score_members.size() * 2);
+    res_.AppendArrayLen(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);
@@ -1007,7 +1004,7 @@ void ZPopminCmd::Do(std::shared_ptr<Slot> slot) {
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len;
-    res_.AppendArrayLenUint64(score_members.size() * 2);
+    res_.AppendArrayLen(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);

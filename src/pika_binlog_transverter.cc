@@ -126,7 +126,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
   pstd::PutFixed64(&binlog, 0);
   pstd::PutFixed32(&binlog, 0);
   pstd::PutFixed64(&binlog, 0);
-  auto content_len = static_cast<int32_t>(size - BINLOG_ITEM_HEADER_SIZE);
+  int32_t content_len = size - BINLOG_ITEM_HEADER_SIZE;
   int32_t parameter_len = content_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
   if (parameter_len < 0) {
     return {};

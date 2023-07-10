@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
   bool path_opt = false;
   signed char c;
   char path[1024];
-  while (-1 != (c = static_cast<signed char>(getopt(argc, argv, "c:hv")))) {
+  while (-1 != (c = getopt(argc, argv, "c:hv"))) {
     switch (c) {
       case 'c':
         snprintf(path, 1024, "%s", optarg);

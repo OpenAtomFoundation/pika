@@ -42,7 +42,7 @@ void BitSetCmd::DoInitial() {
 void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   int32_t bit_val = 0;
-  rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, static_cast<int32_t>(on_), &bit_val);
+  rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
     AddSlotKey("k", key_, slot);
@@ -160,11 +160,11 @@ void BitPosCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), &pos);
+    s = slot->db()->BitPos(key_, bit_val_, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, &pos);
+    s = slot->db()->BitPos(key_, bit_val_, start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, end_offset_, &pos);
+    s = slot->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(pos));

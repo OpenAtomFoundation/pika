@@ -15,7 +15,7 @@ class PikaDispatchThread {
   ~PikaDispatchThread();
   int StartThread();
 
-  uint64_t ThreadClientList(std::vector<ClientInfo>* clients);
+  int64_t ThreadClientList(std::vector<ClientInfo>* clients);
 
   bool ClientKill(const std::string& ip_port);
   void ClientKillAll();

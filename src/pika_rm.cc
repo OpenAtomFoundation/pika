@@ -722,7 +722,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
           }
           size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
           std::vector<WriteTask> to_send;
-          size_t batch_size = 0;
+          int batch_size = 0;
           for (size_t i = 0; i < batch_index; ++i) {
             WriteTask& task = queue.front();
             batch_size += task.binlog_chip_.binlog_.size();

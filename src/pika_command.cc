@@ -929,10 +929,10 @@ PikaCmdArgsType& Cmd::argv() { return argv_; }
 std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum, uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLenUint64(content, argv_.size(), "*");
+  RedisAppendLen(content, argv_.size(), "*");
 
   for (const auto& v : argv_) {
-    RedisAppendLenUint64(content, v.size(), "$");
+    RedisAppendLen(content, v.size(), "$");
     RedisAppendContent(content, v);
   }
 
@@ -940,7 +940,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
                                              content, {});
 }
 
-bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
+bool Cmd::CheckArg(int num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
 
 void Cmd::LogCommand() const {
   std::string command;

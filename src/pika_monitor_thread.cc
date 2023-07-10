@@ -67,7 +67,7 @@ int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr
       clients_ptr->push_back(monitor_client);
     }
   }
-  return static_cast<int32_t>(monitor_clients_.size());
+  return monitor_clients_.size();
 }
 
 void PikaMonitorThread::AddCronTask(const MonitorCronTask& task) {
@@ -107,9 +107,9 @@ bool PikaMonitorThread::HasMonitorClients() { return has_monitor_clients_.load()
 
 net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
   size_t retry = 0;
-  size_t nwritten = 0;
-  size_t message_len_sended = 0;
-  size_t message_len_left = message.size();
+  ssize_t nwritten = 0;
+  ssize_t message_len_sended = 0;
+  ssize_t message_len_left = message.size();
   while (message_len_left > 0) {
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
     if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
