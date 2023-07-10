@@ -148,7 +148,8 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
-    g_pika_conf->SetMasterRunId("");
+    // update master_run_id_ when running meta sync
+    //  g_pika_conf->SetMasterRunId("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
