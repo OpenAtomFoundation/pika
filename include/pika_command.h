@@ -419,16 +419,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  struct CommandStatistics {
-    CommandStatistics() = default;
-    CommandStatistics(const CommandStatistics& other) {
-      cmd_time_consuming.store(other.cmd_time_consuming.load());
-      cmd_count.store(other.cmd_count.load());
-    }
-    std::atomic<int32_t> cmd_count = {0};
-    std::atomic<int32_t> cmd_time_consuming = {0};
-  };
-  CommandStatistics state;
+
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 

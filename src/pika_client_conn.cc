@@ -21,6 +21,7 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unordered_map<std::string, CommandStatistics> g_cmdstat_map;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -119,9 +120,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   // Process Command
   c_ptr->Execute();
   int64_t duration = pstd::NowMicros() - start_us;
-  auto iter = g_pika_cmd_table_manager->GetCmdTable();
-  (*iter)[opt]->state.cmd_count.fetch_add(1);
-  (*iter)[opt]->state.cmd_time_consuming.fetch_add(duration);
+  g_cmdstat_map[opt].cmd_count.fetch_add(1);
+  g_cmdstat_map[opt].cmd_time_consuming.fetch_add(static_cast<uint64_t>(duration));
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
