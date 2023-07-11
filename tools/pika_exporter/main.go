@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter"
@@ -28,7 +29,7 @@ var (
 	listenAddress      = flag.String("web.listen-address", getEnv("PIKA_EXPORTER_WEB_LISTEN_ADDRESS", ":9121"), "Address to listen on for web interface and telemetry.")
 	metricPath         = flag.String("web.telemetry-path", getEnv("PIKA_EXPORTER_WEB_TELEMETRY_PATH", "/metrics"), "Path under which to expose metrics.")
 	logLevel           = flag.String("log.level", getEnv("PIKA_EXPORTER_LOG_LEVEL", "info"), "Log level, valid options: panic fatal error warn warning info debug.")
-	logFormat          = flag.String("log.format", getEnv("PIKA_EXPORTER_LOG_FORMAT", "json"), "Log format, valid options: txt and json.")
+	logFormat          = flag.String("log.format", getEnv("PIKA_EXPORTER_LOG_FORMAT", "text"), "Log format, valid options: txt and json.")
 	showVersion        = flag.Bool("version", false, "Show version information and exit.")
 )
 
@@ -63,9 +64,17 @@ func main() {
 	log.SetLevel(level)
 	switch *logFormat {
 	case "json":
-		log.SetFormatter(&log.JSONFormatter{})
+		log.SetFormatter(&log.JSONFormatter{
+			TimestampFormat: "2006-01-02 15:04:05.999999",
+			PrettyPrint:     true,
+		})
 	default:
-		log.SetFormatter(&log.TextFormatter{})
+		log.SetFormatter(&log.TextFormatter{
+			ForceColors:     true,
+			ForceQuote:      true,         //键值对加引号
+			TimestampFormat: time.RFC3339, //时间格式
+			FullTimestamp:   true,
+		})
 	}
 
 	var dis discovery.Discovery
