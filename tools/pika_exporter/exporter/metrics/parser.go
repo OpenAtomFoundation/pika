@@ -210,7 +210,7 @@ func (p *timeParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 			} else {
 				t, err := convertTimeToUnix(v)
 				if err != nil {
-                    log.Warnf("time is '0' and cannot be parsed", err)
+					log.Warnf("time is '0' and cannot be parsed", err)
 				}
 				metric.Value = float64(t)
 			}
@@ -264,7 +264,8 @@ func mustNewVersionConstraint(version string) *semver.Constraints {
 func convertTimeToUnix(ts string) (int64, error) {
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
-		return 0, err
+		log.Warnf("format time failed, ts: %d, err: %v", ts, err)
+		return 0, nil
 	}
 	return t.Unix(), nil
 }
