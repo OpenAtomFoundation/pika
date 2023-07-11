@@ -905,7 +905,11 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
-void Cmd::ProcessDoNotSpecifySlotCmd() { Do(); }
+void Cmd::ProcessDoNotSpecifySlotCmd() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
+}
 
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }

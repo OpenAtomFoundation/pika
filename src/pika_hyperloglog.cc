@@ -77,7 +77,7 @@ void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_args.emplace_back("set");
   set_args.emplace_back(keys_[0]);
   set_args.emplace_back(value_to_dest_);
-  set_cmd_->Initial(std::move(set_args),  db_name_);
+  set_cmd_->Initial(set_args,  db_name_);
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
   //value of this binlog might be strange, it's an string with size of 128KB

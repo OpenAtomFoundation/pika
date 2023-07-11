@@ -9,7 +9,7 @@
 
 namespace pstd::lock {
 
-MultiScopeRecordLock::MultiScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const std::vector<std::string>& keys)
+MultiScopeRecordLock::MultiScopeRecordLock(const std::shared_ptr<LockMgr>& lock_mgr, const std::vector<std::string>& keys)
     : lock_mgr_(lock_mgr), keys_(keys) {
   std::string pre_key;
   std::sort(keys_.begin(), keys_.end());

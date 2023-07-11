@@ -17,7 +17,7 @@
 class SetCmd : public Cmd {
  public:
   enum SetCondition { kNONE, kNX, kXX, kVX, kEXORPX };
-  SetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), condition_(kNONE){};
+  SetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -34,7 +34,7 @@ class SetCmd : public Cmd {
   std::string target_;
   int32_t success_ = 0;
   int64_t sec_ = 0;
-  SetCmd::SetCondition condition_;
+  SetCmd::SetCondition condition_{kNONE};
   void DoInitial() override;
   void Clear() override {
     sec_ = 0;
@@ -229,7 +229,7 @@ class MgetCmd : public Cmd {
 
 class KeysCmd : public Cmd {
  public:
-  KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
+  KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -237,7 +237,7 @@ class KeysCmd : public Cmd {
 
  private:
   std::string pattern_;
-  storage::DataType type_;
+  storage::DataType type_{storage::DataType::kAll};
   void DoInitial() override;
   void Clear() override { type_ = storage::DataType::kAll; }
 };

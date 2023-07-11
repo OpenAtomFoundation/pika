@@ -88,17 +88,17 @@ class SimpleHTTPConn : public NetConn {
   bool FillResponseBuf();
   void HandleMessage();
 
-  ConnStatus conn_status_;
+  ConnStatus conn_status_{kHeader};
   char* rbuf_;
-  uint32_t rbuf_pos_;
+  uint32_t rbuf_pos_{0};
   char* wbuf_;
-  uint32_t wbuf_len_;  // length we wanna write out
-  uint32_t wbuf_pos_;
-  uint32_t header_len_;
-  uint64_t remain_packet_len_;
+  uint32_t wbuf_len_{0};  // length we wanna write out
+  uint32_t wbuf_pos_{0};
+  uint32_t header_len_{0};
+  uint64_t remain_packet_len_{0};
 
   Request* request_;
-  int response_pos_;
+  int response_pos_{-1};
   Response* response_;
 };
 
