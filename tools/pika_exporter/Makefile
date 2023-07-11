@@ -4,8 +4,8 @@
 
 # export PATH := $(PATH):$(GOPATH)/bin
 
-UNAME := $(shell uname)
-UNAME_M := $(shell uname -m)
+OS := $(shell uname)
+ARCH := $(shell uname -m)
 # for mac
 BRANCH			:= $(shell git branch | sed  's/* \(.*\)/\1/p')
 # for Linux
@@ -64,12 +64,18 @@ export TEST_COVER
 all: build 
 
 build: deps
-ifeq ($(UNAME), Linux)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$(PROJNAME)
-else ifeq ($(UNAME_M), x86_64)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/$(PROJNAME)
-else ifeq ($(UNAME_M), arm64)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/$(PROJNAME)
+ifeq ($(OS), Linux)
+    ifeq ($(ARCH), x86_64)
+       CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$(PROJNAME)
+    else ifeq ($(ARCH), arm6411)
+       CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/$(PROJNAME)
+    endif
+else ifeq ($(OS), Darwin)
+    ifeq ($(ARCH), x86_64)
+        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/$(PROJNAME)
+    else ifeq ($(ARCH), arm64)
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/$(PROJNAME)
+    endif
 endif
 
 deps: generateVer
