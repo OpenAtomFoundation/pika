@@ -29,7 +29,7 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
-      own_handle_(false),
+      
       private_data_(private_data),
       conn_factory_(conn_factory) {
   net_multiplexer_.reset(CreateNetMultiplexer());

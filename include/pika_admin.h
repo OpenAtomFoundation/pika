@@ -210,7 +210,8 @@ class InfoCmd : public Cmd {
     kInfoRocksDB,
     kInfo,
     kInfoAll,
-    kInfoDebug
+    kInfoDebug,
+    kInfoCommandStats
   };
 
   InfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -237,6 +238,7 @@ class InfoCmd : public Cmd {
   const static std::string kDataSection;
   const static std::string kRocksDBSection;
   const static std::string kDebugSection;
+  const static std::string kCommandStatsSection;
 
   void DoInitial() override;
   void Clear() override {
@@ -256,6 +258,7 @@ class InfoCmd : public Cmd {
   void InfoData(std::string& info);
   void InfoRocksDB(std::string& info);
   void InfoDebug(std::string& info);
+  void InfoCommandStats(std::string& info);
 };
 
 class ShutdownCmd : public Cmd {
@@ -446,6 +449,7 @@ class HelloCmd : public Cmd {
   void DoInitial() override;
 };
 
+#ifdef WITH_COMMAND_DOCS
 class CommandCmd : public Cmd {
  public:
   CommandCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -587,5 +591,7 @@ static CommandCmd::EncodablePtr operator""_RedisStatus(const char* value);
 static CommandCmd::EncodablePtr RedisMap(CommandCmd::EncodableMap::RedisMap values);
 static CommandCmd::EncodablePtr RedisSet(std::vector<CommandCmd::EncodablePtr> values);
 static CommandCmd::EncodablePtr RedisArray(std::vector<CommandCmd::EncodablePtr> values);
+
+#endif  // WITH_COMMAND_DOCS
 
 #endif  // PIKA_ADMIN_H_

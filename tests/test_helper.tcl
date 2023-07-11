@@ -22,6 +22,7 @@ set ::all_tests {
     unit/type/list-3
     unit/type/set
     unit/type/zset
+    unit/type/string
     # unit/type/hash
     # unit/sort
     # unit/expire
@@ -48,8 +49,7 @@ set ::all_tests {
     # unit/bitops
     # unit/memefficiency
     # unit/hyperloglog
-    unit/type
-    unit/command
+    # unit/command
     unit/type
 }
 

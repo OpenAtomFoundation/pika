@@ -54,6 +54,9 @@ backend_primary_only = false
 backend_primary_parallel = 1
 backend_replica_parallel = 1
 
+# Set slot num
+max_slot_num = 1024
+
 # Set backend tcp keepalive period. (0 to disable)
 backend_keepalive_period = "75s"
 

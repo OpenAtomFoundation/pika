@@ -281,12 +281,8 @@ HTTPConn::~HTTPConn() {
 }
 
 HTTPRequest::HTTPRequest(HTTPConn* conn)
-    : conn_(conn),
-      reply_100continue_(false),
-      req_status_(kNewRequest),
-      parse_status_(kHeaderMethod),
-      rbuf_pos_(0),
-      remain_recv_len_(0) {
+    : conn_(conn)
+      {
   rbuf_ = new char[kHTTPMaxMessage];
 }
 
@@ -462,13 +458,8 @@ ReadStatus HTTPConn::GetRequest() {
 }
 
 HTTPResponse::HTTPResponse(HTTPConn* conn)
-    : conn_(conn),
-      resp_status_(kPrepareHeader),
-      buf_len_(0),
-      wbuf_pos_(0),
-      remain_send_len_(0),
-      finished_(true),
-      status_code_(200) {
+    : conn_(conn)
+      {
   wbuf_ = new char[kHTTPMaxMessage];
 }
 

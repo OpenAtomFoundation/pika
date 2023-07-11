@@ -419,6 +419,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
+  struct CommandStatistics {
+    CommandStatistics() = default;
+    CommandStatistics(const CommandStatistics& other) {
+      cmd_time_consuming.store(other.cmd_time_consuming.load());
+      cmd_count.store(other.cmd_count.load());
+    }
+    std::atomic<int32_t> cmd_count = {0};
+    std::atomic<int32_t> cmd_time_consuming = {0};
+  };
+  CommandStatistics state;
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
@@ -451,7 +461,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdRes& res();
   std::string db_name() const;
   BinlogOffset binlog_offset() const;
-  const PikaCmdArgsType& argv() const;
+  PikaCmdArgsType& argv();
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
 

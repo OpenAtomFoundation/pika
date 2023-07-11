@@ -41,13 +41,13 @@ class PbConn : public NetConn {
    * The Variable need by read the buf,
    * We allocate the memory when we start the server
    */
-  uint32_t header_len_;
+  uint32_t header_len_{static_cast<uint32_t>(-1)};
   char* rbuf_;
-  uint32_t cur_pos_;
-  uint32_t rbuf_len_;
-  int32_t remain_packet_len_;
+  uint32_t cur_pos_{0};
+  uint32_t rbuf_len_{0};
+  int32_t remain_packet_len_{0};
 
-  ConnStatus connStatus_;
+  ConnStatus connStatus_{kHeader};
 
  protected:
   // NOTE: if this function return non 0, the the server will close this connection
@@ -82,7 +82,7 @@ class PbConn : public NetConn {
   pstd::Mutex resp_mu_;
   WriteBuf write_buf_;
   pstd::Mutex is_reply_mu_;
-  int64_t is_reply_;
+  int64_t is_reply_{0};
   virtual void BuildInternalTag(const std::string& resp, std::string* tag);
 };
 

@@ -15,8 +15,6 @@ import (
 	"pika/codis/v2/pkg/utils/math2"
 )
 
-const MaxSlotNum = models.MaxSlotNum
-
 type context struct {
 	slots []*models.SlotMapping
 	group map[int]*models.Group
@@ -32,10 +30,10 @@ type context struct {
 }
 
 func (ctx *context) getSlotMapping(sid int) (*models.SlotMapping, error) {
-	if len(ctx.slots) != MaxSlotNum {
-		return nil, errors.Errorf("invalid number of slots = %d/%d", len(ctx.slots), MaxSlotNum)
+	if len(ctx.slots) != models.GetMaxSlotNum() {
+		return nil, errors.Errorf("invalid number of slots = %d/%d", len(ctx.slots), models.GetMaxSlotNum())
 	}
-	if sid >= 0 && sid < MaxSlotNum {
+	if sid >= 0 && sid < models.GetMaxSlotNum() {
 		return ctx.slots[sid], nil
 	}
 	return nil, errors.Errorf("slot-[%d] doesn't exist", sid)

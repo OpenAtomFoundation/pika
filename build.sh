@@ -97,7 +97,12 @@ if [ $1 = "tools" ]; then
   use_pika_tools="-DUSE_PIKA_TOOLS=ON"
 fi
 
-${CMAKE} ${use_pika_tools} .. .
+with_command_docs=""
+if [ "${WITH_COMMAND_DOCS}" = "ON" ]; then
+  with_command_docs="-DWITH_COMMAND_DOCS=ON"
+fi
+
+${CMAKE} ${use_pika_tools} ${with_command_docs} .. .
 
 if [ $? -ne 0 ]; then
     echo -e "${C_RED} cmake execution error ${C_END}"

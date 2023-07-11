@@ -35,7 +35,7 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
  public:
-  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), dir_(storage::After){};
+  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -48,7 +48,7 @@ class LInsertCmd : public Cmd {
 
  private:
   std::string key_;
-  storage::BeforeOrAfter dir_;
+  storage::BeforeOrAfter dir_{storage::After};
   std::string pivot_;
   std::string value_;
   void DoInitial() override;
@@ -87,6 +87,7 @@ class LPopCmd : public Cmd {
 
  private:
   std::string key_;
+  std::int64_t count_ = 1;
   void DoInitial() override;
 };
 
@@ -224,6 +225,7 @@ class RPopCmd : public Cmd {
 
  private:
   std::string key_;
+  std::int64_t count_ = 1;
   void DoInitial() override;
 };
 
@@ -234,7 +236,7 @@ class RPopLPushCmd : public Cmd {
     lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
-      : Cmd(other.name_, other.arity_, other.flag_),
+      : Cmd(other),
         source_(other.source_),
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
@@ -259,7 +261,7 @@ class RPopLPushCmd : public Cmd {
   std::string receiver_;
   std::string value_poped_from_source_;
   bool is_write_binlog_ = false;
-  //used for write binlog
+  // used for write binlog
   std::shared_ptr<Cmd> rpop_cmd_;
   std::shared_ptr<Cmd> lpush_cmd_;
   void DoInitial() override;
@@ -301,6 +303,6 @@ class RPushxCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> values_;
-  virtual void DoInitial() override;
+  void DoInitial() override;
 };
 #endif

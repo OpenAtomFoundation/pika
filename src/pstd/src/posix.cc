@@ -713,7 +713,7 @@ int open_listenfd(int port) {
   memset(&serveraddr, 0, sizeof(serveraddr));
   serveraddr.sin_family = AF_INET;
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  serveraddr.sin_port = htons((unsigned short)port);
+  serveraddr.sin_port = htons(static_cast<uint16_t>(port));
   if (bind(listenfd, reinterpret_cast<SA*>(&serveraddr), sizeof(serveraddr)) < 0) {
     return -1;
   }

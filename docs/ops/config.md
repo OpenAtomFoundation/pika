@@ -49,8 +49,8 @@ instance-mode : classic
 # 经典模式下下指定db的数量，使用方式和redis一致
 databases : 1
 
-# 分片模式下每一个table中默认的slot数量
-default-slot-num：16
+# 和 codis 一起使用时，slot 的数量
+default-slot-num : 1024
 
 # 定义一个副本组又多少个从副本，目前支持的配置选项范围[0, 1, 2, 3, 4], 0代表不开启此功能
 replication-num : 0

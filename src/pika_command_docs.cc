@@ -3,12 +3,14 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_admin.h"
+#ifdef WITH_COMMAND_DOCS
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
+#  include "include/pika_admin.h"
+
+#  include <memory>
+#  include <string>
+#  include <unordered_map>
+#  include <unordered_set>
 
 static CommandCmd::EncodablePtr operator""_RedisInt(unsigned long long value) {
   return std::make_shared<CommandCmd::EncodableInt>(value);
@@ -10839,3 +10841,5 @@ const std::unordered_map<std::string, CommandCmd::EncodablePtr> CommandCmd::kCom
                        })},
      })},
 };
+
+#endif  // WITH_COMMAND_DOCS

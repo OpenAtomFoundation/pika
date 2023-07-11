@@ -25,6 +25,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -633,6 +634,7 @@ const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
+const std::string InfoCmd::kCommandStatsSection = "commandstats";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -701,6 +703,8 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoRocksDB;
   } else if (strcasecmp(argv_[1].data(), kDebugSection.data()) == 0) {
     info_section_ = kInfoDebug;
+  } else if (strcasecmp(argv_[1].data(), kCommandStatsSection.data()) == 0) {
+    info_section_ = kInfoCommandStats;
   } else {
     info_section_ = kInfoErr;
   }
@@ -775,6 +779,9 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       break;
     case kInfoDebug:
       InfoDebug(info);
+      break;
+    case kInfoCommandStats:
+      InfoCommandStats(info);
       break;
     default:
       // kInfoErr is nothing
@@ -1210,6 +1217,22 @@ void InfoCmd::InfoDebug(std::string& info) {
 
   info.append(tmp_stream.str());
   g_pika_server->ServerStatus(&info);
+}
+
+void InfoCmd::InfoCommandStats(std::string& info) {
+    std::stringstream tmp_stream;
+    tmp_stream.precision(2);
+    tmp_stream.setf(std::ios::fixed);
+    tmp_stream << "# Commandstats" << "\r\n";
+    for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
+        if (iter.second->state.cmd_count != 0) {
+            tmp_stream << "cmdstat_" << iter.first << ":"
+                       << "calls=" << iter.second->state.cmd_count << ",usec="
+                       << iter.second->state.cmd_time_consuming
+                       << ",usec_per_call=" << (iter.second->state.cmd_time_consuming * 1.0) / iter.second->state.cmd_count << "\r\n";
+        }
+    }
+    info.append(tmp_stream.str());
 }
 
 void ConfigCmd::DoInitial() {
@@ -2393,6 +2416,8 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendStringRaw(raw);
 }
 
+#ifdef WITH_COMMAND_DOCS
+
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
   int av{0};
   int bv{0};
@@ -2575,3 +2600,5 @@ void CommandCmd::Do(std::shared_ptr<Slot> slots) {
   }
   EncodableMap::EncodeTo(res_, cmds, specializations);
 }
+
+#endif  // WITH_COMMAND_DOCS

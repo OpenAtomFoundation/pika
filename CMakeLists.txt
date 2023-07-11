@@ -47,7 +47,7 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
   set(LIB_BUILD_TYPE RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RElEASE)
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -118,6 +118,10 @@ else ()
     message(STATUS "found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
 endif ()
 
+option(WITH_COMMAND_DOCS "build with command docs support" OFF)
+if (WITH_COMMAND_DOCS)
+  add_definitions(-DWITH_COMMAND_DOCS)
+endif()
 
 include(protogen.cmake)
 include(ExternalProject)
@@ -784,16 +788,16 @@ add_custom_target(
         clang-tidy
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
         -clang-tidy-binary ${CLANG_TIDY_BIN}
-        -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
         -p ${CMAKE_BINARY_DIR}
         -quiet
+        -extra-arg=-std=c++17
     )
 
 add_custom_target(clang-tidy-fix
     ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
     -clang-tidy-binary ${CLANG_TIDY_BIN}
     -p ${CMAKE_BINARY_DIR}
-    -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
+    -extra-arg=-std=c++17
 )

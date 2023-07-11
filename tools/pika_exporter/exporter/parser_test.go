@@ -2,11 +2,13 @@ package exporter
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/Masterminds/semver"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/metrics"
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/test"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func mustNewVersionConstraint(version string) *semver.Constraints {
