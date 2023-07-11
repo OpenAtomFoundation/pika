@@ -284,8 +284,10 @@ class HScanCmd : public Cmd {
   Cmd* Clone() override { return new HScanCmd(*this); }
 
  private:
-  std::string key_, pattern_;
-  int64_t cursor_, count_{10};
+  std::string key_; 
+  std::string pattern_;
+  int64_t cursor_;
+  int64_t count_{10};
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";

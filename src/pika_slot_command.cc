@@ -1087,7 +1087,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
     return;
   }
   if (timeout_ms_ < 0) {
-    std::string detail = &"invalid timeout number " [ timeout_ms_];
+    std::string detail = "invalid timeout number " + std::to_string(timeout_ms_);
     res_.SetRes(CmdRes::kErrOther, detail);
     return;
   }

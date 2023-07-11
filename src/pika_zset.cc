@@ -562,7 +562,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& zadd_argv = zadd_cmd_->argv();
   size_t data_size = d_len + zadd_argv[3].size();
   constexpr size_t kDataSize = 131072; //128KB
-  for(auto & it : value_to_dest_){
+  for(const auto& it : value_to_dest_){
     if(data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       zadd_cmd_->DoBinlog(slot);

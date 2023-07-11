@@ -43,7 +43,7 @@ class MultiScopeRecordLock final : public pstd::noncopyable {
 
 class MultiRecordLock : public noncopyable {
  public:
-  explicit MultiRecordLock(std::shared_ptr<LockMgr> lock_mgr) : lock_mgr_(std::move(lock_mgr)) {}
+  explicit MultiRecordLock(const std::shared_ptr<LockMgr>& lock_mgr) : lock_mgr_(lock_mgr) {}
   ~MultiRecordLock() = default;
 
   void Lock(const std::vector<std::string>& keys);
