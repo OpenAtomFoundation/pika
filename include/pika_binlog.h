@@ -37,7 +37,7 @@ class Version final : public pstd::noncopyable {
 
   void debug() {
     std::shared_lock l(rwlock_);
-    printf("Current pro_num %u pro_offset %llu\n", pro_num_, pro_offset_);
+    printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
  private:

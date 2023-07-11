@@ -35,7 +35,7 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
  public:
-  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), dir_(storage::After){};
+  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -48,7 +48,7 @@ class LInsertCmd : public Cmd {
 
  private:
   std::string key_;
-  storage::BeforeOrAfter dir_;
+  storage::BeforeOrAfter dir_{storage::After};
   std::string pivot_;
   std::string value_;
   void DoInitial() override;
@@ -303,6 +303,6 @@ class RPushxCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> values_;
-  virtual void DoInitial() override;
+  void DoInitial() override;
 };
 #endif

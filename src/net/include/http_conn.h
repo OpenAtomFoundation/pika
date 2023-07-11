@@ -51,7 +51,7 @@ class HTTPRequest {
   std::string path_;
   std::string version_;
   std::string content_type_;
-  bool reply_100continue_;
+  bool reply_100continue_{false};
   std::map<std::string, std::string> postform_params_;
   std::map<std::string, std::string> query_params_;
   std::map<std::string, std::string> headers_;
@@ -73,12 +73,12 @@ class HTTPRequest {
     kBodyReceived,
   };
 
-  RequestStatus req_status_;
-  RequestParserStatus parse_status_;
+  RequestStatus req_status_{kNewRequest};
+  RequestParserStatus parse_status_{kHeaderMethod};
 
   char* rbuf_;
-  uint64_t rbuf_pos_;
-  uint64_t remain_recv_len_;
+  uint64_t rbuf_pos_{0};
+  uint64_t remain_recv_len_{0};
 
   ReadStatus ReadData();
   int ParseHeader();
@@ -113,16 +113,16 @@ class HTTPResponse {
     kSendingBody,
   };
 
-  ResponseStatus resp_status_;
+  ResponseStatus resp_status_{kPrepareHeader};
 
   char* wbuf_;
-  int64_t buf_len_;
-  int64_t wbuf_pos_;
+  int64_t buf_len_{0};
+  int64_t wbuf_pos_{0};
 
-  uint64_t remain_send_len_;
-  bool finished_;
+  uint64_t remain_send_len_{0};
+  bool finished_{true};
 
-  int status_code_;
+  int status_code_{200};
   std::map<std::string, std::string> headers_;
 
   bool Flush();
