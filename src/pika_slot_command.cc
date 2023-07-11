@@ -161,7 +161,7 @@ void PikaMigrate::CleanMigrateClient() {
   gettimeofday(&now, nullptr);
   auto migrate_clients_iter = migrate_clients_.begin();
   while (migrate_clients_iter != migrate_clients_.end()) {
-    auto *migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
+    auto migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
     // pika_server do DoTimingTask every 10s, so we Try colse the migrate_cli before pika timeout, do it at least 20s in
     // advance
     int timeout = (g_pika_conf->timeout() > 0) ? g_pika_conf->timeout() : 60;
@@ -1606,7 +1606,7 @@ void SlotsCleanupCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    slots.emplace_back(static_cast<int>(slotLong));
+    slots.emplace_back(static_cast<int32_t>(slotLong));
   }
   cleanup_slots_.swap(slots);
   return;

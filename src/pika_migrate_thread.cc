@@ -461,7 +461,7 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key,
 
 void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys,
                                                 const std::shared_ptr<Slot>& slot) {
-  for (auto & send_key : send_keys) {
+  for (const auto& send_key : send_keys) {
     DeleteKey(send_key.second, send_key.first, slot);
     WriteDelKeyToBinlog(send_key.second, slot);
   }
@@ -539,7 +539,7 @@ void *PikaParseSendThread::ThreadMain() {
     int64_t send_num = 0;
     int64_t need_receive_num = 0;
     int32_t migrate_keys_num = 0;
-    for (auto & send_key : send_keys) {
+    for (const auto& send_key : send_keys) {
       if (0 > (send_num = MigrateOneKey(cli_, send_key.second, send_key.first, false))) {
         LOG(WARNING) << "PikaParseSendThread::ThreadMain MigrateOneKey: " << send_key.second << " failed !!!";
         migrate_thread_->OnTaskFailed();
@@ -793,7 +793,7 @@ void PikaMigrateThread::DestroyThread(bool is_self_exit) {
   moved_num_ = 0;
 }
 
-void PikaMigrateThread::NotifyRequestMigrate() {
+void PikaMigrateThread::NotifyRequestMigrate(void) {
   std::unique_lock lr(request_migrate_mutex_);
   request_migrate_ = true;
   request_migrate_cond_.notify_one();
@@ -803,7 +803,7 @@ bool PikaMigrateThread::IsMigrating(std::pair<const char, std::string> &kpair) {
   std::unique_lock lo(mgrtone_queue_mutex_);
   std::unique_lock lm(mgrtkeys_map_mutex_);
 
-  for (auto & iter : mgrtone_queue_) {
+  for (const auto& iter : mgrtone_queue_) {
     if (iter.first == kpair.first && iter.second == kpair.second) {
       return true;
     }
@@ -873,7 +873,7 @@ bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
 
 void PikaMigrateThread::DestroyParseSendThreads(void) {
   if (!workers_.empty()) {
-    for (auto & worker : workers_) {
+    for (auto worker : workers_) {
       worker->ExitThread();
     }
 
@@ -882,7 +882,7 @@ void PikaMigrateThread::DestroyParseSendThreads(void) {
       mgrtkeys_cond_.notify_all();
     }
 
-    for (auto & worker : workers_) {
+    for (auto worker : workers_) {
       delete worker;
     }
     workers_.clear();

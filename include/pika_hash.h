@@ -309,7 +309,9 @@ class HScanxCmd : public Cmd {
   Cmd* Clone() override { return new HScanxCmd(*this); }
 
  private:
-  std::string key_, start_field_, pattern_;
+  std::string key_; 
+  std::string start_field_;
+  std::string pattern_;
   int64_t count_{10};
   void DoInitial() override;
   void Clear() override {
