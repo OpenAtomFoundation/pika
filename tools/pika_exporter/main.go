@@ -71,8 +71,8 @@ func main() {
 	default:
 		log.SetFormatter(&log.TextFormatter{
 			ForceColors:     true,
-			ForceQuote:      true,         //键值对加引号
-			TimestampFormat: time.RFC3339, //时间格式
+			ForceQuote:      true,
+			TimestampFormat: time.RFC3339,
 			FullTimestamp:   true,
 		})
 	}
