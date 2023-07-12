@@ -39,7 +39,7 @@ void* RsyncClient::ThreadMain() {
         }
         if (meta_table_.size() == file_set_.size()) {
             LOG(INFO) << "rsync done...";
-            state_.save(std::memory_order_relaxed, STOP);
+            state_.store(STOP);
             break;
         }
     }

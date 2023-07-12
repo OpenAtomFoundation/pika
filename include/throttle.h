@@ -17,13 +17,13 @@ class Throttle {
   std::atomic<size_t> last_throughput_check_time_us_;
   std::atomic<size_t> cur_throughput_bytes_;
   // user defined check cycles of throughput per second
-  size_t check_cycle_;
+  size_t check_cycle_{};
   pstd::Mutex keys_mutex_;
   size_t caculate_check_time_us_(int64_t current_time_us, int64_t check_cycle) {
     size_t base_aligning_time_us = 1000 * 1000 / check_cycle;
     return current_time_us / base_aligning_time_us * base_aligning_time_us;
   }
-}
-} // end namespace rsync
+};
+}  // end namespace rsync
 
 #endif

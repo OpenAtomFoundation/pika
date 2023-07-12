@@ -10,14 +10,14 @@
 
 DEFINE_uint64(raft_minimal_throttle_threshold_mb, 0, "minimal throttle throughput threshold per second");
 
-Throttle::Throttle(size_t throttle_throughput_bytes, size_t check_cycle)
+rsync::Throttle::Throttle(size_t throttle_throughput_bytes, size_t check_cycle)
     : throttle_throughput_bytes_(throttle_throughput_bytes),
       last_throughput_check_time_us_(caculate_check_time_us_(pstd::NowMicros(), check_cycle)),
       cur_throughput_bytes_(0) {}
 
-Throttle::~Throttle() {}
+rsync::Throttle::~Throttle() {}
 
-size_t Throttle::ThrottledByThroughput(size_t bytes) {
+size_t rsync::Throttle::ThrottledByThroughput(size_t bytes) {
   size_t available_size = bytes;
   size_t now = pstd::NowMicros();
   size_t limit_throughput_bytes_s = std::max(static_cast<uint64_t>(throttle_throughput_bytes_),
@@ -47,7 +47,7 @@ size_t Throttle::ThrottledByThroughput(size_t bytes) {
   return available_size;
 }
 
-void Throttle::ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t elaspe_time_us) {
+void rsync::Throttle::ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t elaspe_time_us) {
   size_t now = pstd::NowMicros();
   std::unique_lock lock(keys_mutex_);
   if (now - elaspe_time_us < last_throughput_check_time_us_) {
