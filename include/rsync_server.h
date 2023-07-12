@@ -19,7 +19,7 @@ using namespace net;
 using namespace RsyncService;
 using namespace pstd;
 
-namespace Rsync {
+namespace rsync {
 
 struct RsyncServerTaskArg {
   std::shared_ptr<RsyncService::RsyncRequest> req;
@@ -32,10 +32,15 @@ class RsyncServerThread;
 
 class RsyncServer {
 public:
-    RsyncServer(const std::string& ip_port, void* worker_specific_data,
+    RsyncServer(const std::string& ip_port, const int port, void* worker_specific_data,
                 const std::string& dir);
     ~RsyncServer();
+    void Schedule(net::TaskFunc func, void* arg);
+    int Start();
+    int Stop();
 private:
+    int port_;
+    std::string ip_;
     std::string dir_;
     std::map<std::string, std::shared_ptr<RsyncReader> > file_map_;
     std::unique_ptr<ThreadPool> work_thread_ = nullptr;
@@ -51,35 +56,43 @@ public:
     int DealMessage() override;
     //处理slave发来的meta请求，arg参数类型为RsyncServerTaskArg，
     //请求处理完成之后将序列化好的response通过conn->WriteResp进行发送
-    void HandleMetaRsyncRequest(void* arg);
+    static void HandleMetaRsyncRequest(void* arg);
     //处理slave发来的file请求，arg参数类型为RsyncServerTaskArg
     //请求处理完成之后将序列化好的response通过conn->WriteResp进行发送
-    void HandleFileRsyncRequest(void* arg);
+    static void HandleFileRsyncRequest(void* arg);
+private:
+    void* data_;
 };
 
 class RsyncServerThread : public HolyThread {
 public:
-  RsyncServerThread(const std::set<std::string>& ips, int port, int cron_internal);
+  RsyncServerThread(const std::set<std::string>& ips, int port, int cron_internal, RsyncServer* arg);
   ~RsyncServerThread();
 
 private:
-  class RsyncServerConnFactory : public ConnFactory {
-  public:
-      explicit RsyncServerConnFactory(RsyncServerThread* thread);
+    class RsyncServerConnFactory : public ConnFactory {
+    public:
+        explicit RsyncServerConnFactory(RsyncServer* sched) : scheduler_(sched) {}
 
-      std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port,
-                                          Thread* thread, void* worker_specific_data,
-                                          NetMultiplexer* net) const override;
+        std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port,
+                                            Thread* thread, void* worker_specific_data,
+                                            NetMultiplexer* net) const override {
+            return std::static_pointer_cast<net::NetConn>(
+            std::make_shared<RsyncServerConn>(connfd, ip_port, thread, scheduler_, net));
+        }
+    private:
+        RsyncServer* scheduler_;
+
   };
   class RsyncServerHandle : public ServerHandle {
   public:
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
-    void FdTimeoutHandle(int fd, const std::string& ip_port);
-    bool AccessHandle(int fd, std::string& ip);
-    bool AccessHandle(std::string& ip);
-    void CronHandle();
+    void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
+    bool AccessHandle(int fd, std::string& ip) const override;
+    void CronHandle() const override;
   };
 private:
+  void* arg_;
   RsyncServerConnFactory conn_factory_;
   RsyncServerHandle handle_;
 };

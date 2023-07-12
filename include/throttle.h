@@ -3,6 +3,7 @@
 #include <atomic>
 #include "pstd/include/pstd_mutex.h"
 
+namespace rsync {
 class Throttle {
  public:
   Throttle(size_t throttle_throughput_bytes, size_t check_cycle);
@@ -22,6 +23,7 @@ class Throttle {
     size_t base_aligning_time_us = 1000 * 1000 / check_cycle;
     return current_time_us / base_aligning_time_us * base_aligning_time_us;
   }
-};
+}
+} // end namespace rsync
 
 #endif
