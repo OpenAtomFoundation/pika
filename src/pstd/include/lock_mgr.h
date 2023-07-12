@@ -44,11 +44,11 @@ class LockMgr : public pstd::noncopyable {
   // Map to locked key info
   std::shared_ptr<LockMap> lock_map_;
 
-  Status Acquire(std::shared_ptr<LockMapStripe> stripe, const std::string& key);
+  Status Acquire(const std::shared_ptr<LockMapStripe>& stripe, const std::string& key);
 
-  Status AcquireLocked(std::shared_ptr<LockMapStripe> stripe, const std::string& key);
+  Status AcquireLocked(const std::shared_ptr<LockMapStripe>& stripe, const std::string& key);
 
-  void UnLockKey(const std::string& key, std::shared_ptr<LockMapStripe> stripe);
+  void UnLockKey(const std::string& key, const std::shared_ptr<LockMapStripe>& stripe);
 
 };
 

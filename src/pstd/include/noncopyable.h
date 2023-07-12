@@ -18,6 +18,6 @@ class noncopyable {
   void operator=(const noncopyable&) = delete;
 };
 
-}
+}  // namespace pstd
 
 #endif
