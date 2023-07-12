@@ -21,7 +21,7 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
-const uint32_t configRunIDSize=40;
+const uint32_t configRunIDSize = 40;
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
