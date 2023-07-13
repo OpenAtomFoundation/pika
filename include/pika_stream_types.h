@@ -1,4 +1,12 @@
+
+#ifndef SRC_STREAM_TYPE_H_
+#define SRC_STREAM_TYPE_H_
+
 #include "storage/storage.h"
+
+// FIXME: will move to pika_command.h in the future
+const std::string kCmcNameXAdd = "xadd";
+
 
 /* (From redis): Stream item ID: a 128 bit number composed of a milliseconds time and
  * a sequence counter. IDs generated in the same millisecond (or in a past
@@ -13,7 +21,15 @@ using streamID = struct streamID {
 
 enum class StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
 
-using treeID = uint32_t;
+using treeID = int32_t;
 using mstime_t = uint64_t;
 
-static const char* STERAM_TREE_PREFIX = "meta";
+static const char* STERAM_TREE_PREFIX = "STREE";
+
+static const std::string STREAM_META_HASH_KEY = "STREAM"; // key of hash to store stream meta
+static const std::string STREAM_TREE_STRING_KEY = "STREAM"; // key of string to store stream tree id
+
+
+
+
+#endif // SRC_STREAM_TYPE_H_
