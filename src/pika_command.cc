@@ -698,65 +698,11 @@ std::vector<std::string> Cmd::current_key() const {
 }
 
 void Cmd::Execute() {
-  if (name_ == kCmdNameFlushdb) {
-    ProcessFlushDBCmd();
-  } else if (name_ == kCmdNameFlushall) {
-    ProcessFlushAllCmd();
-  } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
-    ProcessDoNotSpecifySlotCmd();
-  } else {
-    ProcessSingleSlotCmd();
-  }
+  ProcessSingleSlotCmd();
 }
 
-void Cmd::ProcessFlushDBCmd() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  if (!db) {
-    res_.SetRes(CmdRes::kInvalidDB);
-  } else {
-    if (db->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-    } else {
-      std::lock_guard l_prw(db->slots_rw_);
-      std::lock_guard s_prw(g_pika_rm->slots_rw_);
-      for (const auto& slot_item : db->slots_) {
-        std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-        if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
-          res_.SetRes(CmdRes::kErrOther, "Slot not found");
-          return;
-        }
-        ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
-      }
-      res_.SetRes(CmdRes::kOk);
-    }
-  }
-}
-
-void Cmd::ProcessFlushAllCmd() {
-  std::lock_guard l_trw(g_pika_server->dbs_rw_);
-  for (const auto& db_item : g_pika_server->dbs_) {
-    if (db_item.second->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-      return;
-    }
-  }
-
-  for (const auto& db_item : g_pika_server->dbs_) {
-    std::lock_guard l_prw(db_item.second->slots_rw_);
-    std::lock_guard s_prw(g_pika_rm->slots_rw_);
-    for (const auto& slot_item : db_item.second->slots_) {
-      std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-      if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
-        res_.SetRes(CmdRes::kErrOther, "Slot not found");
-        return;
-      }
-      ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
-    }
-  }
-  res_.SetRes(CmdRes::kOk);
-}
+// TODO(leeHao): exec命令执行时间，是统计事务队列中，每个命令单独统计还是统计一整个队列的执行时长
+// 目前我的做法是统计，exec命令的执行时间是统计整个队列的执行时间
 
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
@@ -903,12 +849,6 @@ void Cmd::ProcessMultiSlotCmd() {
   if (current_stage == kNone || current_stage == kExecuteStage) {
     Merge();
   }
-}
-
-void Cmd::ProcessDoNotSpecifySlotCmd() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
 }
 
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }

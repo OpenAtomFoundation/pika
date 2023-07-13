@@ -478,6 +478,7 @@ class PikaServer : public pstd::noncopyable {
   friend class InfoCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
+  friend class FlushallCmd;
 
  private:
   /*

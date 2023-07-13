@@ -424,11 +424,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessFlushDBCmd();
-  virtual void ProcessFlushAllCmd();
   virtual void ProcessSingleSlotCmd();
   virtual void ProcessMultiSlotCmd();
-  virtual void ProcessDoNotSpecifySlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots

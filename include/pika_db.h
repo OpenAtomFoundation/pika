@@ -22,6 +22,8 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   friend class InfoCmd;
   friend class PkClusterInfoCmd;
   friend class PikaServer;
+  friend class FlushdbCmd;
+  friend class FlushallCmd;
 
   std::string GetDBName();
   void BgSaveDB();

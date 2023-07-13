@@ -170,6 +170,8 @@ class PikaReplicaManager {
   ~PikaReplicaManager() = default;
 
   friend Cmd;
+  friend class FlushdbCmd;
+  friend class FlushallCmd;
 
   void Start();
   void Stop();
