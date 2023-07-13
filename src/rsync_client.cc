@@ -1,7 +1,12 @@
 #include "include/rsync_client.h"
+#include "pstd/src/env.cc"
+#include <stdio.h>
+#include <stdlib.h>
+
 using namespace net;
 using namespace pstd;
 using namespace RsyncService;
+
 namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& ip, const int port)
     : dir_ (dir), ip_ (ip), port_(port), state_ (IDLE) {
@@ -161,11 +166,61 @@ Status RsyncClient::Stop() {
 //TODO: yuecai
 void RsyncClient::Recover() {
     file_set_.insert("filename");
+  // 从远程读取 meta
 }
 
-//TODO: shaoyi
 Status RsyncClient::LoadMetaTable() {
-    LOG(WARNING) << "LoadMetaTable called";
+    if (!FileExists(dir_)) {
+        return Status::OK();
+    }
+
+    FILE* fp;
+    char* line = nullptr;
+    size_t len = 0;
+    size_t read = 0;
+    int32_t line_num = 0;
+
+    std::atomic_int8_t retry_times = 5;
+
+    while (retry_times -- > 0) {
+        fp = fopen(dir_.c_str(), "r");
+        if (fp == nullptr) {
+            LOG(WARNING) << "open meta file failed, meta_path: " << dir_;
+        } else {
+            break;
+        }
+    }
+    // if the file cannot be read from disk, use the remote file directly
+    if (fp == nullptr) {
+        LOG(WARNING) << "open meta file failed, meta_path: " << dir_ << ", retry times: " << retry_times;
+        return Status::IOError("open meta file failed, dir: ", dir_);
+    }
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        std::string str(line);
+        std::string::size_type pos;
+        while ((pos = str.find("\r")) != std::string::npos) {
+            str.erase(pos, 1);
+        }
+        while ((pos = str.find("\n")) != std::string::npos) {
+            str.erase(pos, 1);
+        }
+
+        if (str.empty()) {
+            continue;
+        }
+
+        if (line_num == 0) {
+            snapshot_uuid_ = str.erase(0, kUuidPrefix.size());
+        } else {
+            if ((pos = str.find(":")) != std::string::npos) {
+               str.erase(pos, str.size() - pos);
+            }
+            file_set_.insert(str);
+        }
+
+        line_num++;
+    }
     return Status::OK();
 }
 

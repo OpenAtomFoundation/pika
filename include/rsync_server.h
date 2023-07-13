@@ -113,6 +113,8 @@ public:
 private:
     std::string filepath_;
     std::unique_ptr<RandomRWFile> file_;
+public:
+    std::string GetFilePath() { return filepath_; }
 };
 } //end namespace rsync
 

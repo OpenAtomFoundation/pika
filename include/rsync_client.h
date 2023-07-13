@@ -6,18 +6,21 @@
 #include <thread>
 #include <condition_variable>
 
-#include "throttle.h"
-#include "pstd/include/env.h"
-#include "net/include/net_cli.h"
-#include "pstd/include/pstd_hash.h"
-#include "net/include/bg_thread.h"
-#include "pstd/include/pstd_status.h"
 #include "include/rsync_client_thread.h"
+#include "net/include/bg_thread.h"
+#include "net/include/net_cli.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_hash.h"
+#include "pstd/include/pstd_status.h"
 #include "rsync_service.pb.h"
+#include "throttle.h"
 
 using namespace pstd;
 using namespace net;
 using namespace RsyncService;
+
+const std::string kDumpMetaFileName = "DUMP_META_DATA";
+const std::string kUuidPrefix = "snapshot-uuid:";
 
 namespace rsync {
 
@@ -49,6 +52,7 @@ private:
     Status LoadFile(const std::string& filename);
     Status LoadMetaTable();
     Status FlushMetaTable();
+    void HandleRsyncMetaResponse(RsyncResponse* response);
 
 private:
     //已经下载完成的文件名与checksum值，用于宕机重启时恢复，
