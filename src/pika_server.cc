@@ -91,6 +91,8 @@ PikaServer::PikaServer()
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
+
+  acl_ = std::make_unique<Acl>();
 }
 
 PikaServer::~PikaServer() {

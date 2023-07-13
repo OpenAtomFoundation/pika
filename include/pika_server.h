@@ -25,6 +25,7 @@
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
+#include "acl.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
@@ -32,6 +33,7 @@
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_instant.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
@@ -40,6 +42,8 @@
 #include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_statistic.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_transaction.h"
 #include "include/pika_cmd_table_manager.h"
 
@@ -536,7 +540,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
-  
+
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
@@ -652,6 +656,11 @@ class PikaServer : public pstd::noncopyable {
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
+
+  /*
+   * acl
+   */
+  std::unique_ptr<Acl> acl_ = nullptr;
 };
 
 #endif
