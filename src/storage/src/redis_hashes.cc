@@ -317,6 +317,8 @@ Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value,
   std::string meta_value;
 
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  char value_buf[32] = {0};
+  char meta_value_buf[4] = {0};
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
@@ -325,9 +327,8 @@ Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value,
       parsed_hashes_meta_value.set_timestamp(0);
       batch.Put(handles_[0], key, meta_value);
       HashesDataKey hashes_data_key(key, version, field);
-      char buf[32];
-      Int64ToStr(buf, 32, value);
-      batch.Put(handles_[1], hashes_data_key.Encode(), buf);
+      Int64ToStr(value_buf, 32, value);
+      batch.Put(handles_[1], hashes_data_key.Encode(), value_buf);
       *ret = value;
     } else {
       version = parsed_hashes_meta_value.version();
@@ -342,32 +343,28 @@ Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value,
           return Status::InvalidArgument("Overflow");
         }
         *ret = ival + value;
-        char buf[32];
-        Int64ToStr(buf, 32, *ret);
-        batch.Put(handles_[1], hashes_data_key.Encode(), buf);
+        Int64ToStr(value_buf, 32, *ret);
+        batch.Put(handles_[1], hashes_data_key.Encode(), value_buf);
         statistic++;
       } else if (s.IsNotFound()) {
-        char buf[32];
-        Int64ToStr(buf, 32, value);
+        Int64ToStr(value_buf, 32, value);
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
-        batch.Put(handles_[1], hashes_data_key.Encode(), buf);
+        batch.Put(handles_[1], hashes_data_key.Encode(), value_buf);
         *ret = value;
       } else {
         return s;
       }
     }
   } else if (s.IsNotFound()) {
-    char str[4];
-    EncodeFixed32(str, 1);
-    HashesMetaValue hashes_meta_value(std::string(str, sizeof(int32_t)));
+    EncodeFixed32(meta_value_buf, 1);
+    HashesMetaValue hashes_meta_value(Slice(meta_value_buf, sizeof(int32_t)));
     version = hashes_meta_value.UpdateVersion();
     batch.Put(handles_[0], key, hashes_meta_value.Encode());
     HashesDataKey hashes_data_key(key, version, field);
 
-    char buf[32];
-    Int64ToStr(buf, 32, value);
-    batch.Put(handles_[1], hashes_data_key.Encode(), buf);
+    Int64ToStr(value_buf, 32, value);
+    batch.Put(handles_[1], hashes_data_key.Encode(), value_buf);
     *ret = value;
   } else {
     return s;
@@ -393,6 +390,7 @@ Status RedisHashes::HIncrbyfloat(const Slice& key, const Slice& field, const Sli
   }
 
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  char meta_value_buf[4] = {0};
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
@@ -431,9 +429,8 @@ Status RedisHashes::HIncrbyfloat(const Slice& key, const Slice& field, const Sli
       }
     }
   } else if (s.IsNotFound()) {
-    char str[4];
-    EncodeFixed32(str, 1);
-    HashesMetaValue hashes_meta_value(std::string(str, sizeof(int32_t)));
+    EncodeFixed32(meta_value_buf, 1);
+    HashesMetaValue hashes_meta_value(Slice(meta_value_buf, sizeof(int32_t)));
     version = hashes_meta_value.UpdateVersion();
     batch.Put(handles_[0], key, hashes_meta_value.Encode());
 
@@ -559,6 +556,7 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
   int32_t version = 0;
   std::string meta_value;
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  char meta_value_buf[4] = {0};
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
@@ -590,9 +588,8 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
       batch.Put(handles_[0], key, meta_value);
     }
   } else if (s.IsNotFound()) {
-    char str[4];
-    EncodeFixed32(str, filtered_fvs.size());
-    HashesMetaValue hashes_meta_value(std::string(str, sizeof(int32_t)));
+    EncodeFixed32(meta_value_buf, filtered_fvs.size());
+    HashesMetaValue hashes_meta_value(Slice(meta_value_buf, sizeof(int32_t)));
     version = hashes_meta_value.UpdateVersion();
     batch.Put(handles_[0], key, hashes_meta_value.Encode());
     for (const auto& fv : filtered_fvs) {
@@ -613,6 +610,7 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
   uint32_t statistic = 0;
   std::string meta_value;
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  char meta_value_buf[4] = {0};
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
@@ -645,9 +643,8 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
       }
     }
   } else if (s.IsNotFound()) {
-    char str[4];
-    EncodeFixed32(str, 1);
-    HashesMetaValue meta_value(Slice(str, sizeof(int32_t)));
+    EncodeFixed32(meta_value_buf, 1);
+    HashesMetaValue meta_value(Slice(meta_value_buf, sizeof(int32_t)));
     version = meta_value.UpdateVersion();
     batch.Put(handles_[0], key, meta_value.Encode());
     HashesDataKey data_key(key, version, field);
@@ -668,6 +665,7 @@ Status RedisHashes::HSetnx(const Slice& key, const Slice& field, const Slice& va
   int32_t version = 0;
   std::string meta_value;
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  char meta_value_buf[4] = {0};
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
@@ -694,9 +692,8 @@ Status RedisHashes::HSetnx(const Slice& key, const Slice& field, const Slice& va
       }
     }
   } else if (s.IsNotFound()) {
-    char str[4];
-    EncodeFixed32(str, 1);
-    HashesMetaValue hashes_meta_value(std::string(str, sizeof(int32_t)));
+    EncodeFixed32(meta_value_buf, 1);
+    HashesMetaValue hashes_meta_value(Slice(meta_value_buf, sizeof(int32_t)));
     version = hashes_meta_value.UpdateVersion();
     batch.Put(handles_[0], key, hashes_meta_value.Encode());
     HashesDataKey hashes_data_key(key, version, field);
