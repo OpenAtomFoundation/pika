@@ -8,7 +8,6 @@ enum Type {
 
 message MetaResponse {
     repeated string filenames = 1;
-    required string uuid = 2;
 }
 
 message FileRequest {
@@ -28,11 +27,16 @@ message FileResponse {
 
 message RsyncRequest {
     required Type type = 1;
-    optional FileRequest file_req = 3;
+    required string db_name = 2;
+    required uint32 slot_id = 3;
+    optional FileRequest file_req = 4;
 }
 
 message RsyncResponse {
     required Type type = 1;
-    optional MetaResponse meta_resp = 2;
-    optional FileResponse file_resp = 3;
+    required string snapshot_uuid = 2;
+    required string db_name = 3;
+    required uint32 slot_id = 4;
+    optional MetaResponse meta_resp = 5;
+    optional FileResponse file_resp = 6;
 }

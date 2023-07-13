@@ -1,6 +1,9 @@
 #ifndef RSYNC_CLIENT_H_
 #define RSYNC_CLIENT_H_
 #include <glog/logging.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <list>
 #include <memory>
 #include <thread>
@@ -8,6 +11,8 @@
 
 #include "include/rsync_client_thread.h"
 #include "net/include/bg_thread.h"
+#include "pstd/include/pstd_status.h"
+#include "include/rsync_client_thread.h"
 #include "net/include/net_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_hash.h"
@@ -26,6 +31,7 @@ namespace rsync {
 
 class RsyncWriter;
 class Session;
+class WaitObject;
 
 class RsyncClient : public net::Thread {
 public:
@@ -33,10 +39,6 @@ public:
         IDLE,
         RUNNING,
         STOP,
-    };
-    enum Type {
-        kMeta,
-        kFile,
     };
     RsyncClient(const std::string& dir, const std::string& ip, const int port);
 
@@ -46,10 +48,10 @@ public:
     Status Stop();
     void OnReceive(RsyncResponse* resp);
 private:
-    void Recover();
-    Status SendRequest(const std::string& filename, size_t offset, Type type);
-    Status HandleResponse(const std::string& filename, size_t& offset, MD5& md5, RsyncWriter& writer);
-    Status LoadFile(const std::string& filename);
+    bool Recover();
+    Status Wait(WaitObject* wo);
+    Status CopyRemoteFile(const std::string& filename);
+    Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
     Status LoadMetaTable();
     Status FlushMetaTable();
     void HandleRsyncMetaResponse(RsyncResponse* response);
@@ -58,6 +60,7 @@ private:
     //已经下载完成的文件名与checksum值，用于宕机重启时恢复，
     //减少重复文件下载，周期性flush到磁盘上
     std::map<std::string, std::string> meta_table_;
+    int flush_period_;
     //待拉取的文件集合
     std::set<std::string> file_set_;
     std::string snapshot_uuid_;
@@ -66,8 +69,12 @@ private:
     std::string ip_;
     int port_;
 
+    std::string db_name_;
+    uint32_t slot_id_;
+
     std::unique_ptr<RsyncClientThread> client_thread_;
     std::atomic<State> state_;
+    int max_retries_;
 
     std::list<RsyncService::RsyncResponse*> resp_list_;
     std::condition_variable cond_;
@@ -77,15 +84,52 @@ private:
 //TODO: jinge
 class RsyncWriter {
 public:
-    RsyncWriter(const std::string& filepath) {}
+    RsyncWriter(const std::string& filepath) {
+        filepath_ = filepath;
+        fd_ = open(filepath.c_str(), O_RDWR | O_APPEND | O_CREAT, 0644);
+        LOG(WARNING) << "rsyncwriter fd: " << fd_;
+    }
     ~RsyncWriter() {}
-    Status Write(uint64_t offset, size_t n, Slice* result) {
-         return Status::OK();
+    Status Write(uint64_t offset, size_t n, const char* data) {
+        const char* ptr = data;
+        size_t left = n;
+        Status s;
+        while (left != 0) {
+            ssize_t done = write(fd_, ptr, left);
+            if (done < 0) {
+                if (errno == EINTR) continue;
+                LOG(WARNING) << "pwrite failed, filename: " << filepath_ << "errno: " << strerror(errno) << "n: " << n;
+                return Status::IOError(filepath_, "pwrite failed");
+            }
+            left -= done;
+            ptr += done;
+            offset += done;
+        }
+        return Status::OK();
+    }
+    Status Close() {
+        close(fd_);
+        return Status::OK();
+    }
+    Status Fsync() {
+        fsync(fd_);
+        return Status::OK();
     }
 
 private:
     std::string filepath_;
-    std::unique_ptr<RandomRWFile> file_;
+    int fd_;
+};
+
+class WaitObject {
+public:
+    WaitObject(const std::string& filename, RsyncService::Type t, size_t offset)
+        : filename_(filename), type_(t), offset_(offset), resp_(nullptr) {}
+    WaitObject(RsyncService::Type t) : filename_(""), type_(t), offset_(-1), resp_(nullptr) {}
+    std::string filename_;
+    RsyncService::Type type_;
+    size_t offset_;
+    RsyncResponse* resp_;
 };
 
 } // end namespace rsync
