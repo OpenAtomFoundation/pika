@@ -395,7 +395,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<BLPopCmd>(kCmdNameBLPop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBLPop, std::move(blpopptr)));
   std::unique_ptr<Cmd> lpopptr =
-      std::make_unique<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      std::make_unique<LPopCmd>(kCmdNameLPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
   std::unique_ptr<Cmd> lpushptr =
       std::make_unique<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
@@ -421,7 +421,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr =
-      std::make_unique<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      std::make_unique<RPopCmd>(kCmdNameRPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));
   std::unique_ptr<Cmd> rpoplpushptr =
       std::make_unique<RPopLPushCmd>(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
@@ -911,7 +911,11 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
-void Cmd::ProcessDoNotSpecifySlotCmd() { Do(); }
+void Cmd::ProcessDoNotSpecifySlotCmd() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
+}
 
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }

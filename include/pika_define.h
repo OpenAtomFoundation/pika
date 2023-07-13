@@ -16,8 +16,8 @@
  * TTL type
  */
 #define PIKA_TTL_ZERO 0
-#define PIKA_TTL_NONE -1
-#define PIKA_TTL_STALE -2
+#define PIKA_TTL_NONE (-1)
+#define PIKA_TTL_STALE (-2)
 
 #define PIKA_SYNC_BUFFER_SIZE 1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24

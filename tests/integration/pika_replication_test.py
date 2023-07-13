@@ -95,7 +95,7 @@ def test_del_replication():
     # print(m_keys)
     # print(s_keys)
     # Check if the keys in the master and slave are the same
-    assert set(m_keys) == set(s_keys), f'Expected: s_keys == m_keys, but got {s_keys} != {m_keys}'
+    assert set(m_keys) == set(s_keys), f'Expected: s_keys == m_keys, but got s_keys: {s_keys}, m_keys: {m_keys}'
 
     lists_ = ['blist1', 'blist2', 'blist3']
     for this_list in lists_:
@@ -371,7 +371,7 @@ def test_rpoplpush_replication():
         time.sleep(10)
     m_keys = master.keys()
     s_keys = slave.keys()
-    assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got {s_keys == m_keys}'
+    assert s_keys == m_keys, f'Expected: s_keys == m_keys, but got s_keys: {s_keys}, m_keys: {m_keys}'
 
     for i in range(0, master.llen('blist')):
         # print(master.lindex('blist', i))
@@ -781,6 +781,109 @@ def test_pfmerge_replication():
     assert m_hll_out == s_hll_out, f'Expected: hll_out on master == hll_out on slave, but got hll_out on slave:{s_hll_out}, hll_out on master:{m_hll_out}'
     print("test_pfmerge_replication OK [✓]")
 
+def test_migrateslot_replication():
+    print("start test_migrateslot_replication")
+    master = redis.Redis(host=master_ip, port=int(master_port), db=0)
+    slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    # open slot migrate
+    master.config_set("slotmigrate", "yes")
+    slave.config_set("slotmigrate", "no")
+
+    setKey1 = "setKey_000"
+    setKey2 = "setKey_001"
+    setKey3 = "setKey_002"
+    setKey4 = "setKey_store"
+
+    slave.slaveof(master_ip, master_port)
+    time.sleep(1)
+
+    master.delete(setKey1)
+    master.delete(setKey2)
+    master.delete(setKey3)
+    master.delete(setKey4)
+
+    letters = string.ascii_letters
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sdiffstore(setKey4, setKey1, setKey2)
+
+    time.sleep(10)
+
+    m_set1 = master.smembers(setKey1)
+    m_set2 = master.smembers(setKey2)
+    m_set3 = master.smembers(setKey3)
+    m_dest_set = master.smembers(setKey4)
+    s_set1 = slave.smembers(setKey1)
+    s_set2 = slave.smembers(setKey2)
+    s_set3 = slave.smembers(setKey3)
+    s_dest_set = slave.smembers(setKey4)
+
+    assert m_set1 == s_set1, f'Expected: set1 on master == set1 on slave, but got set1 on slave:{s_set1}, set1 on master:{m_set1}'
+    assert m_set2 == s_set2, f'Expected: set2 on master == set2 on slave, but got set2 on slave:{s_set2}, set2 on master:{m_set2}'
+    assert m_set3 == s_set3, f'Expected: set3 on master == set3 on slave, but got set3 on slave:{s_set3}, set3 on master:{m_set3}'
+    assert m_dest_set == s_dest_set, f'Expected: dest_set on master == dest_set on slave, but got dest_set on slave:{s_dest_set}, dest_set on master:{m_dest_set}'
+
+    # disconnect mster and slave
+    slave.slaveof("no", "one")
+
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey2, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey1, ''.join(random.choice(letters) for _ in range(5)))
+    master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
+    master.sdiffstore(setKey4, setKey1, setKey2)
+
+    # reconnect mster and slave
+    slave.slaveof(master_ip, master_port)
+    time.sleep(25)
+
+    m_set1 = master.smembers(setKey1)
+    m_set2 = master.smembers(setKey2)
+    m_set3 = master.smembers(setKey3)
+    m_dest_set = master.smembers(setKey4)
+    s_set1 = slave.smembers(setKey1)
+    s_set2 = slave.smembers(setKey2)
+    s_set3 = slave.smembers(setKey3)
+    s_dest_set = slave.smembers(setKey4)
+
+    assert m_set1 == s_set1, f'Expected: set1 on master == set1 on slave, but got set1 on slave:{s_set1}, set1 on master:{m_set1}'
+    assert m_set2 == s_set2, f'Expected: set2 on master == set2 on slave, but got set2 on slave:{s_set2}, set2 on master:{m_set2}'
+    assert m_set3 == s_set3, f'Expected: set3 on master == set3 on slave, but got set3 on slave:{s_set3}, set3 on master:{m_set3}'
+    assert m_dest_set == s_dest_set, f'Expected: dest_set on master == dest_set on slave, but got dest_set on slave:{s_dest_set}, dest_set on master:{m_dest_set}'
+
+    # slave node should not has slot key
+    s_keys = slave.keys()
+    for key in s_keys:
+        assert not (str(key).startswith("_internal:slotkey:4migrate:") or str(key).startswith("_internal:slottag:4migrate:")), f'Expected: slave should not has slot key, but got {key}'
+
+    master.config_set("slotmigrate", "no")
+    print("test_migrateslot_replication OK [✓]")
 
 master_ip = '127.0.0.1'
 master_port = '9221'
@@ -804,6 +907,7 @@ test_sinterstore_replication()
 test_zunionstore_replication()
 test_zinterstore_replication()
 test_sunionstore_replication()
+test_migrateslot_replication()
 # ---------For Github Action---------End
 
 

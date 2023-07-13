@@ -1,10 +1,12 @@
 package exporter
 
 import (
-	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
 )
 
 type fakeDiscovery struct {

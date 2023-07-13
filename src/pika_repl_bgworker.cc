@@ -138,8 +138,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
   }
 
-  for (size_t i = 0; i < index->size(); ++i) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+  for (int i : *index) {
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // if pika are not current a slave or Slot not in
     // BinlogSync state, we drop remain write binlog task
     if (((g_pika_server->role() & PIKA_ROLE_SLAVE) == 0) ||

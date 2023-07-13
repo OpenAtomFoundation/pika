@@ -230,7 +230,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(std::move(del_args), db_name_);
+  del_cmd_->Initial(del_args, db_name_);
   del_cmd_->SetConn(GetConn());
   del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
@@ -244,7 +244,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   initial_args.emplace_back("sadd");//use "sadd" to distinguish the binlog of SaddCmd which use "SADD" for binlog
   initial_args.emplace_back(dest_key_);
   initial_args.emplace_back(value_to_dest_[0]);
-  sadd_cmd_->Initial(std::move(initial_args), db_name_);
+  sadd_cmd_->Initial(initial_args, db_name_);
   sadd_cmd_->SetConn(GetConn());
   sadd_cmd_->SetResp(resp_.lock());
 
@@ -395,14 +395,14 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   srem_args.emplace_back("srem");
   srem_args.emplace_back(src_key_);
   srem_args.emplace_back(member_);
-  srem_cmd_->Initial(std::move(srem_args), db_name_);
+  srem_cmd_->Initial(srem_args, db_name_);
 
   PikaCmdArgsType sadd_args;
   //Saddcmd use "SADD", Smovecmd use "sadd"
   sadd_args.emplace_back("sadd");
   sadd_args.emplace_back(dest_key_);
   sadd_args.emplace_back(member_);
-  sadd_cmd_->Initial(std::move(sadd_args), db_name_);
+  sadd_cmd_->Initial(sadd_args, db_name_);
 
   srem_cmd_->SetConn(GetConn());
   srem_cmd_->SetResp(resp_.lock());

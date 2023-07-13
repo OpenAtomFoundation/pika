@@ -88,7 +88,7 @@ Status LockMgr::TryLock(const std::string& key) {
 }
 
 // Helper function for TryLock().
-Status LockMgr::Acquire(std::shared_ptr<LockMapStripe> stripe, const std::string& key) {
+Status LockMgr::Acquire(const std::shared_ptr<LockMapStripe>& stripe, const std::string& key) {
   Status result;
 
   // we wait indefinitely to acquire the lock
@@ -119,7 +119,7 @@ Status LockMgr::Acquire(std::shared_ptr<LockMapStripe> stripe, const std::string
 
 // Try to lock this key after we have acquired the mutex.
 // REQUIRED:  Stripe mutex must be held.
-Status LockMgr::AcquireLocked(std::shared_ptr<LockMapStripe> stripe, const std::string& key) {
+Status LockMgr::AcquireLocked(const std::shared_ptr<LockMapStripe>& stripe, const std::string& key) {
   Status result;
   // Check if this key is already locked
   if (stripe->keys.find(key) != stripe->keys.end()) {
@@ -143,7 +143,7 @@ Status LockMgr::AcquireLocked(std::shared_ptr<LockMapStripe> stripe, const std::
   return result;
 }
 
-void LockMgr::UnLockKey(const std::string& key, std::shared_ptr<LockMapStripe> stripe) {
+void LockMgr::UnLockKey(const std::string& key, const std::shared_ptr<LockMapStripe>& stripe) {
 #ifdef LOCKLESS
 #else
   auto stripe_iter = stripe->keys.find(key);

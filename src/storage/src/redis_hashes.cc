@@ -647,7 +647,7 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
   } else if (s.IsNotFound()) {
     char str[4];
     EncodeFixed32(str, 1);
-    HashesMetaValue meta_value(std::string(str, sizeof(int32_t)));
+    HashesMetaValue meta_value(Slice(str, sizeof(int32_t)));
     version = meta_value.UpdateVersion();
     batch.Put(handles_[0], key, meta_value.Encode());
     HashesDataKey data_key(key, version, field);

@@ -369,3 +369,10 @@ proc start_write_load {host port seconds} {
 proc stop_write_load {handle} {
     catch {exec /bin/kill -9 $handle}
 }
+
+# Mock debug populate
+proc populate {size} {
+    for {set counter 0} {$counter < $size} {incr counter} {
+        r set "key:$counter" "key:$counter"
+    }
+}
