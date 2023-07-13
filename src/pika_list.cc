@@ -122,19 +122,19 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   CmdRes res;
   std::vector<WriteBinlogOfPopArgs> pop_binlog_args;
   auto& waitting_list = it->second;
-  std::string value;
+  std::vector<std::string> values;
   rocksdb::Status s;
   // traverse this list from head to tail(in the order of adding sequence) ,means "first blocked, first get served“
   for (auto conn_blocked = waitting_list->begin(); conn_blocked != waitting_list->end();) {
     if (conn_blocked->GetBlockType() == BlockKeyType::Blpop) {
-      s = slot->db()->LPop(key, &value);
+      s = slot->db()->LPop(key, 1, &values);
     } else {  // BlockKeyType is Brpop
-      s = slot->db()->RPop(key, &value);
+      s = slot->db()->RPop(key, 1, &values);
     }
     if (s.ok()) {
       res.AppendArrayLen(2);
       res.AppendString(key);
-      res.AppendString(value);
+      res.AppendString(values[0]);
     } else if (s.IsNotFound()) {
       // this key has no more elements to serve more blocked conn.
       break;
@@ -272,12 +272,12 @@ void BLPopCmd::DoInitial() {
 
 void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
-    std::string value;
-    rocksdb::Status s = slot->db()->LPop(this_key, &value);
+    std::vector<std::string> values;
+    rocksdb::Status s = slot->db()->LPop(this_key, 1, &values);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
-      res_.AppendString(value);
+      res_.AppendString(values[0]);
       // write an binlog of lpop
       binlog_args_.block_type = BlockKeyType::Blpop;
       binlog_args_.key = this_key;
@@ -474,12 +474,12 @@ void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
 
 void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
-    std::string value;
-    rocksdb::Status s = slot->db()->RPop(this_key, &value);
+    std::vector<std::string> values;
+    rocksdb::Status s = slot->db()->RPop(this_key, 1, &values);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
-      res_.AppendString(value);
+      res_.AppendString(values[0]);
       // write an binlog of rpop
       binlog_args_.block_type = BlockKeyType::Brpop;
       binlog_args_.key = this_key;

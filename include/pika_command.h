@@ -408,7 +408,7 @@ class CmdRes {
 struct UnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
-  net::DispatchThread* dispatchThread;
+  net::DispatchThread* dispatchThread{ nullptr };
   UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
       : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
 };

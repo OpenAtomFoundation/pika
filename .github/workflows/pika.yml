@@ -20,17 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-#      - name: cache dependencies
-#        uses: actions/cache@v2
-#        id: cache
-#        with:
-#          path: |
-#            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-#            ~/.cache/pip
-#          key: ${{ runner.os }}-dependencies
+      - name: cache dependencies
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+            ~/.cache/pip
+          key: ${{ runner.os }}-dependencies
 
       - name: install Deps
-#        if: ${{ steps.cache.output.cache-hit != 'true' }}
+        if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt install autoconf libprotobuf-dev protobuf-compiler -y
           sudo apt-get install -y clang-tidy-12

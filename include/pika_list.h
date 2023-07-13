@@ -99,8 +99,7 @@ class BLPopCmd final : public BlockingBaseCmd {
  public:
   BLPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
-    std::vector<std::string> res = keys_;
-    return res;
+    return { keys_ };
   }
   virtual void Do(std::shared_ptr<Slot> slot = nullptr);
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
@@ -259,8 +258,7 @@ class BRPopCmd final : public BlockingBaseCmd {
  public:
   BRPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
-    std::vector<std::string> res = keys_;
-    return res;
+    return { keys_ };
   }
   virtual void Do(std::shared_ptr<Slot> slot = nullptr);
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
