@@ -259,6 +259,9 @@ enum CmdFlags {
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
+void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
+   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+}
 
 const std::string kNewLine = "\r\n";
 
@@ -378,11 +381,13 @@ class CmdRes {
 
   // Inline functions for Create Redis protocol
   void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
+  void AppendStringLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "$"); }
   void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
+  void AppendArrayLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "*"); }
   void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
   void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
   void AppendString(const std::string& value) {
-    AppendStringLen(value.size());
+    AppendStringLenUint64(value.size());
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
@@ -483,7 +488,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  bool CheckArg(int num) const;
+  bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 
   std::string name_;
