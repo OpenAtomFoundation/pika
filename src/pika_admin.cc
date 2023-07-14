@@ -25,7 +25,6 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unordered_map<std::string, CommandStatistics> g_cmdstat_map;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -1225,7 +1224,7 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.precision(2);
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
-    for (auto& iter : g_cmdstat_map) {
+    for (auto& iter : g_pika_server->cmdstat_map) {
         if (iter.second.cmd_count != 0) {
             tmp_stream << "cmdstat_" << iter.first << ":"
                        << "calls=" << iter.second.cmd_count << ",usec="

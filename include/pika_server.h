@@ -38,6 +38,7 @@
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 
 
@@ -461,6 +462,11 @@ class PikaServer : public pstd::noncopyable {
   friend class InfoCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
+
+  /*
+   * Info Commandstats used
+   */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map;
 
  private:
   /*
