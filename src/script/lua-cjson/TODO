@@ -1,0 +1,2 @@
+- Improve Windows build support.
+- Provide option to force/record whether a table is an object or array.

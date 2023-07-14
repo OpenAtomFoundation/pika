@@ -15,6 +15,7 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
+#include "include/pika_script.h"
 #include "include/pika_server.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
@@ -32,6 +33,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
+  // TODO return err in lua script context
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
@@ -44,9 +46,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
   // Check authed
   // AuthCmd will set stat_
-  if (!auth_stat_.IsAuthed(c_ptr)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
-    return c_ptr;
+  // 在lua里执行命令不要这个check
+  if (g_pika_server->lua_calling_) {
+    if (!auth_stat_.IsAuthed(c_ptr)) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
+      return c_ptr;
+    }
   }
 
   uint64_t start_us = 0;
@@ -55,6 +60,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
+  // TODO lua格式添加
   if (is_monitoring) {
     ProcessMonitor(argv);
   }
@@ -97,7 +103,14 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
+  // check for cmd support in lua
+  if (g_pika_server->lua_calling_ && !c_ptr->is_script()) {
+    c_ptr->res().SetRes(CmdRes::kErrOther, "This Redis command is not allowed from scripts");
+    return c_ptr;
+  }
+
   if (c_ptr->is_write()) {
+    // TODO lua命令感觉不需要propagte？
     if (g_pika_server->IsDBBinlogIoError(current_db_)) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;
@@ -261,6 +274,28 @@ void PikaClientConn::TryWriteResp() {
     }
     resp_array.clear();
     NotifyEpoll(true);
+  }
+}
+
+void PikaClientConn::ExecRedisCmdInLua(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
+  // get opt
+  std::string opt = argv[0];
+  pstd::StringToLower(opt);
+  // if (opt == kClusterPrefix) {
+  //   if (argv.size() >= 2) {
+  //     opt += argv[1];
+  //     pstd::StringToLower(opt);
+  //   }
+  // }
+
+  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
+  // level == 0 or (cmd error) or (is_read)
+  if (!cmd_ptr->res().ok()) {
+    // push error to lua
+    // TODO use message() will add -ERR in front of error message, we can remove it by slicing the string
+    LuaPushError(*g_pika_server->lua_, cmd_ptr->res().message().data());
+  } else {
+    *resp_ptr = std::move(cmd_ptr->res().message());
   }
 }
 

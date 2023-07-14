@@ -434,7 +434,7 @@ void SelectCmd::Do(std::shared_ptr<Slot> slot) {
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  conn->SetCurrentTable(db_name_);
+  conn->SetCurrentDB(db_name_);
   res_.SetRes(CmdRes::kOk);
 }
 

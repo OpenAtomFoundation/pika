@@ -51,10 +51,12 @@ class PikaClientConn : public net::RedisConn {
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
+  void ExecRedisCmdInLua(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
-  void SetCurrentTable(const std::string& db_name) { current_db_ = db_name; }
+  void SetCurrentDB(const std::string& db_name) { current_db_ = db_name; }
+  std::string CurrentDB() { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   net::ServerThread* server_thread() { return server_thread_; }

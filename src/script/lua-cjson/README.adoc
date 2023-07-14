@@ -1,0 +1,27 @@
+= Lua CJSON =
+Mark Pulford <mark@kyne.com.au>
+
+The Lua CJSON module provides JSON support for Lua.
+
+*Features*::
+- Fast, standards compliant encoding/parsing routines
+- Full support for JSON with UTF-8, including decoding surrogate pairs
+- Optional run-time support for common exceptions to the JSON
+  specification (infinity, NaN,..)
+- No dependencies on other libraries
+
+*Caveats*::
+- UTF-16 and UTF-32 are not supported
+
+Lua CJSON is covered by the MIT license. Review the file +LICENSE+ for
+details.
+
+Please read +manual.adoc+ for installation instructions and the API
+manual.
+
+The current stable version of this software is available from the
+http://www.kyne.com.au/%7Emark/software/lua-cjson.php[Lua CJSON website].
+
+Feel free to email me if you have any patches, suggestions, or comments.
+
+// vi:ft=asciidoc tw=72:

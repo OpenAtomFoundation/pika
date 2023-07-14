@@ -213,6 +213,10 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
+// Lua Script
+const std::string kCmdNameEval = "eval";
+const std::string kCmdNameEvalSha = "evalsha";
+
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -228,10 +232,13 @@ enum CmdFlagsMask {
   kCmdFlagsMaskCacheDo = 1024,
   kCmdFlagsMaskPostDo = 2048,
   kCmdFlagsMaskSlot = 1536,
+  kCmdFlagsMaskRandom = 4096,
+  kCmdFlagsMaskSortForScript = 8192,
+  kCmdFlagsMaskScript = 16384,
 };
 
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
+  kCmdFlagsRead = 0,   // default rw
   kCmdFlagsWrite = 1,
   kCmdFlagsAdmin = 0,  // default type
   kCmdFlagsKv = 2,
@@ -243,18 +250,24 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = 14,
   kCmdFlagsGeo = 16,
   kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
+  kCmdFlagsNoLocal = 0,                // default nolocal
   kCmdFlagsLocal = 32,
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
+  kCmdFlagsNoSuspend = 0,              // default nosuspend
   kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
+  kCmdFlagsNoPrior = 0,                // default noprior
   kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
+  kCmdFlagsNoAdminRequire = 0,         // default no need admin
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsPreDo = 2048,
+  KCmdFlagsNoRandom = 0,         // default norandom
+  KCmdFlagsRandom = 4096,
+  KCmdFlagsNoSortForScript = 0,  // default nosortforscript
+  KCmdFlagsSortForScript = 8192,
+  KCmdFlagsScript = 0,           // default can be used in script
+  KCmdFlagsNoScript = 16384,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -289,6 +302,7 @@ class CmdRes {
     kInconsistentHashTag,
     kErrOther,
     KIncrByOverFlow,
+    kInvalidKeyNums
   };
 
   CmdRes() = default;
@@ -338,6 +352,8 @@ class CmdRes {
         return "-ERR binlog already in purging...\r\n";
       case kInvalidParameter:
         return "-ERR Invalid Argument\r\n";
+      case kInvalidKeyNums:
+        return "-ERR Number of keys can't be greater than number of args\r\n";
       case kWrongNum:
         result = "-ERR wrong number of arguments for '";
         result.append(message_);
@@ -454,6 +470,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool is_script() const;
+  bool is_sort_for_script() const;
+  bool is_random() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 

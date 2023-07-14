@@ -690,6 +690,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(src/script)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -759,12 +760,15 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  storage
+  lua)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   PUBLIC ${PROJECT_SOURCE_DIR}
   ${INSTALL_INCLUDEDIR}
+  ${LUA_INCLUDE_DIR}
+  ${SOL_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -781,7 +785,11 @@ target_link_libraries(${PROJECT_NAME}
   liblz4.a
   libz.a
   ${LIBUNWIND_LIBRARY}
-  ${JEMALLOC_LIBRARY})
+  ${JEMALLOC_LIBRARY}
+  ${LUA_LIBRARY}
+  lua-cjson
+  lua-struct
+  lua-cmsgpack)
 
 option(USE_SSL "Enable SSL support" OFF)
 add_custom_target(

@@ -17,6 +17,7 @@
 #include "include/pika_list.h"
 #include "include/pika_pubsub.h"
 #include "include/pika_rm.h"
+#include "include/pika_script.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
 #include "include/pika_slot_command.h"
@@ -673,6 +674,16 @@ void InitCmdTable(CmdTable* cmd_table) {
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr = std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
+
+  // Lua Script
+  // TODO change flags and add cmd
+  // finish nosort and noscript for redis2.6
+  ////Eval
+  std::unique_ptr<Cmd> evalptr = std::make_unique<EvalCmd>(kCmdNameEval, -3, KCmdFlagsNoScript, false);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameEval, std::move(evalptr)));
+  ////EvalSha
+  std::unique_ptr<Cmd> evalshaptr = std::make_unique<EvalCmd>(kCmdNameEvalSha, -3, KCmdFlagsNoScript, true);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameEvalSha, std::move(evalshaptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
@@ -920,6 +931,9 @@ bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFla
 bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
+bool Cmd::is_script() const { return ((flag_ & kCmdFlagsMaskScript) == KCmdFlagsScript); }
+bool Cmd::is_sort_for_script() const { return ((flag_ & kCmdFlagsMaskSortForScript) == KCmdFlagsSortForScript); }
+bool Cmd::is_random() const { return ((flag_ & kCmdFlagsMaskRandom) == KCmdFlagsRandom); }
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 

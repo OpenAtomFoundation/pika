@@ -25,11 +25,18 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_rm.h"
+#include "include/pika_script.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
+extern "C" {
+int luaopen_cjson(lua_State* L);
+int luaopen_struct(lua_State* L);
+int luaopen_cmsgpack(lua_State* L);
+}
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -56,6 +63,7 @@ PikaServer::PikaServer()
   }
 
   InitStorageOptions();
+  ScriptingInit();
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
@@ -363,7 +371,11 @@ Status PikaServer::DelDBStruct(const std::string &db_name) {
 }
 
 std::shared_ptr<DB> PikaServer::GetDB(const std::string& db_name) {
-  std::shared_lock l(dbs_rw_);
+  std::shared_lock l(dbs_rw_, std::defer_lock);
+  // TODO improve and find other deadlock
+  if (!lua_calling_) {
+    l.lock();
+  }
   auto iter = dbs_.find(db_name);
   return (iter == dbs_.end()) ? nullptr : iter->second;
 }
@@ -1713,4 +1725,177 @@ void DoBgslotscleanup(void* arg) {
   std::string slotsStr;
   slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
+}
+
+void PikaServer::luaLoadLib(const char* libname, lua_CFunction luafunc) {
+  lua_State* lua = lua_->lua_state();
+  lua_pushcfunction(lua, luafunc);
+  lua_pushstring(lua, libname);
+  lua_call(lua, 1, 0);
+}
+
+void PikaServer::luaLoadLibraries() {
+  luaLoadLib("", luaopen_base);
+  luaLoadLib(LUA_TABLIBNAME, luaopen_table);
+  luaLoadLib(LUA_STRLIBNAME, luaopen_string);
+  luaLoadLib(LUA_MATHLIBNAME, luaopen_math);
+  luaLoadLib(LUA_DBLIBNAME, luaopen_debug);
+  luaLoadLib("cjson", luaopen_cjson);
+  luaLoadLib("struct", luaopen_struct);
+  luaLoadLib("cmsgpack", luaopen_cmsgpack);
+  // TODO sandbox concern
+}
+
+void PikaServer::luaRemoveUnsupportedFunctions() { (*lua_)["loadfile"] = sol::lua_nil; }
+
+/* This function installs metamethods in the global table _G that prevent
+ * the creation of globals accidentally.
+ *
+ * It should be the last to be called in the scripting engine initialization
+ * sequence, because it may interact with creation of globals. */
+void PikaServer::scriptingEnableGlobalsProtection() {
+  std::string s[32];
+  int j = 0;
+  /* strict.lua from: http://metalua.luaforge.net/src/lib/strict.lua.html.
+   * Modified to be adapted to Redis. */
+  s[j++] = "local mt = {}\n";
+  s[j++] = "setmetatable(_G, mt)\n";
+  s[j++] = "mt.__newindex = function (t, n, v)\n";
+  s[j++] = "  if debug.getinfo(2) then\n";
+  s[j++] = "    local w = debug.getinfo(2, \"S\").what\n";
+  s[j++] = "    if w ~= \"main\" and w ~= \"C\" then\n";
+  s[j++] = "      error(\"Script attempted to create global variable '\"..tostring(n)..\"'\", 2)\n";
+  s[j++] = "    end\n";
+  s[j++] = "  end\n";
+  s[j++] = "  rawset(t, n, v)\n";
+  s[j++] = "end\n";
+  s[j++] = "mt.__index = function (t, n)\n";
+  s[j++] = "  if debug.getinfo(2) and debug.getinfo(2, \"S\").what ~= \"C\" then\n";
+  s[j++] = "    error(\"Script attempted to access unexisting global variable '\"..tostring(n)..\"'\", 2)\n";
+  s[j++] = "  end\n";
+  s[j++] = "  return rawget(t, n)\n";
+  s[j++] = "end\n";
+  s[j++] = "";
+
+  // concat all the lines to string
+  std::string script;
+  for (int j = 0; !s[j].empty(); j++) {
+    script.append(s[j]);
+  }
+  sol::load_result load_res = lua_->load(script);
+  if (!load_res.valid()) {
+    LOG(ERROR) << "load strict.lua failed: " << static_cast<sol::error>(load_res).what();
+    return;
+  }
+  sol::protected_function_result res = load_res();
+  if (!res.valid()) {
+    LOG(ERROR) << "run strict.lua failed: " << static_cast<sol::error>(res).what();
+    return;
+  }
+}
+
+void PikaServer::ScriptingInit() {
+  lua_ = std::make_unique<sol::state>();
+  luaLoadLibraries();
+  luaRemoveUnsupportedFunctions();
+  // /* Register the redis commands table and fields */
+  // lua_newtable(lua);
+  sol::state& lua = *lua_;
+  lua.create_named_table("redis");
+  lua["redis"]["call"] = LuaRedisCallCommand;
+  lua["redis"]["pcall"] = LuaRedisPCallCommand;
+
+  // /* redis.log and log levels. */
+  // lua_pushstring(lua, "log");
+  // lua_pushcfunction(lua, luaLogCommand);
+  // lua_settable(lua, -3);
+
+  // lua_pushstring(lua, "LOG_DEBUG");
+  // lua_pushnumber(lua, REDIS_DEBUG);
+  // lua_settable(lua, -3);
+
+  // lua_pushstring(lua, "LOG_VERBOSE");
+  // lua_pushnumber(lua, REDIS_VERBOSE);
+  // lua_settable(lua, -3);
+
+  // lua_pushstring(lua, "LOG_NOTICE");
+  // lua_pushnumber(lua, REDIS_NOTICE);
+  // lua_settable(lua, -3);
+
+  // lua_pushstring(lua, "LOG_WARNING");
+  // lua_pushnumber(lua, REDIS_WARNING);
+  // lua_settable(lua, -3);
+
+  // /* redis.sha1hex */
+  // lua_pushstring(lua, "sha1hex");
+  // lua_pushcfunction(lua, luaRedisSha1hexCommand);
+  // lua_settable(lua, -3);
+
+  // /* redis.error_reply and redis.status_reply */
+  // lua_pushstring(lua, "error_reply");
+  // lua_pushcfunction(lua, luaRedisErrorReplyCommand);
+  // lua_settable(lua, -3);
+  // lua_pushstring(lua, "status_reply");
+  // lua_pushcfunction(lua, luaRedisStatusReplyCommand);
+  // lua_settable(lua, -3);
+
+  // /* Finally set the table as 'redis' global var. */
+  // lua_setglobal(lua, "redis");
+
+  // /* Replace math.random and math.randomseed with our implementations. */
+  // lua_getglobal(lua, "math");
+
+  // lua_pushstring(lua, "random");
+  // lua_pushcfunction(lua, redis_math_random);
+  // lua_settable(lua, -3);
+
+  // lua_pushstring(lua, "randomseed");
+  // lua_pushcfunction(lua, redis_math_randomseed);
+  // lua_settable(lua, -3);
+
+  // lua_setglobal(lua, "math");
+
+  // TODO add this
+  // /* Add a helper function that we use to sort the multi bulk output of non
+  //  * deterministic commands, when containing 'false' elements. */
+  // {
+  //   char* compare_func =
+  //       "function __redis__compare_helper(a,b)\n"
+  //       "  if a == false then a = '' end\n"
+  //       "  if b == false then b = '' end\n"
+  //       "  return a<b\n"
+  //       "end\n";
+  //   luaL_loadbuffer(lua, compare_func, strlen(compare_func), "@cmp_func_def");
+  //   lua_pcall(lua, 0, 0, 0);
+  // }
+
+  // /* Create the (non connected) client that we use to execute Redis commands
+  //  * inside the Lua interpreter.
+  //  * Note: there is no need to create it again when this function is called
+  //  * by scriptingReset(). */
+  // if (server.lua_client == NULL) {
+  //   server.lua_client = createClient(-1);
+  //   server.lua_client->flags |= REDIS_LUA_CLIENT;
+  // }
+  if (!lua_client_) {
+    lua_client_ = std::make_shared<PikaClientConn>(-1, "", nullptr, nullptr, net::HandleType::kSynchronous,
+                                                   g_pika_conf->max_conn_rbuf_size());
+    // TODO add client flags?
+    // lua_client_->SetFlags(REDIS_LUA_CLIENT);
+  }
+
+  /* Lua beginners ofter don't use "local", this is likely to introduce
+   * subtle bugs in their code. To prevent problems we protect accesses
+   * to global variables. */
+  scriptingEnableGlobalsProtection();
+}
+
+void PikaServer::ScriptingRelease() {
+  lua_scripts_.clear();
+  lua_.release();
+}
+
+void PikaServer::ScriptingReset() {
+  ScriptingRelease();
+  ScriptingInit();
 }
