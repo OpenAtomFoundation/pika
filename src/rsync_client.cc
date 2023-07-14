@@ -112,7 +112,8 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
     Status s;
     int retries = 0;
     size_t offset = 0;
-    size_t count = 1 << 10;
+    size_t copy_file_begin_time = pstd::NowMicros();
+    size_t count = throttle_->ThrottledByThroughput(1024 * 1024);
     MD5 md5;
     std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
     DEFER {
@@ -132,7 +133,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         FileRequest* file_req = request.mutable_file_req();
         file_req->set_filename(filename);
         file_req->set_offset(offset);
-        file_req->set_count(1 << 20);
+        file_req->set_count(count);
         std::string to_send;
         request.SerializeToString(&to_send);
 
@@ -193,6 +194,9 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         } else {
             offset += resp->file_resp().count();
         }
+        size_t copy_file_end_time = pstd::NowMicros();
+        size_t elaspe_time_us = copy_file_end_time - copy_file_begin_time;
+        throttle_->ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
         retries = 0;
     }
 

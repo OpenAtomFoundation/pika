@@ -20,7 +20,7 @@
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/pstd_status.h"
 #include "rsync_service.pb.h"
-#include "throttle.h"
+#include "include/throttle.h"
 
 using namespace pstd;
 using namespace net;
@@ -82,6 +82,7 @@ private:
     std::list<RsyncService::RsyncResponse*> resp_list_;
     std::condition_variable cond_;
     std::mutex mu_;
+    std::unique_ptr<Throttle> throttle_;
 };
 
 //TODO: jinge
