@@ -1,0 +1,13 @@
+*~
+.*~
+\#*\#
+.\#*\#
+
+.DS_Store
+.project
+.settings
+
+*.o
+*.so
+
+build/

@@ -1,0 +1,6 @@
+set(CFLAGS -O2 -ggdb -Wall -pedantic -std=c99)
+add_library(lua-cmsgpack STATIC lua_cmsgpack.c)
+target_compile_options(lua-cmsgpack PRIVATE ${CFLAGS})
+target_link_libraries(lua-cmsgpack ${LUA_LIBRARY})
+target_include_directories(lua-cmsgpack PRIVATE ${LUA_INCLUDE_DIR})
+add_dependencies(lua-cmsgpack lua)
