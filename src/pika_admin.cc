@@ -846,6 +846,26 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_compact:" << (g_pika_server->IsCompacting() ? "Yes" : "No") << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
+  time_t current_time_s = time(nullptr);
+  PikaServer::BGSlotsReload bgslotsreload_info = g_pika_server->bgslots_reload();
+  bool is_reloading = g_pika_server->GetSlotsreloading();
+  tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
+             << (is_reloading ? (current_time_s - bgslotsreload_info.start_time)
+                              : (bgslotsreload_info.end_time - bgslotsreload_info.start_time))
+             << "\r\n";
+  PikaServer::BGSlotsCleanup bgslotscleanup_info = g_pika_server->bgslots_cleanup();
+  bool is_cleaningup = g_pika_server->GetSlotscleaningup();
+  tmp_stream << "is_slots_cleaningup:" << (is_cleaningup ? "Yes, " : "No, ") << bgslotscleanup_info.s_start_time << ", "
+             << (is_cleaningup ? (current_time_s - bgslotscleanup_info.start_time)
+                               : (bgslotscleanup_info.end_time - bgslotscleanup_info.start_time))
+             << "\r\n";
+  bool is_migrating = g_pika_server->pika_migrate_thread_->IsMigrating();
+  time_t start_migration_time = g_pika_server->pika_migrate_thread_->GetStartTime();
+  time_t end_migration_time = g_pika_server->pika_migrate_thread_->GetEndTime();
+  std::string start_migration_time_str = g_pika_server->pika_migrate_thread_->GetStartTimeStr();
+  tmp_stream << "is_slots_migrating:" << (is_migrating ? "Yes, " : "No, ") << start_migration_time_str << ", "
+             << (is_migrating ? (current_time_s - start_migration_time) : (end_migration_time - start_migration_time))
+             << "\r\n";
 
   info.append(tmp_stream.str());
 }
