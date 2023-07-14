@@ -5,15 +5,16 @@
 #include <atomic>
 #include <memory>
 
-#include "rsync_service.pb.h"
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
-#include "net/include/thread_pool.h"
 #include "net/include/pb_conn.h"
 #include "net/include/server_thread.h"
+#include "net/include/thread_pool.h"
+#include "net/src/holy_thread.h"
 #include "net/src/net_multiplexer.h"
 #include "pstd/include/env.h"
-#include "net/src/holy_thread.h"
+#include "pstd_hash.h"
+#include "rsync_service.pb.h"
 
 using namespace net;
 using namespace RsyncService;
@@ -42,6 +43,7 @@ private:
     int port_;
     std::string ip_;
     std::string dir_;
+    std::string info_dir_;
     std::map<std::string, std::shared_ptr<RsyncReader> > file_map_;
     std::unique_ptr<ThreadPool> work_thread_ = nullptr;
     std::unique_ptr<RsyncServerThread> rsync_server_thread_ = nullptr;

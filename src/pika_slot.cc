@@ -13,6 +13,7 @@
 #include "include/pika_server.h"
 
 #include "pstd/include/mutex_impl.h"
+#include "pstd_hash.h"
 
 using pstd::Status;
 
@@ -294,6 +295,28 @@ void Slot::BgSaveSlot() {
 BgSaveInfo Slot::bgsave_info() {
   std::lock_guard l(bgsave_protector_);
   return bgsave_info_;
+}
+
+void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
+  const std::string dbFilePath = bgsave_info().path;
+  // todo 待确认 info 文件的路径
+  const std::string infoFilePath = bgsave_info().path + "/../info";
+
+  int ret = pstd::GetChildren(dbFilePath, *fileNames);
+  if (ret) {
+    LOG(WARNING) << dbFilePath << " read dump meta files failed! error:" << ret;
+    return;
+  }
+
+  std::string info_data;
+  rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoFilePath, &info_data);
+  if (!s.ok()) {
+    LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+    return;
+  }
+
+  pstd::MD5 md5 = pstd::MD5(info_data);
+  *snapshot_uuid = md5.hexdigest();
 }
 
 void Slot::DoBgSave(void* arg) {

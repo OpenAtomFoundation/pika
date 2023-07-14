@@ -260,10 +260,10 @@ class PikaServer : public pstd::noncopyable {
    * DBSync used
    */
   //TODO: yuecai
-  size_t ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
+  pstd::Status ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
                       const size_t offset, const size_t count, char* data);
   //TODO: yuecai
-  void GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
