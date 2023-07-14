@@ -21,10 +21,10 @@ PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
 Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
-  uint32_t db_index = -1;
+  int32_t db_index = -1;
   for (size_t idx = 0; idx < db_structs_.size(); ++idx) {
     if (db_structs_[idx].db_name == db_name) {
-      db_index = static_cast<uint32_t>(idx);
+      db_index = static_cast<int32_t>(idx);
       break;
     }
   }

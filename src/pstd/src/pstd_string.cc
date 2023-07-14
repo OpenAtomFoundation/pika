@@ -184,8 +184,8 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
 }
 
 int stringmatch(const char* pattern, const char* string, int nocase) {
-  return stringmatchlen(pattern, static_cast<int32_t>(strlen(pattern)), string, static_cast<int32_t>(strlen(string)),
-                        nocase);
+  return stringmatchlen(pattern, static_cast<int32_t>(strlen(pattern)), 
+				        string, static_cast<int32_t>(strlen(string)), nocase);
 }
 
 /* Convert a string representing an amount of memory into the number of
@@ -332,7 +332,7 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
   if (value < 10) {
     dst[next] = static_cast<char>('0' + value);
   } else {
-    int i = static_cast<int32_t>(value) * 2;
+    auto i = static_cast<uint32_t>(value) * 2;
     dst[next] = digits[i + 1];
     dst[next - 1] = digits[i];
   }
