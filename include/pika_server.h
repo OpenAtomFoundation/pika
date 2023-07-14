@@ -460,7 +460,7 @@ class PikaServer : public pstd::noncopyable {
  /*
   * Info Commandstats used
   */
- std::unordered_map<std::string, CommandStatistics>& GetCommandStatMap();
+ std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
   friend class Cmd;
   friend class InfoCmd;
