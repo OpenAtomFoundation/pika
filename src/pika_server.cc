@@ -75,6 +75,8 @@ PikaServer::PikaServer()
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  //TODO 删除pika_rsync_service_服务，使用pika_rsync_service_端口
+  rsync_server_ = std::make_unique<rsync::RsyncServer>("127.0.0.1", g_pika_conf->port() + kPortShiftRSync + 1);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
@@ -85,6 +87,7 @@ PikaServer::PikaServer()
 }
 
 PikaServer::~PikaServer() {
+  rsync_server_->Stop();
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
@@ -182,6 +185,7 @@ void PikaServer::Start() {
   }
 
   LOG(INFO) << "Pika Server going to start";
+  rsync_server_->Start();
   while (!exit_) {
     DoTimingTask();
     // wake up every 5 seconds

@@ -35,6 +35,7 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
+#include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
@@ -554,6 +555,7 @@ class PikaServer : public pstd::noncopyable {
    * Rsync used
    */
   std::unique_ptr<PikaRsyncService> pika_rsync_service_;
+  std::unique_ptr<rsync::RsyncServer> rsync_server_;
 
   /*
    * Pubsub used

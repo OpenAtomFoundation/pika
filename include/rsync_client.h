@@ -50,6 +50,7 @@ public:
     Status Stop();
     bool IsRunning() { return state_.load() == RUNNING;}
     void OnReceive(RsyncResponse* resp);
+
 private:
     bool Recover();
     Status Wait(WaitObject* wo);
@@ -60,8 +61,6 @@ private:
     void HandleRsyncMetaResponse(RsyncResponse* response);
 
 private:
-    //已经下载完成的文件名与checksum值，用于宕机重启时恢复，
-    //减少重复文件下载，周期性flush到磁盘上
     std::map<std::string, std::string> meta_table_;
     int flush_period_;
     //待拉取的文件集合

@@ -34,6 +34,11 @@ void* RsyncClient::ThreadMain() {
     int cnt = 0;
     int period = 0;
     Status s = Status::OK();
+    std::string meta_file_path = dir_ + "/" + kDumpMetaFileName;
+    int meta_fd = open(meta_file_path.c_str(), O_CREAT | O_RDWR, 0644);
+    std::string meta_rep(kUuidPrefix);
+    meta_rep.append(snapshot_uuid_);
+    meta_rep.append("\n");
     while (state_.load(std::memory_order_relaxed) == RUNNING) {
         for (const auto& file : file_set_) {
             LOG(INFO) << "CopyRemoteFile: " << file;
@@ -51,7 +56,11 @@ void* RsyncClient::ThreadMain() {
             }
             if (++period == flush_period_) {
                 period = 0;
-                FlushMetaTable();
+                meta_rep.append(file + ":" + meta_table_[file]);
+                meta_rep.append("\n");
+                write(meta_fd, meta_rep.data(), meta_rep.size());
+                fsync(meta_fd);
+                meta_rep.clear();
             }
         }
         if (meta_table_.size() == file_set_.size()) {
@@ -60,6 +69,7 @@ void* RsyncClient::ThreadMain() {
             break;
         }
     }
+    close(meta_fd);
     return nullptr;
 }
 
@@ -189,7 +199,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
                 return s;
             }
             writer.reset();
-            meta_table_.insert(std::make_pair(filename, resp->file_resp().checksum()));
+            meta_table_[filename] = resp->file_resp().checksum();
             break;
         } else {
             offset += resp->file_resp().count();
@@ -324,11 +334,4 @@ Status RsyncClient::LoadMetaTable() {
     }
     return Status::OK();
 }
-
-//TODO: shaoyi
-Status RsyncClient::FlushMetaTable() {
-    LOG(WARNING) << "FlushMetaTable called";
-    return Status::OK();
-}
-
 } // end namespace rsync

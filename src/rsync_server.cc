@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 #include "include/pika_server.h"
 
-// extern PikaServer* g_pika_server;
+extern PikaServer* g_pika_server;
 namespace rsync {
 
 //TODO: mock code, need removed
