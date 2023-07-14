@@ -10,13 +10,13 @@ using namespace RsyncService;
 
 using namespace pstd;
 namespace rsync {
-RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const size_t slot_id)
-    : dir_ (dir), flush_period_(100), db_name_(ip), slot_id_(port), state_(IDLE),
-      db_name_(""), slot_id_(0), max_retries_(10) {
+RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
+    : dir_ (dir), flush_period_(100), db_name_(db_name), slot_id_(slot_id), state_(IDLE),
+      max_retries_(10) {
     client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
 }
 
-bool RsyncClient::Init(const std::string ip_port) {
+bool RsyncClient::Init(const std::string& ip_port) {
     if (!ParseIpPortString(ip_port, ip_, port_)) {
         LOG(WARNING) << "Parse ip_port error " << ip_port;
         return false;
