@@ -12,6 +12,16 @@
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 
+struct CommandStatistics {
+  CommandStatistics() = default;
+  CommandStatistics(const CommandStatistics& other) {
+    cmd_time_consuming.store(other.cmd_time_consuming.load());
+    cmd_count.store(other.cmd_count.load());
+  }
+  std::atomic<uint64_t> cmd_count = 0;
+  std::atomic<uint64_t> cmd_time_consuming = 0;
+};
+
 class PikaCmdTableManager {
  public:
   PikaCmdTableManager();

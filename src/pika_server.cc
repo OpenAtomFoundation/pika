@@ -178,7 +178,11 @@ void PikaServer::Start() {
       SetMaster(master_ip, master_port);
     }
   }
-
+  CommandStatistics statistics;
+  auto &cmdstat_map = g_pika_server->GetCommandStatMap();
+  for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
+    cmdstat_map.emplace(iter.first, statistics);
+  }
   LOG(INFO) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
@@ -1597,6 +1601,10 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   // Start new thread if needed
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
+}
+
+std::unordered_map<std::string, CommandStatistics>& PikaServer::GetCommandStatMap() {
+  return cmdstat_map_;
 }
 
 void DoBgslotsreload(void* arg) {
