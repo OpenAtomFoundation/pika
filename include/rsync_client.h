@@ -40,12 +40,13 @@ public:
         RUNNING,
         STOP,
     };
-    RsyncClient(const std::string& dir, const std::string& ip, const int port);
+    RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
 
     void* ThreadMain() override;
-    bool Init();
+    bool Init(const std::string& local_ip);
     Status Start();
     Status Stop();
+    State State() { return state_;}
     void OnReceive(RsyncResponse* resp);
 private:
     bool Recover();

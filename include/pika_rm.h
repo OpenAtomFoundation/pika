@@ -157,7 +157,10 @@ class SyncSlaveSlot : public SyncSlot {
 
   std::string LocalIp();
 
+  void ActivateRsync();
+
  private:
+  std::unique_ptr<rsync::RsyncClient> sync_cli_;
   pstd::Mutex slot_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};

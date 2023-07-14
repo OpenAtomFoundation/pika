@@ -537,7 +537,8 @@ Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return 
 
 /* SyncSlaveSlot */
 SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id)  {
+    : SyncSlot(db_name, slot_id) {
+  rsync_cli_.reset(new rsync::RsyncClient(dbsync_path_, db_name, slot_id));
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 
@@ -635,6 +636,15 @@ void SyncSlaveSlot::SetLocalIp(const std::string& local_ip) {
 std::string SyncSlaveSlot::LocalIp() {
   std::lock_guard l(slot_mu_);
   return local_ip_;
+}
+
+void SyncSlaveSlot::ActivateRsync() {
+  if (rsync_cli_->State() == RsyncCient::RUNNING) {
+    return;
+  }
+  if (rsync_cli_->Init(local_ip_)) {
+    rsnyc_cli_->Start();
+  }
 }
 
 /* PikaReplicaManger */
@@ -1142,6 +1152,7 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
       std::shared_ptr<Slot> slot =
           g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
       if (slot) {
+        slot->ActivateRsync();
         slot->TryUpdateMasterOffset();
       } else {
         LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_

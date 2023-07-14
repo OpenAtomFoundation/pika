@@ -10,15 +10,16 @@ using namespace RsyncService;
 
 using namespace pstd;
 namespace rsync {
-RsyncClient::RsyncClient(const std::string& dir, const std::string& ip, const int port)
-    : dir_ (dir), flush_period_(100), ip_(ip), port_(port), state_(IDLE),
+RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const size_t slot_id)
+    : dir_ (dir), flush_period_(100), db_name_(ip), slot_id_(port), state_(IDLE),
       db_name_(""), slot_id_(0), max_retries_(10) {
     client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
 }
 
-bool RsyncClient::Init() {
-    if (state_.load(std::memory_order_relaxed) != IDLE) {
-        Stop();
+bool RsyncClient::Init(const std::string ip_port) {
+    if (!ParseIpPortString(ip_port, ip_, port_)) {
+        LOG(WARNING) << "Parse ip_port error " << ip_port;
+        return false;
     }
     client_thread_->StartThread();
     bool ret = Recover();
@@ -73,9 +74,12 @@ Status RsyncClient::Wait(WaitObject* wo) {
     std::list<RsyncResponse*> resp_list;
     {
         std::unique_lock<std::mutex> lock(mu_);
-        cond_.wait_for(lock, std::chrono::seconds(3), [this]{return !resp_list_.empty();});
+        cond_.wait_for(lock, std::chrono::seconds(3), [this]{
+            return !resp_list_.empty();}
+        );
         resp_list.swap(resp_list_);
     }
+
     auto iter = resp_list.begin();
     while (iter != resp_list.end()) {
         RsyncResponse* resp = *iter;
@@ -160,16 +164,15 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
             return s;
         }
 
-        size_t offset = resp->file_resp().offset();
-        size_t count = resp->file_resp().count();
+        size_t ret_count = resp->file_resp().count();
         resp->file_resp().data();
-        s = writer->Write((uint64_t)offset, count, resp->file_resp().data().c_str());
+        s = writer->Write((uint64_t)offset, ret_count, resp->file_resp().data().c_str());
         if (!s.ok()) {
             LOG(WARNING) << "rsync client write file error";
             break;
         }
 
-        md5.update(resp->file_resp().data().c_str(), resp->file_resp().count());
+        md5.update(resp->file_resp().data().c_str(), ret_count);
         if (resp->file_resp().eof()) {
             if (md5.finalize().hexdigest() != resp->file_resp().checksum()) {
                 LOG(WARNING) << "mismatch file checksum for file: " << filename;
