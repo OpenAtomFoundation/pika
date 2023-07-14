@@ -33,8 +33,7 @@ class RsyncServerThread;
 
 class RsyncServer {
 public:
-    RsyncServer(const std::string& ip_port, const int port, void* worker_specific_data,
-                const std::string& dir);
+    RsyncServer(const std::string& ip_port, const int port);
     ~RsyncServer();
     void Schedule(net::TaskFunc func, void* arg);
     int Start();
@@ -42,8 +41,6 @@ public:
 private:
     int port_;
     std::string ip_;
-    std::string dir_;
-    std::string info_dir_;
     std::map<std::string, std::shared_ptr<RsyncReader> > file_map_;
     std::unique_ptr<ThreadPool> work_thread_ = nullptr;
     std::unique_ptr<RsyncServerThread> rsync_server_thread_ = nullptr;

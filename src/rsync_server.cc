@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 #include "include/pika_server.h"
 
-//extern PikaServer* g_pika_server;
+// extern PikaServer* g_pika_server;
 namespace rsync {
 
 //TODO: mock code, need removed
@@ -34,8 +34,7 @@ ssize_t ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::st
     return n;
 }
 
-RsyncServer::RsyncServer(const std::string& ip, const int port, void* worker_specific_data,
-                         const std::string& dir) : dir_(dir), ip_(ip), port_(port) {
+RsyncServer::RsyncServer(const std::string& ip, const int port) : ip_(ip), port_(port) {
     work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
     std::set<std::string> ips = {ip_};
     rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);

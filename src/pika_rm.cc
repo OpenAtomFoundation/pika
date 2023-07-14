@@ -639,7 +639,7 @@ std::string SyncSlaveSlot::LocalIp() {
 }
 
 void SyncSlaveSlot::ActivateRsync() {
-  if (rsync_cli_->State() == RsyncCient::RUNNING) {
+  if (rsync_cli_->IsRunning()) {
     return;
   }
   if (rsync_cli_->Init(local_ip_)) {

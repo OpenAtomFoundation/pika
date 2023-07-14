@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <list>
+#include <atomic>
 #include <memory>
 #include <thread>
 #include <condition_variable>
@@ -46,7 +47,7 @@ public:
     bool Init(const std::string& local_ip);
     Status Start();
     Status Stop();
-    State State() { return state_;}
+    bool IsRunning() { return state_.load() == RUNNING;}
     void OnReceive(RsyncResponse* resp);
 private:
     bool Recover();

@@ -21,6 +21,7 @@
 #include "include/pika_repl_server.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
+#include "include/rsync_client.h"
 
 #define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
