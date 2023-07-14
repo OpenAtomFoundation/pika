@@ -12,16 +12,11 @@
 #include "pstd/include/pstd_mutex.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
-std::unordered_map<std::string, CommandStatistics> g_cmdstat_map;
 
 PikaCmdTableManager::PikaCmdTableManager() {
   cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
   InitCmdTable(cmds_.get());
-  CommandStatistics statistics;
-  for (auto& iter : *cmds_) {
-    g_cmdstat_map.emplace(iter.first, statistics);
-  }
 }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {

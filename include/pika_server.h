@@ -457,16 +457,15 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
+ /*
+  * Info Commandstats used
+  */
+ std::unordered_map<std::string, CommandStatistics>& GetCommandStatMap();
 
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
-
-  /*
-   * Info Commandstats used
-   */
-  std::unordered_map<std::string, CommandStatistics> cmdstat_map;
 
  private:
   /*
@@ -582,6 +581,11 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 
 #endif
