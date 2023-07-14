@@ -38,6 +38,7 @@
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 
 
@@ -468,6 +469,10 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
+ /*
+  * Info Commandstats used
+  */
+ std::unordered_map<std::string, CommandStatistics>& GetCommandStatMap();
 
   friend class Cmd;
   friend class InfoCmd;
@@ -588,6 +593,11 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 
 #endif
