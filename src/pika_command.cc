@@ -684,6 +684,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   ////EvalSha
   std::unique_ptr<Cmd> evalshaptr = std::make_unique<EvalCmd>(kCmdNameEvalSha, -3, KCmdFlagsNoScript, true);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameEvalSha, std::move(evalshaptr)));
+  ////Script
+  std::unique_ptr<Cmd> scriptptr = std::make_unique<ScriptCmd>(kCmdNameScript, -2, KCmdFlagsNoScript, true);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScript, std::move(scriptptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {

@@ -14,6 +14,10 @@ int redis_math_randomseed(lua_State *L);
 sol::table LuaPushError(sol::state_view &lua, const char *error);
 sol::object LuaRedisCallCommand(sol::this_state lua, sol::variadic_args va);
 sol::object LuaRedisPCallCommand(sol::this_state lua, sol::variadic_args va);
+void LuaLogCommand(sol::this_state l, sol::variadic_args va);
+std::string LuaRedisSha1hexCommand(sol::this_state l, sol::variadic_args va);
+sol::table LuaRedisErrorReplyCommand(sol::this_state l, sol::variadic_args va);
+sol::table LuaRedisStatusReplyCommand(sol::this_state l, sol::variadic_args va);
 
 /*
  * eval
@@ -38,6 +42,23 @@ class EvalCmd : public Cmd {
   std::list<std::string> reply_lst_;
   void DoInitial() override;
   void LuaReplyToRedisReply(sol::state &lua, sol::object lua_ret);
+};
+
+/*
+ * script
+ */
+class ScriptCmd : public Cmd {
+ public:
+  ScriptCmd(const std::string &name, int arity, uint16_t flag, bool evalsha)
+      : Cmd(name, arity, flag) {}
+  std::vector<std::string> current_key() const override {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys &hint_keys) override{};
+  void Merge() override{};
+  Cmd *Clone() override { return new ScriptCmd(*this); }
+
+ private:
+  void DoInitial() override;
 };
 
 #endif

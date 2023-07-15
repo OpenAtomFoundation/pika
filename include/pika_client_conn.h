@@ -56,7 +56,7 @@ class PikaClientConn : public net::RedisConn {
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentDB(const std::string& db_name) { current_db_ = db_name; }
-  std::string CurrentDB() { return current_db_; }
+  std::string CurrentDB() const { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   net::ServerThread* server_thread() { return server_thread_; }

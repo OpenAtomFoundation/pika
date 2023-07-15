@@ -221,6 +221,84 @@ void LuaSortArray(sol::state_view &lua, sol::table arr) {
   }
 }
 
+void LuaLogCommand(sol::this_state l, sol::variadic_args va) {
+  sol::state_view lua(l);
+  if (va.size() < 2) {
+    LuaPushError(lua, "redis.log() requires two arguments or more.");
+    return;
+  } else if (va.get_type(0) != sol::type::number) {
+    LuaPushError(lua, "First argument must be a number (log level).");
+    return;
+  }
+  int level = va.get<int>(0);
+  if (level < google::INFO || level > google::FATAL) {
+    LuaPushError(lua, "Invalid log level.");
+    return;
+  }
+
+  /* Glue together all the arguments */
+  std::string log_str;
+  for (auto iter = va.begin()+1; iter != va.end(); iter++) {
+    log_str.append(const_cast<char*>(lua_tostring(iter->lua_state(), iter->stack_index())));
+    log_str.push_back(' ');
+  }
+  log_str.pop_back();
+
+  switch (level) {
+    case google::INFO:
+      LOG(INFO) << log_str;
+      break;
+    case google::WARNING:
+      LOG(WARNING) << log_str;
+      break;
+    case google::ERROR:
+      LOG(ERROR) << log_str;
+      break;
+    case google::FATAL:
+      LOG(FATAL) << log_str;
+      break;
+  }
+}
+
+/* This adds redis.sha1hex(string) to Lua scripts using the same hashing
+* function used for sha1ing lua scripts. */
+std::string LuaRedisSha1hexCommand(sol::this_state l, sol::variadic_args va) {
+  sol::state_view lua(l);
+  if (va.size() != 1) {
+    LuaPushError(lua, "wrong number of arguments");
+  }
+  size_t len;
+  // we can accept arg that can be converted to string
+  char *s = const_cast<char*>(lua_tolstring(lua, va.stack_index(), &len));
+  std::string digest(40, '\0');
+  sha1hex(digest.data(), s, len);
+  return digest;
+}
+
+/* Returns a table with a single field 'field' set to the string value
+* passed as argument. This helper function is handy when returning
+* a Redis Protocol error or status reply from Lua:
+*
+* return redis.error_reply("ERR Some Error")
+* return redis.status_reply("ERR Some Error")
+*/
+sol::table LuaRedisReturnSingeFieldTable(sol::state_view& lua, sol::variadic_args va, const std::string &field) {
+  if (va.size() != 1 || va.get_type(0) != sol::type::string) {
+    return LuaPushError(lua, "wrong number or type of arguments");
+  }
+  return lua.create_table_with(field, va.get<std::string>(0));
+}
+
+sol::table LuaRedisErrorReplyCommand(sol::this_state l, sol::variadic_args va) {
+  sol::state_view lua(l);
+  LuaRedisReturnSingeFieldTable(lua, va, "err");
+}
+
+sol::table LuaRedisStatusReplyCommand(sol::this_state l, sol::variadic_args va) {
+  sol::state_view lua(l);
+  LuaRedisReturnSingeFieldTable(lua, va, "ok");
+}
+
 sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::variadic_args va) {
   if (va.size() == 0) {
     return LuaPushError(lua, "Please specify at least one argument for redis.call()");
@@ -232,6 +310,7 @@ sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::
     if (!lua_isstring(v.lua_state(), v.stack_index())) {
       return LuaPushError(lua, "Lua redis() command arguments must be strings or integers");
     }
+    // we can accept arg that can be converted to string
     argv.emplace_back(lua_tostring(v.lua_state(), v.stack_index()));
     LOG(INFO) << "push arg: " << argv.back();
   }
@@ -431,6 +510,8 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
     for (j = 0; j < 40; j++) funcname[j + 2] = tolower(sha[j]);
   }
 
+  std::lock_guard lua_lk(g_pika_server->lua_mutex_);
+
   /* Try to lookup the Lua function */
   sol::protected_function f = lua[funcname];
   if (!f.valid()) {
@@ -522,4 +603,63 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   //   rewriteClientCommandArgument(c, 0, resetRefCount(createStringObject("EVAL", 4)));
   //   rewriteClientCommandArgument(c, 1, script);
   // }
+}
+
+void ScriptCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameScript);
+    return;
+  }
+}
+
+// ScriptCmd不会拿db锁， 因此我们要拿lua锁
+void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
+  if (argv_.size() == 2 && argv_[1] == "flush") {
+    // 访问lua
+    g_pika_server->ScriptingReset();
+    res_.SetRes(CmdRes::kOk);
+  } else if (argv_.size() >= 2 && argv_[1] == "exists") {
+    // exists 命令只需要访问list
+    // TODO lock granularity?
+    std::lock_guard lua_lk(g_pika_server->lua_mutex_);
+    auto& lua_scripts = g_pika_server->lua_scripts_;
+    for (int j = 2; j < argv_.size(); j++) {
+      res_.AppendArrayLen(argv_.size() - 2);
+      if (lua_scripts.find(argv_[j]) == lua_scripts.end()) {
+        res_.AppendInteger(0);
+      } else {
+        res_.AppendInteger(1);
+      }
+    }
+
+  } else if (argv_.size() == 3 && argv_[1] == "load") {
+    // 访问lua, list
+    std::lock_guard lua_lk(g_pika_server->lua_mutex_);
+    auto& lua_scripts = g_pika_server->lua_scripts_;
+    std::string funcname(42, '\0');
+    funcname[0] = 'f';
+    funcname[1] = '_';
+    sha1hex(funcname.data() + 2, argv_[2].data(), argv_[2].size());
+    if (lua_scripts.find(funcname) == lua_scripts.end()) {
+      CreateLuaFuncRes res = LuaCreateFunction(*g_pika_server->lua_, funcname, argv_[2]);
+      if (res.status_ != CreateLuaFuncRes::CreateLuaFuncStatus::ok) {
+        res_.SetRes(CmdRes::kErrOther, res.err_);
+        return;
+      }
+    }
+    res_.AppendString(funcname.substr(2));
+  } else if (argv_.size() == 2 && argv_[1] == "kill") {
+    // 并发正确性验证， lua_calling_为true的时候， 一定在运行脚本
+    if (!g_pika_server->lua_calling_) {
+      res_.AppendContent("-NOTBUSY No scripts in execution right now.");
+    } else if (g_pika_server->lua_write_dirty_) {
+      // TODO master slave sync
+      res_.AppendContent("-UNKILLABLE Sorry the script already executed write commands against the dataset. You can either wait the script termination or kill the server in an hard way using the SHUTDOWN NOSAVE command.");
+    } else {
+      g_pika_server->lua_kill_ = true;
+      res_.SetRes(CmdRes::kOk);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Unknown SCRIPT subcommand or wrong # of args. Try SCRIPT HELP.");
+  }
 }

@@ -216,6 +216,7 @@ const std::string kCmdNamePUnSubscribe = "punsubscribe";
 // Lua Script
 const std::string kCmdNameEval = "eval";
 const std::string kCmdNameEvalSha = "evalsha";
+const std::string kCmdNameScript = "script";
 
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;

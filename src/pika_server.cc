@@ -1794,80 +1794,39 @@ void PikaServer::scriptingEnableGlobalsProtection() {
   }
 }
 
+// 多线程调用
 void PikaServer::ScriptingInit() {
   lua_ = std::make_unique<sol::state>();
   luaLoadLibraries();
   luaRemoveUnsupportedFunctions();
-  // /* Register the redis commands table and fields */
+  /* Register the redis commands table and fields */
   // lua_newtable(lua);
   sol::state& lua = *lua_;
   lua.create_named_table("redis");
   lua["redis"]["call"] = LuaRedisCallCommand;
   lua["redis"]["pcall"] = LuaRedisPCallCommand;
-
-  // /* redis.log and log levels. */
-  // lua_pushstring(lua, "log");
-  // lua_pushcfunction(lua, luaLogCommand);
-  // lua_settable(lua, -3);
-
-  // lua_pushstring(lua, "LOG_DEBUG");
-  // lua_pushnumber(lua, REDIS_DEBUG);
-  // lua_settable(lua, -3);
-
-  // lua_pushstring(lua, "LOG_VERBOSE");
-  // lua_pushnumber(lua, REDIS_VERBOSE);
-  // lua_settable(lua, -3);
-
-  // lua_pushstring(lua, "LOG_NOTICE");
-  // lua_pushnumber(lua, REDIS_NOTICE);
-  // lua_settable(lua, -3);
-
-  // lua_pushstring(lua, "LOG_WARNING");
-  // lua_pushnumber(lua, REDIS_WARNING);
-  // lua_settable(lua, -3);
-
-  // /* redis.sha1hex */
-  // lua_pushstring(lua, "sha1hex");
-  // lua_pushcfunction(lua, luaRedisSha1hexCommand);
-  // lua_settable(lua, -3);
-
-  // /* redis.error_reply and redis.status_reply */
-  // lua_pushstring(lua, "error_reply");
-  // lua_pushcfunction(lua, luaRedisErrorReplyCommand);
-  // lua_settable(lua, -3);
-  // lua_pushstring(lua, "status_reply");
-  // lua_pushcfunction(lua, luaRedisStatusReplyCommand);
-  // lua_settable(lua, -3);
-
-  // /* Finally set the table as 'redis' global var. */
-  // lua_setglobal(lua, "redis");
+  lua["redis"]["log"] = LuaLogCommand;
+  lua["redis"]["REDIS_INFO"] = google::INFO;
+  lua["redis"]["REDIS_WARNING"] = google::WARNING;
+  lua["redis"]["REDIS_ERROR"] = google::ERROR;
+  lua["redis"]["REDIS_FATAL"] = google::FATAL;
+  lua["redis"]["sha1hex"] = LuaRedisSha1hexCommand;
+  lua["redis"]["error_reply"] = LuaRedisErrorReplyCommand;
+  lua["redis"]["status_reply"] = LuaRedisStatusReplyCommand;
 
   // /* Replace math.random and math.randomseed with our implementations. */
-  // lua_getglobal(lua, "math");
+  lua["math"]["random"] = redis_math_random;
+  lua["math"]["randomseed"] = redis_math_randomseed;
 
-  // lua_pushstring(lua, "random");
-  // lua_pushcfunction(lua, redis_math_random);
-  // lua_settable(lua, -3);
-
-  // lua_pushstring(lua, "randomseed");
-  // lua_pushcfunction(lua, redis_math_randomseed);
-  // lua_settable(lua, -3);
-
-  // lua_setglobal(lua, "math");
-
-  // TODO add this
   // /* Add a helper function that we use to sort the multi bulk output of non
   //  * deterministic commands, when containing 'false' elements. */
-  // {
-  //   char* compare_func =
-  //       "function __redis__compare_helper(a,b)\n"
-  //       "  if a == false then a = '' end\n"
-  //       "  if b == false then b = '' end\n"
-  //       "  return a<b\n"
-  //       "end\n";
-  //   luaL_loadbuffer(lua, compare_func, strlen(compare_func), "@cmp_func_def");
-  //   lua_pcall(lua, 0, 0, 0);
-  // }
+  const char* compare_func =
+      "function __redis__compare_helper(a,b)\n"
+      "  if a == false then a = '' end\n"
+      "  if b == false then b = '' end\n"
+      "  return a<b\n"
+      "end\n";
+  lua.script(compare_func);
 
   // /* Create the (non connected) client that we use to execute Redis commands
   //  * inside the Lua interpreter.
@@ -1896,6 +1855,7 @@ void PikaServer::ScriptingRelease() {
 }
 
 void PikaServer::ScriptingReset() {
+  std::lock_guard lk(lua_mutex_);
   ScriptingRelease();
   ScriptingInit();
 }

@@ -475,16 +475,19 @@ class PikaServer : public pstd::noncopyable {
   /*
    * lua script use
    */
+  pstd::Mutex lua_mutex_;                                /* Protect the Lua state */
   std::unique_ptr<sol::state> lua_;                      /* The Lua interpreter. We use just one for all clients */
   std::shared_ptr<PikaClientConn> lua_client_;           /* The "fake client" to query Redis from Lua */
   std::shared_ptr<PikaClientConn> lua_caller{};          /* The client running EVAL right now, or NULL */
   std::unordered_map<std::string, std::string> lua_scripts_;
   std::chrono::milliseconds lua_time_limit_;             /* Script timeout in seconds */
+  // 在eval的线程里使用
   std::chrono::system_clock::time_point lua_time_start_; /* Start time of script */
   bool lua_write_dirty_;                                 /* True if a write command was called during the
                                                           execution of the current script. */
   bool lua_random_dirty_;                                /* True if a random command was called during the
                                                           execution of the current script. */
+  // 在eval的线程里使用
   bool lua_timedout_;                                    /* True if we reached the time limit for script
                                                           execution. */
   std::atomic<bool> lua_kill_{false};                    /* Kill the script if true. */
