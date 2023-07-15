@@ -7,6 +7,7 @@
 #define PIKA_ACL_H
 
 #include <atomic>
+#include <bitset>
 #include <list>
 #include <map>
 #include <memory>
@@ -78,16 +79,18 @@ class AclSelector {
 
   /* The bit in allowed_commands is set if this user has the right to
    * execute this command.*/
-  uint64_t allowedCommands_[USER_COMMAND_BITS_COUNT / 64];
+  std::bitset<USER_COMMAND_BITS_COUNT> allowedCommands_;
 
-  std::list<AclKeyPattern> patterns_; /* A list of allowed key patterns. If this field is NULL
-                    the user cannot mention any key in a command, unless
-                    the flag ALLKEYS is set in the user. */
+  //记录子命令，map的key=>commandId，value subCommand index bit
+  std::map<uint32_t, uint32_t> subCommand_;
 
-  std::list<AclKeyPattern> channels_; /* A list of allowed Pub/Sub channel patterns. If this
-                     field is NULL the user cannot mention any channel in a
-                     `PUBLISH` or [P][UNSUBSCRIBE] command, unless the flag
-                     ALLCHANNELS is set in the user. */
+  /* A list of allowed key patterns. If this field is empty the user cannot mention any key in a command,
+   * unless the flag ALLKEYS is set in the user. */
+  std::list<AclKeyPattern> patterns_;
+
+  /* A list of allowed Pub/Sub channel patterns. If this field is empty the user cannot mention any
+   * channel in a `PUBLISH` or [P][UNSUBSCRIBE] command, unless the flag ALLCHANNELS is set in the user. */
+  std::list<AclKeyPattern> channels_;
 };
 
 // acl user

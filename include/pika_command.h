@@ -479,6 +479,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
+  virtual int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
+
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_read() const;
@@ -489,6 +491,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool hasSubCommand() const;  // The command is there a sub Command
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
@@ -525,6 +528,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string name_;
   int arity_ = -2;
   uint16_t flag_ = 0;
+
+  std::vector<std::string> subCmdName_;  // sub command name, may be empty
 
  protected:
   CmdRes res_;

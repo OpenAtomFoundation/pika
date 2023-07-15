@@ -2347,6 +2347,15 @@ void ConfigCmd::Execute() {
   Do(slot);
 }
 
+int8_t ConfigCmd::SubCmdIndex(const std::string& cmdName) {
+  for (int i = 0; i < subCmdName_.size(); i++) {
+    if (subCmdName_[i] == cmdName) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 void MonitorCmd::DoInitial() {
   if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);

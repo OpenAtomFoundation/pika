@@ -292,7 +292,8 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
   ////PTypeCmd
-  std::unique_ptr<Cmd> pTypeptr = std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+  std::unique_ptr<Cmd> pTypeptr =
+      std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePType, std::move(pTypeptr)));
   ////ScanCmd
   std::unique_ptr<Cmd> scanptr =
@@ -881,6 +882,13 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
+void Cmd::ProcessDoNotSpecifySlotCmd() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
+}
+
+int8_t Cmd::SubCmdIndex(const std::string& cmdName) { return -1; }
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
 bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
@@ -890,6 +898,7 @@ bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFla
 bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
+bool Cmd::hasSubCommand() const { return subCmdName_.size() > 0; };
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 
