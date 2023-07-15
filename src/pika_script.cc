@@ -19,7 +19,7 @@ extern PikaServer *g_pika_server;
 void sha1hex(char *digest, char *script, std::size_t len) {
   SHA1_CTX ctx;
   unsigned char hash[20];
-  char *cset = "0123456789abcdef";
+  char *cset = const_cast<char*>("0123456789abcdef");
   int j;
 
   SHA1Init(&ctx);
@@ -291,12 +291,12 @@ sol::table LuaRedisReturnSingeFieldTable(sol::state_view& lua, sol::variadic_arg
 
 sol::table LuaRedisErrorReplyCommand(sol::this_state l, sol::variadic_args va) {
   sol::state_view lua(l);
-  LuaRedisReturnSingeFieldTable(lua, va, "err");
+  return LuaRedisReturnSingeFieldTable(lua, va, "err");
 }
 
 sol::table LuaRedisStatusReplyCommand(sol::this_state l, sol::variadic_args va) {
   sol::state_view lua(l);
-  LuaRedisReturnSingeFieldTable(lua, va, "ok");
+  return LuaRedisReturnSingeFieldTable(lua, va, "ok");
 }
 
 sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::variadic_args va) {
@@ -316,41 +316,18 @@ sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::
   }
 
   // TODO improve argument check message in lua
-
-  // TODO master slave sync
-  /* Write commands are forbidden against read-only slaves, or if a
-   * command marked as non-deterministic was already called in the context
-   * of this script. */
-  // if (cmd->flags & REDIS_CMD_WRITE) {
-  //   if (server.lua_random_dirty) {
-  //     luaPushError(lua, "Write commands not allowed after non deterministic commands");
-  //     goto cleanup;
-  //   } else if (server.masterhost && server.repl_slave_ro && !server.loading &&
-  //              !(server.lua_caller->flags & REDIS_MASTER)) {
-  //     luaPushError(lua, shared.roslaveerr->ptr);
-  //     goto cleanup;
-  //   } else if (server.stop_writes_on_bgsave_err && server.saveparamslen > 0 && server.lastbgsave_status == REDIS_ERR)
-  //   {
-  //     luaPushError(lua, shared.bgsaveerr->ptr);
-  //     goto cleanup;
-  //   }
-  // }
-
-  // TODO master slave sync
-  // if (cmd->flags & REDIS_CMD_RANDOM) server.lua_random_dirty = 1;
-  // if (cmd->flags & REDIS_CMD_WRITE) server.lua_write_dirty = 1;
-
   auto resp = std::make_shared<std::string>();
-  g_pika_server->lua_client_->ExecRedisCmdInLua(argv, resp);
-
+  bool need_sort = false;
+  g_pika_server->lua_client_->ExecRedisCmdInLua(argv, resp, need_sort);
   if (raise_error && resp->front() != '-') raise_error = false;
   auto res = RedisProtocolToLuaType(lua, resp->data());
+
   /* Sort the output array if needed, assuming it is a non-null multi bulk
    * reply as expected. */
-  // TODO sort array implement
-  // if ((cmd->flags & REDIS_CMD_SORT_FOR_SCRIPT) && (resp->at(0) == '*' && resp->at(1) != '-')) {
-  //   luaSortArray(lua, res.first);
-  // }
+  if (need_sort && (resp->at(0) == '*' && resp->at(1) != '-')) {
+    LuaSortArray(lua, res.first);
+  }
+
   if (raise_error) {
     // throw a lua exception
     sol::table tb = res.first;
@@ -377,6 +354,12 @@ void EvalCmd::DoInitial() {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameEval);
     }
     return;
+  }
+  if (evalsha_) {
+    if (argv_[1].size() != 40) {
+      res_.AppendContent("-NOSCRIPT No matching script. Please use EVAL.");
+      return;
+    }
   }
   script_ = argv_[1];
   auto iter = argv_.begin();
@@ -474,7 +457,6 @@ void EvalCmd::LuaReplyToRedisReply(sol::state &lua, sol::object lua_ret) {
 }
 
 void EvalCmd::Do(std::shared_ptr<Slot> slot) {
-  sol::state &lua = (*g_pika_server->lua_);
   std::string funcname(42, '\0');
   long long numkeys;
   bool delhook = false;
@@ -491,9 +473,8 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
    *
    * Thanks to this flag we'll raise an error every time a write command
    * is called after a random command was used. */
-  // TODO master slave sync
-  // g_pika_server->lua_random_dirty = false;
-  // g_pika_server->lua_write_dirty = false;
+  g_pika_server->lua_random_dirty_ = false;
+  g_pika_server->lua_write_dirty_ = false;
 
   /* We obtain the script SHA1, then check if this function is already
    * defined into the Lua state */
@@ -510,6 +491,7 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
     for (j = 0; j < 40; j++) funcname[j + 2] = tolower(sha[j]);
   }
 
+  sol::state &lua = (*g_pika_server->lua_);
   std::lock_guard lua_lk(g_pika_server->lua_mutex_);
 
   /* Try to lookup the Lua function */
@@ -536,9 +518,9 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   // selectDb(server.lua_client, c->db->id);
   g_pika_server->lua_client_->SetCurrentDB(db_name_);
 
-  // TODO 在执行redis.call的时候， 判断是不是master? -READONLY You can't write against a read only
   g_pika_server->lua_time_start_ = std::chrono::system_clock::now();
   g_pika_server->lua_kill_ = false;
+  g_pika_server->lua_timedout_ = false;
 
   /* Set an hook in order to be able to stop the script execution if it
    * is running for too much time.
@@ -564,13 +546,13 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
 
   /* Perform some cleanup that we need to do both on error and success. */
   if (delhook) lua_sethook(lua, LuaMaskCountHook, 0, 0); /* Disable hook */
-  if (g_pika_server->lua_timedout_) {
-    g_pika_server->lua_timedout_ = false;
-  }
   // g_pika_server->lua_caller = nullptr;
+  // TODO 对于slave来说这里的conn是空指针
   std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
-  // set the client db to lua client db in case of using select in lua
-  conn->SetCurrentDB(g_pika_server->lua_client_->CurrentDB());
+  if (conn.get() != nullptr) {
+    // set the client db to lua client db in case of using select in lua
+    conn->SetCurrentDB(g_pika_server->lua_client_->CurrentDB());
+  }
   lua.step_gc(1);
 
   if (!res.valid()) {
@@ -585,23 +567,9 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringRaw(std::accumulate(reply_lst_.begin(), reply_lst_.end(), std::string("")));
   }
 
-  /* If we have slaves attached we want to replicate this command as
-   * EVAL instead of EVALSHA. We do this also in the AOF as currently there
-   * is no easy way to propagate a command in a different way in the AOF
-   * and in the replication link.
-   *
-   * IMPROVEMENT POSSIBLE:
-   * 1) Replicate this command as EVALSHA in the AOF.
-   * 2) Remember what slave already received a given script, and replicate
-   *    the EVALSHA against this slaves when possible.
-   */
-  // TODO master slave sync
-  // if (evalsha) {
-  //   robj *script = dictFetchValue(server.lua_scripts, c->argv[1]->ptr);
-
-  //   redisAssertWithInfo(c, NULL, script != NULL);
-  //   rewriteClientCommandArgument(c, 0, resetRefCount(createStringObject("EVAL", 4)));
-  //   rewriteClientCommandArgument(c, 1, script);
+  // if write happens, we set eval command flags to do binlog
+  // if (g_pika_server->lua_write_dirty_) {
+  //   flag_ |= kCmdFlagsWrite;
   // }
 }
 
@@ -618,6 +586,8 @@ void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
     // 访问lua
     g_pika_server->ScriptingReset();
     res_.SetRes(CmdRes::kOk);
+    // make it replicate
+    // flag_ |= kCmdFlagsWrite;
   } else if (argv_.size() >= 2 && argv_[1] == "exists") {
     // exists 命令只需要访问list
     // TODO lock granularity?
@@ -653,9 +623,9 @@ void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
     if (!g_pika_server->lua_calling_) {
       res_.AppendContent("-NOTBUSY No scripts in execution right now.");
     } else if (g_pika_server->lua_write_dirty_) {
-      // TODO master slave sync
       res_.AppendContent("-UNKILLABLE Sorry the script already executed write commands against the dataset. You can either wait the script termination or kill the server in an hard way using the SHUTDOWN NOSAVE command.");
     } else {
+      LOG(INFO) << "User requested Lua script termination via SCRIPT KILL.";
       g_pika_server->lua_kill_ = true;
       res_.SetRes(CmdRes::kOk);
     }

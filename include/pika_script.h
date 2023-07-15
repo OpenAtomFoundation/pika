@@ -26,7 +26,7 @@ class EvalCmd : public Cmd {
  public:
   EvalCmd(const std::string &name, int arity, uint16_t flag, bool evalsha)
       : Cmd(name, arity, flag), evalsha_(evalsha) {}
-  std::vector<std::string> current_key() const override {}
+  std::vector<std::string> current_key() const override { return {}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys &hint_keys) override{};
   void Merge() override{};
@@ -49,9 +49,9 @@ class EvalCmd : public Cmd {
  */
 class ScriptCmd : public Cmd {
  public:
-  ScriptCmd(const std::string &name, int arity, uint16_t flag, bool evalsha)
+  ScriptCmd(const std::string &name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  std::vector<std::string> current_key() const override {}
+  std::vector<std::string> current_key() const override { return {}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys &hint_keys) override{};
   void Merge() override{};
