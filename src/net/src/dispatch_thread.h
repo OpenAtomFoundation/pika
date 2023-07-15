@@ -62,6 +62,7 @@ class DispatchThread : public ServerThread {
 
   std::vector<std::shared_ptr<NetConn>> GetInvolvedTxn(const std::vector<std::string> &keys);
   std::vector<std::shared_ptr<NetConn>> GetAllTxns();
+  std::vector<std::shared_ptr<NetConn>> GetDBTxns(std::string db_name);
 
  private:
   /*

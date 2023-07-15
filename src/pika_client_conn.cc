@@ -139,7 +139,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
     if (c_ptr->name() == kCmdNameFlushdb || c_ptr->name() == kCmdNameFlushall) {
-      SetTxnFailedFromKeys();  // 这里就将所有watch的事务给设置成为失败状态
+      SetAllTxnFailed();  // 这里就将所有watch的事务给设置成为失败状态
     } else {
       auto table_keys = c_ptr->current_key();
       for (auto& key : table_keys) {
@@ -356,19 +356,34 @@ void PikaClientConn::RemoveWatchedKeys() {
   }
 }
 
-/**
- * @param db_keys 如果为空的话，代表将所有事务都设置成为失败，一般给flush此类命令使用
- * @brief 去修改被watch的key的一些连接
- */
-void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> & db_keys) {
+void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &db_keys) {
   auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
   if (dispatcher != nullptr) {
     auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
-    if (db_keys.empty()) {
-      involved_conns = dispatcher->GetAllTxns();
-    } else {
-      involved_conns = dispatcher->GetInvolvedTxn(db_keys);
+    involved_conns = dispatcher->GetInvolvedTxn(db_keys);
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+        c->SetTxnWatchFailState(true);
+      }
     }
+  }
+}
+
+void PikaClientConn::SetAllTxnFailed() {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = dispatcher->GetAllTxns();
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+        c->SetTxnWatchFailState(true);
+      }
+    }
+  }
+}
+void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = dispatcher->GetDBTxns(db_name);
     for (auto &conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
         c->SetTxnWatchFailState(true);

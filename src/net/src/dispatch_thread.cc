@@ -222,6 +222,17 @@ std::vector<std::shared_ptr<NetConn>> DispatchThread::GetAllTxns() {
   return involved_conns;
 }
 
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetDBTxns(std::string db_name) {
+  std::lock_guard lg(watch_keys_mu_);
+  auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+  for(auto &[db_key, client_conns] : key_conns_map_) {
+    if (db_key.find(db_name) == 0) {
+      involved_conns.insert(involved_conns.end(), client_conns.begin(), client_conns.end());
+    }
+  }
+  return involved_conns;
+}
+
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                                        int queue_limit, const ServerHandle* handle) {
   return new DispatchThread(port, work_num, conn_factory, cron_interval, queue_limit, handle);
