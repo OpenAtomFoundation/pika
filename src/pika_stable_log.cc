@@ -89,7 +89,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 
   int delete_num = 0;
   struct stat file_stat;
-  int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
+  auto remain_expire_num = static_cast<int32_t>(binlogs.size() - g_pika_conf->expire_logs_nums());
   std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
   std::map<uint32_t, std::string>::iterator it;
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {

@@ -75,7 +75,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   }
 
   // find the last not keepalive binlogsync
-  for (int i = index->size() - 1; i >= 0; i--) {
+  for (int i = static_cast<int>(index->size() - 1); i >= 0; i--) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_end);
@@ -211,7 +211,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   if (g_pika_server->HasMonitorClients()) {
     std::string db_name = worker->db_name_.substr(2);
     std::string monitor_message =
-        std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + worker->ip_port_ + "]";
+        std::to_string(static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
       monitor_message += " " + pstd::ToRead(item);
     }
@@ -267,8 +267,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    int32_t start_time = start_us / 1000000;
-    int64_t duration = pstd::NowMicros() - start_us;
+    auto start_time = static_cast<int32_t>(start_us / 1000000);
+    auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
     if (duration > g_pika_conf->slowlog_slower_than()) {
       g_pika_server->SlowlogPushEntry(argv, start_time, duration);
       if (g_pika_conf->slowlog_write_errorlog()) {

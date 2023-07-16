@@ -173,7 +173,7 @@ int HTTPRequest::ParseHeader() {
     // Haven't find header
     return 0;
   }
-  int header_len = sep_pos - rbuf_ + 4;
+  auto header_len = static_cast<int32_t>(sep_pos - rbuf_ + 4);
   int remain_size = header_len;
   if (remain_size <= 5) {
     // Header error
