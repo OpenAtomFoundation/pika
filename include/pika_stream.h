@@ -27,23 +27,7 @@ class XAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::pair<std::string, std::string>> filed_values_;
-  /* XADD options */
-  streamID id_;         /* User-provided ID, for XADD only. */
-  int id_given_ = 0;    /* Was an ID different than "*" specified? for XADD only. */
-  int seq_given_ = 0;   /* Was an ID different than "ms-*" specified? for XADD only. */
-  int no_mkstream_ = 0; /* if set to 1 do not create new stream */
-
-  /* XADD + XTRIM common options */
-  StreamTrimStrategy trim_strategy_ = StreamTrimStrategy::TRIM_STRATEGY_NONE; /* TRIM_STRATEGY_* */
-  int trim_strategy_arg_idx_ = 0; /* Index of the count in MAXLEN/MINID, for rewriting. */
-  int approx_trim_ = 0;           /* If 1 only delete whole radix tree nodes, so
-                                  * the trim argument is not applied verbatim. */
-  uint64_t limit_ = 0;            /* Maximum amount of entries to trim. If 0, no limitation
-                                  * on the amount of trimming work is enforced. */
-  /* TRIM_STRATEGY_MAXLEN options */
-  uint64_t maxlen_ = 0; /* After trimming, leave stream at this length . */
-  /* TRIM_STRATEGY_MINID options */
-  streamID minid_; /* Trim by ID (No stream entries with ID < 'minid' will remain) */
+  StreamAddTrimArgs args_;
 
   void DoInitial() override;
   void Clear() override { filed_values_.clear(); }
