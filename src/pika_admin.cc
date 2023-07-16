@@ -25,7 +25,6 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -148,6 +147,7 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
+    g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
@@ -845,6 +845,26 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_compact:" << (g_pika_server->IsCompacting() ? "Yes" : "No") << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
+  time_t current_time_s = time(nullptr);
+  PikaServer::BGSlotsReload bgslotsreload_info = g_pika_server->bgslots_reload();
+  bool is_reloading = g_pika_server->GetSlotsreloading();
+  tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
+             << (is_reloading ? (current_time_s - bgslotsreload_info.start_time)
+                              : (bgslotsreload_info.end_time - bgslotsreload_info.start_time))
+             << "\r\n";
+  PikaServer::BGSlotsCleanup bgslotscleanup_info = g_pika_server->bgslots_cleanup();
+  bool is_cleaningup = g_pika_server->GetSlotscleaningup();
+  tmp_stream << "is_slots_cleaningup:" << (is_cleaningup ? "Yes, " : "No, ") << bgslotscleanup_info.s_start_time << ", "
+             << (is_cleaningup ? (current_time_s - bgslotscleanup_info.start_time)
+                               : (bgslotscleanup_info.end_time - bgslotscleanup_info.start_time))
+             << "\r\n";
+  bool is_migrating = g_pika_server->pika_migrate_thread_->IsMigrating();
+  time_t start_migration_time = g_pika_server->pika_migrate_thread_->GetStartTime();
+  time_t end_migration_time = g_pika_server->pika_migrate_thread_->GetEndTime();
+  std::string start_migration_time_str = g_pika_server->pika_migrate_thread_->GetStartTimeStr();
+  tmp_stream << "is_slots_migrating:" << (is_migrating ? "Yes, " : "No, ") << start_migration_time_str << ", "
+             << (is_migrating ? (current_time_s - start_migration_time) : (end_migration_time - start_migration_time))
+             << "\r\n";
 
   info.append(tmp_stream.str());
 }
@@ -1224,12 +1244,12 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.precision(2);
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
-    for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
-        if (iter.second->state.cmd_count != 0) {
+    for (auto& iter : *g_pika_server->GetCommandStatMap()) {
+        if (iter.second.cmd_count != 0) {
             tmp_stream << "cmdstat_" << iter.first << ":"
-                       << "calls=" << iter.second->state.cmd_count << ",usec="
-                       << iter.second->state.cmd_time_consuming
-                       << ",usec_per_call=" << (iter.second->state.cmd_time_consuming * 1.0) / iter.second->state.cmd_count << "\r\n";
+                       << "calls=" << iter.second.cmd_count << ",usec="
+                       << iter.second.cmd_time_consuming
+                       << ",usec_per_call=" << (iter.second.cmd_time_consuming * 1.0) / iter.second.cmd_count << "\r\n";
         }
     }
     info.append(tmp_stream.str());

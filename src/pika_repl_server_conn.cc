@@ -48,6 +48,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
       meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+      meta_sync->set_run_id(g_pika_conf->run_id());
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);

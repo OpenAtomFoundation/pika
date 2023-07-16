@@ -178,7 +178,11 @@ void PikaServer::Start() {
       SetMaster(master_ip, master_port);
     }
   }
-
+  CommandStatistics statistics;
+  auto cmdstat_map = *g_pika_server->GetCommandStatMap();
+  for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
+    cmdstat_map.emplace(iter.first, statistics);
+  }
   LOG(INFO) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
@@ -209,6 +213,16 @@ std::string PikaServer::master_ip() {
 int PikaServer::master_port() {
   std::shared_lock l(state_protector_);
   return master_port_;
+}
+
+std::string PikaServer::master_run_id() {
+  std::shared_lock l(state_protector_);
+  return master_run_id_;
+}
+
+void PikaServer::set_master_run_id(const std::string& master_run_id) {
+  std::lock_guard l(state_protector_);
+  master_run_id_ = master_run_id;
 }
 
 int PikaServer::role() {
@@ -740,6 +754,7 @@ void PikaServer::RemoveMaster() {
 
     master_ip_ = "";
     master_port_ = -1;
+    master_run_id_ = "";
     DoSameThingEverySlot(TaskType::kResetReplState);
   }
 }
@@ -1586,6 +1601,10 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   // Start new thread if needed
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
+}
+
+std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() {
+  return &cmdstat_map_;
 }
 
 void DoBgslotsreload(void* arg) {

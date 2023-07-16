@@ -38,6 +38,7 @@
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 
 
@@ -148,6 +149,8 @@ class PikaServer : public pstd::noncopyable {
   int port();
   time_t start_time_s();
   std::string master_ip();
+  std::string master_run_id();
+  void set_master_run_id(const std::string& master_run_id);
   int master_port();
   int role();
   bool leader_protected_mode();
@@ -345,6 +348,7 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsReload {
     bool reloading = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
@@ -381,7 +385,13 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_reload_.cursor;
   }
+
+  void SetSlotsreloadingEndTime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_reload_.end_time = time(nullptr);
+  }
   void Bgslotsreload(const std::shared_ptr<Slot>& slot);
+
 
   /*
    * BGSlotsCleanup used
@@ -389,6 +399,7 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsCleanup {
     bool cleaningup = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
@@ -440,6 +451,10 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
+  void SetSlotscleaningupEndtime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.end_time = time(nullptr);
+  }
   void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
@@ -454,6 +469,10 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
+ /*
+  * Info Commandstats used
+  */
+ std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
   friend class Cmd;
   friend class InfoCmd;
@@ -506,6 +525,7 @@ class PikaServer : public pstd::noncopyable {
    */
   std::string master_ip_;
   int master_port_ = 0;
+  std::string master_run_id_;
   int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
@@ -573,6 +593,11 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 
 #endif

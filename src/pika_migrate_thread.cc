@@ -327,52 +327,6 @@ static int listGetall(const std::string& key, std::vector<std::string> *values, 
   return 1;
 }
 
-// migrate one list key
-static int migrateList(net::NetCli *cli, const std::string& key, bool async, const std::shared_ptr<Slot>& slot) {
-  int r, ret = 0;
-  std::vector<std::string> values;
-  if (listGetall(key, &values, slot) < 0) {
-    return -1;
-  }
-  size_t keySize = values.size();
-  if (keySize == 0) {
-    return 0;
-  }
-
-  net::RedisCmdArgsType argv;
-  std::string send_str;
-  for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i) {
-    if (i > 0) {
-      LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize
-                   << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
-    }
-    argv.clear();
-    send_str = "";
-    argv.emplace_back("lpush");
-    argv.emplace_back(key);
-    for (size_t j = i * MaxKeySendSize; j < (i + 1) * MaxKeySendSize && j < keySize; ++j) {
-      argv.emplace_back(values[j]);
-    }
-    net::SerializeRedisCommand(argv, &send_str);
-    if (doMigrate(cli, send_str) < 0) {
-      return -1;
-    } else {
-      ret++;
-    }
-  }
-
-  if ((r = migrateKeyTTl(cli, key, storage::kLists, slot)) < 0) {
-    return -1;
-  } else {
-    ret += r;
-  }
-
-  if (!async) {
-    DeleteKey(key, 'l', slot);  // key already been migrated successfully, del error doesn't matter
-  }
-  return ret;
-}
-
 PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot)
     : dest_ip_("none"),
       dest_port_(-1),

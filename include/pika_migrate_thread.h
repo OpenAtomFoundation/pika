@@ -54,6 +54,10 @@ class PikaMigrateThread : public net::Thread {
   void DecWorkingThreadNum(void);
   void OnTaskFailed(void);
   void AddResponseNum(int32_t response_num);
+  bool IsMigrating(void) {return is_migrating_.load();}
+  time_t GetStartTime(void) {return start_time_;}
+  time_t GetEndTime(void) {return end_time_;}
+  std::string GetStartTimeStr(void) {return s_start_time_;}
 
  private:
   void ResetThread(void);
@@ -71,6 +75,9 @@ class PikaMigrateThread : public net::Thread {
   int64_t timeout_ms_ = 60;
   int64_t slot_id_ = 0;
   int64_t keys_num_ = 0;
+  time_t start_time_ = 0;
+  time_t end_time_ = 0;
+  std::string s_start_time_;
   std::shared_ptr<Slot> slot_;
   std::atomic<bool> is_migrating_;
   std::atomic<bool> should_exit_;
