@@ -8,6 +8,7 @@
 
 #include "include/pika_command.h"
 #include "net/include/redis_conn.h"
+#include "pika_db.h"
 #include "storage/storage.h"
 
 class MultiCmd : public Cmd {
@@ -32,7 +33,25 @@ class ExecCmd : public Cmd {
   void Merge() override {}
   std::vector<std::string> current_key() const override { return {}; }
  private:
+  struct CmdInfo {
+   public:
+    CmdInfo(std::shared_ptr<Cmd> cmd, std::shared_ptr<DB> db, std::shared_ptr<Slot> slot,
+            std::shared_ptr<SyncMasterSlot> sync_slot) : cmd_(cmd), db_(db), slot_(slot), sync_slot_(sync_slot) {}
+    std::shared_ptr<Cmd> cmd_;
+    std::shared_ptr<DB> db_;
+    std::shared_ptr<Slot> slot_;
+    std::shared_ptr<SyncMasterSlot> sync_slot_;
+  };
   void DoInitial() override;
+  void Lock();
+  void Unlock();
+  bool IsTxnFailedAndSetState();
+  void SetCmdsVec();
+  std::unordered_set<std::shared_ptr<DB>> lock_db_{};
+  std::unordered_map<std::shared_ptr<Slot>, std::vector<std::string>> lock_slot_keys_{};
+  std::unordered_set<std::shared_ptr<Slot>> r_lock_slots_{};
+  bool is_lock_rm_slots_{false};  // g_pika_rm->slots_rw_;
+  std::vector<CmdInfo> cmds_;
   std::vector<std::string> keys_;
 };
 class DiscardCmd : public Cmd {

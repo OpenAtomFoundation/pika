@@ -5,6 +5,7 @@
 
 #include "include/pika_transaction.h"
 #include <memory>
+#include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
@@ -40,6 +41,43 @@ void MultiCmd::DoInitial() {
 void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  std::vector<CmdRes> res_vec = {};
+  std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec](CmdInfo& each_cmd_info) {
+    auto& cmd = each_cmd_info.cmd_;
+    auto& slot = each_cmd_info.slot_;
+    auto sync_slot = each_cmd_info.sync_slot_;
+    cmd->res() = {};
+    if (cmd->name() == kCmdNameFlushall) {
+      auto flushall = std::dynamic_pointer_cast<FlushallCmd>(cmd);
+      flushall->FlushAllWithoutLock();
+      client_conn->SetAllTxnFailed();
+    } else if (cmd->name() == kCmdNameFlushdb) {
+      auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
+      flushdb->FlushAllSlotsWithoutLock(each_cmd_info.db_);
+      client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->db_name_);
+    } else {
+      cmd->Do(slot);
+      if (cmd->res().ok() && cmd->is_write()) {
+        cmd->DoBinlog(sync_slot);
+        auto db_keys = cmd->current_key();
+        for (auto& item : db_keys) {
+          item = cmd->db_name().append(item);
+        }
+        client_conn->SetTxnFailedFromKeys(db_keys);
+      }
+    }
+    res_vec.emplace_back(cmd->res());
+  });
+
+  res_.AppendArrayLen(res_vec.size());
+  for (auto &r : res_vec) {
+    res_.AppendStringRaw(r.message());
+  }
+}
+// 如果是multi和exec的话，不应该写binlog
+void ExecCmd::Execute() {
+  auto conn = GetConn();
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
@@ -48,71 +86,15 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, "ERR EXEC without MULTI");
     return;
   }
-  DEFER {
+  if (IsTxnFailedAndSetState()) {
     client_conn->ExitTxn();
-  };
-
-  if (client_conn->IsTxnInitFailed()) {
-    res_.SetRes(CmdRes::kTxnAbort, "Transaction discarded because of previous errors.");
     return;
   }
-  if (client_conn->IsTxnWatchFailed()) {
-    res_.AppendStringLen(-1);
-    return;
-  }
-  // TODO(leehao) 加锁，不太确定下面这个加锁方案行不行
-  auto cmd_que = client_conn->GetTxnCmdQue();
-  auto res_vec = std::vector<CmdRes>{};
-  auto cmd_slot_vec = std::vector<std::pair<std::shared_ptr<Cmd>, std::shared_ptr<Slot>>>{};
-  auto slot_set = std::unordered_set<std::shared_ptr<Slot>>{};  // 去重,以免重复给一个slot加锁
-  // 先统一加锁
-  while (!cmd_que.empty()) {
-    auto cmd = cmd_que.front();
-    auto cmd_db = client_conn->GetCurrentDb();  // 由于有可能是select命令，所以需要每次都从这个conn中去拿去最新的dbname
-    auto cmd_slot = g_pika_server->GetSlotByDBName(cmd_db);
-    if (slot_set.count(cmd_slot) == 0) {
-      slot_set.emplace(cmd_slot);
-    }
-    cmd_slot_vec.emplace_back(cmd, cmd_slot);
-    cmd_que.pop();
-  }
-  std::shared_lock l(g_pika_server->dbs_rw_);
-  std::for_each(slot_set.begin(), slot_set.end(), [](auto &slot){
-    slot->DbRWLockWriter();
-  });
-
-  // 再集中执行，最后再统一解锁
-  std::for_each(cmd_slot_vec.begin(), cmd_slot_vec.end(), [&client_conn, &res_vec](auto& each_cmd) {
-    auto& [cmd, cmd_slot] = each_cmd;
-    std::shared_ptr<SyncMasterSlot> sync_slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(cmd_slot->GetDBName(), cmd_slot->GetSlotID()));
-    cmd->res() = {};
-    cmd->Do(cmd_slot);
-    if (cmd->res().ok() && cmd->is_write()) {
-      cmd->DoBinlog(sync_slot);
-      auto db_keys = cmd->current_key();
-      for (auto& item : db_keys) {
-        item = cmd->db_name().append(item);
-      }
-      client_conn->SetTxnFailedFromKeys(db_keys);
-    }
-    res_vec.emplace_back(cmd->res());
-  });
-
-  std::for_each(cmd_slot_vec.begin(), cmd_slot_vec.end(),[](auto &each_cmd) {
-    auto cmd_slot = each_cmd.second;
-    cmd_slot->DbRWUnLock();
-  });
-  res_.AppendArrayLen(res_vec.size());
-  for (auto &r : res_vec) {
-    res_.AppendStringRaw(r.message());
-  }
-}
-// 如果是multi和exec的话，不应该写binlog
-void ExecCmd::Execute() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
+  SetCmdsVec();
+  Lock();
+  Do();
+  Unlock();
+  client_conn->ExitTxn();
 }
 
 //! 在这里还没法得到涉及到的key，因为客户端连接对象中有一些的key他们的db不一样
@@ -126,6 +108,87 @@ void ExecCmd::DoInitial() {
   if (client_conn == nullptr) {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
+  }
+}
+
+bool ExecCmd::IsTxnFailedAndSetState() {
+  auto conn = GetConn();
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn->IsTxnInitFailed()) {
+    res_.SetRes(CmdRes::kTxnAbort, "Transaction discarded because of previous errors.");
+    return true;
+  }
+  if (client_conn->IsTxnWatchFailed()) {
+    res_.AppendStringLen(-1);
+    return true;
+  }
+  return false;
+}
+
+void ExecCmd::Lock() {
+  g_pika_server->dbs_rw_.lock_shared();
+  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
+    need_lock_db->slots_rw_.lock();
+  });
+  if (is_lock_rm_slots_) {
+    g_pika_rm->slots_rw_.lock();
+  }
+
+  std::for_each(r_lock_slots_.begin(), r_lock_slots_.end(), [this](auto& need_lock_slot) {
+    if (lock_slot_keys_.count(need_lock_slot) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
+      record_lock.Lock(lock_slot_keys_[need_lock_slot]);
+    }
+    need_lock_slot->DbRWLockReader();
+  });
+}
+
+void ExecCmd::Unlock() {
+  std::for_each(r_lock_slots_.begin(), r_lock_slots_.end(), [this](auto& need_lock_slot) {
+    if (lock_slot_keys_.count(need_lock_slot) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
+      record_lock.Unlock(lock_slot_keys_[need_lock_slot]);
+    }
+    need_lock_slot->DbRWUnLock();
+  });
+  if (is_lock_rm_slots_) {
+    g_pika_rm->slots_rw_.unlock();
+  }
+  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
+    need_lock_db->slots_rw_.unlock();
+  });
+  g_pika_server->dbs_rw_.unlock_shared();
+}
+
+void ExecCmd::SetCmdsVec() {
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
+  auto cmd_que = client_conn->GetTxnCmdQue();
+
+  while (!cmd_que.empty()) {
+    auto cmd = cmd_que.front();
+    auto cmd_db = client_conn->GetCurrentDb();
+    auto cmd_slot = g_pika_server->GetSlotByDBName(cmd_db);
+    auto sync_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(cmd->db_name(), cmd_slot->GetSlotID()));
+    cmds_.emplace_back(cmd, g_pika_server->GetDB(cmd_db), cmd_slot, sync_slot);
+    if (cmd->name() == kCmdNameSelect) {
+      cmd->Do(cmd_slot);
+    } else if (cmd->name() == kCmdNameFlushdb) {
+      is_lock_rm_slots_ = true;
+      lock_db_.emplace(g_pika_server->GetDB(cmd_db));
+    } else if (cmd->name() == kCmdNameFlushall) {
+      is_lock_rm_slots_ = true;
+      for (const auto& db_item : g_pika_server->dbs_) {
+        lock_db_.emplace(db_item.second);
+      }
+    } else {
+      r_lock_slots_.emplace(cmd_slot);
+      if (lock_slot_keys_.count(cmd_slot) == 0) {
+        lock_slot_keys_.emplace(cmd_slot, std::vector<std::string>{});
+      }
+      auto cmd_keys = cmd->current_key();
+      lock_slot_keys_[cmd_slot].insert(lock_slot_keys_[cmd_slot].end(), cmd_keys.begin(), cmd_keys.end());
+    }
+    cmd_que.pop();
   }
 }
 

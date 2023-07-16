@@ -80,6 +80,8 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   // FlushDB & FlushSubDB use
   bool FlushDB();
   bool FlushSubDB(const std::string& db_name);
+  bool FlushDBWithoutLock();
+  bool FlushSubDBWithoutLock(const std::string& db_name);
 
   // key scan info use
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
@@ -101,7 +103,12 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
 
   bool opened_ = false;
 
+  // 说实话，这个锁设计的不好，对于key的普通操作（例如set），是通过直接拿到db，来操作的，不涉及到这里的锁
+  // 当然也需要加锁，就是分开的，先加锁，之后再拿到db，操作的
+  // 然后flush这样的方法，就是在里面加锁的，所以这里出现了不一致的地方
+  // 有时间可以重构下
   std::shared_mutex db_rwlock_;
+//  std::recursive_mutex
   // class may be shared, using shared_ptr would be a better choice
   std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> db_;

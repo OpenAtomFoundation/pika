@@ -138,7 +138,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
 
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
-    if (c_ptr->name() == kCmdNameFlushdb || c_ptr->name() == kCmdNameFlushall) {
+    if (c_ptr->name() == kCmdNameFlushdb) {
+      auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
+      SetTxnFailedFromDBs(flushdb->GetFlushDname());
+    } else if (c_ptr->name() == kCmdNameFlushall) {
       SetAllTxnFailed();  // 这里就将所有watch的事务给设置成为失败状态
     } else {
       auto table_keys = c_ptr->current_key();

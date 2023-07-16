@@ -166,6 +166,7 @@ class FlushallCmd : public Cmd {
   void DoInitial() override;
   std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                        uint64_t offset) override;
+  void DoWithoutLock(std::shared_ptr<Slot> slot);
 };
 
 class FlushdbCmd : public Cmd {
@@ -175,13 +176,15 @@ class FlushdbCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
-  void FlushAllSlots(std::shared_ptr<DB> db);
+  void FlushAllSlotsWithoutLock(std::shared_ptr<DB> db);
   void Execute() override;
+  std::string GetFlushDname() { return db_name_; }
 
  private:
   std::string db_name_;
   void DoInitial() override;
   void Clear() override { db_name_.clear(); }
+  void DoWithoutLock(std::shared_ptr<Slot> slot);
 };
 
 class ClientCmd : public Cmd {

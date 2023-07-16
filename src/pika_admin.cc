@@ -404,7 +404,8 @@ void PingCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.SetRes(CmdRes::kPong);
 }
-
+// TODO(leehao): 这里也有点儿问题，因为在事务入队列的时候会来做命令的DoInitial函数,
+//  redis不会检查select的db是否存在的
 void SelectCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
@@ -476,15 +477,15 @@ void FlushallCmd::Execute() {
       return;
     }
   }
+  g_pika_rm->slots_rw_.lock();
   for (const auto& db_item : g_pika_server->dbs_) {
     db_item.second->slots_rw_.lock();
-    g_pika_rm->slots_rw_.lock();
   }
   FlushAllWithoutLock();
   for (const auto& db_item : g_pika_server->dbs_) {
     db_item.second->slots_rw_.unlock();
-    g_pika_rm->slots_rw_.unlock();
   }
+  g_pika_rm->slots_rw_.unlock();
   if (res_.ok()) {
     res_.SetRes(CmdRes::kOk);
   }
@@ -499,9 +500,19 @@ void FlushallCmd::FlushAllWithoutLock() {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
-      Do(slot);
+      DoWithoutLock(slot);
       DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
     }
+  }
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  }
+}
+void FlushallCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushall, but Slot not found";
+  } else {
+    slot->FlushDBWithoutLock();
   }
 }
 
@@ -541,8 +552,8 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 }
-//
-void FlushdbCmd::FlushAllSlots(std::shared_ptr<DB> db) {
+
+void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
   for (const auto& slot_item : db->slots_) {
     std::shared_ptr<Slot> slot = slot_item.second;
     SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
@@ -550,7 +561,20 @@ void FlushdbCmd::FlushAllSlots(std::shared_ptr<DB> db) {
       res_.SetRes(CmdRes::kErrOther, "Slot not found");
       return;
     }
-    ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
+    DoWithoutLock(slot);
+    DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
+  }
+}
+
+void FlushdbCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushdb, but Slot not found";
+  } else {
+    if (db_name_ == "all") {
+      slot->FlushDBWithoutLock();
+    } else {
+      slot->FlushSubDBWithoutLock(db_name_);
+    }
   }
 }
 
@@ -566,7 +590,7 @@ void FlushdbCmd::Execute() {
     } else {
       std::lock_guard l_prw(db->slots_rw_);
       std::lock_guard s_prw(g_pika_rm->slots_rw_);
-      FlushAllSlots(db);
+      FlushAllSlotsWithoutLock(db);
       res_.SetRes(CmdRes::kOk);
     }
   }
