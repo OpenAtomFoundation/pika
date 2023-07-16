@@ -179,7 +179,7 @@ void PikaServer::Start() {
     }
   }
   CommandStatistics statistics;
-  auto &cmdstat_map = g_pika_server->GetCommandStatMap();
+  auto cmdstat_map = *g_pika_server->GetCommandStatMap();
   for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
     cmdstat_map.emplace(iter.first, statistics);
   }
@@ -1603,8 +1603,8 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
 
-std::unordered_map<std::string, CommandStatistics>& PikaServer::GetCommandStatMap() {
-  return cmdstat_map_;
+std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() {
+  return &cmdstat_map_;
 }
 
 void DoBgslotsreload(void* arg) {
