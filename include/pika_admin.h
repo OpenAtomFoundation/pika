@@ -149,6 +149,7 @@ class SelectCmd : public Cmd {
   void DoInitial() override;
   void Clear() override { db_name_.clear(); }
   std::string db_name_;
+  std::shared_ptr<DB> select_db_;
 };
 
 class FlushallCmd : public Cmd {

@@ -410,20 +410,19 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
-  int index = atoi(argv_[1].data());
-  if (std::to_string(index) != argv_[1]) {
-    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
-    return;
-  }
-  if (index < 0 || index >= g_pika_conf->databases()) {
-    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
+  db_name_ = "db" + argv_[1];
+  select_db_ = g_pika_server->GetDB(db_name_);
+  return ;
+}
+
+void SelectCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
   db_name_ = "db" + argv_[1];
-  if (!g_pika_server->IsDBExist(db_name_)) {
-    res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
-    return;
-  }
+  select_db_ = g_pika_server->GetDB(db_name_);
+  return ;
 }
 
 void SelectCmd::Do(std::shared_ptr<Slot> slot) {
@@ -433,7 +432,20 @@ void SelectCmd::Do(std::shared_ptr<Slot> slot) {
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  conn->SetCurrentTable(db_name_);
+  int index = atoi(argv_[1].data());
+  if (std::to_string(index) != argv_[1]) {
+    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
+    return;
+  }
+  if (index < 0 || index >= g_pika_conf->databases()) {
+    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
+    return;
+  }
+  if (select_db_ == nullptr) {
+    res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
+    return;
+  }
+  conn->SetCurrentDb(db_name_);
   res_.SetRes(CmdRes::kOk);
 }
 
