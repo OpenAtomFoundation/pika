@@ -1828,6 +1828,14 @@ void PikaServer::ScriptingInit() {
       "end\n";
   lua.script(compare_func);
 
+  // we register a error handler to use in pcall
+  const char* error_handler = R"(
+			function __redis__error_handler (message)
+				return message
+			end
+		)";
+  lua.script(error_handler);
+
   // /* Create the (non connected) client that we use to execute Redis commands
   //  * inside the Lua interpreter.
   //  * Note: there is no need to create it again when this function is called

@@ -187,7 +187,6 @@ struct CreateLuaFuncRes {
 
 CreateLuaFuncRes LuaCreateFunction(sol::state_view &lua, const std::string &funcname, const std::string &body) {
   std::string funcdef = fmt::format("function {}() {} end", funcname, body);
-  LOG(INFO) << "luaCreateFunction: " << funcdef;
   sol::load_result script = lua.load(funcdef, "@user_script");
   if (!script.valid()) {
     return {CreateLuaFuncRes::CreateLuaFuncStatus::compile_err, static_cast<sol::error>(script).what()};
@@ -339,11 +338,11 @@ sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::
 
 sol::object LuaRedisCallCommand(sol::this_state l, sol::variadic_args va) {
   sol::state_view lua(l);
-  return LuaRedisGenericCommand(lua, false, va);
+  return LuaRedisGenericCommand(lua, true, va);
 }
 sol::object LuaRedisPCallCommand(sol::this_state l, sol::variadic_args va) {
   sol::state_view lua(l);
-  return LuaRedisGenericCommand(lua, true, va);
+  return LuaRedisGenericCommand(lua, false, va);
 }
 
 void EvalCmd::DoInitial() {
@@ -383,6 +382,8 @@ void EvalCmd::DoInitial() {
 void EvalCmd::LuaReplyToRedisReply(sol::state &lua, sol::object lua_ret) {
   sol::type t = lua_ret.get_type();
   std::string lua_str;
+  sol::protected_function_result lua_num;
+  long long num;
   std::string reply;
   sol::table tb;
   sol::object val;
@@ -403,7 +404,14 @@ void EvalCmd::LuaReplyToRedisReply(sol::state &lua, sol::object lua_ret) {
       reply_lst_.emplace_back(std::move(reply));
       break;
     case sol::type::number:
-      RedisAppendLen(reply, lua_ret.as<long long>(), ":");
+      // use tonumber to do string -> double conversion
+      lua_num = lua["tonumber"](lua_ret);
+      if (lua_num.get_type() == sol::type::lua_nil) {
+        num = 0;
+      } else {
+        num = lua_num.get<double>();
+      }
+      RedisAppendLen(reply, num, ":");
       reply_lst_.emplace_back(std::move(reply));
       break;
     case sol::type::table:
@@ -495,9 +503,10 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   std::lock_guard lua_lk(g_pika_server->lua_mutex_);
 
   /* Try to lookup the Lua function */
-  sol::protected_function f = lua[funcname];
+  sol::protected_function f(lua[funcname], lua["__redis__error_handler"]);
   if (!f.valid()) {
     if (evalsha_) {
+      res_.SetRes(CmdRes::kNoScript);
       return;
     }
     CreateLuaFuncRes res = LuaCreateFunction(lua, funcname, script_);
@@ -505,7 +514,8 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
       res_.SetRes(CmdRes::kErrOther, res.err_);
       return;
     }
-    f = lua[funcname];
+    // f = lua[funcname];
+    f = sol::protected_function(lua[funcname], lua["__redis__error_handler"]);
     assert(f.valid());
   }
 
@@ -557,7 +567,7 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
 
   if (!res.valid()) {
     res_.SetRes(CmdRes::kErrOther,
-                fmt::format("Error running script (call to {}): {}\n", funcname, static_cast<sol::error>(res).what()));
+                fmt::format("Error running script (call to {}): {}", funcname, static_cast<sol::error>(res).what()));
   } else {
     /* On success convert the Lua return value into Redis protocol, and
      * send it to * the client. */
@@ -593,8 +603,8 @@ void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
     // TODO lock granularity?
     std::lock_guard lua_lk(g_pika_server->lua_mutex_);
     auto& lua_scripts = g_pika_server->lua_scripts_;
+    res_.AppendArrayLen(argv_.size() - 2);
     for (int j = 2; j < argv_.size(); j++) {
-      res_.AppendArrayLen(argv_.size() - 2);
       if (lua_scripts.find(argv_[j]) == lua_scripts.end()) {
         res_.AppendInteger(0);
       } else {

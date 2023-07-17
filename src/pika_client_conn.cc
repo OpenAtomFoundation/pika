@@ -378,13 +378,12 @@ void PikaClientConn::ExecRedisCmdInLua(const PikaCmdArgsType& argv, const std::s
   }
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmdInLua(argv, opt, resp_ptr);
+  *resp_ptr = std::move(cmd_ptr->res().message());
   if (!cmd_ptr->res().ok()) {
     // push error to lua
     // TODO use message() will add -ERR in front of error message, we can remove it by slicing the string
     LuaPushError(*g_pika_server->lua_, cmd_ptr->res().message().data());
-  } else {
-    *resp_ptr = std::move(cmd_ptr->res().message());
-  }
+  }  
   if (cmd_ptr->is_sort_for_script()) {
     need_sort = true;
   }

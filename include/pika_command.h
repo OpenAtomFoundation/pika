@@ -303,7 +303,8 @@ class CmdRes {
     kInconsistentHashTag,
     kErrOther,
     KIncrByOverFlow,
-    kInvalidKeyNums
+    kInvalidKeyNums,
+    kNoScript
   };
 
   CmdRes() = default;
@@ -334,7 +335,6 @@ class CmdRes {
         return "-ERR bit offset is not an integer or out of range\r\n";
       case kWrongBitOpNotNum:
         return "-ERR BITOP NOT must be called with a single source key.\r\n";
-
       case kInvalidBitPosArgument:
         return "-ERR The bit argument must be 1 or 0.\r\n";
       case kInvalidFloat:
@@ -355,6 +355,8 @@ class CmdRes {
         return "-ERR Invalid Argument\r\n";
       case kInvalidKeyNums:
         return "-ERR Number of keys can't be greater than number of args\r\n";
+      case kNoScript:
+        return "-NOSCRIPT No matching script. Please use EVAL.\r\n";
       case kWrongNum:
         result = "-ERR wrong number of arguments for '";
         result.append(message_);
