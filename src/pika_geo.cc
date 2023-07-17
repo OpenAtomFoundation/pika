@@ -184,7 +184,7 @@ void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
   double distance = geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
   distance = length_converter(distance, unit_);
   char buf[32];
-  sprintf(buf, "%.4f", distance);
+  snprintf(buf, sizeof(buf), "%.4f", distance);
   res_.AppendStringLenUint64(strlen(buf));
   res_.AppendContent(buf);
 }
@@ -371,7 +371,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
         double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
         distance = length_converter(distance, range.unit);
         char buf[32];
-        sprintf(buf, "%.4f", distance);
+        snprintf(buf, sizeof(buf), "%.4f", distance);
         res.AppendStringLenUint64(strlen(buf));
         res.AppendContent(buf);
       }
