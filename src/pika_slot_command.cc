@@ -750,7 +750,7 @@ static int SlotsMgrtTag(const std::string &host, const int port, int timeout, co
 // get slot tag
 static const char *GetSlotsTag(const std::string &str, int *plen) {
   const char *s = str.data();
-  int i, j, n = str.length();
+  int i, j, n = static_cast<int32_t>(str.length());
   for (i = 0; i < n && s[i] != '{'; i++) {
   }
   if (i == n) {
@@ -782,11 +782,11 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   int hastag = 0;
   const char *tag = GetSlotsTag(str, &taglen);
   if (tag == nullptr) {
-    tag = s, taglen = str.length();
+    tag = s, taglen = static_cast<int32_t>(str.length());
   } else {
     hastag = 1;
   }
-  uint32_t crc = CRC32CheckSum(tag, taglen);
+  auto crc = static_cast<int32_t>(CRC32CheckSum(tag, taglen));
   if (pcrc != nullptr) {
     *pcrc = crc;
   }
@@ -979,7 +979,7 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
   int ret = 0;
   std::string detail;
-  std::string slot_key = GetSlotKey(slot_id_);
+  std::string slot_key = GetSlotKey(static_cast<int32_t>(slot_id_));
 
   // first, get the count of slot_key, prevent to sscan key very slowly when the key is not found
   rocksdb::Status s = slot->db()->SCard(slot_key, &len);
@@ -998,7 +998,7 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
         std::string key = member;
         char type = key.at(0);
         key.erase(key.begin());
-        ret = SlotsMgrtTag(dest_ip_, dest_port_, timeout_ms_, key, type, detail, slot);
+        ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key, type, detail, slot);
       }
     }
     // unlock
@@ -1174,11 +1174,11 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
       detail = "cont get the key type.";
       ret = -1;
     } else {
-      ret = SlotsMgrtTag(dest_ip_, dest_port_, timeout_ms_, key_, key_type_, detail, slot);
+      ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, key_type_, detail, slot);
     }
   } else {
     // key maybe doesn't exist, the key is tag key, migrate the same tag key
-    ret = SlotsMgrtTag(dest_ip_, dest_port_, timeout_ms_, key_, 0, detail, slot);
+    ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, 0, detail, slot);
   }
 
   // unlock the record lock
@@ -1252,7 +1252,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
   std::string slot_key;
 
-  for (int i = begin_; i < end_; i++) {
+  for (auto i = static_cast<int32_t>(begin_); i < end_; i++) {
     slot_key = GetSlotKey(i);
     len = 0;
     rocksdb::Status s = slot->db()->SCard(slot_key, &len);
@@ -1336,7 +1336,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   int32_t remained = 0;
-  std::string slotKey = GetSlotKey(slot_id_);
+  std::string slotKey = GetSlotKey(static_cast<int32_t>(slot_id_));
   storage::Status status = slot->db()->SCard(slotKey, &remained);
   if (status.IsNotFound()) {
     LOG(INFO) << "find no record in slot " << slot_id_;
@@ -1380,19 +1380,19 @@ void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Slot> slot) {
   std::string mstatus = migrating ? "yes" : "no";
   res_.AppendArrayLen(5);
   status = "dest server: " + ip + ":" + std::to_string(port);
-  res_.AppendStringLen(status.size());
+  res_.AppendStringLenUint64(status.size());
   res_.AppendContent(status);
   status = "slot number: " + std::to_string(slots);
-  res_.AppendStringLen(status.size());
+  res_.AppendStringLenUint64(status.size());
   res_.AppendContent(status);
   status = "migrating  : " + mstatus;
-  res_.AppendStringLen(status.size());
+  res_.AppendStringLenUint64(status.size());
   res_.AppendContent(status);
   status = "moved keys : " + std::to_string(moved);
-  res_.AppendStringLen(status.size());
+  res_.AppendStringLenUint64(status.size());
   res_.AppendContent(status);
   status = "remain keys: " + std::to_string(remained);
-  res_.AppendStringLen(status.size());
+  res_.AppendStringLenUint64(status.size());
   res_.AppendContent(status);
 
   return;
@@ -1455,7 +1455,7 @@ void SlotsHashKeyCmd::DoInitial() {
 void SlotsHashKeyCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string>::const_iterator keys_it;
 
-  res_.AppendArrayLen(keys_.size());
+  res_.AppendArrayLenUint64(keys_.size());
   for (keys_it = keys_.begin(); keys_it != keys_.end(); ++keys_it) {
     res_.AppendInteger(GetSlotsID(*keys_it, nullptr, nullptr));
   }
@@ -1519,10 +1519,10 @@ void SlotsScanCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendStringLen(len);
   res_.AppendContent(buf);
 
-  res_.AppendArrayLen(members.size());
+  res_.AppendArrayLenUint64(members.size());
   auto iter_member = members.begin();
   for (; iter_member != members.end(); iter_member++) {
-    res_.AppendStringLen(iter_member->size());
+    res_.AppendStringLenUint64(iter_member->size());
     res_.AppendContent(*iter_member);
   }
   return;
@@ -1615,7 +1615,7 @@ void SlotsCleanupCmd::DoInitial() {
 void SlotsCleanupCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_server->Bgslotscleanup(cleanup_slots_, slot);
   std::vector<int> cleanup_slots(g_pika_server->GetCleanupSlots());
-  res_.AppendArrayLen(cleanup_slots.size());
+  res_.AppendArrayLenUint64(cleanup_slots.size());
   auto iter = cleanup_slots.begin();
   for (; iter != cleanup_slots.end(); iter++) {
     res_.AppendInteger(*iter);
