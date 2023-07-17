@@ -56,6 +56,7 @@ jobs:
       - name: Unit Test
         working-directory: ${{github.workspace}}
         run: |
+          echo ${{github.workspace}}
           ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
@@ -136,6 +137,8 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           cd ${{github.workspace}}
+          chmod +x ./pikatests.sh all
+          echo ${{github.workspace}}
           ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db

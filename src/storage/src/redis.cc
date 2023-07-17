@@ -136,6 +136,9 @@ void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     write_stream_key_value(rocksdb::DB::Properties::kTotalSstFilesSize, "total_sst_files_size");
     write_stream_key_value(rocksdb::DB::Properties::kLiveSstFilesSize, "live_sst_files_size");
 
+    // pending compaction bytes
+    write_stream_key_value(rocksdb::DB::Properties::kEstimatePendingCompactionBytes, "estimate_pending_compaction_bytes");
+
     // block cache
     write_stream_key_value(rocksdb::DB::Properties::kBlockCacheCapacity, "block_cache_capacity");
     write_stream_key_value(rocksdb::DB::Properties::kBlockCacheUsage, "block_cache_usage");

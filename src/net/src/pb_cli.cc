@@ -51,10 +51,10 @@ PbCli::~PbCli() {
 Status PbCli::Send(void* msg) {
   auto req = reinterpret_cast<google::protobuf::Message*>(msg);
 
-  int wbuf_len = req->ByteSizeLong();
-  req->SerializeToArray(wbuf_ + kCommandHeaderLength, wbuf_len);
-  uint32_t len = htonl(wbuf_len);
-  memcpy(wbuf_, &len, sizeof(uint32_t));
+  size_t wbuf_len = req->ByteSizeLong();
+  req->SerializeToArray(wbuf_ + kCommandHeaderLength, static_cast<int32_t>(wbuf_len));
+  uint32_t len = htonl(static_cast<uint32_t>(wbuf_len));
+  memcpy(wbuf_, &len, sizeof(len));
   wbuf_len += kCommandHeaderLength;
 
   return NetCli::SendRaw(wbuf_, wbuf_len);
@@ -80,7 +80,7 @@ Status PbCli::Recv(void* msg_res) {
     return s;
   }
 
-  if (!res->ParseFromArray(rbuf_, packet_len)) {
+  if (!res->ParseFromArray(rbuf_, static_cast<int32_t>(packet_len))) {
     return Status::Corruption("PbCli::Recv Protobuf ParseFromArray error");
   }
   return Status::OK();
