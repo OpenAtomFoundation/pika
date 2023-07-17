@@ -151,3 +151,4 @@ jobs:
         run: |
           cd ${{github.workspace}}/build
           python3 ../tests/integration/pika_replication_test.py
+          
