@@ -34,6 +34,8 @@ class PikaServer;
 /* Port shift */
 const int kPortShiftRSync = 1000;
 const int kPortShiftReplServer = 2000;
+// todo 待移除，使用 kPortShiftRSync
+const int kPortShiftRsync2 = 10001;
 
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";

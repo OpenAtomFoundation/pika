@@ -2,37 +2,10 @@
 #include "include/rsync_server.h"
 #include <glog/logging.h>
 #include "include/pika_server.h"
+#include <google/protobuf/map.h>
 
 extern PikaServer* g_pika_server;
 namespace rsync {
-
-//TODO: mock code, need removed
-void GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid) {
-    pstd::GetChildren(".", *files);
-    auto iter = files->begin();
-    while (iter != files->end()) {
-        if (std::filesystem::is_directory(*iter)) {
-            iter = files->erase(iter);
-            continue;
-        }
-        iter++;
-    }
-    *snapshot_uuid = "demo_snapshot_uuid";
-}
-
-//TODO: mock code, need removed
-ssize_t ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
-                    const size_t offset, const size_t count, char* data) {
-    const std::string filepath = std::string("./") + filename;
-    int fd = open(filepath.c_str(), O_RDONLY, 0644);
-    ssize_t n = pread(fd, data, count, offset);
-    LOG(WARNING) << "read n: " << n;
-    if (n < 0) {
-        LOG(WARNING) << "pread error, errno:" << strerror(errno);
-    }
-    close(fd);
-    return n;
-}
 
 RsyncServer::RsyncServer(const std::string& ip, const int port) : ip_(ip), port_(port) {
     work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
@@ -118,18 +91,19 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
 
   std::string db_name = req->db_name();
   uint32_t slot_id = req->slot_id();
+
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
-  GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
+  g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
   LOG(WARNING) << "snapshot_uuid: " << snapshot_uuid;
   std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
-      LOG(WARNING) << "file:" << file;
+    LOG(WARNING) << "file:" << file;
   });
   //TODO: temporarily mock response
   RsyncService::MetaResponse* meta_resp = response.mutable_meta_resp();
   response.set_snapshot_uuid(snapshot_uuid);
   for (const auto& filename : filenames) {
-      meta_resp->add_filenames(filename);
+        meta_resp->add_filenames(filename);
   }
 
   std::string reply_str;
@@ -161,16 +135,17 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   size_t offset = req->file_req().offset();
   size_t count = req->file_req().count();
   char* buffer = new char[req->file_req().count() + 1];
+  size_t bytes_read{0};
   LOG(INFO) << "....... ReadDumpFile: " << filename;
-  auto r = ReadDumpFile(db_name, slot_id, filename, offset, count, buffer);
-  LOG(INFO) << "ReadDumpFile: " << filename << " read size: " << r;
+  auto status = g_pika_server -> ReadDumpFile(db_name, slot_id, filename, offset, count, buffer, &bytes_read);
+  LOG(INFO) << "ReadDumpFile: " << filename << " read size: " << status.ToString();
 
   //TODO: temporarily mock response
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
-  file_resp->set_eof(r != count);
-  file_resp->set_count(r);
+  file_resp->set_eof(bytes_read != count);
+  file_resp->set_count(bytes_read);
   file_resp->set_offset(offset);
-  file_resp->set_data(buffer, r);
+  file_resp->set_data(buffer, bytes_read);
   file_resp->set_checksum("checksum");
   file_resp->set_filename(filename);
 

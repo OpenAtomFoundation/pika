@@ -644,7 +644,7 @@ void SyncSlaveSlot::ActivateRsync() {
   if (rsync_cli_->IsRunning()) {
     return;
   }
-  if (rsync_cli_->Init(local_ip_)) {
+  if (rsync_cli_->Init()) {
     rsync_cli_->Start();
   }
 }

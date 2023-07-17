@@ -76,7 +76,7 @@ PikaServer::PikaServer()
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   //TODO 删除pika_rsync_service_服务，使用pika_rsync_service_端口
-  rsync_server_ = std::make_unique<rsync::RsyncServer>("127.0.0.1", g_pika_conf->port() + kPortShiftRSync + 1);
+  rsync_server_ = std::make_unique<rsync::RsyncServer>("127.0.0.1", g_pika_server->master_port() + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
@@ -918,10 +918,12 @@ pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t 
     return pstd::Status::NotFound("slot no found");
   }
   slot->GetBgSaveMetaData(fileNames, snapshot_uuid);
+  return pstd::Status::OK();
 }
 
+// todo 参数太长了，待优化
 pstd::Status PikaServer::ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
-                                const size_t offset, const size_t count, char* data) {
+                                const size_t offset, const size_t count, char* data, size_t* bytes_read) {
     std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
     if (!slot) {
       LOG(WARNING) << "cannot find slot for db_name " << db_name << "slot_id: " << slot_id;
@@ -954,6 +956,7 @@ pstd::Status PikaServer::ReadDumpFile(const std::string& db_name, uint32_t slot_
       }
 
       data += bytesin;
+      *bytes_read += bytesin;
       read_offset += bytesin;
     }
 

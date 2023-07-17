@@ -45,7 +45,7 @@ public:
     RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
 
     void* ThreadMain() override;
-    bool Init(const std::string& local_ip);
+    bool Init();
     Status Start();
     Status Stop();
     bool IsRunning() { return state_.load() == RUNNING;}
@@ -56,8 +56,11 @@ private:
     Status Wait(WaitObject* wo);
     Status CopyRemoteFile(const std::string& filename);
     Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
-    Status LoadMetaTable();
+    Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
+    std::string GetLocalMetaFilePath();
     Status FlushMetaTable();
+    Status CleanUpExpiredFiles(bool need_reset_path, std::set<std::string> files);
+    Status UpdateLocalMeta(std::string& snapshot_uuid, std::set<std::string>& expired_files, std::map<std::string, std::string>& localFileMap);
     void HandleRsyncMetaResponse(RsyncResponse* response);
 
 private:
@@ -68,9 +71,6 @@ private:
     std::string snapshot_uuid_;
 
     std::string dir_;
-    std::string ip_;
-    int port_;
-
     std::string db_name_;
     uint32_t slot_id_;
 

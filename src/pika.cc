@@ -14,8 +14,8 @@
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "include/pika_version.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_version.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_defer.h"
 

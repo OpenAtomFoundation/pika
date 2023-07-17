@@ -143,6 +143,7 @@ void Slot::PrepareRsync() {
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
 bool Slot::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
+  // todo 这里要改动，定期向 master 发送 meta_rsync 的请求
   if (!pstd::FileExists(info_path)) {
     LOG(WARNING) << "info path: " << info_path << " not exist";
     return false;
@@ -298,18 +299,32 @@ BgSaveInfo Slot::bgsave_info() {
 }
 
 void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
-  const std::string dbFilePath = bgsave_info().path;
+  const std::string slotPath = bgsave_info().path;
   // todo 待确认 info 文件的路径
-  const std::string infoFilePath = bgsave_info().path + "/../info";
+  const std::string infoPath = bgsave_info().path + "/info";
 
-  int ret = pstd::GetChildren(dbFilePath, *fileNames);
-  if (ret) {
-    LOG(WARNING) << dbFilePath << " read dump meta files failed! error:" << ret;
-    return;
+  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
+  for (const auto& type : types) {
+    std::string typePath = slotPath + ((slotPath.back() != '/') ? "/" : "") + type;
+    if (!pstd::FileExists(typePath)) {
+      continue ;
+    }
+
+    std::vector<std::string> tmpFileNames;
+    int ret = pstd::GetChildren(typePath, tmpFileNames);
+    if (ret) {
+      LOG(WARNING) << slotPath << " read dump meta files failed, path " << typePath;
+      return;
+    }
+
+    for (const std::string fileName : tmpFileNames) {
+      fileNames -> push_back(type + "/" + fileName);
+    }
   }
 
   std::string info_data;
-  rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoFilePath, &info_data);
+  // todo 这里待替换
+  rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
   if (!s.ok()) {
     LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
     return;
