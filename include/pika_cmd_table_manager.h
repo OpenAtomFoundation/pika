@@ -26,10 +26,12 @@ class PikaCmdTableManager {
  public:
   PikaCmdTableManager();
   virtual ~PikaCmdTableManager() = default;
+  void InitCmdTable(void);
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t slot_num);
   bool CmdExist(const std::string& cmd) const;
   CmdTable* GetCmdTable();
+  uint32_t GetCmdId();
 
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
@@ -38,6 +40,8 @@ class PikaCmdTableManager {
   bool CheckCurrentThreadDistributionMapExist(const std::thread::id& tid);
 
   std::unique_ptr<CmdTable> cmds_;
+
+  uint32_t cmdId_ = 0;
 
   std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;

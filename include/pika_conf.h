@@ -355,6 +355,11 @@ class PikaConf : public pstd::BaseConf {
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
 
+  std::vector<std::string>& users() { return users_; };
+  std::string acl_file() { return aclFile_; };
+
+  uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(); }
+
   // Setter
   void SetPort(const int value) {
     std::lock_guard l(rwlock_);
@@ -458,7 +463,7 @@ class PikaConf : public pstd::BaseConf {
       pstd::StringToLower(item);
     }
   }
-  void SetSlotMigrate(const std::string &value) {
+  void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
   }
@@ -587,6 +592,7 @@ class PikaConf : public pstd::BaseConf {
 
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
+//  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
@@ -684,6 +690,12 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<int> replication_num_;
 
   std::string network_interface_;
+
+  std::vector<std::string> users_;  // acl user rules
+
+  std::string aclFile_;
+
+  std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
 
   // diff commands between cached commands and config file commands
   std::map<std::string, std::string> diff_commands_;

@@ -13,6 +13,7 @@
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 
+#include "include/acl.h"
 #include "include/pika_define.h"
 
 using pstd::Status;
@@ -35,8 +36,7 @@ Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const
   return Status::OK();
 }
 
-Status PikaConf::DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                            bool is_add) {
+Status PikaConf::DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add) {
   std::shared_lock l(rwlock_);
   uint32_t db_index = 0;
   Status s = InternalGetTargetDB(db_name, &db_index);
@@ -180,7 +180,7 @@ int PikaConf::Load() {
   GetConfStr("slotmigrate", &smgrt);
   slotmigrate_ = (smgrt == "yes") ? true : false;
 
-  int binlog_writer_num = 1 ;
+  int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
   if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
     binlog_writer_num_ = 1;
@@ -555,6 +555,17 @@ int PikaConf::Load() {
   // network interface
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
+
+  // acl users
+  GetConfStrMulti("user", &users_);
+
+  GetConfStr("aclfile", &aclFile_);
+
+  std::string acl_pubsub_default;
+  GetConfStr("acl-pubsub-default", &acl_pubsub_default);
+  if (acl_pubsub_default == "allchannels") {
+    acl_pubsub_default_ &= static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+  }
 
   // slaveof
   slaveof_ = "";

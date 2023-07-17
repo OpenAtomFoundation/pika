@@ -16,6 +16,7 @@
 #include <shared_mutex>
 #include <string>
 #include <vector>
+#include "pstd_status.h"
 
 #define USER_COMMAND_BITS_COUNT 1024
 
@@ -74,6 +75,8 @@ class AclSelector {
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
 
+  pstd::Status SetSelector(const std::string op);
+
  private:
   uint32_t flags_;  // See SELECTOR_FLAG_*
 
@@ -81,7 +84,7 @@ class AclSelector {
    * execute this command.*/
   std::bitset<USER_COMMAND_BITS_COUNT> allowedCommands_;
 
-  //记录子命令，map的key=>commandId，value subCommand index bit
+  // 记录子命令，map的key=>commandId，value subCommand index bit
   std::map<uint32_t, uint32_t> subCommand_;
 
   /* A list of allowed key patterns. If this field is empty the user cannot mention any key in a command,
@@ -96,7 +99,7 @@ class AclSelector {
 // acl user
 class User {
  public:
-  explicit User() = default;
+  explicit User() = delete;
   User(const std::string& name) : name_(name){};
 
   std::string Name() const;
@@ -128,9 +131,13 @@ class User {
    * delete a stored password
    * @param password
    */
-  void RemovePassword(const std::string& password);
+  void RemovePassword(const std::string& password, bool look = false);
 
   void AddSelector(const std::shared_ptr<AclSelector>& selector);
+
+  pstd::Status SetUser(const std::string& op, bool look = false);
+
+  std::shared_ptr<AclSelector> GetRootSelector();
 
  private:
   mutable std::shared_mutex mutex_;
@@ -154,39 +161,16 @@ class Acl {
   ~Acl() = default;
 
   /**
-   * This function is called once the server is already running,we are ready to start,
-   * in order to load the ACLs either from the pending list of users defined in redis.conf,
-   * or from the ACL file.The function will just exit with an error if the user is trying to mix
-   * both the loading methods.
+   * Initialization all acl
+   * @return
    */
-  void LoadUsersAtStartup(void);
+  pstd::Status Initialization();
 
   /**
-   * Loads the ACL from the specified filename: every line
-   * is validated and should be either empty or in the format used to specify
-   * users in the pika.conf configuration or in the ACL file, that is:
-   *
-   *  user <username> ... rules ...
-   *
-   * @param users pika.conf users rule
+   * create acl default user
+   * @return
    */
-  bool LoadUserConfigured(std::vector<std::string>& users);
-
-  /**
-   * Load ACL from acl rule file
-   * @param fileName file full name
-   */
-  bool LoadUserFromFile(const std::string& fileName);
-
-  /**
-   * Create a new user with the specified name, and returns a shared_ptr to
-   * the structure representing the user.
-   *
-   * If the user with such name already exists nullptr is returned.
-   * @param userName
-   * @return user shared_ptr
-   */
-  std::shared_ptr<User> CreateUse(const std::string& userName);
+  std::shared_ptr<User> CreateDefaultUser();
 
   /**
    * Set user properties according to the string "op".
@@ -199,7 +183,7 @@ class Acl {
    * @param userName
    * @return
    */
-  std::shared_ptr<User> GetUser(const std::string& userName);
+  std::shared_ptr<User> GetUser(const std::string& userName, bool look = false);
 
   /**
    * store a user to users_ map
@@ -208,6 +192,33 @@ class Acl {
   void AddUser(const std::shared_ptr<User>& user);
 
  private:
+  /**
+   * This function is called once the server is already running,we are ready to start,
+   * in order to load the ACLs either from the pending list of users defined in redis.conf,
+   * or from the ACL file.The function will just exit with an error if the user is trying to mix
+   * both the loading methods.
+   */
+  pstd::Status LoadUsersAtStartup();
+
+  /**
+   * Loads the ACL from the specified filename: every line
+   * is validated and should be either empty or in the format used to specify
+   * users in the pika.conf configuration or in the ACL file, that is:
+   *
+   *  user <username> ... rules ...
+   *
+   * @param users pika.conf users rule
+   */
+  pstd::Status LoadUserConfigured(std::vector<std::string>& users);
+
+  /**
+   * Load ACL from acl rule file
+   * @param fileName file full name
+   */
+  pstd::Status LoadUserFromFile(const std::string& fileName);
+
+  void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
+
   mutable std::shared_mutex mutex_;
   std::map<std::string, std::shared_ptr<User>> users_;
 };

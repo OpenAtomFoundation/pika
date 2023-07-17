@@ -717,6 +717,11 @@ Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
   return nullptr;
 }
 
+Cmd::Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {
+  // assign cmd id
+  cmdId_ = g_pika_cmd_table_manager->GetCmdId();
+}
+
 void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
   argv_ = argv;
   db_name_ = db_name;

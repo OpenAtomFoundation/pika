@@ -274,7 +274,7 @@ enum CmdFlags {
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
-   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+   RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
 }
 
 const std::string kNewLine = "\r\n";
@@ -466,6 +466,17 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
+  struct CommandStatistics {
+    CommandStatistics() = default;
+    CommandStatistics(const CommandStatistics& other) {
+      cmd_time_consuming.store(other.cmd_time_consuming.load());
+      cmd_count.store(other.cmd_count.load());
+    }
+    std::atomic<int32_t> cmd_count = {0};
+    std::atomic<int32_t> cmd_time_consuming = {0};
+  };
+  CommandStatistics state;
+//  Cmd(std::string name, int arity, uint16_t flag);
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
@@ -514,6 +525,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
 
+  uint32_t GetCmdId() const { return cmdId_; };
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -540,6 +553,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::weak_ptr<std::string> resp_;
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
+  uint32_t cmdId_ = 0;
 
  private:
   virtual void DoInitial() = 0;

@@ -16,8 +16,9 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 PikaCmdTableManager::PikaCmdTableManager() {
   cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
-  InitCmdTable(cmds_.get());
 }
+
+void PikaCmdTableManager::InitCmdTable(void) { ::InitCmdTable(cmds_.get()); }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   const std::string& internal_opt = opt;
@@ -32,9 +33,9 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
-CmdTable* PikaCmdTableManager::GetCmdTable() {
-  return cmds_.get();
-}
+CmdTable* PikaCmdTableManager::GetCmdTable() { return cmds_.get(); }
+
+uint32_t PikaCmdTableManager::GetCmdId() { return ++cmdId_; }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);

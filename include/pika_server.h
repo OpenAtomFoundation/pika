@@ -370,16 +370,18 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot> &slot);
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+  int SlotsMigrateOne(const std::string& key, const std::shared_ptr<Slot>& slot);
+  bool SlotsMigrateBatch(const std::string& ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num,
+                         const std::shared_ptr<Slot>& slot);
+  void GetSlotsMgrtSenderStatus(std::string* ip, int64_t* port, int64_t* slot, bool* migrating, int64_t* moved,
+                                int64_t* remained);
   bool SlotsMigrateAsyncCancel();
 
   std::shared_mutex bgsave_protector_;
   BgSaveInfo bgsave_info_;
 
   /*
- * BGSlotsReload used
+   * BGSlotsReload used
    */
   struct BGSlotsReload {
     bool reloading = false;
@@ -458,7 +460,6 @@ class PikaServer : public pstd::noncopyable {
   BGSlotsCleanup bgslots_cleanup_;
   net::BGThread bgslots_cleanup_thread_;
 
-
   BGSlotsCleanup bgslots_cleanup() {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_;
@@ -499,7 +500,6 @@ class PikaServer : public pstd::noncopyable {
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
 
-
   /*
    * StorageOptions used
    */
@@ -522,6 +522,11 @@ class PikaServer : public pstd::noncopyable {
   std::map<std::string, std::shared_ptr<DB>> GetDB() {
     return dbs_;
   }
+
+  /*
+   * acl init
+   */
+  pstd::Status InitAcl() { return acl_->Initialization(); }
 
   friend class Cmd;
   friend class InfoCmd;
@@ -550,7 +555,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
-  std::timed_mutex  exit_mutex_;
+  std::timed_mutex exit_mutex_;
 
   /*
    * Table used

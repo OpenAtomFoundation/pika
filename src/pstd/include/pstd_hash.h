@@ -83,6 +83,8 @@ namespace pstd {
 std::string md5(const std::string& str, bool raw = false);
 std::string sha256(const std::string& input, bool raw = false);
 
+bool isSha256(const std::string& input);
+
 // a small class for calculating MD5 hashes of strings or byte arrays
 // it is not meant to be fast or secure
 //
