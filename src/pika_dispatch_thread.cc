@@ -28,7 +28,7 @@ PikaDispatchThread::~PikaDispatchThread() {
 
 int PikaDispatchThread::StartThread() { return thread_rep_->StartThread(); }
 
-int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo>* clients) {
+uint64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo>* clients) {
   std::vector<net::ServerThread::ConnInfo> conns_info = thread_rep_->conns_info();
   if (clients) {
     for (auto& info : conns_info) {
