@@ -465,6 +465,7 @@ class PikaServer : public pstd::noncopyable {
    * TimingTask use
    */
   void DoTimingTask();
+  void AutoResumeDB();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
@@ -493,6 +494,11 @@ class PikaServer : public pstd::noncopyable {
    */
   bool have_scheduled_crontask_ = false;
   struct timeval last_check_compact_time_;
+
+  /*
+   * ResumeDB used
+   */
+  struct timeval last_check_resume_time_;
 
   /*
    * Communicate with the client used
