@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
   PikaSignalSetup();
   InitCRC32Table();
 
-  LOG(INFO) << "Server at: " << path;
+  LOG(INFO) << "Servr at: " << path;
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
