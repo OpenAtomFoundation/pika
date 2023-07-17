@@ -76,14 +76,15 @@ jobs:
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
-    container:
-      image: centos:7
+    container: docker.io/centos:7
 
     steps:
       - name: Install deps
+        uses: actions/checkout@v2
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
+          yum install -y wget tar gcc automake autoconf libtool make
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
           yum install -y llvm-toolset-7
@@ -91,7 +92,9 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
-
+          yum install -y python3
+          python3 --version
+          python3 -m pip install redis
 
       - name: Install cmake
         run: |
@@ -129,3 +132,22 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
+      - name: Unit Test
+        working-directory: ${{github.workspace}}
+        run: |
+          cd ${{github.workspace}}
+          chmod +x ./pikatests.sh all
+          ./pikatests.sh all
+
+        # master on port 9221, slave on port 9231, all with 2 db
+      - name: Start pika master and slave
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cd ${{github.workspace}}/build
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+      - name: Run Python E2E Tests
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cd ${{github.workspace}}/build
+          python3 ../tests/integration/pika_replication_test.py
