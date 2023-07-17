@@ -5,3 +5,6 @@ scrape_configs:
     - targets: ['127.0.0.1:9121']
       labels:
         group: 'test'
+    - targets: ['127.0.0.1:9122']
+      labels:
+        group: 'test'

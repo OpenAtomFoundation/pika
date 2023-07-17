@@ -130,7 +130,7 @@ WriteStatus RedisConn::SendReply() {
   size_t wbuf_len = response_.size();
   while (wbuf_len > 0) {
     nwritten = write(fd(), response_.data() + wbuf_pos_, wbuf_len - wbuf_pos_);
-    g_network_statistic->IncrRedisInputBytes(nwritten);
+    g_network_statistic->IncrRedisOutputBytes(nwritten);
     if (nwritten <= 0) {
       break;
     }

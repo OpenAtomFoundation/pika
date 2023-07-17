@@ -83,6 +83,7 @@ PikaServer::PikaServer()
   pika_migrate_thread_ = std::make_unique<PikaMigrateThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
+  instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
 }
 
