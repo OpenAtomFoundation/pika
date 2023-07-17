@@ -7,6 +7,7 @@
 #include <sys/resource.h>
 #include <csignal>
 
+#include "net/include/net_stats.h"
 #include "include/build_version.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
@@ -25,6 +26,8 @@ PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
+extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 static void version() {
   char version[32];
@@ -192,6 +195,7 @@ int main(int argc, char* argv[]) {
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
+  g_network_statistic = std::make_unique<net::NetworkStatistic>();
 
   if (g_pika_conf->daemonize()) {
     close_std();
@@ -202,6 +206,7 @@ int main(int argc, char* argv[]) {
     g_pika_server = nullptr;
     g_pika_rm.reset();
     g_pika_cmd_table_manager.reset();
+    g_network_statistic.reset();
     ::google::ShutdownGoogleLogging();
     g_pika_conf.reset();
   };

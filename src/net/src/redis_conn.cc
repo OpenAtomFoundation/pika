@@ -5,16 +5,16 @@
 
 #include "net/include/redis_conn.h"
 
-#include <climits>
 #include <cstdlib>
-
 #include <sstream>
-#include <string>
 
 #include <glog/logging.h>
 
+#include "net/include/net_stats.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
+
+extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 namespace net {
 
@@ -87,6 +87,7 @@ ReadStatus RedisConn::GetRequest() {
   }
 
   nread = read(fd(), rbuf_ + next_read_pos, remain);
+  g_network_statistic->IncrRedisInputBytes(nread);
   if (nread == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       nread = 0;
@@ -129,6 +130,7 @@ WriteStatus RedisConn::SendReply() {
   size_t wbuf_len = response_.size();
   while (wbuf_len > 0) {
     nwritten = write(fd(), response_.data() + wbuf_pos_, wbuf_len - wbuf_pos_);
+    g_network_statistic->IncrRedisInputBytes(nwritten);
     if (nwritten <= 0) {
       break;
     }

@@ -19,17 +19,21 @@
 #include "net/include/net_cli.h"
 #include "net/include/net_interfaces.h"
 #include "net/include/redis_cli.h"
+#include "net/include/net_stats.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_rm.h"
+#include "include/pika_monotonic_time.h"
+#include "include/pika_instant.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -184,6 +188,16 @@ void PikaServer::Start() {
     cmdstat_map.emplace(iter.first, statistics);
   }
   LOG(INFO) << "Pika Server going to start";
+
+  // Auto update instantaneous metric
+  std::thread instantaneous_metric([&]() {
+    while (!exit_) {
+      AutoInstantaneousMetric();
+      // wake up every 100 milliseconds
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  });
+
   while (!exit_) {
     DoTimingTask();
     // wake up every 5 seconds
@@ -1204,6 +1218,38 @@ void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const 
   statistic_.UpdateDBQps(db_name, command, is_write);
 }
 
+size_t PikaServer::NetInputBytes() {
+  return g_network_statistic->NetInputBytes();
+}
+
+size_t PikaServer::NetOutputBytes() {
+  return g_network_statistic->NetOutputBytes();
+}
+
+size_t PikaServer::NetReplInputBytes() {
+  return g_network_statistic->NetReplInputBytes();
+}
+
+size_t PikaServer::NetReplOutputBytes() {
+  return g_network_statistic->NetReplOutputBytes();
+}
+
+float PikaServer::InstantaneousInputKbps() {
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT)) / 1024.0f;
+}
+
+float PikaServer::InstantaneousOutputKbps() {
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT)) / 1024.0f;
+}
+
+float PikaServer::InstantaneousInputReplKbps() {
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION)) / 1024.0f;
+}
+
+float PikaServer::InstantaneousOutputReplKbps() {
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION)) / 1024.0f;
+}
+
 std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountDB() {
   std::unordered_map<std::string, uint64_t> res;
   for (auto& cmd : statistic_.server_stat.exec_count_db) {
@@ -1444,6 +1490,19 @@ void PikaServer::AutoKeepAliveRSync() {
     LOG(WARNING) << "The Rsync service is down, Try to restart";
     pika_rsync_service_->StartRsync();
   }
+}
+
+void PikaServer::AutoInstantaneousMetric() {
+  monotime current_time = getMonotonicUs();
+  size_t factor = 1000000; // us
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
+                                    current_time, factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT, g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
+                                    current_time, factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(), current_time,
+                                    factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
+                                    current_time, factor);
 }
 
 void PikaServer::InitStorageOptions() {

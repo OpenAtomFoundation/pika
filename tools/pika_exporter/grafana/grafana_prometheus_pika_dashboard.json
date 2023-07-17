@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_MIXFICSOL",
-      "label": "Mixficsol",
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -15,7 +15,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "10.0.1"
+      "version": "9.5.2"
     },
     {
       "type": "panel",
@@ -66,7 +66,7 @@
   "liveNow": false,
   "panels": [
     {
-      "collapsed": true,
+      "collapsed": false,
       "datasource": {
         "type": "prometheus",
         "uid": "f1b0a045-7478-4185-a338-3a88f6d1fe97"
@@ -78,390 +78,7 @@
         "y": 0
       },
       "id": 12,
-      "panels": [
-        {
-          "columns": [],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
-          },
-          "fontSize": "100%",
-          "gridPos": {
-            "h": 5,
-            "w": 24,
-            "x": 0,
-            "y": 20
-          },
-          "id": 8,
-          "links": [],
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": 1,
-            "desc": false
-          },
-          "styles": [
-            {
-              "alias": "Time",
-              "align": "auto",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "alias": "pika server addr",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "addr",
-              "preserveFormat": false,
-              "sanitize": false,
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "pika server alias",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "alias",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "arch bits",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "arch_bits",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "collect instance",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "instance",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "os",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "os",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "pika version",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_version",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "pika git sha",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_git_sha",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "pika build date",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_build_compile_date",
-              "thresholds": [],
-              "type": "date",
-              "unit": "short"
-            },
-            {
-              "alias": "",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "hidden",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_MIXFICSOL}"
-              },
-              "expr": "pika_build_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
-              "format": "table",
-              "instant": true,
-              "intervalFactor": 1,
-              "refId": "A"
-            }
-          ],
-          "title": "Pika Build Info List",
-          "transform": "table",
-          "type": "table-old"
-        },
-        {
-          "columns": [],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
-          },
-          "fontSize": "100%",
-          "gridPos": {
-            "h": 5,
-            "w": 24,
-            "x": 0,
-            "y": 25
-          },
-          "id": 10,
-          "links": [],
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": 0,
-            "desc": true
-          },
-          "styles": [
-            {
-              "alias": "Time",
-              "align": "auto",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "alias": "addr",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "addr",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "alias",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "alias",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "config file",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "config_file",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "collect instance",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "instance",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "process id",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "process_id",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "role",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "role",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "server id",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "server_id",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "tcp port",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "tcp_port",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "decimals": 2,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "hidden",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_MIXFICSOL}"
-              },
-              "expr": "pika_server_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
-              "format": "table",
-              "instant": true,
-              "intervalFactor": 2,
-              "refId": "A"
-            }
-          ],
-          "title": "Pika Server Info List",
-          "transform": "table",
-          "type": "table-old"
-        }
-      ],
+      "panels": [],
       "targets": [
         {
           "datasource": {
@@ -475,6 +92,388 @@
       "type": "row"
     },
     {
+      "columns": [],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 8,
+      "links": [],
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": 1,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "alias": "pika server addr",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "addr",
+          "preserveFormat": false,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "pika server alias",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "alias",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "arch bits",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "arch_bits",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "collect instance",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "os",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "os",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "pika version",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_version",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "pika git sha",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_git_sha",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "pika build date",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_build_compile_date",
+          "thresholds": [],
+          "type": "date",
+          "unit": "short"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "/.*/",
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pika_build_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "title": "Pika Build Info List",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "columns": [],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 10,
+      "links": [],
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": 0,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "alias": "addr",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "addr",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "alias",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "alias",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "config file",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "config_file",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "collect instance",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "process id",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "process_id",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "role",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "role",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "server id",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "server_id",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "tcp port",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "tcp_port",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "pika_server_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "intervalFactor": 2,
+          "refId": "A"
+        }
+      ],
+      "title": "Pika Server Info List",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
       "collapsed": false,
       "datasource": {
         "type": "prometheus",
@@ -484,7 +483,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 11
       },
       "id": 14,
       "panels": [],
@@ -504,14 +503,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 12
       },
       "id": 32,
       "links": [],
@@ -680,7 +679,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_build_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -697,14 +696,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 15
       },
       "id": 31,
       "links": [],
@@ -869,7 +868,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_server_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -894,7 +893,7 @@
       "cornerRadius": 0,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "displayName": "1",
       "flipCard": false,
@@ -904,7 +903,7 @@
         "h": 4,
         "w": 3,
         "x": 0,
-        "y": 8
+        "y": 18
       },
       "id": 81,
       "isAutoScrollOnOverflow": false,
@@ -927,7 +926,7 @@
       "cornerRadius": 0,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "displayName": "double_master",
       "flipCard": false,
@@ -937,7 +936,7 @@
         "h": 4,
         "w": 4,
         "x": 3,
-        "y": 8
+        "y": 18
       },
       "id": 79,
       "isAutoScrollOnOverflow": false,
@@ -951,7 +950,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -991,7 +990,7 @@
         "h": 4,
         "w": 3,
         "x": 7,
-        "y": 8
+        "y": 18
       },
       "id": 4,
       "links": [],
@@ -1010,12 +1009,12 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_uptime_in_seconds{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1031,7 +1030,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1070,7 +1069,7 @@
         "h": 4,
         "w": 3,
         "x": 10,
-        "y": 8
+        "y": 18
       },
       "id": 16,
       "links": [],
@@ -1089,12 +1088,12 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_thread_num{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -1110,7 +1109,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1149,7 +1148,7 @@
         "h": 4,
         "w": 3,
         "x": 13,
-        "y": 8
+        "y": 18
       },
       "id": 18,
       "links": [],
@@ -1168,12 +1167,12 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_sync_thread_num{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1188,7 +1187,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1228,7 +1227,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 8
+        "y": 18
       },
       "id": 45,
       "links": [],
@@ -1247,12 +1246,12 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_total_connections_received{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1267,7 +1266,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1307,7 +1306,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 8
+        "y": 18
       },
       "id": 46,
       "links": [],
@@ -1326,12 +1325,12 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_total_commands_processed{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1350,7 +1349,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -1359,7 +1358,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 12
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 75,
@@ -1381,7 +1380,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1393,7 +1392,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_connected_clients{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1442,7 +1441,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1451,7 +1450,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 12
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 76,
@@ -1473,7 +1472,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1485,7 +1484,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "(irate(pika_used_cpu_sys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}[1m]) + irate(pika_used_cpu_user{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}[1m])) * 100",
           "format": "time_series",
@@ -1534,7 +1533,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1543,7 +1542,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 12
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 77,
@@ -1565,7 +1564,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1577,7 +1576,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "(irate(pika_used_cpu_sys_children{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}[1m]) + irate(pika_used_cpu_user_children{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}[1m])) * 100",
           "format": "time_series",
@@ -1626,7 +1625,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1635,7 +1634,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 20
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 20,
@@ -1657,7 +1656,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1669,7 +1668,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_used_memory{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1718,7 +1717,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1727,7 +1726,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 20
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 2,
@@ -1750,7 +1749,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1762,7 +1761,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_db_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1811,7 +1810,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1820,7 +1819,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 20
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 24,
@@ -1842,7 +1841,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1859,7 +1858,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_db_memtable_usage{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1870,7 +1869,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_db_tablereader_usage{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -1917,7 +1916,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -1926,7 +1925,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 30,
@@ -1948,7 +1947,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1960,7 +1959,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "rate(pika_total_commands_processed{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}[5m])",
           "format": "time_series",
@@ -2009,7 +2008,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -2017,7 +2016,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 58,
@@ -2039,7 +2038,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2051,7 +2050,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_kv_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2062,7 +2061,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_hash_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2073,7 +2072,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_list_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2085,7 +2084,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_set_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2096,7 +2095,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_zset_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2146,7 +2145,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 49
       },
       "id": 42,
       "panels": [],
@@ -2169,7 +2168,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -2177,7 +2176,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 40
+        "y": 50
       },
       "hiddenSeries": false,
       "id": 193,
@@ -2199,7 +2198,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2211,7 +2210,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_master_link_status{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -2262,7 +2261,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -2271,7 +2270,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 40
+        "y": 50
       },
       "hiddenSeries": false,
       "id": 194,
@@ -2293,7 +2292,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2305,7 +2304,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_slave_priority{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -2361,7 +2360,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "displayName": "double_master",
       "flipCard": false,
@@ -2371,7 +2370,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 51
+        "y": 61
       },
       "id": 71,
       "isAutoScrollOnOverflow": false,
@@ -2389,7 +2388,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -2398,7 +2397,7 @@
         "h": 5,
         "w": 8,
         "x": 4,
-        "y": 51
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 44,
@@ -2420,7 +2419,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2432,7 +2431,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_master_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2477,14 +2476,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 51
+        "y": 61
       },
       "id": 68,
       "links": [],
@@ -2602,7 +2601,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_master_slave_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -2620,14 +2619,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 66
       },
       "id": 38,
       "links": [],
@@ -2712,7 +2711,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_binlog{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -2732,7 +2731,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -2740,7 +2739,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 59
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 36,
@@ -2762,7 +2761,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2774,7 +2773,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_binlog{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2821,7 +2820,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -2829,7 +2828,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 59
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 40,
@@ -2851,7 +2850,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "10.0.1",
+      "pluginVersion": "9.5.2",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2863,7 +2862,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_binlog_offset{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -2907,14 +2906,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 5,
         "w": 12,
         "x": 0,
-        "y": 67
+        "y": 77
       },
       "id": 72,
       "links": [],
@@ -3018,7 +3017,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_double_master_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -3039,7 +3038,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -3047,7 +3046,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 67
+        "y": 77
       },
       "hiddenSeries": false,
       "id": 74,
@@ -3081,7 +3080,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_double_master_recv_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "time_series",
@@ -3130,7 +3129,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 72
+        "y": 82
       },
       "id": 48,
       "panels": [],
@@ -3150,14 +3149,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 12,
         "x": 0,
-        "y": 73
+        "y": 83
       },
       "hideTimeOverride": false,
       "id": 53,
@@ -3233,7 +3232,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_is_scaning_keyspace{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -3252,14 +3251,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 12,
         "x": 12,
-        "y": 73
+        "y": 83
       },
       "id": 50,
       "links": [],
@@ -3332,7 +3331,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_is_bgsaving{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -3349,14 +3348,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 12,
         "x": 0,
-        "y": 76
+        "y": 86
       },
       "hideTimeOverride": false,
       "id": 52,
@@ -3432,7 +3431,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_is_slots_cleaning{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -3449,14 +3448,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 12,
         "x": 12,
-        "y": 76
+        "y": 86
       },
       "hideTimeOverride": false,
       "id": 51,
@@ -3532,7 +3531,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_is_slots_reloading{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -3549,14 +3548,14 @@
       "columns": [],
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fontSize": "100%",
       "gridPos": {
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 89
       },
       "hideTimeOverride": false,
       "id": 54,
@@ -3648,7 +3647,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "pika_is_compact{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
           "format": "table",
@@ -3671,7 +3670,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 92
       },
       "id": 56,
       "panels": [],
@@ -3694,7 +3693,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -3702,7 +3701,7 @@
         "h": 11,
         "w": 8,
         "x": 0,
-        "y": 83
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 62,
@@ -3736,7 +3735,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -3785,7 +3784,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -3793,7 +3792,7 @@
         "h": 11,
         "w": 8,
         "x": 8,
-        "y": 83
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 191,
@@ -3827,7 +3826,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_expire_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -3876,7 +3875,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fill": 1,
       "fillGradient": 0,
@@ -3884,7 +3883,7 @@
         "h": 11,
         "w": 8,
         "x": 16,
-        "y": 83
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 192,
@@ -3918,7 +3917,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_invalid_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -3966,7 +3965,788 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 104
+      },
+      "id": 203,
+      "panels": [],
+      "title": "Network",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 105
+      },
+      "hiddenSeries": false,
+      "id": 195,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_input_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Input Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 105
+      },
+      "hiddenSeries": false,
+      "id": 196,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_input_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Input Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 113
+      },
+      "hiddenSeries": false,
+      "id": 197,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_output_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Output Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 113
+      },
+      "hiddenSeries": false,
+      "id": 198,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_output_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Output Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 121
+      },
+      "hiddenSeries": false,
+      "id": 199,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_repl_input_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Replication Input Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 121
+      },
+      "hiddenSeries": false,
+      "id": 200,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_input_repl_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Input Replication Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 129
+      },
+      "hiddenSeries": false,
+      "id": 201,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_repl_output_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Replication Output Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 129
+      },
+      "hiddenSeries": false,
+      "id": 202,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_output_repl_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Output Replication Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 137
       },
       "id": 90,
       "panels": [],
@@ -3980,7 +4760,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -3989,7 +4769,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 95
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 190,
@@ -4023,7 +4803,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_mem_table_flush_pending{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4036,7 +4816,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Is Memtable Flush Pending",
+      "title": "Memtable Flush Pending",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4050,13 +4830,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:3638",
           "decimals": 0,
-          "format": "short",
+          "format": "bool",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:3639",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4073,7 +4855,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -4082,7 +4864,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 95
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 97,
@@ -4116,7 +4898,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_immutable_mem_table{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4129,7 +4911,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Immutable MemTable",
+      "title": "Immutable MemTable",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4143,14 +4925,16 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:3880",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
-          "format": "short",
+          "$$hashKey": "object:3881",
+          "format": "none",
           "logBase": 1,
           "show": true
         }
@@ -4166,7 +4950,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -4175,7 +4959,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 95
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 126,
@@ -4209,7 +4993,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_immutable_mem_table_flushed{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4222,7 +5006,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Immutable Memtable Flushed",
+      "title": "Immutable Memtable Flushed",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4236,13 +5020,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:4122",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:4123",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4259,7 +5045,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -4268,7 +5054,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 95
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 98,
@@ -4302,7 +5088,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_running_flushes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4315,7 +5101,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Running Flushes",
+      "title": "Running Flushes",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4329,6 +5115,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:5804",
           "decimals": 0,
           "format": "short",
           "logBase": 1,
@@ -4336,6 +5123,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:5805",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4352,7 +5140,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4361,7 +5149,7 @@
         "h": 13,
         "w": 8,
         "x": 0,
-        "y": 108
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 127,
@@ -4395,7 +5183,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_cur_size_active_mem_table{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4445,7 +5233,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4454,7 +5242,7 @@
         "h": 13,
         "w": 8,
         "x": 8,
-        "y": 108
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 102,
@@ -4488,7 +5276,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_cur_size_all_mem_tables{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4538,7 +5326,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4547,7 +5335,7 @@
         "h": 13,
         "w": 8,
         "x": 16,
-        "y": 108
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 103,
@@ -4581,7 +5369,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_size_all_mem_tables{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4631,7 +5419,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4640,7 +5428,7 @@
         "h": 13,
         "w": 8,
         "x": 0,
-        "y": 121
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 131,
@@ -4674,7 +5462,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_block_cache_capacity{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4724,7 +5512,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4733,7 +5521,7 @@
         "h": 13,
         "w": 8,
         "x": 8,
-        "y": 121
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 109,
@@ -4767,7 +5555,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_block_cache_usage{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4817,7 +5605,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -4826,7 +5614,7 @@
         "h": 13,
         "w": 8,
         "x": 16,
-        "y": 121
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 110,
@@ -4860,7 +5648,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_block_cache_pinned_usage{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4910,7 +5698,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -4919,7 +5707,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 134
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 188,
@@ -4953,7 +5741,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_compaction_pending{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -4980,13 +5768,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6573",
           "decimals": 0,
-          "format": "short",
+          "format": "bool",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6574",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5003,7 +5793,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -5012,7 +5802,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 134
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 101,
@@ -5046,7 +5836,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_running_compactions{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5073,13 +5863,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6074",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6075",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5096,7 +5888,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -5105,7 +5897,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 134
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 129,
@@ -5139,7 +5931,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_total_sst_files_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5189,7 +5981,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -5198,7 +5990,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 134
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 130,
@@ -5232,7 +6024,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_live_sst_files_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5282,7 +6074,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -5291,7 +6083,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 147
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 132,
@@ -5325,7 +6117,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -5340,7 +6132,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Blob Files",
+      "title": "Blob Files",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -5354,13 +6146,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6827",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6828",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5377,7 +6171,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -5386,7 +6180,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 147
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 133,
@@ -5420,7 +6214,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_blob_stats{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5447,6 +6241,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7309",
           "decimals": 2,
           "format": "bytes",
           "logBase": 1,
@@ -5454,6 +6249,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:7310",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5470,7 +6266,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -5479,7 +6275,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 147
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 134,
@@ -5513,7 +6309,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_total_blob_file_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5563,7 +6359,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
@@ -5572,7 +6368,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 147
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 135,
@@ -5606,7 +6402,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_live_blob_file_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5656,16 +6452,16 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
+        "w": 6,
         "x": 0,
-        "y": 160
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 128,
@@ -5699,7 +6495,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_estimate_live_data_size{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5749,16 +6545,16 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 2,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
-        "x": 8,
-        "y": 160
+        "w": 6,
+        "x": 6,
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 105,
@@ -5792,7 +6588,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_estimate_table_readers_mem{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5842,16 +6638,16 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
-        "x": 16,
-        "y": 160
+        "w": 6,
+        "x": 12,
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 104,
@@ -5885,7 +6681,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_estimate_num_keys{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5912,13 +6708,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7567",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:7568",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5935,7 +6733,102 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 13,
+        "w": 6,
+        "x": 18,
+        "y": 203
+      },
+      "hiddenSeries": false,
+      "id": 204,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_estimate_pending_compaction_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{data_type}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Estimate Pending Compaction Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:481",
+          "decimals": 2,
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:482",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -5944,7 +6837,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 173
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 187,
@@ -5978,7 +6871,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_background_errors{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -5991,7 +6884,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Background Errors",
+      "title": "Background Errors",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -6005,13 +6898,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7809",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:7810",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -6028,7 +6923,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -6037,7 +6932,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 173
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 189,
@@ -6071,7 +6966,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_current_super_version_number{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -6098,13 +6993,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8051",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:8052",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -6121,7 +7018,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -6130,7 +7027,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 173
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 107,
@@ -6164,7 +7061,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_live_versions{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -6214,7 +7111,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_MIXFICSOL}"
+        "uid": "${DS_PROMETHEUS}"
       },
       "decimals": 0,
       "fill": 1,
@@ -6223,7 +7120,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 173
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 106,
@@ -6257,7 +7154,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_MIXFICSOL}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "pika_num_snapshots{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
@@ -6314,7 +7211,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 0,
@@ -6337,7 +7234,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 0,
@@ -6360,7 +7257,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 0,
@@ -6383,7 +7280,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 0,
@@ -6406,7 +7303,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 0,
@@ -6429,7 +7326,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 2,
@@ -6452,7 +7349,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIXFICSOL}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "",
         "hide": 2,
@@ -6505,6 +7402,6 @@
   "timezone": "",
   "title": "Prometheus Pika Exporter",
   "uid": "HYwVT4mZz",
-  "version": 1,
+  "version": 6,
   "weekStart": ""
 }

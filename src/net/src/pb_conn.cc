@@ -11,7 +11,10 @@
 #include <glog/logging.h>
 
 #include "net/include/net_define.h"
+#include "net/include/net_stats.h"
 #include "pstd/include/xdebug.h"
+
+extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 namespace net {
 
@@ -34,6 +37,7 @@ ReadStatus PbConn::GetRequest() {
     switch (connStatus_) {
       case kHeader: {
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
+        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -71,6 +75,7 @@ ReadStatus PbConn::GetRequest() {
         }
         // read msg body
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, remain_packet_len_);
+        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -117,6 +122,7 @@ WriteStatus PbConn::SendReply() {
     item_len = item.size();
     while (item_len - write_buf_.item_pos_ > 0) {
       nwritten = write(fd(), item.data() + write_buf_.item_pos_, item_len - write_buf_.item_pos_);
+      g_network_statistic->IncrReplOutputBytes(nwritten);
       if (nwritten <= 0) {
         break;
       }

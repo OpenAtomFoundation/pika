@@ -138,6 +138,19 @@ prometheus --config.file=./grafana/prometheus.yml
 | namespace_expire_keys              | `Gauge`     | {addr="", alias="", "db"="", "type"=""} | the value of `expire_keys`                           | total count of the key-type expire keys for each db           |
 | namespace_invalid_keys             | `Gauge`     | {addr="", alias="", "db"="", "type"=""} | the value of `invalid_keys`                          | total count of the key-type invalid keys for each db          |
 
+### Pika Network Info
+
+| Metrics Name                      | Metric Type | Labels               | Metrics Value                                 | Metric Desc                                                               |
+| --------------------------------- | ----------- |----------------------|-----------------------------------------------|---------------------------------------------------------------------------|
+| total_net_input_bytes             | `Counter`   | {addr="", alias=""}  | the value of `total_net_input_bytes`          | the total number of bytes read from the network                           |
+| total_net_output_bytes            | `Counter`   | {addr="", alias=""}  | the value of `total_net_output_bytes`         | the total number of bytes written to the network                          |
+| total_net_repl_input_bytes        | `Counter`   | {addr="", alias=""}  | the value of `total_net_repl_input_bytes`     | the total number of bytes read from the network for replication purposes  |
+| total_net_repl_output_bytes       | `Counter`   | {addr="", alias=""}  | the value of `total_net_repl_output_bytes`    | the total number of bytes written to the network for replication purposes |
+| instantaneous_input_kbps          | `Counter`   | {addr="", alias=""}  | the value of `instantaneous_input_kbps`       | the network's read rate per second in KB/sec                              |
+| instantaneous_output_kbps         | `Counter`   | {addr="", alias=""}  | the value of `instantaneous_output_kbps`      | the network's write rate per second in KB/sec                             |
+| instantaneous_input_repl_kbps     | `Counter`   | {addr="", alias=""}  | the value of `instantaneous_input_repl_kbps`  | the network's read rate per second in KB/sec for replication purposes     |
+| instantaneous_output_repl_kbps    | `Counter`   | {addr="", alias=""}  | the value of `instantaneous_output_repl_kbps` | the network's write rate per second in KB/sec for replication purposes    |
+
 ### Pika Command Execution Time
 
 ### Rocksdb Metrics
@@ -176,6 +189,7 @@ See [here](./grafana/grafana_prometheus_pika_dashboard.json)
 
 Screenshots:
 ![Overview](./contrib/overview.png)
+
 ![Overview](./contrib/base_info.png)
 
 ![BaseInfo](./contrib/base_info.png)
@@ -185,5 +199,7 @@ Screenshots:
 ![TimeConsumingOperation](./contrib/time_consuming_operation.png)
 
 ![KeysMetrics](./contrib/keys_metrics.png)
+
+![Network](./contrib/network.png)
 
 ![RocksDB](./contrib/rocksdb.png)
