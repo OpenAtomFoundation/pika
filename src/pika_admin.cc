@@ -1257,15 +1257,17 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
     for (auto iter : *g_pika_server->GetCommandStatMap()) {
-      tmp_stream << iter.first << ": "
-                 << "calls=" << iter.second.cmd_count << ", usec="
-                 << iter.second.cmd_time_consuming
-                 << ", usec_per_call=";
-      if (static_cast<double>(iter.second.cmd_time_consuming) == 0) {
+      if (iter.second.cmd_count != 0) {
+        tmp_stream << iter.first << ":"
+                   << "calls=" << iter.second.cmd_count << ", usec="
+                   << static_cast<double>(iter.second.cmd_time_consuming) / 1000.0
+                   << ", usec_per_call=";
+        if (static_cast<double>(iter.second.cmd_time_consuming) == 0) {
           tmp_stream << 0 << "\r\n";
-      } else {
-          tmp_stream << static_cast<double>(iter.second.cmd_time_consuming) / static_cast<double>(iter.second.cmd_count)
+        } else {
+          tmp_stream << (static_cast<double>(iter.second.cmd_time_consuming) / 1000.0) / static_cast<double>(iter.second.cmd_count)
                      << "\r\n";
+        }
       }
     }
     info.append(tmp_stream.str());

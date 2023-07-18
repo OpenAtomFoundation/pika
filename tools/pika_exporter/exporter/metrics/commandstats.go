@@ -8,22 +8,32 @@ func init() {
 
 var collectCommandstatsMetrics = map[string]MetricConfig{
 	"commandstats_info": {
-		Parser: Parsers{
-			&versionMatchParser{
-				Parser: &regexParser{
-					name:   "commandstats_info",
-					reg:    regexp.MustCompile(`(?P<cmd>[\w]+)[:\s]*calls=(?P<calls>[\d]+)[,\s]*usec=(?P<usec>[\d]+)[,\s]*usec_per_call=(?P<usec_per_call>[\d]+)`),
-					Parser: &normalParser{},
-				},
-			},
+		Parser: &regexParser{
+			name:   "commandstats_info",
+			reg:    regexp.MustCompile(`(?P<cmd>[\w]+)[:\s]*calls=(?P<calls>[\d]+)[,\s]*usec=(?P<usec>[\d+\.\d+]+)[,\s]*usec_per_call=(?P<usec_per_call>[\d+\.\d+]+)`),
+			Parser: &normalParser{},
 		},
 		MetricMeta: MetaDatas{
 			{
-				Name:      "commandstats_info",
-				Help:      "pika Average time taken to execute commands",
+				Name:      "calls",
+				Help:      "Pika Number of times each command is invoked",
 				Type:      metricTypeGauge,
-				Labels:    []string{LabelNameAddr, LabelNameAlias, "cmd", "calls", "usec", "usec_per_call"},
-				ValueName: "commandstats_info",
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "cmd"},
+				ValueName: "calls",
+			},
+			{
+				Name:      "usec",
+				Help:      "Total time taken by each Pika command",
+				Type:      metricTypeGauge,
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "cmd"},
+				ValueName: "usec",
+			},
+			{
+				Name:      "usec_per_call",
+				Help:      "Average time of each Pika command",
+				Type:      metricTypeGauge,
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "cmd"},
+				ValueName: "usec_per_call",
 			},
 		},
 	},
