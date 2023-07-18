@@ -150,11 +150,11 @@ jobs:
       - name: install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
-          brew install libtool automake protobuf autoconf llvm gcc@10 python3 cmake
+          brew install libtool automake protobuf autoconf llvm gcc@11 python3 cmake
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10
-          export CXX=/usr/local/opt/gcc@10/bin/g++-10
+          export CC=/usr/local/opt/gcc@11/bin/gcc-11
+          export CXX=/usr/local/opt/gcc@11/bin/g++-11
           gcc --version
           make --version
           cmake --version
@@ -168,8 +168,9 @@ jobs:
         # Build your program with the given configuration
         run: |
           cd ${{github.workspace}}
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10
-          export CXX=/usr/local/opt/gcc@10/bin/g++-10
+          chmod +w /Library/Developer/CommandLineTools
+          sudo xcode-select --reset
+          export CC=/usr/local/opt/gcc@11/bin/gcc-11
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Test
