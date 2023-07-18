@@ -54,6 +54,28 @@ class BlockedConnNode {
   BlockKeyType block_type_;
 };
 
+class TimedScanThread : public Thread {
+ public:
+  template <class F, class... Args>
+  void SetTimedTask(double interval, F&& f, Args&&... args) {
+    time_interval_ = interval;
+    timed_task_ = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...)]{
+      std::apply(f, args);
+    };
+  }
+ private:
+  void* ThreadMain() override{
+    while(!should_stop()){
+      timed_task_();
+      sleep(time_interval_);
+    }
+    return nullptr;
+  }
+  std::function<void()> timed_task_;
+  // unit in seconds
+  double time_interval_;
+};
+
 class DispatchThread : public ServerThread {
  public:
   DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
@@ -97,6 +119,7 @@ class DispatchThread : public ServerThread {
   // if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
   void ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close);
 
+
   void ScanExpiredBlockedConnsOfBlrpop();
 
   std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
@@ -107,7 +130,6 @@ class DispatchThread : public ServerThread {
   }
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
 
-  net::TimedTaskManager* GetTimedTaskManager() { return &timedTaskManager_; }
   // BlPop/BrPop used end
 
  private:
@@ -146,7 +168,8 @@ class DispatchThread : public ServerThread {
    */
   std::shared_mutex block_mtx_;
 
-  net::TimedTaskManager timedTaskManager_;
+  //used for blpop/brpop currently
+  TimedScanThread timed_scan_thread;
 
 };  // class DispatchThread
 
