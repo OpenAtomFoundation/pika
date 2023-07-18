@@ -184,9 +184,9 @@ void PikaServer::Start() {
     }
   }
   CommandStatistics statistics;
-  auto cmdstat_map = *g_pika_server->GetCommandStatMap();
+  auto cmdstat_map = g_pika_server->GetCommandStatMap();
   for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
-    cmdstat_map.emplace(iter.first, statistics);
+    cmdstat_map->emplace(iter.first, statistics);
   }
   LOG(INFO) << "Pika Server going to start";
 
