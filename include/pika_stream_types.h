@@ -26,6 +26,11 @@ static const char* STERAM_TREE_PREFIX = "STREE";
 static const std::string STREAM_META_HASH_KEY = "STREAM"; // key of hash to store stream meta
 static const std::string STREAM_TREE_STRING_KEY = "STREAM"; // key of string to store stream tree id
 
+static const int kSTREAM_MAX_LIMIT = 1000000;
+static const int KSTREAM_MIN_LIMIT = 10000;
+
+static const treeID kINVALID_TREE_ID = 0;
+
 struct StreamAddTrimArgs{
     /* XADD options */
     streamID id; /* User-provided ID, for XADD only. */
@@ -45,8 +50,5 @@ struct StreamAddTrimArgs{
     /* TRIM_STRATEGY_MINID options */
     streamID minid; /* Trim by ID (No stream entries with ID < 'minid' will remain) */
 };
-
-static const int kSTREAM_MAX_LIMIT = 1000000;
-static const int KSTREAM_MIN_LIMIT = 10000;
 
 #endif // SRC_STREAM_TYPE_H_

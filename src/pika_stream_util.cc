@@ -1,6 +1,8 @@
 
 #include "include/pika_stream_util.h"
 #include <cassert>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -12,7 +14,7 @@
 
 bool StreamUtil::is_stream_meta_hash_created_ = false;
 
-CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd) {
+CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd) {
   CmdRes res;
   int i = 2;
   bool limit_given = false;
@@ -131,33 +133,11 @@ CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, 
   return res;
 }
 
-// Korpse TODO: unit test
-CmdRes StreamUtil::GetStreamMeta(const std::string &key, std::string &value, const std::shared_ptr<Slot> &slot) {
-  rocksdb::Status s;
-  CmdRes res;
-  s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
-
-  // check is_stream_meta_hash_created_ flag only when the key is not found
-  if (!s.ok() && !is_stream_meta_hash_created_) {
-    s = CheckAndCreateStreamMetaHash(key, value, slot);
-    if (!s.ok()) {  // unknown error
-      res.SetRes(CmdRes::kErrOther, "Failed to create stream meta hash: " + s.ToString());
-      return res;
-    }
-    // retry to get the value
-    s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
-  }
-
-  if (!s.ok()) {
-    res.SetRes(CmdRes::kNotFound);
-    return res;
-  }
-
-  res.SetRes(CmdRes::kOk);
-  return res;
+rocksdb::Status StreamUtil::GetStreamMeta(const std::string &key, std::string &value,
+                                          const std::shared_ptr<Slot> &slot) {
+  return slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
 }
 
-// Korpse TODO: unit test
 CmdRes StreamUtil::StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
                                         int *seq_given) {
   CmdRes res;
@@ -227,7 +207,6 @@ CmdRes StreamUtil::StreamParseStrictID(const std::string &var, streamID &id, uin
   return StreamGenericParseID(var, id, missing_seq, true, seq_given);
 }
 
-// Korpse TODO: unit test
 bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
   if (!s) {
     return false;
@@ -244,33 +223,59 @@ bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
   return true;
 }
 
-// Korpse TODO: unit test
-rocksdb::Status StreamUtil::CreateStreamMetaHash(const std::string &key, std::string &value,
-                                                         const std::shared_ptr<Slot> &slot) {
-  std::unique_lock<std::mutex> lg(create_stream_meta_hash_mutex_);
-
+// no need to be thread safe, only xadd will call this function
+// and xadd can be locked by the same key using current_key()
+rocksdb::Status StreamUtil::InsertStreamMeta(const std::string &key, std::string &meta_value,
+                                             const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s;
-
-  // recheck if the stream meta key exists, it must be checked in the exclusion zone:
-  // 1. in case of the key is created by other thread at the same time
-  // 2. the db has rebooted and is_stream_meta_hash_created_ flag is not set
-  std::map<storage::DataType, rocksdb::Status> tmp_type_status;
-  tmp_type_status[storage::DataType::kHashes] = s;
-  (void)slot->db()->Exists(std::vector<std::string>{STREAM_META_HASH_KEY}, &tmp_type_status);
-  if (tmp_type_status[storage::DataType::kHashes].ok()) {
-    is_stream_meta_hash_created_ = true;
-    return s;
-  }
-
-  // other wise, create the stream meta hash
-  int32_t res{0};
-  s = slot->db()->HSet(STREAM_META_HASH_KEY, key, value, &res);
-  (void)res;
+  int32_t temp{0};
+  s = slot->db()->HSet(STREAM_META_HASH_KEY, key, meta_value, &temp);
+  (void)temp;
   if (!s.ok()) {
-    LOG(FATAL) << "Failed to create stream meta hash: " << s.ToString();
-    return s;
+    LOG(FATAL) << "HSet failed, key: " << key << ", value: " << meta_value;
+  }
+  return s;
+}
+
+// Korpse FIXME: get serialize logic out of this function
+rocksdb::Status StreamUtil::InsertStreamMessage(const std::string &key, const std::string &sid, const std::string &message,
+                                    const std::shared_ptr<Slot> &slot) {
+  int32_t temp{0};
+  rocksdb::Status s = slot->db()->HSet(key, sid, message, &temp);
+  (void)temp;
+  return s;
+}
+
+bool StreamUtil::SerializeMessage(const std::vector<std::string> &field_values, std::string &message, int field_pos) {
+  assert(argv.size() - filed_pos >= 2 && (argv.size() - filed_pos) % 2 == 0);
+  assert(message.empty());
+  // count the size of serizlized message
+  size_t size = 0;
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size += field_values[i].size() + sizeof(size_t);
+  }
+  message.reserve(size);
+
+  // serialize message
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size_t len = field_values[i].size();
+    message.append(reinterpret_cast<const char *>(&len), sizeof(len));
+    message.append(field_values[i]);
   }
 
-  is_stream_meta_hash_created_ = true;
-  return s;
+  return true;
+}
+
+bool StreamUtil::SerializeStreamID(const streamID &id, std::string &serialized_id) {
+  assert(serialized_id.empty());
+  serialized_id.reserve(sizeof(id));
+  serialized_id.append(reinterpret_cast<const char *>(&id), sizeof(id));
+  return true;
+}
+
+uint64_t StreamUtil::GetCurrentTimeMs() {
+  uint64_t now =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+          .count();
+  return now;
 }

@@ -2,6 +2,7 @@
 #define SRC_STREAM_UTIL_H_
 
 #include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <vector>
 #include "glog/logging.h"
@@ -60,22 +61,32 @@ class TreeIDGenerator {
 
 class StreamUtil {
  public:
+  // Korpse TODO: unit test
+  static rocksdb::Status GetStreamMeta(const std::string &stream_key, std::string &meta_value,
+                                       const std::shared_ptr<Slot> &slot);
+  // will create stream meta hash if it dosent't exist.
+  // return !s.ok() only when insert failed
+  // Korpse TODO: unit test
+  static rocksdb::Status InsertStreamMeta(const std::string &key, std::string &meta_value,
+                                          const std::shared_ptr<Slot> &slot);
+  static rocksdb::Status InsertStreamMessage(const std::string &key, const std::string &sid, const std::string &message,
+                                             const std::shared_ptr<Slot> &slot);
+
   static CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd);
-  static CmdRes GetStreamMeta(const std::string &stream_key, std::string &meta_value,
-                              const std::shared_ptr<Slot> &slot);
   // be used when - and + are acceptable IDs.
   static CmdRes StreamParseID(const std::string &var, streamID &id, uint64_t missing_seq);
   // be used when we want to return an error if the special IDs + or - are provided.
   static CmdRes StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, int *seq_given);
 
+  // Korpse TODO: unit tests
   static bool string2uint64(const char *s, uint64_t &value);
+  static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
+                               int field_pos);
+  static bool SerializeStreamID(const streamID &id, std::string &serialized_id);
+  static uint64_t GetCurrentTimeMs();
 
  private:
-  // create the hash for stream meta atotomically, used only when create the first stream meta.
-  // return OK if the hash has been successfully created or already exists.
-  // return false when HSet failed.
-  static rocksdb::Status CheckAndCreateStreamMetaHash(const std::string &key, std::string &value,
-                                                      const std::shared_ptr<Slot> &slot);
+  // Korpse TODO: unit test
   static CmdRes StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
                                      int *seq_given);
 

@@ -28,6 +28,7 @@ class XAddCmd : public Cmd {
   std::string key_;
   std::vector<std::pair<std::string, std::string>> filed_values_;
   StreamAddTrimArgs args_;
+  int field_pos_{0};
 
   void DoInitial() override;
   void Clear() override { filed_values_.clear(); }
