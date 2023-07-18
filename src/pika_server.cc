@@ -76,7 +76,7 @@ PikaServer::PikaServer()
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   //TODO 删除pika_rsync_service_服务，使用pika_rsync_service_端口
-  rsync_server_ = std::make_unique<rsync::RsyncServer>("127.0.0.1", g_pika_server->master_port() + kPortShiftRsync2);
+  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
@@ -134,7 +134,7 @@ bool PikaServer::ServerInit() {
 void PikaServer::Start() {
   int ret = 0;
   // start rsync first, rocksdb opened fd will not appear in this fork
-  ret = pika_rsync_service_->StartRsync();
+  //ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     dbs_.clear();
     LOG(FATAL) << "Start Rsync Error: bind port " + std::to_string(pika_rsync_service_->ListenPort()) + " failed"
@@ -953,12 +953,12 @@ pstd::Status PikaServer::ReadDumpFile(const std::string& db_name, uint32_t slot_
       read_count = kMaxCopyBlockSize;
     }
 
-    size_t bytesin = 0;
+    ssize_t bytesin = 0;
     size_t left_read_count = count;
 
     while ((bytesin = pread(fd, data, read_count, read_offset)) > 0) {
       left_read_count -= bytesin;
-      if (left_read_count <= 0) {
+      if (left_read_count < 0) {
         break ;
       }
       if (read_count > left_read_count) {
@@ -1001,6 +1001,7 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     slot->BgSaveSlot();
   }
+ return;
   DBSync(ip, port, db_name, slot_id);
 }
 
@@ -1332,7 +1333,7 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
-  AutoKeepAliveRSync();
+  //AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
 }

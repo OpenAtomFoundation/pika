@@ -16,6 +16,7 @@ namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
     : dir_(dir), flush_period_(100), db_name_(db_name), slot_id_(slot_id), state_(IDLE), max_retries_(10) {
   client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
+  throttle_.reset(new Throttle());
 }
 
 bool RsyncClient::Init() {
@@ -42,7 +43,7 @@ void* RsyncClient::ThreadMain() {
     meta_rep.append("\n");
     while (state_.load(std::memory_order_relaxed) == RUNNING) {
         for (const auto& file : file_set_) {
-            LOG(INFO) << "CopyRemoteFile: " << file;
+            LOG(INFO) << "CopyRemoteFile: " << file << "state_: " << state_.load();
             while (state_.load() == RUNNING) {
               s = CopyRemoteFile(file);
               if (!s.ok()) {
@@ -65,6 +66,16 @@ void* RsyncClient::ThreadMain() {
             }
         }
         if (meta_table_.size() == file_set_.size()) {
+            LOG(INFO) << "CopyRemoteFile: " << kBgsaveInfoFile << "state_: " << state_.load();
+            while (state_.load() == RUNNING) {
+              s = CopyRemoteFile(kBgsaveInfoFile);
+              if (!s.ok()) {
+                  LOG(WARNING) << "rsync CopyRemoteFile failed, filename: " << kBgsaveInfoFile;
+                  continue;
+              }
+              LOG(WARNING) << "CopyRemoteFile "<< kBgsaveInfoFile << "success...";
+              break;
+            }
             LOG(INFO) << "rsync success...";
             state_.store(STOP, std::memory_order_relaxed);
             break;
@@ -145,6 +156,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         std::string to_send;
         request.SerializeToString(&to_send);
 
+    LOG(WARNING) << "master ip: " << g_pika_server->master_ip() << " master_port: " << g_pika_server->master_port() << " portshift: " << kPortShiftRsync2;
     s = client_thread_->Write(g_pika_server->master_ip(), g_pika_server->master_port() + kPortShiftRsync2, to_send);
     if (!s.ok()) {
       LOG(WARNING) << "send rsync request failed";
@@ -163,7 +175,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
 
     LOG(INFO) << "receive fileresponse, snapshot_uuid: " << resp->snapshot_uuid()
               << "filename: " << resp->file_resp().filename() << "offset: " << resp->file_resp().offset()
-              << "count: " << resp->file_resp().count();
+              << "count: " << resp->file_resp().count() << "eof: " << resp->file_resp().eof();
 
     if (resp->snapshot_uuid() != snapshot_uuid_) {
       LOG(WARNING) << "receive newer dump, reset state to STOP";
@@ -182,11 +194,13 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
 
         md5.update(resp->file_resp().data().c_str(), ret_count);
         if (resp->file_resp().eof()) {
+            /*
             if (md5.finalize().hexdigest() != resp->file_resp().checksum()) {
                 LOG(WARNING) << "mismatch file checksum for file: " << filename;
-                //TODO: 处理返回status
+                //TODO: wangshaoyi处理返回status
                 s = Status::IOError("mismatch checksum", "mismatch checksum");
             }
+            */
             s = writer->Fsync();
             if (!s.ok()) {
                 return s;
@@ -290,6 +304,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   std::string to_send;
   request.SerializeToString(&to_send);
   while (retries < max_retries_) {
+    LOG(WARNING) << "master ip: " << g_pika_server->master_ip() << " master_port: " << g_pika_server->master_port() << " portshift: " << kPortShiftRsync2;
     s = client_thread_->Write(g_pika_server->master_ip(), g_pika_server->master_port() + kPortShiftRsync2, to_send);
     if (!s.ok()) {
       retries++;

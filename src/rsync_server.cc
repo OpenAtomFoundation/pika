@@ -7,9 +7,8 @@
 extern PikaServer* g_pika_server;
 namespace rsync {
 
-RsyncServer::RsyncServer(const std::string& ip, const int port) : ip_(ip), port_(port) {
+RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
     work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
-    std::set<std::string> ips = {ip_};
     rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);
 }
 

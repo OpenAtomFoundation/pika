@@ -6,7 +6,7 @@
 namespace rsync {
 class Throttle {
  public:
-    Throttle();
+    Throttle() {}
     Throttle(size_t throttle_throughput_bytes, size_t check_cycle);
     ~Throttle();
     size_t ThrottledByThroughput(size_t bytes);
