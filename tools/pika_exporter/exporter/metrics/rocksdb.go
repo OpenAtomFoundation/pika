@@ -145,6 +145,8 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 	"size_all_mem_tables": {
 		Parser: &regexParser{
 			name:   "size_all_mem_tables",
+			// TODO: need fix size_all_mem_tables contains wrong data type starting with cur
+			// issue: https://github.com/OpenAtomFoundation/pika/issues/1752
 			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?size_all_mem_tables:(?P<size_all_mem_tables>\d+)`),
 			Parser: &normalParser{},
 		},
