@@ -96,7 +96,7 @@ Status PikaMeta::ParseMeta(std::vector<DBStruct>* const db_structs) {
   memcpy(buf, reader->GetData() + 2 * sizeof(uint32_t), meta_size);
 
   InnerMessage::PikaMeta meta;
-  if (!meta.ParseFromArray(buf, meta_size)) {
+  if (!meta.ParseFromArray(buf, static_cast<int32_t>(meta_size))) {
     LOG(WARNING) << "Parse meta string failed";
     return Status::Corruption("parse meta string failed");
   }
