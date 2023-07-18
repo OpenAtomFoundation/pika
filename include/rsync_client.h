@@ -54,7 +54,7 @@ public:
 private:
     bool Recover();
     Status Wait(WaitObject* wo);
-    Status CopyRemoteFile(const std::string& filename);
+    Status CopyRemoteFile(const std::string& filename, const std::string& rename = "");
     Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
     Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
     std::string GetLocalMetaFilePath();

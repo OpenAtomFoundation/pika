@@ -68,11 +68,12 @@ void* RsyncClient::ThreadMain() {
         if (meta_table_.size() == file_set_.size()) {
             LOG(INFO) << "CopyRemoteFile: " << kBgsaveInfoFile << "state_: " << state_.load();
             while (state_.load() == RUNNING) {
-              s = CopyRemoteFile(kBgsaveInfoFile);
+              s = CopyRemoteFile(kBgsaveInfoFile, kBgsaveInfoFile + ".bak");
               if (!s.ok()) {
                   LOG(WARNING) << "rsync CopyRemoteFile failed, filename: " << kBgsaveInfoFile;
                   continue;
               }
+              RenameFile(dir_ + "/" + kBgsaveInfoFile + ".bak", dir_+ "/" + kBgsaveInfoFile);
               LOG(WARNING) << "CopyRemoteFile "<< kBgsaveInfoFile << "success...";
               break;
             }
@@ -110,7 +111,8 @@ Status RsyncClient::Wait(WaitObject* wo) {
     }
     if (resp->type() == kRsyncFile &&
         (resp->file_resp().filename() != wo->filename_ || resp->file_resp().offset() != wo->offset_))  {
-      LOG(WARNING) << "mismatch rsync response, skip";
+      LOG(WARNING) << "mismatch rsync response, skip expect filename: " << wo->filename_ << " offset: " << wo->offset_ << " resp filename: " << resp->file_resp().filename() << " resp offset: " << resp->file_resp().offset();
+      iter++;
       continue;
     }
     s = Status::OK();
@@ -127,14 +129,14 @@ Status RsyncClient::Wait(WaitObject* wo) {
   return s;
 }
 
-Status RsyncClient::CopyRemoteFile(const std::string& filename) {
+Status RsyncClient::CopyRemoteFile(const std::string& filename, const std::string& rename) {
     Status s;
     int retries = 0;
     size_t offset = 0;
     size_t copy_file_begin_time = pstd::NowMicros();
     size_t count = throttle_->ThrottledByThroughput(1024 * 1024);
     MD5 md5;
-    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
+    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + (rename.empty() ? filename : rename)));
     DEFER {
         if (writer) {
             writer->Close();
@@ -230,6 +232,9 @@ Status RsyncClient::Start() {
 }
 
 Status RsyncClient::Stop() {
+  if (state_ == IDLE) {
+    return Status::OK();
+  }
   state_ = STOP;
   StopThread();
   client_thread_->StopThread();

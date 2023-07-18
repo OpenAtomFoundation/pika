@@ -602,6 +602,7 @@ void SyncSlaveSlot::Deactivate() {
   std::lock_guard l(slot_mu_);
   m_info_ = RmNode();
   repl_state_ = ReplState::kNoConnect;
+  rsync_cli_->Stop();
 }
 
 std::string SyncSlaveSlot::ToStringStatus() {
