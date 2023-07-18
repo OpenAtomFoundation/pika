@@ -43,6 +43,14 @@ static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   return resp.str();
 }
 
+static double MethodofCommandStatistics(const uint64_t time_consuming, const uint64_t frequency) {
+  return (static_cast<double>(time_consuming) / 1000.0) / static_cast<double>(frequency);
+}
+
+static double MethodofTotalTimeCalculation(const uint64_t time_consuming) {
+  return static_cast<double>(time_consuming) / 1000.0;
+}
+
 enum AuthResult {
   OK,
   INVALID_PASSWORD,
@@ -1260,12 +1268,12 @@ void InfoCmd::InfoCommandStats(std::string& info) {
       if (iter.second.cmd_count != 0) {
         tmp_stream << iter.first << ":"
                    << "calls=" << iter.second.cmd_count << ", usec="
-                   << static_cast<double>(iter.second.cmd_time_consuming) / 1000.0
+                   << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
                    << ", usec_per_call=";
-        if (static_cast<double>(iter.second.cmd_time_consuming) == 0) {
+        if (!iter.second.cmd_time_consuming) {
           tmp_stream << 0 << "\r\n";
         } else {
-          tmp_stream << (static_cast<double>(iter.second.cmd_time_consuming) / 1000.0) / static_cast<double>(iter.second.cmd_count)
+          tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
                      << "\r\n";
         }
       }

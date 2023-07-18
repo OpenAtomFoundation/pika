@@ -153,6 +153,12 @@ prometheus --config.file=./grafana/prometheus.yml
 
 ### Pika Command Execution Time
 
+| Metrics Name                      | Metric Type | Labels               | Metrics Value                                 | Metric Desc                                                              |
+|-----------------------------------| ----------- |----------------------|-----------------------------------------------|--------------------------------------------------------------------------|
+| calls                             | `Counter`   | {addr="", alias=""}  | the value of `calls`                          | Pika Number of times each command is invoked                             |
+| usec                              | `Counter`   | {addr="", alias=""}  | the value of `usec`                           | Total time taken by each Pika command                                    |
+| usec_per_call                     | `Counter`   | {addr="", alias=""}  | the value of `usec_per_call`                  | Average time of each Pika command                                        |
+
 ### Rocksdb Metrics
 
 | Serial Number | Metric | Meaning                                                                                                                                                                                                               |
@@ -203,3 +209,5 @@ Screenshots:
 ![Network](./contrib/network.png)
 
 ![RocksDB](./contrib/rocksdb.png)
+
+![Commandstats](./contrib/command_time.png)
