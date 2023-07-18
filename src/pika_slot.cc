@@ -300,8 +300,6 @@ BgSaveInfo Slot::bgsave_info() {
 
 void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
   const std::string slotPath = bgsave_info().path;
-  // todo 待确认 info 文件的路径
-  const std::string infoPath = bgsave_info().path + "/info";
 
   std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
   for (const auto& type : types) {
@@ -321,17 +319,29 @@ void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* s
       fileNames -> push_back(type + "/" + fileName);
     }
   }
-
-  std::string info_data;
-  // todo 这里待替换
-  rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
+  pstd::Status s = GetBgSaveUUID(snapshot_uuid);
   if (!s.ok()) {
-    LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
-    return;
+      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+      return;
   }
+}
 
-  pstd::MD5 md5 = pstd::MD5(info_data);
-  *snapshot_uuid = md5.hexdigest();
+Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
+  if (snapshot_uuid_.empty()) {
+    std::string info_data;
+    // todo 待确认 info 文件的路径
+    const std::string infoPath = bgsave_info().path + "/info";
+    // todo 这里待替换
+    rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
+    if (!s.ok()) {
+      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+      return Status::IOError("read dump meta info failed", infoPath);
+    }
+    pstd::MD5 md5 = pstd::MD5(info_data);
+    snapshot_uuid_ = md5.hexdigest();
+  }
+  *snapshot_uuid = snapshot_uuid_;
+  return Status::OK();
 }
 
 void Slot::DoBgSave(void* arg) {

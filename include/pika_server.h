@@ -263,6 +263,7 @@ class PikaServer : public pstd::noncopyable {
   //TODO: yuecai
   pstd::Status ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
                       const size_t offset, const size_t count, char* data,  size_t* bytes_read);
+  pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
   //TODO: yuecai
   pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
