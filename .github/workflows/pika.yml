@@ -70,29 +70,33 @@ jobs:
         run: |
           python3 ../tests/integration/pika_replication_test.py
 
-
   build_on_centos:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
-    container: docker.io/centos:7
+    container:
+      image: centos:7
 
     steps:
-      - name: Install deps
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      - uses: actions/checkout@v3
+
+      - name: cache dependencies
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+            ~/.cache/pip
+          key: ${{ runner.os }}-dependencies
+
+      - name: install Deps
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         run: |
-          yum install -y wget git autoconf centos-release-scl gcc automake make
+          yum install -y autoconf protobuf-devel protobuf-compiler clang-tidy-12 python3-pip
+          yum install -y wget git autoconf centos-release-scl gcc automake make libtool tar 
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7
-          yum install -y llvm-toolset-7-clang
-          source /opt/rh/devtoolset-10/enable
-          gcc --version
-          make --version
-          yum install -y python3
-          python3 --version
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang
+          python3 -m pip install --upgrade pip
           python3 -m pip install redis
+          source /opt/rh/devtoolset-10/enable
 
       - name: Install cmake
         run: |
@@ -109,45 +113,35 @@ jobs:
           git checkout $GITHUB_SHA
 
       - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Build
-        # Build your program with the given configuration
         run: |
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Test
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: |
           cd ${{github.workspace}}/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
       - name: Unit Test
-        working-directory: ${{github.workspace}}
         run: |
-          cd ${{github.workspace}}
-          chmod +x ./pikatests.sh all
+          cd ${{github.workspace}} 
           ./pikatests.sh all
 
-        # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
-        working-directory: ${{github.workspace}}/build
         run: |
-          cd ${{github.workspace}}/build
+          cd ${{github.workspace}}/build 
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
       - name: Run Python E2E Tests
-        working-directory: ${{github.workspace}}/build
         run: |
-          cd ${{github.workspace}}/build
+          cd ${{github.workspace}}/build 
           python3 ../tests/integration/pika_replication_test.py
           
