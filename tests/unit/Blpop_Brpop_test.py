@@ -597,6 +597,7 @@ def test_master_slave_replication(db_):
     master = redis.Redis(host=pika_instance_ip, port=int(pika_instance_port), db=db_)
     slave = redis.Redis(host=pika_slave_ip, port=int(pika_slave_port), db=db_)
     slave.slaveof(pika_instance_ip, pika_instance_port)
+    time.sleep(25)
     master.delete('blist0', 'blist1', 'blist')
 
     time.sleep(3)
@@ -815,6 +816,7 @@ def test_master_slave_replication(db_):
     print("test_master_slave_replication Passed [✓], db:db%d" % (db_))
 
 def test_with_db(db_id):
+    test_master_slave_replication(db_id)
     test_single_existing_list(db_id)
     test_blpop_brpop_unblock_lrpush_rpoplpush(db_id)
     test_concurrency_block_unblock(db_id)
@@ -822,7 +824,6 @@ def test_with_db(db_id):
     test_blpop_brpop_same_key_multiple_times(db_id)
     test_blpop_brpop_variadic_lpush(db_id)
     test_serve_priority(db_id)
-    test_master_slave_replication(db_id)
 
 
 pika_instance_ip = '127.0.0.1'

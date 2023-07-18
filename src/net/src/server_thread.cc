@@ -60,11 +60,10 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
   return raw_handle;
 }
 
-ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher)
+ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
-      dispatcher_(dispatcher),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
@@ -74,12 +73,10 @@ ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* hand
   ips_.insert("0.0.0.0");
 }
 
-ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle,
-                           ServerThread* dispatcher)
+ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
-      dispatcher_(dispatcher),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
@@ -90,11 +87,10 @@ ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interv
 }
 
 ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval,
-                           const ServerHandle* handle, ServerThread* dispatcher)
+                           const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
-      dispatcher_(dispatcher),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
@@ -181,12 +177,6 @@ void* ServerThread::ThreadMain() {
   char port_buf[32];
   char ip_addr[INET_ADDRSTRLEN] = "";
 
-  net::DispatchThread* dispatch_ptr = nullptr;
-  if (dispatcher_ != nullptr) {
-    dispatch_ptr = dynamic_cast<net::DispatchThread*>(dispatcher_);
-    dispatch_ptr->GetTimedTaskManager()->AddTimedTask(
-        "blrpop_blocking_info_scan", 200, [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop(); });
-  }
 
   while (!should_stop()) {
     if (cron_interval_ > 0) {
@@ -209,10 +199,6 @@ void* ServerThread::ThreadMain() {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (dispatch_ptr != nullptr && pfe->mask == kReadable &&
-          dispatch_ptr->GetTimedTaskManager()->TryToExecTimedTask(pfe->fd, EPOLLIN)) {
-        continue;
-      }
 
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
