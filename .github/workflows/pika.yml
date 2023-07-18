@@ -130,10 +130,7 @@ jobs:
           ctest -C ${{env.BUILD_TYPE}}
 
   build_on_macos:
-    # The CMake configure and build commands are platform-agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: macOS-latest
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -148,35 +145,29 @@ jobs:
           key: ${{ runner.os }}-dependencies
 
       - name: install Deps
-        if: ${{ steps.cache.output.cache-hit != 'true' }}
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         run: |
-          brew install libtool automake protobuf autoconf llvm gcc@11 python3 cmake
+          brew update
+          brew install autoconf protobuf python gcc@10 llvm wget git
+          brew install gcc@10 automake make
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
-          export CC=/usr/local/opt/gcc@11/bin/gcc-11
-          export CXX=/usr/local/opt/gcc@11/bin/g++-11
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          export CXX=/usr/local/opt/gcc@10/bin/g++-10
           gcc --version
-          make --version
-          cmake --version
 
       - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Build
-        # Build your program with the given configuration
         run: |
           cd ${{github.workspace}}
-          chmod +w /Library/Developer/CommandLineTools
-          sudo xcode-select --reset
-          export CC=/usr/local/opt/gcc@11/bin/gcc-11
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          export CXX=/usr/local/opt/gcc@10/bin/g++-10 
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Test
         working-directory: ${{github.workspace}}/build
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: ctest -C ${{env.BUILD_TYPE}}
 
       - name: Unit Test
@@ -184,7 +175,6 @@ jobs:
         run: |
           ./pikatests.sh all
 
-        # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
         working-directory: ${{github.workspace}}/build
         run: |
@@ -195,4 +185,5 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
+          
           
