@@ -32,7 +32,7 @@ WorkerThread::~WorkerThread() = default;
 
 int WorkerThread::conn_num() const {
   std::shared_lock lock(rwlock_);
-  return conns_.size();
+  return static_cast<int32_t>(conns_.size());
 }
 
 std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
@@ -92,7 +92,7 @@ void* WorkerThread::ThreadMain() {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
       } else {
         DoCronTask();
         when.tv_sec = now.tv_sec + (cron_interval_ / 1000);
@@ -110,7 +110,7 @@ void* WorkerThread::ThreadMain() {
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if ((pfe->mask & kReadable) != 0) {
-          int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
+          auto nread = static_cast<int32_t>(read(net_multiplexer_->NotifyReceiveFd(), bb, 2048));
           if (nread == 0) {
             continue;
           } else {

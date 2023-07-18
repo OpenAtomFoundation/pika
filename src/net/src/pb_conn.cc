@@ -11,7 +11,10 @@
 #include <glog/logging.h>
 
 #include "net/include/net_define.h"
+#include "net/include/net_stats.h"
 #include "pstd/include/xdebug.h"
+
+extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 namespace net {
 
@@ -34,6 +37,7 @@ ReadStatus PbConn::GetRequest() {
     switch (connStatus_) {
       case kHeader: {
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
+        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -48,7 +52,7 @@ ReadStatus PbConn::GetRequest() {
             uint32_t integer = 0;
             memcpy(reinterpret_cast<char*>(&integer), rbuf_, sizeof(uint32_t));
             header_len_ = ntohl(integer);
-            remain_packet_len_ = header_len_;
+            remain_packet_len_ = static_cast<int32_t>(header_len_);
             connStatus_ = kPacket;
             continue;
           }
@@ -71,6 +75,7 @@ ReadStatus PbConn::GetRequest() {
         }
         // read msg body
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, remain_packet_len_);
+        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -80,8 +85,8 @@ ReadStatus PbConn::GetRequest() {
         } else if (nread == 0) {
           return kReadClose;
         }
-        cur_pos_ += nread;
-        remain_packet_len_ -= nread;
+        cur_pos_ += static_cast<uint32_t>(nread);
+        remain_packet_len_ -= static_cast<int32_t>(nread);
         if (remain_packet_len_ == 0) {
           connStatus_ = kComplete;
           continue;
@@ -117,6 +122,7 @@ WriteStatus PbConn::SendReply() {
     item_len = item.size();
     while (item_len - write_buf_.item_pos_ > 0) {
       nwritten = write(fd(), item.data() + write_buf_.item_pos_, item_len - write_buf_.item_pos_);
+      g_network_statistic->IncrReplOutputBytes(nwritten);
       if (nwritten <= 0) {
         break;
       }
@@ -178,7 +184,7 @@ void PbConn::BuildInternalTag(const std::string& resp, std::string* tag) {
 void PbConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  int idletime = now.tv_sec - last_interaction().tv_sec;
+  time_t idletime = now.tv_sec - last_interaction().tv_sec;
   if (rbuf_len_ > PB_IOBUF_LEN && ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
     uint32_t new_size = ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
     if (new_size < rbuf_len_) {

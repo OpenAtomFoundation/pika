@@ -37,6 +37,86 @@ var collectStatsMetrics = map[string]MetricConfig{
 			ValueName: "total_commands_processed",
 		},
 	},
+    "total_net_input_bytes": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "total_net_input_bytes",
+            Help:      "the total number of bytes read from the network",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "total_net_input_bytes",
+        },
+    },
+    "total_net_output_bytes": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "total_net_output_bytes",
+            Help:      "the total number of bytes written to the network",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "total_net_output_bytes",
+        },
+    },
+    "total_net_repl_input_bytes": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "total_net_repl_input_bytes",
+            Help:      "the total number of bytes read from the network for replication purposes",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "total_net_repl_input_bytes",
+        },
+    },
+    "total_net_repl_output_bytes": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "total_net_repl_output_bytes",
+            Help:      "the total number of bytes written to the network for replication purposes",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "total_net_repl_output_bytes",
+        },
+    },
+    "instantaneous_input_kbps": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "instantaneous_input_kbps",
+            Help:      "the network's read rate per second in KB/sec",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "instantaneous_input_kbps",
+        },
+    },
+    "instantaneous_output_kbps": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "instantaneous_output_kbps",
+            Help:      "the network's write rate per second in KB/sec",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "instantaneous_output_kbps",
+        },
+    },
+    "instantaneous_input_repl_kbps": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "instantaneous_input_repl_kbps",
+            Help:      "the network's read rate per second in KB/sec for replication purposes",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "instantaneous_input_repl_kbps",
+        },
+    },
+    "instantaneous_output_repl_kbps": {
+        Parser: &normalParser{},
+        MetricMeta: &MetaData{
+            Name:      "instantaneous_output_repl_kbps",
+            Help:      "the network's write rate per second in KB/sec for replication purposes",
+            Type:      metricTypeCounter,
+            Labels:    []string{LabelNameAddr, LabelNameAlias},
+            ValueName: "instantaneous_output_repl_kbps",
+        },
+    },
 	"is_bgsaving": {
 		Parser: &regexParser{
 			name:   "is_bgsaving",

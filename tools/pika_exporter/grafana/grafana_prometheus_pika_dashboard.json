@@ -2162,6 +2162,194 @@
       "type": "row"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 50
+      },
+      "hiddenSeries": false,
+      "id": 193,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_master_link_status{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "legendFormat": "{{master_host}} {{master_port}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Master Link Status",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:300",
+          "format": "none",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:301",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 0,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 50
+      },
+      "hiddenSeries": false,
+      "id": 194,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_slave_priority{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{master_host}} {{master_port}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Slave Priority",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:457",
+          "decimals": 0,
+          "format": "short",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:458",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
       "clusterName": "$role",
       "colorMode": "Panel",
       "colors": {
@@ -2182,7 +2370,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 50
+        "y": 61
       },
       "id": 71,
       "isAutoScrollOnOverflow": false,
@@ -2209,7 +2397,7 @@
         "h": 5,
         "w": 8,
         "x": 4,
-        "y": 50
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 44,
@@ -2295,7 +2483,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 50
+        "y": 61
       },
       "id": 68,
       "links": [],
@@ -2438,7 +2626,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 55
+        "y": 66
       },
       "id": 38,
       "links": [],
@@ -2551,7 +2739,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 58
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 36,
@@ -2640,7 +2828,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 58
+        "y": 69
       },
       "hiddenSeries": false,
       "id": 40,
@@ -2725,7 +2913,7 @@
         "h": 5,
         "w": 12,
         "x": 0,
-        "y": 66
+        "y": 77
       },
       "id": 72,
       "links": [],
@@ -2858,7 +3046,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 66
+        "y": 77
       },
       "hiddenSeries": false,
       "id": 74,
@@ -2941,7 +3129,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 82
       },
       "id": 48,
       "panels": [],
@@ -2968,7 +3156,7 @@
         "h": 3,
         "w": 12,
         "x": 0,
-        "y": 72
+        "y": 83
       },
       "hideTimeOverride": false,
       "id": 53,
@@ -3070,7 +3258,7 @@
         "h": 3,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 83
       },
       "id": 50,
       "links": [],
@@ -3167,7 +3355,7 @@
         "h": 3,
         "w": 12,
         "x": 0,
-        "y": 75
+        "y": 86
       },
       "hideTimeOverride": false,
       "id": 52,
@@ -3267,7 +3455,7 @@
         "h": 3,
         "w": 12,
         "x": 12,
-        "y": 75
+        "y": 86
       },
       "hideTimeOverride": false,
       "id": 51,
@@ -3367,7 +3555,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 89
       },
       "hideTimeOverride": false,
       "id": 54,
@@ -3482,7 +3670,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 81
+        "y": 92
       },
       "id": 56,
       "panels": [],
@@ -3513,7 +3701,7 @@
         "h": 11,
         "w": 8,
         "x": 0,
-        "y": 82
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 62,
@@ -3604,7 +3792,7 @@
         "h": 11,
         "w": 8,
         "x": 8,
-        "y": 82
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 191,
@@ -3695,7 +3883,7 @@
         "h": 11,
         "w": 8,
         "x": 16,
-        "y": 82
+        "y": 93
       },
       "hiddenSeries": false,
       "id": 192,
@@ -3777,7 +3965,788 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 93
+        "y": 104
+      },
+      "id": 203,
+      "panels": [],
+      "title": "Network",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 105
+      },
+      "hiddenSeries": false,
+      "id": 195,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_input_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Input Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 105
+      },
+      "hiddenSeries": false,
+      "id": 196,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_input_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Input Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 113
+      },
+      "hiddenSeries": false,
+      "id": 197,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_output_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Output Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 113
+      },
+      "hiddenSeries": false,
+      "id": 198,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_output_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Output Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 121
+      },
+      "hiddenSeries": false,
+      "id": 199,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_repl_input_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Replication Input Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 121
+      },
+      "hiddenSeries": false,
+      "id": 200,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_input_repl_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Input Replication Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 129
+      },
+      "hiddenSeries": false,
+      "id": 201,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "pika_total_net_repl_output_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{addr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Total Net Replication Output Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 129
+      },
+      "hiddenSeries": false,
+      "id": 202,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_instantaneous_output_repl_kbps{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{ addr }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Instantaneous Output Replication Kbps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2231",
+          "decimals": 2,
+          "format": "KiBs",
+          "label": "",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2232",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": 0
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 137
       },
       "id": 90,
       "panels": [],
@@ -3800,7 +4769,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 94
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 190,
@@ -3847,7 +4816,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Is Memtable Flush Pending",
+      "title": "Memtable Flush Pending",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -3861,13 +4830,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:3638",
           "decimals": 0,
-          "format": "short",
+          "format": "bool",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:3639",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -3893,7 +4864,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 94
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 97,
@@ -3940,7 +4911,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Immutable MemTable",
+      "title": "Immutable MemTable",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -3954,14 +4925,16 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:3880",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
-          "format": "short",
+          "$$hashKey": "object:3881",
+          "format": "none",
           "logBase": 1,
           "show": true
         }
@@ -3986,7 +4959,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 94
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 126,
@@ -4033,7 +5006,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Immutable Memtable Flushed",
+      "title": "Immutable Memtable Flushed",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4047,13 +5020,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:4122",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:4123",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4079,7 +5054,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 94
+        "y": 138
       },
       "hiddenSeries": false,
       "id": 98,
@@ -4126,7 +5101,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Running Flushes",
+      "title": "Running Flushes",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4140,6 +5115,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:5804",
           "decimals": 0,
           "format": "short",
           "logBase": 1,
@@ -4147,6 +5123,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:5805",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4172,7 +5149,7 @@
         "h": 13,
         "w": 8,
         "x": 0,
-        "y": 107
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 127,
@@ -4265,7 +5242,7 @@
         "h": 13,
         "w": 8,
         "x": 8,
-        "y": 107
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 102,
@@ -4358,7 +5335,7 @@
         "h": 13,
         "w": 8,
         "x": 16,
-        "y": 107
+        "y": 151
       },
       "hiddenSeries": false,
       "id": 103,
@@ -4451,7 +5428,7 @@
         "h": 13,
         "w": 8,
         "x": 0,
-        "y": 120
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 131,
@@ -4544,7 +5521,7 @@
         "h": 13,
         "w": 8,
         "x": 8,
-        "y": 120
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 109,
@@ -4637,7 +5614,7 @@
         "h": 13,
         "w": 8,
         "x": 16,
-        "y": 120
+        "y": 164
       },
       "hiddenSeries": false,
       "id": 110,
@@ -4730,7 +5707,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 133
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 188,
@@ -4791,13 +5768,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6573",
           "decimals": 0,
-          "format": "short",
+          "format": "bool",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6574",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4823,7 +5802,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 133
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 101,
@@ -4884,13 +5863,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6074",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6075",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -4916,7 +5897,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 133
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 129,
@@ -5009,7 +5990,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 133
+        "y": 177
       },
       "hiddenSeries": false,
       "id": 130,
@@ -5102,7 +6083,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 146
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 132,
@@ -5151,7 +6132,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Blob Files",
+      "title": "Blob Files",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -5165,13 +6146,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:6827",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:6828",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5197,7 +6180,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 146
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 133,
@@ -5258,6 +6241,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7309",
           "decimals": 2,
           "format": "bytes",
           "logBase": 1,
@@ -5265,6 +6249,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:7310",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5290,7 +6275,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 146
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 134,
@@ -5383,7 +6368,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 146
+        "y": 190
       },
       "hiddenSeries": false,
       "id": 135,
@@ -5474,9 +6459,9 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
+        "w": 6,
         "x": 0,
-        "y": 159
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 128,
@@ -5567,9 +6552,9 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
-        "x": 8,
-        "y": 159
+        "w": 6,
+        "x": 6,
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 105,
@@ -5660,9 +6645,9 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 13,
-        "w": 8,
-        "x": 16,
-        "y": 159
+        "w": 6,
+        "x": 12,
+        "y": 203
       },
       "hiddenSeries": false,
       "id": 104,
@@ -5723,13 +6708,110 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7567",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:7568",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "decimals": 2,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 13,
+        "w": 6,
+        "x": 18,
+        "y": 203
+      },
+      "hiddenSeries": false,
+      "id": 204,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "9.5.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "pika_estimate_pending_compaction_bytes{job=~\"$job\", group=~\"$group\", instance=~\"$instance\", addr=~\"$addr\", alias=~\"$alias\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 2,
+          "legendFormat": "{{data_type}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Estimate Pending Compaction Bytes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:481",
+          "decimals": 2,
+          "format": "bytes",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:482",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5755,7 +6837,7 @@
         "h": 13,
         "w": 6,
         "x": 0,
-        "y": 172
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 187,
@@ -5802,7 +6884,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Num Background Errors",
+      "title": "Background Errors",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -5816,13 +6898,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:7809",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:7810",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5848,7 +6932,7 @@
         "h": 13,
         "w": 6,
         "x": 6,
-        "y": 172
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 189,
@@ -5909,13 +6993,15 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:8051",
           "decimals": 0,
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:8052",
           "format": "short",
           "logBase": 1,
           "show": true
@@ -5941,7 +7027,7 @@
         "h": 13,
         "w": 6,
         "x": 12,
-        "y": 172
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 107,
@@ -6034,7 +7120,7 @@
         "h": 13,
         "w": 6,
         "x": 18,
-        "y": 172
+        "y": 216
       },
       "hiddenSeries": false,
       "id": 106,
