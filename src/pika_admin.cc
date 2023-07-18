@@ -43,6 +43,14 @@ static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   return resp.str();
 }
 
+static double MethodofCommandStatistics(const uint64_t time_consuming, const uint64_t frequency) {
+  return (static_cast<double>(time_consuming) / 1000.0) / static_cast<double>(frequency);
+}
+
+static double MethodofTotalTimeCalculation(const uint64_t time_consuming) {
+  return static_cast<double>(time_consuming) / 1000.0;
+}
+
 enum AuthResult {
   OK,
   INVALID_PASSWORD,
@@ -742,6 +750,8 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       info.append("\r\n");
       InfoExecCount(info);
       info.append("\r\n");
+      InfoCommandStats(info);
+      info.append("\r\n");
       InfoCPU(info);
       info.append("\r\n");
       InfoReplication(info);
@@ -1254,15 +1264,19 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.precision(2);
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
-    for (auto& iter : *g_pika_server->GetCommandStatMap()) {
-        if (iter.second.cmd_count != 0) {
-            tmp_stream << "cmdstat_" << iter.first << ":"
-                       << "calls=" << iter.second.cmd_count << ",usec="
-                       << iter.second.cmd_time_consuming
-                       << ",usec_per_call=" 
-                       << static_cast<double>(iter.second.cmd_time_consuming) / static_cast<double>(iter.second.cmd_count) 
-                       << "\r\n";
+    for (auto iter : *g_pika_server->GetCommandStatMap()) {
+      if (iter.second.cmd_count != 0) {
+        tmp_stream << iter.first << ":"
+                   << "calls=" << iter.second.cmd_count << ", usec="
+                   << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
+                   << ", usec_per_call=";
+        if (!iter.second.cmd_time_consuming) {
+          tmp_stream << 0 << "\r\n";
+        } else {
+          tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
+                     << "\r\n";
         }
+      }
     }
     info.append(tmp_stream.str());
 }
