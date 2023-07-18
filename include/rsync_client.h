@@ -53,7 +53,7 @@ public:
 
 private:
     bool Recover();
-    Status Wait(WaitObject* wo);
+    Status Wait(RsyncResponse* resp);
     Status CopyRemoteFile(const std::string& filename, const std::string& rename = "");
     Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
     Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
@@ -78,7 +78,7 @@ private:
     std::atomic<State> state_;
     int max_retries_;
 
-    std::list<RsyncService::RsyncResponse*> resp_list_;
+    std::unique_ptr<WaitObject> wo_;
     std::condition_variable cond_;
     std::mutex mu_;
     std::unique_ptr<Throttle> throttle_;
@@ -126,9 +126,32 @@ private:
 
 class WaitObject {
 public:
-    WaitObject(const std::string& filename, RsyncService::Type t, size_t offset)
-        : filename_(filename), type_(t), offset_(offset), resp_(nullptr) {}
-    WaitObject(RsyncService::Type t) : filename_(""), type_(t), offset_(-1), resp_(nullptr) {}
+    WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
+    ~WaitObject() {
+      if (resp_) {
+        delete resp_;
+        resp_ = nullptr;
+      }
+    }
+    void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
+      if (resp_) {
+        delete resp_;
+        resp_ = nullptr;
+      }
+      filename_ = filename;
+      type_ = t;
+      offset_ = offset;
+    }
+
+    void Reset(RsyncService::Type t) {
+      if (resp_) {
+        delete resp_;
+        resp_ = nullptr;
+      }
+      filename_ = "";
+      type_ = t;
+      offset_ = 0xFFFFFFFF;
+    }
     std::string filename_;
     RsyncService::Type type_;
     size_t offset_;

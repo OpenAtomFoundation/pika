@@ -88,43 +88,25 @@ void* RsyncClient::ThreadMain() {
 
 void RsyncClient::OnReceive(RsyncResponse* resp) {
   std::unique_lock<std::mutex> lock(mu_);
-  resp_list_.push_back(resp);
+  if (resp->type() != wo_->type_) {
+    delete resp;
+    return;
+  }
+  if (resp->type() == kRsyncFile &&
+      (resp->file_resp().filename() != wo_->filename_ || resp->file_resp().offset() != wo_->offset_)) {
+    delete resp;
+    return;
+  }
+  wo_->resp_ = resp;
   cond_.notify_all();
 }
 
-Status RsyncClient::Wait(WaitObject* wo) {
+Status RsyncClient::Wait(RsyncResponse* resp) {
   Status s = Status::Timeout("rsync timeout", "timeout");
-  std::list<RsyncResponse*> resp_list;
   {
     std::unique_lock<std::mutex> lock(mu_);
-    cond_.wait_for(lock, std::chrono::seconds(3), [this] { return !resp_list_.empty(); });
-    resp_list.swap(resp_list_);
-  }
-
-  auto iter = resp_list.begin();
-  while (iter != resp_list.end()) {
-    RsyncResponse* resp = *iter;
-    if (resp->type() != wo->type_) {
-      LOG(WARNING) << "mismatch request/response type, skip";
-      iter++;
-      continue;
-    }
-    if (resp->type() == kRsyncFile &&
-        (resp->file_resp().filename() != wo->filename_ || resp->file_resp().offset() != wo->offset_))  {
-      LOG(WARNING) << "mismatch rsync response, skip expect filename: " << wo->filename_ << " offset: " << wo->offset_ << " resp filename: " << resp->file_resp().filename() << " resp offset: " << resp->file_resp().offset();
-      iter++;
-      continue;
-    }
-    s = Status::OK();
-    wo->resp_ = resp;
-    resp_list.erase(iter);
-    break;
-  }
-
-  iter = resp_list.begin();
-  while (iter != resp_list.end()) {
-    delete (*iter);
-    iter++;
+    cond_.wait_for(lock, std::chrono::seconds(3), [this] { return this->wo_->resp_ != nullptr; });
+    *resp = *wo_->resp_;
   }
   return s;
 }
@@ -164,16 +146,19 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, const std::strin
       LOG(WARNING) << "send rsync request failed";
       continue;
     }
+    {
+      std::lock_guard<std::mutex> lock(mu_);
+      wo_->Reset(filename, kRsyncFile, offset);
+    }
 
-    WaitObject wo(filename, kRsyncFile, offset);
     LOG(INFO) << "wait CopyRemoteFile response.....";
-    s = Wait(&wo);
-    if (s.IsTimeout() || wo.resp_ == nullptr) {
+    RsyncResponse* resp = nullptr;
+    s = Wait(resp);
+    if (s.IsTimeout() || resp == nullptr) {
       LOG(WARNING) << "rsync request timeout";
       retries++;
       continue;
     }
-    RsyncResponse* resp = wo.resp_;
 
     LOG(INFO) << "receive fileresponse, snapshot_uuid: " << resp->snapshot_uuid()
               << "filename: " << resp->file_resp().filename() << "offset: " << resp->file_resp().offset()
@@ -314,14 +299,19 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     if (!s.ok()) {
       retries++;
     }
-    WaitObject wo(kRsyncMeta);
-    s = Wait(&wo);
-    if (s.IsTimeout() || wo.resp_ == nullptr) {
+    {
+      std::lock_guard<std::mutex> lock(mu_);
+      wo_->Reset(kRsyncMeta);
+    }
+    RsyncResponse* resp = nullptr;
+    s = Wait(resp);
+    if (s.IsTimeout() || resp == nullptr) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, retry times: " << retries;
       retries++;
+      delete resp;
+      resp = nullptr;
       continue;
     }
-    RsyncResponse* resp = wo.resp_;
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()
               << "files count: " << resp->meta_resp().filenames_size();
 
@@ -332,6 +322,8 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     for (int i = 0; i < resp->meta_resp().filenames_size(); i++) {
       file_set->insert(resp->meta_resp().filenames(i));
     }
+    delete resp;
+    resp = nullptr;
     break;
   }
   return s;
