@@ -17,7 +17,7 @@ double Instant::getInstantaneousMetric(std::string metric) {
   return sum / STATS_METRIC_SAMPLES;
 }
 
-/* ======================= Cron: called every 100 ms ======================== */
+/* ======================= Cron: called every 5 s ======================== */
 
 /* Add a sample to the instantaneous metric. This function computes the quotient
  * of the increment of value and base, which is useful to record operation count
