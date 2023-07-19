@@ -29,6 +29,12 @@ jobs:
             ~/.cache/pip
           key: ${{ runner.os }}-dependencies
 
+      - name: Upload github.workspace artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: github-workspace-artifact
+          path: ${{ github.workspace }}
+
       - name: install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
@@ -47,24 +53,16 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Unit Test
-        working-directory: ${{github.workspace}}
-        run: |
-          cd ${{github.workspace}} 
-          ./pikatests.sh all
-          cp pikatest.sh ${{ github.workspace }}/pikatest.sh
-
-      - name: Upload script artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: script-artifact
-          path: ${{ github.workspace }}/pikatest.sh
-
       - name: Test
         working-directory: ${{github.workspace}}/build
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: ctest -C ${{env.BUILD_TYPE}}
+
+      - name: Unit Test
+        working-directory: ${{github.workspace}}
+        run: |
+          ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
@@ -77,22 +75,30 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_centos:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
     container:
       image: centos:7
 
     steps:
       - name: install Deps
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
           yum install -y llvm-toolset-7
           yum install -y llvm-toolset-7-clang
+          yum install -y tcl
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
+
 
       - name: Install cmake
         run: |
@@ -109,30 +115,37 @@ jobs:
           git checkout $GITHUB_SHA
 
       - name: Configure CMake
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Build
+        # Build your program with the given configuration
         run: |
           cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Test
-        run: |
-          cd ${{github.workspace}}/build
-          source /opt/rh/devtoolset-10/enable
-          ctest -C ${{env.BUILD_TYPE}}
+#      - name: Test
+#        # Execute tests defined by the CMake configuration.
+#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+#        run: |
+#          cd ${{github.workspace}}/build
+#          source /opt/rh/devtoolset-10/enable
+#          ctest -C ${{env.BUILD_TYPE}}
 
-      - name: Download script artifact
+      - name: Download github.workspace artifact
         uses: actions/download-artifact@v2
         with:
-          name: script-artifact
-          path: ${{ github.workspace }}
+          name: github-workspace-artifact
+
+    # List the contents of the 'github.workspace' directory to verify the files are there (optional)
+      - name: List downloaded files
+        run: ls -la ${{ github.workspace }}
 
       - name: Unit Test
         run: |
-          chmod +x ${{ github.workspace }}/pikatest.sh
-          ${{ github.workspace }}/pikatest.sh
-          
+          chmod +x artifacts/pikatest.sh
+          sh artifacts/pikatest.sh all 
