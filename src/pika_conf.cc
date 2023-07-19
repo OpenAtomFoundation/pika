@@ -356,13 +356,18 @@ int PikaConf::Load() {
 
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
-  if(least_free_disk_to_resume_ <= 0) {
+  if (least_free_disk_to_resume_ <= 0) {
     least_free_disk_to_resume_ = 268435456;  // 256Mb
   }
 
-  GetConfInt64Human("manually-resume-interval", &resume_check_interval_);
-  if(resume_check_interval_ <= 0) {
-    resume_check_interval_ = 600; // seconds
+  GetConfInt64("manually-resume-interval", &resume_check_interval_);
+  if (resume_check_interval_ <= 0) {
+    resume_check_interval_ = 60; // seconds
+  }
+
+  GetConfDouble("min-check-resume-ratio", &min_check_resume_ratio_);
+  if (min_check_resume_ratio_ < 0) {
+    min_check_resume_ratio_ = 0.7;
   }
 
   // write_buffer_size
@@ -634,6 +639,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("compact-interval", compact_interval_);
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);
   SetConfInt64("manually-resume-interval", resume_check_interval_);
+  SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);
   SetConfInt("slave-priority", slave_priority_);
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
