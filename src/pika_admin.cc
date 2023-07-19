@@ -1334,27 +1334,19 @@ void ConfigCmd::Do(std::shared_ptr<Slot> slot) {
 static void EncodeString(std::string* dst, const std::string& value) {
   dst->append("$");
   dst->append(std::to_string(value.size()));
-  dst->append("\r\n");
+  dst->append(kNewLine);
   dst->append(value.data(), value.size());
-  dst->append("\r\n");
+  dst->append(kNewLine);
 }
 
-static void EncodeInt32(std::string* dst, const int32_t v) {
+template<class T>
+static void EncodeNumber(std::string* dst, const T v) {
   std::string vstr = std::to_string(v);
   dst->append("$");
   dst->append(std::to_string(vstr.length()));
-  dst->append("\r\n");
+  dst->append(kNewLine);
   dst->append(vstr);
-  dst->append("\r\n");
-}
-
-static void EncodeInt64(std::string* dst, const int64_t v) {
-  std::string vstr = std::to_string(v);
-  dst->append("$");
-  dst->append(std::to_string(vstr.length()));
-  dst->append("\r\n");
-  dst->append(vstr);
-  dst->append("\r\n");
+  dst->append(kNewLine);
 }
 
 void ConfigCmd::ConfigGet(std::string& ret) {
@@ -1365,25 +1357,25 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "port", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "port");
-    EncodeInt32(&config_body, g_pika_conf->port());
+    EncodeNumber(&config_body, g_pika_conf->port());
   }
 
   if (pstd::stringmatch(pattern.data(), "thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "thread-num");
-    EncodeInt32(&config_body, g_pika_conf->thread_num());
+    EncodeNumber(&config_body, g_pika_conf->thread_num());
   }
 
   if (pstd::stringmatch(pattern.data(), "thread-pool-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "thread-pool-size");
-    EncodeInt32(&config_body, g_pika_conf->thread_pool_size());
+    EncodeNumber(&config_body, g_pika_conf->thread_pool_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
-    EncodeInt32(&config_body, g_pika_conf->sync_thread_num());
+    EncodeNumber(&config_body, g_pika_conf->sync_thread_num());
   }
 
   if (pstd::stringmatch(pattern.data(), "log-path", 1) != 0) {
@@ -1401,31 +1393,31 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "maxmemory", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "maxmemory");
-    EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
+    EncodeNumber(&config_body, g_pika_conf->write_buffer_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "write-buffer-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "write-buffer-size");
-    EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
+    EncodeNumber(&config_body, g_pika_conf->write_buffer_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "arena-block-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "arena-block-size");
-    EncodeInt64(&config_body, g_pika_conf->arena_block_size());
+    EncodeNumber(&config_body, g_pika_conf->arena_block_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-write-buffer-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-num");
-    EncodeInt32(&config_body, g_pika_conf->max_write_buffer_number());
+    EncodeNumber(&config_body, g_pika_conf->max_write_buffer_number());
   }
 
   if (pstd::stringmatch(pattern.data(), "timeout", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "timeout");
-    EncodeInt32(&config_body, g_pika_conf->timeout());
+    EncodeNumber(&config_body, g_pika_conf->timeout());
   }
 
   if (pstd::stringmatch(pattern.data(), "requirepass", 1) != 0) {
@@ -1461,7 +1453,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "databases", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "databases");
-    EncodeInt32(&config_body, g_pika_conf->databases());
+    EncodeNumber(&config_body, g_pika_conf->databases());
   }
 
   if (pstd::stringmatch(pattern.data(), "daemonize", 1)) {
@@ -1485,7 +1477,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "dump-expire", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "dump-expire");
-    EncodeInt32(&config_body, g_pika_conf->expire_dump_days());
+    EncodeNumber(&config_body, g_pika_conf->expire_dump_days());
   }
 
   if (pstd::stringmatch(pattern.data(), "dump-prefix", 1) != 0) {
@@ -1503,61 +1495,61 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "maxclients", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "maxclients");
-    EncodeInt32(&config_body, g_pika_conf->maxclients());
+    EncodeNumber(&config_body, g_pika_conf->maxclients());
   }
 
   if (pstd::stringmatch(pattern.data(), "target-file-size-base", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "target-file-size-base");
-    EncodeInt32(&config_body, g_pika_conf->target_file_size_base());
+    EncodeNumber(&config_body, g_pika_conf->target_file_size_base());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-cache-statistic-keys", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-cache-statistic-keys");
-    EncodeInt32(&config_body, g_pika_conf->max_cache_statistic_keys());
+    EncodeNumber(&config_body, g_pika_conf->max_cache_statistic_keys());
   }
 
   if (pstd::stringmatch(pattern.data(), "small-compaction-threshold", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "small-compaction-threshold");
-    EncodeInt32(&config_body, g_pika_conf->small_compaction_threshold());
+    EncodeNumber(&config_body, g_pika_conf->small_compaction_threshold());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-background-flushes", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-background-flushes");
-    EncodeInt32(&config_body, g_pika_conf->max_background_flushes());
+    EncodeNumber(&config_body, g_pika_conf->max_background_flushes());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-background-compactions", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-background-compactions");
-    EncodeInt32(&config_body, g_pika_conf->max_background_compactions());
+    EncodeNumber(&config_body, g_pika_conf->max_background_compactions());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-cache-files", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-cache-files");
-    EncodeInt32(&config_body, g_pika_conf->max_cache_files());
+    EncodeNumber(&config_body, g_pika_conf->max_cache_files());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-bytes-for-level-multiplier", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-bytes-for-level-multiplier");
-    EncodeInt32(&config_body, g_pika_conf->max_bytes_for_level_multiplier());
+    EncodeNumber(&config_body, g_pika_conf->max_bytes_for_level_multiplier());
   }
 
   if (pstd::stringmatch(pattern.data(), "block-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "block-size");
-    EncodeInt64(&config_body, g_pika_conf->block_size());
+    EncodeNumber(&config_body, g_pika_conf->block_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "block-cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "block-cache");
-    EncodeInt64(&config_body, g_pika_conf->block_cache());
+    EncodeNumber(&config_body, g_pika_conf->block_cache());
   }
 
   if (pstd::stringmatch(pattern.data(), "share-block-cache", 1) != 0) {
@@ -1587,19 +1579,19 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "expire-logs-days", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "expire-logs-days");
-    EncodeInt32(&config_body, g_pika_conf->expire_logs_days());
+    EncodeNumber(&config_body, g_pika_conf->expire_logs_days());
   }
 
   if (pstd::stringmatch(pattern.data(), "expire-logs-nums", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "expire-logs-nums");
-    EncodeInt32(&config_body, g_pika_conf->expire_logs_nums());
+    EncodeNumber(&config_body, g_pika_conf->expire_logs_nums());
   }
 
   if (pstd::stringmatch(pattern.data(), "root-connection-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "root-connection-num");
-    EncodeInt32(&config_body, g_pika_conf->root_connection_num());
+    EncodeNumber(&config_body, g_pika_conf->root_connection_num());
   }
 
   if (pstd::stringmatch(pattern.data(), "slowlog-write-errorlog", 1) != 0) {
@@ -1611,13 +1603,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "slowlog-log-slower-than", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slowlog-log-slower-than");
-    EncodeInt32(&config_body, g_pika_conf->slowlog_slower_than());
+    EncodeNumber(&config_body, g_pika_conf->slowlog_slower_than());
   }
 
   if (pstd::stringmatch(pattern.data(), "slowlog-max-len", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slowlog-max-len");
-    EncodeInt32(&config_body, g_pika_conf->slowlog_max_len());
+    EncodeNumber(&config_body, g_pika_conf->slowlog_max_len());
   }
 
   if (pstd::stringmatch(pattern.data(), "write-binlog", 1) != 0) {
@@ -1629,19 +1621,19 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "binlog-file-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "binlog-file-size");
-    EncodeInt32(&config_body, g_pika_conf->binlog_file_size());
+    EncodeNumber(&config_body, g_pika_conf->binlog_file_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-write-buffer-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-size");
-    EncodeInt64(&config_body, g_pika_conf->max_write_buffer_size());
+    EncodeNumber(&config_body, g_pika_conf->max_write_buffer_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-client-response-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-client-response-size");
-    EncodeInt64(&config_body, g_pika_conf->max_client_response_size());
+    EncodeNumber(&config_body, g_pika_conf->max_client_response_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "compression", 1) != 0) {
@@ -1659,7 +1651,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "db-sync-speed", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "db-sync-speed");
-    EncodeInt32(&config_body, g_pika_conf->db_sync_speed());
+    EncodeNumber(&config_body, g_pika_conf->db_sync_speed());
   }
 
   if (pstd::stringmatch(pattern.data(), "compact-cron", 1) != 0) {
@@ -1689,7 +1681,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "slave-priority", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slave-priority");
-    EncodeInt32(&config_body, g_pika_conf->slave_priority());
+    EncodeNumber(&config_body, g_pika_conf->slave_priority());
   }
 
   // fake string for redis-benchmark
@@ -1708,48 +1700,144 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "sync-window-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-window-size");
-    EncodeInt32(&config_body, g_pika_conf->sync_window_size());
+    EncodeNumber(&config_body, g_pika_conf->sync_window_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-conn-rbuf-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-conn-rbuf-size");
-    EncodeInt32(&config_body, g_pika_conf->max_conn_rbuf_size());
+    EncodeNumber(&config_body, g_pika_conf->max_conn_rbuf_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "replication-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "replication-num");
-    EncodeInt32(&config_body, g_pika_conf->replication_num());
+    EncodeNumber(&config_body, g_pika_conf->replication_num());
   }
   if (pstd::stringmatch(pattern.data(), "consensus-level", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "consensus-level");
-    EncodeInt32(&config_body, g_pika_conf->consensus_level());
+    EncodeNumber(&config_body, g_pika_conf->consensus_level());
   }
 
   if (pstd::stringmatch(pattern.data(), "rate-limiter-bandwidth", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-bandwidth");
-    EncodeInt64(&config_body, g_pika_conf->rate_limiter_bandwidth());
+    EncodeNumber(&config_body, g_pika_conf->rate_limiter_bandwidth());
   }
 
   if (pstd::stringmatch(pattern.data(), "rate-limiter-refill-period-us", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-refill-period-us");
-    EncodeInt64(&config_body, g_pika_conf->rate_limiter_refill_period_us());
+    EncodeNumber(&config_body, g_pika_conf->rate_limiter_refill_period_us());
   }
 
   if (pstd::stringmatch(pattern.data(), "rate-limiter-fairness", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-fairness");
-    EncodeInt64(&config_body, g_pika_conf->rate_limiter_fairness());
+    EncodeNumber(&config_body, g_pika_conf->rate_limiter_fairness());
   }
 
   if (pstd::stringmatch(pattern.data(), "rate-limiter-auto-tuned", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-auto-tuned");
     EncodeString(&config_body, g_pika_conf->rate_limiter_auto_tuned() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "run-id", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "run-id");
+    EncodeString(&config_body, g_pika_conf->run_id());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "master-run-id", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "master-run-id");
+    EncodeString(&config_body, g_pika_conf->master_run_id());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-cache", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-cache");
+    EncodeNumber(&config_body, g_pika_conf->blob_cache());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-compression-type", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-compression-type");
+    EncodeString(&config_body, g_pika_conf->blob_compression_type());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-file-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-file-size");
+    EncodeNumber(&config_body, g_pika_conf->blob_file_size());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-garbage-collection-age-cutoff", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-garbage-collection-age-cutoff");
+    EncodeNumber(&config_body, g_pika_conf->blob_garbage_collection_age_cutoff());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-garbage-collection-force-threshold", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-garbage-collection-force-threshold");
+    EncodeNumber(&config_body, g_pika_conf->blob_garbage_collection_force_threshold());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "blob-num-shard-bits", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "blob-num-shard-bits");
+    EncodeNumber(&config_body, g_pika_conf->blob_num_shard_bits());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "compression-per-level", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "compression-per-level");
+    EncodeString(&config_body, g_pika_conf->compression_all_levels());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "default-slot-num", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "default-slot-num");
+    EncodeNumber(&config_body, g_pika_conf->default_slot_num());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "enable-blob-files", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "enable-blob-files");
+    EncodeString(&config_body, g_pika_conf->enable_blob_files() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "enable-blob-garbage-collection", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "enable-blob-garbage-collection");
+    EncodeString(&config_body, g_pika_conf->enable_blob_garbage_collection() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "loglevel", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "loglevel");
+    EncodeString(&config_body, g_pika_conf->log_level());
+  }
+  
+  if (pstd::stringmatch(pattern.data(), "min-blob-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "min-blob-size");
+    EncodeNumber(&config_body, g_pika_conf->min_blob_size());
+  }
+  
+  if (pstd::stringmatch(pattern.data(), "pin_l0_filter_and_index_blocks_in_cache", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "pin_l0_filter_and_index_blocks_in_cache");
+    EncodeString(&config_body, g_pika_conf->pin_l0_filter_and_index_blocks_in_cache() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "slave-read-only", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "slave-read-only");
+    EncodeString(&config_body, g_pika_conf->slave_read_only() ? "yes" : "no");
   }
 
   std::stringstream resp;
