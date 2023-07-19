@@ -391,6 +391,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> llenptr =
       std::make_unique<LLenCmd>(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLLen, std::move(llenptr)));
+  std::unique_ptr<Cmd> blpopptr =
+      std::make_unique<BLPopCmd>(kCmdNameBLPop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBLPop, std::move(blpopptr)));
   std::unique_ptr<Cmd> lpopptr =
       std::make_unique<LPopCmd>(kCmdNameLPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
@@ -414,6 +417,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> ltrimptr =
       std::make_unique<LTrimCmd>(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLTrim, std::move(ltrimptr)));
+  std::unique_ptr<Cmd> brpopptr =
+      std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr =
       std::make_unique<RPopCmd>(kCmdNameRPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));

@@ -7,8 +7,8 @@
 
 #include <glog/logging.h>
 
-#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
+#include "pstd/include/testutil.h"
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
@@ -16,7 +16,7 @@
 namespace net {
 
 WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
-    : 
+    :
       server_thread_(server_thread),
       conn_factory_(conn_factory),
       cron_interval_(cron_interval),
@@ -199,6 +199,8 @@ void* WorkerThread::ThreadMain() {
         }
 
         if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
+          //check if this conn disconnected from being blocked by blpop/brpop
+          dynamic_cast<net::DispatchThread*>(server_thread_)->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(in_conn));
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = nullptr;
@@ -249,15 +251,24 @@ void WorkerThread::DoCronTask() {
 
       // Check keepalive timeout connection
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
-        to_timeout.push_back(conn);
-        iter = conns_.erase(iter);
-        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
-        continue;
+        auto dispatchThread = dynamic_cast<net::DispatchThread*>(server_thread_);
+        std::shared_lock blrpop_map_latch(dispatchThread->GetBlockMtx());
+        // check if this conn is blocked by blpop/brpop
+        if (dispatchThread->GetMapFromConnToKeys().find(conn->fd()) !=
+            dispatchThread->GetMapFromConnToKeys().end()) {
+          //this conn is blocked, prolong it's life time.
+          conn->set_last_interaction(now);
+        } else {
+          to_timeout.push_back(conn);
+          iter = conns_.erase(iter);
+          LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is "
+                    << keepalive_timeout_.load();
+          continue;
+        }
       }
 
       // Maybe resize connection buffer
       conn->TryResizeBuffer();
-
       ++iter;
     }
   }
