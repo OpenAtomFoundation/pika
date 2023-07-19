@@ -162,6 +162,8 @@ void LuaMaskCountHook(lua_State *lua, lua_Debug *ar) {
   }
   // receive a script kill command
   if (g_pika_server->lua_kill_) {
+    // set false to accept other command
+    g_pika_server->lua_timedout_ = false;
     LOG(WARNING) << "Lua script killed by user with SCRIPT KILL.";
     lua_pushstring(lua, "Script killed by user with SCRIPT KILL...");
     lua_error(lua);
@@ -596,7 +598,7 @@ void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
     // 访问lua
     g_pika_server->ScriptingReset();
     res_.SetRes(CmdRes::kOk);
-    // make it replicate
+    // TODO make it replicate
     // flag_ |= kCmdFlagsWrite;
   } else if (argv_.size() >= 2 && argv_[1] == "exists") {
     // exists 命令只需要访问list

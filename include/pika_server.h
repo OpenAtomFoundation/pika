@@ -488,8 +488,8 @@ class PikaServer : public pstd::noncopyable {
   // 在eval的线程里使用
   bool lua_random_dirty_;                                /* True if a random command was called during the
                                                           execution of the current script. */
-  // 在eval的线程里使用
-  bool lua_timedout_;                                    /* True if we reached the time limit for script
+  // 在eval的线程和ClientConn里使用
+  std::atomic<bool> lua_timedout_{false};                                    /* True if we reached the time limit for script
                                                           execution. */
   std::atomic<bool> lua_kill_{false};                    /* Kill the script if true. */
   std::atomic<bool> lua_calling_{false};

@@ -183,6 +183,14 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
 
+  if (g_pika_server->lua_timedout_) {
+    bool is_kill = (c_ptr->name() == kCmdNameScript && argv.size() == 2 && argv[1] == "kill");
+    if (!is_kill) {
+      c_ptr->res().SetRes(CmdRes::kSlowScript);
+      return c_ptr;
+    }
+  }
+
   if (!g_pika_server->IsCommandSupport(opt)) {
     c_ptr->res().SetRes(CmdRes::kErrOther, "This command is not supported in current configuration");
     return c_ptr;

@@ -304,7 +304,8 @@ class CmdRes {
     kErrOther,
     KIncrByOverFlow,
     kInvalidKeyNums,
-    kNoScript
+    kNoScript,
+    kSlowScript
   };
 
   CmdRes() = default;
@@ -357,6 +358,8 @@ class CmdRes {
         return "-ERR Number of keys can't be greater than number of args\r\n";
       case kNoScript:
         return "-NOSCRIPT No matching script. Please use EVAL.\r\n";
+      case kSlowScript:
+        return "-BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE.\r\n";
       case kWrongNum:
         result = "-ERR wrong number of arguments for '";
         result.append(message_);
