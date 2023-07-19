@@ -1490,7 +1490,7 @@ void PikaServer::AutoKeepAliveRSync() {
   }
 }
 
-void PikaServer::AutoResumeDB(){
+void PikaServer::AutoResumeDB() {
   struct statfs disk_info;
   int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
   if (ret == -1) {
@@ -1519,9 +1519,9 @@ void PikaServer::AutoResumeDB(){
         slot_item.second->DbRWUnLock();
         for (const auto& item : background_errors) {
           if (item.second != 0) {
-            if(free_size >= least_free_size){
+            if (free_size >= least_free_size){
               rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
-              if(!s.ok()) LOG(WARNING) << s.ToString();
+              if (!s.ok()) LOG(WARNING) << s.ToString();
             }
           }
         }

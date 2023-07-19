@@ -86,11 +86,11 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
-  int64_t least_resume_free_disk_size(){
+  int64_t least_resume_free_disk_size() {
     std::shared_lock l(rwlock_);
     return least_free_disk_to_resume_;
   }
-  int64_t resume_interval(){
+  int64_t resume_interval() {
     std::shared_lock l(rwlock_);
     return resume_check_interval_;
   }
@@ -485,12 +485,12 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
-  void SetLeastResumeFreeDiskSize(const int64_t& value){
+  void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
     least_free_disk_to_resume_ = value;
   }
-  void SetResumeInterval(const int64_t& value){
+  void SetResumeInterval(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("manually-resume-interval", std::to_string(value));
     resume_check_interval_ = value;

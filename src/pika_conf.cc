@@ -356,12 +356,12 @@ int PikaConf::Load() {
 
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
-  if(least_free_disk_to_resume_ <= 0){
+  if(least_free_disk_to_resume_ <= 0) {
     least_free_disk_to_resume_ = 268435456;  // 256Mb
   }
 
   GetConfInt64Human("manually-resume-interval", &resume_check_interval_);
-  if(resume_check_interval_ <= 0){
+  if(resume_check_interval_ <= 0) {
     resume_check_interval_ = 600; // seconds
   }
 
