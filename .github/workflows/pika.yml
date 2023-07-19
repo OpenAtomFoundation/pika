@@ -56,6 +56,8 @@ jobs:
       - name: Unit Test
         working-directory: ${{github.workspace}}
         run: |
+          cd ${{github.workspace}} 
+          echo `ls`
           ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
@@ -71,12 +73,11 @@ jobs:
           python3 ../tests/integration/pika_replication_test.py
 
   build_on_centos:
+
     runs-on: ubuntu-latest
     container:
       image: centos:7
 
-    volumes:
-        - ${{github.workspace}}:/workspace
     steps:
       - uses: actions/checkout@v3
 
@@ -121,15 +122,17 @@ jobs:
 
       - name: Test
         run: |
+          cd ${{github.workspace}}
+          echo `ls`
+          echo "--------------"
           cd ${{github.workspace}}/build
           echo `ls`
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
       - name: Unit Test
-        working-directory: /workspace
         run: |
-          cd ${{github.workspace}}
+          cd ${{github.workspace}} 
           echo `ls`
           ./pikatests.sh all
 
