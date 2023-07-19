@@ -90,7 +90,6 @@ jobs:
           yum install -y llvm-toolset-7-clang
           source /opt/rh/devtoolset-10/enable
           gcc --version
-          g++ --version
           make --version
 
 
@@ -168,7 +167,8 @@ jobs:
       - name: Build
         run: |
           cd ${{github.workspace}}
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          export CXX=/usr/local/opt/gcc@10/bin/g++-10 
           cmake -B build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
- 
+          
+          
