@@ -645,8 +645,12 @@ void SyncSlaveSlot::ActivateRsync() {
   if (!rsync_cli_->IsIdle()) {
     return;
   }
+  LOG(WARNING) << "ActivateRsync ...";
   if (rsync_cli_->Init()) {
     rsync_cli_->Start();
+    LOG(WARNING) << "ActivateRsync done...";
+  } else {
+    LOG(WARNING) << "ActivateRsync init failed...";
   }
 }
 
@@ -1156,7 +1160,7 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
       std::shared_ptr<Slot> slot =
           g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
       if (slot) {
-        if (s_slot->IsRsyncIdle()) {
+        if (!s_slot->IsRsyncRunning()) {
           slot->TryUpdateMasterOffset();
         }
       } else {

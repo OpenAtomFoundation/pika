@@ -947,7 +947,7 @@ pstd::Status PikaServer::ReadDumpFile(const std::string& db_name, uint32_t slot_
     }
     DEFER { close(fd); };
 
-    const int kMaxCopyBlockSize = 8 << 10;
+    const int kMaxCopyBlockSize = 1 << 20;
     size_t read_offset = offset;
     size_t read_count = count;
     if (read_count > kMaxCopyBlockSize) {

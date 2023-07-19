@@ -48,7 +48,10 @@ public:
     bool Init();
     Status Start();
     Status Stop();
-    bool IsRunning() { return state_.load() == RUNNING;}
+    bool IsRunning() { 
+      LOG(WARNING) << "current state_: " << state_.load();
+      return state_.load() == RUNNING;
+    }
     bool IsIdle() { return state_.load() == IDLE;}
     void OnReceive(RsyncResponse* resp);
 
@@ -83,6 +86,9 @@ private:
     std::condition_variable cond_;
     std::mutex mu_;
     std::unique_ptr<Throttle> throttle_;
+
+    std::string master_ip_;
+    int master_port_;
 };
 
 //TODO: jinge
@@ -128,27 +134,16 @@ private:
 class WaitObject {
 public:
     WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
-    ~WaitObject() {
-      if (resp_) {
-        delete resp_;
-        resp_ = nullptr;
-      }
-    }
+    ~WaitObject() {}
     void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
-      if (resp_) {
-        delete resp_;
-        resp_ = nullptr;
-      }
+      resp_ = nullptr;
       filename_ = filename;
       type_ = t;
       offset_ = offset;
     }
 
     void Reset(RsyncService::Type t) {
-      if (resp_) {
-        delete resp_;
-        resp_ = nullptr;
-      }
+      resp_ = nullptr;
       filename_ = "";
       type_ = t;
       offset_ = 0xFFFFFFFF;

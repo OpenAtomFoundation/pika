@@ -160,7 +160,7 @@ class SyncSlaveSlot : public SyncSlot {
 
   void ActivateRsync();
 
-  bool IsRsyncIdle() {return rsync_cli_->IsIdle();}
+  bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;

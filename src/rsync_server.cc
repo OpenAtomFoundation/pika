@@ -189,7 +189,6 @@ bool RsyncServerThread::RsyncServerHandle::AccessHandle(int fd, std::string& ip_
 }
 
 void RsyncServerThread::RsyncServerHandle::CronHandle() const {
-    LOG(WARNING) << "CronHandle called";
 }
 
 } // end namespace rsync
