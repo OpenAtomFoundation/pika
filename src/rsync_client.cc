@@ -16,6 +16,7 @@ namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
     : dir_(dir), flush_period_(100), db_name_(db_name), slot_id_(slot_id), state_(IDLE), max_retries_(10) {
   client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
+  wo_.reset(new WaitObject());
   throttle_.reset(new Throttle());
 }
 
@@ -43,14 +44,14 @@ void* RsyncClient::ThreadMain() {
     meta_rep.append("\n");
     while (state_.load(std::memory_order_relaxed) == RUNNING) {
         for (const auto& file : file_set_) {
-            LOG(INFO) << "CopyRemoteFile: " << file << "state_: " << state_.load();
+            LOG(INFO) << "CopyRemoteFile: " << file << " state_: " << state_.load();
             while (state_.load() == RUNNING) {
               s = CopyRemoteFile(file);
               if (!s.ok()) {
                   LOG(WARNING) << "rsync CopyRemoteFile failed, filename: " << file;
                   continue;
               }
-              LOG(WARNING) << "CopyRemoteFile "<< file << "success...";
+              LOG(WARNING) << "CopyRemoteFile "<< file << " success...";
               break;
             }
             if (state_.load(std::memory_order_relaxed) != RUNNING) {
@@ -65,8 +66,8 @@ void* RsyncClient::ThreadMain() {
                 meta_rep.clear();
             }
         }
-        if (meta_table_.size() == file_set_.size()) {
-            LOG(INFO) << "CopyRemoteFile: " << kBgsaveInfoFile << "state_: " << state_.load();
+        if (state_.load(std::memory_order_relaxed) == RUNNING) {
+            LOG(INFO) << "CopyRemoteFile: " << kBgsaveInfoFile << " state_: " << state_.load();
             while (state_.load() == RUNNING) {
               s = CopyRemoteFile(kBgsaveInfoFile, kBgsaveInfoFile + ".bak");
               if (!s.ok()) {
@@ -90,23 +91,26 @@ void RsyncClient::OnReceive(RsyncResponse* resp) {
   std::unique_lock<std::mutex> lock(mu_);
   if (resp->type() != wo_->type_) {
     delete resp;
+    resp = nullptr;
     return;
   }
   if (resp->type() == kRsyncFile &&
       (resp->file_resp().filename() != wo_->filename_ || resp->file_resp().offset() != wo_->offset_)) {
     delete resp;
+    resp = nullptr;
     return;
   }
   wo_->resp_ = resp;
   cond_.notify_all();
 }
 
-Status RsyncClient::Wait(RsyncResponse* resp) {
+Status RsyncClient::Wait(RsyncResponse*& resp) {
   Status s = Status::Timeout("rsync timeout", "timeout");
   {
     std::unique_lock<std::mutex> lock(mu_);
     cond_.wait_for(lock, std::chrono::seconds(3), [this] { return this->wo_->resp_ != nullptr; });
-    *resp = *wo_->resp_;
+    resp = wo_->resp_;
+    s = Status::OK();
   }
   return s;
 }
@@ -116,7 +120,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, const std::strin
     int retries = 0;
     size_t offset = 0;
     size_t copy_file_begin_time = pstd::NowMicros();
-    size_t count = throttle_->ThrottledByThroughput(1024 * 1024);
+    size_t count = throttle_->ThrottledByThroughput(4 * 1024 * 1024);
     MD5 md5;
     std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + (rename.empty() ? filename : rename)));
     DEFER {
@@ -308,8 +312,6 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     if (s.IsTimeout() || resp == nullptr) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, retry times: " << retries;
       retries++;
-      delete resp;
-      resp = nullptr;
       continue;
     }
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()

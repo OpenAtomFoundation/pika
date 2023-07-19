@@ -53,7 +53,7 @@ public:
 
 private:
     bool Recover();
-    Status Wait(RsyncResponse* resp);
+    Status Wait(RsyncResponse*& resp);
     Status CopyRemoteFile(const std::string& filename, const std::string& rename = "");
     Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
     Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
