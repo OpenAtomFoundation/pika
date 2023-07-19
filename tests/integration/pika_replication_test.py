@@ -796,7 +796,7 @@ def test_migrateslot_replication():
     setKey4 = "setKey_store"
 
     slave.slaveof(master_ip, master_port)
-    time.sleep(1)
+    time.sleep(20)
 
     master.delete(setKey1)
     master.delete(setKey2)
@@ -822,7 +822,7 @@ def test_migrateslot_replication():
     master.sadd(setKey3, ''.join(random.choice(letters) for _ in range(5)))
     master.sdiffstore(setKey4, setKey1, setKey2)
 
-    time.sleep(10)
+    time.sleep(25)
 
     m_set1 = master.smembers(setKey1)
     m_set2 = master.smembers(setKey2)
@@ -867,6 +867,7 @@ def test_migrateslot_replication():
     m_set2 = master.smembers(setKey2)
     m_set3 = master.smembers(setKey3)
     m_dest_set = master.smembers(setKey4)
+    time.sleep(15)
     s_set1 = slave.smembers(setKey1)
     s_set2 = slave.smembers(setKey2)
     s_set3 = slave.smembers(setKey3)
@@ -883,6 +884,9 @@ def test_migrateslot_replication():
         assert not (str(key).startswith("_internal:slotkey:4migrate:") or str(key).startswith("_internal:slottag:4migrate:")), f'Expected: slave should not has slot key, but got {key}'
 
     master.config_set("slotmigrate", "no")
+
+    i_keys = master.keys("_internal:slotkey:4migrate*")
+    master.delete(*i_keys)
     print("test_migrateslot_replication OK [✓]")
 
 master_ip = '127.0.0.1'
@@ -893,21 +897,25 @@ slave_port = '9231'
 
 # ---------For Github Action---------Start
 # Simulate the slave server goes down and After being disconnected for a while, it reconnects to the master server.
-delay_slave_of = True
+delay_slave_of = False #Don't change this  to True, unless you've added a long sleep after every slaveof
+
+test_migrateslot_replication()
+master = redis.Redis(host=master_ip, port=int(master_port), db=0)
+slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+slave.slaveof(master_ip, master_port)
+time.sleep(25)
 test_rpoplpush_replication()
 test_bitop_replication()
 test_msetnx_replication()
 test_mset_replication()
 test_smove_replication()
 test_del_replication()
-delay_slave_of = not delay_slave_of
 test_pfmerge_replication()
 test_sdiffstore_replication()
 test_sinterstore_replication()
 test_zunionstore_replication()
 test_zinterstore_replication()
 test_sunionstore_replication()
-test_migrateslot_replication()
 # ---------For Github Action---------End
 
 
