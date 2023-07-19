@@ -49,12 +49,13 @@ public:
     Status Start();
     Status Stop();
     bool IsRunning() { return state_.load() == RUNNING;}
+    bool IsIdle() { return state_.load() == IDLE;}
     void OnReceive(RsyncResponse* resp);
 
 private:
     bool Recover();
     Status Wait(RsyncResponse*& resp);
-    Status CopyRemoteFile(const std::string& filename, const std::string& rename = "");
+    Status CopyRemoteFile(const std::string& filename);
     Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
     Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
     std::string GetLocalMetaFilePath();

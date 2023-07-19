@@ -319,6 +319,7 @@ void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* s
       fileNames -> push_back(type + "/" + fileName);
     }
   }
+  fileNames->push_back(kBgsaveInfoFile);
   pstd::Status s = GetBgSaveUUID(snapshot_uuid);
   if (!s.ok()) {
       LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();

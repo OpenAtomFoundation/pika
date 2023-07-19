@@ -160,6 +160,8 @@ class SyncSlaveSlot : public SyncSlot {
 
   void ActivateRsync();
 
+  bool IsRsyncIdle() {return rsync_cli_->IsIdle();}
+
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
   pstd::Mutex slot_mu_;
