@@ -389,7 +389,21 @@ Pika与Redis的极限QPS对比。
 
 ## 可观测性
 
-1. [指标 Metrics](tools/pika_exporter/README.md)
+### Metrics
+
+1. Pika Server Info：系统架构、IP、端口、run_id、配置文件等
+2. Pika Data Info：DB 大小、日志大小、内存使用情况等
+3. Pika ClientsInfo：连接的客户端
+4. Pika Stats Info：compact、slot等状态信息
+5. Pika Network Info：客户端和主从复制的传入和传出流量以及速率
+6. Pika CPU Info：CPU使用情况
+7. Pika Replication Info：主从复制的状态信息，binlog 信息等
+8. Pika Keyspace Info：五种数据类型的 Key 信息
+9. Pika Command Exec Count Info：命令执行计数
+10. Pika Command Execution Time：命令执行耗时
+11. RocksDB Metrics：五种数据类型的 RocksDB 信息，包括 Memtable、Block Cache、Compaction、SST File、Blob File 等。
+
+详细请参考 [指标 Metrics](tools/pika_exporter/README.md)。
 
 ## 文档
 1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)

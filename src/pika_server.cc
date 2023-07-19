@@ -190,14 +190,6 @@ void PikaServer::Start() {
   }
   LOG(INFO) << "Pika Server going to start";
 
-  // Auto update instantaneous metric
-  std::thread instantaneous_metric([&]() {
-    while (!exit_) {
-      AutoInstantaneousMetric();
-      // wake up every 100 milliseconds
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-  });
 
   while (!exit_) {
     DoTimingTask();
@@ -1313,6 +1305,8 @@ void PikaServer::DoTimingTask() {
   AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
+  // Auto update network instantaneous metric
+  AutoUpdateNetworkMetric();
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1493,9 +1487,9 @@ void PikaServer::AutoKeepAliveRSync() {
   }
 }
 
-void PikaServer::AutoInstantaneousMetric() {
+void PikaServer::AutoUpdateNetworkMetric() {
   monotime current_time = getMonotonicUs();
-  size_t factor = 1000000; // us
+  size_t factor = 5e6; // us, 5s
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
                                     current_time, factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT, g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
