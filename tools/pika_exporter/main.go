@@ -31,6 +31,7 @@ var (
 	logLevel           = flag.String("log.level", getEnv("PIKA_EXPORTER_LOG_LEVEL", "info"), "Log level, valid options: panic fatal error warn warning info debug.")
 	logFormat          = flag.String("log.format", getEnv("PIKA_EXPORTER_LOG_FORMAT", "text"), "Log format, valid options: txt and json.")
 	showVersion        = flag.Bool("version", false, "Show version information and exit.")
+	infoConfigPath     = flag.String("config", getEnv("PIKA_EXPORTER_CONFIG_PATH", "config/info.toml"), "Path to config file.")
 )
 
 func getEnv(key string, defaultVal string) string {
@@ -56,6 +57,15 @@ func main() {
 	if *showVersion {
 		return
 	}
+
+	// load info config
+	if *infoConfigPath != "" {
+		exporter.InfoConfigPath = *infoConfigPath
+	} else {
+		log.Fatalln("info config path is empty")
+	}
+
+	exporter.LoadConfig()
 
 	level, err := log.ParseLevel(*logLevel)
 	if err != nil {
