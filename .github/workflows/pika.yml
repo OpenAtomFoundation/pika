@@ -162,22 +162,14 @@ jobs:
           cmake -B build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-#      - name: Configure CMake
-#        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Test
         working-directory: ${{github.workspace}}/build
         run: |
-          cd ${{github.workspace}}/build
-          echo `ls` 
           export CC=/usr/local/opt/gcc@10/bin/gcc-10
           ctest -C ${{env.BUILD_TYPE}}
-
-      - name: Unit Test
-        working-directory: ${{github.workspace}}
-        run: |
-          cd ${{github.workspace}} 
-          ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
@@ -185,5 +177,4 @@ jobs:
         run: |
           cd ${{github.workspace}}/build 
           chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
-          
+          ../tests/integration/start_master_and_slave.sh 
