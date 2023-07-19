@@ -193,7 +193,6 @@ void PikaServer::Start() {
 
 
   while (!exit_) {
-    LOG(INFO) << "Pika Server do timing task";
     DoTimingTask();
     // wake up every 5 seconds
     if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
@@ -1492,23 +1491,20 @@ void PikaServer::AutoKeepAliveRSync() {
 }
 
 void PikaServer::AutoResumeDB(){
-  LOG(INFO) << "Start check autoresume!";
   struct statfs disk_info;
   int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
   if (ret == -1) {
     LOG(WARNING) << "statfs error: " << strerror(errno);
     return;
   }
+  int64_t interval = g_pika_conf->resume_interval();
+  int64_t least_free_size = g_pika_conf->least_resume_free_disk_size();
 
-  uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
   uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-  double disk_usage_rate = 1.0 - static_cast<double>(free_size) / static_cast<double>(total_size);
-  double max_disk_usage_rate = 0.9;
   struct timeval now;
   gettimeofday(&now, nullptr);
-  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= 5) {
-    LOG(INFO) << "Checking autoresume!";
-    gettimeofday(&last_check_compact_time_, nullptr);
+  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval) {
+    gettimeofday(&last_check_resume_time_, nullptr);
     std::map<std::string, uint64_t> background_errors;
     std::shared_lock db_rwl(g_pika_server->dbs_rw_);
     for (const auto& db_item : g_pika_server->dbs_) {
@@ -1523,17 +1519,15 @@ void PikaServer::AutoResumeDB(){
         slot_item.second->DbRWUnLock();
         for (const auto& item : background_errors) {
           if (item.second != 0) {
-            if(disk_usage_rate < max_disk_usage_rate){
-              rocksdb::Status st = slot_item.second->db()->GetDBByType(item.first)->Resume();
-              if(st.ok()) LOG(INFO) << "Resume db!";
-              else LOG(INFO) << st.ToString();
+            if(free_size > least_free_size){
+              rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
+              if(!s.ok()) LOG(WARNING) << s.ToString();
             }
           }
         }
       }
     }
   }
-  LOG(INFO) << "End check autoresume!";
 }
 
 void PikaServer::AutoUpdateNetworkMetric() {
@@ -1566,10 +1560,6 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
   storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
   storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
-  storage_options_.options.max_bgerror_resume_count = 0;  // manual Resume()
-  // storage_options_.options.listeners.emplace_back(new rocksdb::EventListener());
-  // storage_options_.options.max_bgerror_resume_count = 10;
-  // storage_options_.options.bgerror_resume_retry_interval = 100000;  // 0.1 second
   storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
   storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
   storage_options_.options.optimize_filters_for_hits = g_pika_conf->optimize_filters_for_hits();
