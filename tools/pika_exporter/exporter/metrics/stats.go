@@ -81,7 +81,7 @@ var collectStatsMetrics = map[string]MetricConfig{
         Parser: &normalParser{},
         MetricMeta: &MetaData{
             Name:      "instantaneous_input_kbps",
-            Help:      "the network's read rate per second in KB/sec",
+            Help:      "the network's read rate per second in KB/sec, calculated as an average of 16 samples collected every 5 seconds.",
             Type:      metricTypeCounter,
             Labels:    []string{LabelNameAddr, LabelNameAlias},
             ValueName: "instantaneous_input_kbps",
@@ -91,7 +91,7 @@ var collectStatsMetrics = map[string]MetricConfig{
         Parser: &normalParser{},
         MetricMeta: &MetaData{
             Name:      "instantaneous_output_kbps",
-            Help:      "the network's write rate per second in KB/sec",
+            Help:      "the network's write rate per second in KB/sec, calculated as an average of 16 samples collected every 5 seconds.",
             Type:      metricTypeCounter,
             Labels:    []string{LabelNameAddr, LabelNameAlias},
             ValueName: "instantaneous_output_kbps",
@@ -101,7 +101,7 @@ var collectStatsMetrics = map[string]MetricConfig{
         Parser: &normalParser{},
         MetricMeta: &MetaData{
             Name:      "instantaneous_input_repl_kbps",
-            Help:      "the network's read rate per second in KB/sec for replication purposes",
+            Help:      "the network's read rate per second in KB/sec for replication purposes, calculated as an average of 16 samples collected every 5 seconds.",
             Type:      metricTypeCounter,
             Labels:    []string{LabelNameAddr, LabelNameAlias},
             ValueName: "instantaneous_input_repl_kbps",
@@ -111,7 +111,7 @@ var collectStatsMetrics = map[string]MetricConfig{
         Parser: &normalParser{},
         MetricMeta: &MetaData{
             Name:      "instantaneous_output_repl_kbps",
-            Help:      "the network's write rate per second in KB/sec for replication purposes",
+            Help:      "the network's write rate per second in KB/sec for replication purposes, calculated as an average of 16 samples collected every 5 seconds.",
             Type:      metricTypeCounter,
             Labels:    []string{LabelNameAddr, LabelNameAlias},
             ValueName: "instantaneous_output_repl_kbps",
