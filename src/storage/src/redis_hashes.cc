@@ -168,7 +168,7 @@ Status RedisHashes::PKPatternMatchDel(const std::string& pattern, int32_t* ret) 
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
       if (s.ok()) {
-        total_delete += batch.Count();
+        total_delete += static_cast<int32_t>( batch.Count());
         batch.Clear();
       } else {
         *ret = total_delete;
@@ -180,7 +180,7 @@ Status RedisHashes::PKPatternMatchDel(const std::string& pattern, int32_t* ret) 
   if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += batch.Count();
+      total_delete += static_cast<int32_t>(batch.Count());
       batch.Clear();
     }
   }
@@ -563,7 +563,7 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
       version = parsed_hashes_meta_value.InitialMetaValue();
-      parsed_hashes_meta_value.set_count(filtered_fvs.size());
+      parsed_hashes_meta_value.set_count(static_cast<int32_t>(filtered_fvs.size()));
       batch.Put(handles_[0], key, meta_value);
       for (const auto& fv : filtered_fvs) {
         HashesDataKey hashes_data_key(key, version, fv.field);
@@ -647,7 +647,7 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
   } else if (s.IsNotFound()) {
     char str[4];
     EncodeFixed32(str, 1);
-    HashesMetaValue meta_value(std::string(str, sizeof(int32_t)));
+    HashesMetaValue meta_value(Slice(str, sizeof(int32_t)));
     version = meta_value.UpdateVersion();
     batch.Put(handles_[0], key, meta_value.Encode());
     HashesDataKey data_key(key, version, field);
@@ -741,7 +741,7 @@ Status RedisHashes::HStrlen(const Slice& key, const Slice& field, int32_t* len) 
   std::string value;
   Status s = HGet(key, field, &value);
   if (s.ok()) {
-    *len = value.size();
+    *len = static_cast<int32_t>(value.size());
   } else {
     *len = 0;
   }
@@ -1285,7 +1285,7 @@ void RedisHashes::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(nullptr);
+  auto current_time = static_cast<int32_t>(time(nullptr));
 
   LOG(INFO) << "***************Hashes Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);

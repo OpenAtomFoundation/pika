@@ -63,9 +63,9 @@ class SlaveNode : public RmNode {
   ~SlaveNode() override;
   void Lock() { slave_mu.lock(); }
   void Unlock() { slave_mu.unlock(); }
-  SlaveState slave_state;
+  SlaveState slave_state{kSlaveNotSync};
 
-  BinlogSyncState b_state;
+  BinlogSyncState b_state{kNotSync};
   SyncWindow sync_win;
   LogOffset sent_offset;
   LogOffset acked_offset;

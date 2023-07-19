@@ -29,7 +29,7 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
-      own_handle_(false),
+      
       private_data_(private_data),
       conn_factory_(conn_factory) {
   net_multiplexer_.reset(CreateNetMultiplexer());
@@ -311,7 +311,7 @@ void BackendThread::NotifyClose(const int fd) {
 void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   if (pfe->mask & kReadable) {
     char bb[2048];
-    int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
+    int64_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
@@ -373,7 +373,7 @@ void* BackendThread::ThreadMain() {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
       } else {
         // do user defined cron
         handle_->CronHandle();

@@ -28,8 +28,8 @@
 struct ReplClientTaskArg {
   std::shared_ptr<InnerMessage::InnerResponse> res;
   std::shared_ptr<net::PbConn> conn;
-  ReplClientTaskArg(std::shared_ptr<InnerMessage::InnerResponse> _res, std::shared_ptr<net::PbConn> _conn)
-      : res(std::move(_res)), conn(std::move(_conn)) {}
+  ReplClientTaskArg(const std::shared_ptr<InnerMessage::InnerResponse>& _res, const std::shared_ptr<net::PbConn>& _conn)
+      : res(_res), conn(_conn) {}
 };
 
 struct ReplClientWriteBinlogTaskArg {
@@ -40,7 +40,7 @@ struct ReplClientWriteBinlogTaskArg {
   ReplClientWriteBinlogTaskArg(const std::shared_ptr<InnerMessage::InnerResponse>&  _res,
                                const std::shared_ptr<net::PbConn>& _conn,
                                void* _res_private_data, PikaReplBgWorker* _worker)
-      : res(std::move(_res)), conn(std::move(_conn)), res_private_data(_res_private_data), worker(_worker) {}
+      : res(_res), conn(_conn), res_private_data(_res_private_data), worker(_worker) {}
 };
 
 struct ReplClientWriteDBTaskArg {
@@ -69,8 +69,8 @@ class PikaReplClient {
   pstd::Status Close(const std::string& ip, int port);
 
   void Schedule(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                               std::shared_ptr<net::PbConn> conn, void* res_private_data);
+  void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res, 
+                               const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
                            uint32_t slot_id);
 
@@ -87,7 +87,7 @@ class PikaReplClient {
 
  private:
   size_t GetHashIndex(const std::string& key, bool upper_half);
-  void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % bg_workers_.size(); }
+  void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % static_cast<int32_t>(bg_workers_.size()); }
 
   std::unique_ptr<PikaReplClientThread> client_thread_;
   int next_avail_ = 0;

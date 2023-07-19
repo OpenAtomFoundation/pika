@@ -165,7 +165,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
 
 int SyncProgress::SlaveSize() {
   std::shared_lock l(rwlock_);
-  return slaves_.size();
+  return static_cast<int32_t>(slaves_.size());
 }
 
 LogOffset SyncProgress::InternalCalCommittedIndex(const std::unordered_map<std::string, LogOffset>& match_index) {
@@ -248,7 +248,7 @@ int MemLog::InternalFindLogByLogicIndex(const LogOffset& offset) {
       return -1;
     }
     if (logs_[i].offset.l_offset.index == offset.l_offset.index) {
-      return i;
+      return static_cast<int32_t>(i);
     }
   }
   return -1;
@@ -260,7 +260,7 @@ int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
       return -1;
     }
     if (logs_[i].offset == offset) {
-      return i;
+      return static_cast<int32_t>(i);
     }
   }
   return -1;
@@ -369,6 +369,13 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
 
 Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                                         std::shared_ptr<std::string> resp_ptr) {
+  std::vector<std::string> keys = cmd_ptr->current_key();
+  // slotkey shouldn't add binlog
+  if (cmd_ptr->name() == kCmdNameSAdd && !keys.empty() &&
+      (keys[0].compare(0, SlotKeyPrefix.length(), SlotKeyPrefix) == 0 || keys[0].compare(0, SlotTagPrefix.length(), SlotTagPrefix) == 0)) {
+    return Status::OK();
+  }
+
   LogOffset log_offset;
 
   stable_logger_->Logger()->Lock();
@@ -935,7 +942,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   }
 
   LogOffset committed = committed_index();
-  for (int i = hints.size() - 1; i >= 0; i--) {
+  for (size_t i = hints.size() - 1; i >= 0; i--) {
     if (hints[i].l_offset.index < committed.l_offset.index) {
       return Status::Corruption("hints less than committed index");
     }

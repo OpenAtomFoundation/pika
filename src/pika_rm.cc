@@ -537,7 +537,7 @@ Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return 
 
 /* SyncSlaveSlot */
 SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id),  repl_state_(kNoConnect) {
+    : SyncSlot(db_name, slot_id)  {
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 
@@ -722,7 +722,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
           }
           size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
           std::vector<WriteTask> to_send;
-          int batch_size = 0;
+          size_t batch_size = 0;
           for (size_t i = 0; i < batch_index; ++i) {
             WriteTask& task = queue.front();
             batch_size += task.binlog_chip_.binlog_.size();
@@ -787,8 +787,8 @@ void PikaReplicaManager::ScheduleReplClientBGTask(net::TaskFunc func, void* arg)
 
 void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db_slot,
                                                  const std::shared_ptr<InnerMessage::InnerResponse>& res,
-                                                 std::shared_ptr<net::PbConn> conn, void* res_private_data) {
-  pika_repl_client_->ScheduleWriteBinlogTask(db_slot, res, std::move(conn), res_private_data);
+                                                 const std::shared_ptr<net::PbConn>& conn, void* res_private_data) {
+  pika_repl_client_->ScheduleWriteBinlogTask(db_slot, res, conn, res_private_data);
 }
 
 void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,

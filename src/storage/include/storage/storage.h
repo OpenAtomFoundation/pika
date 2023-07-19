@@ -220,7 +220,7 @@ class Storage {
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
 
   // Return the position of the first bit set to 1 or 0 in a string
   // BitPos key 0
@@ -384,7 +384,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SDIFFSTORE destination key1 key2 key3
   //   destination = {b, d}
-  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns the members of the set resulting from the intersection of all the
   // given sets.
@@ -407,7 +407,7 @@ class Storage {
   //   key3 = {a, c, e}
   //   SINTERSTORE destination key1 key2 key3
   //   destination = {a, c}
-  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns if member is a member of the set stored at key.
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
@@ -464,7 +464,7 @@ class Storage {
   //   key3 = {c, d, e}
   //   SUNIONSTORE destination key1 key2 key3
   //   destination = {a, b, c, d, e}
-  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret);
+  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // See SCAN for SSCAN documentation.
   Status SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -497,11 +497,11 @@ class Storage {
   // the value stored at key is not a list.
   Status LLen(const Slice& key, uint64_t* len);
 
-  // Removes and returns the first element of the list stored at key.
-  Status LPop(const Slice& key, std::string* element);
+  // Removes and returns the first elements of the list stored at key.
+  Status LPop(const Slice& key, int64_t count, std::vector<std::string>* elements);
 
-  // Removes and returns the last element of the list stored at key.
-  Status RPop(const Slice& key, std::string* element);
+  // Removes and returns the last elements of the list stored at key.
+  Status RPop(const Slice& key, int64_t count, std::vector<std::string>* elements);
 
   // Returns the element at index index in the list stored at key. The index is
   // zero-based, so 0 means the first element, 1 the second element and so on.
@@ -818,7 +818,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret);
 
   // Computes the intersection of numkeys sorted sets given by the specified
   // keys, and stores the result in destination. It is mandatory to provide the
@@ -835,7 +835,7 @@ class Storage {
   //
   // If destination already exists, it is overwritten.
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret);
 
   // When all the elements in a sorted set are inserted with the same score, in
   // order to force lexicographical ordering, this command returns all the
@@ -996,7 +996,7 @@ class Storage {
   // Merge multiple HyperLogLog values into an unique value that will
   // approximate the cardinality of the union of the observed Sets of the source
   // HyperLogLog structures.
-  Status PfMerge(const std::vector<std::string>& keys);
+  Status PfMerge(const std::vector<std::string>& keys, std::string& value_to_dest);
 
   // Admin Commands
   Status StartBGThread();

@@ -16,8 +16,8 @@
  * TTL type
  */
 #define PIKA_TTL_ZERO 0
-#define PIKA_TTL_NONE -1
-#define PIKA_TTL_STALE -2
+#define PIKA_TTL_NONE (-1)
+#define PIKA_TTL_STALE (-2)
 
 #define PIKA_SYNC_BUFFER_SIZE 1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
@@ -265,7 +265,7 @@ class RmNode : public Node {
   const std::string& DBName() const { return slot_info_.db_name_; }
   uint32_t SlotId() const { return slot_info_.slot_id_; }
   const SlotInfo& NodeSlotInfo() const { return slot_info_; }
-  void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
+  void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
     return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +

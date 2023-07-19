@@ -38,7 +38,7 @@ bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& curre
 
 int PikaReplClientConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerResponse> response = std::make_shared<InnerMessage::InnerResponse>();
-  ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, header_len_);
+  ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, static_cast<int32_t>(header_len_));
   ::google::protobuf::io::CodedInputStream decoder(&input);
   decoder.SetTotalBytesLimit(g_pika_conf->max_conn_rbuf_size());
   bool success = response->ParseFromCodedStream(&decoder) && decoder.ConsumedEntireMessage();
@@ -120,6 +120,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     g_pika_server->SyncError();
     conn->NotifyClose();
     return;
+  }
+
+  if (meta_sync.run_id() == "" || g_pika_server->master_run_id() != meta_sync.run_id()) {
+    LOG(INFO) << "Run id is not equal, need to do full sync, remote master run id: " << meta_sync.run_id()
+              << ", local run id: " << g_pika_server->master_run_id();
+    g_pika_server->force_full_sync_ = true;
+    g_pika_server->set_master_run_id(meta_sync.run_id());
+    g_pika_conf->SetMasterRunID(meta_sync.run_id());
   }
 
   g_pika_conf->SetWriteBinlog("yes");

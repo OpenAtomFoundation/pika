@@ -139,7 +139,7 @@ class BackendThread : public Thread {
   int keepalive_timeout_;
   int cron_interval_;
   BackendHandle* handle_;
-  bool own_handle_;
+  bool own_handle_{false};
   void* private_data_;
 
   /*

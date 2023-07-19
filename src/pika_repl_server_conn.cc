@@ -48,10 +48,11 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
       meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+      meta_sync->set_run_id(g_pika_conf->run_id());
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);
-        db_info->set_slot_num(db_struct.slot_num);
+        db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
       }
     }
   }
@@ -231,8 +232,8 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
       (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
     LOG(WARNING) << "Slave offset is larger than mine, Slave ip: " << node.ip() << ", Slave port: " << node.port()
-                 << ", Slot: " << slot_name << ", filenum: " << slave_boffset.filenum()
-                 << ", pro_offset_: " << slave_boffset.offset();
+                 << ", Slot: " << slot_name << ", slave filenum: " << slave_boffset.filenum()
+                 << ", slave pro_offset_: " << slave_boffset.offset() << ", local filenum: " << boffset.filenum << ", local pro_offset_: " << boffset.offset;
     return false;
   }
 
@@ -341,7 +342,8 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     }
   }
 
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id, slave_boffset.filenum());
+  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id,
+                           static_cast<int32_t>(slave_boffset.filenum()));
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
@@ -490,7 +492,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
 
 int PikaReplServerConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerRequest> req = std::make_shared<InnerMessage::InnerRequest>();
-  bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, static_cast<int32_t>(header_len_));
   if (!parse_res) {
     LOG(WARNING) << "Pika repl server connection pb parse error.";
     return -1;

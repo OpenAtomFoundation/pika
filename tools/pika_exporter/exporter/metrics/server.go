@@ -20,7 +20,7 @@ var collectServerMetrics = map[string]MetricConfig{
 			Name:   "server_info",
 			Help:   "pika serve instance info",
 			Type:   metricTypeGauge,
-			Labels: []string{LabelNameAddr, LabelNameAlias, "process_id", "tcp_port", "config_file", "server_id", "role"},
+			Labels: []string{LabelNameAddr, LabelNameAlias, "process_id", "tcp_port", "config_file", "server_id", "role", "run_id"},
 		},
 	},
 	"uptime_in_seconds": {

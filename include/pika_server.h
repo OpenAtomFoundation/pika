@@ -32,12 +32,14 @@
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_instant.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 
 
@@ -148,6 +150,8 @@ class PikaServer : public pstd::noncopyable {
   int port();
   time_t start_time_s();
   std::string master_ip();
+  std::string master_run_id();
+  void set_master_run_id(const std::string& master_run_id);
   int master_port();
   int role();
   bool leader_protected_mode();
@@ -279,7 +283,7 @@ class PikaServer : public pstd::noncopyable {
    */
   bool HasMonitorClients() const;
   void AddMonitorMessage(const std::string& monitor_message);
-  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
+  void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
 
   /*
    * Slowlog used
@@ -303,6 +307,19 @@ class PikaServer : public pstd::noncopyable {
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();
   QpsStatistic ServerDBStat(const std::string& db_name);
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
+
+  /*
+   * Network Statistic used
+   */
+  size_t NetInputBytes();
+  size_t NetOutputBytes();
+  size_t NetReplInputBytes();
+  size_t NetReplOutputBytes();
+  float InstantaneousInputKbps();
+  float InstantaneousOutputKbps();
+  float InstantaneousInputReplKbps();
+  float InstantaneousOutputReplKbps();
+
   /*
    * Slave to Master communication used
    */
@@ -331,8 +348,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, std::shared_ptr<Slot>slot);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, std::shared_ptr<Slot>slot);
+  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
+  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot> &slot);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
 
@@ -345,12 +362,13 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsReload {
     bool reloading = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
-    int64_t count = 0;
+    int64_t count = 100;
     std::shared_ptr<Slot> slot;
-    BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100) {}
+    BGSlotsReload() = default;
     void Clear() {
       reloading = false;
       pattern = "*";
@@ -381,7 +399,13 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_reload_.cursor;
   }
-  void Bgslotsreload(std::shared_ptr<Slot> slot);
+
+  void SetSlotsreloadingEndTime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_reload_.end_time = time(nullptr);
+  }
+  void Bgslotsreload(const std::shared_ptr<Slot>& slot);
+
 
   /*
    * BGSlotsCleanup used
@@ -389,14 +413,15 @@ class PikaServer : public pstd::noncopyable {
   struct BGSlotsCleanup {
     bool cleaningup = false;
     time_t start_time = 0;
+    time_t end_time = 0;
     std::string s_start_time;
     int64_t cursor = 0;
     std::string pattern = "*";
-    int64_t count = 0;
+    int64_t count = 100;
     std::shared_ptr<Slot> slot;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
-    BGSlotsCleanup() : cleaningup(false), cursor(0), pattern("*"), count(100){}
+    BGSlotsCleanup() = default;
     void Clear() {
       cleaningup = false;
       pattern = "*";
@@ -440,7 +465,11 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
-  void Bgslotscleanup(std::vector<int> cleanup_slots, std::shared_ptr<Slot> slot);
+  void SetSlotscleaningupEndtime() {
+    std::lock_guard ml(bgsave_protector_);
+    bgslots_cleanup_.end_time = time(nullptr);
+  }
+  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = false;
@@ -454,6 +483,16 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
+ /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
+
+
+ /*
+  * Instantaneous Metric used
+  */
+  std::unique_ptr<Instant> instant_;
 
   friend class Cmd;
   friend class InfoCmd;
@@ -470,6 +509,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoPurge();
   void AutoDeleteExpiredDump();
   void AutoKeepAliveRSync();
+  void AutoUpdateNetworkMetric();
 
   std::string host_;
   int port_ = 0;
@@ -512,6 +552,7 @@ class PikaServer : public pstd::noncopyable {
    */
   std::string master_ip_;
   int master_port_ = 0;
+  std::string master_run_id_;
   int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
@@ -579,6 +620,11 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 
 #endif

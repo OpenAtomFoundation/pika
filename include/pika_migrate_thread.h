@@ -17,16 +17,16 @@ class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
  public:
   PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot_);
-  ~PikaParseSendThread();
+  ~PikaParseSendThread() override;
 
   bool Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num);
   void ExitThread(void);
 
  private:
-  int MigrateOneKey(net::NetCli *cli, const std::string key, const char key_type, bool async);
+  int MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async);
   void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
-  virtual void *ThreadMain();
+  void *ThreadMain() override;
 
  private:
   std::string dest_ip_;
@@ -43,7 +43,7 @@ class PikaParseSendThread : public net::Thread {
 class PikaMigrateThread : public net::Thread {
  public:
   PikaMigrateThread();
-  virtual ~PikaMigrateThread();
+  ~PikaMigrateThread() override;
   bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num, int64_t keys_num,
                        const std::shared_ptr<Slot>& slot);
   int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
@@ -54,6 +54,10 @@ class PikaMigrateThread : public net::Thread {
   void DecWorkingThreadNum(void);
   void OnTaskFailed(void);
   void AddResponseNum(int32_t response_num);
+  bool IsMigrating(void) {return is_migrating_.load();}
+  time_t GetStartTime(void) {return start_time_;}
+  time_t GetEndTime(void) {return end_time_;}
+  std::string GetStartTimeStr(void) {return s_start_time_;}
 
  private:
   void ResetThread(void);
@@ -63,7 +67,7 @@ class PikaMigrateThread : public net::Thread {
   void ReadSlotKeys(const std::string &slotKey, int64_t need_read_num, int64_t &real_read_num, int32_t *finish);
   bool CreateParseSendThreads(int32_t dispatch_num);
   void DestroyParseSendThreads(void);
-  virtual void *ThreadMain();
+  void *ThreadMain() override;
 
  private:
   std::string dest_ip_;
@@ -71,6 +75,9 @@ class PikaMigrateThread : public net::Thread {
   int64_t timeout_ms_ = 60;
   int64_t slot_id_ = 0;
   int64_t keys_num_ = 0;
+  time_t start_time_ = 0;
+  time_t end_time_ = 0;
+  std::string s_start_time_;
   std::shared_ptr<Slot> slot_;
   std::atomic<bool> is_migrating_;
   std::atomic<bool> should_exit_;

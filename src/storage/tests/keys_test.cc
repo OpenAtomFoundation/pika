@@ -2005,7 +2005,8 @@ for (const auto& kv : kvs) {
   keys_out.clear();
   expect_keys.clear();
   std::string element;
-  s = db.LPop("PKRSCANRANGE_I", &element);
+  std::vector<std::string> elements;
+  s = db.LPop("PKRSCANRANGE_I",1, &elements);
   ASSERT_TRUE(s.ok());
   s = db.PKRScanRange(DataType::kLists, "PKRSCANRANGE_Q", "PKRSCANRANGE_C", "*", 4, &keys_out, &kvs_out, &next_key);
   ASSERT_TRUE(s.ok());
@@ -7719,8 +7720,8 @@ TEST_F(KeysTest, ExpireTest) {
   // Lists
   s = db.RPush("GP3_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
   ASSERT_TRUE(s.ok());
-  std::string element;
-  s = db.LPop("GP3_EXPIRE_LISTS_KEY", &element);
+  std::vector<std::string> elements;
+  s = db.LPop("GP3_EXPIRE_LISTS_KEY", 1,&elements);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();

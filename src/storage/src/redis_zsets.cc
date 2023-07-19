@@ -190,7 +190,7 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
       if (s.ok()) {
-        total_delete += batch.Count();
+        total_delete += static_cast<int32_t>(batch.Count());
         batch.Clear();
       } else {
         *ret = total_delete;
@@ -202,7 +202,7 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += batch.Count();
+      total_delete += static_cast<int32_t>(batch.Count());
       batch.Clear();
     }
   }
@@ -225,7 +225,7 @@ Status RedisZSets::ZPopMax(const Slice& key, const int64_t count, std::vector<Sc
     } else if (parsed_zsets_meta_value.count() == 0) {
       return Status::NotFound();
     } else {
-      int32_t num = parsed_zsets_meta_value.count();
+      int64_t num = parsed_zsets_meta_value.count();
       num = num <= count ? num : count;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
@@ -267,7 +267,7 @@ Status RedisZSets::ZPopMin(const Slice& key, const int64_t count, std::vector<Sc
     } else if (parsed_zsets_meta_value.count() == 0) {
       return Status::NotFound();
     } else {
-      int32_t num = parsed_zsets_meta_value.count();
+      int64_t num = parsed_zsets_meta_value.count();
       num = num <= count ? num : count;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
@@ -378,7 +378,7 @@ Status RedisZSets::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_
       ZSetsScoreKey zsets_score_key(key, version, sm.score, sm.member);
       batch.Put(handles_[2], zsets_score_key.Encode(), Slice());
     }
-    *ret = filtered_score_members.size();
+    *ret = static_cast<int32_t>(filtered_score_members.size());
   } else {
     return s;
   }
@@ -1029,7 +1029,7 @@ Status RedisZSets::ZScore(const Slice& key, const Slice& member, double* score) 
 }
 
 Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
   *ret = 0;
   uint32_t statistic = 0;
   rocksdb::WriteBatch batch;
@@ -1093,7 +1093,7 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.count();
     version = parsed_zsets_meta_value.InitialMetaValue();
-    parsed_zsets_meta_value.set_count(member_score_map.size());
+    parsed_zsets_meta_value.set_count(static_cast<int32_t>(member_score_map.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else {
     char buf[4];
@@ -1114,14 +1114,15 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
     ZSetsScoreKey zsets_score_key(destination, version, sm.second, sm.first);
     batch.Put(handles_[2], zsets_score_key.Encode(), Slice());
   }
-  *ret = member_score_map.size();
+  *ret = static_cast<int32_t>(member_score_map.size());
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(member_score_map);
   return s;
 }
 
 Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return Status::Corruption("ZInterstore invalid parameter, no keys");
   }
@@ -1219,7 +1220,7 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.count();
     version = parsed_zsets_meta_value.InitialMetaValue();
-    parsed_zsets_meta_value.set_count(final_score_members.size());
+    parsed_zsets_meta_value.set_count(static_cast<int32_t>(final_score_members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else {
     char buf[4];
@@ -1239,9 +1240,10 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
     ZSetsScoreKey zsets_score_key(destination, version, sm.score, sm.member);
     batch.Put(handles_[2], zsets_score_key.Encode(), Slice());
   }
-  *ret = final_score_members.size();
+  *ret = static_cast<int32_t>(final_score_members.size());
   s = db_->Write(default_write_options_, &batch);
   UpdateSpecificKeyStatistics(destination.ToString(), statistic);
+  value_to_dest = std::move(final_score_members);
   return s;
 }
 
@@ -1297,7 +1299,7 @@ Status RedisZSets::ZLexcount(const Slice& key, const Slice& min, const Slice& ma
                              int32_t* ret) {
   std::vector<std::string> members;
   Status s = ZRangebylex(key, min, max, left_close, right_close, &members);
-  *ret = members.size();
+  *ret = static_cast<int32_t>(members.size());
   return s;
 }
 
@@ -1742,7 +1744,7 @@ void RedisZSets::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(nullptr);
+  auto current_time = static_cast<int32_t>(time(nullptr));
 
   LOG(INFO) << "***************ZSets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);

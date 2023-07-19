@@ -21,13 +21,13 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
-#define configRunIdSize 40
+const uint32_t configRunIDSize = 40;
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
  public:
   PikaConf(const std::string& path);
-  ~PikaConf() override {}
+  ~PikaConf() override = default;
 
   // Getter
   int port() {
@@ -61,6 +61,10 @@ class PikaConf : public pstd::BaseConf {
   std::string log_path() {
     std::shared_lock l(rwlock_);
     return log_path_;
+  }
+  std::string log_level() {
+    std::shared_lock l(rwlock_);
+    return log_level_;
   }
   std::string db_path() {
     std::shared_lock l(rwlock_);
@@ -129,6 +133,10 @@ class PikaConf : public pstd::BaseConf {
   std::string run_id() {
     std::shared_lock l(rwlock_);
     return run_id_;
+  }
+  std::string master_run_id() {
+    std::shared_lock l(rwlock_);
+    return master_run_id_;
   }
   std::string requirepass() {
     std::shared_lock l(rwlock_);
@@ -314,6 +322,7 @@ class PikaConf : public pstd::BaseConf {
   int binlog_file_size() { return binlog_file_size_; }
   PikaMeta* local_meta() { return local_meta_.get(); }
   std::vector<rocksdb::CompressionType> compression_per_level();
+  std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
 
   // Setter
@@ -338,6 +347,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
+  }
+  void SetMasterRunID(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("master-run-id", value);
+    master_run_id_ = value;
   }
   void SetSlavePriority(const int value) {
     std::lock_guard l(rwlock_);
@@ -380,6 +394,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("dump-prefix", value);
     bgsave_prefix_ = value;
+  }
+  void SetRunID(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("run-id", value);
+    run_id_ = value;
   }
   void SetRequirePass(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -492,6 +511,12 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
+  void SetLogLevel(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("loglevel", value);
+    log_level_ = value;
+  }
+
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -514,6 +539,7 @@ class PikaConf : public pstd::BaseConf {
   int thread_pool_size_ = 0;
   int sync_thread_num_ = 0;
   std::string log_path_;
+  std::string log_level_;
   std::string db_path_;
   std::string db_sync_path_;
   int expire_dump_days_ = 3;
@@ -531,6 +557,7 @@ class PikaConf : public pstd::BaseConf {
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
+  std::string master_run_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;

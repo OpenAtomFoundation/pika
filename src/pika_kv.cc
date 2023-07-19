@@ -67,16 +67,16 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s = slot->db()->Setxx(key_, value_, &res, sec_);
+      s = slot->db()->Setxx(key_, value_, &res, static_cast<int32_t>(sec_));
       break;
     case SetCmd::kNX:
-      s = slot->db()->Setnx(key_, value_, &res, sec_);
+      s = slot->db()->Setnx(key_, value_, &res, static_cast<int32_t>(sec_));
       break;
     case SetCmd::kVX:
-      s = slot->db()->Setvx(key_, target_, value_, &success_, sec_);
+      s = slot->db()->Setvx(key_, target_, value_, &success_, static_cast<int32_t>(sec_));
       break;
     case SetCmd::kEXORPX:
-      s = slot->db()->Setex(key_, value_, sec_);
+      s = slot->db()->Setex(key_, value_, static_cast<int32_t>(sec_));
       break;
     default:
       s = slot->db()->Set(key_, value_);
@@ -108,20 +108,20 @@ std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logi
 
     // to pksetexat cmd
     std::string pksetexat_cmd("pksetexat");
-    RedisAppendLen(content, pksetexat_cmd.size(), "$");
+    RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
     RedisAppendContent(content, pksetexat_cmd);
     // key
-    RedisAppendLen(content, key_.size(), "$");
+    RedisAppendLenUint64(content, key_.size(), "$");
     RedisAppendContent(content, key_);
     // time_stamp
     char buf[100];
-    int32_t time_stamp = time(nullptr) + sec_;
+    auto time_stamp = static_cast<int32_t>(time(nullptr) + sec_);
     pstd::ll2string(buf, 100, time_stamp);
     std::string at(buf);
-    RedisAppendLen(content, at.size(), "$");
+    RedisAppendLenUint64(content, at.size(), "$");
     RedisAppendContent(content, at);
     // value
-    RedisAppendLen(content, value_.size(), "$");
+    RedisAppendLenUint64(content, value_.size(), "$");
     RedisAppendContent(content, value_);
     return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
                                                content, {});
@@ -142,7 +142,7 @@ void GetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->Get(key_, &value);
   if (s.ok()) {
-    res_.AppendStringLen(value.size());
+    res_.AppendStringLenUint64(value.size());
     res_.AppendContent(value);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
@@ -185,6 +185,16 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void DelCmd::Merge() { res_.AppendInteger(split_res_); }
+
+void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  std::string opt = argv_.at(0);
+  for(auto& key: keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog(slot);
+  }
+}
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -250,7 +260,7 @@ void IncrbyfloatCmd::DoInitial() {
 void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->Incrbyfloat(key_, value_, &new_value_);
   if (s.ok()) {
-    res_.AppendStringLen(new_value_.size());
+    res_.AppendStringLenUint64(new_value_.size());
     res_.AppendContent(new_value_);
     AddSlotKey("k", key_, slot);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float") {
@@ -324,7 +334,7 @@ void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
     if (old_value.empty()) {
       res_.AppendContent("$-1");
     } else {
-      res_.AppendStringLen(old_value.size());
+      res_.AppendStringLenUint64(old_value.size());
       res_.AppendContent(old_value);
     }
     AddSlotKey("k", key_, slot);
@@ -367,10 +377,10 @@ void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
   rocksdb::Status s = slot->db()->MGet(keys_, &vss);
   if (s.ok()) {
-    res_.AppendArrayLen(vss.size());
+    res_.AppendArrayLenUint64(vss.size());
     for (const auto& vs : vss) {
       if (vs.status.ok()) {
-        res_.AppendStringLen(vs.value.size());
+        res_.AppendStringLenUint64(vs.value.size());
         res_.AppendContent(vs.value);
       } else {
         res_.AppendContent("$-1");
@@ -399,10 +409,10 @@ void MgetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void MgetCmd::Merge() {
-  res_.AppendArrayLen(split_res_.size());
+  res_.AppendArrayLenUint64(split_res_.size());
   for (const auto& vs : split_res_) {
     if (vs.status.ok()) {
-      res_.AppendStringLen(vs.value.size());
+      res_.AppendStringLenUint64(vs.value.size());
       res_.AppendContent(vs.value);
     } else {
       res_.AppendContent("$-1");
@@ -446,14 +456,14 @@ void KeysCmd::Do(std::shared_ptr<Slot> slot) {
     keys.clear();
     cursor = slot->db()->Scan(type_, cursor, pattern_, PIKA_SCAN_STEP_LENGTH, &keys);
     for (const auto& key : keys) {
-      RedisAppendLen(raw, key.size(), "$");
+      RedisAppendLenUint64(raw, key.size(), "$");
       RedisAppendContent(raw, key);
     }
     if (raw.size() >= raw_limit) {
       res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
       return;
     }
-    total_key += keys.size();
+    total_key += static_cast<int64_t>(keys.size());
   } while (cursor != 0);
 
   res_.AppendArrayLen(total_key);
@@ -489,13 +499,13 @@ std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
   // don't check variable 'success_', because if 'success_' was false, an empty binlog will be saved into file.
   // to setnx cmd
   std::string set_cmd("setnx");
-  RedisAppendLen(content, set_cmd.size(), "$");
+  RedisAppendLenUint64(content, set_cmd.size(), "$");
   RedisAppendContent(content, set_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // value
-  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
@@ -516,7 +526,7 @@ void SetexCmd::DoInitial() {
 }
 
 void SetexCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->Setex(key_, value_, sec_);
+  rocksdb::Status s = slot->db()->Setex(key_, value_, static_cast<int32_t>(sec_));
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     AddSlotKey("k", key_, slot);
@@ -533,20 +543,20 @@ std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
 
   // to pksetexat cmd
   std::string pksetexat_cmd("pksetexat");
-  RedisAppendLen(content, pksetexat_cmd.size(), "$");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
   RedisAppendContent(content, pksetexat_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  int32_t time_stamp = time(nullptr) + sec_;
+  auto time_stamp = static_cast<int32_t>(time(nullptr) + sec_);
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
-  RedisAppendLen(content, at.size(), "$");
+  RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
   // value
-  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
                                              content, {});
@@ -566,7 +576,7 @@ void PsetexCmd::DoInitial() {
 }
 
 void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->Setex(key_, value_, usec_ / 1000);
+  rocksdb::Status s = slot->db()->Setex(key_, value_, static_cast<int32_t>(usec_ / 1000));
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -582,20 +592,20 @@ std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
 
   // to pksetexat cmd
   std::string pksetexat_cmd("pksetexat");
-  RedisAppendLen(content, pksetexat_cmd.size(), "$");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
   RedisAppendContent(content, pksetexat_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  int32_t time_stamp = time(nullptr) + usec_ / 1000;
+  auto time_stamp = static_cast<int32_t>(time(nullptr) + usec_ / 1000);
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
-  RedisAppendLen(content, at.size(), "$");
+  RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
   // value
-  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
                                              content, {});
@@ -673,6 +683,20 @@ void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void MsetCmd::Merge() {}
+void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  PikaCmdArgsType set_argv;
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of Set
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(set_argv, db_name_);
+    set_cmd_->DoBinlog(slot);
+  }
+}
 
 void MsetnxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -703,6 +727,24 @@ void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+  if(!success_){
+    //some keys already exist, set operations aborted, no need of binlog
+    return;
+  }
+  PikaCmdArgsType set_argv;
+  set_argv.resize(3);
+  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  set_argv[0] = "set";
+  set_cmd_->SetConn(GetConn());
+  set_cmd_->SetResp(resp_.lock());
+  for(auto& kv: kvs_){
+    set_argv[1] = kv.key;
+    set_argv[2] = kv.value;
+    set_cmd_->Initial(set_argv, db_name_);
+    set_cmd_->DoBinlog(slot);
+  }
+}
 
 void GetrangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -724,7 +766,7 @@ void GetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string substr;
   rocksdb::Status s = slot->db()->Getrange(key_, start_, end_, &substr);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendStringLen(substr.size());
+    res_.AppendStringLenUint64(substr.size());
     res_.AppendContent(substr);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -818,7 +860,7 @@ void ExpireCmd::DoInitial() {
 
 void ExpireCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t res = slot->db()->Expire(key_, sec_, &type_status);
+  int64_t res = slot->db()->Expire(key_, static_cast<int32_t>(sec_), &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -834,17 +876,17 @@ std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
 
   // to expireat cmd
   std::string expireat_cmd("expireat");
-  RedisAppendLen(content, expireat_cmd.size(), "$");
+  RedisAppendLenUint64(content, expireat_cmd.size(), "$");
   RedisAppendContent(content, expireat_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
   int64_t expireat = time(nullptr) + sec_;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
-  RedisAppendLen(content, at.size(), "$");
+  RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
@@ -865,7 +907,7 @@ void PexpireCmd::DoInitial() {
 
 void PexpireCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t res = slot->db()->Expire(key_, msec_ / 1000, &type_status);
+  int64_t res = slot->db()->Expire(key_, static_cast<int32_t>(msec_ / 1000), &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -877,21 +919,21 @@ std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
                                  uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, argv_.size(), "*");
+  RedisAppendLenUint64(content, argv_.size(), "*");
 
   // to expireat cmd
   std::string expireat_cmd("expireat");
-  RedisAppendLen(content, expireat_cmd.size(), "$");
+  RedisAppendLenUint64(content, expireat_cmd.size(), "$");
   RedisAppendContent(content, expireat_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
   int64_t expireat = time(nullptr) + msec_ / 1000;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
-  RedisAppendLen(content, at.size(), "$");
+  RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
@@ -912,7 +954,7 @@ void ExpireatCmd::DoInitial() {
 
 void ExpireatCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int32_t res = slot->db()->Expireat(key_, time_stamp_, &type_status);
+  int32_t res = slot->db()->Expireat(key_, static_cast<int32_t>(time_stamp_), &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -936,21 +978,21 @@ std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_
                                    uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, argv_.size(), "*");
+  RedisAppendLenUint64(content, argv_.size(), "*");
 
   // to expireat cmd
   std::string expireat_cmd("expireat");
-  RedisAppendLen(content, expireat_cmd.size(), "$");
+  RedisAppendLenUint64(content, expireat_cmd.size(), "$");
   RedisAppendContent(content, expireat_cmd);
   // key
-  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendLenUint64(content, key_.size(), "$");
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
   int64_t expireat = time_stamp_ms_ / 1000;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
-  RedisAppendLen(content, at.size(), "$");
+  RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
@@ -959,7 +1001,7 @@ std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_
 
 void PexpireatCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int32_t res = slot->db()->Expireat(key_, time_stamp_ms_ / 1000, &type_status);
+  int32_t res = slot->db()->Expireat(key_, static_cast<int32_t>(time_stamp_ms_ / 1000), &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1106,9 +1148,9 @@ void PTypeCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->GetType(key_, false, types);
 
   if (s.ok()) {
-    res_.AppendArrayLen(types.size());
+    res_.AppendArrayLenUint64(types.size());
     for (const auto& vs : types) {
-      res_.AppendStringLen(vs.size());
+      res_.AppendStringLenUint64(vs.size());
       res_.AppendContent(vs);
     }
   } else {
@@ -1181,14 +1223,14 @@ void ScanCmd::Do(std::shared_ptr<Slot> slot) {
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
     cursor_ret = slot->db()->Scan(type_, cursor_ret, pattern_, batch_count, &keys);
     for (const auto& key : keys) {
-      RedisAppendLen(raw, key.size(), "$");
+      RedisAppendLenUint64(raw, key.size(), "$");
       RedisAppendContent(raw, key);
     }
     if (raw.size() >= raw_limit) {
       res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
       return;
     }
-    total_key += keys.size();
+    total_key += static_cast<int64_t>(keys.size());
   } while (cursor_ret != 0 && (left != 0));
 
   res_.AppendArrayLen(2);
@@ -1254,10 +1296,10 @@ void ScanxCmd::Do(std::shared_ptr<Slot> slot) {
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
-    res_.AppendStringLen(next_key.size());
+    res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
 
-    res_.AppendArrayLen(keys.size());
+    res_.AppendArrayLenUint64(keys.size());
     std::vector<std::string>::iterator iter;
     for (const auto& key : keys) {
       res_.AppendString(key);
@@ -1281,7 +1323,7 @@ void PKSetexAtCmd::DoInitial() {
 }
 
 void PKSetexAtCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->PKSetexAt(key_, value_, time_stamp_);
+  rocksdb::Status s = slot->db()->PKSetexAt(key_, value_, static_cast<int32_t>(time_stamp_));
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -1347,15 +1389,15 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_), &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
-    res_.AppendStringLen(next_key.size());
+    res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
 
     if (type_ == storage::kStrings) {
-      res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
+      res_.AppendArrayLenUint64(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);
         if (string_with_value) {
@@ -1363,7 +1405,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
         }
       }
     } else {
-      res_.AppendArrayLen(keys.size());
+      res_.AppendArrayLenUint64(keys.size());
       for (const auto& key : keys) {
         res_.AppendString(key);
       }
@@ -1431,15 +1473,16 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_),
+                                               &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
-    res_.AppendStringLen(next_key.size());
+    res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
 
     if (type_ == storage::kStrings) {
-      res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
+      res_.AppendArrayLenUint64(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);
         if (string_with_value) {
@@ -1447,7 +1490,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
         }
       }
     } else {
-      res_.AppendArrayLen(keys.size());
+      res_.AppendArrayLenUint64(keys.size());
       for (const auto& key : keys) {
         res_.AppendString(key);
       }

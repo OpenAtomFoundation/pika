@@ -6,21 +6,34 @@ Checks:     '
             modernize-*,
             performance-*,
             portability-*,
-            readability-*,
+            -readability-*,
+            -cppcoreguidelines-*,
             -bugprone-easily-swappable-parameters,
             -bugprone-implicit-widening-of-multiplication-result,
-            -bugprone-narrowing-conversions,
             -bugprone-reserved-identifier,
             -bugprone-signed-char-misuse,
-            -bugprone-suspicious-include,
-            -bugprone-unhandled-self-assignment,
+            -bugprone-branch-clone,
             -clang-analyzer-cplusplus.NewDelete,
             -clang-analyzer-cplusplus.NewDeleteLeaks,
             -clang-analyzer-security.insecureAPI.rand,
+            -clang-analyzer-cplusplus.InnerPointer,
+            -clang-analyzer-core.CallAndMessage,
+            -clang-analyzer-deadcode.DeadStores,
             -clang-diagnostic-implicit-int-float-conversion,
+            -clang-diagnostic-unused-command-line-argument,
+            -clang-diagnostic-ignored-optimization-argument,
             -google-readability-avoid-underscore-in-googletest-name,
+            -google-default-arguments,
+            -google-explicit-constructor,
+            -google-runtime-int,
             -modernize-avoid-c-arrays,
             -modernize-use-nodiscard,
+            -modernize-use-trailing-return-type,
+            -modernize-pass-by-value,
+            -modernize-concat-nested-namespaces,
+            -modernize-return-braced-init-list,
+			      -modernize-use-equals-delete,
+			      -modernize-redundant-void-arg,
             -readability-convert-member-functions-to-static,
             -readability-identifier-length,
             -readability-function-cognitive-complexity,
@@ -28,38 +41,47 @@ Checks:     '
             -readability-make-member-function-const,
             -readability-qualified-auto,
             -readability-redundant-access-specifiers,
-            -bugprone-exception-escape,
-            -modernize-use-trailing-return-type,
             -readability-function-size,
             -readability-else-after-return,
-            -bugprone-branch-clone,
             -readability-use-anyofallof,
-            -google-default-arguments,
-            -clang-analyzer-cplusplus.InnerPointer,
-            -google-explicit-constructor,
-            -use_of_tag_name_without_tag,
-            -clang-analyzer-core.CallAndMessage,
-            -clang-analyzer-deadcode.DeadStores,
-            -google-runtime-int,
-            -clang-diagnostic-unused-command-line-argument,
-            -clang-diagnostic-ignored-optimization-argument,
             -readability-implicit-bool-conversion,
+            -use_of_tag_name_without_tag,
             '
-# CheckOptions:
-#   - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
-#   - { key: readability-identifier-naming.EnumCase,            value: CamelCase  }
-#   - { key: readability-identifier-naming.FunctionCase,        value: CamelCase  }
-#   - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
-#   - { key: readability-identifier-naming.MemberCase,          value: lower_case }
-#   - { key: readability-identifier-naming.MemberSuffix,        value: _          }
-#   - { key: readability-identifier-naming.NamespaceCase,       value: lower_case }
-#   - { key: readability-identifier-naming.StructCase,          value: CamelCase  }
-#   - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
-#   - { key: readability-identifier-naming.VariableCase,        value: lower_case }
+# naming check
+CheckOptions:
+  - { key: readability-identifier-naming.ClassCase,                value: CamelCase  }
+  - { key: readability-identifier-naming.EnumCase,                 value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,             value: CamelCase  }
+  - { key: readability-identifier-naming.NamespaceCase,            value: lower_case }
+  - { key: readability-identifier-naming.StructCase,               value: CamelCase  }
+  - { key: readability-identifier-naming.UnionCase,                value: CamelCase  }
+  - { key: readability-identifier-naming.TemplateParameterCase,    value: CamelCase  }
+  - { key: readability-identifier-naming.MacroDefinitionCase,      value: UPPER_CASE }
+  
+  - { key: readability-identifier-naming.GlobalConstantCase,       value: CamelCase  }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,     value: k          }
+  - { key: readability-identifier-naming.MemberConstantCase,       value: CamelCase  }
+  - { key: readability-identifier-naming.MemberConstantPrefix,     value: k          }
+  - { key: readability-identifier-naming.EnumConstantCase,         value: CamelCase  }
+  - { key: readability-identifier-naming.EnumConstantPrefix,       value: k          }
+  # - { key: readability-identifier-naming.StaticConstantCase,       value: CamelCase  }
+  # - { key: readability-identifier-naming.StaticConstantPrefix,     value: k          }
+  # - { key: readability-identifier-naming.ConstantCase,             value: CamelCase  }
+  # - { key: readability-identifier-naming.ConstantPrefix,           value: k          }
+  # - { key: readability-identifier-naming.ConstantParameterCase,     value: lower_case}
+
+  - { key: readability-identifier-naming.GlobalVariableCase,       value: lower_case }
+  - { key: readability-identifier-naming.GlobalVariablePrefix,     value: g_pika_    }
+  - { key: readability-identifier-naming.VariableCase,             value: lower_case }
+  
+  - { key: readability-identifier-naming.PublicMethodCase,         value: CamelCase  }
+  - { key: readability-identifier-naming.PrivateMethodCase,        value: camelBack  }
+  - { key: readability-identifier-naming.ProtectedMethodCase,      value: camelBack  }
+  - { key: readability-identifier-naming.MemberCase,               value: lower_case }
+  - { key: readability-identifier-naming.MemberSuffix,             value: _          }
 
 WarningsAsErrors: '*'
-# HeaderFilterRegex: '(|/src|/src/net|/src/pstd|/src/storage)/include'
-# HeaderFilterRegex: '/src/(net|storage|pstd)/include'
+HeaderFilterRegex: '((pstd|net|storage)/include/.+\.h|include/pika_.+\.h)'
 AnalyzeTemporaryDtors: true
 
 #### Disabled checks and why: #####
