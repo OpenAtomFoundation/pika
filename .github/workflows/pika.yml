@@ -145,7 +145,6 @@ jobs:
           key: ${{ runner.os }}-dependencies
 
       - name: install Deps
-        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         run: |
           brew update
           brew install autoconf protobuf python llvm wget git
