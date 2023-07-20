@@ -133,13 +133,13 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-#      - name: Test
-#        # Execute tests defined by the CMake configuration.
-#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-#        run: |
-#          cd ${{github.workspace}}/build
-#          source /opt/rh/devtoolset-10/enable
-#          ctest -C ${{env.BUILD_TYPE}}
+      - name: Test
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: |
+          cd ${{github.workspace}}/build
+          source /opt/rh/devtoolset-10/enable
+          ctest -C ${{env.BUILD_TYPE}}
 
       # Create a directory for downloading artifacts in job2 (optional)
       - name: Create artifact directory
@@ -152,50 +152,29 @@ jobs:
           name: workspace-artifact
           path: /github/workspace
 
-#      # Create a soft link to the build directory
-#      - name: Create build soft link
-#        run: ln -s /home/runner/work/pika/pika/build /github/workspace/artifacts/home/runner/work/pika/pika/build
-
-#      # 创建到 build 目录的软链接
-#      - name: 创建 build 软链接
-#        run: |
-#          cd /github/workspace/artifacts/home/runner/work/pika/pika/
-#          mkdir build
-#          ln -s /home/runner/work/pika/pika/build /github/workspace/artifacts/home/runner/work/pika/pika/build
-
       - name: Unzip workspace directory
         run: |
           unzip -q /github/workspace/workspace.zip -d /github/workspace/artifacts
 
-#      # 创建到 build 目录的软链接
-#      - name: 创建 build 软链接
-#        run: |
-#          cd /github/workspace/artifacts/home/runner/work/pika/pika/
-#          echo `ls`
-#          mkdir -p build
-#          ln -s /home/runner/work/pika/pika/build /github/workspace/artifacts/home/runner/work/pika/pika/build
-
       - name: Unit Test
         run: |
-          cd /github/workspace/artifacts
-          echo `pwd`
-          echo "------------------"
-          echo `ls`
-          echo "------------------"
-          cd ${{github.workspace}}
-          echo `pwd`
-          echo "-------------------"
-          echo `ls`
-          echo "--------------------"
           cd /github/workspace/artifacts/home/runner/work/pika/pika/
-          echo `pwd`
-          echo "--------------------"
-          echo `ls`
-          echo "--------------------"
-          ls -la # Optional: List files in the directory for verification
           mv /home/runner/work/pika/pika/build /github/workspace/artifacts/home/runner/work/pika/pika/
           chmod +x pikatests.sh
           sh pikatests.sh all
+
+        # master on port 9221, slave on port 9231, all with 2 db
+      - name: Start pika master and slave
+        run: |
+          cd /github/workspace/artifacts/home/runner/work/pika/pika/build 
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        run: |
+          cd /github/workspace/artifacts/home/runner/work/pika/pika/build 
+          python3 ../tests/integration/pika_replication_test.py
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_macos:
     runs-on: macos-latest
