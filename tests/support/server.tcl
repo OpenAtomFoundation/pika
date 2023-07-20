@@ -177,7 +177,7 @@ proc start_server {options {code undefined}} {
         if {[string length $line] > 0 && [string index $line 0] ne "#"} {
             set elements [split $line " "]
             set directive [lrange $elements 0 0]
-            set arguments [lrange $elements 1 end]
+            set arguments [lrange $elements 2 end]
             dict set config $directive $arguments
         }
     }
@@ -198,10 +198,7 @@ proc start_server {options {code undefined}} {
     set config_file [tmpfile redis.conf]
     set fp [open $config_file w+]
     foreach directive [dict keys $config] {
-        if {$directive == "port"} {
-            puts -nonewline $fp "$directive : "
-            puts $fp [dict get $config $directive]
-        } elseif {$directive == "requirepass" || $directive == "userpass"} {
+        if {$directive == "requirepass" || $directive == "userpass"} {
             if {[dict get $config $directive] eq ":"} {
                 puts $fp "$directive: "
             } else {
@@ -210,7 +207,7 @@ proc start_server {options {code undefined}} {
         } elseif {$directive == "dump_prefix"} {
             puts $fp "$directive :"
         } else {
-            puts -nonewline $fp "$directive "
+            puts -nonewline $fp "$directive : "
             puts $fp [dict get $config $directive]
         }
     }
