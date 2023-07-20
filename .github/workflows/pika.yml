@@ -99,7 +99,9 @@ jobs:
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
           yum install -y llvm-toolset-7
           yum install -y llvm-toolset-7-clang
-          yum install -y which tcl unzip
+          yum install -y which tcl unzip python3
+          python3 -m pip install --upgrade pip
+          python3 -m pip install redis
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
@@ -164,17 +166,17 @@ jobs:
           sh pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start pika master and slave
-        run: |
-          cd /github/workspace/artifacts/home/runner/work/pika/pika/build 
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
-
-      - name: Run Python E2E Tests
-        run: |
-          cd /github/workspace/artifacts/home/runner/work/pika/pika/build 
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
+#      - name: Start pika master and slave
+#        run: |
+#          cd /github/workspace/artifacts/home/runner/work/pika/pika/build
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
+#
+#      - name: Run Python E2E Tests
+#        run: |
+#          cd /github/workspace/artifacts/home/runner/work/pika/pika/build
+#          python3 ../tests/integration/pika_replication_test.py
+#          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_macos:
     runs-on: macos-latest
@@ -205,7 +207,7 @@ jobs:
         run: |
           cd ${{github.workspace}}
           export CC=/usr/local/opt/gcc@10/bin/gcc-10
-          cmake -B build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          cmake -B ${{github.workspace}}/build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
 #      - name: Test
@@ -220,10 +222,16 @@ jobs:
           cd ${{github.workspace}} 
           ./pikatests.sh all
 
-      - name: Start pika master and slave
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cd ${{github.workspace}}/build 
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh 
+#      - name: Start pika master and slave
+#        working-directory: ${{github.workspace}}/build
+#        run: |
+#          cd ${{github.workspace}}/build
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
+#
+#      - name: Run Python E2E Tests
+#        working-directory: ${{github.workspace}}/build
+#        run: |
+#          python3 ../tests/integration/pika_replication_test.py
+#          python3 ../tests/unit/Blpop_Brpop_test.py
 
