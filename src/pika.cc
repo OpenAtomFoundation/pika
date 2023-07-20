@@ -32,7 +32,7 @@ extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 static void version() {
   char version[32];
   snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
-  std::cout << "-----------Pika server----------" << std::endl;
+  std::cout << "-----------Pika servr----------" << std::endl;
   std::cout << "pika_version: " << version << std::endl;
   std::cout << pika_build_git_sha << std::endl;
   std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
