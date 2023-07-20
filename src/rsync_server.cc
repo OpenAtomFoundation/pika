@@ -1,11 +1,80 @@
 #include <filesystem>
-#include "include/rsync_server.h"
+
 #include <glog/logging.h>
-#include "include/pika_server.h"
 #include <google/protobuf/map.h>
+
+#include "pstd_hash.h"
+#include "include/pika_server.h"
+#include "include/rsync_server.h"
+#include "pstd/include/pstd_defer.h"
 
 extern PikaServer* g_pika_server;
 namespace rsync {
+
+//TODO: optimzie file read
+Status ReadDumpFile(const std::string filepath, const size_t offset, const size_t count,
+                    char* data, size_t* bytes_read, std::string* checksum) {
+  int fd = open(filepath.c_str(), O_RDONLY);
+  if (fd < 0) {
+    return Status::IOError("fd open failed");
+  }
+  DEFER { close(fd); };
+
+  const int kMaxCopyBlockSize = 1 << 20;
+  size_t read_offset = offset;
+  size_t read_count = count;
+  if (read_count > kMaxCopyBlockSize) {
+    read_count = kMaxCopyBlockSize;
+  }
+  ssize_t bytesin = 0;
+  size_t left_read_count = count;
+
+  while ((bytesin = pread(fd, data, read_count, read_offset)) > 0) {
+    left_read_count -= bytesin;
+    if (left_read_count < 0) {
+      break ;
+    }
+    if (read_count > left_read_count) {
+      read_count = left_read_count;
+    }
+
+    data += bytesin;
+    *bytes_read += bytesin;
+    read_offset += bytesin;
+  }
+
+  if (bytesin == -1) {
+    LOG(ERROR) << "unable to read from " << filepath;
+    return pstd::Status::IOError("unable to read from " + filepath);
+  }
+
+  if (bytesin == 0) {
+    char* buffer = new char[kMaxCopyBlockSize];
+    pstd::MD5 md5;
+
+    while ((bytesin = read(fd, buffer, kMaxCopyBlockSize)) > 0) {
+      md5.update(buffer, bytesin);
+    }
+    if (bytesin == -1) {
+      LOG(ERROR) << "unable to read from " << filepath;
+      delete []buffer;
+      return pstd::Status::IOError("unable to read from " + filepath);
+    }
+    delete []buffer;
+    *checksum = md5.finalize().hexdigest();
+  }
+  return pstd::Status::OK();
+}
+
+void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::PbConn> conn) {
+  std::string reply_str;
+  if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
+    LOG(WARNING) << "Process FileRsync request serialization failed";
+    conn->NotifyClose();
+    return;
+  }
+  conn->NotifyWrite();
+}
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
     work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
@@ -44,13 +113,11 @@ int RsyncServer::Stop() {
     return 0;
 }
 
-RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port,
-                    Thread* thread, void* worker_specific_data,
-                    NetMultiplexer* mpx) : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {}
+RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
+                                 void* worker_specific_data, NetMultiplexer* mpx)
+    : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {}
 
-RsyncServerConn::~RsyncServerConn() {
-    LOG(INFO) << "RsyncServerConn destroyed";
-}
+RsyncServerConn::~RsyncServerConn() {}
 
 int RsyncServerConn::DealMessage() {
     std::shared_ptr<RsyncService::RsyncRequest> req = std::make_shared<RsyncService::RsyncRequest>();
@@ -88,82 +155,89 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   uint32_t slot_id = req->slot_id();
 
   RsyncService::RsyncResponse response;
+  response.set_code(RsyncService::kOk);
+  response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
   response.set_slot_id(slot_id);
-  response.set_type(RsyncService::kRsyncMeta);
-  LOG(INFO) << "RsyncServer receives RsyncMeta request...";
-
 
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
   g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
-  LOG(WARNING) << "snapshot_uuid: " << snapshot_uuid;
-  std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
-    LOG(WARNING) << "meta file name: " << file;
-  });
-  //TODO: temporarily mock response
-  RsyncService::MetaResponse* meta_resp = response.mutable_meta_resp();
   response.set_snapshot_uuid(snapshot_uuid);
+
+  LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
+            << "files count: " << filenames.size() << "file list: ";
+  std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
+    LOG(INFO) << "rsync snapshot file: " << file;
+  });
+
+  RsyncService::MetaResponse* meta_resp = response.mutable_meta_resp();
   for (const auto& filename : filenames) {
         meta_resp->add_filenames(filename);
   }
-
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
-    LOG(WARNING) << "Process MetaRsync request serialization failed";
-    conn->NotifyClose();
-    return;
-  }
-  conn->NotifyWrite();
-  LOG(INFO) << "RsyncServer RsyncMeta request done...";
+  RsyncWriteResp(response, conn);
 }
 
 void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
-    std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
-    const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
+  std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
+  const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
-  LOG(INFO) << "RsyncServer RsyncFile request ...";
 
   uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
   std::string filename = req->file_req().filename();
   size_t offset = req->file_req().offset();
   size_t count = req->file_req().count();
+
   RsyncService::RsyncResponse response;
-  std::string snapshot_uuid;
-  Status s = g_pika_server->GetDumpUUID(db_name, slot_id, &snapshot_uuid);
-  LOG(INFO) << "Receive RsyncFile request " << "filename: " << filename
-            << " offset: " << offset
-            << " count: " << count;
-
-  char* buffer = new char[req->file_req().count() + 1];
-  size_t bytes_read{0};
-  auto status = g_pika_server -> ReadDumpFile(db_name, slot_id, filename, offset, count, buffer, &bytes_read);
-  LOG(INFO) << "RsyncServer ReadDumpFile: " << filename << " read size: " << bytes_read << "status: " << status.ToString();
-
+  response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
-  response.set_snapshot_uuid(snapshot_uuid);
   response.set_db_name(db_name);
   response.set_slot_id(slot_id);
 
-  RsyncService::FileResponse* file_resp = response.mutable_file_resp();
-  file_resp->set_eof(bytes_read != count);
-  file_resp->set_count(bytes_read);
-  file_resp->set_offset(offset);
-  file_resp->set_data(buffer, bytes_read);
-  //TODO: checksum
-  file_resp->set_checksum("checksum");
-  file_resp->set_filename(filename);
+  std::string snapshot_uuid;
+  Status s = g_pika_server->GetDumpUUID(db_name, slot_id, &snapshot_uuid);
+  response.set_snapshot_uuid(snapshot_uuid);
+  if (!s.ok()) {
+    LOG(WARNING) << "rsyncserver get snapshotUUID failed";
+    response.set_code(RsyncService::kErr);
+    RsyncWriteResp(response, conn);
+    return;
+  }
 
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
-    LOG(WARNING) << "Process FileRsync request serialization failed";
-    conn->NotifyClose();
+  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
+  if (!slot) {
+   LOG(WARNING) << "cannot find slot for db_name " << db_name
+                << "slot_id: " << slot_id;
+   response.set_code(RsyncService::kErr);
+   RsyncWriteResp(response, conn);
+  }
+
+  const std::string filepath = slot->bgsave_info().path + "/" + filename;
+  char* buffer = new char[req->file_req().count() + 1];
+  std::string checksum = "";
+  size_t bytes_read{0};
+  s = ReadDumpFile(filepath, offset, count, buffer, &bytes_read, &checksum);
+  if (!s.ok()) {
+    response.set_code(RsyncService::kErr);
+    RsyncWriteResp(response, conn);
     delete []buffer;
     return;
   }
+  LOG(INFO) << "RsyncServer receives FileRequest " << "filename: "
+            << filename << " offset: " << offset << " count: "
+            << count << " read_count: " << bytes_read;
+
+  RsyncService::FileResponse* file_resp = response.mutable_file_resp();
+  file_resp->set_data(buffer, bytes_read);
+  file_resp->set_eof(bytes_read != count);
+  file_resp->set_checksum(checksum);
+  file_resp->set_filename(filename);
+  file_resp->set_count(bytes_read);
+  file_resp->set_offset(offset);
+
+  RsyncWriteResp(response, conn);
   delete []buffer;
-  conn->NotifyWrite();
   LOG(INFO) << "RsyncServer RsyncFile request ...";
 }
 

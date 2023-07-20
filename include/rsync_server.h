@@ -39,7 +39,6 @@ public:
     int Start();
     int Stop();
 private:
-    std::map<std::string, std::shared_ptr<RsyncReader> > file_map_;
     std::unique_ptr<ThreadPool> work_thread_ = nullptr;
     std::unique_ptr<RsyncServerThread> rsync_server_thread_ = nullptr;
 };

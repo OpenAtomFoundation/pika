@@ -6,6 +6,11 @@ enum Type {
     kRsyncFile = 2;
 }
 
+enum StatusCode {
+    kOk  = 1;
+    kErr = 2;
+}
+
 message MetaResponse {
     repeated string filenames = 1;
 }
@@ -37,6 +42,7 @@ message RsyncResponse {
     required string snapshot_uuid = 2;
     required string db_name = 3;
     required uint32 slot_id = 4;
-    optional MetaResponse meta_resp = 5;
-    optional FileResponse file_resp = 6;
+    required StatusCode code = 5;
+    optional MetaResponse meta_resp = 6;
+    optional FileResponse file_resp = 7;
 }
