@@ -11,7 +11,7 @@ env:
   BUILD_TYPE: RelWithDebInfo
 
 jobs:
-  build:
+  build_on_ubuntu:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -28,6 +28,17 @@ jobs:
             ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
             ~/.cache/pip
           key: ${{ runner.os }}-dependencies
+
+      # Zip the entire workspace directory
+      - name: Zip workspace directory
+        run: zip -r workspace.zip ${{ github.workspace }}
+
+      # Upload the zip file as an artifact
+      - name: Upload workspace artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: workspace-artifact
+          path: workspace.zip
 
       - name: install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
@@ -88,6 +99,7 @@ jobs:
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
           yum install -y llvm-toolset-7
           yum install -y llvm-toolset-7-clang
+          yum install -y which tcl unzip
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
@@ -121,13 +133,48 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Test
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+#      - name: Test
+#        # Execute tests defined by the CMake configuration.
+#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+#        run: |
+#          cd ${{github.workspace}}/build
+#          source /opt/rh/devtoolset-10/enable
+#          ctest -C ${{env.BUILD_TYPE}}
+
+      # Create a directory for downloading artifacts in job2 (optional)
+      - name: Create artifact directory
+        run: mkdir -p /github/workspace/artifacts
+
+      # Download the workspace artifact from job1
+      - name: Download workspace artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: workspace-artifact
+          path: /github/workspace
+
+      - name: Unzip workspace directory
         run: |
-          cd ${{github.workspace}}/build
-          source /opt/rh/devtoolset-10/enable
-          ctest -C ${{env.BUILD_TYPE}}
+          unzip -q /github/workspace/workspace.zip -d /github/workspace/artifacts
+
+      - name: Unit Test
+        run: |
+          cd /github/workspace/artifacts
+          echo `pwd`
+          echo "-----------------"
+          echo `ls`
+          echo "-----------------"
+          cd ${{github.workspace}}
+          echo `pwd`
+          echo "---------------------"
+          echo `ls`
+          cd /github/workspace/artifacts/home/runner/work/pika/pika/
+          echo `pwd`
+          echo "---------------------"
+          echo `ls`
+          echo "---------------------"
+          ls -la # Optional: List files in the directory for verification
+          chmod +x pikatests.sh
+          sh pikatests.sh all
 
   build_on_macos:
     runs-on: macos-latest
@@ -145,7 +192,6 @@ jobs:
           key: ${{ runner.os }}-dependencies
 
       - name: install Deps
-        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         run: |
           brew update
           brew install autoconf protobuf python llvm wget git
