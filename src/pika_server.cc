@@ -180,6 +180,7 @@ void PikaServer::Start() {
     if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
       LOG(FATAL) << "you will slaveof yourself as the config file, please check";
     } else {
+      g_pika_server->set_master_run_id(g_pika_conf->master_run_id());
       SetMaster(master_ip, master_port);
     }
   }

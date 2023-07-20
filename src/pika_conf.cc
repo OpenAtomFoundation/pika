@@ -536,7 +536,7 @@ int PikaConf::Load() {
   if (slaveof_ != "") {
     std::string master_run_id;
     GetConfStr("master-run-id", &master_run_id);
-    if (master_run_id_.length() == configRunIDSize) {
+    if (master_run_id.length() == configRunIDSize) {
       master_run_id_ = master_run_id;
     }
   }
