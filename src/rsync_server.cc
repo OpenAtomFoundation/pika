@@ -9,7 +9,6 @@ namespace rsync {
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
     work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
-    for_each(ips.begin(), ips.end(), [&port](auto& ip) {LOG(WARNING) << ip << "port: " << port;});
     rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);
 }
 
