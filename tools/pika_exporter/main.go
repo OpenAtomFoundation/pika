@@ -65,7 +65,9 @@ func main() {
 		log.Fatalln("info config path is empty")
 	}
 
-	exporter.LoadConfig()
+	if err := exporter.LoadConfig(); err != nil {
+		log.Fatalln("load config failed. err:", err)
+	}
 
 	level, err := log.ParseLevel(*logLevel)
 	if err != nil {

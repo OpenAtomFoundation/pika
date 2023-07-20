@@ -1,8 +1,10 @@
 package exporter
 
 import (
+	"fmt"
+
 	"github.com/pelletier/go-toml"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 var InfoConf *InfoConfig
@@ -25,37 +27,39 @@ type InfoConfig struct {
 	InfoAll bool
 }
 
-func LoadConfig() {
-	log.Println("Configuration updated:")
+func LoadConfig() error {
+	log.Println("Update configuration")
 	err := readConfig(InfoConfigPath)
 	if err != nil {
-		log.Println("Error reading configuration file, err:", err)
-	}
-}
-
-func readConfig(filePath string) error {
-	conf := InfoConfig{}
-	tree, err := toml.LoadFile(filePath)
-	if err != nil {
 		return err
 	}
 
-	// Unmarshal the TOML data into the Config struct
-	err = tree.Unmarshal(&conf)
-	if err != nil {
-		return err
-	}
-
-	InfoConf = &conf
 	InfoConf.CheckInfo()
 	InfoConf.Display()
 
 	return nil
 }
 
+func readConfig(filePath string) error {
+	conf := InfoConfig{}
+	tree, err := toml.LoadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("unable to load toml file %s: %s", filePath, err)
+	}
+
+	// Unmarshal the TOML data into the Config struct
+	err = tree.Unmarshal(&conf)
+	if err != nil {
+		return fmt.Errorf("unable to parse toml file %s: %s", filePath, err)
+	}
+
+	InfoConf = &conf
+
+	return nil
+}
+
 // Display config
 func (c *InfoConfig) Display() {
-	// Now you can access the configuration values
 	log.Println("Server:", c.Server)
 	log.Println("Data:", c.Data)
 	log.Println("Clients:", c.Clients)

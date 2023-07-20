@@ -217,7 +217,10 @@ func (e *exporter) scrape(ch chan<- prometheus.Metric) {
 
 func (e *exporter) collectInfo(c *client, ch chan<- prometheus.Metric) error {
 	// update info config
-	LoadConfig()
+	if err := LoadConfig(); err != nil {
+		log.Errorln("load config failed:", err)
+		return err
+	}
 	info, err := c.GetInfo()
 	if err != nil {
 		return err
