@@ -31,7 +31,7 @@ def test_single_existing_list(db_):
     assert result[0] == b'blist' and result[1] == b'b', f"Expected (b'blist1', b'b'), but got {result}"
 
     pika.close()
-    print("test_single_existing_list Passed [✓], db:db%d" % (db_))
+    print("test_single_existing_list Passed [Passed], db:db%d" % (db_))
 
 
 # 解阻塞测试（超时自动解阻塞，lpush解阻塞，rpush解阻塞，rpoplpush解阻塞）
@@ -213,7 +213,7 @@ def test_blpop_brpop_unblock_lrpush_rpoplpush(db_):
         assert blocked == False, f"Expected False but got {blocked}"
     thread.join()
     pika.close()
-    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed [✓], db:db%d" % (db_))
+    print("test_blpop_brpop_unblock_lrpush_rpoplpush Passed [Passed], db:db%d" % (db_))
 
 
 def test_concurrency_block_unblock(db_):
@@ -350,7 +350,7 @@ def test_concurrency_block_unblock(db_):
         t.join()
     pika.delete('blist0', 'blist1', 'blist2', 'blist3')
 
-    print("test_concurrency_block_unblock Passed [✓], db:db%d" % (db_))
+    print("test_concurrency_block_unblock Passed [Passed], db:db%d" % (db_))
     pika.close()
 
 
@@ -396,7 +396,7 @@ def test_multiple_existing_lists(db_):
     assert result[0] == b'blist1' and result[1] == b'large', f"Expected (b'blist1', b'large'), but got {result}"
 
     pika.close()
-    print("test_multiple_existing_lists Passed [✓], db:db%d" % (db_))
+    print("test_multiple_existing_lists Passed [Passed], db:db%d" % (db_))
 
 
 def test_blpop_brpop_same_key_multiple_times(db_):
@@ -488,7 +488,7 @@ def test_blpop_brpop_same_key_multiple_times(db_):
     assert result[0] == b'list2' and result[1] == b'd', f"Expected (b'list2', b'd'), but got {result}"
 
     pika.close()
-    print("test_blpop_brpop_same_key_multiple_times Passed [✓], db:db%d" % (db_))
+    print("test_blpop_brpop_same_key_multiple_times Passed [Passed], db:db%d" % (db_))
 
 
 # 目标list被一条push增加了多个value，先完成多个value的入列再pop
@@ -542,7 +542,7 @@ def test_blpop_brpop_variadic_lpush(db_):
     thread.join()
     # 检查blist的第一个元素
     assert pika.lindex('blist', 0) == b'foo', "Expected 'foo'"
-    print("test_blpop_brpop_variadic_lpush Passed [✓], db:db%d" % (db_))
+    print("test_blpop_brpop_variadic_lpush Passed [Passed], db:db%d" % (db_))
 
 
 # 先被阻塞的先服务/阻塞最久的优先级最高
@@ -587,7 +587,7 @@ def test_serve_priority(db_):
     t4.join()
 
     pika.close()
-    print("test_serve_priority Passed [✓], db:db%d" % (db_))
+    print("test_serve_priority Passed [Passed], db:db%d" % (db_))
 
 
 # 主从复制测试
@@ -813,7 +813,7 @@ def test_master_slave_replication(db_):
 
     master.close()
     slave.close()
-    print("test_master_slave_replication Passed [✓], db:db%d" % (db_))
+    print("test_master_slave_replication Passed [Passed], db:db%d" % (db_))
 
 def test_with_db(db_id):
     test_master_slave_replication(db_id)
