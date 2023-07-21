@@ -122,7 +122,7 @@ RsyncServerConn::~RsyncServerConn() {}
 int RsyncServerConn::DealMessage() {
     std::shared_ptr<RsyncService::RsyncRequest> req = std::make_shared<RsyncService::RsyncRequest>();
     bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-    LOG(INFO) << "RsyncServer receives new request...";
+    //LOG(INFO) << "RsyncServer receives new request...";
     if (!parse_res) {
         LOG(WARNING) << "Pika rsync server connection pb parse error.";
         return -1;
@@ -153,6 +153,11 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
   uint32_t slot_id = req->slot_id();
+  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
+  if (!slot || slot->IsBgSaving()) {
+    LOG(WARNING) << "waiting bgsave done...";
+    return;
+  }
 
   RsyncService::RsyncResponse response;
   response.set_code(RsyncService::kOk);
@@ -224,9 +229,11 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     delete []buffer;
     return;
   }
+/*
   LOG(INFO) << "RsyncServer receives FileRequest " << "filename: "
             << filename << " offset: " << offset << " count: "
-            << count << " read_count: " << bytes_read;
+            << count << " read_count: " << bytes_read << "checksum:" << checksum;
+*/
 
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
   file_resp->set_data(buffer, bytes_read);
@@ -238,7 +245,7 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   RsyncWriteResp(response, conn);
   delete []buffer;
-  LOG(INFO) << "RsyncServer RsyncFile request ...";
+  //LOG(INFO) << "RsyncServer RsyncFile request ...";
 }
 
 RsyncServerThread::RsyncServerThread(const std::set<std::string>& ips, int port, int cron_interval, RsyncServer* arg)

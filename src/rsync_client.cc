@@ -65,7 +65,7 @@ void* RsyncClient::ThreadMain() {
         LOG(WARNING) << "rsync CopyRemoteFile failed, filename: " << file;
         continue;
       }
-      LOG(WARNING) << "CopyRemoteFile "<< file << " success...";
+      //LOG(WARNING) << "CopyRemoteFile "<< file << " success...";
       break;
     }
     if (state_.load(std::memory_order_relaxed) != RUNNING) {
@@ -153,7 +153,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
       std::string to_send;
       request.SerializeToString(&to_send);
 
-      LOG(WARNING) << "master ip: " << master_ip_ << " master_port: " << master_port_;
+      //LOG(WARNING) << "master ip: " << master_ip_ << " master_port: " << master_port_;
       s = client_thread_->Write(master_ip_, master_port_, to_send);
       if (!s.ok()) {
         LOG(WARNING) << "send rsync request failed";
@@ -161,13 +161,11 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
       }
 
       {
-        LOG(WARNING) << "reset waitobject";
         std::lock_guard<std::mutex> lock(mu_);
         wo_->Reset(filename, kRsyncFile, offset);
-        LOG(WARNING) << "reset waitobject done";
       }
 
-      LOG(INFO) << "wait CopyRemoteFile response.....";
+      //LOG(INFO) << "wait CopyRemoteFile response.....";
       RsyncResponse* resp = nullptr;
       s = Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
@@ -211,6 +209,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
       md5.update(resp->file_resp().data().c_str(), ret_count);
       offset += resp->file_resp().count();
       if (resp->file_resp().eof()) {
+        LOG(WARNING) << "filename: " << filename << " md5: " << md5.finalize().hexdigest();
         if (md5.finalize().hexdigest() != resp->file_resp().checksum()) {
           LOG(WARNING) << "mismatch file checksum for file: " << filename;
           s = Status::IOError("mismatch checksum", "mismatch checksum");

@@ -172,6 +172,8 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
+  std::string master_run_id = g_pika_conf->master_run_id();
+  set_master_run_id(master_run_id);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     int32_t sep = slaveof.find(':');
