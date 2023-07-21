@@ -468,11 +468,11 @@ Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret) {
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, key, &old_value);
+  char buf[32] = {0};
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&old_value);
     if (parsed_strings_value.IsStale()) {
       *ret = value;
-      char buf[32];
       Int64ToStr(buf, 32, value);
       StringsValue strings_value(buf);
       return db_->Put(default_write_options_, key, strings_value.Encode());
@@ -495,7 +495,6 @@ Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret) {
     }
   } else if (s.IsNotFound()) {
     *ret = value;
-    char buf[32];
     Int64ToStr(buf, 32, value);
     StringsValue strings_value(buf);
     return db_->Put(default_write_options_, key, strings_value.Encode());
