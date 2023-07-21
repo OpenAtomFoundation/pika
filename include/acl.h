@@ -16,6 +16,7 @@
 #include <shared_mutex>
 #include <string>
 #include <vector>
+#include "pika_command.h"
 #include "pstd_status.h"
 
 #define USER_COMMAND_BITS_COUNT 1024
@@ -59,14 +60,21 @@ enum class AclUserFlag {
                          connection is immediately authenticated. */
 };
 
+// ACL key permission types
+enum class AclPermission {
+  READ = (1 << 0),
+  WRITE = (1 << 1),
+  ALL = (READ | WRITE),
+};
+
 struct AclKeyPattern {
-  int flags;           /* The CMD_KEYS_* flags for this key pattern */
+  uint32_t flags;      /* The CMD_KEYS_* flags for this key pattern */
   std::string pattern; /* The pattern to match keys against */
 };
 
 class AclSelector {
  public:
-  explicit AclSelector() : AclSelector(static_cast<uint32_t>(AclSelectorFlag::ROOT)){};
+  explicit AclSelector() : AclSelector(0){};
   explicit AclSelector(uint32_t flag) : flags_(flag){};
   ~AclSelector() = default;
 
@@ -75,9 +83,26 @@ class AclSelector {
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
 
-  pstd::Status SetSelector(const std::string op);
+  pstd::Status SetSelector(const std::string& op);
+
+  pstd::Status SetSelectorFromOpSet(const std::string& opSet);
 
  private:
+  bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
+
+  void InsertKeyPattern(const std::string& str, uint32_t flags);
+
+  void InsertChannel(const std::string& str);
+
+  void ChangeSelector(const Cmd* cmd, bool allow);
+  void ChangeSelector(const std::shared_ptr<Cmd>& cmd, bool allow);
+  void ChangeSelector(const std::shared_ptr<Cmd>& cmd, const std::string& subCmd, bool allow);
+  void SetSubCommand(const uint32_t cmdId);
+  void SetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+  void ResetSubCommand();
+  void ResetSubCommand(const uint32_t cmdId);
+  void ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+
   uint32_t flags_;  // See SELECTOR_FLAG_*
 
   /* The bit in allowed_commands is set if this user has the right to
@@ -89,18 +114,18 @@ class AclSelector {
 
   /* A list of allowed key patterns. If this field is empty the user cannot mention any key in a command,
    * unless the flag ALLKEYS is set in the user. */
-  std::list<AclKeyPattern> patterns_;
+  std::list<std::shared_ptr<AclKeyPattern>> patterns_;
 
   /* A list of allowed Pub/Sub channel patterns. If this field is empty the user cannot mention any
    * channel in a `PUBLISH` or [P][UNSUBSCRIBE] command, unless the flag ALLCHANNELS is set in the user. */
-  std::list<AclKeyPattern> channels_;
+  std::list<std::string> channels_;
 };
 
 // acl user
 class User {
  public:
   explicit User() = delete;
-  User(const std::string& name) : name_(name){};
+  User(const std::string& name);
 
   std::string Name() const;
 
@@ -136,6 +161,8 @@ class User {
   void AddSelector(const std::shared_ptr<AclSelector>& selector);
 
   pstd::Status SetUser(const std::string& op, bool look = false);
+
+  pstd::Status CreateSelectorFromOpSet(const std::string& opSet);
 
   std::shared_ptr<AclSelector> GetRootSelector();
 
@@ -191,6 +218,9 @@ class Acl {
    */
   void AddUser(const std::shared_ptr<User>& user);
 
+  // 根据 cmd 分类名 获取分类的值
+  inline static uint32_t GetCommandCategoryFlagByName(const std::string& name);
+
  private:
   /**
    * This function is called once the server is already running,we are ready to start,
@@ -218,8 +248,10 @@ class Acl {
   pstd::Status LoadUserFromFile(const std::string& fileName);
 
   void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
-
   mutable std::shared_mutex mutex_;
+
+  static std::map<std::string, uint32_t> commandCategories;
+
   std::map<std::string, std::shared_ptr<User>> users_;
 };
 

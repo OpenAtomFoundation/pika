@@ -732,4 +732,8 @@ std::string StringTrim(const std::string& ori, const std::string& charlist) {
   return ori.substr(pos, rpos - pos + 1);
 }
 
+bool isspace(const std::string& str) {
+  return std::count_if(str.begin(), str.end(), [](unsigned char c) { return std::isspace(c); });
+}
+
 }  // namespace pstd

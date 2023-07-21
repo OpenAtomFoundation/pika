@@ -8,6 +8,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#include "include/acl.h"
 #include "include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
 
@@ -18,7 +19,26 @@ PikaCmdTableManager::PikaCmdTableManager() {
   cmds_->reserve(300);
 }
 
-void PikaCmdTableManager::InitCmdTable(void) { ::InitCmdTable(cmds_.get()); }
+void PikaCmdTableManager::InitCmdTable(void) {
+  ::InitCmdTable(cmds_.get());
+
+  for (const auto& cmd : *cmds_) {
+    if (cmd.second->flag() & kCmdFlagsWrite) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::WRITE));
+    }
+    if (cmd.second->flag() & kCmdFlagsRead &&
+        !(cmd.second->AclCategory() & static_cast<uint32_t>(AclCategory::SCRIPTING))) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::READ));
+    }
+    if (cmd.second->flag() & kCmdFlagsAdmin) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::ADMIN) |
+                                 static_cast<uint32_t>(AclCategory::DANGEROUS));
+    }
+    if (cmd.second->flag() & kCmdFlagsPubSub) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::PUBSUB));
+    }
+  }
+}
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   const std::string& internal_opt = opt;

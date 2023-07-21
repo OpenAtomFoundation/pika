@@ -11,6 +11,7 @@
 
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
+#include "include/acl.h"
 
 struct CommandStatistics {
   CommandStatistics() = default;
@@ -23,6 +24,7 @@ struct CommandStatistics {
 };
 
 class PikaCmdTableManager {
+  friend AclSelector;
  public:
   PikaCmdTableManager();
   virtual ~PikaCmdTableManager() = default;

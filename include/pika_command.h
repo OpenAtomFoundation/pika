@@ -476,6 +476,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::atomic<int32_t> cmd_time_consuming = {0};
   };
   CommandStatistics state;
+  Cmd(std::string name, int arity, uint16_t flag, uint32_t aclCategory = 0);
 //  Cmd(std::string name, int arity, uint16_t flag);
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
@@ -494,6 +495,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
+  uint16_t flag() const;
   bool is_read() const;
   bool is_write() const;
 
@@ -502,9 +504,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
-  bool hasSubCommand() const;  // The command is there a sub Command
+  bool HasSubCommand() const;  // The command is there a sub command
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  uint32_t AclCategory() const;
+  void AddAclCategory(uint32_t aclCategory);
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
   std::string GetDBName() { return db_name_; }
 
@@ -554,6 +558,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
   uint32_t cmdId_ = 0;
+  uint32_t aclCategory_ = 0;
 
  private:
   virtual void DoInitial() = 0;

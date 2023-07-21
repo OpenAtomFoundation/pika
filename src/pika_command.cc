@@ -717,7 +717,8 @@ Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
   return nullptr;
 }
 
-Cmd::Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {
+Cmd::Cmd(std::string name, int arity, uint16_t flag, uint32_t aclCategory)
+    : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
   // assign cmd id
   cmdId_ = g_pika_cmd_table_manager->GetCmdId();
 }
@@ -894,6 +895,7 @@ void Cmd::ProcessDoNotSpecifySlotCmd() {
 }
 
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) { return -1; }
+uint16_t Cmd::flag() const { return flag_; }
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
 bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
@@ -903,7 +905,7 @@ bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFla
 bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
-bool Cmd::hasSubCommand() const { return subCmdName_.size() > 0; };
+bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 
@@ -913,6 +915,10 @@ CmdRes& Cmd::res() { return res_; }
 std::string Cmd::db_name() const { return db_name_; }
 
 PikaCmdArgsType& Cmd::argv() { return argv_; }
+
+uint32_t Cmd::AclCategory() const { return aclCategory_; }
+
+void Cmd::AddAclCategory(uint32_t aclCategory) { aclCategory_ |= aclCategory; }
 
 std::string Cmd::ToRedisProtocol() {
   std::string content;
