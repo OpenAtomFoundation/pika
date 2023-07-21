@@ -38,6 +38,18 @@ int luaopen_struct(lua_State* L);
 int luaopen_cmsgpack(lua_State* L);
 }
 
+#define GrabDbRLock() \
+std::shared_lock l(dbs_rw_, std::defer_lock);\
+if (!lua_calling_) {\
+  l.lock();\
+}\
+
+#define GrabDbWLock() \
+std::unique_lock l(dbs_rw_, std::defer_lock);\
+if (!lua_calling_) {\
+  l.lock();\
+}\
+
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
   LOG(INFO) << "Delete dir: " << *path << " start";
@@ -371,11 +383,12 @@ Status PikaServer::DelDBStruct(const std::string &db_name) {
 }
 
 std::shared_ptr<DB> PikaServer::GetDB(const std::string& db_name) {
-  std::shared_lock l(dbs_rw_, std::defer_lock);
-  // TODO improve and find other deadlock
-  if (!lua_calling_) {
-    l.lock();
-  }
+  GrabDbRLock();
+  // std::shared_lock l(dbs_rw_, std::defer_lock);
+  // // TODO improve and find other deadlock
+  // if (!lua_calling_) {
+  //   l.lock();
+  // }
   auto iter = dbs_.find(db_name);
   return (iter == dbs_.end()) ? nullptr : iter->second;
 }
@@ -388,7 +401,8 @@ std::set<uint32_t> PikaServer::GetDBSlotIds(const std::string& db_name) {
 }
 
 bool PikaServer::IsBgSaving() {
-  std::shared_lock l(dbs_rw_);
+  // std::shared_lock l(dbs_rw_);
+  GrabDbRLock();
   for (const auto& db_item : dbs_) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
@@ -401,7 +415,8 @@ bool PikaServer::IsBgSaving() {
 }
 
 bool PikaServer::IsKeyScaning() {
-  std::shared_lock l(dbs_rw_);
+  // std::shared_lock l(dbs_rw_);
+  GrabDbRLock();
   for (const auto& db_item : dbs_) {
     if (db_item.second->IsKeyScaning()) {
       return true;
@@ -411,7 +426,8 @@ bool PikaServer::IsKeyScaning() {
 }
 
 bool PikaServer::IsCompacting() {
-  std::shared_lock db_rwl(dbs_rw_);
+  // std::shared_lock db_rwl(dbs_rw_);
+  GrabDbRLock();
   for (const auto& db_item : dbs_) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
@@ -456,7 +472,8 @@ bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
 
 // If no collection of specified dbs is given, we execute task in all dbs
 Status PikaServer::DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs) {
-  std::shared_lock rwl(dbs_rw_);
+  // std::shared_lock rwl(dbs_rw_);
+  GrabDbRLock();
   for (const auto& db_item : dbs_) {
     if (!dbs.empty() && dbs.find(db_item.first) == dbs.end()) {
       continue;
@@ -1850,6 +1867,8 @@ void PikaServer::ScriptingInit() {
     // TODO add client flags?
     // lua_client_->SetFlags(REDIS_LUA_CLIENT);
   }
+  // TODO when we recall it in script flush?
+  lua_time_limit_ = g_pika_conf->lua_time_limit();
 
   /* Lua beginners ofter don't use "local", this is likely to introduce
    * subtle bugs in their code. To prevent problems we protect accesses

@@ -155,15 +155,13 @@ void LuaMaskCountHook(lua_State *lua, lua_Debug *ar) {
   auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
                                                                        g_pika_server->lua_time_start_);
   // check whether the script is timeout
-  if (elapsed >= g_pika_server->lua_time_limit_ && g_pika_server->lua_timedout_ == false) {
+  if (elapsed.count() >= g_pika_server->lua_time_limit_ && g_pika_server->lua_timedout_ == false) {
     LOG(WARNING) << "Lua slow script detected: still in execution after " << elapsed.count()
                  << " milliseconds. You can try killing the script using the SCRIPT KILL command.";
     g_pika_server->lua_timedout_ = true;
   }
   // receive a script kill command
   if (g_pika_server->lua_kill_) {
-    // set false to accept other command
-    g_pika_server->lua_timedout_ = false;
     LOG(WARNING) << "Lua script killed by user with SCRIPT KILL.";
     lua_pushstring(lua, "Script killed by user with SCRIPT KILL...");
     lua_error(lua);
@@ -314,6 +312,13 @@ sol::object LuaRedisGenericCommand(sol::state_view &lua, bool raise_error, sol::
     // we can accept arg that can be converted to string
     argv.emplace_back(lua_tostring(v.lua_state(), v.stack_index()));
     LOG(INFO) << "push arg: " << argv.back();
+  }
+
+  // grab lua_kill_mutex before excute command
+  std::lock_guard write_lk(g_pika_server->lua_kill_mutex_);
+  // if we are killed, we throw an error to exit script
+  if (g_pika_server->lua_kill_) {
+    throw std::runtime_error("Script killed by user with SCRIPT KILL...");
   }
 
   // TODO improve argument check message in lua
@@ -475,16 +480,6 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
    * not affected by external state. */
   redisSrand48(0);
 
-  /* We set this flag to zero to remember that so far no random command
-   * was called. This way we can allow the user to call commands like
-   * SRANDMEMBER or RANDOMKEY from Lua scripts as far as no write command
-   * is called (otherwise the replication and AOF would end with non
-   * deterministic sequences).
-   *
-   * Thanks to this flag we'll raise an error every time a write command
-   * is called after a random command was used. */
-  g_pika_server->lua_random_dirty_ = false;
-  g_pika_server->lua_write_dirty_ = false;
 
   /* We obtain the script SHA1, then check if this function is already
    * defined into the Lua state */
@@ -503,6 +498,17 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
 
   sol::state &lua = (*g_pika_server->lua_);
   std::lock_guard lua_lk(g_pika_server->lua_mutex_);
+
+  /* We set this flag to zero to remember that so far no random command
+   * was called. This way we can allow the user to call commands like
+   * SRANDMEMBER or RANDOMKEY from Lua scripts as far as no write command
+   * is called (otherwise the replication and AOF would end with non
+   * deterministic sequences).
+   *
+   * Thanks to this flag we'll raise an error every time a write command
+   * is called after a random command was used. */
+  g_pika_server->lua_random_dirty_ = false;
+  g_pika_server->lua_write_dirty_ = false;
 
   /* Try to lookup the Lua function */
   sol::protected_function f(lua[funcname], lua["__redis__error_handler"]);
@@ -530,16 +536,16 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   // selectDb(server.lua_client, c->db->id);
   g_pika_server->lua_client_->SetCurrentDB(db_name_);
 
-  g_pika_server->lua_time_start_ = std::chrono::system_clock::now();
   g_pika_server->lua_kill_ = false;
   g_pika_server->lua_timedout_ = false;
+  g_pika_server->lua_time_limit_ = g_pika_conf->lua_time_limit();
 
   /* Set an hook in order to be able to stop the script execution if it
    * is running for too much time.
    * We set the hook only if the time limit is enabled as the hook will
    * make the Lua script execution slower. */
   // 从节点不需要设置hook， 因为从节点接受主节点的命令， 而主节点接受的是客户端的命令
-  if (g_pika_server->lua_time_limit_.count() > 0 && g_pika_server->master_ip() == "") {
+  if (g_pika_server->lua_time_limit_ > 0 && g_pika_server->master_ip() == "") {
     lua_sethook(lua, LuaMaskCountHook, LUA_MASKCOUNT, 100000);
     delhook = true;
   }
@@ -548,13 +554,17 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   std::lock_guard rwl(g_pika_server->dbs_rw_);
   // set the bool indicates that we are running lua script, do not try to grab the db lock again
   g_pika_server->lua_calling_ = true;
-
+  g_pika_server->lua_time_start_ = std::chrono::system_clock::now();
   /* At this point whatever this script was never seen before or if it was
    * already defined, we can call it. We have zero arguments and expect
    * a single return value. */
   sol::protected_function_result res = f();
 
-  g_pika_server->lua_calling_ = false;
+  // grab the lock to not allow script kill
+  {
+    std::lock_guard call_lk(g_pika_server->lua_kill_mutex_);
+    g_pika_server->lua_calling_ = false;
+  }
 
   /* Perform some cleanup that we need to do both on error and success. */
   if (delhook) lua_sethook(lua, LuaMaskCountHook, 0, 0); /* Disable hook */
@@ -566,6 +576,15 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
     conn->SetCurrentDB(g_pika_server->lua_client_->CurrentDB());
   }
   lua.step_gc(1);
+
+  // set false to accept other command
+  g_pika_server->lua_timedout_ = false;
+
+  // we finish the script but kill by user
+  if (g_pika_server->lua_kill_) {
+    res_.SetRes(CmdRes::kErrOther, "Script killed by user with SCRIPT KILL...");
+    return;
+  }
 
   if (!res.valid()) {
     res_.SetRes(CmdRes::kErrOther,
@@ -632,10 +651,12 @@ void ScriptCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendString(funcname.substr(2));
   } else if (argv_.size() == 2 && argv_[1] == "kill") {
     // 并发正确性验证， lua_calling_为true的时候， 一定在运行脚本
+    // grab the lock to not allow the lua script exit or write to pika
+    std::lock_guard call_lk(g_pika_server->lua_kill_mutex_);
     if (!g_pika_server->lua_calling_) {
       res_.AppendContent("-NOTBUSY No scripts in execution right now.");
     } else if (g_pika_server->lua_write_dirty_) {
-      res_.AppendContent("-UNKILLABLE Sorry the script already executed write commands against the dataset. You can either wait the script termination or kill the server in an hard way using the SHUTDOWN NOSAVE command.");
+      res_.AppendContent("-UNKILLABLE Sorry the script already executed write commands against the dataset. You can either wait the script termination or kill the server in an hard way using the SHUTDOWN command.");
     } else {
       LOG(INFO) << "User requested Lua script termination via SCRIPT KILL.";
       g_pika_server->lua_kill_ = true;

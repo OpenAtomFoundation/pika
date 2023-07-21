@@ -183,9 +183,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
 
+  // TODO 这里会有一个间隙， 就是还没超时， 但是把命令放过去了， 我们加一个lua_calling_的check
+  // 这样就没有这个间隙， 但是在lua执行拒绝接受其他命令
   if (g_pika_server->lua_timedout_) {
     bool is_kill = (c_ptr->name() == kCmdNameScript && argv.size() == 2 && argv[1] == "kill");
-    if (!is_kill) {
+    bool is_shutdown = (c_ptr->name() == kCmdNameShutdown);
+    if (!is_kill && !is_shutdown) {
       c_ptr->res().SetRes(CmdRes::kSlowScript);
       return c_ptr;
     }

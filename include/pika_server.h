@@ -42,8 +42,6 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
 
-using std::chrono_literals::operator""s;
-
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
              kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
@@ -476,21 +474,30 @@ class PikaServer : public pstd::noncopyable {
    * lua script use
    */
   pstd::Mutex lua_mutex_;                                /* Protect the Lua state */
+  // lua_mutex_保护
   std::unique_ptr<sol::state> lua_;                      /* The Lua interpreter. We use just one for all clients */
   std::shared_ptr<PikaClientConn> lua_client_;           /* The "fake client" to query Redis from Lua */
   std::unordered_map<std::string, std::string> lua_scripts_;
-  std::chrono::milliseconds lua_time_limit_=5s;             /* Script timeout in seconds */
+
+  std::atomic<int> lua_time_limit_{0};             /* Script timeout in seconds */
+
+  // design ok
   // 在eval的线程里使用
   std::chrono::system_clock::time_point lua_time_start_; /* Start time of script */
-  // 在不同线程调用
+
+  // design ok
   std::atomic<bool> lua_write_dirty_;                                 /* True if a write command was called during the
                                                           execution of the current script. */
+  // design ok
   // 在eval的线程里使用
-  bool lua_random_dirty_;                                /* True if a random command was called during the
+  std::atomic<bool> lua_random_dirty_;                                /* True if a random command was called during the
                                                           execution of the current script. */
+  // design ok
   // 在eval的线程和ClientConn里使用
   std::atomic<bool> lua_timedout_{false};                                    /* True if we reached the time limit for script
                                                           execution. */
+  // design ok
+  pstd::Mutex lua_kill_mutex_;
   std::atomic<bool> lua_kill_{false};                    /* Kill the script if true. */
   std::atomic<bool> lua_calling_{false};
 
