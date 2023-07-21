@@ -35,12 +35,14 @@
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_instant.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -306,6 +308,19 @@ class PikaServer : public pstd::noncopyable {
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();
   QpsStatistic ServerDBStat(const std::string& db_name);
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
+
+  /*
+   * Network Statistic used
+   */
+  size_t NetInputBytes();
+  size_t NetOutputBytes();
+  size_t NetReplInputBytes();
+  size_t NetReplOutputBytes();
+  float InstantaneousInputKbps();
+  float InstantaneousOutputKbps();
+  float InstantaneousInputReplKbps();
+  float InstantaneousOutputReplKbps();
+
   /*
    * Slave to Master communication used
    */
@@ -469,6 +484,16 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
+ /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
+
+
+ /*
+  * Instantaneous Metric used
+  */
+  std::unique_ptr<Instant> instant_;
 
   /*
    * lua script use
@@ -525,6 +550,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoPurge();
   void AutoDeleteExpiredDump();
   void AutoKeepAliveRSync();
+  void AutoUpdateNetworkMetric();
 
   std::string host_;
   int port_ = 0;
@@ -634,6 +660,11 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 
 #endif

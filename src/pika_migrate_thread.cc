@@ -352,14 +352,14 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
   dest_ip_ = ip;
   dest_port_ = port;
   timeout_ms_ = timeout_ms;
-  mgrtkeys_num_ = mgrtkeys_num;
+  mgrtkeys_num_ = static_cast<int32_t>(mgrtkeys_num);
 
   cli_ = net::NewRedisCli();
-  cli_->set_connect_timeout(timeout_ms_);
-  cli_->set_send_timeout(timeout_ms_);
-  cli_->set_recv_timeout(timeout_ms_);
+  cli_->set_connect_timeout(static_cast<int32_t>(timeout_ms_));
+  cli_->set_send_timeout(static_cast<int32_t>(timeout_ms_));
+  cli_->set_recv_timeout(static_cast<int32_t>(timeout_ms_));
   LOG(INFO) << "PikaParseSendThread init cli_, dest_ip_: " << dest_ip_ << " ,dest_port_: " << dest_port_;
-  pstd::Status result = cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
+  pstd::Status result = cli_->Connect(dest_ip_, static_cast<int32_t>(dest_port_), g_pika_server->host());
   if (!result.ok()) {
     LOG(ERROR) << "PikaParseSendThread::Init failed. Connect server(" << dest_ip_ << ":" << dest_port_ << ") "
               << result.ToString();
@@ -680,8 +680,8 @@ void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port, int64_t
   *migrating = is_migrating_;
   *moved = moved_num_;
   std::unique_lock lq(mgrtkeys_queue_mutex_);
-  int64_t migrating_keys_num = mgrtkeys_queue_.size();
-  std::string slotKey = GetSlotKey(slot_id_);
+  int64_t migrating_keys_num = static_cast<int32_t>(mgrtkeys_queue_.size());
+  std::string slotKey = GetSlotKey(static_cast<int32_t>(slot_id_));
   int32_t slot_size = 0;
   rocksdb::Status s = slot_->db()->SCard(slotKey, &slot_size);
   if (s.ok()) {
@@ -803,7 +803,7 @@ void PikaMigrateThread::ReadSlotKeys(const std::string &slotKey, int64_t need_re
 }
 
 bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
-  workers_num_ = g_pika_conf->slotmigrate_thread_num();
+  workers_num_ = static_cast<int32_t>(g_pika_conf->slotmigrate_thread_num());
   for (int32_t i = 0; i < workers_num_; ++i) {
     auto worker = new PikaParseSendThread(this, slot_);
     if (!worker->Init(dest_ip_, dest_port_, timeout_ms_, dispatch_num)) {
@@ -847,14 +847,14 @@ void *PikaMigrateThread::ThreadMain() {
   LOG(INFO) << "PikaMigrateThread::ThreadMain Start";
 
   // Create parse_send_threads
-  int32_t dispatch_num = g_pika_conf->thread_migrate_keys_num();
+  auto dispatch_num = static_cast<int32_t>(g_pika_conf->thread_migrate_keys_num());
   if (!CreateParseSendThreads(dispatch_num)) {
     LOG(INFO) << "PikaMigrateThread::ThreadMain CreateParseSendThreads failed !!!";
     DestroyThread(true);
     return nullptr;
   }
 
-  std::string slotKey = GetSlotKey(slot_id_);
+  std::string slotKey = GetSlotKey(static_cast<int32_t>(slot_id_));
   int32_t slot_size = 0;
   slot_->db()->SCard(slotKey, &slot_size);
 
@@ -897,7 +897,7 @@ void *PikaMigrateThread::ThreadMain() {
         int64_t need_read_num = (0 < round_remained_keys - dispatch_num) ? dispatch_num : round_remained_keys;
         ReadSlotKeys(slotKey, need_read_num, real_read_num, &is_finish);
         round_remained_keys -= need_read_num;
-        send_num_ += real_read_num;
+        send_num_ += static_cast<int32_t>(real_read_num);
       }
       mgrtkeys_cond_.notify_all();
 

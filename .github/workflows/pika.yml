@@ -11,7 +11,7 @@ env:
   BUILD_TYPE: RelWithDebInfo
 
 jobs:
-  build:
+  build_on_ubuntu:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -69,7 +69,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
-
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_centos:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
@@ -86,12 +86,13 @@ jobs:
         run: |
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7
-          yum install -y llvm-toolset-7-clang
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl unzip which python3
+          python3 -m pip install --upgrade pip
+          python3 -m pip install redis
           source /opt/rh/devtoolset-10/enable
           gcc --version
           make --version
-
+          python3 --version
 
       - name: Install cmake
         run: |
@@ -99,33 +100,102 @@ jobs:
           bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
           cmake --version
 
-      - name: checkout
-        working-directory: ${{github.workspace}}
-        run: |
-          echo Fetching $GITHUB_REPOSITORY@$GITHUB_SHA
-          git init
-          git fetch --depth 1 https://github.com/$GITHUB_REPOSITORY $GITHUB_SHA
-          git checkout $GITHUB_SHA
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           source /opt/rh/devtoolset-10/enable
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Build
         # Build your program with the given configuration
         run: |
-          cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+          cmake --build build --config ${{env.BUILD_TYPE}}
 
       - name: Test
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: |
-          cd ${{github.workspace}}/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
+
+      - name: Unit Test
+        run: |
+          chmod +x pikatests.sh
+          sh pikatests.sh all
+
+        # master on port 9221, slave on port 9231, all with 2 db
+      - name: Start pika master and slave
+        run: |
+          cd build
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          sh ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        run: |
+          python3 tests/integration/pika_replication_test.py
+          python3 tests/unit/Blpop_Brpop_test.py
+
+  build_on_macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: cache dependencies
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+            ~/.cache/pip
+          key: ${{ runner.os }}-dependencies
+
+      - name: install Deps
+        run: |
+          brew update
+          brew install autoconf protobuf python llvm wget git
+          brew install gcc@10 automake cmake make binutils
+          python3 -m pip install --upgrade pip
+          python3 -m pip install redis
+          export CXX=/usr/local/opt/gcc@10/bin/g++-10 
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+
+      - name: Build
+        run: |
+          cd ${{github.workspace}}
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          cmake -B ${{github.workspace}}/build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+#      - name: Test
+#        working-directory: ${{github.workspace}}/build
+#        run: |
+#          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+#          ctest -C ${{env.BUILD_TYPE}}
+
+      - name: Unit Test
+        working-directory: ${{github.workspace}}
+        run: |
+          cd ${{github.workspace}} 
+          ./pikatests.sh all
+
+      - name: Start pika master and slave
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cd ${{github.workspace}}/build
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        working-directory: ${{github.workspace}}/build
+        run: |
+          python3 ../tests/integration/pika_replication_test.py
+          python3 ../tests/unit/Blpop_Brpop_test.py
 

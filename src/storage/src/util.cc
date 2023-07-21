@@ -40,8 +40,8 @@ int StrToInt64(const char* s, size_t slen, int64_t* value) {
 }
 
 /* Glob-style pattern matching. */
-int StringMatch(const char* pattern, int pattern_len, const char* str, int string_len, int nocase) {
-  return pstd::stringmatchlen(pattern, pattern_len, str, string_len, nocase);
+int StringMatch(const char* pattern, uint64_t pattern_len, const char* str, uint64_t string_len, int nocase) {
+  return pstd::stringmatchlen(pattern, static_cast<int32_t>(pattern_len), str, static_cast<int32_t>(string_len), nocase);
 }
 
 int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
@@ -212,7 +212,7 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
   std::strncpy(dst.get(), key.data(), key.size());
   char* dst_ptr = dst.get() + key.size();
   meta_start_key->assign(start, key.size());
-  *dst_ptr = static_cast<uint8_t>(0xff);
+  *dst_ptr = static_cast<char>(0xff);
   meta_end_key->assign(start, key.size() + 1);
   return 0;
 }
@@ -227,7 +227,7 @@ int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_
   dst_ptr += sizeof(int32_t);
   std::strncpy(dst_ptr, key.data(), key.size());
   dst_ptr += key.size();
-  *dst_ptr = static_cast<uint8_t>(0xff);
+  *dst_ptr = static_cast<char>(0xff);
 
   data_start_key->assign(start, sizeof(int32_t) + key.size());
   data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);

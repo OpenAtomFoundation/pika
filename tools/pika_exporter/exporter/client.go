@@ -75,9 +75,49 @@ func (c *client) Select(db string) error {
 	return err
 }
 
-// INFO ALL 命令查询返回
+func (c *client) GetInfo() (string, error) {
+	if InfoConf.InfoAll {
+		return c.InfoAll()
+	} else if InfoConf.Info {
+		return c.Info()
+	} else {
+		return c.InfoSubCommand()
+	}
+}
+
 func (c *client) Info() (string, error) {
+	return redis.String(c.conn.Do("INFO"))
+}
+
+func (c *client) InfoAll() (string, error) {
 	return redis.String(c.conn.Do("INFO", "ALL"))
+}
+
+func (c *client) InfoSubCommand() (string, error) {
+	var rst []string
+
+	sectionsMap := map[string]bool{
+		"SERVER":             InfoConf.Server,
+		"DATA":               InfoConf.Data,
+		"CLIENTS":            InfoConf.Clients,
+		"STATS":              InfoConf.Stats,
+		"CPU":                InfoConf.CPU,
+		"REPLICATION":        InfoConf.Replication,
+		"KEYSPACE":           InfoConf.Keyspace,
+		"COMMAND_EXEC_COUNT": InfoConf.Execcount,
+		"COMMANDSTATS":       InfoConf.Commandstats,
+		"ROCKSDB":            InfoConf.Rocksdb,
+	}
+	for section, flag := range sectionsMap {
+		if flag {
+			info, err := redis.String(c.conn.Do("INFO", section))
+			if err == nil {
+				rst = append(rst, info)
+			}
+		}
+	}
+
+	return strings.Join(rst, "\n"), nil
 }
 
 func (c *client) InfoKeySpaceZero() (string, error) {
@@ -88,7 +128,6 @@ func (c *client) InfoKeySpaceOne() (string, error) {
 	return redis.String(c.conn.Do("INFO", "KEYSPACE", 1))
 }
 
-// 返回模式信息
 func (c *client) InstanceModeInfo() (string, error) {
 	getslices, err := redis.Strings(c.conn.Do("CONFIG", "GET", "instance-mode"))
 	if err != nil {

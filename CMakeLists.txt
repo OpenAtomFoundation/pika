@@ -22,19 +22,23 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-#Sanitizer for testing stage
-#CMAKE_BUILD_TYPE must be "Debug" if you wanna use sanitizer.
-#set(CMAKE_BUILD_TYPE "Debug")
 
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-# [Notice] address sanitizer and thread sanitizer can not be enabled at the same time.
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
+############# You should enable sanitizer if you are developing pika #############
+# Uncomment the following two lines to enable AddressSanitizer to detect memory leaks and other memory-related bugs.
+#set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address  -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+
+# [Notice] AddressSanitizer and ThreadSanitizer can not be enabled at the same time.
+
+# Uncomment the following two lines to enable ThreadSanitizer to detect data race and other thread-related issue.
+#set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
 execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
 string(TOLOWER ${HOST_ARCH} HOST_ARCH)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RElEASE)
+  set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
@@ -46,7 +50,7 @@ elseif(${BUILD_TYPE} STREQUAL MINSIZEREL)
 elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
   set(LIB_BUILD_TYPE RELWITHDEBINFO)
 else()
-  set(LIB_BUILD_TYPE RElEASE)
+  set(LIB_BUILD_TYPE RELEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 

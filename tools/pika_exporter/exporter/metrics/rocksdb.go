@@ -145,6 +145,8 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 	"size_all_mem_tables": {
 		Parser: &regexParser{
 			name:   "size_all_mem_tables",
+			// TODO: need fix size_all_mem_tables contains wrong data type starting with cur
+			// issue: https://github.com/OpenAtomFoundation/pika/issues/1752
 			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?size_all_mem_tables:(?P<size_all_mem_tables>\d+)`),
 			Parser: &normalParser{},
 		},
@@ -188,6 +190,22 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 			ValueName: "estimate_table_readers_mem",
 		},
 	},
+
+    // pending compaction bytes
+    "estimate_pending_compaction_bytes": {
+        Parser: &regexParser{
+            name:   "estimate_pending_compaction_bytes",
+            reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?estimate_pending_compaction_bytes:(?P<estimate_pending_compaction_bytes>\d+)`),
+            Parser: &normalParser{},
+        },
+        MetricMeta: &MetaData{
+            Name:      "estimate_pending_compaction_bytes",
+            Help:      "Estimated total number of bytes that compression needs to rewrite to bring all levels down below the target size. Has no effect on compression other than level-based compression.",
+            Type:      metricTypeGauge,
+            Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+            ValueName: "estimate_pending_compaction_bytes",
+        },
+    },
 
 	// snapshots
 	"num_snapshots": {

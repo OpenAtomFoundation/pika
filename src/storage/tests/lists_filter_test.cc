@@ -11,12 +11,12 @@
 #include "src/redis.h"
 #include "storage/storage.h"
 
-using storage::Status;
-using storage::Slice;
 using storage::EncodeFixed64;
-using storage::ListsMetaValue;
 using storage::ListsDataFilter;
 using storage::ListsDataKey;
+using storage::ListsMetaValue;
+using storage::Slice;
+using storage::Status;
 
 class ListsFilterTest : public ::testing::Test {
  public:
@@ -77,7 +77,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
 
   // Timeout timestamp is not set, but it's an empty list.
   EncodeFixed64(str, 0);
-  ListsMetaValue lists_meta_value1(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value1(Slice(str, sizeof(uint64_t)));
   lists_meta_value1.UpdateVersion();
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   filter_result =
@@ -86,7 +86,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
 
   // Timeout timestamp is not set, it's not an empty list.
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value2(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value2(Slice(str, sizeof(uint64_t)));
   lists_meta_value2.UpdateVersion();
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   filter_result =
@@ -95,7 +95,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
 
   // Timeout timestamp is set, but not expired.
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value3(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value3(Slice(str, sizeof(uint64_t)));
   lists_meta_value3.UpdateVersion();
   lists_meta_value3.SetRelativeTimestamp(3);
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -105,7 +105,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
 
   // Timeout timestamp is set, already expired.
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value4(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value4(Slice(str, sizeof(uint64_t)));
   lists_meta_value4.UpdateVersion();
   lists_meta_value4.SetRelativeTimestamp(1);
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -128,7 +128,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(lists_data_filter1 != nullptr);
 
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value1(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value1(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value1.UpdateVersion();
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY", lists_meta_value1.Encode());
   ASSERT_TRUE(s.ok());
@@ -145,7 +145,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(lists_data_filter2 != nullptr);
 
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value2(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value2(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value2.UpdateVersion();
   lists_meta_value2.SetRelativeTimestamp(1);
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY", lists_meta_value2.Encode());
@@ -162,7 +162,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(lists_data_filter3 != nullptr);
 
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value3(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value3(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value3.UpdateVersion();
   lists_meta_value3.SetRelativeTimestamp(1);
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY", lists_meta_value3.Encode());
@@ -180,7 +180,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(lists_data_filter4 != nullptr);
 
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value4(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value4(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value4.UpdateVersion();
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY", lists_meta_value4.Encode());
   ASSERT_TRUE(s.ok());
@@ -199,7 +199,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(lists_data_filter5 != nullptr);
 
   EncodeFixed64(str, 1);
-  ListsMetaValue lists_meta_value5(std::string(str, sizeof(uint64_t)));
+  ListsMetaValue lists_meta_value5(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value5.UpdateVersion();
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY", lists_meta_value5.Encode());
   ASSERT_TRUE(s.ok());

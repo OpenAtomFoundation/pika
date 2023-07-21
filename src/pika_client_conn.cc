@@ -231,10 +231,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
   // Process Command
   c_ptr->Execute();
-  int64_t duration = pstd::NowMicros() - start_us;
-  auto iter = g_pika_cmd_table_manager->GetCmdTable();
-  (*iter)[opt]->state.cmd_count.fetch_add(1);
-  (*iter)[opt]->state.cmd_time_consuming.fetch_add(duration);
+  uint64_t duration = pstd::NowMicros() - start_us;
+  auto cmdstat_map = g_pika_server->GetCommandStatMap();
+  (*cmdstat_map)[opt].cmd_count.fetch_add(1);
+  (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
@@ -247,8 +247,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 }
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration) {
-  int32_t start_time = start_us / 1000000;
-  int64_t duration = pstd::NowMicros() - start_us;
+  auto start_time = static_cast<int32_t>(start_us / 1000000);
+  auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
   if (duration > g_pika_conf->slowlog_slower_than()) {
     g_pika_server->SlowlogPushEntry(argv, start_time, duration);
     if (g_pika_conf->slowlog_write_errorlog()) {
@@ -278,7 +278,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string db_name = current_db_.substr(2);
-  monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
+  monitor_message = std::to_string(1.0 * static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
   for (const auto& iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }
@@ -353,7 +353,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 }
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
-  resp_num.store(argvs.size());
+  resp_num.store(static_cast<int32_t>(argvs.size()));
   for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);
