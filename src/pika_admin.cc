@@ -441,7 +441,7 @@ void SelectCmd::Do(std::shared_ptr<Slot> slot) {
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  conn->SetCurrentDB(db_name_);
+  conn->SetCurrentTable(db_name_);
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -1423,7 +1423,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "lua-time-limit", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "lua-time-limit");
-    EncodeInt32(&config_body, g_pika_conf->lua_time_limit());
+    EncodeNumber(&config_body, g_pika_conf->lua_time_limit());
   }
 
   if (pstd::stringmatch(pattern.data(), "requirepass", 1) != 0) {

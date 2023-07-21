@@ -534,7 +534,7 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
 
   /* Select the right DB in the context of the Lua client */
   // selectDb(server.lua_client, c->db->id);
-  g_pika_server->lua_client_->SetCurrentDB(db_name_);
+  g_pika_server->lua_client_->SetCurrentTable(db_name_);
 
   g_pika_server->lua_kill_ = false;
   g_pika_server->lua_timedout_ = false;
@@ -573,7 +573,7 @@ void EvalCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
   if (conn.get() != nullptr) {
     // set the client db to lua client db in case of using select in lua
-    conn->SetCurrentDB(g_pika_server->lua_client_->CurrentDB());
+    conn->SetCurrentTable(g_pika_server->lua_client_->GetCurrentTable());
   }
   lua.step_gc(1);
 
