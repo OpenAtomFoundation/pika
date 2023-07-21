@@ -29,17 +29,6 @@ jobs:
             ~/.cache/pip
           key: ${{ runner.os }}-dependencies
 
-      # Zip the entire workspace directory
-      - name: Zip workspace directory
-        run: zip -r workspace.zip ${{ github.workspace }}
-
-      # Upload the zip file as an artifact
-      - name: Upload workspace artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: workspace-artifact
-          path: workspace.zip
-
       - name: install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
@@ -116,52 +105,38 @@ jobs:
       - name: checkout
         working-directory: ${{github.workspace}}
         run: |
+          echo `pwd`
           echo Fetching $GITHUB_REPOSITORY@$GITHUB_SHA
           git init
           git fetch --depth 1 https://github.com/$GITHUB_REPOSITORY $GITHUB_SHA
           git checkout $GITHUB_SHA
+          echo `pwd`
+          echo `ls`
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           source /opt/rh/devtoolset-10/enable
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
+          cmake -B /__w/pika/pika/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
       - name: Build
         # Build your program with the given configuration
         run: |
-          cd ${{github.workspace}}
           source /opt/rh/devtoolset-10/enable
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+          cmake --build /__w/pika/pika/build --config ${{env.BUILD_TYPE}}
 
       - name: Test
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: |
-          cd ${{github.workspace}}/build
+          cd /__w/pika/pika/build
           source /opt/rh/devtoolset-10/enable
           ctest -C ${{env.BUILD_TYPE}}
 
-      # Create a directory for downloading artifacts in job2 (optional)
-      - name: Create artifact directory
-        run: mkdir -p /github/workspace/artifacts
-
-      # Download the workspace artifact from job1
-      - name: Download workspace artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: workspace-artifact
-          path: /github/workspace
-
-      - name: Unzip workspace directory
-        run: |
-          unzip -q /github/workspace/workspace.zip -d /github/workspace/artifacts
-
       - name: Unit Test
         run: |
-          cd /github/workspace/artifacts/home/runner/work/pika/pika/
-          mv /home/runner/work/pika/pika/build /github/workspace/artifacts/home/runner/work/pika/pika/
+          cd /__w/pika/pika 
           chmod +x pikatests.sh
           sh pikatests.sh all
 
