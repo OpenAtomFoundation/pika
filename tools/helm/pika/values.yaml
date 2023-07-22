@@ -1,0 +1,14 @@
+pika:
+  version: unstable-4ff91f6a
+  pika:
+    image:
+      registry: docker.io
+      repository: machinly/pika
+      tag: ${pika.version}
+      pullPolicy: IfNotPresent
+  codis:
+    image:
+      registry: docker.io
+      repository: machinly/codis
+      tag: ${pika.version}
+      pullPolicy: IfNotPresent

@@ -1,0 +1,751 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: pika
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  type: pika
+  connectionCredential:
+    username: default
+    password: "$(RANDOM_PASSWD)"
+    endpoint: "$(SVC_FQDN):$(SVC_PORT_pika)"
+    host: "$(SVC_FQDN)"
+    port: "$(SVC_PORT_pika)"
+  componentDefs:
+    - name: pika
+      workloadType: Replication
+      characterType: pika
+      probes:
+        roleProbe:
+          failureThreshold: 2
+          periodSeconds: 2
+          timeoutSeconds: 1
+      service:
+        ports:
+          - name: pika
+            port: 9221
+            targetPort: pika
+      configSpecs:
+        - name: pika-replication-config
+          templateRef: pika-config-template
+          constraintRef: pika-config-constraints
+          namespace: {{ .Release.Namespace }}
+          volumeName: pika-config
+      scriptSpecs:
+        - name: pika-scripts
+          templateRef: pika-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
+      monitor:
+        builtIn: false
+        exporterConfig:
+          scrapePort: 9121
+          scrapePath: "/metrics"
+      logConfigs:
+        {{- range $name,$pattern := .Values.logConfigs }}
+        - name: {{ $name }}
+          filePathPattern: {{ $pattern }}
+        {{- end }}
+      volumeTypes:
+        - name: data
+          type: data
+      podSpec:
+        containers:
+          - name: pika
+            ports:
+              - name: pika
+                containerPort: 9221
+            volumeMounts:
+              - name: data
+                mountPath: /data
+              - name: pika-conf
+                mountPath: /etc/pika
+            env:
+              - name: REDIS_REPL_USER
+                value: "kbreplicator"
+              - name: REDIS_REPL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(CONN_CREDENTIAL_SECRET_NAME)
+                    key: password
+                    optional: false
+              - name: REDIS_DEFAULT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(CONN_CREDENTIAL_SECRET_NAME)
+                    key: password
+                    optional: false
+              - name: REDIS_SENTINEL_USER
+                value: "$(REDIS_REPL_USER)-sentinel"
+              - name: REDIS_SENTINEL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(CONN_CREDENTIAL_SECRET_NAME)
+                    key: password
+                    optional: false
+              - name: REDIS_ARGS
+                value: "--requirepass $(REDIS_PASSWORD)"
+            command: ["/scripts/pika-start.sh"]
+            lifecycle:
+              postStart:
+                exec:
+                  command: ["/scripts/pika-post-start.sh"]
+          - name: pika-exporter
+            image: {{ .Values.exporter.image.registry }}/{{ .Values.exporter.image.repository }}:{{ .Values.exporter.image.tag }}
+            imagePullPolicy: IfNotPresent
+            ports:
+              - name: metrics
+                containerPort: 9121
+            livenessProbe:
+              httpGet:
+                path: /
+                port: metrics
+            readinessProbe:
+              httpGet:
+                path: /
+                port: metrics
+        volumes:
+          - name: pod-info
+            downwardAPI:
+              items:
+                - path: "pod-role"
+                  fieldRef:
+                    fieldPath: metadata.labels['kubeblocks.io/role']
+                - path: "primary-pod"
+                  fieldRef:
+                    fieldPath: metadata.annotations['rs.apps.kubeblocks.io/primary']
+                - path: "component-replicas"
+                  fieldRef:
+                    fieldPath: metadata.annotations['apps.kubeblocks.io/component-replicas']
+      systemAccounts:
+# Seems pika-cli has its own mechanism to parse input tokens and there is no elegent way
+# to pass $(KB_ACCOUNT_STATEMENT) to pika-cli without causing parsing error.
+# Instead, using a shell script to wrap pika-cli and pass $(KB_ACCOUNT_STATEMENT) to it will do.
+        cmdExecutorConfig:
+          image: {{ include "pika.image" . }}
+          env:
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+          command:
+          - sh
+          - -c
+          args:
+          - "pika-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD $(KB_ACCOUNT_STATEMENT) | pika-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD acl save "
+        passwordConfig:
+          length: 10
+          numDigits: 5
+          numSymbols: 0
+          letterCase: MixedCases
+        accounts:
+          - name: kbadmin
+            provisionPolicy: &kbadminAcctRef
+              type: CreateByStmt
+              scope: AllPods
+              statements:
+                creation: ACL SETUSER $(USERNAME) ON \>$(PASSWD) allcommands allkeys
+                update: ACL SETUSER $(USERNAME) ON \>$(PASSWD)
+          - name: kbdataprotection
+            provisionPolicy: *kbadminAcctRef
+          - name: kbmonitoring
+            provisionPolicy: &kbReadOnlyAcctRef
+              type: CreateByStmt
+              scope: AllPods
+              statements:
+                creation: ACL SETUSER $(USERNAME) ON \>$(PASSWD) allkeys +get
+                update: ACL SETUSER $(USERNAME) ON \>$(PASSWD)
+          - name: kbprobe
+            provisionPolicy: *kbReadOnlyAcctRef
+    - name: codis-proxy
+      workloadType: Replication
+      characterType: pika
+      service:
+        ports:
+          - name: pika-sentinel
+            targetPort: pika-sentinel
+            port: 26379
+      configSpecs:
+        - name: pika-replication-config
+          templateRef: pika-config-template
+          constraintRef: pika-config-constraints
+          namespace: {{ .Release.Namespace }}
+          volumeName: pika-config
+      scriptSpecs:
+        - name: pika-scripts
+          templateRef: pika-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
+      volumeTypes:
+        - name: data
+          type: data
+      podSpec:
+        initContainers:
+        - name: init-pika-sentinel
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          command: [ "/scripts/pika-sentinel-setup.sh" ]
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+        containers:
+        - name: pika-sentinel
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 26379
+              name: pika-sentinel
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - |
+              set -ex
+              /scripts/pika-sentinel-start.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/scripts/pika-sentinel-post-start.sh" ]
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 5
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 1
+    - name: codis-ha
+      workloadType: Stateful
+      characterType: pika
+      service:
+        ports:
+          - name: pika-sentinel
+            targetPort: pika-sentinel
+            port: 26379
+      configSpecs:
+        - name: pika-replication-config
+          templateRef: pika-config-template
+          constraintRef: pika-config-constraints
+          namespace: {{ .Release.Namespace }}
+          volumeName: pika-config
+      scriptSpecs:
+        - name: pika-scripts
+          templateRef: pika-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
+      volumeTypes:
+        - name: data
+          type: data
+      podSpec:
+        initContainers:
+        - name: init-pika-sentinel
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          command: [ "/scripts/pika-sentinel-setup.sh" ]
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+        containers:
+        - name: pika-sentinel
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 26379
+              name: pika-sentinel
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - |
+              set -ex
+              /scripts/pika-sentinel-start.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/scripts/pika-sentinel-post-start.sh" ]
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 5
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 1
+    - name: codis-fe
+      workloadType: Stateful
+      characterType: pika
+      service:
+        ports:
+          - name: pika-sentinel
+            targetPort: pika-sentinel
+            port: 26379
+      configSpecs:
+        - name: pika-replication-config
+          templateRef: pika-config-template
+          constraintRef: pika-config-constraints
+          namespace: {{ .Release.Namespace }}
+          volumeName: pika-config
+      scriptSpecs:
+        - name: pika-scripts
+          templateRef: pika-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
+      volumeTypes:
+        - name: data
+          type: data
+      podSpec:
+        initContainers:
+        - name: init-pika-sentinel
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          command: [ "/scripts/pika-sentinel-setup.sh" ]
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+        containers:
+        - name: pika-sentinel
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 26379
+              name: pika-sentinel
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - |
+              set -ex
+              /scripts/pika-sentinel-start.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/scripts/pika-sentinel-post-start.sh" ]
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 5
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 1
+    - name: codis-dashboard
+      workloadType: Stateful
+      characterType: pika
+      service:
+        ports:
+          - name: pika-sentinel
+            targetPort: pika-sentinel
+            port: 26379
+      configSpecs:
+        - name: pika-replication-config
+          templateRef: pika-config-template
+          constraintRef: pika-config-constraints
+          namespace: {{ .Release.Namespace }}
+          volumeName: pika-config
+      scriptSpecs:
+        - name: pika-scripts
+          templateRef: pika-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
+      volumeTypes:
+        - name: data
+          type: data
+      podSpec:
+        initContainers:
+        - name: init-pika-sentinel
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          command: [ "/scripts/pika-sentinel-setup.sh" ]
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+        containers:
+        - name: pika-sentinel
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 26379
+              name: pika-sentinel
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: pika-config
+              mountPath: /etc/conf
+            - name: sentinel-conf
+              mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: REDIS_REPL_USER
+              value: "kbreplicator"
+            - name: REDIS_REPL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: REDIS_SENTINEL_USER
+              value: "$(REDIS_REPL_USER)-sentinel"
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+            - name: SENTINEL_USER
+              value: "default"
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: $(CONN_CREDENTIAL_SECRET_NAME)
+                  key: password
+                  optional: false
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - |
+              set -ex
+              /scripts/pika-sentinel-start.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/scripts/pika-sentinel-post-start.sh" ]
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 5
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /scripts/pika-sentinel-ping.sh 1

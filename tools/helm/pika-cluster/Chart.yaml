@@ -1,0 +1,21 @@
+apiVersion: v2
+name: redis-cluster
+description: An Redis Replication Cluster Helm chart for KubeBlocks.
+
+type: application
+
+version: 0.6.0-alpha.21
+
+appVersion: "7.0.6"
+
+home: https://redis.io/
+icon: https://bitnami.com/assets/stacks/redis/img/redis-stack-220x234.png
+keywords:
+  - redis
+  - database
+  - nosql
+  - replication
+
+maintainers:
+  - name: ApeCloud
+    url: https://github.com/apecloud/kubeblocks/deploy

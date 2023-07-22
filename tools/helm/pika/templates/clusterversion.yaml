@@ -1,0 +1,39 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterVersion
+metadata:
+  name: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  clusterDefinitionRef: pika
+  componentVersions:
+  - componentDefRef: pika
+    versionsContext:
+      containers:
+      - name: pika
+        image: {{ include "pika.image" . }}
+        imagePullPolicy: {{ default .Values.pika.image.pullPolicy "IfNotPresent" }}
+  - componentDefRef: codis-dashboard
+    versionsContext:
+      containers:
+      - name: codis-dashboard
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: {{ default .Values.image.pullPolicy "IfNotPresent" }}
+  - componentDefRef: codis-proxy
+    versionsContext:
+      containers:
+      - name: codis-proxy
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: {{ default .Values.image.pullPolicy "IfNotPresent" }}
+  - componentDefRef: codis-sentinel
+    versionsContext:
+      containers:
+      - name: codis-sentinel
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: {{ default .Values.image.pullPolicy "IfNotPresent" }}
+  - componentDefRef: codis-fe
+    versionsContext:
+      containers:
+      - name: codis-fe
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: {{ default .Values.image.pullPolicy "IfNotPresent" }}

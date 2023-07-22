@@ -1,0 +1,66 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ include "clustername" . }}
+  labels: {{ include "redis-cluster.labels" . | nindent 4 }}
+spec:
+  clusterDefinitionRef: redis  # ref clusterDefinition.name
+  clusterVersionRef: redis-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name
+  terminationPolicy: {{ .Values.terminationPolicy }}
+  affinity:
+    {{- with .Values.topologyKeys }}
+    topologyKeys: {{ . | toYaml | nindent 6 }}
+    {{- end }}
+  {{- with $.Values.tolerations }}
+  tolerations: {{ . | toYaml | nindent 4 }}
+  {{- end }}
+  componentSpecs:
+    - name: redis # user-defined
+      componentDefRef: redis # ref clusterDefinition componentDefs.name
+      monitor: {{ .Values.monitor.enabled | default false }}
+      enabledLogs: {{ .Values.enabledLogs | toJson | indent 4 }}
+      replicas: {{ .Values.replicaCount | default 2 }}
+      serviceAccountName: {{ include "redis-cluster.serviceAccountName" . }}
+      switchPolicy:
+        type: {{ .Values.switchPolicy.type}}
+      {{- with  .Values.resources }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumeClaimTemplates:
+        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.persistence.data.size }}
+      {{- end }}
+    - name: redis-sentinel # user-defined
+      componentDefRef: redis-sentinel # ref clusterDefinition componentDefs.name
+      replicas: {{ .Values.sentinelReplicaCount | default 3 }}
+      {{- with  .Values.resources }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumeClaimTemplates:
+        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.persistence.data.size }}
+      {{- end }}
