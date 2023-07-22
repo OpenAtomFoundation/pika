@@ -44,7 +44,7 @@ jobs:
 
       - name: Build
         # Build your program with the given configuration
-        run: cmake --build build --config ${{env.BUILD_TYPE}}
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
@@ -105,7 +105,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{env.BUILD_TYPE}}
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
@@ -150,7 +150,7 @@ jobs:
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - name: Build
         run: |
@@ -158,7 +158,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{env.BUILD_TYPE}}
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
