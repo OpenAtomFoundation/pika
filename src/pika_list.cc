@@ -274,7 +274,7 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
     rocksdb::Status s = slot->db()->LPop(this_key, 1, &values);
-    if (s.ok()) {
+     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(values[0]);
@@ -331,8 +331,17 @@ void LPopCmd::DoInitial() {
 void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> elements;
   rocksdb::Status s = slot->db()->LPop(key_, count_, &elements);
+
+  std::string res;
+  for (const auto& item : elements) {
+    res.append(item);
+    res.append(" ");
+  }
+
+  LOG(INFO) << "LPopCmd::Do, key=" << key_ << ", count=" << count_ << ", res=" << res;
+
   if (s.ok()) {
-    res_.AppendArrayLenUint64(elements.size());
+    res_.AppendArrayLen(elements.size());
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
