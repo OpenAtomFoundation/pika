@@ -38,11 +38,6 @@ spec:
           namespace: {{ .Release.Namespace }}
           volumeName: scripts
           defaultMode: 493
-      monitor:
-        builtIn: false
-        exporterConfig:
-          scrapePort: 9121
-          scrapePath: "/metrics"
       logConfigs:
         {{- range $name,$pattern := .Values.logConfigs }}
         - name: {{ $name }}
@@ -62,50 +57,7 @@ spec:
                 mountPath: /data
               - name: pika-conf
                 mountPath: /etc/pika
-            env:
-              - name: REDIS_REPL_USER
-                value: "kbreplicator"
-              - name: REDIS_REPL_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(CONN_CREDENTIAL_SECRET_NAME)
-                    key: password
-                    optional: false
-              - name: REDIS_DEFAULT_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(CONN_CREDENTIAL_SECRET_NAME)
-                    key: password
-                    optional: false
-              - name: REDIS_SENTINEL_USER
-                value: "$(REDIS_REPL_USER)-sentinel"
-              - name: REDIS_SENTINEL_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(CONN_CREDENTIAL_SECRET_NAME)
-                    key: password
-                    optional: false
-              - name: REDIS_ARGS
-                value: "--requirepass $(REDIS_PASSWORD)"
-            command: ["/scripts/pika-start.sh"]
-            lifecycle:
-              postStart:
-                exec:
-                  command: ["/scripts/pika-post-start.sh"]
-          - name: pika-exporter
-            image: {{ .Values.exporter.image.registry }}/{{ .Values.exporter.image.repository }}:{{ .Values.exporter.image.tag }}
-            imagePullPolicy: IfNotPresent
-            ports:
-              - name: metrics
-                containerPort: 9121
-            livenessProbe:
-              httpGet:
-                path: /
-                port: metrics
-            readinessProbe:
-              httpGet:
-                path: /
-                port: metrics
+            command: ["/pika/bin/pika", "-c", "/etc/pika.conf"]
         volumes:
           - name: pod-info
             downwardAPI:
@@ -120,9 +72,6 @@ spec:
                   fieldRef:
                     fieldPath: metadata.annotations['apps.kubeblocks.io/component-replicas']
       systemAccounts:
-# Seems pika-cli has its own mechanism to parse input tokens and there is no elegent way
-# to pass $(KB_ACCOUNT_STATEMENT) to pika-cli without causing parsing error.
-# Instead, using a shell script to wrap pika-cli and pass $(KB_ACCOUNT_STATEMENT) to it will do.
         cmdExecutorConfig:
           image: {{ include "pika.image" . }}
           env:
@@ -136,33 +85,15 @@ spec:
           - sh
           - -c
           args:
-          - "pika-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD $(KB_ACCOUNT_STATEMENT) | pika-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD acl save "
+          - "redis-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD $(KB_ACCOUNT_STATEMENT) | redis-cli -h $(KB_ACCOUNT_ENDPOINT) -a $REDIS_DEFAULT_PASSWORD acl save "
         passwordConfig:
           length: 10
           numDigits: 5
           numSymbols: 0
           letterCase: MixedCases
         accounts:
-          - name: kbadmin
-            provisionPolicy: &kbadminAcctRef
-              type: CreateByStmt
-              scope: AllPods
-              statements:
-                creation: ACL SETUSER $(USERNAME) ON \>$(PASSWD) allcommands allkeys
-                update: ACL SETUSER $(USERNAME) ON \>$(PASSWD)
-          - name: kbdataprotection
-            provisionPolicy: *kbadminAcctRef
-          - name: kbmonitoring
-            provisionPolicy: &kbReadOnlyAcctRef
-              type: CreateByStmt
-              scope: AllPods
-              statements:
-                creation: ACL SETUSER $(USERNAME) ON \>$(PASSWD) allkeys +get
-                update: ACL SETUSER $(USERNAME) ON \>$(PASSWD)
-          - name: kbprobe
-            provisionPolicy: *kbReadOnlyAcctRef
     - name: codis-proxy
-      workloadType: Replication
+      workloadType: StatefulSet
       characterType: pika
       service:
         ports:

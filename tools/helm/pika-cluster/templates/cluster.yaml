@@ -4,8 +4,8 @@ metadata:
   name: {{ include "clustername" . }}
   labels: {{ include "redis-cluster.labels" . | nindent 4 }}
 spec:
-  clusterDefinitionRef: redis  # ref clusterDefinition.name
-  clusterVersionRef: redis-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name
+  clusterDefinitionRef: pika  # ref clusterDefinition.name
+  clusterVersionRef: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name
   terminationPolicy: {{ .Values.terminationPolicy }}
   affinity:
     {{- with .Values.topologyKeys }}

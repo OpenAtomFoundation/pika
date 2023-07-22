@@ -54,16 +54,16 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Define image
 */}}
 {{- define "pika.image" -}}
-{{ .Values.pika.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+{{ .Values.pika.pika.image.registry | default "docker.io" }}/{{ .Values.pika.pika.image.repository }}:{{ .Values.pika.pika.image.tag }}
 {{- end }}
 
 {{- define "pika.imagePullPolicy" -}}
-{{ .Values.pika.image.pullPolicy | default "IfNotPresent" }}
+{{ .Values.pika.pika.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}
 
 {{- define "codis.image" -}}
-{{ .Values.codis.image.registry | default "docker.io" }}/{{ .Values.codis.image.repository }}:{{ .Values.codis.image.tag }}
+{{ .Values.pika.codis.image.registry | default "docker.io" }}/{{ .Values.pika.codis.image.repository }}:{{ .Values.pika.codis.image.tag }}
 {{- end }}
 {{- define "codis.imagePullPolicy" -}}
-{{ .Values.codis.image.pullPolicy | default "IfNotPresent" }}
+{{ .Values.pika.codis.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}
