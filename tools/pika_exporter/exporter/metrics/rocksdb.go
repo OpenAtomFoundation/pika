@@ -401,7 +401,6 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 	},
 	// column family stats
-	// 以下所有指标的Help信息都没有修改，需要统一修改
 	"cf_l0_file_count_limit_delays_with_ongoing_compaction": {
 		Parser: &regexParser{
 			name:   "cf_l0_file_count_limit_delays_with_ongoing_compaction",
@@ -430,18 +429,18 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 			ValueName: "cf_l0_file_count_limit_stops_with_ongoing_compaction",
 		},
 	},
-	"compaction_L0": {
+	"compaction": {
 		Parser: &regexParser{
-			name:   "compaction_L0",
-			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?compaction\.L0\.(?P<info_type>\w+): (?P<compaction_L0>[\.\d]+)`),
+			name:   "compaction",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_compaction\.L(?P<compaction_level>\d+)\.(?P<info_type>\w+): (?P<compaction>[\.\d]+)`),
 			Parser: &normalParser{},
 		},
 		MetricMeta: &MetaData{
-			Name:      "compaction_L0",
-			Help:      "The all metrics of compaction_L0.",
+			Name:      "compaction",
+			Help:      "\r#The all metrics of compaction_L<N>:\r#compaction.L<N>.AvgSec	Average time spent per Compact.\r#compaction.L<N>.CompCount	The number of times Compact has been accumulated.\r#compaction.L<N>.CompMergeCPU	CPU time used in compression, in seconds.\r#compaction.L<N>.CompSec	Compact cumulative time, in seconds.\r#compaction.L<N>.CompactedFiles	Number of files that have completed compact.\r#compaction.L<N>.KeyDrop	Number of keys deleted in compact.\r#compaction.L<N>.KeyIn	Number of records compared during the compaction process.\r#compaction.L<N>.MovedGB	During the compaction process, the number of bytes moved to level n+1.\r#compaction.L<N>.NumFiles	Total number of sst files.\r#compaction.L<N>.RblobGB	The size of data read from the blob file by the compaction, in GB.\r#compaction.L<N>.ReadGB	Read size in GB.\r#compaction.L<N>.ReadMBps	Read rate in MBps.\r#compaction.L<N>.RnGB	When performing compact, read the size of the current layer file in GB.\r#compaction.L<N>.Rnp1GB	When performing compact, read the size of the next level file in GB.\r#compaction.L<N>.Score	Score, the higher the score, the higher the priority.\r#compaction.L<N>.SizeBytes	Total size of SST in bytes.\r#compaction.L<N>.WblobGB	The size of the blob file written during compaction, in GB.\r#compaction.L<N>.WnewGB	WNP1- Rnp1.\r#compaction.L<N>.WriteAmp	Total bytes written to level<N+1>/(total bytes read from level<N>).\r#compaction.L<N>.WriteGB	The size of the table file written during the compaction period, in GB.\r#compaction.L<N>.WriteMBps	Data write rate in compaction.",
 			Type:      metricTypeGauge,
-			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type"},
-			ValueName: "compaction_L0",
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type","compaction_level"},
+			ValueName: "compaction",
 		},
 	},
 	"compaction_Sum": {
@@ -466,7 +465,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "l0_file_count_limit_delays",
-			Help:      "L0 file count limit delays.",
+			Help:      "Stalling writes because we have immutable memtables (waiting for flush).",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "l0_file_count_limit_delays",
@@ -480,7 +479,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "l0_file_count_limit_stops",
-			Help:      "L0 file count limit stops.",
+			Help:      "Stopping writes because we have level-0 files.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "l0_file_count_limit_stops",
@@ -494,7 +493,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "memtable_limit_delays",
-			Help:      "Memtable limit delays.",
+			Help:      "Stalling writes because we have immutable memtables.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "memtable_limit_delays",
@@ -508,7 +507,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "memtable_limit_stops",
-			Help:      "Memtable limit stops.",
+			Help:      "Stopping writes because we have immutable memtables.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "memtable_limit_stops",
@@ -522,7 +521,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "pending_compaction_bytes_delays",
-			Help:      "Pending compaction bytes delays.",
+			Help:      "Stopping writes because of estimated pending compaction.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "pending_compaction_bytes_delays",
@@ -536,7 +535,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "pending_compaction_bytes_stops",
-			Help:      "Pending compaction bytes stops.",
+			Help:      "Stalling writes because of estimated pending compaction.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "pending_compaction_bytes_stops",
@@ -550,7 +549,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "total_delays",
-			Help:      "Total delays.",
+			Help:      "Total delays count.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "total_delays",
@@ -564,7 +563,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 		MetricMeta: &MetaData{
 			Name:      "total_stops",
-			Help:      "Total_stops.",
+			Help:      "Total stops count.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
 			ValueName: "total_stops",

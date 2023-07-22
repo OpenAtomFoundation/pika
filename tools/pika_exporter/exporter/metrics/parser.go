@@ -261,8 +261,10 @@ func mustNewVersionConstraint(version string) *semver.Constraints {
 	return c
 }
 
+const TimeLayout = "2006-01-02 15:04:05"
+
 func convertTimeToUnix(ts string) (int64, error) {
-	t, err := time.Parse(time.RFC3339, ts)
+	t, err := time.Parse(TimeLayout, ts)
 	if err != nil {
 		log.Warnf("format time failed, ts: %d, err: %v", ts, err)
 		return 0, nil
