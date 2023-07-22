@@ -185,6 +185,6 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          cd ./tests/integration/
+          cd ../tests/integration/
           chmod +x integrate_test.sh 
           sh integrate_test.sh
