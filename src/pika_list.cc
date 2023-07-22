@@ -333,7 +333,7 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LPop(key_, count_, &elements);
 
   if (s.ok()) {
-    res_.AppendArrayLen(elements.size());
+    res_.AppendArrayLenUint64(elements.size());
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
@@ -561,7 +561,7 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> elements;
   rocksdb::Status s = slot->db()->RPop(key_, count_, &elements);
   if (s.ok()) {
-    res_.AppendArrayLen(elements.size());
+    res_.AppendArrayLenUint64(elements.size());
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
