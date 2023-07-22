@@ -21,7 +21,6 @@
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
-#  include "pstd/include/pstd_defer.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
@@ -173,6 +172,8 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
+  std::string master_run_id = g_pika_conf->master_run_id();
+  set_master_run_id(master_run_id);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     int32_t sep = slaveof.find(':');
@@ -930,53 +931,6 @@ pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t 
   }
   slot->GetBgSaveMetaData(fileNames, snapshot_uuid);
   return pstd::Status::OK();
-}
-
-// todo 参数太长了，待优化
-pstd::Status PikaServer::ReadDumpFile(const std::string& db_name, uint32_t slot_id, const std::string& filename,
-                                const size_t offset, const size_t count, char* data, size_t* bytes_read) {
-    std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
-    if (!slot) {
-      LOG(WARNING) << "cannot find slot for db_name " << db_name << "slot_id: " << slot_id;
-      return pstd::Status::NotFound("slot no found");
-    }
-    const std::string filepath = slot->bgsave_info().path + "/" + filename;
-    int fd = open(filepath.c_str(), O_RDONLY);
-    if (fd < 0) {
-      return Status::IOError("fd open failed");
-    }
-    DEFER { close(fd); };
-
-    const int kMaxCopyBlockSize = 1 << 20;
-    size_t read_offset = offset;
-    size_t read_count = count;
-    if (read_count > kMaxCopyBlockSize) {
-      read_count = kMaxCopyBlockSize;
-    }
-
-    ssize_t bytesin = 0;
-    size_t left_read_count = count;
-
-    while ((bytesin = pread(fd, data, read_count, read_offset)) > 0) {
-      left_read_count -= bytesin;
-      if (left_read_count < 0) {
-        break ;
-      }
-      if (read_count > left_read_count) {
-        read_count = left_read_count;
-      }
-
-      data += bytesin;
-      *bytes_read += bytesin;
-      read_offset += bytesin;
-    }
-
-    if (bytesin == -1) {
-      LOG(ERROR) << "unable to read from " << filename;
-      return pstd::Status::IOError("unable to read from " + filename);
-    }
-
-    return pstd::Status::OK();
 }
 
 void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,

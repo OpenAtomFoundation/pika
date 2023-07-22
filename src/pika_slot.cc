@@ -353,17 +353,20 @@ void Slot::DoBgSave(void* arg) {
 
   // Some output
   BgSaveInfo info = bg_task_arg->slot->bgsave_info();
+  std::stringstream info_content;
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
-    out << (time(nullptr) - info.start_time) << "s\n"
-        << g_pika_server->host() << "\n"
-        << g_pika_server->port() << "\n"
-        << info.offset.b_offset.filenum << "\n"
-        << info.offset.b_offset.offset << "\n";
+    info_content << (time(nullptr) - info.start_time) << "s\n"
+                 << g_pika_server->host() << "\n"
+                 << g_pika_server->port() << "\n"
+                 << info.offset.b_offset.filenum << "\n"
+                 << info.offset.b_offset.offset << "\n";
     if (g_pika_conf->consensus_level() != 0) {
-      out << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
+      info_content << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
     }
+    bg_task_arg->slot->snapshot_uuid_ = md5(info_content.str());
+    out << info_content.rdbuf();
     out.close();
   }
   if (!success) {
@@ -371,7 +374,6 @@ void Slot::DoBgSave(void* arg) {
     pstd::RenameFile(info.path, fail_path);
   }
   bg_task_arg->slot->FinishBgsave();
-
 }
 
 bool Slot::RunBgsaveEngine() {

@@ -48,8 +48,7 @@ public:
     bool Init();
     Status Start();
     Status Stop();
-    bool IsRunning() { 
-      LOG(WARNING) << "current state_: " << state_.load();
+    bool IsRunning() {
       return state_.load() == RUNNING;
     }
     bool IsIdle() { return state_.load() == IDLE;}

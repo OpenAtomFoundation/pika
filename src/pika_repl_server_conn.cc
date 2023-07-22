@@ -343,6 +343,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   }
 
   g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id, slave_boffset.filenum());
+  master_slot->ActivateSlaveDbSync(node.ip(), node.port());
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
