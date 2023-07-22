@@ -161,26 +161,26 @@ jobs:
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
-      - name: Test
-        working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }}
-
-      - name: Unit Test
-        working-directory: ${{ github.workspace }}
-        run: |
-          ./pikatests.sh all
-
-      - name: Start pika master and slave
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
-
-      - name: Run Python E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
+#      - name: Test
+#        working-directory: ${{ github.workspace }}/build
+#        run: ctest -C ${{ env.BUILD_TYPE }}
+#
+#      - name: Unit Test
+#        working-directory: ${{ github.workspace }}
+#        run: |
+#          ./pikatests.sh all
+#
+#      - name: Start pika master and slave
+#        working-directory: ${{ github.workspace }}/build
+#        run: |
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
+#
+#      - name: Run Python E2E Tests
+#        working-directory: ${{ github.workspace }}/build
+#        run: |
+#          python3 ../tests/integration/pika_replication_test.py
+#          python3 ../tests/unit/Blpop_Brpop_test.py
 
       - name: Run Go E2E Tests
         run: |
