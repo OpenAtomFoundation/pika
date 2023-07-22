@@ -152,6 +152,18 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
 
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          pwd \
+            && ls -l \
+            && chmod +x ../tests/integration/integrate_test.sh \
+            && [[ -n "${{github.event.pull_request.head.repo.full_name}}" ]] \
+            && [[ -n "${{github.event.pull_request.head.sha}}" ]] \
+            && [[ -n "${{github.base_ref}}" ]] \
+            && .../tests/integration/integrate_test.sh   
+          
+
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
@@ -185,8 +197,8 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          pwd
-            && ls -l
+          pwd \
+            && ls -l \
             && chmod +x ../tests/integration/integrate_test.sh \
             && [[ -n "${{github.event.pull_request.head.repo.full_name}}" ]] \
             && [[ -n "${{github.event.pull_request.head.sha}}" ]] \
