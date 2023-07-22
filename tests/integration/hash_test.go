@@ -2,9 +2,10 @@ package pika_integration
 
 import (
 	"context"
+	"time"
+
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 )
