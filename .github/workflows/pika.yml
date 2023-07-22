@@ -155,14 +155,8 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          pwd \
-            && ls -l \
-            && chmod +x ../tests/integration/integrate_test.sh \
-            && [[ -n "${{github.event.pull_request.head.repo.full_name}}" ]] \
-            && [[ -n "${{github.event.pull_request.head.sha}}" ]] \
-            && [[ -n "${{github.base_ref}}" ]] \
-            && .../tests/integration/integrate_test.sh   
-          
+          chmod +x ../tests/integration/integrate_test.sh 
+          sh ../tests/integration/integrate_test.sh
 
       - name: Configure CMake
         run: |
@@ -182,25 +176,20 @@ jobs:
 #        run: |
 #          ./pikatests.sh all
 #
-#      - name: Start pika master and slave
-#        working-directory: ${{ github.workspace }}/build
-#        run: |
-#          chmod +x ../tests/integration/start_master_and_slave.sh
-#          ../tests/integration/start_master_and_slave.sh
-#
-#      - name: Run Python E2E Tests
-#        working-directory: ${{ github.workspace }}/build
-#        run: |
-#          python3 ../tests/integration/pika_replication_test.py
-#          python3 ../tests/unit/Blpop_Brpop_test.py
+      - name: Start pika master and slave
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+
+      - name: Run Python E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          python3 ../tests/integration/pika_replication_test.py
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          pwd \
-            && ls -l \
-            && chmod +x ../tests/integration/integrate_test.sh \
-            && [[ -n "${{github.event.pull_request.head.repo.full_name}}" ]] \
-            && [[ -n "${{github.event.pull_request.head.sha}}" ]] \
-            && [[ -n "${{github.base_ref}}" ]] \
-            && .../tests/integration/integrate_test.sh
+          chmod +x ../tests/integration/integrate_test.sh 
+          sh ../tests/integration/integrate_test.sh
