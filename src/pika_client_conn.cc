@@ -250,9 +250,6 @@ void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>&
 }
 
 void PikaClientConn::TryWriteResp() {
-  if (resp_array.empty()) {
-//    LOG(INFO) << "【SPEC】Write resp to client【empty】";
-  }
   int expected = 0;
   if (resp_num.compare_exchange_strong(expected, -1)) {
     for (auto& resp : resp_array) {
@@ -269,13 +266,6 @@ void PikaClientConn::TryWriteResp() {
 }
 
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
-  std::string cmd_ptr11;
-  for (const auto& item : argv) {
-    cmd_ptr11 += item;
-    cmd_ptr11 += " ";
-  }
-  LOG(INFO) << "【SPEC】Get exec Redis Cmd: " << cmd_ptr11;
-
   // get opt
   std::string opt = argv[0];
   pstd::StringToLower(opt);
@@ -290,7 +280,6 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   // level == 0 or (cmd error) or (is_read)
   if (g_pika_conf->consensus_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
     *resp_ptr = std::move(cmd_ptr->res().message());
-    LOG(INFO) << "【SPEC】Exec Redis Cmd: 【" << cmd_ptr11 << "】,  result: " << *resp_ptr;
     resp_num--;
   }
 }
