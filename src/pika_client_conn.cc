@@ -253,7 +253,6 @@ void PikaClientConn::TryWriteResp() {
   int expected = 0;
   if (resp_num.compare_exchange_strong(expected, -1)) {
     for (auto& resp : resp_array) {
-//      LOG(INFO) << "【SPEC】Write resp to client: " << *resp;
       WriteResp(*resp);
     }
     if (write_completed_cb_) {

@@ -91,6 +91,7 @@ void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
   std::unique_lock lock(mu_);
+  wsignal_.wait(lock, [this]() { return queue_.size() < max_queue_size_ || should_stop(); });
 
   if (!should_stop()) {
     queue_.emplace(func, arg);
