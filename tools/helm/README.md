@@ -7,14 +7,14 @@
 ## install pika cluster
 
 ```bash
-helm install nebula ./deploy/pika
-helm install nebula-cluster ./deploy/pika-cluster
+helm install pika ./deploy/pika
+helm install pika-cluster ./deploy/pika-cluster
 ```
 
 ## port-forward svc to localhost
 
 ```
-kubectl port-forward svc/nebula-cluster-nebula-graphd 9221:9221
+kubectl port-forward svc/pika-cluster-pika 9221:9221
 ```
 
 ## connect to pika
