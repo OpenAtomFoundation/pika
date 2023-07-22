@@ -11,7 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = Describe("String Commands", func() {
+var _ = Describe("Zset Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 

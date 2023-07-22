@@ -9,5 +9,5 @@ import (
 
 func TestBooks(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Books Suite")
+	RunSpecs(t, "Pika integration test")
 }

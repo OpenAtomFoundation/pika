@@ -390,20 +390,20 @@ var _ = Describe("List Commands", func() {
 		//})
 
 		It("should LPopCount", func() {
-			rPush := client.RPush(ctx, "list", "one")
+			rPush := client.RPush(ctx, "list11", "one")
 			Expect(rPush.Err()).NotTo(HaveOccurred())
-			rPush = client.RPush(ctx, "list", "two")
+			rPush = client.RPush(ctx, "list11", "two")
 			Expect(rPush.Err()).NotTo(HaveOccurred())
-			rPush = client.RPush(ctx, "list", "three")
+			rPush = client.RPush(ctx, "list11", "three")
 			Expect(rPush.Err()).NotTo(HaveOccurred())
-			rPush = client.RPush(ctx, "list", "four")
+			rPush = client.RPush(ctx, "list11", "four")
 			Expect(rPush.Err()).NotTo(HaveOccurred())
 
-			lPopCount := client.LPopCount(ctx, "list", 2)
+			lPopCount := client.LPopCount(ctx, "list11", 2)
 			Expect(lPopCount.Err()).NotTo(HaveOccurred())
 			Expect(lPopCount.Val()).To(Equal([]string{"one", "two"}))
 
-			lRange := client.LRange(ctx, "list", 0, -1)
+			lRange := client.LRange(ctx, "list11", 0, -1)
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"three", "four"}))
 		})
