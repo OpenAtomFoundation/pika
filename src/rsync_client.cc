@@ -236,6 +236,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
 Status RsyncClient::Start() {
   LOG(WARNING) << "RsyncClient start ...";
   StartThread();
+  LOG(WARNING) << "RsyncClient StartThread done...";
   return Status::OK();
 }
 
@@ -246,9 +247,13 @@ Status RsyncClient::Stop() {
   LOG(WARNING) << "RsyncClient stop ...";
   state_ = STOP;
   StopThread();
+  LOG(WARNING) << "RsyncClient StopThread done...";
   client_thread_->StopThread();
+  LOG(WARNING) << "RsyncClient Stop clientThread done...";
   JoinThread();
+  LOG(WARNING) << "RsyncClient JoinThread done...";
   client_thread_->JoinThread();
+  LOG(WARNING) << "RsyncClient join clientThread done...";
   state_ = IDLE;
   return Status::OK();
 }

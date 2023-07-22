@@ -165,6 +165,13 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_db_name(db_name);
   response.set_slot_id(slot_id);
 
+  RsyncService::RsyncResponse response;
+  response.set_db_name(db_name);
+  response.set_slot_id(slot_id);
+  response.set_type(RsyncService::kRsyncMeta);
+  LOG(INFO) << "RsyncServer receives RsyncMeta request...";
+
+
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
   g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
@@ -187,6 +194,7 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
+  LOG(INFO) << "RsyncServer RsyncFile request ...";
 
   uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
