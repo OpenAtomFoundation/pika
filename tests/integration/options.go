@@ -16,7 +16,7 @@ func (t *TimeValue) ScanRedis(s string) (err error) {
 
 func pikarOptions1() *redis.Options {
 	return &redis.Options{
-		Addr:         "127.0.0.1:9413",
+		Addr:         "127.0.0.1:9221",
 		DB:           0,
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  30 * time.Second,
@@ -29,7 +29,7 @@ func pikarOptions1() *redis.Options {
 
 func pikarOptions2() *redis.Options {
 	return &redis.Options{
-		Addr:         "127.0.0.1:9222",
+		Addr:         "127.0.0.1:9231",
 		DB:           0,
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  30 * time.Second,
