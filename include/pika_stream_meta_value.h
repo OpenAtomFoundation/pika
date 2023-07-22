@@ -66,17 +66,17 @@ class StreamMetaValue {
     memcpy(&max_deleted_entry_id_, pos, sizeof(streamID));
   }
 
-  treeID groups_id() { return groups_id_; }
+ const treeID groups_id() { return groups_id_; }
 
-  uint64_t entries_added() { return entries_added_; }
+  const uint64_t entries_added() { return entries_added_; }
 
   void ModifyEntriesAdded(uint64_t delta) { set_entries_added(entries_added_ + delta); }
 
-  streamID first_id() { return first_id_; }
+  const streamID first_id() { return first_id_; }
 
-  streamID last_id() { return last_id_; }
+  const streamID last_id() const { return last_id_; }
 
-  streamID max_deleted_entry_id() { return max_deleted_entry_id_; }
+  const streamID max_deleted_entry_id() { return max_deleted_entry_id_; }
 
   std::string& value() { return value_; }
 

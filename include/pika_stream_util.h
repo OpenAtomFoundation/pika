@@ -6,6 +6,7 @@
 #include <mutex>
 #include <vector>
 #include "glog/logging.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_stream_meta_value.h"
@@ -73,13 +74,16 @@ class StreamUtil {
                                              const std::shared_ptr<Slot> &slot);
 
   static CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd);
+  static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
+                                         bool is_xreadgroup);
   // be used when - and + are acceptable IDs.
   static CmdRes StreamParseID(const std::string &var, streamID &id, uint64_t missing_seq);
   // be used when we want to return an error if the special IDs + or - are provided.
-  static CmdRes StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, int *seq_given);
+  static CmdRes StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, bool *seq_given);
 
   // Korpse TODO: unit tests
   static bool string2uint64(const char *s, uint64_t &value);
+  static bool string2int64(const char *s, int64_t &value);
   static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
                                int field_pos);
   static bool SerializeStreamID(const streamID &id, std::string &serialized_id);
@@ -88,7 +92,7 @@ class StreamUtil {
  private:
   // Korpse TODO: unit test
   static CmdRes StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
-                                     int *seq_given);
+                                     bool *seq_given);
 
  private:
   // used when create the first stream meta

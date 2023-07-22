@@ -45,30 +45,17 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  // 2. append the message
-  assert(argv_.size() - field_pos_ >= 2 && (argv_.size() - field_pos_) % 2 == 0);
+  // 2. append the message to storage
   std::string message_str;
   std::string id_str;
+  res_ = GenerateStreamID(stream_meta, args_, args_.id);
+  if (!res_.ok()) {
+    return;
+  }
   if (!StreamUtil::SerializeMessage(argv_, message_str, field_pos_)) {
     LOG(FATAL) << "Serialize message failed";
     res_.SetRes(CmdRes::kErrOther, "Serialize message failed");
     return;
-  }
-  // 2.1 if id not given, generate one
-  if (!args_.id_given) {
-    auto last_id = stream_meta.last_id();
-    args_.id.ms = StreamUtil::GetCurrentTimeMs();
-    if (args_.id.ms < last_id.ms) {
-      LOG(FATAL) << "Time backwards detected !";
-      res_.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
-      return;
-    } else if (args_.id.ms == last_id.ms) {
-      // FIXME: deal with overflow, and user given seq
-      assert(last_id.seq < UINT64_MAX);
-      args_.id.seq = last_id.seq + 1;
-    } else {
-      args_.id.seq = 0;
-    }
   }
   if (!StreamUtil::SerializeStreamID(args_.id, id_str)) {
     LOG(FATAL) << "Serialize stream id failed";
@@ -84,6 +71,9 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 3. update stream meta
   int message_len = (argv_.size() - field_pos_) / 2;
+  if (stream_meta.entries_added() == 0) {
+    stream_meta.set_first_id(args_.id);
+  }
   stream_meta.set_entries_added(stream_meta.entries_added() + message_len);
   stream_meta.set_last_id(args_.id);
 
@@ -96,4 +86,58 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   res_.SetRes(CmdRes::kOk);
+}
+
+CmdRes XAddCmd::GenerateStreamID(const StreamMetaValue &stream_meta, const StreamAddTrimArgs &args_, streamID &id) {
+  CmdRes res;
+  if (args_.id_given && args_.seq_given && id.ms == 0 && id.seq == 0) {
+    LOG(INFO) << "The ID specified in XADD must be greater than 0-0";
+    res.SetRes(CmdRes::kInvalidParameter);
+    return res;
+  }
+  // 2.2 if id not given, generate one
+  if (!args_.id_given) {
+    LOG(INFO) << "ID not given, generate id";
+    auto last_id = stream_meta.last_id();
+    id.ms = StreamUtil::GetCurrentTimeMs();
+    if (id.ms < last_id.ms) {
+      LOG(FATAL) << "Time backwards detected !";
+      res.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
+      return res;
+    } else if (id.ms == last_id.ms) {
+      assert(last_id.seq < UINT64_MAX);
+      id.seq = last_id.seq + 1;
+    } else {
+      id.seq = 0;
+    }
+  } else if (!args_.seq_given) {
+    LOG(INFO) << "ID not given, generate id";
+    auto last_id = stream_meta.last_id();
+    if (id.ms < last_id.ms) {
+      LOG(FATAL) << "Time backwards detected !";
+      res.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
+      return res;
+    }
+    assert(last_id.seq < UINT64_MAX);
+    id.seq = last_id.seq + 1;
+  } else {
+    LOG(INFO) << "ID given, check id";
+    auto last_id = stream_meta.last_id();
+    if (id.ms < last_id.ms || (id.ms == last_id.ms && id.seq <= last_id.seq)) {
+      LOG(FATAL) << "INVALID ID: " << id.ms << "-" << id.seq << " < " << last_id.ms << "-" << last_id.seq;
+      res.SetRes(CmdRes::kErrOther, "INVALID ID given");
+      return res;
+    }
+  }
+  res.SetRes(CmdRes::kOk);
+  return res;
+}
+
+void XReadCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
+    return;
+  }
+
+  // Korpse TODO: finish this
 }
