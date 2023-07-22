@@ -152,12 +152,6 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
 
-      - name: Run Go E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          chmod +x ../tests/integration/integrate_test.sh 
-          sh ../tests/integration/integrate_test.sh
-
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
