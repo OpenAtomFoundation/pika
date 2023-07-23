@@ -95,6 +95,11 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
 
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
       - name: Install cmake
         run: |
           wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
