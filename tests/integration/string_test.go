@@ -420,11 +420,11 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should MSetNX", func() {
-			mSetNX := client.MSetNX(ctx, "key1", "hello1", "key2", "hello2")
+			mSetNX := client.MSetNX(ctx, "MSetNXkey1", "hello1", "MSetNXkey2", "hello2")
 			Expect(mSetNX.Err()).NotTo(HaveOccurred())
 			Expect(mSetNX.Val()).To(Equal(true))
 
-			mSetNX = client.MSetNX(ctx, "key2", "hello1", "key3", "hello2")
+			mSetNX = client.MSetNX(ctx, "MSetNXkey1", "hello1", "MSetNXkey2", "hello2")
 			Expect(mSetNX.Err()).NotTo(HaveOccurred())
 			Expect(mSetNX.Val()).To(Equal(false))
 

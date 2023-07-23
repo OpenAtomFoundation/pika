@@ -292,17 +292,17 @@ var _ = Describe("List Commands", func() {
 		})
 
 		It("should HVals", func() {
-			err := client.HSet(ctx, "hash", "key1", "hello1").Err()
+			err := client.HSet(ctx, "hash121", "key1", "hello1").Err()
 			Expect(err).NotTo(HaveOccurred())
-			err = client.HSet(ctx, "hash", "key2", "hello2").Err()
+			err = client.HSet(ctx, "hash121", "key2", "hello2").Err()
 			Expect(err).NotTo(HaveOccurred())
 
-			v, err := client.HVals(ctx, "hash").Result()
+			v, err := client.HVals(ctx, "hash121").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(v).To(Equal([]string{"hello1", "hello2"}))
 
 			var slice []string
-			err = client.HVals(ctx, "hash").ScanSlice(&slice)
+			err = client.HVals(ctx, "hash121").ScanSlice(&slice)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(slice).To(Equal([]string{"hello1", "hello2"}))
 		})
