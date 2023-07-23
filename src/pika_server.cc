@@ -134,12 +134,15 @@ bool PikaServer::ServerInit() {
 void PikaServer::Start() {
   int ret = 0;
   // start rsync first, rocksdb opened fd will not appear in this fork
-  //ret = pika_rsync_service_->StartRsync();
+  // TODO: temporarily disable rsync server
+  /*
+  ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     dbs_.clear();
     LOG(FATAL) << "Start Rsync Error: bind port " + std::to_string(pika_rsync_service_->ListenPort()) + " failed"
                << ", Listen on this port to receive Master FullSync Data";
   }
+  */
 
   // We Init DB Struct Before Start The following thread
   InitDBStruct();
@@ -956,8 +959,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     slot->BgSaveSlot();
   }
- return;
-  DBSync(ip, port, db_name, slot_id);
+  //TODO: temporarily disable rsync server
+  //DBSync(ip, port, db_name, slot_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
@@ -1288,6 +1291,7 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
+  //TODO: temporarily disable rsync
   //AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();

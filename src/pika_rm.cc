@@ -538,7 +538,6 @@ Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return 
 /* SyncSlaveSlot */
 SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
     : SyncSlot(db_name, slot_id) {
-  //TODO: get dbsync_path from slot class
   std::string dbsync_path = g_pika_conf->db_sync_path() + "/" + db_name;
   rsync_cli_.reset(new rsync::RsyncClient(dbsync_path, db_name, slot_id));
   m_info_.SetLastRecvTime(pstd::NowMicros());
@@ -648,9 +647,6 @@ void SyncSlaveSlot::ActivateRsync() {
   LOG(WARNING) << "ActivateRsync ...";
   if (rsync_cli_->Init()) {
     rsync_cli_->Start();
-    LOG(WARNING) << "ActivateRsync done...";
-  } else {
-    LOG(WARNING) << "ActivateRsync init failed...";
   }
 }
 
