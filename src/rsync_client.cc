@@ -160,10 +160,6 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         wo_->Reset(filename, kRsyncFile, offset);
       }
 
-      RsyncResponse* resp = nullptr;
-      s = Wait(resp);
-      if (s.IsTimeout() || resp == nullptr) {
-        LOG(WARNING) << "rsync request timeout";
         retries++;
         continue;
       }
@@ -201,10 +197,6 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
           LOG(WARNING) << "mismatch file checksum for file: " << filename;
           s = Status::IOError("mismatch checksum", "mismatch checksum");
           return s;
-        }
-        s = writer->Fsync();
-        if (!s.ok()) {
-            return s;
         }
         s = writer->Close();
         if (!s.ok()) {
