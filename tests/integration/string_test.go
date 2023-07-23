@@ -823,18 +823,22 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should SetXX with expiration", func() {
-			isSet, err := client.SetXX(ctx, "key", "hello2", time.Second).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(isSet).To(Equal(false))
-
-			err = client.Set(ctx, "key", "hello", time.Second).Err()
-			Expect(err).NotTo(HaveOccurred())
-
-			isSet, err = client.SetXX(ctx, "key", "hello2", time.Second).Result()
+			isSet, err := client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(isSet).To(Equal(true))
 
-			val, err := client.Get(ctx, "key").Result()
+			isSet, err = client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(isSet).To(Equal(false))
+
+			err = client.Set(ctx, "SetXXkey11", "hello", time.Second).Err()
+			Expect(err).NotTo(HaveOccurred())
+
+			isSet, err = client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(isSet).To(Equal(true))
+
+			val, err := client.Get(ctx, "SetXXkey11").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal("hello2"))
 		})
