@@ -8,7 +8,7 @@ import (
 	. "github.com/bsm/gomega"
 )
 
-func TestBooks(t *testing.T) {
+func TestPika(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pika integration test")
 }
