@@ -823,22 +823,18 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should SetXX with expiration", func() {
-			isSet, err := client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(isSet).To(Equal(true))
-
-			isSet, err = client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
+			isSet, err := client.SetXX(ctx, "SetXXkey11111", "hello2", time.Second*1000).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(isSet).To(Equal(false))
 
-			err = client.Set(ctx, "SetXXkey11", "hello", time.Second).Err()
+			err = client.Set(ctx, "SetXXkey11111", "hello", time.Second).Err()
 			Expect(err).NotTo(HaveOccurred())
 
-			isSet, err = client.SetXX(ctx, "SetXXkey11", "hello2", time.Second).Result()
+			isSet, err = client.SetXX(ctx, "SetXXkey11111", "hello2", time.Second).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(isSet).To(Equal(true))
 
-			val, err := client.Get(ctx, "SetXXkey11").Result()
+			val, err := client.Get(ctx, "SetXXkey11111").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal("hello2"))
 		})
