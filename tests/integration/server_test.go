@@ -14,7 +14,7 @@ var _ = Describe("Server", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikarOptions1())
+		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -108,13 +108,47 @@ var _ = Describe("Server", func() {
 			Expect(val).To(ContainSubstring("Background append only file rewriting"))
 		})
 
+		// Test scenario: Execute the del command, after executing bgsave, the get data will be wrong
 		It("should BgSave", func() {
-			Skip("flaky test")
+			res := client.Set(ctx, "bgsava_key", "bgsava_value", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			_ = client.Set(ctx, "bgsava_key2", "bgsava_value3", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			_ = client.HSet(ctx, "bgsava_key3", "bgsava_value", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
 
-			// workaround for "ERR Can't BGSAVE while AOF log rewriting is in progress"
-			Eventually(func() string {
-				return client.BgSave(ctx).Val()
-			}, "30s").Should(Equal("Background saving started"))
+			res2, err2 := client.BgSave(ctx).Result()
+			Expect(err2).NotTo(HaveOccurred())
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res2).To(ContainSubstring("Background saving started"))
+
+			res = client.Set(ctx, "bgsava_key", "bgsava_value", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			res = client.Set(ctx, "bgsava_key2", "bgsava_value2", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			res = client.Set(ctx, "bgsava_key3", "bgsava_value3", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			hSet := client.HSet(ctx, "bgsava_key4", "bgsava_value4", 0)
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+
+			_, err := client.Del(ctx, "bgsava_key").Result()
+			Expect(err).NotTo(HaveOccurred())
+
+			res2, err2 = client.BgSave(ctx).Result()
+			Expect(err2).NotTo(HaveOccurred())
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res2).To(ContainSubstring("Background saving started"))
+
+			val, err := client.Get(ctx, "bgsava_key2").Result()
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(val).To(ContainSubstring("bgsava_value2"))
+
+			_, err = client.Del(ctx, "bgsava_key4").Result()
+			Expect(err).NotTo(HaveOccurred())
+
+			get := client.Get(ctx, "bgsava_key3")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("bgsava_value3"))
 		})
 
 		//It("Should CommandGetKeys", func() {
