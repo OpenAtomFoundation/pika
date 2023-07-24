@@ -391,6 +391,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> llenptr =
       std::make_unique<LLenCmd>(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLLen, std::move(llenptr)));
+  std::unique_ptr<Cmd> blpopptr =
+      std::make_unique<BLPopCmd>(kCmdNameBLPop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBLPop, std::move(blpopptr)));
   std::unique_ptr<Cmd> lpopptr =
       std::make_unique<LPopCmd>(kCmdNameLPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
@@ -414,6 +417,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> ltrimptr =
       std::make_unique<LTrimCmd>(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLTrim, std::move(ltrimptr)));
+  std::unique_ptr<Cmd> brpopptr =
+      std::make_unique<BRPopCmd>(kCmdNameBRpop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr =
       std::make_unique<RPopCmd>(kCmdNameRPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));
@@ -933,10 +939,10 @@ PikaCmdArgsType& Cmd::argv() { return argv_; }
 std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum, uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, argv_.size(), "*");
+  RedisAppendLenUint64(content, argv_.size(), "*");
 
   for (const auto& v : argv_) {
-    RedisAppendLen(content, v.size(), "$");
+    RedisAppendLenUint64(content, v.size(), "$");
     RedisAppendContent(content, v);
   }
 
@@ -944,7 +950,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
                                              content, {});
 }
 
-bool Cmd::CheckArg(int num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
+bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
 
 void Cmd::LogCommand() const {
   std::string command;
