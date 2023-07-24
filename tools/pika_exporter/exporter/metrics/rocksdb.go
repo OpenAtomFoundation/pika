@@ -400,4 +400,173 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 			ValueName: "live_blob_file_size",
 		},
 	},
+	// column family stats
+	"cf_l0_file_count_limit_delays_with_ongoing_compaction": {
+		Parser: &regexParser{
+			name:   "cf_l0_file_count_limit_delays_with_ongoing_compaction",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?cf-l0-file-count-limit-delays-with-ongoing-compaction: (?P<cf_l0_file_count_limit_delays_with_ongoing_compaction>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "cf_l0_file_count_limit_delays_with_ongoing_compaction",
+			Help:      "Write slowdown caused by l0 file count limit while there is ongoing L0 compaction.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "cf_l0_file_count_limit_delays_with_ongoing_compaction",
+		},
+	},
+	"cf_l0_file_count_limit_stops_with_ongoing_compaction": {
+		Parser: &regexParser{
+			name:   "cf_l0_file_count_limit_stops_with_ongoing_compaction",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?cf-l0-file-count-limit-stops-with-ongoing-compaction: (?P<cf_l0_file_count_limit_stops_with_ongoing_compaction>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "cf_l0_file_count_limit_stops_with_ongoing_compaction",
+			Help:      "Write stop caused by l0 file count limit while there is ongoing L0 compaction.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "cf_l0_file_count_limit_stops_with_ongoing_compaction",
+		},
+	},
+	"compaction": {
+		Parser: &regexParser{
+			name:   "compaction",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_compaction\.L(?P<compaction_level>\d+)\.(?P<info_type>\w+): (?P<compaction>[\.\d]+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "compaction",
+			Help:      "\r#The all metrics of compaction_L<N>:\r#compaction.L<N>.AvgSec	Average time spent per Compact.\r#compaction.L<N>.CompCount	The number of times Compact has been accumulated.\r#compaction.L<N>.CompMergeCPU	CPU time used in compression, in seconds.\r#compaction.L<N>.CompSec	Compact cumulative time, in seconds.\r#compaction.L<N>.CompactedFiles	Number of files that have completed compact.\r#compaction.L<N>.KeyDrop	Number of keys deleted in compact.\r#compaction.L<N>.KeyIn	Number of records compared during the compaction process.\r#compaction.L<N>.MovedGB	During the compaction process, the number of bytes moved to level n+1.\r#compaction.L<N>.NumFiles	Total number of sst files.\r#compaction.L<N>.RblobGB	The size of data read from the blob file by the compaction, in GB.\r#compaction.L<N>.ReadGB	Read size in GB.\r#compaction.L<N>.ReadMBps	Read rate in MBps.\r#compaction.L<N>.RnGB	When performing compact, read the size of the current layer file in GB.\r#compaction.L<N>.Rnp1GB	When performing compact, read the size of the next level file in GB.\r#compaction.L<N>.Score	Score, the higher the score, the higher the priority.\r#compaction.L<N>.SizeBytes	Total size of SST in bytes.\r#compaction.L<N>.WblobGB	The size of the blob file written during compaction, in GB.\r#compaction.L<N>.WnewGB	WNP1- Rnp1.\r#compaction.L<N>.WriteAmp	Total bytes written to level<N+1>/(total bytes read from level<N>).\r#compaction.L<N>.WriteGB	The size of the table file written during the compaction period, in GB.\r#compaction.L<N>.WriteMBps	Data write rate in compaction.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type","compaction_level"},
+			ValueName: "compaction",
+		},
+	},
+	"compaction_Sum": {
+		Parser: &regexParser{
+			name:   "compaction_Sum",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?compaction\.Sum\.(?P<info_type>\w+): (?P<compaction_Sum>[\.\d]+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "compaction_Sum",
+			Help:      "The all metrics of compaction_Sum.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type"},
+			ValueName: "compaction_Sum",
+		},
+	},
+	"l0_file_count_limit_delays": {
+		Parser: &regexParser{
+			name:   "l0_file_count_limit_delays",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?l0-file-count-limit-delays: (?P<l0_file_count_limit_delays>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "l0_file_count_limit_delays",
+			Help:      "Stalling writes because we have immutable memtables (waiting for flush).",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "l0_file_count_limit_delays",
+		},
+	},
+	"l0_file_count_limit_stops": {
+		Parser: &regexParser{
+			name:   "l0_file_count_limit_stops",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?l0-file-count-limit-stops: (?P<l0_file_count_limit_stops>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "l0_file_count_limit_stops",
+			Help:      "Stopping writes because we have level-0 files.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "l0_file_count_limit_stops",
+		},
+	},
+	"memtable_limit_delays": {
+		Parser: &regexParser{
+			name:   "memtable_limit_delays",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?memtable-limit-delays: (?P<memtable_limit_delays>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "memtable_limit_delays",
+			Help:      "Stalling writes because we have immutable memtables.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "memtable_limit_delays",
+		},
+	},
+	"memtable_limit_stops": {
+		Parser: &regexParser{
+			name:   "memtable_limit_stops",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?memtable-limit-stops: (?P<memtable_limit_stops>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "memtable_limit_stops",
+			Help:      "Stopping writes because we have immutable memtables.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "memtable_limit_stops",
+		},
+	},
+	"pending_compaction_bytes_delays": {
+		Parser: &regexParser{
+			name:   "pending_compaction_bytes_delays",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?pending-compaction-bytes-delays: (?P<pending_compaction_bytes_delays>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "pending_compaction_bytes_delays",
+			Help:      "Stopping writes because of estimated pending compaction.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "pending_compaction_bytes_delays",
+		},
+	},
+	"pending_compaction_bytes_stops": {
+		Parser: &regexParser{
+			name:   "pending_compaction_bytes_stops",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?pending-compaction-bytes-stops: (?P<pending_compaction_bytes_stops>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "pending_compaction_bytes_stops",
+			Help:      "Stalling writes because of estimated pending compaction.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "pending_compaction_bytes_stops",
+		},
+	},
+	"total_delays": {
+		Parser: &regexParser{
+			name:   "total_delays",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?total-delays: (?P<total_delays>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "total_delays",
+			Help:      "Total delays count.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "total_delays",
+		},
+	},
+	"total_stops": {
+		Parser: &regexParser{
+			name:   "total_stops",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?total-stops: (?P<total_stops>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "total_stops",
+			Help:      "Total stops count.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "total_stops",
+		},
+	},
 }
