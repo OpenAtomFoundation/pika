@@ -885,8 +885,8 @@ int64_t Storage::PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min
   start_key.erase(start_key.begin());
   switch (key_type) {
     case 'k':
-      is_finish =
-          strings_db_->PKExpireScan(start_key, curtime + min_ttl, curtime + max_ttl, keys, &leftover_visits, &next_key);
+      is_finish = strings_db_->PKExpireScan(start_key, static_cast<int32_t>(curtime + min_ttl),
+                                            static_cast<int32_t>(curtime + max_ttl), keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
         cursor_ret = cursor + step_length;
         StoreCursorStartKey(dtype, cursor_ret, std::string("k") + next_key);
@@ -903,8 +903,8 @@ int64_t Storage::PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min
       }
       start_key = "";
     case 'h':
-      is_finish =
-          hashes_db_->PKExpireScan(start_key, curtime + min_ttl, curtime + max_ttl, keys, &leftover_visits, &next_key);
+      is_finish = hashes_db_->PKExpireScan(start_key, static_cast<int32_t>(curtime + min_ttl),
+                                           static_cast<int32_t>(curtime + max_ttl), keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
         cursor_ret = cursor + step_length;
         StoreCursorStartKey(dtype, cursor_ret, std::string("h") + next_key);
@@ -921,8 +921,8 @@ int64_t Storage::PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min
       }
       start_key = "";
     case 's':
-      is_finish =
-          sets_db_->PKExpireScan(start_key, curtime + min_ttl, curtime + max_ttl, keys, &leftover_visits, &next_key);
+      is_finish = sets_db_->PKExpireScan(start_key, static_cast<int32_t>(curtime + min_ttl),
+                                         static_cast<int32_t>(curtime + max_ttl), keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
         cursor_ret = cursor + step_length;
         StoreCursorStartKey(dtype, cursor_ret, std::string("s") + next_key);
@@ -939,8 +939,8 @@ int64_t Storage::PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min
       }
       start_key = "";
     case 'l':
-      is_finish =
-          lists_db_->PKExpireScan(start_key, curtime + min_ttl, curtime + max_ttl, keys, &leftover_visits, &next_key);
+      is_finish = lists_db_->PKExpireScan(start_key, static_cast<int32_t>(curtime + min_ttl),
+                                          static_cast<int32_t>(curtime + max_ttl), keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
         cursor_ret = cursor + step_length;
         StoreCursorStartKey(dtype, cursor_ret, std::string("l") + next_key);
@@ -957,8 +957,8 @@ int64_t Storage::PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min
       }
       start_key = "";
     case 'z':
-      is_finish =
-          zsets_db_->PKExpireScan(start_key, curtime + min_ttl, curtime + max_ttl, keys, &leftover_visits, &next_key);
+      is_finish = zsets_db_->PKExpireScan(start_key, static_cast<int32_t>(curtime + min_ttl),
+                                          static_cast<int32_t>(curtime + max_ttl), keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
         cursor_ret = cursor + step_length;
         StoreCursorStartKey(dtype, cursor_ret, std::string("z") + next_key);

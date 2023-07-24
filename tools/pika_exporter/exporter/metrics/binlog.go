@@ -7,17 +7,6 @@ func init() {
 }
 
 var collectBinlogMetrics = map[string]MetricConfig{
-	"binlog_log_size": {
-		Parser: &normalParser{},
-		MetricMeta: &MetaData{
-			Name:      "log_size",
-			Help:      "pika serve instance total binlog size in bytes",
-			Type:      metricTypeGauge,
-			Labels:    []string{LabelNameAddr, LabelNameAlias},
-			ValueName: "log_size",
-		},
-	},
-
 	"binlog_<3.1.0": {
 		Parser: &versionMatchParser{
 			verC: mustNewVersionConstraint(`<3.1.0`),
@@ -85,7 +74,7 @@ var collectBinlogMetrics = map[string]MetricConfig{
 	"consensus_last_log": {
 		Parser: Parsers{
 			&versionMatchParser{
-				verC: mustNewVersionConstraint(`>3.4.0`),
+				verC: mustNewVersionConstraint(`>3.4.0,<3.5.0`),
 				Parser: &regexParser{
 					name:   "consensus_last_log",
 					reg:    regexp.MustCompile(`(?P<consensus>consensus)\s*last_log=(?P<consensus_last_log>[^\s\r\n]*)`),

@@ -101,7 +101,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 				Name:      "slave_lag",
 				Help:      "pika serve instance slave's slot binlog lag",
 				Type:      metricTypeGauge,
-				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_conn_fd", "slave_ip", "slave_port", "slot"},
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "slave_ip", "slave_port", "slave_conn_fd", "db"},
 				ValueName: "slave_lag",
 			},
 		},
@@ -115,7 +115,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 			},
 			Parser: Parsers{
 				&versionMatchParser{
-					verC: mustNewVersionConstraint(`>=3.4.0`),
+					verC: mustNewVersionConstraint(`>=3.4.0,<3.1.0`),
 					Parser: &regexParser{
 						name: "master_sharding_slave_info_slave_lag",
 						reg: regexp.MustCompile(`slave\d+:ip=(?P<slave_ip>[\d.]+),port=(?P<slave_port>[\d.]+),` +
@@ -129,7 +129,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 					},
 				},
 				&versionMatchParser{
-					verC: mustNewVersionConstraint(`>=3.4.0`),
+					verC: mustNewVersionConstraint(`>=3.4.0,<3.5.0`),
 					Parser: &regexParser{
 						name: "master_sharding_slave_info_slave_lag",
 						reg:  regexp.MustCompile(`db_repl_state:(?P<slave_lag>[^\r\n]*)`),
@@ -222,14 +222,14 @@ var collectReplicationMetrics = map[string]MetricConfig{
 		},
 	},
 
-	"sharding_slave_info>=3.4.0": {
+	"sharding_slave_info>=3.4.x,<3.5.0": {
 		Parser: &keyMatchParser{
 			matchers: map[string]Matcher{
 				"role":          &equalMatcher{v: "slave"},
 				"instance-mode": &equalMatcher{v: "sharding"},
 			},
 			Parser: &versionMatchParser{
-				verC:   mustNewVersionConstraint(`>=3.4.0`),
+				verC:   mustNewVersionConstraint(`>=3.4.x,<3.5.0`),
 				Parser: &normalParser{},
 			},
 		},
@@ -242,7 +242,7 @@ var collectReplicationMetrics = map[string]MetricConfig{
 		},
 	},
 
-	"double_master_info": {
+	"double_master_info<=3.4.2": {
 		Parser: &keyMatchParser{
 			matchers: map[string]Matcher{
 				"role":               &equalMatcher{v: "master"},

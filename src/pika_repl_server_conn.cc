@@ -52,7 +52,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);
-        db_info->set_slot_num(db_struct.slot_num);
+        db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
       }
     }
   }
@@ -342,7 +342,8 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     }
   }
 
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id, slave_boffset.filenum());
+  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id,
+                           static_cast<int32_t>(slave_boffset.filenum()));
   master_slot->ActivateSlaveDbSync(node.ip(), node.port());
 
   std::string reply_str;
@@ -492,7 +493,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
 
 int PikaReplServerConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerRequest> req = std::make_shared<InnerMessage::InnerRequest>();
-  bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, static_cast<int32_t>(header_len_));
   if (!parse_res) {
     LOG(WARNING) << "Pika repl server connection pb parse error.";
     return -1;

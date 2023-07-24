@@ -14,9 +14,10 @@
 
 #include <glog/logging.h>
 
+#include "dispatch_thread.h"
 #include "net/src/server_socket.h"
-#include "pstd/include/xdebug.h"
 #include "pstd/include/testutil.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -133,7 +134,7 @@ int ServerThread::InitHandle() {
     ips_.insert("0.0.0.0");
   }
 
-  for (const auto & ip : ips_) {
+  for (const auto& ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
     ret = socket_p->Listen(ip);
@@ -176,11 +177,12 @@ void* ServerThread::ThreadMain() {
   char port_buf[32];
   char ip_addr[INET_ADDRSTRLEN] = "";
 
+
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
       } else {
         // Do own cron task as well as user's
         DoCronTask();
@@ -196,6 +198,7 @@ void* ServerThread::ThreadMain() {
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
+
 
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
