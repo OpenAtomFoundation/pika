@@ -28,6 +28,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
+#include "pstd_hash.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -74,9 +75,12 @@ PikaServer::PikaServer()
   // We estimate the queue size
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
+  for_each(ips.begin(), ips.end(), [](auto& ip) {LOG(WARNING) << ip;});
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  //TODO 删除pika_rsync_service_服务，使用pika_rsync_service_端口
+  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
@@ -88,6 +92,7 @@ PikaServer::PikaServer()
 }
 
 PikaServer::~PikaServer() {
+  rsync_server_->Stop();
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
@@ -134,12 +139,15 @@ bool PikaServer::ServerInit() {
 void PikaServer::Start() {
   int ret = 0;
   // start rsync first, rocksdb opened fd will not appear in this fork
+  // TODO: temporarily disable rsync server
+  /*
   ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     dbs_.clear();
     LOG(FATAL) << "Start Rsync Error: bind port " + std::to_string(pika_rsync_service_->ListenPort()) + " failed"
                << ", Listen on this port to receive Master FullSync Data";
   }
+  */
 
   // We Init DB Struct Before Start The following thread
   InitDBStruct();
@@ -172,6 +180,8 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
+  std::string master_run_id = g_pika_conf->master_run_id();
+  set_master_run_id(master_run_id);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     auto sep = static_cast<int32_t>(slaveof.find(':'));
@@ -190,8 +200,7 @@ void PikaServer::Start() {
     cmdstat_map->emplace(iter.first, statistics);
   }
   LOG(INFO) << "Pika Server going to start";
-
-
+  rsync_server_->Start();
   while (!exit_) {
     DoTimingTask();
     // wake up every 5 seconds
@@ -940,7 +949,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     slot->BgSaveSlot();
   }
-  DBSync(ip, port, db_name, slot_id);
+  //TODO: temporarily disable rsync server
+  //DBSync(ip, port, db_name, slot_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
@@ -1301,7 +1311,8 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
-  AutoKeepAliveRSync();
+  //TODO: temporarily disable rsync
+  //AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
