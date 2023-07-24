@@ -5,9 +5,9 @@ name: Codis
 
 on:
   push:
-    branches: [ "unstable", "*"]
+    branches: [ "unstable" ]
   pull_request:
-    branches: [ "unstable", "*"]
+    branches: [ "unstable" ]
 
 jobs:
 
