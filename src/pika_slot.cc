@@ -330,7 +330,6 @@ void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* s
 Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
   if (snapshot_uuid_.empty()) {
     std::string info_data;
-    // todo 待确认 info 文件的路径
     const std::string infoPath = bgsave_info().path + "/info";
     // todo 这里待替换
     rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);

@@ -11,7 +11,7 @@
 extern PikaServer* g_pika_server;
 namespace rsync {
 
-//TODO: optimzie file read
+//TODO: optimzie file read and calculate checksum, maybe use RsyncReader prefeching file content
 Status ReadDumpFile(const std::string filepath, const size_t offset, const size_t count,
                     char* data, size_t* bytes_read, std::string* checksum) {
   int fd = open(filepath.c_str(), O_RDONLY);
@@ -77,40 +77,38 @@ void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::
 }
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
-    work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
-    rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);
+  work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
+  rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);
 }
 
 RsyncServer::~RsyncServer() {
-    //TODO: handle destory
-    LOG(INFO) << "Rsync server destroyed";
+  //TODO: handle destory
+  LOG(INFO) << "Rsync server destroyed";
 }
 
 void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
-    work_thread_->Schedule(func, arg);
+  work_thread_->Schedule(func, arg);
 }
 
 int RsyncServer::Start() {
-    LOG(INFO) << "start RsyncServer ...";
-    int res = rsync_server_thread_->StartThread();
-    if (res != net::kSuccess) {
-        LOG(FATAL) << "Start rsync Server Thread Error: " << res;
-    }
-    res = work_thread_->start_thread_pool();
-    if (res != net::kSuccess) {
-      LOG(FATAL) << "Start ThreadPool Error: " << res
-                 << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
-    }
-    LOG(INFO) << "start RsyncServer done ...";
+  LOG(INFO) << "start RsyncServer ...";
+  int res = rsync_server_thread_->StartThread();
+  if (res != net::kSuccess) {
+    LOG(FATAL) << "Start rsync Server Thread Error: " << res;
+  }
+  res = work_thread_->start_thread_pool();
+  if (res != net::kSuccess) {
+    LOG(FATAL) << "Start ThreadPool Error: " << res
+               << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
+  }
   return res;
 }
 
 int RsyncServer::Stop() {
-    LOG(INFO) << "stop RsyncServer ...";
-    work_thread_->stop_thread_pool();
-    rsync_server_thread_->StopThread();
-    LOG(INFO) << "stop RsyncServer done...";
-    return 0;
+  LOG(INFO) << "stop RsyncServer ...";
+  work_thread_->stop_thread_pool();
+  rsync_server_thread_->StopThread();
+  return 0;
 }
 
 RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
@@ -120,36 +118,35 @@ RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread*
 RsyncServerConn::~RsyncServerConn() {}
 
 int RsyncServerConn::DealMessage() {
-    std::shared_ptr<RsyncService::RsyncRequest> req = std::make_shared<RsyncService::RsyncRequest>();
-    bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-    //LOG(INFO) << "RsyncServer receives new request...";
-    if (!parse_res) {
-        LOG(WARNING) << "Pika rsync server connection pb parse error.";
-        return -1;
-    }
-    switch (req->type()) {
-        case RsyncService::kRsyncMeta: {
-            auto task_arg =
-                new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
-            ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleMetaRsyncRequest, task_arg);
-            break;
-        }
-        case RsyncService::kRsyncFile: {
-            auto task_arg =
-                new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
+  std::shared_ptr<RsyncService::RsyncRequest> req = std::make_shared<RsyncService::RsyncRequest>();
+  bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  if (!parse_res) {
+    LOG(WARNING) << "Pika rsync server connection pb parse error.";
+    return -1;
+  }
+  switch (req->type()) {
+    case RsyncService::kRsyncMeta: {
+      auto task_arg =
+          new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
+          ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleMetaRsyncRequest, task_arg);
+          break;
+      }
+      case RsyncService::kRsyncFile: {
+        auto task_arg =
+            new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
             ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleFileRsyncRequest, task_arg);
             break;
-        }
-        default: {
-            LOG(WARNING) << "Invalid RsyncRequest type";
-        }
+      }
+      default: {
+        LOG(WARNING) << "Invalid RsyncRequest type";
+      }
     }
     return 0;
 }
 
 void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
-    std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
-    const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
+  std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
+  const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
   uint32_t slot_id = req->slot_id();
@@ -187,7 +184,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
-  LOG(INFO) << "RsyncServer RsyncFile request ...";
 
   uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
@@ -230,11 +226,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     delete []buffer;
     return;
   }
-/*
-  LOG(INFO) << "RsyncServer receives FileRequest " << "filename: "
-            << filename << " offset: " << offset << " count: "
-            << count << " read_count: " << bytes_read << "checksum:" << checksum;
-*/
 
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
   file_resp->set_data(buffer, bytes_read);
@@ -246,7 +237,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   RsyncWriteResp(response, conn);
   delete []buffer;
-  //LOG(INFO) << "RsyncServer RsyncFile request ...";
 }
 
 RsyncServerThread::RsyncServerThread(const std::set<std::string>& ips, int port, int cron_interval, RsyncServer* arg)
