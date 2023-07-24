@@ -340,7 +340,8 @@ bool BaseConf::WriteBack() {
       write_file->Append(i.value);
     }
   }
-  DeleteFile(rep_->path);
+  // should only use rename syscall, refer 'man rename'
+  // if we delete rep_->path, and then system crash before rename, we will lose old config
   RenameFile(tmp_path, rep_->path);
   return true;
 }
