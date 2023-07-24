@@ -75,15 +75,13 @@ func (c *InfoConfig) Display() {
 }
 
 func (c *InfoConfig) CheckInfo() {
+    c.InfoAll = false
+    c.Info = false
+
 	if c.Server && c.Data && c.Clients && c.Stats && c.CPU && c.Replication && c.Keyspace {
 		c.Info = true
 		if c.Execcount && c.Commandstats && c.Rocksdb {
 			c.InfoAll = true
-		} else {
-			c.InfoAll = false
 		}
-	} else {
-		c.InfoAll = false
-		c.Info = false
 	}
 }
