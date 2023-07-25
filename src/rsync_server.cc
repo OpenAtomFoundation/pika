@@ -16,6 +16,10 @@
 extern PikaServer* g_pika_server;
 namespace rsync {
 
+using namespace net;
+using namespace RsyncService;
+using namespace pstd;
+
 //TODO: optimzie file read and calculate checksum, maybe use RsyncReader prefeching file content
 Status ReadDumpFile(const std::string filepath, const size_t offset, const size_t count,
                     char* data, size_t* bytes_read, std::string* checksum) {

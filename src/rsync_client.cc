@@ -3,12 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/rsync_client.h"
 #include <stdio.h>
-#include "include/pika_server.h"
-#include "pstd/include/pstd_defer.h"
-#include "pstd/src/env.cc"
+#include <fstream>
+
 #include "rocksdb/env.h"
+#include "pstd/include/pstd_defer.h"
+#include "include/pika_server.h"
+#include "include/rsync_client.h"
 
 using namespace net;
 using namespace pstd;

@@ -3,8 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef RSYNC_CLIENT_H_
-#define RSYNC_CLIENT_H_
+#pragma once
+
 #include <glog/logging.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -152,5 +152,3 @@ public:
 };
 
 } // end namespace rsync
-
-#endif
