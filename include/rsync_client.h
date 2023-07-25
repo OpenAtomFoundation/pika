@@ -66,8 +66,8 @@ private:
   Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
   std::string GetLocalMetaFilePath();
   Status FlushMetaTable();
-  Status CleanUpExpiredFiles(bool need_reset_path, std::set<std::string> files);
-  Status UpdateLocalMeta(std::string& snapshot_uuid, std::set<std::string>& expired_files, std::map<std::string, std::string>& localFileMap);
+  Status CleanUpExpiredFiles(bool need_reset_path, const std::set<std::string>& files);
+  Status UpdateLocalMeta(const std::string& snapshot_uuid, const std::set<std::string>& expired_files, std::map<std::string, std::string>* localFileMap);
   void HandleRsyncMetaResponse(RsyncResponse* response);
 
 private:
@@ -103,7 +103,9 @@ public:
     while (left != 0) {
       ssize_t done = write(fd_, ptr, left);
       if (done < 0) {
-        if (errno == EINTR) continue;
+        if (errno == EINTR) {
+          continue;
+        }
         LOG(WARNING) << "pwrite failed, filename: " << filepath_ << "errno: " << strerror(errno) << "n: " << n;
         return Status::IOError(filepath_, "pwrite failed");
       }

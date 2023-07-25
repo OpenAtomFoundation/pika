@@ -79,7 +79,7 @@ PikaServer::PikaServer()
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
-  //TODO 删除pika_rsync_service_服务，使用pika_rsync_service_端口
+  //TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
   rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
@@ -928,7 +928,7 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_n
 pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid) {
   std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
   if (!slot) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << "slot_id: " << slot_id;
+    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
     return pstd::Status::NotFound("slot no found");
   }
   slot->GetBgSaveUUID(snapshot_uuid);
@@ -938,7 +938,7 @@ pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, const uint32_t 
 pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
   std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
   if (!slot) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << "slot_id: " << slot_id;
+    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
     return pstd::Status::NotFound("slot no found");
   }
   slot->GetBgSaveMetaData(fileNames, snapshot_uuid);

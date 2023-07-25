@@ -88,7 +88,6 @@ private:
     void CronHandle() const override;
   };
 private:
-  void* arg_;
   RsyncServerConnFactory conn_factory_;
   RsyncServerHandle handle_;
 };
