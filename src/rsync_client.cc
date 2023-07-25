@@ -19,7 +19,8 @@ extern PikaServer* g_pika_server;
 
 namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
-    : dir_(dir), flush_period_(10), db_name_(db_name), slot_id_(slot_id), state_(IDLE), max_retries_(10) {
+    : flush_period_(10), snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
+      state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
   client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
   wo_.reset(new WaitObject());
   throttle_.reset(new Throttle());
@@ -33,7 +34,6 @@ bool RsyncClient::Init() {
   master_ip_ = g_pika_server->master_ip();
   master_port_ = g_pika_server->master_port() + kPortShiftRsync2;
   file_set_.clear();
-  // todo client 的 StartThread 只能被调用一次，如果一个 slot 进行多次主从同步，这里会出问题吗？
   client_thread_->StartThread();
   bool ret = Recover();
   if (!ret) {
@@ -288,7 +288,7 @@ bool RsyncClient::Recover() {
     LOG(WARNING) << "clean up expired files failed";
     return false;
   }
-  s = UpdateLocalMeta(snapshot_uuid_, expired_files, local_file_map);
+  s = UpdateLocalMeta(snapshot_uuid_, expired_files, &local_file_map);
   if (!s.ok()) {
     LOG(WARNING) << "update local meta failed";
     return false;
@@ -412,7 +412,7 @@ Status RsyncClient::LoadLocalMeta(std::string* snapshot_uuid, std::map<std::stri
   return Status::OK();
 }
 
-Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, std::set<std::string> files) {
+Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, const std::set<std::string>& files) {
   if (need_reset_path) {
     std::string db_path = dir_ + (dir_.back() == '/' ? "" : "/");
     pstd::DeleteDirIfExist(db_path);
@@ -435,10 +435,10 @@ Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, std::set<std::stri
   return Status::OK();
 }
 
-Status RsyncClient::UpdateLocalMeta(std::string& snapshot_uuid, std::set<std::string>& expired_files,
-                                    std::map<std::string, std::string>& localFileMap) {
+Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std::set<std::string>& expired_files,
+                                    std::map<std::string, std::string>* localFileMap) {
   for (const auto& item : expired_files) {
-    localFileMap.erase(item);
+    localFileMap->erase(item);
   }
 
   std::string meta_file_path = GetLocalMetaFilePath();
@@ -452,7 +452,7 @@ Status RsyncClient::UpdateLocalMeta(std::string& snapshot_uuid, std::set<std::st
   }
   file->Append(kUuidPrefix + snapshot_uuid + "\n");
 
-  for (const auto& item : localFileMap) {
+  for (const auto& item : *localFileMap) {
     std::string line = item.first + ":" + item.second + "\n";
     file->Append(line);
   }
