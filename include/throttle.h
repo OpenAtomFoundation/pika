@@ -5,6 +5,7 @@
 
 #ifndef THROTTLE_H_
 #define THROTTLE_H_
+
 #include <atomic>
 #include "pstd/include/pstd_mutex.h"
 
@@ -31,5 +32,4 @@ class Throttle {
   }
 };
 }  // end namespace rsync
-
 #endif

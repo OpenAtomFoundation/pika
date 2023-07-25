@@ -3,7 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#pragma once
+#ifndef RSYNC_CLIENT_H_
+#define RSYNC_CLIENT_H_
 
 #include <glog/logging.h>
 #include <fcntl.h>
@@ -74,19 +75,19 @@ private:
   std::map<std::string, std::string> meta_table_;
   int flush_period_ = 10;
   std::set<std::string> file_set_;
-  std::string snapshot_uuid_ = "";
-  std::string dir_ = "";
-  std::string db_name_ = "";
+  std::string snapshot_uuid_;
+  std::string dir_;
+  std::string db_name_;
   uint32_t slot_id_ = 0;
-  std::unique_ptr<RsyncClientThread> client_thread_ = nullptr;
+  std::unique_ptr<RsyncClientThread> client_thread_;
   std::atomic<State> state_;
   int max_retries_ = 10;
-  std::unique_ptr<WaitObject> wo_ = nullptr;
+  std::unique_ptr<WaitObject> wo_;
   std::condition_variable cond_;
   std::mutex mu_;
-  std::unique_ptr<Throttle> throttle_ = nullptr;
-  std::string master_ip_ = "";
-  int master_port_ = 0;
+  std::unique_ptr<Throttle> throttle_;
+  std::string master_ip_;
+  int master_port_;
 };
 
 class RsyncWriter {
@@ -125,7 +126,7 @@ public:
   }
 
 private:
-  std::string filepath_ = "";
+  std::string filepath_;
   int fd_ = -1;
 };
 
@@ -145,10 +146,11 @@ public:
     type_ = t;
     offset_ = 0xFFFFFFFF;
   }
-  std::string filename_ = "";
+  std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = 0xFFFFFFFF;
   RsyncResponse* resp_ = nullptr;
 };
 
 } // end namespace rsync
+#endif

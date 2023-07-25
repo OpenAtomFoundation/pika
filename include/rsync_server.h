@@ -2,7 +2,9 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
-#pragma once
+
+#ifndef RSYNC_SERVER_H_
+#define RSYNC_SERVER_H_
 
 #include <stdio.h>
 #include <unistd.h>
@@ -17,6 +19,7 @@
 #include "pstd/include/env.h"
 #include "pstd_hash.h"
 #include "rsync_service.pb.h"
+
 namespace rsync {
 struct RsyncServerTaskArg {
   std::shared_ptr<RsyncService::RsyncRequest> req;
@@ -35,8 +38,8 @@ public:
   int Start();
   int Stop();
 private:
-  std::unique_ptr<net::ThreadPool> work_thread_ = nullptr;
-  std::unique_ptr<RsyncServerThread> rsync_server_thread_ = nullptr;
+  std::unique_ptr<net::ThreadPool> work_thread_;
+  std::unique_ptr<RsyncServerThread> rsync_server_thread_;
 };
 
 class RsyncServerConn : public net::PbConn {
@@ -84,3 +87,4 @@ private:
 };
 
 } //end namespace rsync
+#endif

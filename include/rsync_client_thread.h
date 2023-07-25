@@ -3,7 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#pragma once
+#ifndef RSYNC_CLIENT_THREAD_H_
+#define RSYNC_CLIENT_THREAD_H_
 
 #include "net/include/client_thread.h"
 #include "net/include/net_conn.h"
@@ -50,3 +51,4 @@ private:
 };
 
 } //end namespace rsync
+#endif
