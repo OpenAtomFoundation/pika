@@ -77,11 +77,34 @@ func (c *client) Select(db string) error {
 
 func (c *client) GetInfo() (string, error) {
 	if InfoConf.InfoAll {
-		return c.InfoAll()
-	} else if InfoConf.Info {
-		return c.Info()
+		info, err := c.InfoAll()
+		if err != nil {
+			return "", err
+		}
+		return info, nil
+	}
+
+	if InfoConf.Info {
+		var rst []string
+
+		info, err := c.Info()
+		if err != nil {
+			return "", err
+		}
+		rst = append(rst, info)
+
+		info, err = c.InfoNoneCommandList()
+		if err != nil {
+			return "", err
+		}
+		rst = append(rst, info)
+		return strings.Join(rst, "\n"), nil
 	} else {
-		return c.InfoSubCommand()
+		info, err := c.InfoAllCommandList()
+		if err != nil {
+			return "", err
+		}
+		return info, nil
 	}
 }
 
@@ -93,7 +116,32 @@ func (c *client) InfoAll() (string, error) {
 	return redis.String(c.conn.Do("INFO", "ALL"))
 }
 
-func (c *client) InfoSubCommand() (string, error) {
+func (c *client) InfoCommand(command string) (string, error) {
+	return redis.String(c.conn.Do("INFO", command))
+}
+
+func (c *client) InfoNoneCommandList() (string, error) {
+	var rst []string
+
+	sectionsMap := map[string]bool{
+		"COMMAND_EXEC_COUNT": InfoConf.Execcount,
+		"COMMANDSTATS":       InfoConf.Commandstats,
+		"ROCKSDB":            InfoConf.Rocksdb,
+	}
+	for section, flag := range sectionsMap {
+		if flag {
+			info, err := c.InfoCommand(section)
+			if err != nil {
+				return "", err
+			}
+			rst = append(rst, info)
+		}
+	}
+
+	return strings.Join(rst, "\n"), nil
+}
+
+func (c *client) InfoAllCommandList() (string, error) {
 	var rst []string
 
 	sectionsMap := map[string]bool{
@@ -110,10 +158,11 @@ func (c *client) InfoSubCommand() (string, error) {
 	}
 	for section, flag := range sectionsMap {
 		if flag {
-			info, err := redis.String(c.conn.Do("INFO", section))
-			if err == nil {
-				rst = append(rst, info)
+			info, err := c.InfoCommand(section)
+			if err != nil {
+				return "", err
 			}
+			rst = append(rst, info)
 		}
 	}
 

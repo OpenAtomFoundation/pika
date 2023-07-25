@@ -1108,13 +1108,11 @@ void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
       it = pika_monitor_clients_.erase(it);
     }
   }
-
-  lock.unlock(); // SendReply without lock
-
   for (const auto& cli : clients) {
     cli->WriteResp(msg);
     cli->SendReply();
   }
+  lock.unlock(); // SendReply without lock
 }
 
 void PikaServer::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
