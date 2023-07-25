@@ -185,29 +185,34 @@ bool DeleteDirIfExist(const std::string& path) {
   return !(IsDir(path) == 0 && DeleteDir(path) != 0);
 }
 
-uint64_t Du(const std::string& path) {
-  uint64_t sum = 0;
-  try {
-    if (filesystem::is_symlink(path)) {
-      filesystem::path symlink_path = filesystem::read_symlink(path);
-      sum = Du(symlink_path);
-    } else if (filesystem::is_directory(path)) {
-      for (const auto& entry : filesystem::directory_iterator(path)) {
-        if (entry.is_symlink()) {
-          sum += Du(filesystem::read_symlink(entry.path()));
-        } else if (entry.is_directory()) {
-          sum += Du(entry.path());
-        } else if (entry.is_regular_file()) {
-          sum += entry.file_size();
-        }
-      }
-    } else if (filesystem::is_regular_file(path)) {
-      sum = filesystem::file_size(path);
-    }
-  } catch (const filesystem::filesystem_error& ex) {
-    LOG(WARNING) << "Error accessing path: " << ex.what() << std::endl;
+uint64_t Du(const std::string& filename) {
+  struct stat statbuf;
+  uint64_t sum;
+  if (lstat(filename.c_str(), &statbuf) != 0) {
+    return 0;
   }
+  if (S_ISLNK(statbuf.st_mode) && stat(filename.c_str(), &statbuf) != 0) {
+    return 0;
+  }
+  sum = statbuf.st_size;
+  if (S_ISDIR(statbuf.st_mode)) {
+    DIR* dir = nullptr;
+    struct dirent* entry;
+    std::string newfile;
 
+    dir = opendir(filename.c_str());
+    if (!dir) {
+      return sum;
+    }
+    while ((entry = readdir(dir)) != nullptr) {
+      if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
+        continue;
+      }
+      newfile = filename + "/" + entry->d_name;
+      sum += Du(newfile);
+    }
+    closedir(dir);
+  }
   return sum;
 }
 
