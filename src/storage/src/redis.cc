@@ -90,12 +90,20 @@ Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map
 
 void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     std::ostringstream string_stream;
-    string_stream << "#" << prefix << " RocksDB" << "\r\n";
+    string_stream << "#" << prefix << "RocksDB" << "\r\n";
 
     auto write_stream_key_value=[&](const Slice& property, const char *metric) {
         uint64_t value;
         db_->GetAggregatedIntProperty(property, &value);
         string_stream << prefix << metric << ':' << value << "\r\n";
+    };
+
+    auto mapToString=[&](const std::map<std::string, std::string>& map_data, const char *prefix) {
+      for (const auto& kv : map_data) {
+        std::string str_data;
+        str_data += kv.first + ": " + kv.second + "\r\n";
+        string_stream << prefix << str_data;
+      }
     };
 
     // memtables num
@@ -136,6 +144,9 @@ void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     write_stream_key_value(rocksdb::DB::Properties::kTotalSstFilesSize, "total_sst_files_size");
     write_stream_key_value(rocksdb::DB::Properties::kLiveSstFilesSize, "live_sst_files_size");
 
+    // pending compaction bytes
+    write_stream_key_value(rocksdb::DB::Properties::kEstimatePendingCompactionBytes, "estimate_pending_compaction_bytes");
+
     // block cache
     write_stream_key_value(rocksdb::DB::Properties::kBlockCacheCapacity, "block_cache_capacity");
     write_stream_key_value(rocksdb::DB::Properties::kBlockCacheUsage, "block_cache_usage");
@@ -146,7 +157,11 @@ void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     write_stream_key_value(rocksdb::DB::Properties::kBlobStats, "blob_stats");
     write_stream_key_value(rocksdb::DB::Properties::kTotalBlobFileSize, "total_blob_file_size");
     write_stream_key_value(rocksdb::DB::Properties::kLiveBlobFileSize, "live_blob_file_size");
-
+    
+    // column family stats
+    std::map<std::string, std::string> mapvalues;
+    db_->rocksdb::DB::GetMapProperty(rocksdb::DB::Properties::kCFStats,&mapvalues);
+    mapToString(mapvalues,prefix);
     info.append(string_stream.str());
 }
 

@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "include/pika_command.h"
+
 class PikaClientConn : public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
@@ -51,7 +52,7 @@ class PikaClientConn : public net::RedisConn {
 
   PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
-   ~PikaClientConn() override {}
+  ~PikaClientConn() = default;
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                 std::string* response) override;
@@ -64,7 +65,7 @@ class PikaClientConn : public net::RedisConn {
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentDb(const std::string& db_name) { current_db_ = db_name; }
-  std::string GetCurrentDb() { return current_db_; }
+  const std::string& GetCurrentTable() override { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   // Txn

@@ -225,17 +225,17 @@ void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
     }
     g_pika_server->PubSubChannels(pattern, &result);
 
-    res_.AppendArrayLen(result.size());
+    res_.AppendArrayLenUint64(result.size());
     for (auto &it : result) {
-      res_.AppendStringLen(it.length());
+      res_.AppendStringLenUint64(it.length());
       res_.AppendContent(it);
     }
   } else if (strcasecmp(subcommand_.data(), "numsub") == 0) {
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->PubSubNumSub(arguments_, &result);
-    res_.AppendArrayLen(result.size() * 2);
+    res_.AppendArrayLenUint64(result.size() * 2);
     for (auto &it : result) {
-      res_.AppendStringLen(it.first.length());
+      res_.AppendStringLenUint64(it.first.length());
       res_.AppendContent(it.first);
       res_.AppendInteger(it.second);
     }

@@ -166,7 +166,7 @@ void ExecCmd::SetCmdsVec() {
 
   while (!cmd_que.empty()) {
     auto cmd = cmd_que.front();
-    auto cmd_db = client_conn->GetCurrentDb();
+    auto cmd_db = client_conn->GetCurrentTable();
     auto cmd_slot = g_pika_server->GetSlotByDBName(cmd_db);
     auto sync_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(cmd->db_name(), cmd_slot->GetSlotID()));
     cmds_.emplace_back(cmd, g_pika_server->GetDB(cmd_db), cmd_slot, sync_slot);

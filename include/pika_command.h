@@ -17,6 +17,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_slot.h"
+#include "net/src/dispatch_thread.h"
 
 class SyncMasterSlot;
 class SyncSlaveSlot;
@@ -132,6 +133,7 @@ const std::string kCmdNamePKHRScanRange = "pkhrscanrange";
 const std::string kCmdNameLIndex = "lindex";
 const std::string kCmdNameLInsert = "linsert";
 const std::string kCmdNameLLen = "llen";
+const std::string kCmdNameBLPop = "blpop";
 const std::string kCmdNameLPop = "lpop";
 const std::string kCmdNameLPush = "lpush";
 const std::string kCmdNameLPushx = "lpushx";
@@ -139,6 +141,7 @@ const std::string kCmdNameLRange = "lrange";
 const std::string kCmdNameLRem = "lrem";
 const std::string kCmdNameLSet = "lset";
 const std::string kCmdNameLTrim = "ltrim";
+const std::string kCmdNameBRpop = "brpop";
 const std::string kCmdNameRPop = "rpop";
 const std::string kCmdNameRPopLPush = "rpoplpush";
 const std::string kCmdNameRPush = "rpush";
@@ -267,6 +270,9 @@ enum CmdFlags {
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
+void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
+   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+}
 
 const std::string kNewLine = "\r\n";
 
@@ -400,11 +406,13 @@ class CmdRes {
 
   // Inline functions for Create Redis protocol
   void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
+  void AppendStringLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "$"); }
   void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
+  void AppendArrayLenUint64(uint64_t ori) { RedisAppendLenUint64(message_, ori, "*"); }
   void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
   void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
   void AppendString(const std::string& value) {
-    AppendStringLen(value.size());
+    AppendStringLenUint64(value.size());
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
@@ -420,6 +428,18 @@ class CmdRes {
  private:
   std::string message_;
   CmdRet ret_ = kNone;
+};
+
+/**
+ * Current used by:
+ * blpop,brpop
+ */
+struct UnblockTaskArgs {
+  std::string key;
+  std::shared_ptr<Slot> slot;
+  net::DispatchThread* dispatchThread{ nullptr };
+  UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -460,6 +480,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   bool is_read() const;
   bool is_write() const;
+
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
@@ -497,7 +518,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  bool CheckArg(int num) const;
+  bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 
   std::string name_;

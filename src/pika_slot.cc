@@ -355,7 +355,7 @@ bool Slot::InitBgsaveEnv() {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+  int len = static_cast<int32_t>(strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time)));
   bgsave_info_.s_start_time.assign(s_time, len);
   std::string time_sub_path = g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
   bgsave_info_.path = g_pika_conf->bgsave_path() + time_sub_path + "/" + bgsave_sub_path_;
@@ -484,7 +484,7 @@ bool Slot::FlushSubDBWithoutLock(const std::string& db_name) {
 void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
+  int len = static_cast<int32_t>(strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time)));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
@@ -510,7 +510,7 @@ Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
     return Status::Corruption(s.ToString());
   }
   key_scan_info_.key_infos = *key_info;
-  key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
+  key_scan_info_.duration = static_cast<int32_t>(time(nullptr) - key_scan_info_.start_time);
   return Status::OK();
 }
 

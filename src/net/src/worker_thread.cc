@@ -7,8 +7,8 @@
 
 #include <glog/logging.h>
 
-#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
+#include "pstd/include/testutil.h"
 
 #include "dispatch_thread.h"
 #include "net/include/net_conn.h"
@@ -17,7 +17,7 @@
 namespace net {
 
 WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
-    : 
+    :
       server_thread_(server_thread),
       conn_factory_(conn_factory),
       cron_interval_(cron_interval),
@@ -33,7 +33,7 @@ WorkerThread::~WorkerThread() = default;
 
 int WorkerThread::conn_num() const {
   std::shared_lock lock(rwlock_);
-  return conns_.size();
+  return static_cast<int32_t>(conns_.size());
 }
 
 std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
@@ -93,7 +93,7 @@ void* WorkerThread::ThreadMain() {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
+        timeout = static_cast<int32_t>((when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000);
       } else {
         DoCronTask();
         when.tv_sec = now.tv_sec + (cron_interval_ / 1000);
@@ -111,7 +111,7 @@ void* WorkerThread::ThreadMain() {
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if ((pfe->mask & kReadable) != 0) {
-          int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
+          auto nread = static_cast<int32_t>(read(net_multiplexer_->NotifyReceiveFd(), bb, 2048));
           if (nread == 0) {
             continue;
           } else {
@@ -200,6 +200,8 @@ void* WorkerThread::ThreadMain() {
         }
 
         if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
+          //check if this conn disconnected from being blocked by blpop/brpop
+          dynamic_cast<net::DispatchThread*>(server_thread_)->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(in_conn));
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = nullptr;
@@ -250,15 +252,24 @@ void WorkerThread::DoCronTask() {
 
       // Check keepalive timeout connection
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
-        to_timeout.push_back(conn);
-        iter = conns_.erase(iter);
-        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
-        continue;
+        auto dispatchThread = dynamic_cast<net::DispatchThread*>(server_thread_);
+        std::shared_lock blrpop_map_latch(dispatchThread->GetBlockMtx());
+        // check if this conn is blocked by blpop/brpop
+        if (dispatchThread->GetMapFromConnToKeys().find(conn->fd()) !=
+            dispatchThread->GetMapFromConnToKeys().end()) {
+          //this conn is blocked, prolong it's life time.
+          conn->set_last_interaction(now);
+        } else {
+          to_timeout.push_back(conn);
+          iter = conns_.erase(iter);
+          LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is "
+                    << keepalive_timeout_.load();
+          continue;
+        }
       }
 
       // Maybe resize connection buffer
       conn->TryResizeBuffer();
-
       ++iter;
     }
   }

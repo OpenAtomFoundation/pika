@@ -6,6 +6,8 @@
 #ifndef NET_SRC_DISPATCH_THREAD_H_
 #define NET_SRC_DISPATCH_THREAD_H_
 
+#include <glog/logging.h>
+#include <list>
 #include <map>
 #include <queue>
 #include <set>
@@ -14,14 +16,66 @@
 #include <unordered_set>
 
 #include "net/include/net_conn.h"
+#include "net/include/redis_conn.h"
 #include "net/include/server_thread.h"
+#include "net/src/net_util.h"
+#include "pstd/include/env.h"
 #include "pstd/include/xdebug.h"
 
+enum BlockKeyType { Blpop, Brpop };
 namespace net {
 
 class NetItem;
 class NetFiredEvent;
 class WorkerThread;
+
+struct BlockKey {  // this data struct is made for the scenario of multi dbs in pika.
+  std::string db_name;
+  std::string key;
+  bool operator==(const BlockKey& p) const { return p.db_name == db_name && p.key == key; }
+};
+struct BlockKeyHash {
+  std::size_t operator()(const BlockKey& k) const {
+    return std::hash<std::string>{}(k.db_name) ^ std::hash<std::string>{}(k.key);
+  }
+};
+
+class BlockedConnNode {
+ public:
+  virtual ~BlockedConnNode() {}
+  BlockedConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockKeyType block_type)
+      : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
+  bool IsExpired();
+  std::shared_ptr<RedisConn>& GetConnBlocked();
+  BlockKeyType GetBlockType() const;
+
+ private:
+  int64_t expire_time_;
+  std::shared_ptr<RedisConn> conn_blocked_;
+  BlockKeyType block_type_;
+};
+
+class TimedScanThread : public Thread {
+ public:
+  template <class F, class... Args>
+  void SetTimedTask(double interval, F&& f, Args&&... args) {
+    time_interval_ = interval;
+    timed_task_ = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...)]{
+      std::apply(f, args);
+    };
+  }
+ private:
+  void* ThreadMain() override{
+    while(!should_stop()){
+      timed_task_();
+      sleep(time_interval_);
+    }
+    return nullptr;
+  }
+  std::function<void()> timed_task_;
+  // unit in seconds
+  double time_interval_;
+};
 
 class DispatchThread : public ServerThread {
  public:
@@ -56,6 +110,29 @@ class DispatchThread : public ServerThread {
 
   void SetQueueLimit(int queue_limit) override;
 
+  /**
+   * BlPop/BrPop used start
+   */
+  void CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked);
+
+  void CleanKeysAfterWaitNodeCleaned();
+
+  // if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
+  void ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close);
+
+
+  void ScanExpiredBlockedConnsOfBlrpop();
+
+  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
+    return key_to_blocked_conns_;
+  }
+  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>>& GetMapFromConnToKeys() {
+    return blocked_conn_to_keys_;
+  }
+  std::shared_mutex& GetBlockMtx() { return block_mtx_; };
+
+  // BlPop/BrPop used end
+
   void AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn);
 
   void RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn);
@@ -83,6 +160,29 @@ class DispatchThread : public ServerThread {
   std::mutex watch_keys_mu_;
 
   void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
+
+  /*
+   *  Blpop/BRpop used
+   */
+  /*  key_to_blocked_conns_:
+   *  mapping from "Blockkey"(eg. "<db0, list1>") to a list that stored the nodes of client-connections that
+   *  were blocked by command blpop/brpop with key.
+   */
+  std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash> key_to_blocked_conns_;
+
+  /*
+   *  blocked_conn_to_keys_:
+   *  mapping from conn(fd) to a list of keys that the client is waiting for.
+   */
+  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>> blocked_conn_to_keys_;
+
+  /*
+   * latch of the two maps above.
+   */
+  std::shared_mutex block_mtx_;
+
+  //used for blpop/brpop currently
+  TimedScanThread timed_scan_thread;
 
 };  // class DispatchThread
 
