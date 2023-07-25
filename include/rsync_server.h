@@ -58,7 +58,7 @@ public:
   static void HandleMetaRsyncRequest(void* arg);
   static void HandleFileRsyncRequest(void* arg);
 private:
-  void* data_;
+  void* data_ = nullptr;
 };
 
 class RsyncServerThread : public HolyThread {
@@ -78,7 +78,7 @@ private:
         std::make_shared<RsyncServerConn>(connfd, ip_port, thread, scheduler_, net));
       }
   private:
-    RsyncServer* scheduler_;
+    RsyncServer* scheduler_ = nullptr;
   };
   class RsyncServerHandle : public ServerHandle {
   public:
