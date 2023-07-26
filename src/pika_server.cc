@@ -3,8 +3,6 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_server.h"
-
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
@@ -25,10 +23,10 @@
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_rm.h"
-#include "pstd_hash.h"
 #include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
+#include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;

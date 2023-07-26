@@ -3,17 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_slot.h"
-
 #include <fstream>
 #include <memory>
 
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 #include "pstd/include/mutex_impl.h"
-#include "pstd_hash.h"
+#include "pstd/include/pstd_hash.h"
 
 using pstd::Status;
 
@@ -143,7 +142,6 @@ void Slot::PrepareRsync() {
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
 bool Slot::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
-  // todo 这里要改动，定期向 master 发送 meta_rsync 的请求
   if (!pstd::FileExists(info_path)) {
     LOG(WARNING) << "info path: " << info_path << " not exist";
     return false;
@@ -331,7 +329,6 @@ Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
   if (snapshot_uuid_.empty()) {
     std::string info_data;
     const std::string infoPath = bgsave_info().path + "/info";
-    // todo 这里待替换
     rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
     if (!s.ok()) {
       LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();

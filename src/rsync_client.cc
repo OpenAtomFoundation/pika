@@ -14,7 +14,6 @@
 using namespace net;
 using namespace pstd;
 using namespace RsyncService;
-using namespace pstd;
 
 extern PikaServer* g_pika_server;
 
