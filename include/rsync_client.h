@@ -16,21 +16,16 @@
 #include <thread>
 #include <condition_variable>
 
-#include "include/rsync_client_thread.h"
 #include "net/include/bg_thread.h"
-#include "pstd/include/pstd_status.h"
-#include "include/rsync_client_thread.h"
 #include "net/include/net_cli.h"
 #include "pstd/include/env.h"
+#include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_hash.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/pstd_status.h"
-#include "rsync_service.pb.h"
+#include "include/rsync_client_thread.h"
 #include "include/throttle.h"
-
-using namespace pstd;
-using namespace net;
-using namespace RsyncService;
+#include "rsync_service.pb.h"
 
 const std::string kDumpMetaFileName = "DUMP_META_DATA";
 const std::string kUuidPrefix = "snapshot-uuid:";
@@ -57,11 +52,11 @@ public:
     return state_.load() == RUNNING;
   }
   bool IsIdle() { return state_.load() == IDLE;}
-  void OnReceive(RsyncResponse* resp);
+  void OnReceive(RsyncService::RsyncResponse* resp);
 
 private:
   bool Recover();
-  Status Wait(RsyncResponse*& resp);
+  Status Wait(RsyncService::RsyncResponse*& resp);
   Status CopyRemoteFile(const std::string& filename);
   Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
   Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
@@ -69,7 +64,7 @@ private:
   Status FlushMetaTable();
   Status CleanUpExpiredFiles(bool need_reset_path, const std::set<std::string>& files);
   Status UpdateLocalMeta(const std::string& snapshot_uuid, const std::set<std::string>& expired_files, std::map<std::string, std::string>* localFileMap);
-  void HandleRsyncMetaResponse(RsyncResponse* response);
+  void HandleRsyncMetaResponse(RsyncService::RsyncResponse* response);
 
 private:
   std::map<std::string, std::string> meta_table_;
@@ -149,7 +144,7 @@ public:
   std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = 0xFFFFFFFF;
-  RsyncResponse* resp_ = nullptr;
+  RsyncService::RsyncResponse* resp_ = nullptr;
 };
 
 } // end namespace rsync

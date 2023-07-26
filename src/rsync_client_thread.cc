@@ -42,3 +42,4 @@ RsyncClientThread::RsyncClientThread(int cron_interval, int keepalive_timeout, v
 
 RsyncClientThread::~RsyncClientThread() {}
 } //end namespace rsync
+
