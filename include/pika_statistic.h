@@ -34,8 +34,8 @@ class QpsStatistic {
 };
 
 struct ServerStatistic {
-  ServerStatistic();
-  ~ServerStatistic();
+  ServerStatistic() = default;
+  ~ServerStatistic() = default;
 
   std::atomic<uint64_t> accumulative_connections;
   std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_db;

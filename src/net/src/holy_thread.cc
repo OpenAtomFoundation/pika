@@ -35,7 +35,7 @@ HolyThread::~HolyThread() { Cleanup(); }
 
 int HolyThread::conn_num() const {
   std::shared_lock l(rwlock_);
-  return conns_.size();
+  return static_cast<int32_t>(conns_.size());
 }
 
 std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
@@ -279,7 +279,7 @@ bool HolyThread::KillConn(const std::string& ip_port) {
 void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
   if (pfe->mask & kReadable) {
     char bb[2048];
-    int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
+    int64_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
