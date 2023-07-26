@@ -4,12 +4,14 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 #include "include/pika_command.h"
 #include "include/pika_stream_meta_value.h"
+#include "include/pika_stream_types.h"
 #include "rocksdb/status.h"
 
 bool StreamUtil::is_stream_meta_hash_created_ = false;
@@ -300,7 +302,7 @@ uint64_t StreamUtil::GetCurrentTimeMs() {
   return now;
 }
 
-static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args, bool is_xreadgroup) {
+CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args, bool is_xreadgroup) {
   CmdRes res;
   int streams_arg_idx{0};  // the index of stream keys arg
   int streams_cnt{0};      // the count of stream keys
@@ -362,4 +364,11 @@ static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGr
   // Korpse TODO: parse stream keys and ids
 
   return res;
+}
+
+void StreamUtil::GenerateKeyByTreeID(std::string &field, const treeID tid) {
+  field.clear();
+  field.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
+  field.append(STERAM_TREE_PREFIX);
+  field.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
 }

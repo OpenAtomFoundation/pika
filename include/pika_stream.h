@@ -73,7 +73,9 @@ class XGROUP: public Cmd {
   Cmd* Clone() override { return new XGROUP(*this); }
 
  private:
+  // create a consumer group, initialize the pel and consumers
   void Create(const std::shared_ptr<Slot> &slot = nullptr);
+  void CreateConsumer(const std::shared_ptr<Slot> &slot = nullptr);
  private:
   // XGROUP common options
   std::string opt_;
