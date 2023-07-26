@@ -346,13 +346,11 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
               send_failed_msgs.push_back(msg);
             }
           }
-          {
-            std::lock_guard l(mu_);
-            if (!send_failed_msgs.empty()) {
-              send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(),
-                                      to_send_[ip_port].end());
-              send_failed_msgs.swap(to_send_[ip_port]);
-            }
+          std::lock_guard l(mu_);
+          if (!send_failed_msgs.empty()) {
+            send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(),
+                                    to_send_[ip_port].end());
+            send_failed_msgs.swap(to_send_[ip_port]);
             NotifyWrite(ip_port);
           }
         } else if (ti.notify_type() == kNotiClose) {
