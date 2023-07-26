@@ -46,6 +46,7 @@ int PikaReplServer::Start() {
 int PikaReplServer::Stop() {
   server_tp_->stop_thread_pool();
   pika_repl_server_thread_->StopThread();
+  pika_repl_server_thread_->Cleanup();
   return 0;
 }
 
