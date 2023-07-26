@@ -29,7 +29,6 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
-
       private_data_(private_data),
       conn_factory_(conn_factory) {
   net_multiplexer_.reset(CreateNetMultiplexer());
@@ -342,7 +341,7 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           }
           // get msg from to_send_
           std::vector<std::string> send_failed_msgs;
-          for (const auto& msg : msgs) {
+          for (auto& msg : msgs) {
             if (ipport_conns_[ip_port]->WriteResp(msg)) {
               send_failed_msgs.push_back(msg);
             }
@@ -353,8 +352,8 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
               send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(),
                                       to_send_[ip_port].end());
               send_failed_msgs.swap(to_send_[ip_port]);
-              NotifyWrite(ip_port);
             }
+            NotifyWrite(ip_port);
           }
         } else if (ti.notify_type() == kNotiClose) {
           LOG(INFO) << "received kNotiClose";
