@@ -1,0 +1,49 @@
+syntax = "proto2";
+package RsyncService;
+
+enum Type {
+    kRsyncMeta = 1;
+    kRsyncFile = 2;
+}
+
+enum StatusCode {
+    kOk  = 1;
+    kErr = 2;
+}
+
+message MetaResponse {
+    repeated string filenames = 1;
+}
+
+message FileRequest {
+    required string filename = 1;
+    required uint64 count = 2;
+    required uint64 offset = 3;
+}
+
+message FileResponse {
+    required int32 eof = 1;
+    required uint64 count = 2;
+    required uint64 offset = 3;
+    required bytes data = 4;
+    required string checksum = 5;
+    required string filename = 6;
+}
+
+message RsyncRequest {
+    required Type type = 1;
+    required string db_name = 2;
+    required uint32 slot_id = 3;
+    optional FileRequest file_req = 4;
+}
+
+message RsyncResponse {
+    required Type type = 1;
+    required string snapshot_uuid = 2;
+    required string db_name = 3;
+    required uint32 slot_id = 4;
+    required StatusCode code = 5;
+    optional MetaResponse meta_resp = 6;
+    optional FileResponse file_resp = 7;
+}
+
