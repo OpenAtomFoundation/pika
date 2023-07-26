@@ -26,9 +26,10 @@ int RsyncClientConn::DealMessage() {
   decoder.SetTotalBytesLimit(PIKA_MAX_CONN_RBUF);
   bool success = response->ParseFromCodedStream(&decoder) && decoder.ConsumedEntireMessage();
   if (!success) {
-      LOG(WARNING) << "ParseFromArray FAILED! "
-                   << " msg_len: " << header_len_;
-      return -1;
+    delete response;
+    LOG(WARNING) << "ParseFromArray FAILED! "
+                 << " msg_len: " << header_len_;
+    return -1;
   }
   RsyncClient* handler = (RsyncClient*)cb_handler_;
   handler->OnReceive(response);
