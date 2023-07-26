@@ -1,12 +1,16 @@
 #include "include/pika_stream.h"
+#include <strings.h>
+#include <cassert>
 #include <memory>
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_stream_meta_value.h"
+#include "include/pika_stream_types.h"
 #include "include/pika_stream_util.h"
 #include "pstd/include/pstd_string.h"
 
+// Korpse:FIXME: check the argv_ size
 void XAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
@@ -35,10 +39,17 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   std::string meta_value{};
   rocksdb::Status s;
   s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
-  StreamMetaValue stream_meta(meta_value);
-  if (s.IsNotFound()) {
+  StreamMetaValue stream_meta;
+  if (s.ok()) {
+    LOG(INFO) << "Stream meta found, Parse";
+    stream_meta.ParseFrom(meta_value);
+  } else if (s.IsNotFound() && args_.no_mkstream) {
+    LOG(INFO) << "Stream not exists and not create";
+    res_.SetRes(CmdRes::kInvalidParameter, "Stream not exists");
+    return;
+  } else if (s.IsNotFound()) {
+    LOG(INFO) << "Stream meta not found, create new one";
     stream_meta.Init();
-    LOG(INFO) << "Stream meta not found";
   } else if (!s.ok()) {
     LOG(FATAL) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -69,7 +80,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  // 3. update stream meta
+  // 3. update stream meta, Korpse TODO: is there any arg left to update?
   int message_len = (argv_.size() - field_pos_) / 2;
   if (stream_meta.entries_added() == 0) {
     stream_meta.set_first_id(args_.id);
@@ -141,3 +152,110 @@ void XReadCmd::DoInitial() {
 
   // Korpse TODO: finish this
 }
+
+/* XGROUP CREATE <key> <groupname> <id or $> [MKSTREAM] [ENTRIESREAD entries_read]
+ * XGROUP SETID <key> <groupname> <id or $> [ENTRIESREAD entries_read]
+ * XGROUP DESTROY <key> <groupname>
+ * XGROUP CREATECONSUMER <key> <groupname> <consumer>
+ * XGROUP DELCONSUMER <key> <groupname> <consumername> */
+void XGROUP::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
+    return;
+  }
+
+  assert(argv_.size() >= 4);  // Korpse TODO: Is this necessary?
+  opt_ = argv_[1];
+  key_ = argv_[2];
+  group_name_ = argv_[3];
+
+  if (argv_.size() >= 4) {
+    // XGROUP CREATE ... [MKSTREAM] [ENTRIESREAD entries_read]
+    // XGROUP SETID ... [ENTRIESREAD entries_read]
+    int i = 5;
+    bool create_subcmd = !strcasecmp(opt_.c_str(), "CREATE");
+    bool setid_subcmd = !strcasecmp(opt_.c_str(), "SETID");
+    while (i < argv_.size()) {
+      // XGROUP CREATE ... [MKSTREAM] ...
+      if (create_subcmd && !strcasecmp(argv_[i].c_str(), "MKSTREAM")) {
+        mkstream_ = true;
+        i++;
+        // XGROUP <CREATE | SETID> ... [ENTRIESREAD entries_read]
+      } else if ((create_subcmd || setid_subcmd) && !strcasecmp(argv_[i].c_str(), "ENTRIESREAD") &&
+                 i + 1 < argv_.size()) {
+        if (!StreamUtil::string2uint64(argv_[i + 1].c_str(), entries_read_)) {
+          res_.SetRes(CmdRes::kInvalidParameter, "invalue parameter for ENTRIESREAD");
+          return;
+        }
+      } else {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+    }
+  }
+
+  // Dispatch the different subcommands
+  if (!strcasecmp(opt_.c_str(), "CREATE") && (argv_.size() >= 5 && argv_.size() <= 8)) {
+    LOG(INFO) << "XGROUP CREATE";
+    if (argv_[4] == "$") {
+      id_given_ = false;
+    } else {
+      res_ = StreamUtil::StreamParseStrictID(argv_[4], sid_, 0, &id_given_);
+      if (!res_.ok()) {
+        return;
+      }
+    }
+  } else if (!strcasecmp(opt_.c_str(), "SETID") && (argv_.size() == 5 || argv_.size() == 7)) {
+    LOG(INFO) << "XGROUP SETID";
+    if (argv_[4] == "$") {
+      id_given_ = false;
+    } else {
+      res_ = StreamUtil::StreamParseStrictID(argv_[4], sid_, 0, &id_given_);
+      if (!res_.ok()) {
+        return;
+      }
+    }
+  } else if (!strcasecmp(opt_.c_str(), "DESTROY") && argv_.size() == 4) {
+    LOG(INFO) << "XGROUP DESTROY";
+    // nothing todo
+  } else if (!strcasecmp(opt_.c_str(), "CREATECONSUMEFR") && argv_.size() == 5) {
+    consumer_name_ = argv_[4];
+  } else if (!strcasecmp(opt_.c_str(), "DELCONSUMER") && argv_.size() == 5) {
+    consumer_name_ = argv_[4];
+  } else {
+    res_.SetRes(CmdRes::kSyntaxErr);
+    return;
+  }
+}
+
+void XGROUP::Create(const std::shared_ptr<Slot> &slot) {
+  assert(slot);
+  // 1. try to get stream meta
+  std::string meta_value{};
+  rocksdb::Status s;
+  s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  StreamMetaValue stream_meta;
+  if (s.IsNotFound() && !mkstream_) {
+    res_.SetRes(CmdRes::kInvalidParameter,
+                "The XGROUP subcommand requires the key to exist. "
+                "Note that for CREATE you may want to use the MKSTREAM "
+                "option to create an empty stream automatically.");
+    return;
+  } else if (s.IsNotFound()) {
+    stream_meta.Init();
+    LOG(INFO) << "Stream meta not found, create new one";
+  } else if (!s.ok()) {
+    LOG(FATAL) << "Unexpected error of key: " << key_;
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+
+  // 2. check if the group already exists
+  treeID tid = stream_meta.groups_id();
+  if (tid == kINVALID_TREE_ID) {
+    auto &tid_gen = TreeIDGenerator::GetInstance();
+    tid = tid_gen.GetNextTreeID(slot);
+  }
+  
+}
+// Korpse TODO: finish this

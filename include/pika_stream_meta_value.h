@@ -19,12 +19,15 @@ static const size_t kDefaultStreamValueLength = sizeof(treeID) + sizeof(uint64_t
 class StreamMetaValue {
  public:
   // should provie a string
-  explicit StreamMetaValue(std::string& value) : value_(std::move(value)) { assert(value); }
-
+  explicit StreamMetaValue() = default;
   // used only when create a new stream
   void Init() {
     size_t needed = kDefaultStreamValueLength;
     assert(value_.size() == 0);
+    if (value_.size() != 0) {
+      LOG(FATAL) << "Init on a existed stream meta value!";
+      return;
+    }
     value_.resize(needed);
 
     char* dst = value_.data();
@@ -39,16 +42,11 @@ class StreamMetaValue {
     memcpy(dst, &last_id_, sizeof(streamID));
     dst += sizeof(streamID);
     memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
-
-    if (needed <= value_.size()) {
-      value_.resize(needed);
-    } else {
-      value_.resize(needed);
-    }
   }
 
   // used only when parse a existed stream meta
-  void Parse() {
+  void ParseFrom(std::string& value) {
+    value_ = std::move(value);
     assert(value_.size() == kDefaultStreamValueLength);
     if (value_.size() != kDefaultStreamValueLength) {
       LOG(FATAL) << "Invalid stream meta value length: ";

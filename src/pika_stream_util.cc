@@ -78,7 +78,7 @@ CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrim
       i++;
     } else if (is_xadd && strcasecmp(opt.c_str(), "nomkstream") == 0) {
       // case: XADD mystream ... NOMKSTREAM ...
-      args.no_mkstream = 1;
+      args.no_mkstream = true;
     } else if (is_xadd) {
       // case: XADD mystream ... ID ...
       // FIXME: deal with seq_given
@@ -258,7 +258,6 @@ rocksdb::Status StreamUtil::InsertStreamMeta(const std::string &key, std::string
   return s;
 }
 
-// Korpse FIXME: get serialize logic out of this function
 rocksdb::Status StreamUtil::InsertStreamMessage(const std::string &key, const std::string &sid,
                                                 const std::string &message, const std::shared_ptr<Slot> &slot) {
   int32_t temp{0};

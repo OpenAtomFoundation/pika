@@ -2,6 +2,7 @@
 #define SRC_STREAM_UTIL_H_
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <mutex>
 #include <vector>
@@ -15,22 +16,31 @@
 
 // get next tree id thread safly
 class TreeIDGenerator {
- public:
+ private:
   TreeIDGenerator() = default;
+  void operator=(const TreeIDGenerator &) = delete;
+
+ public:
   ~TreeIDGenerator() = default;
 
   // work in singeletone mode
-  TreeIDGenerator &GetInstance() {
+  static TreeIDGenerator &GetInstance() {
     static TreeIDGenerator instance;
     return instance;
   }
 
+  // FIXME: return rocksdb::Status instead of treeID
   treeID GetNextTreeID(const std::shared_ptr<Slot> &slot) {
     treeID expected_id = INVALID_TREE_ID;
     if (tree_id_.compare_exchange_strong(expected_id, START_TREE_ID)) {
       TryToFetchLastIdFromStorage(slot);
     }
-    return ++tree_id_;
+    assert(tree_id_ != INVALID_TREE_ID);
+    ++tree_id_;
+    std::string tree_id_str = std::to_string(tree_id_);
+    rocksdb::Status s = slot->db()->Set(STREAM_TREE_STRING_KEY, tree_id_str);
+    LOG(INFO) << "Set tree id to " << tree_id_str << " tree id: " << tree_id_;
+    return tree_id_;
   }
 
  private:
@@ -46,11 +56,8 @@ class TreeIDGenerator {
 
     } else {
       // not found, set start tree id and insert to db
-      tree_id_ = std::stoi(value);
       tree_id_ = START_TREE_ID;
-      std::string tree_id_str = std::to_string(tree_id_);
-      s = slot->db()->Set(STREAM_TREE_STRING_KEY, tree_id_str);
-      assert(s.ok());
+      LOG(INFO) << "Tree id not found, set to start tree id: " << START_TREE_ID;
     }
   }
 
@@ -82,6 +89,7 @@ class StreamUtil {
   static CmdRes StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, bool *seq_given);
 
   // Korpse TODO: unit tests
+  // return false if the string is invalid
   static bool string2uint64(const char *s, uint64_t &value);
   static bool string2int64(const char *s, int64_t &value);
   static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
