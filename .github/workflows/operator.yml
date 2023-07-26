@@ -29,7 +29,7 @@ jobs:
 
     - name: Build
       run: |
-        cd tools/pika_operator && make 
+        cd tools/pika_operator && make
 
     - name: Unit Test
       run: |

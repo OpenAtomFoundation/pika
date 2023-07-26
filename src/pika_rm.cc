@@ -541,7 +541,9 @@ Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return 
 
 /* SyncSlaveSlot */
 SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id)  {
+    : SyncSlot(db_name, slot_id) {
+  std::string dbsync_path = g_pika_conf->db_sync_path() + "/" + db_name;
+  rsync_cli_.reset(new rsync::RsyncClient(dbsync_path, db_name, slot_id));
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 
@@ -603,6 +605,7 @@ void SyncSlaveSlot::Deactivate() {
   std::lock_guard l(slot_mu_);
   m_info_ = RmNode();
   repl_state_ = ReplState::kNoConnect;
+  rsync_cli_->Stop();
 }
 
 std::string SyncSlaveSlot::ToStringStatus() {
@@ -639,6 +642,16 @@ void SyncSlaveSlot::SetLocalIp(const std::string& local_ip) {
 std::string SyncSlaveSlot::LocalIp() {
   std::lock_guard l(slot_mu_);
   return local_ip_;
+}
+
+void SyncSlaveSlot::ActivateRsync() {
+  if (!rsync_cli_->IsIdle()) {
+    return;
+  }
+  LOG(WARNING) << "ActivateRsync ...";
+  if (rsync_cli_->Init()) {
+    rsync_cli_->Start();
+  }
 }
 
 /* PikaReplicaManger */
@@ -1143,10 +1156,13 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
     } else if (s_slot->State() == ReplState::kWaitReply) {
       continue;
     } else if (s_slot->State() == ReplState::kWaitDBSync) {
+      s_slot->ActivateRsync();
       std::shared_ptr<Slot> slot =
           g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
       if (slot) {
-        slot->TryUpdateMasterOffset();
+        if (!s_slot->IsRsyncRunning()) {
+          slot->TryUpdateMasterOffset();
+        }
       } else {
         LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_
                      << " Slot Id: " << p_info.slot_id_;
