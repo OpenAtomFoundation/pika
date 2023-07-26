@@ -25,7 +25,7 @@ public:
   int DealMessage() override;
 
 private:
-  void* cb_handler_;
+  void* cb_handler_ = nullptr;
 };
 
 class RsyncClientConnFactory : public ConnFactory {
@@ -38,7 +38,7 @@ public:
         std::make_shared<RsyncClientConn>(connfd, ip_port, thread, cb_handler_, net));
   }
 private:
-  void* cb_handler_;
+  void* cb_handler_ = nullptr;
 };
 
 class RsyncClientThread : public ClientThread {
@@ -51,5 +51,5 @@ private:
 };
 
 } //end namespace rsync
-
 #endif
+

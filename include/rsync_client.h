@@ -5,6 +5,7 @@
 
 #ifndef RSYNC_CLIENT_H_
 #define RSYNC_CLIENT_H_
+
 #include <glog/logging.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -72,15 +73,15 @@ private:
 
 private:
   std::map<std::string, std::string> meta_table_;
-  int flush_period_;
+  int flush_period_ = 10;
   std::set<std::string> file_set_;
   std::string snapshot_uuid_;
   std::string dir_;
   std::string db_name_;
-  uint32_t slot_id_;
+  uint32_t slot_id_ = 0;
   std::unique_ptr<RsyncClientThread> client_thread_;
   std::atomic<State> state_;
-  int max_retries_;
+  int max_retries_ = 10;
   std::unique_ptr<WaitObject> wo_;
   std::condition_variable cond_;
   std::mutex mu_;
@@ -126,7 +127,7 @@ public:
 
 private:
   std::string filepath_;
-  int fd_;
+  int fd_ = -1;
 };
 
 class WaitObject {
@@ -147,10 +148,10 @@ public:
   }
   std::string filename_;
   RsyncService::Type type_;
-  size_t offset_;
-  RsyncResponse* resp_;
+  size_t offset_ = 0xFFFFFFFF;
+  RsyncResponse* resp_ = nullptr;
 };
 
 } // end namespace rsync
-
 #endif
+

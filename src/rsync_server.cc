@@ -16,6 +16,10 @@
 extern PikaServer* g_pika_server;
 namespace rsync {
 
+using namespace net;
+using namespace RsyncService;
+using namespace pstd;
+
 //TODO: optimzie file read and calculate checksum, maybe use RsyncReader prefeching file content
 Status ReadDumpFile(const std::string filepath, const size_t offset, const size_t count,
                     char* data, size_t* bytes_read, std::string* checksum) {
@@ -173,7 +177,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_snapshot_uuid(snapshot_uuid);
 
   LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
-            << "files count: " << filenames.size() << "file list: ";
+            << " files count: " << filenames.size() << " file list: ";
   std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
     LOG(INFO) << "rsync snapshot file: " << file;
   });
@@ -214,8 +218,8 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   if (!slot) {
-   LOG(WARNING) << "cannot find slot for db_name " << db_name
-                << "slot_id: " << slot_id;
+   LOG(WARNING) << "cannot find slot for db_name: " << db_name
+                << " slot_id: " << slot_id;
    response.set_code(RsyncService::kErr);
    RsyncWriteResp(response, conn);
   }
@@ -268,3 +272,4 @@ void RsyncServerThread::RsyncServerHandle::CronHandle() const {
 }
 
 } // end namespace rsync
+
