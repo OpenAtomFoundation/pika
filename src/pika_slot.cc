@@ -329,6 +329,7 @@ Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
   if (snapshot_uuid_.empty()) {
     std::string info_data;
     const std::string infoPath = bgsave_info().path + "/info";
+    //TODO: using file read function to replace rocksdb::ReadFileToString
     rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
     if (!s.ok()) {
       LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
