@@ -97,8 +97,8 @@ Status SyncMasterSlot::ActivateSlaveBinlogSync(const std::string& ip, int port, 
     if (!s.ok()) {
       return Status::Corruption("Init binlog file reader failed" + s.ToString());
     }
-    // Since we init a new reader, we should drop items in write queue and reset sync_window.
-    // Or sync-window's begin item will never match response's binlog offset.
+    //Since we init a new reader, we should drop items in write queue and reset sync_window.
+    //Or the sent_offset and acked_offset will not match
     g_pika_rm->DropItemInWriteQueue(ip, port);
     slave_ptr->sync_win.Reset();
     slave_ptr->b_state = kReadFromFile;
