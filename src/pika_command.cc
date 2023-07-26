@@ -728,9 +728,6 @@ void Cmd::Execute() {
   ProcessSingleSlotCmd();
 }
 
-// TODO(leeHao): exec命令执行时间，是统计事务队列中，每个命令单独统计还是统计一整个队列的执行时长
-// 目前我的做法是统计，exec命令的执行时间是统计整个队列的执行时间
-
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
   slot = g_pika_server->GetSlotByDBName(db_name_);

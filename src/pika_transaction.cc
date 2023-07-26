@@ -10,7 +10,6 @@
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd_defer.h"
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -54,6 +53,9 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     } else if (cmd->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
       flushdb->FlushAllSlotsWithoutLock(each_cmd_info.db_);
+      if (cmd->res().ok()) {
+        cmd->res().SetRes(CmdRes::kOk);
+      }
       client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->db_name_);
     } else {
       cmd->Do(slot);
@@ -97,7 +99,6 @@ void ExecCmd::Execute() {
   client_conn->ExitTxn();
 }
 
-//! 在这里还没法得到涉及到的key，因为客户端连接对象中有一些的key他们的db不一样
 void ExecCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, name());
@@ -194,8 +195,8 @@ void ExecCmd::SetCmdsVec() {
 
 void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto mp = std::map<storage::DataType, storage::Status>{};
-  slot->db()->Exists(keys_, &mp);
-  if (mp.size() > 1) {
+  auto type_count = slot->db()->Exists(keys_, &mp);
+  if (type_count > 1) {
     // 说明一个key里面有多种类型
     res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
     return;

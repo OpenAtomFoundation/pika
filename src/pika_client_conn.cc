@@ -42,7 +42,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
     if (IsInTxn()) {
-      SetTxnInitFailState(true);  // 本次事务就算是失败了
+      SetTxnInitFailState(true);
     }
     return tmp_ptr;
   }
@@ -70,7 +70,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
     if (IsInTxn()) {
-      SetTxnInitFailState(true);  // 本次事务就算是失败了
+      SetTxnInitFailState(true);
     }
     return c_ptr;
   }
@@ -142,7 +142,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
       SetTxnFailedFromDBs(flushdb->GetFlushDname());
     } else if (c_ptr->name() == kCmdNameFlushall) {
-      SetAllTxnFailed();  // 这里就将所有watch的事务给设置成为失败状态
+      SetAllTxnFailed();
     } else {
       auto table_keys = c_ptr->current_key();
       for (auto& key : table_keys) {

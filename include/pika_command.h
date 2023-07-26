@@ -489,7 +489,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
-  // TODO(leehao): 这里有点儿问题，冲突了
   std::string GetDBName() { return db_name_; }
 
   std::string name() const;

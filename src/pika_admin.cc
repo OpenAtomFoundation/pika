@@ -412,8 +412,6 @@ void PingCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.SetRes(CmdRes::kPong);
 }
-// TODO(leehao): 这里也有点儿问题，因为在事务入队列的时候会来做命令的DoInitial函数,
-//  redis不会检查select的db是否存在的
 void SelectCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
@@ -587,8 +585,6 @@ void FlushdbCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
 }
 
 void FlushdbCmd::Execute() {
-  // TODO(leeHao): 这里在pika上面其实有个bug，就在unstable分支
-  //  这里去getDB不应该用这个db去get
   std::shared_ptr<DB> db = g_pika_server->GetDB(Cmd::db_name_);
   if (!db) {
     res_.SetRes(CmdRes::kInvalidDB);
