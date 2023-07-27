@@ -641,11 +641,13 @@ std::string SyncSlaveSlot::LocalIp() {
   return local_ip_;
 }
 
+void SyncSlaveSlot::StopRsync() {
+  rsync_cli_->Stop();
+}
+
 void SyncSlaveSlot::ActivateRsync() {
-  if (rsync_cli_->IsStop()) {
-    rsync_cli_->Stop();
-  }
   if (!rsync_cli_->IsIdle()) {
+    LOG(WARNING) << "slaveslot wait rsyncclient to be ready";
     return;
   }
   LOG(WARNING) << "ActivateRsync ...";
