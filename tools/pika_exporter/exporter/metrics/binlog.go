@@ -65,7 +65,7 @@ var collectBinlogMetrics = map[string]MetricConfig{
 				Name:      "binlog_offset_db",
 				Help:      "pika serve instance binlog offset for each db",
 				Type:      metricTypeGauge,
-				Labels:    []string{LabelNameAddr, LabelNameAlias, "db", "safety_purge"},
+				Labels:    []string{LabelNameAddr, LabelNameAlias, "db"},
 				ValueName: "binlog_offset",
 			},
 		},
