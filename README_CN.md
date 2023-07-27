@@ -161,7 +161,7 @@ redis-cli -p 9221 "info"
 
 ### 使用 pika-operator 部署
 
-使用 pika-operator 可以在简单的在 Kubernetes 环境中部署 pika 单实例。
+使用 `pika-operator` 可以简单的在 Kubernetes 环境中部署单实例 `pika` 。
 请勿在生产环境中使用此功能。
 
 本地安装：
