@@ -159,6 +159,33 @@ redis-cli -p 9221 "info"
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
 
+### 使用 pika-operator 部署
+
+使用 pika-operator 可以在简单的在 Kubernetes 环境中部署 pika 单实例。
+请勿在生产环境中使用此功能。
+
+本地安装：
+
+1. 安装 [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
+2. 部署 pika-operator
+```bash
+cd tools/pika_operator
+make minikube-up # run this if you don't have a minikube cluster
+make local-deploy
+```
+3. 创建 pika 实例
+```
+cd tools/pika_operator
+kubectl apply -f examples/pika-sample/
+
+# check pika status
+kubectl get pika pika-sample
+
+# get pika instance info
+kubectl run pika-sample-test --image redis -it --rm --restart=Never \
+  -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
+```
+
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
 ### 注!!!
 本测试结果是在特定环境特定场景下得出的，不能够代表所有环境及场景下的表现，__仅供参考__。
