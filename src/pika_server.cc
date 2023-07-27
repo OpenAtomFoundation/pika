@@ -7,6 +7,7 @@
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <sys/resource.h>
+#include <sys/statvfs.h>
 #include <algorithm>
 #include <ctime>
 #include <fstream>
@@ -1519,10 +1520,10 @@ void PikaServer::AutoKeepAliveRSync() {
 }
 
 void PikaServer::AutoResumeDB() {
-  struct statfs disk_info;
-  int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
+  struct statvfs disk_info;
+  int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
   if (ret == -1) {
-    LOG(WARNING) << "statfs error: " << strerror(errno);
+    LOG(WARNING) << "statvfs error: " << strerror(errno);
     return;
   }
 
@@ -1536,7 +1537,7 @@ void PikaServer::AutoResumeDB() {
   struct timeval now;
   gettimeofday(&now, nullptr);
   // first check or time interval between now and last check is larger than variable "interval"
-  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval) {
+  if (disk_use_ratio > min_check_resume_ratio && (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval)) {
     gettimeofday(&last_check_resume_time_, nullptr);
     if (disk_use_ratio < min_check_resume_ratio || free_size < least_free_size){
       return;
