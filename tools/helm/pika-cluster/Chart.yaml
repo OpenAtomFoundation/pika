@@ -1,17 +1,17 @@
 apiVersion: v2
-name: redis-cluster
+name: pika-cluster
 description: An Redis Replication Cluster Helm chart for KubeBlocks.
 
 type: application
 
 version: 0.6.0-alpha.21
 
-appVersion: "7.0.6"
+appVersion: "3.5.0"
 
-home: https://redis.io/
-icon: https://bitnami.com/assets/stacks/redis/img/redis-stack-220x234.png
+home: https://pika.io/
+icon: https://bitnami.com/assets/stacks/pika/img/redis-stack-220x234.png
 keywords:
-  - redis
+  - pika
   - database
   - nosql
   - replication

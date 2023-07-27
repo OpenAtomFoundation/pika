@@ -7,17 +7,9 @@ metadata:
 data:
   redis.conf: |-
     {{- .Files.Get "config/pika-config.tpl" | nindent 4 }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: codis-config-template
-  labels:
-    {{- include "pika.labels" . | nindent 4 }}
-data:
   dashboard.toml: |-
-        {{- .Files.Get "config/codis-dashboard.tpl" | nindent 4 }}
+    {{- .Files.Get "config/codis-dashboard.tpl" | nindent 4 }}
   proxy.toml: |-
-        {{- .Files.Get "config/codis-proxy.tpl" | nindent 4 }}
+    {{- .Files.Get "config/codis-proxy.tpl" | nindent 4 }}
   sentinel.conf: |-
-        {{- .Files.Get "config/codis-sentinel.tpl" | nindent 4 }}
+    {{- .Files.Get "config/codis-sentinel.tpl" | nindent 4 }}

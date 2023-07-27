@@ -3,12 +3,12 @@ kind: RoleBinding
 metadata:
   name: kb-{{ include "clustername" . }}
   labels:
-    {{ include "redis-cluster.labels" . | nindent 4 }}
+    {{ include "pika-cluster.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: kb-{{ include "clustername" . }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "redis-cluster.serviceAccountName" . }}
+    name: {{ include "pika-cluster.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}

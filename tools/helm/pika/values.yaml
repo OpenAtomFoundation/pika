@@ -1,5 +1,6 @@
+clusterVersionOverride: 3.5.0
 pika:
-  version: unstable-4ff91f6a
+  version: unstable-2597ac3c
   pika:
     image:
       registry: docker.io

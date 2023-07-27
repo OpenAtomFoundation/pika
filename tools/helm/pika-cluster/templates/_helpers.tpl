@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "redis-cluster.name" -}}
+{{- define "pika-cluster.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "redis-cluster.fullname" -}}
+{{- define "pika-cluster.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "redis-cluster.chart" -}}
+{{- define "pika-cluster.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "redis-cluster.labels" -}}
-helm.sh/chart: {{ include "redis-cluster.chart" . }}
-{{ include "redis-cluster.selectorLabels" . }}
+{{- define "pika-cluster.labels" -}}
+helm.sh/chart: {{ include "pika-cluster.chart" . }}
+{{ include "pika-cluster.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,18 +45,18 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "redis-cluster.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "redis-cluster.name" . }}
+{{- define "pika-cluster.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "pika-cluster.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "clustername" -}}
-{{ include "redis-cluster.fullname" .}}
+{{ include "pika-cluster.fullname" .}}
 {{- end}}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "redis-cluster.serviceAccountName" -}}
+{{- define "pika-cluster.serviceAccountName" -}}
 {{- default (printf "kb-%s" (include "clustername" .)) .Values.serviceAccount.name }}
 {{- end }}
