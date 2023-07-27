@@ -51,6 +51,9 @@ public:
   bool IsRunning() {
     return state_.load() == RUNNING;
   }
+  bool IsStop() {
+    return state_.load() == STOP;
+  }
   bool IsIdle() { return state_.load() == IDLE;}
   void OnReceive(RsyncService::RsyncResponse* resp);
 
