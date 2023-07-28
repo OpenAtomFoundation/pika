@@ -99,6 +99,9 @@ void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
   work_thread_->Schedule(func, arg);
 }
 
+void RsyncServer::OnFinished(const std::string& ipport) {
+}
+
 int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();
@@ -122,7 +125,9 @@ int RsyncServer::Stop() {
 
 RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
                                  void* worker_specific_data, NetMultiplexer* mpx)
-    : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {}
+    : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {
+      reader_.reset(new RsyncReader());
+    }
 
 RsyncServerConn::~RsyncServerConn() {}
 
@@ -176,11 +181,13 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 
+/*
   LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
             << " files count: " << filenames.size() << " file list: ";
   std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
     LOG(INFO) << "rsync snapshot file: " << file;
   });
+  */
 
   RsyncService::MetaResponse* meta_resp = response.mutable_meta_resp();
   for (const auto& filename : filenames) {
@@ -192,7 +199,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
 void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
-  std::shared_ptr<net::PbConn> conn = task_arg->conn;
+  std::shared_ptr<RsyncServerConn> conn = task_arg->conn;
 
   uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
@@ -226,9 +233,10 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   const std::string filepath = slot->bgsave_info().path + "/" + filename;
   char* buffer = new char[req->file_req().count() + 1];
-  std::string checksum = "";
   size_t bytes_read{0};
-  s = ReadDumpFile(filepath, offset, count, buffer, &bytes_read, &checksum);
+  std::string checksum = "";
+  bool is_eof = false;
+  s = conn->reader_->Read(filepath, offset, count, buffer, &bytes_read, &checksum, &is_eof);
   if (!s.ok()) {
     response.set_code(RsyncService::kErr);
     RsyncWriteResp(response, conn);
@@ -238,7 +246,7 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
   file_resp->set_data(buffer, bytes_read);
-  file_resp->set_eof(bytes_read != count);
+  file_resp->set_eof(is_eof);
   file_resp->set_checksum(checksum);
   file_resp->set_filename(filename);
   file_resp->set_count(bytes_read);

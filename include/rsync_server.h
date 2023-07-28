@@ -21,10 +21,11 @@
 #include "rsync_service.pb.h"
 
 namespace rsync {
+class RsyncServerConn;
 struct RsyncServerTaskArg {
   std::shared_ptr<RsyncService::RsyncRequest> req;
-  std::shared_ptr<net::PbConn> conn;
-  RsyncServerTaskArg(std::shared_ptr<RsyncService::RsyncRequest> _req, std::shared_ptr<net::PbConn> _conn)
+  std::shared_ptr<RsyncServerConn> conn;
+  RsyncServerTaskArg(std::shared_ptr<RsyncService::RsyncRequest> _req, std::shared_ptr<RsyncServerConn> _conn)
       : req(std::move(_req)), conn(std::move(_conn)) {}
 };
 class RsyncReader;
@@ -35,6 +36,7 @@ public:
   RsyncServer(const std::set<std::string>& ips, const int port);
   ~RsyncServer();
   void Schedule(net::TaskFunc func, void* arg);
+  void OnFinished(const std::string& ipport);
   int Start();
   int Stop();
 private:
@@ -52,6 +54,7 @@ public:
   static void HandleMetaRsyncRequest(void* arg);
   static void HandleFileRsyncRequest(void* arg);
 private:
+  std::unique_ptr<RsyncReader> reader_;
   void* data_ = nullptr;
 };
 
@@ -84,6 +87,92 @@ private:
 private:
   RsyncServerConnFactory conn_factory_;
   RsyncServerHandle handle_;
+};
+
+class RsyncReader {
+public:
+  RsyncReader() {
+    block_data_ = new char[kBlockSize];
+  }
+  ~RsyncReader() {
+    delete []block_data_;
+  }
+  pstd::Status Read(const std::string filepath, const size_t offset,
+                    const size_t count, char* data, size_t* bytes_read,
+                    std::string* checksum, bool* is_eof) {
+    pstd::Status s = Seek(filepath, offset);
+    if (!s.ok()) {
+      return s;
+    }
+    size_t offset_in_block = offset % kBlockSize;
+    size_t copy_count = count > (end_offset_ - start_offset_) ? end_offset_ - start_offset_ : count;
+    memcpy(data, block_data_ + offset_in_block, copy_count);
+    *bytes_read = copy_count;
+    *is_eof = (start_offset_ + copy_count == total_size_);
+    return pstd::Status::OK();
+  }
+private:
+  pstd::Status Seek(const std::string filepath, const size_t offset) {
+    if (filepath == filepath_ && offset >= start_offset_ && offset <= end_offset_) {
+      return pstd::Status::OK();
+    }
+    if (filepath != filepath_) {
+      Reset();
+      fd_ = open(filepath.c_str(), O_RDONLY);
+      if (fd_ < 0) {
+        return pstd::Status::IOError("fd open failed");
+      }
+      filepath_ = filepath;
+      struct stat buf;
+      stat(filepath.c_str(), &buf);
+      total_size_ = buf.st_size;
+    }
+    start_offset_ = (offset / kBlockSize) & kBlockSize;
+
+    size_t read_offset = start_offset_;
+    size_t read_count = kBlockSize > (total_size_ - read_offset) ? (total_size_ - read_offset) : kBlockSize;
+    ssize_t bytesin = 0;
+    char* ptr = block_data_;
+    while ((bytesin = pread(fd_, ptr, read_count, read_offset)) > 0) {
+      read_count -= bytesin;
+      read_offset += bytesin;
+      ptr += bytesin;
+      if (read_count <= 0) {
+        break;
+      }
+    }
+    if (bytesin < 0) {
+      LOG(ERROR) << "unable to read from " << filepath_;
+      Reset();
+      return pstd::Status::IOError("unable to read from " + filepath);
+    }
+    end_offset_ = start_offset_ + (ptr - block_data_);
+    return pstd::Status::OK();
+  }
+  void Reset() {
+    std::lock_guard<std::mutex> guard(mu_);
+    total_size_ = -1;
+    start_offset_ = 0xFFFFFFFF;
+    end_offset_ = 0xFFFFFFFF;
+    memset(block_data_, 0, kBlockSize);
+    md5_.reset(new pstd::MD5());
+    filepath_ = "";
+    close(fd_);
+    fd_ = -1;
+  }
+
+private:
+  std::mutex mu_;
+  const size_t kBlockSize = 16 << 20;
+
+  char* block_data_;
+  size_t start_offset_ = -1;
+  size_t end_offset_ = -1;
+  size_t total_size_ = -1;
+
+  int fd_ = -1;
+  std::string filepath_;
+  std::unique_ptr<pstd::MD5> md5_;
 };
 
 } //end namespace rsync

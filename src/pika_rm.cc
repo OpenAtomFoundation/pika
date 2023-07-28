@@ -647,7 +647,6 @@ void SyncSlaveSlot::StopRsync() {
 
 void SyncSlaveSlot::ActivateRsync() {
   if (!rsync_cli_->IsIdle()) {
-    LOG(WARNING) << "slaveslot wait rsyncclient to be ready";
     return;
   }
   LOG(WARNING) << "ActivateRsync ...";

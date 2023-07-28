@@ -61,7 +61,7 @@ void* RsyncClient::ThreadMain() {
   std::string meta_rep;
 
   for (const auto& file : file_set_) {
-    LOG(INFO) << "CopyRemoteFile: " << file;
+    //LOG(INFO) << "CopyRemoteFile: " << file;
     while (state_.load() == RUNNING) {
       s = CopyRemoteFile(file);
       if (!s.ok()) {
