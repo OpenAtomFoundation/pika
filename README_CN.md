@@ -159,6 +159,33 @@ redis-cli -p 9221 "info"
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
 
+### 使用 pika-operator 部署
+
+使用 `pika-operator` 可以简单的在 Kubernetes 环境中部署单实例 `pika` 。
+请勿在生产环境中使用此功能。
+
+本地安装：
+
+1. 安装 [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
+2. 部署 pika-operator
+```bash
+cd tools/pika_operator
+make minikube-up # run this if you don't have a minikube cluster
+make local-deploy
+```
+3. 创建 pika 实例
+```
+cd tools/pika_operator
+kubectl apply -f examples/pika-sample/
+
+# check pika status
+kubectl get pika pika-sample
+
+# get pika instance info
+kubectl run pika-sample-test --image redis -it --rm --restart=Never \
+  -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
+```
+
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
 ### 注!!!
 本测试结果是在特定环境特定场景下得出的，不能够代表所有环境及场景下的表现，__仅供参考__。
@@ -389,7 +416,21 @@ Pika与Redis的极限QPS对比。
 
 ## 可观测性
 
-1. [指标 Metrics](tools/pika_exporter/README.md)
+### Metrics
+
+1. Pika Server Info：系统架构、IP、端口、run_id、配置文件等
+2. Pika Data Info：DB 大小、日志大小、内存使用情况等
+3. Pika ClientsInfo：连接的客户端
+4. Pika Stats Info：compact、slot等状态信息
+5. Pika Network Info：客户端和主从复制的传入和传出流量以及速率
+6. Pika CPU Info：CPU使用情况
+7. Pika Replication Info：主从复制的状态信息，binlog 信息等
+8. Pika Keyspace Info：五种数据类型的 Key 信息
+9. Pika Command Exec Count Info：命令执行计数
+10. Pika Command Execution Time：命令执行耗时
+11. RocksDB Metrics：五种数据类型的 RocksDB 信息，包括 Memtable、Block Cache、Compaction、SST File、Blob File 等。
+
+详细请参考 [指标 Metrics](tools/pika_exporter/README.md)。
 
 ## 文档
 1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)

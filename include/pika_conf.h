@@ -86,6 +86,18 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  int64_t least_resume_free_disk_size() {
+    std::shared_lock l(rwlock_);
+    return least_free_disk_to_resume_;
+  }
+  int64_t resume_interval() {
+    std::shared_lock l(rwlock_);
+    return resume_check_interval_;
+  }
+  double min_check_resume_ratio() {
+    std::shared_lock l(rwlock_);
+    return min_check_resume_ratio_;
+  }
   int64_t write_buffer_size() {
     std::shared_lock l(rwlock_);
     return write_buffer_size_;
@@ -477,6 +489,21 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
+  void SetLeastResumeFreeDiskSize(const int64_t& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
+    least_free_disk_to_resume_ = value;
+  }
+  void SetResumeInterval(const int64_t& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("manually-resume-interval", std::to_string(value));
+    resume_check_interval_ = value;
+  }
+  void SetMinCheckResumeRatio(const double& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("min-check-resume-ratio", std::to_string(value));
+    min_check_resume_ratio_ = value;
+  }
   void SetSyncWindowSize(const int& value) {
     TryPushDiffCommands("sync-window-size", std::to_string(value));
     sync_window_size_.store(value);
@@ -546,6 +573,9 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
+  int64_t resume_check_interval_ = 60; // seconds
+  int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
+  double min_check_resume_ratio_ = 0.7;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
   int64_t slotmigrate_thread_num_ = 0;

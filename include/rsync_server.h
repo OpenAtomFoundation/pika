@@ -36,7 +36,6 @@ public:
   RsyncServer(const std::set<std::string>& ips, const int port);
   ~RsyncServer();
   void Schedule(net::TaskFunc func, void* arg);
-  void OnFinished(const std::string& ipport);
   int Start();
   int Stop();
 private:

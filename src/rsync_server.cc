@@ -99,9 +99,6 @@ void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
   work_thread_->Schedule(func, arg);
 }
 
-void RsyncServer::OnFinished(const std::string& ipport) {
-}
-
 int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();

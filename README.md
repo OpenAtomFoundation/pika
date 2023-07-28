@@ -179,6 +179,33 @@ Here is an example usage of the script:
 ```bash
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
+### Use pika-operator to deploy
+
+You can use the `pika-operator` to easily deploy `pika` in a Kubernetes environment. 
+
+Please note that this operator is **NOT** recommended for use in a production environment.
+
+Local Deploy：
+
+1. install [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
+2. deploy pika-operator
+```bash
+cd tools/pika_operator
+make minikube-up # run this if you don't have a minikube cluster
+make local-deploy
+```
+3. create pika instance
+```
+cd tools/pika_operator
+kubectl apply -f examples/pika-sample/
+
+# check pika status
+kubectl get pika pika-sample
+
+# get pika instance info
+kubectl run pika-sample-test --image redis -it --rm --restart=Never \
+  -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
+```
 
 ## Performance
 
@@ -186,7 +213,21 @@ More details on [Performance](docs/benchmark/performance.md).
 
 ## Observability
 
-1. [Metrics](tools/pika_exporter/README.md)
+### Metrics
+
+1. Pika Server Info: system, ip, port, run_id, config file etc.
+2. Pika Data Info: db size, log size, memory usage etc.
+3. Pika Client Info: The number of connected clients.
+4. Pika Stats Info: status information of compact, slot, etc.
+5. Pika Network Info: Incoming and outgoing traffic and rate of client and master-slave replication.
+6. Pika CPU Info: cpu usage.
+7. Pika Replication Info: Status information of master-slave replication, binlog information.
+8. Pika Keyspace Info: key information of five data types.
+9. Pika Command Exec Count Info: command execution count.
+10. Pika Command Execution Time: Time-consuming command execution.
+11. RocksDB Metrics: RocksDB information of five data types, includes Memtable, Block Cache, Compaction, SST File, Blob File etc.
+
+More details on [Metrics](tools/pika_exporter/README.md).
 
 ## Documents
 
