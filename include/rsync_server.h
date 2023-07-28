@@ -105,15 +105,16 @@ public:
       return s;
     }
     size_t offset_in_block = offset % kBlockSize;
-    size_t copy_count = count > (end_offset_ - start_offset_) ? end_offset_ - start_offset_ : count;
+    size_t copy_count = count > (end_offset_ - offset) ? end_offset_ - offset : count;
     memcpy(data, block_data_ + offset_in_block, copy_count);
     *bytes_read = copy_count;
-    *is_eof = (start_offset_ + copy_count == total_size_);
+    *is_eof = (offset + copy_count == total_size_);
+    //LOG(WARNING) << "file: " << filepath_ << " slave offset: " << offset << "start_offset: " << start_offset_ << " end_offset: " << end_offset_ << " total_size: " << total_size_ << "offset_in_block: " << offset_in_block << " copy_count: " << copy_count;
     return pstd::Status::OK();
   }
 private:
   pstd::Status Seek(const std::string filepath, const size_t offset) {
-    if (filepath == filepath_ && offset >= start_offset_ && offset <= end_offset_) {
+    if (filepath == filepath_ && offset >= start_offset_ && offset < end_offset_) {
       return pstd::Status::OK();
     }
     if (filepath != filepath_) {
@@ -127,7 +128,7 @@ private:
       stat(filepath.c_str(), &buf);
       total_size_ = buf.st_size;
     }
-    start_offset_ = (offset / kBlockSize) & kBlockSize;
+    start_offset_ = (offset / kBlockSize) * kBlockSize;
 
     size_t read_offset = start_offset_;
     size_t read_count = kBlockSize > (total_size_ - read_offset) ? (total_size_ - read_offset) : kBlockSize;

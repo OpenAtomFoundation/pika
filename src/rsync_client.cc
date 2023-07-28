@@ -61,7 +61,7 @@ void* RsyncClient::ThreadMain() {
   std::string meta_rep;
 
   for (const auto& file : file_set_) {
-    //LOG(INFO) << "CopyRemoteFile: " << file;
+    LOG(INFO) << "CopyRemoteFile: " << file;
     while (state_.load() == RUNNING) {
       s = CopyRemoteFile(file);
       if (!s.ok()) {
@@ -199,14 +199,16 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         break;
       }
 
-      md5.update(resp->file_resp().data().c_str(), ret_count);
+      //md5.update(resp->file_resp().data().c_str(), ret_count);
       offset += resp->file_resp().count();
       if (resp->file_resp().eof()) {
+/*
         if (md5.finalize().hexdigest() != resp->file_resp().checksum()) {
           LOG(WARNING) << "mismatch file checksum for file: " << filename;
           s = Status::IOError("mismatch checksum", "mismatch checksum");
           return s;
         }
+*/
         s = writer->Fsync();
         if (!s.ok()) {
             return s;
