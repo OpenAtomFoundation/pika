@@ -3,17 +3,18 @@
 #define SRC_STREAM_TYPE_H_
 
 #include <cstdint>
-#include "storage/storage.h"
+#include <vector>
+#include <string>
 
 // FIXME: will move to pika_command.h in the future
-const std::string kCmcNameXAdd = "xadd";
-
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
   streamID() = default;
   uint64_t ms = 0;  /* Unix time in milliseconds. */
   uint64_t seq = 0; /* Sequence number. */
 };
+
+static const streamID STREAMID_MAX = streamID(UINT64_MAX, UINT64_MAX);
 
 enum class StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
 
@@ -51,8 +52,8 @@ struct StreamAddTrimArgs {
 struct StreamReadGroupReadArgs {
   // XREAD + XREADGROUP common options
   std::vector<std::string> keys;
-  std::vector<streamID> ids;
-  uint64_t count{0};
+  std::vector<std::string> unparsed_ids;
+  int32_t count{INT32_MAX}; // in redis this is uint64_t, but PKHScanRange only support int32_t
   uint64_t block{0};  // 0 means no block
 
   // XREADGROUP options

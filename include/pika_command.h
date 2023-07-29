@@ -216,6 +216,17 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
+// Stream
+const std::string kCmdNameXAdd = "xadd";
+const std::string kCmdNameXRead = "xread";
+const std::string kCmdNameXReadGroup = "xreadgroup";
+const std::string kCmdNameXGroupCreate = "xgroupcreate";
+const std::string kCmdNameXLen = "xlen";
+const std::string kCmdNameXRange = "xrange";
+const std::string kCmdNameXRevRange = "xrevrange";
+const std::string kCmdNameXPending = "xpending";
+
+
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;

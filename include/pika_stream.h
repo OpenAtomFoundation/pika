@@ -3,6 +3,7 @@
 #define PIKA_STREAM_H_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 #include "gflags/gflags_declare.h"
 #include "include/pika_command.h"
@@ -47,19 +48,34 @@ class XReadCmd : public Cmd {
   Cmd* Clone() override { return new XReadCmd(*this); }
 
  private:
-  std::vector<std::string> keys_;
-  std::vector<streamID> ids_;
-  uint64_t count_{0};
-  uint64_t block_{0};  // 0 means no block
+  StreamReadGroupReadArgs args_;
 
   void DoInitial() override;
   void Clear() override {
-    ids_.clear();
-    keys_.clear();
+    args_.unparsed_ids.clear();
+    args_.keys.clear();
   }
 };
 
-class XGROUP: public Cmd {
+class XReadGroupCmd : public Cmd {
+ public:
+  XReadGroupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XReadGroupCmd(*this); }
+
+ private:
+  StreamReadGroupReadArgs args_;
+
+  void DoInitial() override;
+  void Clear() override {
+    args_.unparsed_ids.clear();
+    args_.keys.clear();
+  }
+};
+
+class XGROUP : public Cmd {
  public:
   XGROUP(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
@@ -74,8 +90,9 @@ class XGROUP: public Cmd {
 
  private:
   // create a consumer group, initialize the pel and consumers
-  void Create(const std::shared_ptr<Slot> &slot = nullptr);
-  void CreateConsumer(const std::shared_ptr<Slot> &slot = nullptr);
+  void Create(const std::shared_ptr<Slot>& slot = nullptr);
+  void CreateConsumer(const std::shared_ptr<Slot>& slot = nullptr);
+
  private:
   // XGROUP common options
   std::string opt_;
@@ -96,6 +113,25 @@ class XGROUP: public Cmd {
   void DoInitial() override;
   // void Clear() override { .clear(); }
   static CmdRes GenerateStreamID(const StreamMetaValue& stream_meta, const StreamAddTrimArgs& args_, streamID& id);
+};
+
+class XRangeCmd : public Cmd {
+ public:
+  XRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XRangeCmd(*this); }
+
+ private:
+  std::string key_;
+  streamID start_sid;
+  streamID end_sid;
+  int32_t count_{INT32_MAX};
+  bool start_ex_{false};
+  bool end_ex_{false};
+
+  void DoInitial() override;
 };
 
 #endif

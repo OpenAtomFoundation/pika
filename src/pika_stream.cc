@@ -1,21 +1,26 @@
 #include "include/pika_stream.h"
 #include <strings.h>
 #include <cassert>
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_stream_cgroup_meta_value.h"
-#include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_consumer_meta_value.h"
+#include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
 #include "include/pika_stream_util.h"
 #include "pstd/include/pstd_string.h"
+#include "rocksdb/slice.h"
+#include "rocksdb/status.h"
 
 // Korpse:FIXME: check the argv_ size
 void XAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);
     return;
   }
   key_ = argv_[1];
@@ -24,7 +29,7 @@ void XAddCmd::DoInitial() {
   if (!res_.ok()) {
     return;
   } else if (idpos < 0) {
-    LOG(FATAL) << "Invalid idpos: " << idpos;
+    LOG(ERROR) << "Invalid idpos: " << idpos;
     res_.SetRes(CmdRes::kErrOther);
   }
 
@@ -34,6 +39,7 @@ void XAddCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidParameter);
     return;
   }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void XAddCmd::Do(std::shared_ptr<Slot> slot) {
@@ -53,7 +59,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     LOG(INFO) << "Stream meta not found, create new one";
     stream_meta.Init();
   } else if (!s.ok()) {
-    LOG(FATAL) << "Unexpected error of key: " << key_;
+    LOG(ERROR) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -66,24 +72,24 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   if (!StreamUtil::SerializeMessage(argv_, message_str, field_pos_)) {
-    LOG(FATAL) << "Serialize message failed";
+    LOG(ERROR) << "Serialize message failed";
     res_.SetRes(CmdRes::kErrOther, "Serialize message failed");
     return;
   }
-  if (!StreamUtil::SerializeStreamID(args_.id, id_str)) {
-    LOG(FATAL) << "Serialize stream id failed";
+  if (!StreamUtil::StreamID2String(args_.id, id_str)) {
+    LOG(ERROR) << "Serialize stream id failed";
     res_.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
     return;
   }
   s = StreamUtil::InsertStreamMessage(key_, id_str, message_str, slot);
   if (!s.ok()) {
-    LOG(FATAL) << "Insert stream message failed";
+    LOG(ERROR) << "Insert stream message failed";
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
 
   // 3. update stream meta, Korpse TODO: is there any arg left to update?
-  int message_len = (argv_.size() - field_pos_) / 2;
+  auto message_len = (argv_.size() - field_pos_) / 2;
   if (stream_meta.entries_added() == 0) {
     stream_meta.set_first_id(args_.id);
   }
@@ -114,7 +120,7 @@ CmdRes XAddCmd::GenerateStreamID(const StreamMetaValue &stream_meta, const Strea
     auto last_id = stream_meta.last_id();
     id.ms = StreamUtil::GetCurrentTimeMs();
     if (id.ms < last_id.ms) {
-      LOG(FATAL) << "Time backwards detected !";
+      LOG(ERROR) << "Time backwards detected !";
       res.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
       return res;
     } else if (id.ms == last_id.ms) {
@@ -127,7 +133,7 @@ CmdRes XAddCmd::GenerateStreamID(const StreamMetaValue &stream_meta, const Strea
     LOG(INFO) << "ID not given, generate id";
     auto last_id = stream_meta.last_id();
     if (id.ms < last_id.ms) {
-      LOG(FATAL) << "Time backwards detected !";
+      LOG(ERROR) << "Time backwards detected !";
       res.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
       return res;
     }
@@ -137,7 +143,7 @@ CmdRes XAddCmd::GenerateStreamID(const StreamMetaValue &stream_meta, const Strea
     LOG(INFO) << "ID given, check id";
     auto last_id = stream_meta.last_id();
     if (id.ms < last_id.ms || (id.ms == last_id.ms && id.seq <= last_id.seq)) {
-      LOG(FATAL) << "INVALID ID: " << id.ms << "-" << id.seq << " < " << last_id.ms << "-" << last_id.seq;
+      LOG(ERROR) << "INVALID ID: " << id.ms << "-" << id.seq << " < " << last_id.ms << "-" << last_id.seq;
       res.SetRes(CmdRes::kErrOther, "INVALID ID given");
       return res;
     }
@@ -148,17 +154,64 @@ CmdRes XAddCmd::GenerateStreamID(const StreamMetaValue &stream_meta, const Strea
 
 void XReadCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXRead);
     return;
   }
 
-  // Korpse TODO: finish this
+  res_ = StreamUtil::ParseReadOrReadGroupArgs(argv_, args_, false);
+}
+
+void XReadCmd::Do(std::shared_ptr<Slot> slot) {
+  assert(args_.unedited_keys.size() == args_.unparsed_ids.size());
+  rocksdb::Status s;
+  streamID id;
+  for (int i = 0; i < args_.unparsed_ids.size(); i++) {
+    const auto &key = args_.keys[i];
+    const auto &unparsed_id = args_.unparsed_ids[i];
+    // try to find stream_meta
+    std::string meta_value{};
+    StreamMetaValue stream_meta;
+    s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+    if (s.IsNotFound()) {
+      LOG(INFO) << "Stream meta not found, skip";
+      continue;
+    } else if (!s.ok()) {
+      LOG(ERROR) << "Unexpected error of key: " << key;
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    } else {
+      stream_meta.ParseFrom(meta_value);
+    }
+
+    // read messages
+    if (unparsed_id == "<") {
+      LOG(WARNING) << R"(given "<" in XREAD command)";
+      res_.SetRes(CmdRes::kSyntaxErr,
+                  "The > ID can be specified only when calling "
+                  "XREADGROUP using the GROUP <group> "
+                  "<consumer> option.");
+      return;
+    } else if (unparsed_id == "$") {
+      LOG(INFO) << "given \"$\" in XREAD command";
+      id = stream_meta.last_id();
+    } else {
+      LOG(INFO) << "given id: " << unparsed_id;
+      res_ = StreamUtil::StreamParseStrictID(unparsed_id, id, 0, nullptr);
+      if (!res_.ok()) {
+        return;
+      }
+    }
+
+    res_.AppendArrayLen(2);
+    res_.AppendString(key);
+    StreamUtil::ScanAndAppendMessageToRes(key, id, STREAMID_MAX, args_.count, res_, slot);
+  }
 }
 
 /* XGROUP CREATE <key> <groupname> <id or $> [MKSTREAM] [ENTRIESREAD entries_read]
  * XGROUP SETID <key> <groupname> <id or $> [ENTRIESREAD entries_read]
  * XGROUP DESTROY <key> <groupname>
- * XGROUP CREATECONSUMER <key> <groupname> <consumer>
+ * XGROUP CREATECONSUMER <key> <groupname> <consumer>g
  * XGROUP DELCONSUMER <key> <groupname> <consumername> */
 void XGROUP::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -228,6 +281,7 @@ void XGROUP::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void XGROUP::Create(const std::shared_ptr<Slot> &slot) {
@@ -247,7 +301,7 @@ void XGROUP::Create(const std::shared_ptr<Slot> &slot) {
     stream_meta.Init();
     LOG(INFO) << "Stream meta not found, create new one";
   } else if (!s.ok()) {
-    LOG(FATAL) << "Unexpected error of key: " << key_;
+    LOG(ERROR) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   } else {
@@ -283,7 +337,7 @@ void XGROUP::Create(const std::shared_ptr<Slot> &slot) {
     auto consumers_tid = tid_gen.GetNextTreeID(slot);
     cgroup_meta.Init(pel_tid, consumers_tid);
   } else if (!s.ok()) {
-    LOG(FATAL) << "Unexpected error of key: " << key;
+    LOG(ERROR) << "Unexpected error of key: " << key;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -291,7 +345,7 @@ void XGROUP::Create(const std::shared_ptr<Slot> &slot) {
   // 4. insert cgroup meta
   s = StreamUtil::InsertTreeNodeValue(key, group_name_, cgroup_meta.value(), slot);
   if (!s.ok()) {
-    LOG(FATAL) << "Insert cgroup meta failed";
+    LOG(ERROR) << "Insert cgroup meta failed";
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -313,7 +367,7 @@ void XGROUP::CreateConsumer(const std::shared_ptr<Slot> &slot) {
                 "option to create an empty stream automatically.");
     return;
   } else if (!s.ok()) {
-    LOG(FATAL) << "Unexpected error of key: " << key_;
+    LOG(ERROR) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   } else {
@@ -336,7 +390,7 @@ void XGROUP::CreateConsumer(const std::shared_ptr<Slot> &slot) {
     res_.SetRes(CmdRes::kInvalidParameter, "-NOGROUP No such consumer group" + group_name_ + "for key name" + key_);
     return;
   } else if (!s.ok()) {
-    LOG(FATAL) << "Unexpected error of key: " << cgroup_key;
+    LOG(ERROR) << "Unexpected error of key: " << cgroup_key;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -358,10 +412,51 @@ void XGROUP::CreateConsumer(const std::shared_ptr<Slot> &slot) {
     consumer_meta.Init(pel_tid);
     s = StreamUtil::InsertTreeNodeValue(consumer_key, consumer_name_, consumer_meta.value(), slot);
     if (!s.ok()) {
-      LOG(FATAL) << "Insert consumer meta failed";
+      LOG(ERROR) << "Insert consumer meta failed";
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
     res_.AppendInteger(1);
   }
+}
+
+void XRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size()) || argv_.size() < 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXRange);
+    return;
+  }
+  key_ = argv_[1];
+  bool start_ex = false;
+  bool end_ex = false;
+  res_ = StreamUtil::StreamParseIntervalId(argv_[2], start_sid, &start_ex, 0);
+  if (!res_.ok()) {
+    return;
+  }
+  res_ = StreamUtil::StreamParseIntervalId(argv_[3], end_sid, &end_ex, UINT64_MAX);
+  if (!res_.ok()) {
+    return;
+  }
+  if (start_ex && start_sid.ms == UINT64_MAX && start_sid.seq == UINT64_MAX) {
+    res_.SetRes(CmdRes::kInvalidParameter, "invalid start id");
+    return;
+  }
+  if (end_ex && end_sid.ms == 0 && end_sid.seq == 0) {
+    res_.SetRes(CmdRes::kInvalidParameter, "invalid end id");
+    return;
+  }
+  if (argv_.size() == 5) {
+    // pika's PKHScanRange() only sopport max count of INT32_MAX
+    // but redis supports max count of UINT64_MAX
+    if (!StreamUtil::string2int32(argv_[4].c_str(), count_)) {
+      res_.SetRes(CmdRes::kInvalidParameter, "COUNT should be a integer greater than 0 and not bigger than INT32_MAX");
+      return;
+    }
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
+  // FIXME: deal with start_ex and end_ex
+  StreamUtil::ScanAndAppendMessageToRes(key_, start_sid, end_sid, count_, res_, slot);
+  return;
 }

@@ -25,7 +25,7 @@ class StreamMetaValue {
     size_t needed = kDefaultStreamValueLength;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
-      LOG(FATAL) << "Init on a existed stream meta value!";
+      LOG(ERROR) << "Init on a existed stream meta value!";
       return;
     }
     value_.resize(needed);
@@ -45,11 +45,12 @@ class StreamMetaValue {
   }
 
   // used only when parse a existed stream meta
+  // value_ = std::move(value);
   void ParseFrom(std::string& value) {
     value_ = std::move(value);
     assert(value_.size() == kDefaultStreamValueLength);
     if (value_.size() != kDefaultStreamValueLength) {
-      LOG(FATAL) << "Invalid stream meta value length: ";
+      LOG(ERROR) << "Invalid stream meta value length: ";
       return;
     }
     char* pos = value_.data();

@@ -16,12 +16,13 @@
 
 bool StreamUtil::is_stream_meta_hash_created_ = false;
 
+// Korpse TODO: test
 CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd) {
   CmdRes res;
   int i = 2;
   bool limit_given = false;
   for (; i < argv.size(); ++i) {
-    int moreargs = argv.size() - 1 - i;
+    size_t moreargs = argv.size() - 1 - i;
     const std::string &opt = argv[i];
     if (is_xadd && strcasecmp(opt.c_str(), "*") == 0 && opt.size() == 1) {
       // case: XADD mystream * field value [field value ...]
@@ -141,6 +142,7 @@ rocksdb::Status StreamUtil::GetStreamMeta(const std::string &key, std::string &v
   return slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
 }
 
+// Korpse TODO: test
 CmdRes StreamUtil::StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
                                         bool *seq_given) {
   CmdRes res;
@@ -202,16 +204,31 @@ CmdRes StreamUtil::StreamGenericParseID(const std::string &var, streamID &id, ui
   return res;
 }
 
+// Korpse TODO: test
 CmdRes StreamUtil::StreamParseID(const std::string &var, streamID &id, uint64_t missing_seq) {
   return StreamGenericParseID(var, id, missing_seq, false, nullptr);
 }
 
+// Korpse TODO: test
 CmdRes StreamUtil::StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, bool *seq_given) {
   return StreamGenericParseID(var, id, missing_seq, true, seq_given);
 }
 
+// Korpse TODO: test
+CmdRes StreamUtil::StreamParseIntervalId(const std::string &var, streamID &id, bool *exclude, uint64_t missing_seq) {
+  if (exclude != nullptr) {
+    *exclude = (var.size() > 1 && var[0] == '(');
+  }
+  if (exclude != nullptr && *exclude) {
+    streamID tid;
+    return StreamParseStrictID(var.substr(1), tid, missing_seq, nullptr);
+  } else {
+    return StreamParseID(var, id, missing_seq);
+  }
+}
+
 bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
-  if (!s) {
+  if (!s || !*s) {
     return false;
   }
 
@@ -229,7 +246,7 @@ bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
 }
 
 bool StreamUtil::string2int64(const char *s, int64_t &value) {
-  if (!s) {
+  if (!s || !*s) {
     return false;
   }
 
@@ -243,6 +260,25 @@ bool StreamUtil::string2int64(const char *s, int64_t &value) {
   }
 
   value = tmp;
+  return true;
+}
+
+bool StreamUtil::string2int32(const char *s, int32_t &value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char *end;
+  errno = 0;
+  long tmp = strtol(s, &end, 10);
+
+  if (*end || errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX) {
+    // Conversion either didn't consume the entire string,
+    // or overflow or underflow occurred
+    return false;
+  }
+
+  value = static_cast<int32_t>(tmp);
   return true;
 }
 
@@ -288,7 +324,28 @@ bool StreamUtil::SerializeMessage(const std::vector<std::string> &field_values, 
   return true;
 }
 
-bool StreamUtil::SerializeStreamID(const streamID &id, std::string &serialized_id) {
+bool StreamUtil::DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message) {
+  size_t pos = 0;
+  while (pos < message.size()) {
+    // Read the length of the next field value from the message
+    size_t len = *reinterpret_cast<const size_t *>(&message[pos]);
+    pos += sizeof(size_t);
+
+    // Check if the calculated end of the string is still within the message bounds
+    if (pos + len > message.size()) {
+      LOG(ERROR) << "Invalid message format, failed to parse message";
+      return false;  // Error: not enough data in the message string
+    }
+
+    // Extract the field value and add it to the vector
+    parsed_message.push_back(message.substr(pos, len));
+    pos += len;
+  }
+
+  return true;
+}
+
+bool StreamUtil::StreamID2String(const streamID &id, std::string &serialized_id) {
   assert(serialized_id.empty());
   serialized_id.reserve(sizeof(id));
   serialized_id.append(reinterpret_cast<const char *>(&id), sizeof(id));
@@ -302,13 +359,19 @@ uint64_t StreamUtil::GetCurrentTimeMs() {
   return now;
 }
 
-CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args, bool is_xreadgroup) {
+// Korpse TODO: test
+/* XREADGROUP GROUP group consumer [COUNT count] [BLOCK milliseconds]
+ * [NOACK] STREAMS key [key ...] id [id ...]
+ * XREAD [COUNT count] [BLOCK milliseconds] STREAMS key [key ...] id
+ * [id ...] */
+CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
+                                            bool is_xreadgroup) {
   CmdRes res;
   int streams_arg_idx{0};  // the index of stream keys arg
-  int streams_cnt{0};      // the count of stream keys
+  size_t streams_cnt{0};   // the count of stream keys
 
   for (int i = 1; i < argv.size(); ++i) {
-    int moreargs = argv.size() - i - 1;
+    size_t moreargs = argv.size() - i - 1;
     const std::string &o = argv[i];
     if (strcasecmp(o.c_str(), "BLOCK") == 0 && moreargs) {
       i++;
@@ -318,7 +381,7 @@ CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamR
       }
     } else if (strcasecmp(o.c_str(), "COUNT") == 0 && moreargs) {
       i++;
-      if (!StreamUtil::string2uint64(argv[i].c_str(), args.count)) {
+      if (!StreamUtil::string2int32(argv[i].c_str(), args.count)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid COUNT argument");
         return res;
       }
@@ -330,7 +393,7 @@ CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamR
         res.SetRes(CmdRes::kSyntaxErr, "Unbalanced list of streams: for each stream key an ID must be specified");
         return res;
       }
-      break;
+      streams_cnt /= 2;
     } else if (strcasecmp(o.c_str(), "GROUP") == 0 && moreargs >= 2) {
       if (!is_xreadgroup) {
         res.SetRes(CmdRes::kSyntaxErr, "The GROUP option is only supported by XREADGROUP. You called XREAD instead.");
@@ -356,13 +419,21 @@ CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamR
     return res;
   }
 
-  if (!is_xreadgroup && !args.group_name.empty()) {
+  if (is_xreadgroup && args.group_name.empty()) {
     res.SetRes(CmdRes::kSyntaxErr, "Missing GROUP option for XREADGROUP");
     return res;
   }
 
-  // Korpse TODO: parse stream keys and ids
+  // collect keys and ids
+  for (auto i = streams_arg_idx + streams_cnt; i < argv.size(); ++i) {
+    auto id_idx = i - streams_arg_idx - streams_cnt;
+    auto key_idx = i - streams_cnt;
+    args.keys.push_back(argv[key_idx]);
+    args.unparsed_ids.push_back(argv[id_idx]);
+    const std::string &key = argv[i - streams_cnt];
+  }
 
+  res.SetRes(CmdRes::kOk);
   return res;
 }
 
@@ -371,4 +442,20 @@ void StreamUtil::GenerateKeyByTreeID(std::string &field, const treeID tid) {
   field.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
   field.append(STERAM_TREE_PREFIX);
   field.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
+}
+
+rocksdb::Status StreamUtil::GetTreeNodeValue(const std::string &key, std::string &filed, std::string &value,
+                                             const std::shared_ptr<Slot> &slot) {
+  rocksdb::Status s;
+  s = slot->db()->HGet(key, filed, &value);
+  return s;
+}
+
+rocksdb::Status StreamUtil::InsertTreeNodeValue(const std::string &key, const std::string &filed,
+                                                const std::string &value, const std::shared_ptr<Slot> &slot) {
+  rocksdb::Status s;
+  int res;
+  s = slot->db()->HSet(key, filed, value, &res);
+  (void)res;
+  return s;
 }
