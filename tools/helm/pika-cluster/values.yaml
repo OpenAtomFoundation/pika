@@ -9,6 +9,8 @@ replicaCount: 2
 
 sentinelReplicaCount: 0
 
+etcdReplicaCount: 3
+
 codisProxyReplicaCount: 0
 
 codisHaReplicaCount: 0

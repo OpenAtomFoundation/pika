@@ -64,6 +64,34 @@ spec:
               requests:
                 storage: {{ .Values.persistence.data.size }}
       {{- end }}
+    - name: etcd # user-defined
+      componentDefRef: etcd # ref clusterdefinition components.name
+      monitor: {{ .Values.monitor.enabled | default false }}
+      replicas: {{ .Values.etcdReplicaCount| default 3 }}
+      {{- with  .Values.resources }}
+      resources:
+        {{- with .limits }}
+        limits:
+          cpu: {{ .cpu | quote }}
+          memory: {{ .memory | quote }}
+        {{- end }}
+        {{- with .requests }}
+        requests:
+          cpu: {{ .cpu | quote }}
+          memory: {{ .memory | quote }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumeClaimTemplates:
+        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+          spec:
+            storageClassName: {{ .Values.persistence.data.storageClassName }}
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.persistence.data.size }}
+      {{- end }}
     - name: codis-proxy
       componentDefRef: codis-proxy # ref clusterDefinition componentDefs.name
       replicas: {{ .Values.codisProxyReplicaCount | default 2 }}
