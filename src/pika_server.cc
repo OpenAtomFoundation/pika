@@ -1536,11 +1536,8 @@ void PikaServer::AutoResumeDB() {
     uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
     uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
     double disk_use_ratio = 1.0 - static_cast<double>(free_size) / static_cast<double>(total_size);
-    if (disk_use_ratio > min_check_resume_ratio) {
+    if (disk_use_ratio > min_check_resume_ratio && free_size > least_free_size) {
       gettimeofday(&last_check_resume_time_, nullptr);
-      if (disk_use_ratio < min_check_resume_ratio || free_size < least_free_size) {
-        return;
-      }
 
       std::map<std::string, uint64_t> background_errors;
       std::shared_lock db_rwl(g_pika_server->dbs_rw_);
