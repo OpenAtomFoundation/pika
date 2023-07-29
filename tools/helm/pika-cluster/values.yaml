@@ -7,15 +7,15 @@ fullnameOverride: ""
 
 replicaCount: 2
 
-sentinelReplicaCount: 3
+sentinelReplicaCount: 0
 
-codisProxyReplicaCount: 2
+codisProxyReplicaCount: 0
 
-codisHaReplicaCount: 2
+codisHaReplicaCount: 0
 
-codisFeReplicaCount: 2
+codisFeReplicaCount: 0
 
-codisDashboardReplicaCount: 2
+codisDashboardReplicaCount: 0
 
 terminationPolicy: Delete
 

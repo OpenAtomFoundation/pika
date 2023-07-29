@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 data:
-  redis.conf: |-
+  pika.conf: |-
     {{- .Files.Get "config/pika-config.tpl" | nindent 4 }}
   dashboard.toml: |-
     {{- .Files.Get "config/codis-dashboard.tpl" | nindent 4 }}

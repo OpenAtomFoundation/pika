@@ -16,13 +16,6 @@ spec:
     - name: pika
       workloadType: Replication
       characterType: pika
-      enabledLogs:
-        - log
-      probes:
-        roleProbe:
-          failureThreshold: 2
-          periodSeconds: 2
-          timeoutSeconds: 1
       service:
         ports:
           - name: pika
@@ -47,7 +40,11 @@ spec:
                 mountPath: /data
               - name: config
                 mountPath: /etc/pika
-            command: ["/pika/bin/pika", "-c", "/etc/pika.conf"]
+            command:
+              - "/pika/bin/pika"
+            args:
+              - "-c"
+              - "/etc/pika/pika.conf"
     - name: redis-sentinel
       workloadType: Stateful
       characterType: redis
