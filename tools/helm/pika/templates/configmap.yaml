@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pika-config-template
+  name: pika-conf-template
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 data:

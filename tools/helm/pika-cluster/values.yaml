@@ -53,8 +53,8 @@ topologyKeys:
 ##
 tolerations: [ ]
 
-enabledLogs:
-  - running
+#enabledLogs:
+#  - running
 
 # The RBAC permission used by cluster component pod, now include event.create
 serviceAccount:

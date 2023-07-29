@@ -5,11 +5,11 @@ pika:
     image:
       registry: docker.io
       repository: machinly/pika
-      tag: ${pika.version}
+      tag: unstable-2597ac3c
       pullPolicy: IfNotPresent
   codis:
     image:
       registry: docker.io
       repository: machinly/codis
-      tag: ${pika.version}
+      tag: unstable-2597ac3c
       pullPolicy: IfNotPresent

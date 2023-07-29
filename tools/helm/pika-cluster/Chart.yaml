@@ -1,6 +1,6 @@
 apiVersion: v2
 name: pika-cluster
-description: An Redis Replication Cluster Helm chart for KubeBlocks.
+description: A Pika Codis Cluster Helm chart for KubeBlocks.
 
 type: application
 
@@ -8,14 +8,15 @@ version: 0.6.0-alpha.21
 
 appVersion: "3.5.0"
 
-home: https://pika.io/
-icon: https://bitnami.com/assets/stacks/pika/img/redis-stack-220x234.png
+home: https://github.com/OpenAtomFoundation/pika
 keywords:
   - pika
+  - redis
   - database
   - nosql
   - replication
+  - codis
 
 maintainers:
-  - name: ApeCloud
-    url: https://github.com/apecloud/kubeblocks/deploy
+  - name: pika
+    url: https://github.com/OpenAtomFoundation/pika/tools/helm
