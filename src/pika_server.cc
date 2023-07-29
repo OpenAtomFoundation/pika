@@ -3,12 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_server.h"
-
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <sys/resource.h>
+#include <sys/statvfs.h>
 #include <algorithm>
 #include <ctime>
 #include <fstream>
@@ -25,9 +24,10 @@
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_rm.h"
 #include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
+#include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -52,6 +52,7 @@ PikaServer::PikaServer()
     : exit_(false),
       slot_state_(INFREE),
       last_check_compact_time_({0, 0}),
+      last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
       role_(PIKA_ROLE_SINGLE) {
   // Init server ip host
@@ -74,9 +75,12 @@ PikaServer::PikaServer()
   // We estimate the queue size
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
+  for_each(ips.begin(), ips.end(), [](auto& ip) {LOG(WARNING) << ip;});
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  //TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
+  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
@@ -88,6 +92,7 @@ PikaServer::PikaServer()
 }
 
 PikaServer::~PikaServer() {
+  rsync_server_->Stop();
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
@@ -134,12 +139,15 @@ bool PikaServer::ServerInit() {
 void PikaServer::Start() {
   int ret = 0;
   // start rsync first, rocksdb opened fd will not appear in this fork
+  // TODO: temporarily disable rsync server
+  /*
   ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     dbs_.clear();
     LOG(FATAL) << "Start Rsync Error: bind port " + std::to_string(pika_rsync_service_->ListenPort()) + " failed"
                << ", Listen on this port to receive Master FullSync Data";
   }
+  */
 
   // We Init DB Struct Before Start The following thread
   InitDBStruct();
@@ -172,6 +180,8 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
+  std::string master_run_id = g_pika_conf->master_run_id();
+  set_master_run_id(master_run_id);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     auto sep = static_cast<int32_t>(slaveof.find(':'));
@@ -190,8 +200,7 @@ void PikaServer::Start() {
     cmdstat_map->emplace(iter.first, statistics);
   }
   LOG(INFO) << "Pika Server going to start";
-
-
+  rsync_server_->Start();
   while (!exit_) {
     DoTimingTask();
     // wake up every 5 seconds
@@ -917,6 +926,26 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_n
   bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
 }
 
+pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid) {
+  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
+  if (!slot) {
+    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
+    return pstd::Status::NotFound("slot no found");
+  }
+  slot->GetBgSaveUUID(snapshot_uuid);
+  return pstd::Status::OK();
+}
+
+pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
+  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
+  if (!slot) {
+    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
+    return pstd::Status::NotFound("slot no found");
+  }
+  slot->GetBgSaveMetaData(fileNames, snapshot_uuid);
+  return pstd::Status::OK();
+}
+
 void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
                            int32_t top) {
   std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
@@ -940,7 +969,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     slot->BgSaveSlot();
   }
-  DBSync(ip, port, db_name, slot_id);
+  //TODO: temporarily disable rsync server
+  //DBSync(ip, port, db_name, slot_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
@@ -1294,6 +1324,8 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
 /******************************* PRIVATE *******************************/
 
 void PikaServer::DoTimingTask() {
+  // Resume DB if satisfy the condition
+  AutoResumeDB();
   // Maybe schedule compactrange
   AutoCompactRange();
   // Purge log
@@ -1301,7 +1333,8 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
-  AutoKeepAliveRSync();
+  //TODO: temporarily disable rsync
+  //AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
@@ -1486,17 +1519,69 @@ void PikaServer::AutoKeepAliveRSync() {
   }
 }
 
+void PikaServer::AutoResumeDB() {
+  int64_t interval = g_pika_conf->resume_interval();
+  int64_t least_free_size = g_pika_conf->least_resume_free_disk_size();
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  // first check or time interval between now and last check is larger than variable "interval"
+  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval) {
+    struct statvfs disk_info;
+    int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
+    if (ret == -1) {
+      LOG(WARNING) << "statvfs error: " << strerror(errno);
+      return;
+    }
+    double min_check_resume_ratio = g_pika_conf->min_check_resume_ratio();
+    uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
+    uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
+    double disk_use_ratio = 1.0 - static_cast<double>(free_size) / static_cast<double>(total_size);
+    if (disk_use_ratio > min_check_resume_ratio) {
+      gettimeofday(&last_check_resume_time_, nullptr);
+      if (disk_use_ratio < min_check_resume_ratio || free_size < least_free_size) {
+        return;
+      }
+
+      std::map<std::string, uint64_t> background_errors;
+      std::shared_lock db_rwl(g_pika_server->dbs_rw_);
+      // loop every db
+      for (const auto &db_item: g_pika_server->dbs_) {
+        if (!db_item.second) {
+          continue;
+        }
+        std::shared_lock slot_rwl(db_item.second->slots_rw_);
+        // loop every slot
+        for (const auto &slot_item: db_item.second->slots_) {
+          background_errors.clear();
+          slot_item.second->DbRWLockReader();
+          slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS,
+                                           &background_errors);
+          slot_item.second->DbRWUnLock();
+          for (const auto &item: background_errors) {
+            if (item.second != 0) {
+              rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
+              if (!s.ok()) {
+                LOG(WARNING) << s.ToString();
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 void PikaServer::AutoUpdateNetworkMetric() {
   monotime current_time = getMonotonicUs();
   size_t factor = 5e6; // us, 5s
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
-                                    current_time, factor);
+                                     current_time, factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT, g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
-                                    current_time, factor);
+                                     current_time, factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(), current_time,
-                                    factor);
+                                     factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
-                                    current_time, factor);
+                                     current_time, factor);
 }
 
 void PikaServer::InitStorageOptions() {

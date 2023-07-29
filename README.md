@@ -179,6 +179,33 @@ Here is an example usage of the script:
 ```bash
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
+### Use pika-operator to deploy
+
+You can use the `pika-operator` to easily deploy `pika` in a Kubernetes environment. 
+
+Please note that this operator is **NOT** recommended for use in a production environment.
+
+Local Deploy：
+
+1. install [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
+2. deploy pika-operator
+```bash
+cd tools/pika_operator
+make minikube-up # run this if you don't have a minikube cluster
+make local-deploy
+```
+3. create pika instance
+```
+cd tools/pika_operator
+kubectl apply -f examples/pika-sample/
+
+# check pika status
+kubectl get pika pika-sample
+
+# get pika instance info
+kubectl run pika-sample-test --image redis -it --rm --restart=Never \
+  -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
+```
 
 ## Performance
 
