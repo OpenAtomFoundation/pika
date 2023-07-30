@@ -497,6 +497,13 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unique_ptr<Instant> instant_;
 
+ /*
+  * Diskrecovery used
+  */
+  std::map<std::string, std::shared_ptr<DB>> GetDB() {
+     return dbs_;
+  }
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;

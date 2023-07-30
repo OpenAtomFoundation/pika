@@ -123,3 +123,7 @@ slaveof命令允许通过指定write2file(binlog)的文件名称及同步位置�
 
 ### pkhrscanrange key field_start field_end  [MATCH pattern] [LIMIT limit]  
 类似于pkhscanrange, 逆序
+
+### diskrecovery 
+Pika 原创命令，功能为当磁盘意外写满后，RocksDB 会进入写保护状态，当我们将空间调整为充足空间时，这个命令可以将 RocksDB 的写保护状态解除，变为可以继续写的状态, 避免了 Pika 因为磁盘写满后需要重启才能恢复写的情况，执行成功时返回 OK，如果当前磁盘空间依然不足，执行这个命令返回`"The available disk capacity is insufficient`，该命令执行时不需要额外参数，只需要执行
+diskrecovery 即可。
