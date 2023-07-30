@@ -501,7 +501,7 @@ class PikaServer : public pstd::noncopyable {
   * Diskrecovery used
   */
   std::map<std::string, std::shared_ptr<DB>> GetDB() {
-     return dbs_;
+    return dbs_;
   }
 
   friend class Cmd;
