@@ -21,6 +21,7 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
+#define PIKA_CACHE_NONE  0
 const uint32_t configRunIDSize = 40;
 
 // global class, class members well initialized
@@ -556,6 +557,78 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
 
+  int zset_auto_del_threshold() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_threshold_;
+  }
+  int zset_auto_del_direction() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_direction_;
+  }
+  int zset_auto_del_num() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_num_;
+  }
+  std::string zset_auto_del_cron() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_cron_;
+  }
+  int zset_auto_del_interval() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_interval_;
+  }
+  double zset_auto_del_cron_speed_factor() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_cron_speed_factor_;
+  }
+  int zset_auto_del_scan_round_num() {
+    std::shared_lock l(rwlock_);
+    return zset_auto_del_scan_round_num_;
+  }
+  double zset_compact_del_ratio() {
+    std::shared_lock l(rwlock_);
+    return zset_compact_del_ratio_;
+  }
+  int64_t zset_compact_del_num() {
+    std::shared_lock l(rwlock_);
+    return zset_compact_del_num_;
+  }
+  void SetZsetAutoDelThreshold(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-threshold", std::to_string(value));
+    zset_auto_del_threshold_ = value;
+  }
+  void SetZsetAutoDelDirection(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-direction", std::to_string(value));
+    zset_auto_del_direction_ = value;
+  }
+  void SetZsetAutoDelNum(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-num", std::to_string(value));
+    zset_auto_del_num_ = value;
+  }
+  void SetZsetAutoDelCron(const std::string &value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-cron", value);
+    zset_auto_del_cron_ = value;
+  }
+  void SetZsetAutoDelInterval(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-interval", std::to_string(value));
+    zset_auto_del_interval_ = value;
+  }
+  void SetZsetAutoDelCronSpeedFactor(const double value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-cron-speed-factor", std::to_string(value));
+    zset_auto_del_cron_speed_factor_ = value;
+  }
+  void SetZsetAutoDelScanRoundNum(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("zset-auto-del-scan-round-num", std::to_string(value));
+    zset_auto_del_scan_round_num_ = value;
+  }
+
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
@@ -666,6 +739,16 @@ class PikaConf : public pstd::BaseConf {
   std::unique_ptr<PikaMeta> local_meta_;
 
   std::shared_mutex rwlock_;
+
+  std::atomic<int> zset_auto_del_threshold_;
+  std::atomic<int> zset_auto_del_direction_;
+  std::atomic<int> zset_auto_del_num_;
+  std::string zset_auto_del_cron_;
+  std::atomic<int> zset_auto_del_interval_;
+  std::atomic<double> zset_auto_del_cron_speed_factor_;
+  std::atomic<int> zset_auto_del_scan_round_num_;
+  std::atomic<double> zset_compact_del_ratio_;
+  std::atomic<int64_t> zset_compact_del_num_;
 };
 
 #endif

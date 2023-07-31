@@ -2546,6 +2546,48 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendStringRaw(raw);
 }
 
+void ZsetAutoDelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZsetAutoDel);
+    return;
+  }
+  if (!pstd::string2int(argv_[1].data(), argv_[1].size(), &cursor_)) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+  if (!pstd::string2d(argv_[2].data(), argv_[2].size(), &speed_factor_)) {
+    res_.SetRes(CmdRes::kInvalidFloat);
+    return;
+  }
+  speed_factor_ = (0 > speed_factor_ || 1000 < speed_factor_) ? 1 : speed_factor_;
+}
+
+
+void ZsetAutoDelCmd::Do(std::shared_ptr<Slot> slot) {
+  Status s = g_pika_server->ZsetAutoDel(cursor_, speed_factor_);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void ZsetAutoDelOffCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZsetAutoDelOff);
+    return;
+  }
+}
+
+void ZsetAutoDelOffCmd::Do(std::shared_ptr<Slot> slot) {
+  Status s = g_pika_server->ZsetAutoDelOff();
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
 #ifdef WITH_COMMAND_DOCS
 
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {

@@ -1761,4 +1761,67 @@ void Storage::GetRocksDBInfo(std::string& info) {
   zsets_db_->GetRocksDBInfo(info, "zsets_");
 }
 
+int64_t Storage::ScanZset(int64_t cursor, const std::string& pattern, int64_t count, std::vector<std::string>* keys) {
+  bool is_finish;
+  int64_t step_length = count, cursor_ret = 0;
+  std::string start_key;
+  std::string next_key;
+  std::string prefix;
+
+  prefix = isTailWildcard(pattern) ?
+           pattern.substr(0, pattern.size() - 1) : "";
+
+  if (cursor < 0) {
+      return cursor_ret;
+  } else {
+      Status s = GetZsetStartKey(cursor, &start_key);
+      if (s.IsNotFound()) {
+          start_key = prefix;
+          cursor = 0;
+      }
+  }
+
+  is_finish = zsets_db_->Scan(start_key, pattern, keys, &count, &next_key);
+  if (is_finish) {
+      return 0;
+  } else if (count == 0 && !is_finish) {
+      cursor_ret = StoreAndGetZsetCursor(cursor + step_length, next_key);
+  }
+  return cursor_ret;
+}
+
+Status Storage::GetZsetStartKey(int64_t cursor, std::string* start_key) {
+  zset_cursors_mutex_->Lock();
+  if (zset_cursors_store_.map_.end() == zset_cursors_store_.map_.find(cursor)) {
+    zset_cursors_mutex_->UnLock();
+    return Status::NotFound();
+  } else {
+    // If the cursor is present in the list,
+    // move the cursor to the start of list
+    zset_cursors_store_.list_.remove(cursor);
+    zset_cursors_store_.list_.push_front(cursor);
+    *start_key = zset_cursors_store_.map_[cursor];
+    zset_cursors_mutex_->UnLock();
+    return Status::OK();
+  }
+}
+
+int64_t Storage::StoreAndGetZsetCursor(int64_t cursor, const std::string& next_key) {
+  zset_cursors_mutex_->Lock();
+  if (zset_cursors_store_.map_.size() > zset_cursors_store_.max_size_) {
+    int64_t tail = zset_cursors_store_.list_.back();
+    zset_cursors_store_.list_.remove(tail);
+    zset_cursors_store_.map_.erase(tail);
+  }
+
+  if (zset_cursors_store_.list_.size() > zset_cursors_store_.max_size_) {
+    zset_cursors_store_.list_.unique();
+  }
+
+  zset_cursors_store_.list_.push_front(cursor);
+  zset_cursors_store_.map_[cursor] = next_key;
+  zset_cursors_mutex_->UnLock();
+  return cursor;
+}
+
 }  //  namespace storage

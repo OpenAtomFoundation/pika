@@ -92,7 +92,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdDummy, std::move(dummyptr)));
   std::unique_ptr<Cmd> quitptr = std::make_unique<QuitCmd>(kCmdNameQuit, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
-
+  std::unique_ptr<Cmd> zsetautodelptr = std::make_unique<ZsetAutoDelCmd>(kCmdNameZsetAutoDel, 3, kCmdFlagsWrite);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZsetAutoDel, std::move(zsetautodelptr)));
+  std::unique_ptr<Cmd> zsetautodeloffptr = std::make_unique<ZsetAutoDelOffCmd>(kCmdNameZsetAutoDelOff, 1, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZsetAutoDelOff, std::move(zsetautodeloffptr)));
 #ifdef WITH_COMMAND_DOCS
   std::unique_ptr<Cmd> commandptr = std::make_unique<CommandCmd>(kCmdNameCommand, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCommand, std::move(commandptr)));

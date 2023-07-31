@@ -41,7 +41,7 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_cmd_table_manager.h"
-
+#include "pika_zset_auto_del_thread.h"
 
 
 /*
@@ -164,7 +164,7 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
-
+  bool is_slave() { return role_ & PIKA_ROLE_SLAVE; }
   /*
    * Table use
    */
@@ -495,6 +495,17 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unique_ptr<Instant> instant_;
 
+  const std::shared_ptr<storage::Storage> db() {
+      return db_;
+  }
+  // for manual zset del
+  pstd::Status ZsetAutoDel(int64_t cursor, double speed_factor);
+  pstd::Status ZsetAutoDelOff();
+  rocksdb::Status RecoveryDB();
+  rocksdb::Status RecoveryTest();
+  void DoAutoDelZsetMember();
+
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
@@ -515,7 +526,7 @@ class PikaServer : public pstd::noncopyable {
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
-
+  std::shared_ptr<storage::Storage> db_;
   std::shared_mutex storage_options_rw_;
   storage::StorageOptions storage_options_;
   void InitStorageOptions();
@@ -627,6 +638,10 @@ class PikaServer : public pstd::noncopyable {
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
+  /*
+  * Auto delete zset use
+  */
+  PikaZsetAutoDelThread* pika_zset_auto_del_thread_;
 };
 
 #endif

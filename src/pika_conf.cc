@@ -493,7 +493,45 @@ int PikaConf::Load() {
   if (block_cache_ < 0) {
     block_cache_ = 8 * 1024 * 1024;
   }
+  int zset_auto_del_threshold = 0;
+  GetConfInt("zset-auto-del-threshold", &zset_auto_del_threshold);
+  zset_auto_del_threshold_ = (0 > zset_auto_del_threshold) ? 0 : zset_auto_del_threshold;
 
+  int zset_auto_del_direction = 0;
+  GetConfInt("zset-auto-del-direction", &zset_auto_del_direction);
+  zset_auto_del_direction_ = (0 != zset_auto_del_direction && -1 != zset_auto_del_direction) ? 0 : zset_auto_del_direction;
+
+  int zset_auto_del_num = 1;
+  GetConfInt("zset-auto-del-num", &zset_auto_del_num);
+  zset_auto_del_num_ = (0 >= zset_auto_del_num) ? 1 : zset_auto_del_num;
+
+  zset_auto_del_cron_ = "";
+  GetConfStr("zset-auto-del-cron", &zset_auto_del_cron_);
+  if (zset_auto_del_cron_ != "") {
+      std::string::size_type len = zset_auto_del_cron_.length();
+      std::string::size_type colon = zset_auto_del_cron_.find("-");
+      if (colon == std::string::npos || colon + 1 >= len) {
+          zset_auto_del_cron_ = "";
+      } else {
+          int start = std::atoi(zset_auto_del_cron_.substr(0, colon).c_str());
+          int end = std::atoi(zset_auto_del_cron_.substr(colon+1).c_str());
+          if (start < 0 || start > 23 || end < 0 || end > 23) {
+              zset_auto_del_cron_ = "";
+          }
+      }
+  }
+
+  int zset_auto_del_interval = 0;
+  GetConfInt("zset-auto-del-interval", &zset_auto_del_interval);
+  zset_auto_del_interval_ = (0 > zset_auto_del_interval) ? 0 : zset_auto_del_interval;
+
+  double zset_auto_del_cron_speed_factor = 1;
+  GetConfDouble("zset-auto-del-cron-speed-factor", &zset_auto_del_cron_speed_factor);
+  zset_auto_del_cron_speed_factor_ = (0 > zset_auto_del_cron_speed_factor || 1000 < zset_auto_del_cron_speed_factor) ? 1 : zset_auto_del_cron_speed_factor;
+
+  int zset_auto_del_scan_round_num = 10000;
+  GetConfInt("zset-auto-del-scan-round-num", &zset_auto_del_scan_round_num);
+  zset_auto_del_scan_round_num_ = (0 >= zset_auto_del_scan_round_num) ? 10000 : zset_auto_del_scan_round_num;
   num_shard_bits_ = -1;
   GetConfInt64("num-shard-bits", &num_shard_bits_);
 
@@ -653,6 +691,15 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
+  SetConfInt("zset-auto-del-threshold", zset_auto_del_threshold_);
+  SetConfInt("zset-auto-del-direction", zset_auto_del_direction_);
+  SetConfInt("zset-auto-del-num", zset_auto_del_num_);
+  SetConfStr("zset-auto-del-cron", zset_auto_del_cron_);
+  SetConfInt("zset-auto-del-interval", zset_auto_del_interval_);
+  SetConfDouble("zset-auto-del-cron-speed-factor", zset_auto_del_cron_speed_factor_);
+  SetConfInt("zset-auto-del-scan-round-num", zset_auto_del_scan_round_num_);
+  SetConfDouble("zset-compact-del-ratio", zset_compact_del_ratio_);
+  SetConfInt64("zset-compact-del-num", zset_compact_del_num_);
 
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;
@@ -706,3 +753,4 @@ std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
   }
   return types;
 }
+

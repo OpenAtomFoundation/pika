@@ -28,6 +28,7 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/pika_zset_auto_del_thread.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -61,7 +62,7 @@ PikaServer::PikaServer()
   }
 
   InitStorageOptions();
-
+  pika_zset_auto_del_thread_ = new PikaZsetAutoDelThread();
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
 
@@ -1300,6 +1301,8 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
+  // auto del zset member
+  DoAutoDelZsetMember();
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1817,4 +1820,78 @@ void DoBgslotscleanup(void* arg) {
   std::string slotsStr;
   slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
+}
+
+void PikaServer::DoAutoDelZsetMember() {
+  if (is_slave() || g_pika_conf->zset_auto_del_threshold() == 0) {
+    return;
+  }
+
+  int zset_auto_del_interval = g_pika_conf->zset_auto_del_interval();
+  std::string zset_auto_del_cron = g_pika_conf->zset_auto_del_cron();
+
+  if (zset_auto_del_interval == 0 && zset_auto_del_cron == "") {
+    return;
+  }
+
+  if (zset_auto_del_interval == 0) {
+    zset_auto_del_interval = 24;
+  }
+
+  if (zset_auto_del_cron == "") {
+    zset_auto_del_cron = "00-23";
+  }
+
+  // check interval
+  if (0 != zset_auto_del_interval) {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    int64_t last_check_time = pika_zset_auto_del_thread_->LastFinishCheckAllZsetTime();
+    if (now.tv_sec - last_check_time < zset_auto_del_interval * 3600) {
+      return;
+    }
+  }
+
+  // check cron
+  if (zset_auto_del_cron != "") {
+    std::string::size_type colon = zset_auto_del_cron.find("-");
+    int start = std::atoi(zset_auto_del_cron.substr(0, colon).c_str());
+    int end = std::atoi(zset_auto_del_cron.substr(colon+1).c_str());
+    std::time_t t = std::time(nullptr);
+    std::tm* t_m = std::localtime(&t);
+
+    bool in_window = false;
+    if (start < end && (t_m->tm_hour >= start && t_m->tm_hour < end)) {
+      in_window = true;
+    } else if (start > end && ((t_m->tm_hour >= start && t_m->tm_hour < 24) || (t_m->tm_hour >= 0 && t_m->tm_hour < end))) {
+      in_window = true;
+    }
+
+    if (in_window) {
+      pika_zset_auto_del_thread_->RequestCronTask();
+    }
+  }
+}
+
+Status PikaServer::ZsetAutoDel(int64_t cursor, double speed_factor) {
+  if (is_slave()) {
+    return Status::NotSupported("slave not support this command");
+  }
+  std::cout << "zset_auto_del_threshold: " << g_pika_conf->zset_auto_del_threshold() << std::endl;
+  if (g_pika_conf->zset_auto_del_threshold() == 0) {
+    return Status::NotSupported("zset_auto_del_threshold is 0, means not use zset length limit");
+  }
+  std::cout << "cursor: " << cursor << std::endl;
+  std::cout << "speed_factor: " << speed_factor << std::endl;
+  pika_zset_auto_del_thread_->RequestManualTask(cursor, speed_factor);
+  return Status::OK();
+}
+
+Status PikaServer::ZsetAutoDelOff() {
+  if (is_slave()) {
+    return Status::NotSupported("slave not support this command");
+  }
+
+  pika_zset_auto_del_thread_->StopManualTask();
+  return Status::OK();
 }
