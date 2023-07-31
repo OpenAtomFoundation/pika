@@ -181,27 +181,6 @@ Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, con
   binlog_offset->set_filenum(boffset.filenum);
   binlog_offset->set_offset(boffset.offset);
 
-  if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<SyncMasterSlot> slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-    if (!slot) {
-      return Status::Corruption("Slot not found");
-    }
-    LogOffset last_index = slot->ConsensusLastIndex();
-    uint32_t term = slot->ConsensusTerm();
-    LOG(INFO) << SlotInfo(db_name, slot_id).ToString() << " TrySync Increase self term from " << term
-              << " to " << term + 1;
-    term++;
-    slot->ConsensusUpdateTerm(term);
-    InnerMessage::ConsensusMeta* consensus_meta = request.mutable_consensus_meta();
-    consensus_meta->set_term(term);
-    InnerMessage::BinlogOffset* pb_offset = consensus_meta->mutable_log_offset();
-    pb_offset->set_filenum(last_index.b_offset.filenum);
-    pb_offset->set_offset(last_index.b_offset.offset);
-    pb_offset->set_term(last_index.l_offset.term);
-    pb_offset->set_index(last_index.l_offset.index);
-  }
-
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Slot TrySync Request Failed, to Master (" << ip << ":" << port << ")";

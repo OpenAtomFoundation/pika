@@ -178,7 +178,7 @@ LogOffset SyncProgress::InternalCalCommittedIndex(const std::unordered_map<std::
   }
   std::vector<LogOffset> offsets;
   offsets.reserve(match_index.size());
-for (const auto& index : match_index) {
+  for (const auto& index : match_index) {
     offsets.push_back(index.second);
   }
   std::sort(offsets.begin(), offsets.end());
@@ -275,9 +275,6 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& db_name, uint32_t 
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(db_name, slot_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
-  if (g_pika_conf->consensus_level() != 0) {
-    Init();
-  }
 }
 
 ConsensusCoordinator::~ConsensusCoordinator() = default;
@@ -422,8 +419,6 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, const std
   if (g_pika_conf->consensus_level() == 0) {
     return Status::OK();
   }
-  mem_logger_->AppendLog(MemLog::LogItem(log_offset, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr)));
-  return Status::OK();
 }
 
 // precheck if prev_offset match && drop this log if this log exist
@@ -450,22 +445,6 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
 Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) {
   if (g_pika_conf->consensus_level() == 0) {
     return Status::OK();
-  }
-
-  LogOffset last_index = mem_logger_->last_offset();
-  LogOffset committed_index = last_index < leader_commit ? last_index : leader_commit;
-
-  LogOffset updated_committed_index;
-  bool need_update = false;
-  {
-    std::lock_guard l(index_mu_);
-    need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
-  }
-  if (need_update) {
-    Status s = ScheduleApplyFollowerLog(updated_committed_index);
-    if (!s.ok()) {
-      return s;
-    }
   }
   return Status::OK();
 }
