@@ -508,17 +508,17 @@ int PikaConf::Load() {
   zset_auto_del_cron_ = "";
   GetConfStr("zset-auto-del-cron", &zset_auto_del_cron_);
   if (zset_auto_del_cron_ != "") {
-      std::string::size_type len = zset_auto_del_cron_.length();
-      std::string::size_type colon = zset_auto_del_cron_.find("-");
-      if (colon == std::string::npos || colon + 1 >= len) {
-          zset_auto_del_cron_ = "";
-      } else {
-          int start = std::atoi(zset_auto_del_cron_.substr(0, colon).c_str());
-          int end = std::atoi(zset_auto_del_cron_.substr(colon+1).c_str());
-          if (start < 0 || start > 23 || end < 0 || end > 23) {
-              zset_auto_del_cron_ = "";
-          }
+    std::string::size_type len = zset_auto_del_cron_.length();
+    std::string::size_type colon = zset_auto_del_cron_.find("-");
+    if (colon == std::string::npos || colon + 1 >= len) {
+      zset_auto_del_cron_ = "";
+    } else {
+      int start = std::atoi(zset_auto_del_cron_.substr(0, colon).c_str());
+      int end = std::atoi(zset_auto_del_cron_.substr(colon+1).c_str());
+      if (start < 0 || start > 23 || end < 0 || end > 23) {
+        zset_auto_del_cron_ = "";
       }
+    }
   }
 
   int zset_auto_del_interval = 0;

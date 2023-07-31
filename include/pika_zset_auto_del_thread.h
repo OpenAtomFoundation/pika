@@ -38,40 +38,40 @@ struct ZsetTaskItem {
 };
 
 class PikaZsetAutoDelThread : public net::Thread {
-public:
- PikaZsetAutoDelThread();
- ~PikaZsetAutoDelThread();
+ public:
+  PikaZsetAutoDelThread();
+  ~PikaZsetAutoDelThread();
 
- void RequestCronTask();
- void RequestManualTask(int64_t cursor, double speed_factor);
- void StopManualTask();
- void GetZsetInfo(ZsetInfo &info);
- int64_t LastFinishCheckAllZsetTime() { return last_finish_check_all_zset_time_; }
+  void RequestCronTask();
+  void RequestManualTask(int64_t cursor, double speed_factor);
+  void StopManualTask();
+  void GetZsetInfo(ZsetInfo &info);
+  int64_t LastFinishCheckAllZsetTime() { return last_finish_check_all_zset_time_; }
 
-private:
- void CompactZsetDB();
- void TrimAllZsetKeysFinished();
- void WriteZsetAutoDelBinlog(const std::string &key, int start, int end);
- bool BatchTrimZsetKeys(double speed_factor);
- void DoZsetCronTask(double speed_factor);
- void DoZsetManualTask(int64_t cursor, double speed_factor);
- void DoZsetAutoDelTask(ZsetTaskItem &task_item);
- virtual void* ThreadMain();
+ private:
+  void CompactZsetDB();
+  void TrimAllZsetKeysFinished();
+  void WriteZsetAutoDelBinlog(const std::string &key, int start, int end);
+  bool BatchTrimZsetKeys(double speed_factor);
+  void DoZsetCronTask(double speed_factor);
+  void DoZsetManualTask(int64_t cursor, double speed_factor);
+  void DoZsetAutoDelTask(ZsetTaskItem &task_item);
+  virtual void* ThreadMain();
 
-private:
- std::atomic<bool> should_exit_;
- std::mutex mutex_;
- std::condition_variable task_cond_;
- std::deque<ZsetTaskItem> task_queue_;
+ private:
+  std::atomic<bool> should_exit_;
+  std::mutex mutex_;
+  std::condition_variable task_cond_;
+  std::deque<ZsetTaskItem> task_queue_;
 
- std::atomic<ZsetTaskType> current_task_type_;
- std::atomic<int64_t> current_cursor_;
- std::atomic<bool> stop_manual_task_;
+  std::atomic<ZsetTaskType> current_task_type_;
+  std::atomic<int64_t> current_cursor_;
+  std::atomic<bool> stop_manual_task_;
 
- int64_t zset_db_keys_num_;
- int64_t auto_del_keys_num_;
- std::atomic<int64_t> start_check_all_zset_time_;
- std::atomic<int64_t> last_finish_check_all_zset_time_;
+  int64_t zset_db_keys_num_;
+  int64_t auto_del_keys_num_;
+  std::atomic<int64_t> start_check_all_zset_time_;
+  std::atomic<int64_t> last_finish_check_all_zset_time_;
 
   // for zset info use
   std::atomic<int64_t> last_spend_time_;

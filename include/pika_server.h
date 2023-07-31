@@ -41,7 +41,7 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_cmd_table_manager.h"
-#include "pika_zset_auto_del_thread.h"
+#include "include/pika_zset_auto_del_thread.h"
 
 
 /*
@@ -164,6 +164,7 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
+
   bool is_slave() { return role_ & PIKA_ROLE_SLAVE; }
   /*
    * Table use
@@ -504,7 +505,6 @@ class PikaServer : public pstd::noncopyable {
   rocksdb::Status RecoveryDB();
   rocksdb::Status RecoveryTest();
   void DoAutoDelZsetMember();
-
 
   friend class Cmd;
   friend class InfoCmd;

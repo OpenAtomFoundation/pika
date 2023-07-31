@@ -450,29 +450,29 @@ class HelloCmd : public Cmd {
 };
 
 class ZsetAutoDelCmd : public Cmd {
-public:
-    ZsetAutoDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-    void Do(std::shared_ptr<Slot> slot = nullptr) override;
-    void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-    void Merge() override{};
-    Cmd* Clone() override { return new ZsetAutoDelCmd(*this); }
+ public:
+  ZsetAutoDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new ZsetAutoDelCmd(*this); }
 
-private:
-    void DoInitial() override;
-    int64_t cursor_;
-    double speed_factor_;
+ private:
+  void DoInitial() override;
+  int64_t cursor_;
+  double speed_factor_;
 };
 
 class ZsetAutoDelOffCmd : public Cmd {
-public:
-    ZsetAutoDelOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-    void Do(std::shared_ptr<Slot> slot = nullptr) override;
-    void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-    void Merge() override{};
-    Cmd* Clone() override { return new ZsetAutoDelOffCmd(*this); }
+ public:
+  ZsetAutoDelOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new ZsetAutoDelOffCmd(*this); }
 
-private:
-    void DoInitial() override;
+ private:
+  void DoInitial() override;
 };
 
 #ifdef WITH_COMMAND_DOCS

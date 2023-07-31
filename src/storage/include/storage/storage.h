@@ -150,9 +150,9 @@ class Storage {
 
   template <typename T1, typename T2>
   struct LRU {
-      size_t max_size_;
-      std::list<T1> list_;
-      std::map<T1, T2> map_;
+    size_t max_size_;
+    std::list<T1> list_;
+    std::map<T1, T2> map_;
   };
   // Strings Commands
 
