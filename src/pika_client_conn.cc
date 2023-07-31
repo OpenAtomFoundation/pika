@@ -270,11 +270,9 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   }
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
-  // level == 0 or (cmd error) or (is_read)
-  if (g_pika_conf->consensus_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
-    *resp_ptr = std::move(cmd_ptr->res().message());
-    resp_num--;
-  }
+  // level is always 0
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  resp_num--;
 }
 
 // Initial permission status
