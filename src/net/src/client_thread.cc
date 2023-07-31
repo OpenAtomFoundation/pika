@@ -29,7 +29,6 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
-      
       private_data_(private_data),
       conn_factory_(conn_factory) {
   net_multiplexer_.reset(CreateNetMultiplexer());
@@ -331,21 +330,28 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             // connection exist
             net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, kReadable | kWritable);
           }
+          std::vector<std::string> msgs;
           {
             std::lock_guard l(mu_);
             auto iter = to_send_.find(ip_port);
             if (iter == to_send_.end()) {
               continue;
             }
-            // get msg from to_send_
-            std::vector<std::string>& msgs = iter->second;
-            for (auto& msg : msgs) {
-              if (ipport_conns_[ip_port]->WriteResp(msg)) {
-                to_send_[ip_port].push_back(msg);
-                NotifyWrite(ip_port);
-              }
+            msgs.swap(iter->second);
+          }
+          // get msg from to_send_
+          std::vector<std::string> send_failed_msgs;
+          for (auto& msg : msgs) {
+            if (ipport_conns_[ip_port]->WriteResp(msg)) {
+              send_failed_msgs.push_back(msg);
             }
-            to_send_.erase(iter);
+          }
+          std::lock_guard l(mu_);
+          if (!send_failed_msgs.empty()) {
+            send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(),
+                                    to_send_[ip_port].end());
+            send_failed_msgs.swap(to_send_[ip_port]);
+            NotifyWrite(ip_port);
           }
         } else if (ti.notify_type() == kNotiClose) {
           LOG(INFO) << "received kNotiClose";

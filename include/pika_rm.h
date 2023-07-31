@@ -21,6 +21,7 @@
 #include "include/pika_repl_server.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
+#include "include/rsync_client.h"
 
 #define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
@@ -157,7 +158,12 @@ class SyncSlaveSlot : public SyncSlot {
 
   std::string LocalIp();
 
+  void ActivateRsync();
+
+  bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
+
  private:
+  std::unique_ptr<rsync::RsyncClient> rsync_cli_;
   pstd::Mutex slot_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};

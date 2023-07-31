@@ -76,6 +76,8 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   bool IsBgSaving();
   void BgSaveSlot();
   BgSaveInfo bgsave_info();
+  void GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid);
+  pstd::Status GetBgSaveUUID(std::string* snapshot_uuid);
 
   // FlushDB & FlushSubDB use
   bool FlushDB();
@@ -95,6 +97,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
  private:
   std::string db_name_;
   uint32_t slot_id_ = 0;
+  std::string snapshot_uuid_;
 
   std::string db_path_;
   std::string bgsave_sub_path_;
