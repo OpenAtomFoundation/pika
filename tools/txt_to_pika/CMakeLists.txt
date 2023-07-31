@@ -20,3 +20,4 @@ set_target_properties(txt_to_pika PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
     COMPILE_FLAGS ${CXXFLAGS})
+add_dependencies(txt_to_pika rocksdb snappy zlib bz2 glog gflags)
