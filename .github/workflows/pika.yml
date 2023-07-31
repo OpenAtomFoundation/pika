@@ -150,7 +150,7 @@ jobs:
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -DUSE_PIKA_TOOLS=ON
 
       - name: Build
         run: |
