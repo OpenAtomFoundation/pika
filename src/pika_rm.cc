@@ -491,10 +491,6 @@ Status SyncMasterSlot::ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd
   return coordinator_.ProcessLeaderLog(cmd_ptr, attribute);
 }
 
-Status SyncMasterSlot::ConsensusProcessLocalUpdate(const LogOffset& leader_commit) {
-  return Status::OK();
-}
-
 LogOffset SyncMasterSlot::ConsensusCommittedIndex() { return coordinator_.committed_index(); }
 
 LogOffset SyncMasterSlot::ConsensusLastIndex() { return coordinator_.MemLogger()->last_offset(); }
