@@ -14,41 +14,41 @@
 namespace net {
 
 struct NetFiredEvent {
-  int fd = -1;
-  int mask = 0;  // EventStatus
+  int32_t fd = -1;
+  int32_t mask = 0;  // EventStatus
 };
 
 class NetMultiplexer {
  public:
-  explicit NetMultiplexer(int queue_limit);
+  explicit NetMultiplexer(int32_t queue_limit);
   virtual ~NetMultiplexer();
 
-  virtual int NetAddEvent(int fd, int mask) = 0;
-  virtual int NetDelEvent(int fd, int mask) = 0;
-  virtual int NetModEvent(int fd, int old_mask, int mask) = 0;
-  virtual int NetPoll(int timeout) = 0;
+  virtual int32_t NetAddEvent(int32_t fd, int32_t mask) = 0;
+  virtual int32_t NetDelEvent(int32_t fd, int32_t mask) = 0;
+  virtual int32_t NetModEvent(int32_t fd, int32_t old_mask, int32_t mask) = 0;
+  virtual int32_t NetPoll(int32_t timeout) = 0;
 
   void Initialize();
 
   NetFiredEvent* FiredEvents() { return &fired_events_[0]; }
 
-  int NotifyReceiveFd() const { return notify_receive_fd_; }
-  int NotifySendFd() const { return notify_send_fd_; }
+  int32_t NotifyReceiveFd() const { return notify_receive_fd_; }
+  int32_t NotifySendFd() const { return notify_send_fd_; }
   NetItem NotifyQueuePop();
 
   bool Register(const NetItem& it, bool force);
 
-  static const int kUnlimitedQueue = -1;
+  static const int32_t kUnlimitedQueue = -1;
 
-  int GetMultiplexer(){
+  int32_t GetMultiplexer(){
     return multiplexer_;
   }
  protected:
-  int multiplexer_ = -1;
+  int32_t multiplexer_ = -1;
   /*
    * The PbItem queue is the fd queue, receive from dispatch thread
    */
-  int queue_limit_ = kUnlimitedQueue;
+  int32_t queue_limit_ = kUnlimitedQueue;
   pstd::Mutex notify_queue_protector_;
   std::queue<NetItem> notify_queue_;
   std::vector<NetFiredEvent> fired_events_;
@@ -56,13 +56,13 @@ class NetMultiplexer {
   /*
    * These two fd receive the notify from dispatch thread
    */
-  int notify_receive_fd_ = -1;
-  int notify_send_fd_ = -1;
+  int32_t notify_receive_fd_ = -1;
+  int32_t notify_send_fd_ = -1;
 
   bool init_ = false;
 };
 
-NetMultiplexer* CreateNetMultiplexer(int queue_limit = NetMultiplexer::kUnlimitedQueue);
+NetMultiplexer* CreateNetMultiplexer(int32_t queue_limit = NetMultiplexer::kUnlimitedQueue);
 
 }  // namespace net
 #endif  // NET_SRC_NET_EPOLL_H_

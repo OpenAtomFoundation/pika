@@ -9,7 +9,7 @@
 
 using namespace storage;
 
-int main() {
+int32_t main() {
   storage::Storage db;
   StorageOptions storage_options;
   storage_options.options.create_if_missing = true;

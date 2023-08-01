@@ -218,7 +218,7 @@ const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
-static const int RAW_ARGS_LEN = 1024 * 1024;
+static const int32_t RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW = 1,
@@ -415,7 +415,7 @@ struct UnblockTaskArgs {
   std::shared_ptr<Slot> slot;
   net::DispatchThread* dispatchThread{ nullptr };
   UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+      : key(std::move(key_)), slot(std::move(slot_)), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -423,13 +423,13 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
-    void Push(const std::string& key, int hint) {
+    void Push(const std::string& key, int32_t hint) {
       keys.push_back(key);
       hints.push_back(hint);
     }
     bool empty() const { return keys.empty() && hints.empty(); }
     std::vector<std::string> keys;
-    std::vector<int> hints;
+    std::vector<int32_t> hints;
   };
   struct ProcessArg {
     ProcessArg() = default;
@@ -439,7 +439,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  Cmd(std::string name, int32_t arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -498,7 +498,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void LogCommand() const;
 
   std::string name_;
-  int arity_ = -2;
+  int32_t arity_ = -2;
   uint16_t flag_ = 0;
 
  protected:
@@ -531,7 +531,7 @@ void RedisAppendContent(std::string& str, const std::string& value) {
 
 void RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix) {
   char buf[32];
-  pstd::ll2string(buf, 32, static_cast<long long>(ori));
+  pstd::ll2string(buf, 32, static_cast<int64_t>(ori));
   str.append(prefix);
   str.append(buf);
   str.append(kNewLine);

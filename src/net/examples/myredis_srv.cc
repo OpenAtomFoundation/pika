@@ -17,23 +17,23 @@ std::map<std::string, std::string> db;
 
 class MyConn : public RedisConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn() = default;
 
  protected:
-  int DealMessage(const RedisCmdArgsType& argv, std::string* response) override;
+  int32_t DealMessage(const RedisCmdArgsType& argv, std::string* response) override;
 
  private:
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : RedisConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
 
-int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
+int32_t MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
   printf("Get redis message ");
-  for (int i = 0; i < argv.size(); i++) {
+  for (int32_t i = 0; i < argv.size(); i++) {
     printf("%s ", argv[i].c_str());
   }
   printf("\n");
@@ -64,7 +64,7 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data, net::NetMultiplexer* net_epoll = nullptr) const {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
@@ -72,7 +72,7 @@ class MyConnFactory : public ConnFactory {
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -86,13 +86,13 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 2) {
     printf("server will listen to 6379\n");
   } else {
     printf("server will listen to %d\n", atoi(argv[1]));
   }
-  int my_port = (argc > 1) ? atoi(argv[1]) : 6379;
+  int32_t my_port = (argc > 1) ? atoi(argv[1]) : 6379;
 
   SignalSetup();
 

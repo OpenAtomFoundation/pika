@@ -16,14 +16,14 @@
 
 class PikaReplClientThread : public net::ClientThread {
  public:
-  PikaReplClientThread(int cron_interval, int keepalive_timeout);
+  PikaReplClientThread(int32_t cron_interval, int32_t keepalive_timeout);
   ~PikaReplClientThread() override = default;
-  int Start();
+  int32_t Start();
 
  private:
   class ReplClientConnFactory : public net::ConnFactory {
    public:
-    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+    std::shared_ptr<net::NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, net::Thread* thread,
                                                      void* worker_specific_data,
                                                      net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
@@ -33,8 +33,8 @@ class PikaReplClientThread : public net::ClientThread {
   class ReplClientHandle : public net::ClientHandle {
    public:
     void CronHandle() const override {}
-    void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
-    void FdClosedHandle(int fd, const std::string& ip_port) const override;
+    void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const override;
+    void FdClosedHandle(int32_t fd, const std::string& ip_port) const override;
     bool AccessHandle(std::string& ip) const override {
       // ban 127.0.0.1 if you want to test this routine
       // if (ip.find("127.0.0.2") != std::string::npos) {
@@ -43,8 +43,8 @@ class PikaReplClientThread : public net::ClientThread {
       // }
       return true;
     }
-    int CreateWorkerSpecificData(void** data) const override { return 0; }
-    int DeleteWorkerSpecificData(void* data) const override { return 0; }
+    int32_t CreateWorkerSpecificData(void** data) const override { return 0; }
+    int32_t DeleteWorkerSpecificData(void* data) const override { return 0; }
     void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const override {}
   };
 

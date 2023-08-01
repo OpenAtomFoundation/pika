@@ -10,14 +10,14 @@
 
 using namespace net;
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 3) {
     printf("Usage: ./client ip port\n");
     exit(0);
   }
 
   std::string ip(argv[1]);
-  int port = atoi(argv[2]);
+  int32_t port = atoi(argv[2]);
 
   std::unique_ptr<NetCli> cli(NewPbCli());
 
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   }
   printf("Connect (%s:%d) ok, fd is %d\n", ip.c_str(), port, cli->fd());
 
-  for (int i = 0; i < 100000; i++) {
+  for (int32_t i = 0; i < 100000; i++) {
     myproto::Ping msg;
     msg.set_address("127.00000");
     msg.set_port(2222);

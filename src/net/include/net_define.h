@@ -16,7 +16,7 @@ namespace net {
 #define NET_MAX_MESSAGE 1024
 #define NET_NAME_LEN 1024
 
-const int kProtoMaxMessage = 512 * 1024 * 1024;  // 512MB
+const int32_t kProtoMaxMessage = 512 * 1024 * 1024;  // 512MB
 #define PB_IOBUF_LEN 67108864                    // 64MB
 /*
  * The pb head and code length
@@ -24,7 +24,7 @@ const int kProtoMaxMessage = 512 * 1024 * 1024;  // 512MB
 #define COMMAND_HEADER_LENGTH 4
 #define COMMAND_CODE_LENGTH 4
 
-const int kCommandHeaderLength = 4;
+const int32_t kCommandHeaderLength = 4;
 
 /*
  * The socket block type

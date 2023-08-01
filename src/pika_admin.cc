@@ -418,7 +418,7 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
-  int index = atoi(argv_[1].data());
+  int32_t index = atoi(argv_[1].data());
   if (std::to_string(index) != argv_[1]) {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
     return;
@@ -927,7 +927,7 @@ void InfoCmd::InfoCPU(std::string& info) {
 }
 
 void InfoCmd::InfoShardingReplication(std::string& info) {
-  int role = 0;
+  int32_t role = 0;
   std::string slave_list_string;
   uint32_t slave_num = g_pika_server->GetShardingSlaveListString(slave_list_string);
   if (slave_num != 0U) {
@@ -935,7 +935,7 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
   }
   std::string common_master;
   std::string master_ip;
-  int master_port = 0;
+  int32_t master_port = 0;
   g_pika_rm->FindCommonMaster(&common_master);
   if (!common_master.empty()) {
     role |= PIKA_ROLE_SLAVE;
@@ -982,7 +982,7 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
 }
 
 void InfoCmd::InfoReplication(std::string& info) {
-  int host_role = g_pika_server->role();
+  int32_t host_role = g_pika_server->role();
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
 
@@ -1260,7 +1260,7 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     tmp_stream.precision(2);
     tmp_stream.setf(std::ios::fixed);
     tmp_stream << "# Commandstats" << "\r\n";
-    for (auto iter : *g_pika_server->GetCommandStatMap()) {
+    for (const auto& iter : *g_pika_server->GetCommandStatMap()) {
       if (iter.second.cmd_count != 0) {
         tmp_stream << iter.first << ":"
                    << "calls=" << iter.second.cmd_count << ", usec="
@@ -1880,14 +1880,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "arena-block-size");
     return;
   }
-  long int ival;
+  int32_t ival;
   std::string value = config_args_v_[2];
   if (set_item == "timeout") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
       return;
     }
-    g_pika_conf->SetTimeout(static_cast<int>(ival));
+    g_pika_conf->SetTimeout(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
@@ -1912,43 +1912,43 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'maxclients'\r\n";
       return;
     }
-    g_pika_conf->SetMaxConnection(static_cast<int>(ival));
-    g_pika_server->SetDispatchQueueLimit(static_cast<int>(ival));
+    g_pika_conf->SetMaxConnection(static_cast<int32_t>(ival));
+    g_pika_server->SetDispatchQueueLimit(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'dump-expire'\r\n";
       return;
     }
-    g_pika_conf->SetExpireDumpDays(static_cast<int>(ival));
+    g_pika_conf->SetExpireDumpDays(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slave-priority") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-priority'\r\n";
       return;
     }
-    g_pika_conf->SetSlavePriority(static_cast<int>(ival));
+    g_pika_conf->SetSlavePriority(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
     }
-    g_pika_conf->SetExpireLogsDays(static_cast<int>(ival));
+    g_pika_conf->SetExpireLogsDays(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
     }
-    g_pika_conf->SetExpireLogsNums(static_cast<int>(ival));
+    g_pika_conf->SetExpireLogsNums(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
     }
-    g_pika_conf->SetRootConnectionNum(static_cast<int>(ival));
+    g_pika_conf->SetRootConnectionNum(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-write-errorlog") {
     bool is_write_errorlog;
@@ -1967,14 +1967,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
     }
-    g_pika_conf->SetSlowlogSlowerThan(static_cast<int>(ival));
+    g_pika_conf->SetSlowlogSlowerThan(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-max-len") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-max-len'\r\n";
       return;
     }
-    g_pika_conf->SetSlowlogMaxLen(static_cast<int>(ival));
+    g_pika_conf->SetSlowlogMaxLen(static_cast<int32_t>(ival));
     g_pika_server->SlowlogTrim();
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-statistic-keys") {
@@ -1982,26 +1982,26 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
       return;
     }
-    g_pika_conf->SetMaxCacheStatisticKeys(static_cast<int>(ival));
-    g_pika_server->SlotSetMaxCacheStatisticKeys(static_cast<int>(ival));
+    g_pika_conf->SetMaxCacheStatisticKeys(static_cast<int32_t>(ival));
+    g_pika_server->SlotSetMaxCacheStatisticKeys(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-threshold'\r\n";
       return;
     }
-    g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
-    g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int>(ival));
+    g_pika_conf->SetSmallCompactionThreshold(static_cast<int32_t>(ival));
+    g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n";
       return;
     }
-    g_pika_conf->SetMaxClientResponseSize(static_cast<int>(ival));
+    g_pika_conf->SetMaxClientResponseSize(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
-    int role = g_pika_server->role();
+    int32_t role = g_pika_server->role();
     if (role == PIKA_ROLE_SLAVE) {
       ret = "-ERR need to close master-slave mode first\r\n";
       return;
@@ -2020,7 +2020,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     if (ival < 0 || ival > 1024) {
       ival = 1024;
     }
-    g_pika_conf->SetDbSyncSpeed(static_cast<int>(ival));
+    g_pika_conf->SetDbSyncSpeed(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "compact-cron") {
     bool invalid = false;
@@ -2045,10 +2045,10 @@ void ConfigCmd::ConfigSet(std::string& ret) {
           colon + 1 == underline || underline + 1 >= len) {
         invalid = true;
       } else {
-        int week = std::atoi(week_str.c_str());
-        int start = std::atoi(compact_cron.substr(0, colon).c_str());
-        int end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
-        int usage = std::atoi(compact_cron.substr(underline + 1).c_str());
+        int32_t week = std::atoi(week_str.c_str());
+        int32_t start = std::atoi(compact_cron.substr(0, colon).c_str());
+        int32_t end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
+        int32_t usage = std::atoi(compact_cron.substr(underline + 1).c_str());
         if ((have_week && (week < 1 || week > 7)) || start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 ||
             usage > 100) {
           invalid = true;
@@ -2070,8 +2070,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       if (slash == std::string::npos || slash + 1 >= len) {
         invalid = true;
       } else {
-        int interval = std::atoi(value.substr(0, slash).c_str());
-        int usage = std::atoi(value.substr(slash + 1).c_str());
+        int32_t interval = std::atoi(value.substr(0, slash).c_str());
+        int32_t usage = std::atoi(value.substr(slash + 1).c_str());
         if (interval <= 0 || usage < 0 || usage > 100) {
           invalid = true;
         }
@@ -2093,7 +2093,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Argument exceed range \'" + value + "\' for CONFIG SET 'sync-window-size'\r\n";
       return;
     }
-    g_pika_conf->SetSyncWindowSize(static_cast<int>(ival));
+    g_pika_conf->SetSyncWindowSize(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2106,7 +2106,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxCacheFiles(static_cast<int>(ival));
+    g_pika_conf->SetMaxCacheFiles(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-background-compactions") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2119,7 +2119,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
+    g_pika_conf->SetMaxBackgroudCompactions(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2132,7 +2132,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetWriteBufferSize(static_cast<int>(ival));
+    g_pika_conf->SetWriteBufferSize(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-write-buffer-num") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2145,7 +2145,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetMaxWriteBufferNumber(static_cast<int>(ival));
+    g_pika_conf->SetMaxWriteBufferNumber(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "arena-block-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2158,7 +2158,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
       return;
     }
-    g_pika_conf->SetArenaBlockSize(static_cast<int>(ival));
+    g_pika_conf->SetArenaBlockSize(static_cast<int32_t>(ival));
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
@@ -2267,7 +2267,7 @@ void DelbackupCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  int len = static_cast<int>(dump_dir.size());
+  auto len = static_cast<int32_t>(dump_dir.size());
   for (auto& i : dump_dir) {
     if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
@@ -2419,7 +2419,7 @@ void PKPatternMatchDelCmd::DoInitial() {
 }
 
 void PKPatternMatchDelCmd::Do(std::shared_ptr<Slot> slot) {
-  int ret = 0;
+  int32_t ret = 0;
   rocksdb::Status s = slot->db()->PKPatternMatchDel(type_, pattern_, &ret);
   if (s.ok()) {
     res_.AppendInteger(ret);
@@ -2456,7 +2456,7 @@ void HelloCmd::DoInitial() {
 
 void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   size_t next_arg = 1;
-  long ver = 0;
+  int32_t ver = 0;
   if (argv_.size() >= 2) {
     if (pstd::string2int(argv_[next_arg].data(), argv_[next_arg].size(), &ver) == 0) {
       res_.SetRes(CmdRes::kErrOther, "Protocol version is not an integer or out of range");
@@ -2514,7 +2514,7 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   // just for redis resp2 protocol
   fvs.push_back({"proto", "2"});
   fvs.push_back({"mode", "classic"});
-  int host_role = g_pika_server->role();
+  int32_t host_role = g_pika_server->role();
   switch (host_role) {
     case PIKA_ROLE_SINGLE:
     case PIKA_ROLE_MASTER:
@@ -2549,8 +2549,8 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
 #ifdef WITH_COMMAND_DOCS
 
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
-  int av{0};
-  int bv{0};
+  int32_t av{0};
+  int32_t bv{0};
   if (auto avi = kFieldNameOrder.find(a); avi != kFieldNameOrder.end()) {
     av = avi->second;
   }
@@ -2669,7 +2669,7 @@ CommandCmd::EncodablePtr CommandCmd::EncodableStatus::MergeFrom(const CommandCmd
   return std::make_shared<CommandCmd::EncodableStatus>(value_);
 }
 
-const std::unordered_map<std::string, int> CommandCmd::CommandFieldCompare::kFieldNameOrder{
+const std::unordered_map<std::string, int32_t> CommandCmd::CommandFieldCompare::kFieldNameOrder{
     {kPikaField, 0},         {"name", 100},      {"type", 101},
     {"spec", 102},           {"index", 103},     {"display_text", 104},
     {"key_spec_index", 105}, {"token", 106},     {"summary", 107},

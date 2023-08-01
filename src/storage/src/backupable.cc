@@ -98,7 +98,7 @@ void* ThreadFuncSaveSpecify(void* arg) {
 }
 
 Status BackupEngine::WaitBackupPthread() {
-  int ret;
+  int32_t ret;
   Status s = Status::OK();
   for (auto& pthread : backup_pthread_ts_) {
     void* res;

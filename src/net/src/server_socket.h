@@ -18,7 +18,7 @@ namespace net {
 
 class ServerSocket : public pstd::noncopyable {
  public:
-  explicit ServerSocket(int port, bool is_block = false);
+  explicit ServerSocket(int32_t port, bool is_block = false);
 
   virtual ~ServerSocket();
 
@@ -26,50 +26,50 @@ class ServerSocket : public pstd::noncopyable {
    * Listen to a specific ip addr on a multi eth machine
    * Return 0 if Listen success, <0 other wise
    */
-  int Listen(const std::string& bind_ip = std::string());
+  int32_t Listen(const std::string& bind_ip = std::string());
 
   void Close();
 
   /*
    * The get and set functions
    */
-  void set_port(int port) { port_ = port; }
+  void set_port(int32_t port) { port_ = port; }
 
-  int port() { return port_; }
+  int32_t port() { return port_; }
 
   void set_keep_alive(bool keep_alive) { keep_alive_ = keep_alive; }
   bool keep_alive() const { return keep_alive_; }
 
-  void set_send_timeout(int send_timeout) { send_timeout_ = send_timeout; }
-  int send_timeout() const { return send_timeout_; }
+  void set_send_timeout(int32_t send_timeout) { send_timeout_ = send_timeout; }
+  int32_t send_timeout() const { return send_timeout_; }
 
-  void set_recv_timeout(int recv_timeout) { recv_timeout_ = recv_timeout; }
+  void set_recv_timeout(int32_t recv_timeout) { recv_timeout_ = recv_timeout; }
 
-  int recv_timeout() const { return recv_timeout_; }
+  int32_t recv_timeout() const { return recv_timeout_; }
 
-  int sockfd() const { return sockfd_; }
+  int32_t sockfd() const { return sockfd_; }
 
-  void set_sockfd(int sockfd) { sockfd_ = sockfd; }
+  void set_sockfd(int32_t sockfd) { sockfd_ = sockfd; }
 
  private:
-  int SetNonBlock();
+  int32_t SetNonBlock();
   /*
    * The tcp server port and address
    */
-  int port_;
-  int flags_;
-  int send_timeout_{0};
-  int recv_timeout_{0};
-  int accept_timeout_{0};
-  int accept_backlog_{1024};
-  int tcp_send_buffer_{0};
-  int tcp_recv_buffer_{0};
+  int32_t port_;
+  int32_t flags_;
+  int32_t send_timeout_{0};
+  int32_t recv_timeout_{0};
+  int32_t accept_timeout_{0};
+  int32_t accept_backlog_{1024};
+  int32_t tcp_send_buffer_{0};
+  int32_t tcp_recv_buffer_{0};
   bool keep_alive_{false};
   bool listening_{false};
   bool is_block_;
 
   struct sockaddr_in servaddr_;
-  int sockfd_;
+  int32_t sockfd_;
 
 };
 

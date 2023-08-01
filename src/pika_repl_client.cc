@@ -24,10 +24,10 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
+PikaReplClient::PikaReplClient(int32_t cron_interval, int32_t keepalive_timeout)  {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
-  for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
+  for (int32_t i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
     bg_workers_.push_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
   }
 }
@@ -37,8 +37,8 @@ PikaReplClient::~PikaReplClient() {
   LOG(INFO) << "PikaReplClient exit!!!";
 }
 
-int PikaReplClient::Start() {
-  int res = client_thread_->StartThread();
+int32_t PikaReplClient::Start() {
+  int32_t res = client_thread_->StartThread();
   if (res != net::kSuccess) {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
@@ -53,7 +53,7 @@ int PikaReplClient::Start() {
   return res;
 }
 
-int PikaReplClient::Stop() {
+int32_t PikaReplClient::Stop() {
   client_thread_->StopThread();
   for (auto & bg_worker : bg_workers_) {
     bg_worker->StopThread();
@@ -88,11 +88,11 @@ size_t PikaReplClient::GetHashIndex(const std::string& key, bool upper_half) {
   return (str_hash(key) % hash_base) + (upper_half ? 0 : hash_base);
 }
 
-Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
+Status PikaReplClient::Write(const std::string& ip, const int32_t port, const std::string& msg) {
   return client_thread_->Write(ip, port, msg);
 }
 
-Status PikaReplClient::Close(const std::string& ip, const int port) { return client_thread_->Close(ip, port); }
+Status PikaReplClient::Close(const std::string& ip, const int32_t port) { return client_thread_->Close(ip, port); }
 
 Status PikaReplClient::SendMetaSync() {
   std::string local_ip;
@@ -129,7 +129,7 @@ Status PikaReplClient::SendMetaSync() {
 
   std::string to_send;
   std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
+  int32_t master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Meta Sync Request Failed, to Master (" << master_ip << ":" << master_port << ")";
     return Status::Corruption("Serialize Failed");

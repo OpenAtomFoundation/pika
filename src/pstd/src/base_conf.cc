@@ -17,13 +17,13 @@
 
 namespace pstd {
 
-static const int kConfItemLen = 1024 * 1024;
+static const int32_t kConfItemLen = 1024 * 1024;
 
 BaseConf::BaseConf(const std::string& path) : rep_(std::make_unique<Rep>(path)) {}
 
 BaseConf::~BaseConf() = default;
 
-int BaseConf::LoadConf() {
+int32_t BaseConf::LoadConf() {
   if (!FileExists(rep_->path)) {
     return -1;
   }
@@ -34,10 +34,10 @@ int BaseConf::LoadConf() {
   char line[kConfItemLen];
   char name[kConfItemLen];
   char value[kConfItemLen];
-  int line_len = 0;
-  int name_len = 0;
-  int value_len = 0;
-  int sep_sign = 0;
+  int32_t line_len = 0;
+  int32_t name_len = 0;
+  int32_t value_len = 0;
+  int32_t sep_sign = 0;
   Rep::ConfType type = Rep::kConf;
 
   while (sequential_file->ReadLine(line, kConfItemLen) != nullptr) {
@@ -46,7 +46,7 @@ int BaseConf::LoadConf() {
     value_len = 0;
     type = Rep::kComment;
     line_len = static_cast<int32_t>(strlen(line));
-    for (int i = 0; i < line_len; i++) {
+    for (int32_t i = 0; i < line_len; i++) {
       if (i == 0 && line[i] == COMMENT) {
         type = Rep::kComment;
         break;
@@ -82,7 +82,7 @@ int BaseConf::LoadConf() {
   return 0;
 }
 
-int BaseConf::ReloadConf() {
+int32_t BaseConf::ReloadConf() {
   auto rep = std::move(rep_);
   rep_ = std::make_unique<Rep>(rep->path);
   if (LoadConf() == -1) {
@@ -92,7 +92,7 @@ int BaseConf::ReloadConf() {
   return 0;
 }
 
-bool BaseConf::GetConfInt(const std::string& name, int* value) const {
+bool BaseConf::GetConfInt(const std::string& name, int32_t* value) const {
   for (auto & i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
@@ -105,7 +105,7 @@ bool BaseConf::GetConfInt(const std::string& name, int* value) const {
   return false;
 }
 
-bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
+bool BaseConf::GetConfIntHuman(const std::string& name, int32_t* value) const {
   for (auto & i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
@@ -228,7 +228,7 @@ bool BaseConf::GetConfDouble(const std::string& name, double* value) const {
   return false;
 }
 
-bool BaseConf::SetConfInt(const std::string& name, const int value) {
+bool BaseConf::SetConfInt(const std::string& name, const int32_t value) {
   for (auto & i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
@@ -315,7 +315,7 @@ bool BaseConf::CheckConfExist(const std::string& name) const {
 }
 
 void BaseConf::DumpConf() const {
-  int cnt = 1;
+  int32_t cnt = 1;
   for (auto & i : rep_->item) {
     if (i.type == Rep::kConf) {
       LOG(INFO) << fmt::format("{:2} {} {}", cnt++, i.name, i.value);

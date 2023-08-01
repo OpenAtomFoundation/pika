@@ -23,25 +23,25 @@ class NetConn;
 class HolyThread : public ServerThread {
  public:
   // This type thread will listen and work self list redis thread
-  HolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0, const ServerHandle* handle = nullptr,
+  HolyThread(int32_t port, ConnFactory* conn_factory, int32_t cron_interval = 0, const ServerHandle* handle = nullptr,
              bool async = true);
-  HolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory, int cron_interval = 0,
+  HolyThread(const std::string& bind_ip, int32_t port, ConnFactory* conn_factory, int32_t cron_interval = 0,
              const ServerHandle* handle = nullptr, bool async = true);
-  HolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory, int cron_interval = 0,
+  HolyThread(const std::set<std::string>& bind_ips, int32_t port, ConnFactory* conn_factory, int32_t cron_interval = 0,
              const ServerHandle* handle = nullptr, bool async = true);
   ~HolyThread() override;
 
-  int StartThread() override;
+  int32_t StartThread() override;
 
-  int StopThread() override;
+  int32_t StopThread() override;
 
-  void set_keepalive_timeout(int timeout) override { keepalive_timeout_ = timeout; }
+  void set_keepalive_timeout(int32_t timeout) override { keepalive_timeout_ = timeout; }
 
-  int conn_num() const override;
+  int32_t conn_num() const override;
 
   std::vector<ServerThread::ConnInfo> conns_info() const override;
 
-  std::shared_ptr<NetConn> MoveConnOut(int fd) override;
+  std::shared_ptr<NetConn> MoveConnOut(int32_t fd) override;
 
   void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override {}
 
@@ -49,19 +49,19 @@ class HolyThread : public ServerThread {
 
   bool KillConn(const std::string& ip_port) override;
 
-  virtual std::shared_ptr<NetConn> get_conn(int fd);
+  virtual std::shared_ptr<NetConn> get_conn(int32_t fd);
 
   void ProcessNotifyEvents(const net::NetFiredEvent* pfe) override;
   void Cleanup();
 
  private:
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<NetConn>> conns_;
+  std::map<int32_t, std::shared_ptr<NetConn>> conns_;
 
   ConnFactory* conn_factory_ = nullptr;
   void* private_data_ = nullptr;
 
-  std::atomic<int> keepalive_timeout_;  // keepalive second
+  std::atomic<int32_t> keepalive_timeout_;  // keepalive second
   bool async_;
 
   void DoCronTask() override;
@@ -69,7 +69,7 @@ class HolyThread : public ServerThread {
   pstd::Mutex killer_mutex_;
   std::set<std::string> deleting_conn_ipport_;
 
-  void HandleNewConn(int connfd, const std::string& ip_port) override;
+  void HandleNewConn(int32_t connfd, const std::string& ip_port) override;
   void HandleConnEvent(NetFiredEvent* pfe) override;
 
   void CloseFd(const std::shared_ptr<NetConn>& conn);

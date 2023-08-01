@@ -65,7 +65,7 @@ TEST_F(BaseConfTest, WriteReadConf) {
   ASSERT_TRUE(conf->WriteBack());
 
   // Read configuration
-  int test_int;
+  int32_t test_int;
   std::string test_str;
   bool test_bool;
   std::vector<std::string> values;

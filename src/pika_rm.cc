@@ -39,14 +39,14 @@ std::string SyncSlot::SlotName() {
 SyncMasterSlot::SyncMasterSlot(const std::string& db_name, uint32_t slot_id)
     : SyncSlot(db_name, slot_id),  coordinator_(db_name, slot_id) {}
 
-int SyncMasterSlot::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
+int32_t SyncMasterSlot::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
-bool SyncMasterSlot::CheckSlaveNodeExist(const std::string& ip, int port) {
+bool SyncMasterSlot::CheckSlaveNodeExist(const std::string& ip, int32_t port) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   return static_cast<bool>(slave_ptr);
 }
 
-Status SyncMasterSlot::GetSlaveNodeSession(const std::string& ip, int port, int32_t* session) {
+Status SyncMasterSlot::GetSlaveNodeSession(const std::string& ip, int32_t port, int32_t* session) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("slave " + ip + ":" + std::to_string(port) + " not found");
@@ -59,7 +59,7 @@ Status SyncMasterSlot::GetSlaveNodeSession(const std::string& ip, int port, int3
   return Status::OK();
 }
 
-Status SyncMasterSlot::AddSlaveNode(const std::string& ip, int port, int session_id) {
+Status SyncMasterSlot::AddSlaveNode(const std::string& ip, int32_t port, int32_t session_id) {
   Status s = coordinator_.AddSlaveNode(ip, port, session_id);
   if (!s.ok()) {
     LOG(WARNING) << "Add Slave Node Failed, slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":"
@@ -70,7 +70,7 @@ Status SyncMasterSlot::AddSlaveNode(const std::string& ip, int port, int session
   return Status::OK();
 }
 
-Status SyncMasterSlot::RemoveSlaveNode(const std::string& ip, int port) {
+Status SyncMasterSlot::RemoveSlaveNode(const std::string& ip, int32_t port) {
   Status s = coordinator_.RemoveSlaveNode(ip, port);
   if (!s.ok()) {
     LOG(WARNING) << "Remove Slave Node Failed, Slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip
@@ -81,7 +81,7 @@ Status SyncMasterSlot::RemoveSlaveNode(const std::string& ip, int port) {
   return Status::OK();
 }
 
-Status SyncMasterSlot::ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset) {
+Status SyncMasterSlot::ActivateSlaveBinlogSync(const std::string& ip, int32_t port, const LogOffset& offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -111,7 +111,7 @@ Status SyncMasterSlot::ActivateSlaveBinlogSync(const std::string& ip, int port, 
   return Status::OK();
 }
 
-Status SyncMasterSlot::SyncBinlogToWq(const std::string& ip, int port) {
+Status SyncMasterSlot::SyncBinlogToWq(const std::string& ip, int32_t port) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -126,7 +126,7 @@ Status SyncMasterSlot::SyncBinlogToWq(const std::string& ip, int port) {
   return Status::OK();
 }
 
-Status SyncMasterSlot::ActivateSlaveDbSync(const std::string& ip, int port) {
+Status SyncMasterSlot::ActivateSlaveDbSync(const std::string& ip, int32_t port) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -141,13 +141,13 @@ Status SyncMasterSlot::ActivateSlaveDbSync(const std::string& ip, int port) {
 }
 
 Status SyncMasterSlot::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
-  int cnt = slave_ptr->sync_win.Remaining();
+  int32_t cnt = slave_ptr->sync_win.Remaining();
   std::shared_ptr<PikaBinlogReader> reader = slave_ptr->binlog_reader;
   if (!reader) {
     return Status::OK();
   }
   std::vector<WriteTask> tasks;
-  for (int i = 0; i < cnt; ++i) {
+  for (int32_t i = 0; i < cnt; ++i) {
     std::string msg;
     uint32_t filenum;
     uint64_t offset;
@@ -187,7 +187,7 @@ Status SyncMasterSlot::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slav
   return Status::OK();
 }
 
-Status SyncMasterSlot::ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start,
+Status SyncMasterSlot::ConsensusUpdateSlave(const std::string& ip, int32_t port, const LogOffset& start,
                                                  const LogOffset& end) {
   Status s = coordinator_.UpdateSlave(ip, port, start, end);
   if (!s.ok()) {
@@ -209,7 +209,7 @@ Status SyncMasterSlot::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
 
 LogOffset SyncMasterSlot::ConsensusAppliedIndex() { return coordinator_.applied_index(); }
 
-Status SyncMasterSlot::GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset,
+Status SyncMasterSlot::GetSlaveSyncBinlogInfo(const std::string& ip, int32_t port, BinlogOffset* sent_offset,
                                                    BinlogOffset* acked_offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
@@ -224,7 +224,7 @@ Status SyncMasterSlot::GetSlaveSyncBinlogInfo(const std::string& ip, int port, B
   return Status::OK();
 }
 
-Status SyncMasterSlot::GetSlaveState(const std::string& ip, int port, SlaveState* const slave_state) {
+Status SyncMasterSlot::GetSlaveState(const std::string& ip, int32_t port, SlaveState* const slave_state) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -258,7 +258,7 @@ Status SyncMasterSlot::WakeUpSlaveBinlogSync() {
   return Status::OK();
 }
 
-Status SyncMasterSlot::SetLastSendTime(const std::string& ip, int port, uint64_t time) {
+Status SyncMasterSlot::SetLastSendTime(const std::string& ip, int32_t port, uint64_t time) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -271,7 +271,7 @@ Status SyncMasterSlot::SetLastSendTime(const std::string& ip, int port, uint64_t
   return Status::OK();
 }
 
-Status SyncMasterSlot::GetLastSendTime(const std::string& ip, int port, uint64_t* time) {
+Status SyncMasterSlot::GetLastSendTime(const std::string& ip, int32_t port, uint64_t* time) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -284,7 +284,7 @@ Status SyncMasterSlot::GetLastSendTime(const std::string& ip, int port, uint64_t
   return Status::OK();
 }
 
-Status SyncMasterSlot::SetLastRecvTime(const std::string& ip, int port, uint64_t time) {
+Status SyncMasterSlot::SetLastRecvTime(const std::string& ip, int32_t port, uint64_t time) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -297,7 +297,7 @@ Status SyncMasterSlot::SetLastRecvTime(const std::string& ip, int port, uint64_t
   return Status::OK();
 }
 
-Status SyncMasterSlot::GetLastRecvTime(const std::string& ip, int port, uint64_t* time) {
+Status SyncMasterSlot::GetLastRecvTime(const std::string& ip, int32_t port, uint64_t* time) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -402,7 +402,7 @@ std::string SyncMasterSlot::ToStringStatus() {
              << "\r\n"
              << coordinator_.ToStringStatus();
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
-  int i = 0;
+  int32_t i = 0;
   for (const auto& slave_iter : slaves) {
     std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
     std::lock_guard l(slave_ptr->slave_mu);
@@ -432,7 +432,7 @@ Status SyncMasterSlot::GetInfo(std::string* info) {
   tmp_stream << "  Role: Master"
              << "\r\n";
   tmp_stream << "  connected_slaves: " << slaves.size() << "\r\n";
-  int i = 0;
+  int32_t i = 0;
   for (const auto& slave_iter : slaves) {
     std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
     std::lock_guard l(slave_ptr->slave_mu);
@@ -459,8 +459,8 @@ int32_t SyncMasterSlot::GenSessionId() {
   return session_id_++;
 }
 
-bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::string& db_name,
-                                         uint64_t slot_id, int session_id) {
+bool SyncMasterSlot::CheckSessionId(const std::string& ip, int32_t port, const std::string& db_name,
+                                         uint64_t slot_id, int32_t session_id) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << db_name << "_"
@@ -515,7 +515,7 @@ void SyncMasterSlot::CommitPreviousLogs(const uint32_t& term) {
   dummy_ptr->SetStage(Cmd::kExecuteStage);
 }
 
-std::shared_ptr<SlaveNode> SyncMasterSlot::GetSlaveNode(const std::string& ip, int port) {
+std::shared_ptr<SlaveNode> SyncMasterSlot::GetSlaveNode(const std::string& ip, int32_t port) {
   return coordinator_.SyncPros().GetSlaveNode(ip, port);
 }
 
@@ -614,7 +614,7 @@ const std::string& SyncSlaveSlot::MasterIp() {
   return m_info_.Ip();
 }
 
-int SyncSlaveSlot::MasterPort() {
+int32_t SyncSlaveSlot::MasterPort() {
   std::lock_guard l(slot_mu_);
   return m_info_.Port();
 }
@@ -654,14 +654,14 @@ void SyncSlaveSlot::ActivateRsync() {
 PikaReplicaManager::PikaReplicaManager() {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
-  int port = g_pika_conf->port() + kPortShiftReplServer;
+  int32_t port = g_pika_conf->port() + kPortShiftReplServer;
   pika_repl_client_ = std::make_unique<PikaReplClient>(3000, 60);
   pika_repl_server_ = std::make_unique<PikaReplServer>(ips, port, 3000);
   InitSlot();
 }
 
 void PikaReplicaManager::Start() {
-  int ret = 0;
+  int32_t ret = 0;
   ret = pika_repl_client_->Start();
   if (ret != net::kSuccess) {
     LOG(FATAL) << "Start Repl Client Error: " << ret
@@ -709,7 +709,7 @@ void PikaReplicaManager::InitSlot() {
   }
 }
 
-void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, uint32_t slot_id,
+void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int32_t port, uint32_t slot_id,
                                            const std::vector<WriteTask>& tasks) {
   std::lock_guard l(write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
@@ -718,9 +718,9 @@ void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, uint
   }
 }
 
-int PikaReplicaManager::ConsumeWriteQueue() {
+int32_t PikaReplicaManager::ConsumeWriteQueue() {
   std::unordered_map<std::string, std::vector<std::vector<WriteTask>>> to_send_map;
-  int counter = 0;
+  int32_t counter = 0;
   {
     std::lock_guard l(write_queue_mu_);
     for (auto& iter : write_queues_) {
@@ -728,7 +728,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
       std::unordered_map<uint32_t, std::queue<WriteTask>>& p_map = iter.second;
       for (auto& slot_queue : p_map) {
         std::queue<WriteTask>& queue = slot_queue.second;
-        for (int i = 0; i < kBinlogSendPacketNum; ++i) {
+        for (int32_t i = 0; i < kBinlogSendPacketNum; ++i) {
           if (queue.empty()) {
             break;
           }
@@ -757,7 +757,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
   std::vector<std::string> to_delete;
   for (auto& iter : to_send_map) {
     std::string ip;
-    int port = 0;
+    int32_t port = 0;
     if (!pstd::ParseIpPortString(iter.first, ip, port)) {
       LOG(WARNING) << "Parse ip_port error " << iter.first;
       continue;
@@ -783,7 +783,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
   return counter;
 }
 
-void PikaReplicaManager::DropItemInWriteQueue(const std::string& ip, int port) {
+void PikaReplicaManager::DropItemInWriteQueue(const std::string& ip, int32_t port) {
   std::lock_guard l(write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
   write_queues_.erase(index);
@@ -808,9 +808,9 @@ void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr
   pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, offset, db_name, slot_id);
 }
 
-void PikaReplicaManager::ReplServerRemoveClientConn(int fd) { pika_repl_server_->RemoveClientConn(fd); }
+void PikaReplicaManager::ReplServerRemoveClientConn(int32_t fd) { pika_repl_server_->RemoveClientConn(fd); }
 
-void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_port, int fd) {
+void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_port, int32_t fd) {
   pika_repl_server_->UpdateClientConnMap(ip_port, fd);
 }
 
@@ -832,7 +832,7 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Log
   return Status::OK();
 }
 
-bool PikaReplicaManager::CheckSlaveSlotState(const std::string& ip, const int port) {
+bool PikaReplicaManager::CheckSlaveSlotState(const std::string& ip, const int32_t port) {
   std::shared_ptr<SyncSlaveSlot> slot = nullptr;
   for (const auto& iter : g_pika_rm->sync_slave_slots_) {
     slot = iter.second;
@@ -846,7 +846,7 @@ bool PikaReplicaManager::CheckSlaveSlotState(const std::string& ip, const int po
   return true;
 }
 
-Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
+Status PikaReplicaManager::LostConnection(const std::string& ip, int32_t port) {
   std::shared_lock l(slots_rw_);
   for (auto& iter : sync_master_slots_) {
     std::shared_ptr<SyncMasterSlot> slot = iter.second;
@@ -897,7 +897,7 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::CheckSlotRole(const std::string& db, uint32_t slot_id, int* role) {
+Status PikaReplicaManager::CheckSlotRole(const std::string& db, uint32_t slot_id, int32_t* role) {
   std::shared_lock l(slots_rw_);
   *role = 0;
   SlotInfo p_info(db, slot_id);
@@ -920,7 +920,7 @@ Status PikaReplicaManager::CheckSlotRole(const std::string& db, uint32_t slot_id
 }
 
 Status PikaReplicaManager::GetSlotInfo(const std::string& db, uint32_t slot_id, std::string* info) {
-  int role = 0;
+  int32_t role = 0;
   std::string tmp_res;
   Status s = CheckSlotRole(db, slot_id, &role);
   if (!s.ok()) {
@@ -955,7 +955,7 @@ Status PikaReplicaManager::GetSlotInfo(const std::string& db, uint32_t slot_id, 
   return Status::OK();
 }
 
-Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int remote_port,
+Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int32_t remote_port,
                                          std::string* const local_ip) {
   std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   cli->set_connect_timeout(1500);
@@ -1118,7 +1118,7 @@ Status PikaReplicaManager::CloseReplClientConn(const std::string& ip, int32_t po
   return pika_repl_client_->Close(ip, port);
 }
 
-Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip, int port,
+Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip, int32_t port,
                                                        const std::vector<WriteTask>& tasks) {
   return pika_repl_server_->SendSlaveBinlogChips(ip, port, tasks);
 }
@@ -1292,13 +1292,13 @@ void PikaReplicaManager::FindCompleteReplica(std::vector<std::string>* replica) 
 void PikaReplicaManager::FindCommonMaster(std::string* master) {
   std::shared_lock l(slots_rw_);
   std::string common_master_ip;
-  int common_master_port = 0;
+  int32_t common_master_port = 0;
   for (auto& iter : sync_slave_slots_) {
     if (iter.second->State() != kConnected) {
       return;
     }
     std::string tmp_ip = iter.second->MasterIp();
-    int tmp_port = iter.second->MasterPort();
+    int32_t tmp_port = iter.second->MasterPort();
     if (common_master_ip.empty() && common_master_port == 0) {
       common_master_ip = tmp_ip;
       common_master_port = tmp_port;

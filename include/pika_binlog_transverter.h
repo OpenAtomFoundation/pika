@@ -26,9 +26,9 @@ enum BinlogType {
   TypeFirst = 1,
 };
 
-const int BINLOG_ITEM_HEADER_SIZE = 34;
-const int PADDING_BINLOG_PROTOCOL_SIZE = 22;
-const int SPACE_STROE_PARAMETER_LENGTH = 5;
+const int32_t BINLOG_ITEM_HEADER_SIZE = 34;
+const int32_t PADDING_BINLOG_PROTOCOL_SIZE = 22;
+const int32_t SPACE_STROE_PARAMETER_LENGTH = 5;
 
 class BinlogItem {
  public:

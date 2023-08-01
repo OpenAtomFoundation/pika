@@ -20,7 +20,7 @@ namespace storage {
 class BaseMetaFilter : public rocksdb::CompactionFilter {
  public:
   BaseMetaFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
+  bool Filter(int32_t level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
@@ -64,7 +64,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
         cf_handles_ptr_(cf_handles_ptr)
         {}
 
-  bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
+  bool Filter(int32_t level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedBaseDataKey parsed_base_data_key(key);
     TRACE("==========================START==========================");

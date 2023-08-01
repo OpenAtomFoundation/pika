@@ -23,7 +23,7 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_(db), cf_handles_ptr_(handles_ptr) {}
 
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
+  bool Filter(int32_t level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedZSetsScoreKey parsed_zsets_score_key(key);
     TRACE("==========================START==========================");

@@ -27,7 +27,7 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::noncopyable {
  public:
-  NetConn(int fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+  NetConn(int32_t fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
 #ifdef __ENABLE_SSL
   virtual ~NetConn();
 #else
@@ -45,15 +45,15 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 
   virtual ReadStatus GetRequest() = 0;
   virtual WriteStatus SendReply() = 0;
-  virtual int WriteResp(const std::string& resp) { return 0; }
+  virtual int32_t WriteResp(const std::string& resp) { return 0; }
 
   virtual void TryResizeBuffer() {}
 
-  int flags() const { return flags_; }
+  int32_t flags() const { return flags_; }
 
-  void set_fd(const int fd) { fd_ = fd; }
+  void set_fd(const int32_t fd) { fd_ = fd; }
 
-  int fd() const { return fd_; }
+  int32_t fd() const { return fd_; }
 
   std::string ip_port() const { return ip_port_; }
 
@@ -96,13 +96,13 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 #endif
 
  private:
-  int fd_ = -1;
+  int32_t fd_ = -1;
   std::string ip_port_;
   bool is_reply_ = false;
   bool is_writable_ = false;
   bool close_ = false;
   struct timeval last_interaction_;
-  int flags_ = 0;
+  int32_t flags_ = 0;
   std::string name_;
 
 #ifdef __ENABLE_SSL
@@ -122,7 +122,7 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 class ConnFactory {
  public:
   virtual ~ConnFactory() = default;
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_private_data, /* Has set in ThreadEnvHandle */
                                               NetMultiplexer* net_mpx = nullptr) const = 0;
 };

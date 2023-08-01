@@ -20,17 +20,17 @@ void CRC32TableInit(uint32_t poly);
 
 extern void InitCRC32Table();
 
-extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
-extern uint32_t CRC32CheckSum(const char *buf, int len);
+extern uint32_t CRC32Update(uint32_t crc, const char *buf, int32_t len);
+extern uint32_t CRC32CheckSum(const char *buf, int32_t len);
 
-int GetSlotID(const std::string &str);
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot);
+int32_t GetSlotID(const std::string &str);
+int32_t GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot);
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot);
 void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
-std::string GetSlotKey(int slot);
+int32_t DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
+std::string GetSlotKey(int32_t slot);
 std::string GetSlotsTagKey(uint32_t crc);
-int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
+int32_t GetSlotsID(const std::string &str, uint32_t *pcrc, int32_t *phastag);
 void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot);
 
 class PikaMigrate {
@@ -38,20 +38,20 @@ class PikaMigrate {
   PikaMigrate();
   virtual ~PikaMigrate();
 
-  int MigrateKey(const std::string &host, const int port, int timeout, const std::string &key, const char type,
+  int32_t MigrateKey(const std::string &host, const int32_t port, int32_t timeout, const std::string &key, const char type,
                  std::string &detail, const std::shared_ptr<Slot>& slot);
   void CleanMigrateClient();
 
   void Lock() {
     mutex_.lock();
   }
-  int Trylock() {
+  int32_t Trylock() {
     return mutex_.try_lock();
   }
   void Unlock() {
     mutex_.unlock();
   }
-  net::NetCli *GetMigrateClient(const std::string &host, const int port, int timeout);
+  net::NetCli *GetMigrateClient(const std::string &host, const int32_t port, int32_t timeout);
 
  private:
   std::map<std::string, void *> migrate_clients_;
@@ -60,23 +60,23 @@ class PikaMigrate {
   void KillMigrateClient(net::NetCli *migrate_cli);
   void KillAllMigrateClient();
 
-  int MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
+  int32_t MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
                   const std::shared_ptr<Slot>& slot);
-  bool MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::string &detail);
+  bool MigrateRecv(net::NetCli *migrate_cli, int32_t need_receive, std::string &detail);
 
-  int ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
   int64_t TTLByType(const char key_type, const std::string &key, const std::shared_ptr<Slot>& slot);
-  int ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int32_t ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
   bool SetTTL(const std::string &key, std::string &wbuf_str, int64_t ttl);
 };
 
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:
-  SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsMgrtTagSlotCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -93,7 +93,7 @@ class SlotsMgrtTagSlotCmd : public Cmd {
 
 class SlotsMgrtTagSlotAsyncCmd : public Cmd {
  public:
-  SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){}
+  SlotsMgrtTagSlotAsyncCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override{};
@@ -112,7 +112,7 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
 
 class SlotsMgrtTagOneCmd : public Cmd {
  public:
-  SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsMgrtTagOneCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -125,12 +125,12 @@ class SlotsMgrtTagOneCmd : public Cmd {
   int64_t slot_id_ = 0;
   char key_type_ = '\0';
   void DoInitial() override;
-  int KeyTypeCheck(const std::shared_ptr<Slot>& slot);
+  int32_t KeyTypeCheck(const std::shared_ptr<Slot>& slot);
 };
 
 class SlotsMgrtAsyncStatusCmd : public Cmd {
  public:
-  SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsMgrtAsyncStatusCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -142,7 +142,7 @@ class SlotsMgrtAsyncStatusCmd : public Cmd {
 
 class SlotsInfoCmd : public Cmd {
  public:
-  SlotsInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsInfoCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -156,7 +156,7 @@ class SlotsInfoCmd : public Cmd {
 
 class SlotsMgrtAsyncCancelCmd : public Cmd {
  public:
-  SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsMgrtAsyncCancelCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -167,7 +167,7 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
 
 class SlotsDelCmd : public Cmd {
  public:
-  SlotsDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsDelCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -179,7 +179,7 @@ class SlotsDelCmd : public Cmd {
 
 class SlotsHashKeyCmd : public Cmd {
  public:
-  SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsHashKeyCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -191,7 +191,7 @@ class SlotsHashKeyCmd : public Cmd {
 
 class SlotsScanCmd : public Cmd {
  public:
-  SlotsScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsScanCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -215,7 +215,7 @@ class SlotsScanCmd : public Cmd {
 * */
 class SlotsMgrtExecWrapperCmd : public Cmd {
  public:
-  SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsMgrtExecWrapperCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -229,7 +229,7 @@ class SlotsMgrtExecWrapperCmd : public Cmd {
 
 class SlotsReloadCmd : public Cmd {
  public:
-  SlotsReloadCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsReloadCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -240,7 +240,7 @@ class SlotsReloadCmd : public Cmd {
 
 class SlotsReloadOffCmd : public Cmd {
  public:
-  SlotsReloadOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsReloadOffCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot>slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -251,19 +251,19 @@ class SlotsReloadOffCmd : public Cmd {
 
 class SlotsCleanupCmd : public Cmd {
  public:
-  SlotsCleanupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsCleanupCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsCleanupCmd(*this); }
-  std::vector<int> cleanup_slots_;
+  std::vector<int32_t> cleanup_slots_;
  private:
   void DoInitial() override;
 };
 
 class SlotsCleanupOffCmd : public Cmd {
  public:
-  SlotsCleanupOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlotsCleanupOffCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

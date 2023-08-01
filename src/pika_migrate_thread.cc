@@ -24,7 +24,7 @@ extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // do migrate key to dest pika server
-static int doMigrate(net::NetCli *cli, std::string send_str) {
+static int32_t doMigrate(net::NetCli *cli, std::string send_str) {
   pstd::Status s;
   s = cli->Send(&send_str);
   if (!s.ok()) {
@@ -35,7 +35,7 @@ static int doMigrate(net::NetCli *cli, std::string send_str) {
 }
 
 // do migrate cli auth
-static int doAuth(net::NetCli *cli) {
+static int32_t doAuth(net::NetCli *cli) {
   net::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string requirepass = g_pika_conf->requirepass();
@@ -67,7 +67,7 @@ static int doAuth(net::NetCli *cli) {
   return 0;
 }
 
-static int migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::DataType data_type,
+static int32_t migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::DataType data_type,
                          const std::shared_ptr<Slot>& slot) {
   net::RedisCmdArgsType argv;
   std::string send_str;
@@ -96,7 +96,7 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::Data
 }
 
 // get set key all values
-static int setGetall(const std::string& key, std::vector<std::string> *members, const std::shared_ptr<Slot>& slot) {
+static int32_t setGetall(const std::string& key, std::vector<std::string> *members, const std::shared_ptr<Slot>& slot) {
   rocksdb::Status s = slot->db()->SMembers(key, members);
   if (!s.ok()) {
     if (s.IsNotFound()) {
@@ -110,7 +110,7 @@ static int setGetall(const std::string& key, std::vector<std::string> *members, 
   return 1;
 }
 
-static int MigrateKv(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
+static int32_t MigrateKv(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
   std::string value;
   rocksdb::Status s = slot->db()->Get(key, &value);
   if (!s.ok()) {
@@ -130,14 +130,14 @@ static int MigrateKv(net::NetCli *cli, const std::string& key, const std::shared
   argv.emplace_back(value);
   net::SerializeRedisCommand(argv, &send_str);
 
-  int send_num = 0;
+  int32_t send_num = 0;
   if (doMigrate(cli, send_str) < 0) {
     return -1;
   } else {
     ++send_num;
   }
 
-  int r;
+  int32_t r;
   if (0 > (r = migrateKeyTTl(cli, key, storage::kStrings, slot))) {
     return -1;
   } else {
@@ -147,8 +147,8 @@ static int MigrateKv(net::NetCli *cli, const std::string& key, const std::shared
   return send_num;
 }
 
-static int MigrateHash(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
-  int send_num = 0;
+static int32_t MigrateHash(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
+  int32_t send_num = 0;
   int64_t cursor = 0;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s;
@@ -174,7 +174,7 @@ static int MigrateHash(net::NetCli *cli, const std::string& key, const std::shar
   } while (cursor != 0 && s.ok());
 
   if (send_num > 0) {
-    int r;
+    int32_t r;
     if ((r = migrateKeyTTl(cli, key, storage::kHashes, slot)) < 0) {
       return -1;
     } else {
@@ -185,9 +185,9 @@ static int MigrateHash(net::NetCli *cli, const std::string& key, const std::shar
   return send_num;
 }
 
-static int MigrateList(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
+static int32_t MigrateList(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
   // del old key, before migrate list; prevent redo when failed
-  int send_num = 0;
+  int32_t send_num = 0;
   net::RedisCmdArgsType argv;
   std::string send_str;
   argv.emplace_back("DEL");
@@ -209,7 +209,7 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
       argv.emplace_back("RPUSH");
       argv.emplace_back(key);
 
-      for (int i = 0; iter != values.end() && i < MAX_MEMBERS_NUM; ++iter, ++i) {
+      for (int32_t i = 0; iter != values.end() && i < MAX_MEMBERS_NUM; ++iter, ++i) {
         argv.emplace_back(*iter);
       }
 
@@ -224,7 +224,7 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
 
   // has send del key command
   if (send_num > 1) {
-    int r;
+    int32_t r;
     if (0 > (r = migrateKeyTTl(cli, key, storage::kLists, slot))) {
       return -1;
     } else {
@@ -235,8 +235,8 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
   return send_num;
 }
 
-static int MigrateSet(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
-  int send_num = 0;
+static int32_t MigrateSet(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
+  int32_t send_num = 0;
   int64_t cursor = 0;
   std::vector<std::string> members;
   rocksdb::Status s;
@@ -262,7 +262,7 @@ static int MigrateSet(net::NetCli *cli, const std::string& key, const std::share
   } while (cursor != 0 && s.ok());
 
   if (0 < send_num) {
-    int r;
+    int32_t r;
     if (0 > (r = migrateKeyTTl(cli, key, storage::kSets, slot))) {
       return -1;
     } else {
@@ -273,8 +273,8 @@ static int MigrateSet(net::NetCli *cli, const std::string& key, const std::share
   return send_num;
 }
 
-static int MigrateZset(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
-  int send_num = 0;
+static int32_t MigrateZset(net::NetCli *cli, const std::string& key, const std::shared_ptr<Slot>& slot) {
+  int32_t send_num = 0;
   int64_t cursor = 0;
   std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s;
@@ -301,7 +301,7 @@ static int MigrateZset(net::NetCli *cli, const std::string& key, const std::shar
   } while (cursor != 0 && s.ok());
 
   if (send_num > 0) {
-    int r;
+    int32_t r;
     if ((r = migrateKeyTTl(cli, key, storage::kZSets, slot)) < 0) {
       return -1;
     } else {
@@ -313,7 +313,7 @@ static int MigrateZset(net::NetCli *cli, const std::string& key, const std::shar
 }
 
 // get list key all values
-static int listGetall(const std::string& key, std::vector<std::string> *values, const std::shared_ptr<Slot>& slot) {
+static int32_t listGetall(const std::string& key, std::vector<std::string> *values, const std::shared_ptr<Slot>& slot) {
   rocksdb::Status s = slot->db()->LRange(key, 0, -1, values);
   if (!s.ok()) {
     if (s.IsNotFound()) {
@@ -378,8 +378,8 @@ bool PikaParseSendThread::Init(const std::string &ip, int64_t port, int64_t time
 
 void PikaParseSendThread::ExitThread(void) { should_exit_ = true; }
 
-int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async) {
-  int send_num;
+int32_t PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async) {
+  int32_t send_num;
   switch (key_type) {
     case 'k':
       if (0 > (send_num = MigrateKv(cli_, key, slot_))) {
@@ -578,7 +578,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
       slot_ = slot;
 
       ResetThread();
-      int ret = StartThread();
+      int32_t ret = StartThread();
       if (0 != ret) {
         LOG(ERROR) << "PikaMigrateThread::ReqMigrateBatch StartThread failed. "
                    << " ret=" << ret;
@@ -596,10 +596,10 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
   return false;
 }
 
-int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot) {
+int32_t PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot) {
   std::unique_lock lm(migrator_mutex_);
 
-  int slot_id = GetSlotID(key);
+  int32_t slot_id = GetSlotID(key);
   std::vector<std::string> type_str(1);
   char key_type;
   rocksdb::Status s = slot->db()->GetType(key, true, type_str);
@@ -638,7 +638,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_p
   // if the migrate thread exit, start it
   if (!is_migrating_) {
     ResetThread();
-    int ret = StartThread();
+    int32_t ret = StartThread();
     if (0 != ret) {
       LOG(ERROR) << "PikaMigrateThread::ReqMigrateOne StartThread failed. "
                  << " ret=" << ret;
@@ -718,7 +718,7 @@ void PikaMigrateThread::OnTaskFailed() {
 void PikaMigrateThread::AddResponseNum(int32_t response_num) { response_num_ += response_num; }
 
 void PikaMigrateThread::ResetThread(void) {
-  if (0 != thread_id()) {
+  if (!pthread_equal(thread_id(), pthread_t(0))) {
     JoinThread();
   }
 }
@@ -811,7 +811,7 @@ bool PikaMigrateThread::CreateParseSendThreads(int32_t dispatch_num) {
       DestroyParseSendThreads();
       return false;
     } else {
-      int ret = worker->StartThread();
+      int32_t ret = worker->StartThread();
       if (0 != ret) {
         LOG(INFO) << "PikaMigrateThread::CreateParseSendThreads start work thread failed ret=" << ret;
         delete worker;

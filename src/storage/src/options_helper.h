@@ -21,7 +21,7 @@ enum class MemberType {
 };
 
 struct MemberTypeInfo {
-  int offset;
+  int32_t offset;
   MemberType type;
 };
 
@@ -29,9 +29,9 @@ struct MemberTypeInfo {
 // http://en.cppreference.com/w/cpp/concept/StandardLayoutType
 // https://gist.github.com/graphitemaster/494f21190bb2c63c5516
 template <typename T1, typename T2>
-inline int offset_of(T1 T2::*member) {
+inline int32_t offset_of(T1 T2::*member) {
   static T2 obj;
-  return int(size_t(&(obj.*member)) - size_t(&obj));
+  return int32_t(size_t(&(obj.*member)) - size_t(&obj));
 }
 
 static std::unordered_map<std::string, MemberTypeInfo> mutable_db_options_member_type_info = {

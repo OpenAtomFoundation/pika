@@ -71,7 +71,7 @@ Storage::~Storage() {
     rocksdb::CancelAllBackgroundWork(zsets_db_->GetDB(), true);
   }
 
-  int ret = 0;
+  int32_t ret = 0;
   if ((ret = pthread_join(bg_tasks_thread_id_, nullptr)) != 0) {
     LOG(ERROR) << "pthread_join failed with bgtask thread error " << ret;
   }
@@ -1482,7 +1482,7 @@ static void* StartBGThreadWrapper(void* arg) {
 }
 
 Status Storage::StartBGThread() {
-  int result = pthread_create(&bg_tasks_thread_id_, nullptr, StartBGThreadWrapper, this);
+  int32_t result = pthread_create(&bg_tasks_thread_id_, nullptr, StartBGThreadWrapper, this);
   if (result != 0) {
     char msg[128];
     snprintf(msg, sizeof(msg), "pthread create: %s", strerror(result));
@@ -1616,7 +1616,7 @@ Status Storage::SetSmallCompactionThreshold(uint32_t small_compaction_threshold)
 }
 
 std::string Storage::GetCurrentTaskType() {
-  int type = current_task_type_;
+  int32_t type = current_task_type_;
   switch (type) {
     case kCleanAll:
       return "All";

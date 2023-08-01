@@ -399,7 +399,7 @@ void MgetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
     if (hint_keys.hints.size() != vss.size()) {
       res_.SetRes(CmdRes::kErrOther, "internal Mget return size invalid");
     }
-    const std::vector<int>& hints = hint_keys.hints;
+    const std::vector<int32_t>& hints = hint_keys.hints;
     for (size_t i = 0; i < vss.size(); ++i) {
       split_res_[hints[i]] = vss[i];
     }
@@ -661,7 +661,7 @@ void MsetCmd::Do(std::shared_ptr<Slot> slot) {
 void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   std::vector<storage::KeyValue> kvs;
   const std::vector<std::string>& keys = hint_keys.keys;
-  const std::vector<int>& hints = hint_keys.hints;
+  const std::vector<int32_t>& hints = hint_keys.hints;
   if (keys.size() != hints.size()) {
     res_.SetRes(CmdRes::kErrOther, "SplitError hint_keys size not match");
   }
@@ -1236,7 +1236,7 @@ void ScanCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendArrayLen(2);
 
   char buf[32];
-  int len = pstd::ll2string(buf, sizeof(buf), cursor_ret);
+  int32_t len = pstd::ll2string(buf, sizeof(buf), cursor_ret);
   res_.AppendStringLen(len);
   res_.AppendContent(buf);
 

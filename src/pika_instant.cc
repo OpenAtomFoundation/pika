@@ -7,12 +7,13 @@
 #include "../include/pika_instant.h"
 
 /* Return the mean of all the samples. */
-double Instant::getInstantaneousMetric(std::string metric) {
+double Instant::getInstantaneousMetric(const std::string& metric) {
   size_t j;
-  size_t sum = 0;
+  double sum = 0;
 
-  for (j = 0; j < STATS_METRIC_SAMPLES; j++)
+  for (j = 0; j < STATS_METRIC_SAMPLES; j++) {
     sum += inst_metrics_[metric].samples[j];
+}
 
   return sum / STATS_METRIC_SAMPLES;
 }
@@ -26,11 +27,11 @@ double Instant::getInstantaneousMetric(std::string metric) {
  * current_value - The dividend
  * current_base - The divisor
  * */
-void Instant::trackInstantaneousMetric(std::string metric, size_t current_value, size_t current_base, size_t factor) {
+void Instant::trackInstantaneousMetric(const std::string& metric, size_t current_value, size_t current_base, size_t factor) {
   if (inst_metrics_[metric].last_sample_base > 0) {
     size_t base = current_base - inst_metrics_[metric].last_sample_base;
     size_t value = current_value - inst_metrics_[metric].last_sample_value;
-    size_t avg = base > 0 ? (value * factor / base) : 0;
+    double avg = base > 0 ? (static_cast<double>(value) * static_cast<double>(factor) / static_cast<double>(base)) : 0.0;
     inst_metrics_[metric].samples[inst_metrics_[metric].idx] = avg;
     inst_metrics_[metric].idx++;
     inst_metrics_[metric].idx %= STATS_METRIC_SAMPLES;

@@ -30,7 +30,7 @@ class PikaConf : public pstd::BaseConf {
   ~PikaConf() override = default;
 
   // Getter
-  int port() {
+  int32_t port() {
     std::shared_lock l(rwlock_);
     return port_;
   }
@@ -38,7 +38,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slaveof_;
   }
-  int slave_priority() {
+  int32_t slave_priority() {
     std::shared_lock l(rwlock_);
     return slave_priority_;
   }
@@ -46,15 +46,15 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return write_binlog_;
   }
-  int thread_num() {
+  int32_t thread_num() {
     std::shared_lock l(rwlock_);
     return thread_num_;
   }
-  int thread_pool_size() {
+  int32_t thread_pool_size() {
     std::shared_lock l(rwlock_);
     return thread_pool_size_;
   }
-  int sync_thread_num() {
+  int32_t sync_thread_num() {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
   }
@@ -74,7 +74,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return db_sync_path_;
   }
-  int db_sync_speed() {
+  int32_t db_sync_speed() {
     std::shared_lock l(rwlock_);
     return db_sync_speed_;
   }
@@ -118,7 +118,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_write_buffer_size_;
   }
-  int max_write_buffer_number() {
+  int32_t max_write_buffer_number() {
     std::shared_lock l(rwlock_);
     return max_write_buffer_num_;
   }
@@ -126,11 +126,11 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_client_response_size_;
   }
-  int timeout() {
+  int32_t timeout() {
     std::shared_lock l(rwlock_);
     return timeout_;
   }
-  int binlog_writer_num() {
+  int32_t binlog_writer_num() {
     std::shared_lock l(rwlock_);
     return binlog_writer_num_;
   }
@@ -162,7 +162,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return bgsave_path_;
   }
-  int expire_dump_days() {
+  int32_t expire_dump_days() {
     std::shared_lock l(rwlock_);
     return expire_dump_days_;
   }
@@ -183,11 +183,11 @@ class PikaConf : public pstd::BaseConf {
     return user_blacklist_;
   }
   bool classic_mode() { return classic_mode_.load(); }
-  int databases() {
+  int32_t databases() {
     std::shared_lock l(rwlock_);
     return databases_;
   }
-  int default_slot_num() {
+  int32_t default_slot_num() {
     std::shared_lock l(rwlock_);
     return default_slot_num_;
   }
@@ -203,31 +203,31 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compression_;
   }
-  int target_file_size_base() {
+  int32_t target_file_size_base() {
     std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
-  int max_cache_statistic_keys() {
+  int32_t max_cache_statistic_keys() {
     std::shared_lock l(rwlock_);
     return max_cache_statistic_keys_;
   }
-  int small_compaction_threshold() {
+  int32_t small_compaction_threshold() {
     std::shared_lock l(rwlock_);
     return small_compaction_threshold_;
   }
-  int max_background_flushes() {
+  int32_t max_background_flushes() {
     std::shared_lock l(rwlock_);
     return max_background_flushes_;
   }
-  int max_background_compactions() {
+  int32_t max_background_compactions() {
     std::shared_lock l(rwlock_);
     return max_background_compactions_;
   }
-  int max_cache_files() {
+  int32_t max_cache_files() {
     std::shared_lock l(rwlock_);
     return max_cache_files_;
   }
-  int max_bytes_for_level_multiplier() {
+  int32_t max_bytes_for_level_multiplier() {
     std::shared_lock l(rwlock_);
     return max_bytes_for_level_multiplier_;
   }
@@ -263,11 +263,11 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return level_compaction_dynamic_level_bytes_;
   }
-  int expire_logs_nums() {
+  int32_t expire_logs_nums() {
     std::shared_lock l(rwlock_);
     return expire_logs_nums_;
   }
-  int expire_logs_days() {
+  int32_t expire_logs_days() {
     std::shared_lock l(rwlock_);
     return expire_logs_days_;
   }
@@ -279,17 +279,17 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slave_read_only_;
   }
-  int maxclients() {
+  int32_t maxclients() {
     std::shared_lock l(rwlock_);
     return maxclients_;
   }
-  int root_connection_num() {
+  int32_t root_connection_num() {
     std::shared_lock l(rwlock_);
     return root_connection_num_;
   }
   bool slowlog_write_errorlog() { return slowlog_write_errorlog_.load(); }
-  int slowlog_slower_than() { return slowlog_log_slower_than_.load(); }
-  int slowlog_max_len() {
+  int32_t slowlog_slower_than() { return slowlog_log_slower_than_.load(); }
+  int32_t slowlog_max_len() {
     std::shared_lock l(rwlock_);
     return slowlog_max_len_;
   }
@@ -297,10 +297,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return network_interface_;
   }
-  int sync_window_size() { return sync_window_size_.load(); }
-  int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
-  int consensus_level() { return consensus_level_.load(); }
-  int replication_num() { return replication_num_.load(); }
+  int32_t sync_window_size() { return sync_window_size_.load(); }
+  int32_t max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
+  int32_t consensus_level() { return consensus_level_.load(); }
+  int32_t replication_num() { return replication_num_.load(); }
   int64_t rate_limiter_bandwidth() {
     std::shared_lock l(rwlock_);
     return rate_limiter_bandwidth_;
@@ -331,27 +331,27 @@ class PikaConf : public pstd::BaseConf {
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
-  int binlog_file_size() { return binlog_file_size_; }
+  int32_t binlog_file_size() { return binlog_file_size_; }
   PikaMeta* local_meta() { return local_meta_.get(); }
   std::vector<rocksdb::CompressionType> compression_per_level();
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
 
   // Setter
-  void SetPort(const int value) {
+  void SetPort(const int32_t value) {
     std::lock_guard l(rwlock_);
     port_ = value;
   }
-  void SetThreadNum(const int value) {
+  void SetThreadNum(const int32_t value) {
     std::lock_guard l(rwlock_);
     thread_num_ = value;
   }
-  void SetTimeout(const int value) {
+  void SetTimeout(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("timeout", std::to_string(value));
     timeout_ = value;
   }
-  void SetThreadPoolSize(const int value) {
+  void SetThreadPoolSize(const int32_t value) {
     std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
@@ -365,7 +365,7 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("master-run-id", value);
     master_run_id_ = value;
   }
-  void SetSlavePriority(const int value) {
+  void SetSlavePriority(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slave-priority", std::to_string(value));
     slave_priority_ = value;
@@ -375,17 +375,17 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("write-binlog", value);
     write_binlog_ = value == "yes";
   }
-  void SetMaxCacheStatisticKeys(const int value) {
+  void SetMaxCacheStatisticKeys(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-cache-statistic-keys", std::to_string(value));
     max_cache_statistic_keys_ = value;
   }
-  void SetSmallCompactionThreshold(const int value) {
+  void SetSmallCompactionThreshold(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("small-compaction-threshold", std::to_string(value));
     small_compaction_threshold_ = value;
   }
-  void SetMaxClientResponseSize(const int value) {
+  void SetMaxClientResponseSize(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-client-response-size", std::to_string(value));
     max_client_response_size_ = value;
@@ -397,7 +397,7 @@ class PikaConf : public pstd::BaseConf {
       bgsave_path_ += "/";
     }
   }
-  void SetExpireDumpDays(const int value) {
+  void SetExpireDumpDays(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("dump-expire", std::to_string(value));
     expire_dump_days_ = value;
@@ -439,22 +439,22 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
   }
-  void SetExpireLogsNums(const int value) {
+  void SetExpireLogsNums(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
     expire_logs_nums_ = value;
   }
-  void SetExpireLogsDays(const int value) {
+  void SetExpireLogsDays(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-days", std::to_string(value));
     expire_logs_days_ = value;
   }
-  void SetMaxConnection(const int value) {
+  void SetMaxConnection(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("maxclients", std::to_string(value));
     maxclients_ = value;
   }
-  void SetRootConnectionNum(const int value) {
+  void SetRootConnectionNum(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("root-connection-num", std::to_string(value));
     root_connection_num_ = value;
@@ -464,17 +464,17 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("slowlog-write-errorlog", value ? "yes" : "no");
     slowlog_write_errorlog_.store(value);
   }
-  void SetSlowlogSlowerThan(const int value) {
+  void SetSlowlogSlowerThan(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slowlog-log-slower-than", std::to_string(value));
     slowlog_log_slower_than_.store(value);
   }
-  void SetSlowlogMaxLen(const int value) {
+  void SetSlowlogMaxLen(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slowlog-max-len", std::to_string(value));
     slowlog_max_len_ = value;
   }
-  void SetDbSyncSpeed(const int value) {
+  void SetDbSyncSpeed(const int32_t value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("db-sync-speed", std::to_string(value));
     db_sync_speed_ = value;
@@ -504,35 +504,35 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("min-check-resume-ratio", std::to_string(value));
     min_check_resume_ratio_ = value;
   }
-  void SetSyncWindowSize(const int& value) {
+  void SetSyncWindowSize(const int32_t& value) {
     TryPushDiffCommands("sync-window-size", std::to_string(value));
     sync_window_size_.store(value);
   }
-  void SetMaxConnRbufSize(const int& value) {
+  void SetMaxConnRbufSize(const int32_t& value) {
     TryPushDiffCommands("max-conn-rbuf-size", std::to_string(value));
     max_conn_rbuf_size_.store(value);
   }
-  void SetMaxCacheFiles(const int& value) {
+  void SetMaxCacheFiles(const int32_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-cache-files", std::to_string(value));
     max_cache_files_ = value;
   }
-  void SetMaxBackgroudCompactions(const int& value) {
+  void SetMaxBackgroudCompactions(const int32_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-background-compactions", std::to_string(value));
     max_background_compactions_ = value;
   }
-  void SetWriteBufferSize(const int& value) {
+  void SetWriteBufferSize(const int32_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
     write_buffer_size_ = value;
   }
-  void SetMaxWriteBufferNumber(const int& value) {
+  void SetMaxWriteBufferNumber(const int32_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-write-buffer-num", std::to_string(value));
     max_write_buffer_num_ = value;
   }
-  void SetArenaBlockSize(const int& value) {
+  void SetArenaBlockSize(const int32_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("arena-block-size", std::to_string(value));
     arena_block_size_ = value;
@@ -553,24 +553,24 @@ class PikaConf : public pstd::BaseConf {
   pstd::Status DelDB(const std::string& db_name);
   pstd::Status DelDBSanityCheck(const std::string& db_name);
 
-  int Load();
-  int ConfigRewrite();
+  int32_t Load();
+  int32_t ConfigRewrite();
 
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
-  int port_ = 0;
+  int32_t port_ = 0;
   std::string slaveof_;
-  int slave_priority_ = 0;
-  int thread_num_ = 0;
-  int thread_pool_size_ = 0;
-  int sync_thread_num_ = 0;
+  int32_t slave_priority_ = 0;
+  int32_t thread_num_ = 0;
+  int32_t thread_pool_size_ = 0;
+  int32_t sync_thread_num_ = 0;
   std::string log_path_;
   std::string log_level_;
   std::string db_path_;
   std::string db_sync_path_;
-  int expire_dump_days_ = 3;
-  int db_sync_speed_ = 0;
+  int32_t expire_dump_days_ = 3;
+  int32_t db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
   int64_t resume_check_interval_ = 60; // seconds
@@ -581,10 +581,10 @@ class PikaConf : public pstd::BaseConf {
   int64_t slotmigrate_thread_num_ = 0;
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
-  int max_write_buffer_num_ = 0;
+  int32_t max_write_buffer_num_ = 0;
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
-  int timeout_ = 0;
+  int32_t timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
   std::string master_run_id_;
@@ -593,8 +593,8 @@ class PikaConf : public pstd::BaseConf {
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
-  int databases_ = 0;
-  int default_slot_num_ = 0;
+  int32_t databases_ = 0;
+  int32_t default_slot_num_ = 0;
   std::vector<DBStruct> db_structs_;
   std::string default_db_;
   std::string bgsave_path_;
@@ -603,24 +603,24 @@ class PikaConf : public pstd::BaseConf {
 
   std::string compression_;
   std::string compression_per_level_;
-  int maxclients_ = 0;
-  int root_connection_num_ = 0;
+  int32_t maxclients_ = 0;
+  int32_t root_connection_num_ = 0;
   std::atomic<bool> slowlog_write_errorlog_;
-  std::atomic<int> slowlog_log_slower_than_;
+  std::atomic<int32_t> slowlog_log_slower_than_;
   std::atomic<bool> slotmigrate_;
-  std::atomic<int> binlog_writer_num_;
-  int slowlog_max_len_ = 0;
-  int expire_logs_days_ = 0;
-  int expire_logs_nums_ = 0;
+  std::atomic<int32_t> binlog_writer_num_;
+  int32_t slowlog_max_len_ = 0;
+  int32_t expire_logs_days_ = 0;
+  int32_t expire_logs_nums_ = 0;
   bool slave_read_only_ = false;
   std::string conf_path_;
 
-  int max_cache_statistic_keys_ = 0;
-  int small_compaction_threshold_ = 0;
-  int max_background_flushes_ = 0;
-  int max_background_compactions_ = 0;
-  int max_cache_files_ = 0;
-  int max_bytes_for_level_multiplier_ = 0;
+  int32_t max_cache_statistic_keys_ = 0;
+  int32_t small_compaction_threshold_ = 0;
+  int32_t max_background_flushes_ = 0;
+  int32_t max_background_compactions_ = 0;
+  int32_t max_cache_files_ = 0;
+  int32_t max_bytes_for_level_multiplier_ = 0;
   int64_t block_size_ = 0;
   int64_t block_cache_ = 0;
   int64_t num_shard_bits_ = 0;
@@ -634,10 +634,10 @@ class PikaConf : public pstd::BaseConf {
   int64_t rate_limiter_fairness_ = 10;
   bool rate_limiter_auto_tuned_ = true;
 
-  std::atomic<int> sync_window_size_;
-  std::atomic<int> max_conn_rbuf_size_;
-  std::atomic<int> consensus_level_;
-  std::atomic<int> replication_num_;
+  std::atomic<int32_t> sync_window_size_;
+  std::atomic<int32_t> max_conn_rbuf_size_;
+  std::atomic<int32_t> consensus_level_;
+  std::atomic<int32_t> replication_num_;
 
   std::string network_interface_;
 
@@ -649,8 +649,8 @@ class PikaConf : public pstd::BaseConf {
   // Critical configure items
   //
   bool write_binlog_ = false;
-  int target_file_size_base_ = 0;
-  int binlog_file_size_ = 0;
+  int32_t target_file_size_base_ = 0;
+  int32_t binlog_file_size_ = 0;
 
   // rocksdb blob
   bool enable_blob_files_ = false;

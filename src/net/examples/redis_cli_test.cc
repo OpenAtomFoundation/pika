@@ -6,20 +6,20 @@
 
 using namespace net;
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 3) {
     printf("Usage: ./redis_cli ip port\n");
     exit(0);
   }
 
   std::string ip(argv[1]);
-  int port = atoi(argv[2]);
+  int32_t port = atoi(argv[2]);
 
   std::string str;
-  int i = 5;
+  int32_t i = 5;
 
   printf("\nTest Serialize\n");
-  int ret = net::SerializeRedisCommand(&str, "HSET %s %d", "key", i);
+  int32_t ret = net::SerializeRedisCommand(&str, "HSET %s %d", "key", i);
   printf("   1. Serialize by va return %d, (%s)\n", ret, str.c_str());
 
   RedisCmdArgsType vec;
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
   net::RedisCmdArgsType redis_argv;
   printf("\nTest Send and Recv Ping\n");
   std::string ping = "*1\r\n$4\r\nping\r\n";
-  for (int i = 0; i < 1; i++) {
+  for (int32_t i = 0; i < 1; i++) {
     s = rcli->Send(&ping);
     printf("Send %d: %s\n", i, s.ToString().c_str());
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
   net::SerializeRedisCommand(&str, "MGET a  b  c  d ");
   printf("Send mget parse (%s)\n", str.c_str());
 
-  for (int si = 0; si < 2; si++) {
+  for (int32_t si = 0; si < 2; si++) {
     s = rcli->Send(&str);
     printf("Send mget case 1: i=%d, return %s\n", si, s.ToString().c_str());
 
@@ -103,12 +103,12 @@ int main(int argc, char* argv[]) {
   net::SerializeRedisCommand(&str, "MGET a  b  c  d ");
   printf("\nSend mget parse (%s)\n", str.c_str());
 
-  for (int si = 0; si < 2; si++) {
+  for (int32_t si = 0; si < 2; si++) {
     s = rcli->Send(&str);
     printf("Send mget case 2: i=%d, return %s\n", si, s.ToString().c_str());
   }
 
-  for (int si = 0; si < 2; si++) {
+  for (int32_t si = 0; si < 2; si++) {
     s = rcli->Recv(&redis_argv);
     printf("Recv mget case 1: i=%d, return %s with %lu elements\n", si, s.ToString().c_str(), redis_argv.size());
     for (size_t i = 0; i < redis_argv.size(); i++) {

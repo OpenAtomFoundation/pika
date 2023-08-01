@@ -48,7 +48,7 @@ class BackendHandle {
   /*
    *  FdTimeoutHandle(...) will be invoked after connection timeout.
    */
-  virtual void FdTimeoutHandle(int fd, const std::string& ip_port) const {
+  virtual void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -56,7 +56,7 @@ class BackendHandle {
   /*
    *  FdClosedHandle(...) will be invoked before connection closed.
    */
-  virtual void FdClosedHandle(int fd, const std::string& ip_port) const {
+  virtual void FdClosedHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -74,7 +74,7 @@ class BackendHandle {
    *  CreateWorkerSpecificData(...) will be invoked in StartThread() routine.
    *  'data' pointer should be assigned.
    */
-  virtual int CreateWorkerSpecificData(void** data) const {
+  virtual int32_t CreateWorkerSpecificData(void** data) const {
     UNUSED(data);
     return 0;
   }
@@ -85,7 +85,7 @@ class BackendHandle {
    *  resources assigned in CreateWorkerSpecificData(...) should be deleted in
    *  this handle
    */
-  virtual int DeleteWorkerSpecificData(void* data) const {
+  virtual int32_t DeleteWorkerSpecificData(void* data) const {
     UNUSED(data);
     return 0;
   }
@@ -101,21 +101,21 @@ class BackendHandle {
 
 class BackendThread : public Thread {
  public:
-  BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
+  BackendThread(ConnFactory* conn_factory, int32_t cron_interval, int32_t keepalive_timeout, BackendHandle* handle,
                 void* private_data);
   ~BackendThread() override;
   /*
    * StartThread will return the error code as pthread_create return
    *  Return 0 if success
    */
-  int StartThread() override;
-  int StopThread() override;
-  pstd::Status Write(int fd, const std::string& msg);
-  pstd::Status Close(int fd);
+  int32_t StartThread() override;
+  int32_t StopThread() override;
+  pstd::Status Write(int32_t fd, const std::string& msg);
+  pstd::Status Close(int32_t fd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
-  pstd::Status Connect(const std::string& dst_ip, int dst_port, int* fd);
-  std::shared_ptr<NetConn> GetConn(int fd);
+  pstd::Status Connect(const std::string& dst_ip, int32_t dst_port, int32_t* fd);
+  std::shared_ptr<NetConn> GetConn(int32_t fd);
 
  private:
   void* ThreadMain() override;
@@ -123,21 +123,21 @@ class BackendThread : public Thread {
   void InternalDebugPrint();
   // Set connect fd into epoll
   // connect condition: no EPOLLERR EPOLLHUP events,  no error in socket opt
-  pstd::Status ProcessConnectStatus(NetFiredEvent* pfe, int* should_close);
-  void SetWaitConnectOnEpoll(int sockfd);
+  pstd::Status ProcessConnectStatus(NetFiredEvent* pfe, int32_t* should_close);
+  void SetWaitConnectOnEpoll(int32_t sockfd);
 
-  void AddConnection(const std::string& peer_ip, int peer_port, int sockfd);
+  void AddConnection(const std::string& peer_ip, int32_t peer_port, int32_t sockfd);
   void CloseFd(const std::shared_ptr<NetConn>& conn);
-  void CloseFd(int fd);
-  void CleanUpConnRemaining(int fd);
+  void CloseFd(int32_t fd);
+  void CleanUpConnRemaining(int32_t fd);
   void DoCronTask();
   void NotifyWrite(std::string& ip_port);
-  void NotifyWrite(int fd);
-  void NotifyClose(int fd);
+  void NotifyWrite(int32_t fd);
+  void NotifyClose(int32_t fd);
   void ProcessNotifyEvents(const NetFiredEvent* pfe);
 
-  int keepalive_timeout_;
-  int cron_interval_;
+  int32_t keepalive_timeout_;
+  int32_t cron_interval_;
   BackendHandle* handle_;
   bool own_handle_{false};
   void* private_data_;
@@ -150,10 +150,10 @@ class BackendThread : public Thread {
   ConnFactory* conn_factory_;
 
   pstd::Mutex mu_;
-  std::map<int, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
+  std::map<int32_t, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
-  std::map<int, std::shared_ptr<NetConn>> conns_;
-  std::set<int> connecting_fds_;
+  std::map<int32_t, std::shared_ptr<NetConn>> conns_;
+  std::set<int32_t> connecting_fds_;
 };
 
 }  // namespace net

@@ -22,21 +22,21 @@ namespace net {
 
 struct NetCli::Rep {
   std::string peer_ip;
-  int peer_port;
-  int send_timeout{0};
-  int recv_timeout{0};
-  int connect_timeout{1000};
+  int32_t peer_port;
+  int32_t send_timeout{0};
+  int32_t recv_timeout{0};
+  int32_t connect_timeout{1000};
   bool keep_alive{false};
   bool is_block{true};
-  int sockfd{-1};
+  int32_t sockfd{-1};
   bool available{false};
 
   Rep() = default;
 
-  Rep(std::string  ip, int port) : peer_ip(std::move(ip)),peer_port(port) {}
+  Rep(std::string  ip, int32_t port) : peer_ip(std::move(ip)),peer_port(port) {}
 };
 
-NetCli::NetCli(const std::string& ip, const int port) : rep_(std::make_unique<Rep>(ip, port)) {}
+NetCli::NetCli(const std::string& ip, const int32_t port) : rep_(std::make_unique<Rep>(ip, port)) {}
 
 NetCli::~NetCli() { Close(); }
 
@@ -44,10 +44,10 @@ bool NetCli::Available() const { return rep_->available; }
 
 Status NetCli::Connect(const std::string& bind_ip) { return Connect(rep_->peer_ip, rep_->peer_port, bind_ip); }
 
-Status NetCli::Connect(const std::string& ip, const int port, const std::string& bind_ip) {
+Status NetCli::Connect(const std::string& ip, const int32_t port, const std::string& bind_ip) {
   std::unique_ptr<Rep>& r = rep_;
   Status s;
-  int rv;
+  int32_t rv;
   char cport[6];
   struct addrinfo hints;
   struct addrinfo *servinfo;
@@ -78,7 +78,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
       }
     }
 
-    int flags = fcntl(r->sockfd, F_GETFL, 0);
+    int32_t flags = fcntl(r->sockfd, F_GETFL, 0);
     fcntl(r->sockfd, F_SETFL, flags | O_NONBLOCK);
     fcntl(r->sockfd, F_SETFD, fcntl(r->sockfd, F_GETFD) | FD_CLOEXEC);
 
@@ -92,7 +92,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
         wfd[0].fd = r->sockfd;
         wfd[0].events = POLLOUT;
 
-        int res;
+        int32_t res;
         if ((res = poll(wfd, 1, r->connect_timeout)) == -1) {
           close(r->sockfd);
           freeaddrinfo(servinfo);
@@ -102,8 +102,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
           freeaddrinfo(servinfo);
           return Status::Timeout("");
         }
-        int val = 0;
-        socklen_t lon = sizeof(int);
+        int32_t val = 0;
+        socklen_t lon = sizeof(int32_t);
 
         if (getsockopt(r->sockfd, SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
           close(r->sockfd);
@@ -127,7 +127,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
     socklen_t llen = sizeof(laddr);
     getsockname(r->sockfd, reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
-    int lport = ntohs(laddr.sin_port);
+    int32_t lport = ntohs(laddr.sin_port);
     if (ip == lip && port == lport) {
       return Status::IOError("EHOSTUNREACH", "same ip port");
     }
@@ -150,13 +150,13 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
   return s;
 }
 
-static int PollFd(int fd, int events, int ms) {
+static int32_t PollFd(int32_t fd, int32_t events, int32_t ms) {
   pollfd fds[1];
   fds[0].fd = fd;
   fds[0].events = static_cast<int16_t>(events);
   fds[0].revents = 0;
 
-  int ret = ::poll(fds, 1, ms);
+  int32_t ret = ::poll(fds, 1, ms);
   if (ret > 0) {
     return fds[0].revents;
   }
@@ -164,9 +164,9 @@ static int PollFd(int fd, int events, int ms) {
   return ret;
 }
 
-static int CheckSockAliveness(int fd) {
+static int32_t CheckSockAliveness(int32_t fd) {
   char buf[1];
-  int ret;
+  int32_t ret;
 
   ret = PollFd(fd, POLLIN | POLLPRI, 0);
   if (0 < ret) {
@@ -175,7 +175,7 @@ static int CheckSockAliveness(int fd) {
       return -1;
     }
     if (num == -1) {
-      int errnum = errno;
+      int32_t errnum = errno;
       if (errnum != EINTR && errnum != EAGAIN && errnum != EWOULDBLOCK) {
         return -1;
       }
@@ -185,10 +185,10 @@ static int CheckSockAliveness(int fd) {
   return 0;
 }
 
-int NetCli::CheckAliveness() {
-  int flag;
+int32_t NetCli::CheckAliveness() {
+  int32_t flag;
   bool block;
-  int sock = fd();
+  int32_t sock = fd();
 
   if (sock < 0) {
     return -1;
@@ -200,7 +200,7 @@ int NetCli::CheckAliveness() {
     fcntl(sock, F_SETFL, flag | O_NONBLOCK);
   }
 
-  int ret = CheckSockAliveness(sock);
+  int32_t ret = CheckSockAliveness(sock);
 
   if (block) {
     fcntl(sock, F_SETFL, flag);
@@ -262,7 +262,7 @@ Status NetCli::RecvRaw(void* buf, size_t* count) {
   return Status::OK();
 }
 
-int NetCli::fd() const { return rep_->sockfd; }
+int32_t NetCli::fd() const { return rep_->sockfd; }
 
 void NetCli::Close() {
   if (rep_->available) {
@@ -272,11 +272,11 @@ void NetCli::Close() {
   }
 }
 
-void NetCli::set_connect_timeout(int connect_timeout) { rep_->connect_timeout = connect_timeout; }
+void NetCli::set_connect_timeout(int32_t connect_timeout) { rep_->connect_timeout = connect_timeout; }
 
-int NetCli::set_send_timeout(int send_timeout) {
+int32_t NetCli::set_send_timeout(int32_t send_timeout) {
   std::unique_ptr<Rep>& r = rep_;
-  int ret = 0;
+  int32_t ret = 0;
   if (send_timeout > 0) {
     r->send_timeout = send_timeout;
     struct timeval timeout = {r->send_timeout / 1000, (r->send_timeout % 1000) * 1000};
@@ -285,9 +285,9 @@ int NetCli::set_send_timeout(int send_timeout) {
   return ret;
 }
 
-int NetCli::set_recv_timeout(int recv_timeout) {
+int32_t NetCli::set_recv_timeout(int32_t recv_timeout) {
   std::unique_ptr<Rep>& r = rep_;
-  int ret = 0;
+  int32_t ret = 0;
   if (recv_timeout > 0) {
     r->recv_timeout = recv_timeout;
     struct timeval timeout = {r->recv_timeout / 1000, (r->recv_timeout % 1000) * 1000};
@@ -296,10 +296,10 @@ int NetCli::set_recv_timeout(int recv_timeout) {
   return ret;
 }
 
-int NetCli::set_tcp_nodelay() {
+int32_t NetCli::set_tcp_nodelay() {
   std::unique_ptr<Rep>& r = rep_;
-  int val = 1;
-  int ret = 0;
+  int32_t val = 1;
+  int32_t ret = 0;
   ret = setsockopt(r->sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
   return ret;
 }

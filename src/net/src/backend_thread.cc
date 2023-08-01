@@ -24,7 +24,7 @@ namespace net {
 
 using pstd::Status;
 
-BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
+BackendThread::BackendThread(ConnFactory* conn_factory, int32_t cron_interval, int32_t keepalive_timeout, BackendHandle* handle,
                              void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
@@ -38,22 +38,22 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
 
 BackendThread::~BackendThread() = default;
 
-int BackendThread::StartThread() {
+int32_t BackendThread::StartThread() {
   if (!handle_) {
     handle_ = new BackendHandle();
     own_handle_ = true;
   }
   own_handle_ = false;
-  int res = handle_->CreateWorkerSpecificData(&private_data_);
+  int32_t res = handle_->CreateWorkerSpecificData(&private_data_);
   if (res) {
     return res;
   }
   return Thread::StartThread();
 }
 
-int BackendThread::StopThread() {
+int32_t BackendThread::StopThread() {
   if (private_data_) {
-    int res = handle_->DeleteWorkerSpecificData(private_data_);
+    int32_t res = handle_->DeleteWorkerSpecificData(private_data_);
     if (res) {
       return res;
     }
@@ -65,7 +65,7 @@ int BackendThread::StopThread() {
   return Thread::StopThread();
 }
 
-Status BackendThread::Write(const int fd, const std::string& msg) {
+Status BackendThread::Write(const int32_t fd, const std::string& msg) {
   {
     std::lock_guard l(mu_);
     if (conns_.find(fd) == conns_.end()) {
@@ -88,7 +88,7 @@ Status BackendThread::Write(const int fd, const std::string& msg) {
   return Status::OK();
 }
 
-Status BackendThread::Close(const int fd) {
+Status BackendThread::Close(const int32_t fd) {
   {
     std::lock_guard l(mu_);
     if (conns_.find(fd) == conns_.end()) {
@@ -99,13 +99,13 @@ Status BackendThread::Close(const int fd) {
   return Status::OK();
 }
 
-Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
+Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int32_t* should_close) {
   if (pfe->mask & kErrorEvent) {
     *should_close = 1;
     return Status::Corruption("POLLERR or POLLHUP");
   }
-  int val = 0;
-  socklen_t lon = sizeof(int);
+  int32_t val = 0;
+  socklen_t lon = sizeof(int32_t);
 
   if (getsockopt(pfe->fd, SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
     *should_close = 1;
@@ -118,12 +118,12 @@ Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close
   return Status::OK();
 }
 
-void BackendThread::SetWaitConnectOnEpoll(int sockfd) {
+void BackendThread::SetWaitConnectOnEpoll(int32_t sockfd) {
   net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
   connecting_fds_.insert(sockfd);
 }
 
-void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int sockfd) {
+void BackendThread::AddConnection(const std::string& peer_ip, int32_t peer_port, int32_t sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
   std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, nullptr, net_multiplexer_.get());
   tc->SetNonblock();
@@ -136,10 +136,10 @@ void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int
   }
 }
 
-Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int* fd) {
+Status BackendThread::Connect(const std::string& dst_ip, const int32_t dst_port, int32_t* fd) {
   Status s;
-  int sockfd = -1;
-  int rv;
+  int32_t sockfd = -1;
+  int32_t rv;
   char cport[6];
   struct addrinfo hints;
   struct addrinfo *servinfo;
@@ -160,7 +160,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
-    int flags = fcntl(sockfd, F_GETFL, 0);
+    int32_t flags = fcntl(sockfd, F_GETFL, 0);
     fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
     if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
@@ -186,7 +186,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     socklen_t llen = sizeof(laddr);
     getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
-    int lport = ntohs(laddr.sin_port);
+    int32_t lport = ntohs(laddr.sin_port);
     if (dst_ip == lip && dst_port == lport) {
       return Status::IOError("EHOSTUNREACH", "same ip port");
     }
@@ -200,13 +200,13 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
   }
   freeaddrinfo(servinfo);
   freeaddrinfo(p);
-  int val = 1;
+  int32_t val = 1;
   setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
   *fd = sockfd;
   return s;
 }
 
-std::shared_ptr<NetConn> BackendThread::GetConn(int fd) {
+std::shared_ptr<NetConn> BackendThread::GetConn(int32_t fd) {
   std::lock_guard l(mu_);
   if (auto it = conns_.find(fd); it != conns_.end()) {
     return it->second;
@@ -220,14 +220,14 @@ void BackendThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   handle_->FdClosedHandle(conn->fd(), conn->ip_port());
 }
 
-void BackendThread::CloseFd(const int fd) {
+void BackendThread::CloseFd(const int32_t fd) {
   close(fd);
   CleanUpConnRemaining(fd);
   // user don't use ip_port
   handle_->FdClosedHandle(fd, "");
 }
 
-void BackendThread::CleanUpConnRemaining(const int fd) {
+void BackendThread::CleanUpConnRemaining(const int32_t fd) {
   std::lock_guard l(mu_);
   to_send_.erase(fd);
 }
@@ -298,12 +298,12 @@ void BackendThread::NotifyWrite(std::string& ip_port) {
   net_multiplexer_->Register(ti, true);
 }
 
-void BackendThread::NotifyWrite(const int fd) {
+void BackendThread::NotifyWrite(const int32_t fd) {
   NetItem ti(fd, "", kNotiWrite);
   net_multiplexer_->Register(ti, true);
 }
 
-void BackendThread::NotifyClose(const int fd) {
+void BackendThread::NotifyClose(const int32_t fd) {
   NetItem ti(fd, "", kNotiClose);
   net_multiplexer_->Register(ti, true);
 }
@@ -317,7 +317,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
         NetItem ti = net_multiplexer_->NotifyQueuePop();
-        int fd = ti.fd();
+        int32_t fd = ti.fd();
         std::string ip_port = ti.ip_port();
         std::lock_guard l(mu_);
         if (ti.notify_type() == kNotiWrite) {
@@ -353,7 +353,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
 }
 
 void* BackendThread::ThreadMain() {
-  int nfds = 0;
+  int32_t nfds = 0;
   NetFiredEvent* pfe = nullptr;
 
   struct timeval when;
@@ -362,7 +362,7 @@ void* BackendThread::ThreadMain() {
 
   when.tv_sec += (cron_interval_ / 1000);
   when.tv_usec += ((cron_interval_ % 1000) * 1000);
-  int timeout = cron_interval_;
+  int32_t timeout = cron_interval_;
   if (timeout <= 0) {
     timeout = NET_CRON_INTERVAL;
   }
@@ -388,7 +388,7 @@ void* BackendThread::ThreadMain() {
     // InternalDebugPrint();
     //}
     nfds = net_multiplexer_->NetPoll(timeout);
-    for (int i = 0; i < nfds; i++) {
+    for (int32_t i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       if (!pfe) {
         continue;
@@ -399,7 +399,7 @@ void* BackendThread::ThreadMain() {
         continue;
       }
 
-      int should_close = 0;
+      int32_t should_close = 0;
       std::shared_ptr<NetConn> conn;
       {
         std::unique_lock lock(mu_);

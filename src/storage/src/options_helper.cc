@@ -10,21 +10,21 @@
 namespace storage {
 
 // strToInt may throw exception
-static bool strToInt(const std::string& value, int* num, int base = 10) {
+static bool strToInt(const std::string& value, int32_t* num, int32_t base = 10) {
   size_t end;
   *num = std::stoi(value, &end, base);
   return end >= value.size();
 }
 
 // strToUint64 may throw exception
-static bool strToUint64(const std::string& value, uint64_t* num, int base = 10) {
+static bool strToUint64(const std::string& value, uint64_t* num, int32_t base = 10) {
   size_t end;
   *num = std::stoull(value, &end, base);
   return end >= value.size();
 }
 
 // strToUint32 may throw exception
-static bool strToUint32(const std::string& value, uint32_t* num, int base = 10) {
+static bool strToUint32(const std::string& value, uint32_t* num, int32_t base = 10) {
   uint64_t uint64Val;
   if (!strToUint64(value, &uint64Val)) {
     return false;
@@ -40,11 +40,11 @@ static bool strToUint32(const std::string& value, uint32_t* num, int base = 10) 
 bool ParseOptionMember(const MemberType& member_type, const std::string& value, char* member_address) {
   switch (member_type) {
     case MemberType::kInt: {
-      int intVal;
+      int32_t intVal;
       if (!strToInt(value, &intVal)) {
         return false;
       }
-      *reinterpret_cast<int*>(member_address) = intVal;
+      *reinterpret_cast<int32_t*>(member_address) = intVal;
       break;
     }
     case MemberType::kUint: {
@@ -52,7 +52,7 @@ bool ParseOptionMember(const MemberType& member_type, const std::string& value, 
       if (!strToUint32(value, &uint32Val)) {
         return false;
       }
-      *reinterpret_cast<unsigned int*>(member_address) = static_cast<unsigned int>(uint32Val);
+      *reinterpret_cast<uint32_t*>(member_address) = static_cast<uint32_t>(uint32Val);
       break;
     }
     case MemberType::kUint64T: {

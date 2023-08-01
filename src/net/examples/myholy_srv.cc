@@ -14,25 +14,25 @@ using namespace net;
 
 class MyConn : public PbConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn();
 
  protected:
-  virtual int DealMessage();
+  virtual int32_t DealMessage();
 
  private:
   myproto::Ping ping_;
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : PbConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
 
 MyConn::~MyConn() {}
 
-int MyConn::DealMessage() {
+int32_t MyConn::DealMessage() {
   printf("In the myconn DealMessage branch\n");
   ping_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   printf("DealMessage receive (%s) port %d \n", ping_.address().c_str(), ping_.port());
@@ -48,7 +48,7 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
@@ -56,7 +56,7 @@ class MyConnFactory : public ConnFactory {
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -70,13 +70,13 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 2) {
     printf("Usage: ./server port\n");
     exit(0);
   }
 
-  int my_port = (argc > 1) ? atoi(argv[1]) : 8221;
+  int32_t my_port = (argc > 1) ? atoi(argv[1]) : 8221;
 
   SignalSetup();
 

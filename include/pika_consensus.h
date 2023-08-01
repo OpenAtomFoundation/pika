@@ -46,15 +46,15 @@ class SyncProgress {
  public:
   SyncProgress() = default;
   ~SyncProgress() = default;
-  std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
+  std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int32_t port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
   std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
-  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                      int session_id);
-  pstd::Status RemoveSlaveNode(const std::string& ip, int port);
-  pstd::Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
+  pstd::Status AddSlaveNode(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id,
+                      int32_t session_id);
+  pstd::Status RemoveSlaveNode(const std::string& ip, int32_t port);
+  pstd::Status Update(const std::string& ip, int32_t port, const LogOffset& start, const LogOffset& end,
                 LogOffset* committed_index);
-  int SlaveSize();
+  int32_t SlaveSize();
 
  private:
 
@@ -76,14 +76,14 @@ class MemLog {
   };
 
   MemLog();
-  int Size();
+  int32_t Size();
   void AppendLog(const LogItem& item) {
     std::lock_guard lock(logs_mu_);
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
   pstd::Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
-  pstd::Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
+  pstd::Status GetRangeLogs(int32_t start, int32_t end, std::vector<LogItem>* logs);
   pstd::Status TruncateTo(const LogOffset& offset);
 
   void Reset(const LogOffset& offset);
@@ -99,8 +99,8 @@ class MemLog {
   bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
 
  private:
-  int InternalFindLogByBinlogOffset(const LogOffset& offset);
-  int InternalFindLogByLogicIndex(const LogOffset& offset);
+  int32_t InternalFindLogByBinlogOffset(const LogOffset& offset);
+  int32_t InternalFindLogByLogicIndex(const LogOffset& offset);
   pstd::Mutex logs_mu_;
   std::vector<LogItem> logs_;
   LogOffset last_offset_;
@@ -118,9 +118,9 @@ class ConsensusCoordinator {
   pstd::Status ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                     std::shared_ptr<std::string> resp_ptr);
   pstd::Status ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
-  pstd::Status UpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
-  pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
-  pstd::Status RemoveSlaveNode(const std::string& ip, int port);
+  pstd::Status UpdateSlave(const std::string& ip, int32_t port, const LogOffset& start, const LogOffset& end);
+  pstd::Status AddSlaveNode(const std::string& ip, int32_t port, int32_t session_id);
+  pstd::Status RemoveSlaveNode(const std::string& ip, int32_t port);
   void UpdateTerm(uint32_t term);
   uint32_t term();
   pstd::Status CheckEnoughFollower();
@@ -153,7 +153,7 @@ class ConsensusCoordinator {
     CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(ptr)) {}
     std::shared_ptr<Cmd> cmd_ptr;
   };
-  static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
+  static int32_t InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
 
   std::string ToStringStatus() {
     std::stringstream tmp_stream;

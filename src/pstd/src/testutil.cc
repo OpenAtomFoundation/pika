@@ -27,13 +27,13 @@ void current_time_str(char * str, size_t max_len)
            tv.tv_usec);  // NOLINT cause different between macOS and ubuntu
 }
 
-int GetTestDirectory(std::string* result) {
+int32_t GetTestDirectory(std::string* result) {
   const char* env = getenv("TEST_TMPDIR");
   if (env && env[0] != '\0') {
     *result = env;
   } else {
     char buf[100];
-    snprintf(buf, sizeof(buf), "/tmp/pstdtest-%d", static_cast<int>(geteuid()));
+    snprintf(buf, sizeof(buf), "/tmp/pstdtest-%d", static_cast<int32_t>(geteuid()));
     *result = buf;
   }
   return 0;

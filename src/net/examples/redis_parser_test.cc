@@ -6,14 +6,14 @@
 
 using namespace net;
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 3) {
     printf("Usage: ./redis_parser_test ip port\n");
     exit(0);
   }
 
   std::string ip(argv[1]);
-  int port = atoi(argv[2]);
+  int32_t port = atoi(argv[2]);
 
   std::unique_ptr<NetCli> rcli(NewRedisCli());
   rcli->set_connect_timeout(3000);

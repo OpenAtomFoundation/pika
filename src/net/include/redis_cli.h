@@ -19,8 +19,8 @@ using RedisCmdArgsType = std::vector<std::string>;
 // 2. by a string vector;
 //    eg.  RedisCli::Serialize(argv, cmd);
 //        also cmd will be set as the result string.
-extern int SerializeRedisCommand(std::string* cmd, const char* format, ...);
-extern int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd);
+extern int32_t SerializeRedisCommand(std::string* cmd, const char* format, ...);
+extern int32_t SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd);
 
 }  // namespace net
 

@@ -23,7 +23,7 @@ void* Thread::RunThread(void* arg) {
   return nullptr;
 }
 
-int Thread::StartThread() {
+int32_t Thread::StartThread() {
   if (!should_stop() && is_running()) {
     return 0;
   }
@@ -36,7 +36,7 @@ int Thread::StartThread() {
   return 0;
 }
 
-int Thread::StopThread() {
+int32_t Thread::StopThread() {
   if (should_stop() && !is_running()) {
     return 0;
   }
@@ -49,6 +49,6 @@ int Thread::StopThread() {
   return 0;
 }
 
-int Thread::JoinThread() { return pthread_join(thread_id_, nullptr); }
+int32_t Thread::JoinThread() { return pthread_join(thread_id_, nullptr); }
 
 }  // namespace net

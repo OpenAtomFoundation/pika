@@ -26,14 +26,14 @@ struct TimerItem {
 
 class BGThread final : public Thread {
  public:
-  explicit BGThread(int full = 100000) :  full_(full) {}
+  explicit BGThread(int32_t full = 100000) :  full_(full) {}
 
   ~BGThread() override {
     // call virtual in destructor, BGThread must be final
     StopThread();
   }
 
-  int StopThread() override {
+  int32_t StopThread() override {
     should_stop_ = true;
     rsignal_.notify_one();
     wsignal_.notify_one();
@@ -47,7 +47,7 @@ class BGThread final : public Thread {
    */
   void DelaySchedule(uint64_t timeout, void (*function)(void*), void* arg);
 
-  void QueueSize(int* pri_size, int* qu_size);
+  void QueueSize(int32_t* pri_size, int32_t* qu_size);
   void QueueClear();
   void SwallowReadyTasks();
 

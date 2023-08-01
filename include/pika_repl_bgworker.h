@@ -20,9 +20,9 @@
 
 class PikaReplBgWorker {
  public:
-  explicit PikaReplBgWorker(int queue_size);
-  int StartThread();
-  int StopThread();
+  explicit PikaReplBgWorker(int32_t queue_size);
+  int32_t StartThread();
+  int32_t StopThread();
   void Schedule(net::TaskFunc func, void* arg);
   void QueueClear();
   static void HandleBGWorkerWriteBinlog(void* arg);
@@ -36,7 +36,7 @@ class PikaReplBgWorker {
 
  private:
   net::BGThread bg_thread_;
-  static int HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
+  static int32_t HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
   static void ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset);
 };
 

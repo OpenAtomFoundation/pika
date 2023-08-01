@@ -17,7 +17,7 @@
 
 namespace net {
 
-NetConn::NetConn(const int fd, std::string  ip_port, Thread* thread, NetMultiplexer* net_mpx)
+NetConn::NetConn(const int32_t fd, std::string  ip_port, Thread* thread, NetMultiplexer* net_mpx)
     : fd_(fd),
       ip_port_(std::move(ip_port)),
       

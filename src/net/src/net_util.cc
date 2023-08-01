@@ -12,8 +12,8 @@
 
 namespace net {
 
-int Setnonblocking(int sockfd) {
-  int flags;
+int32_t Setnonblocking(int32_t sockfd) {
+  int32_t flags;
   if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0) {
     close(sockfd);
     return -1;

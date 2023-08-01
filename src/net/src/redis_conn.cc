@@ -18,8 +18,8 @@ extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 namespace net {
 
-RedisConn::RedisConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx,
-                     const HandleType& handle_type, const int rbuf_max_len)
+RedisConn::RedisConn(const int32_t fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx,
+                     const HandleType& handle_type, const int32_t rbuf_max_len)
     : NetConn(fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
       
@@ -64,7 +64,7 @@ ReadStatus RedisConn::ParseRedisParserStatus(RedisParserStatus status) {
 
 ReadStatus RedisConn::GetRequest() {
   ssize_t nread = 0;
-  int next_read_pos = last_read_pos_ + 1;
+  int32_t next_read_pos = last_read_pos_ + 1;
 
   int64_t remain = rbuf_len_ - next_read_pos;  // Remain buffer size
   int64_t new_size = 0;
@@ -109,7 +109,7 @@ ReadStatus RedisConn::GetRequest() {
     return kFullError;
   }
 
-  int processed_len = 0;
+  int32_t processed_len = 0;
   RedisParserStatus ret = redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, static_cast<int32_t>(nread), &processed_len);
   ReadStatus read_status = ParseRedisParserStatus(ret);
   if (read_status == kReadAll || read_status == kReadHalf) {
@@ -163,7 +163,7 @@ WriteStatus RedisConn::SendReply() {
   }
 }
 
-int RedisConn::WriteResp(const std::string& resp) {
+int32_t RedisConn::WriteResp(const std::string& resp) {
   response_.append(resp);
   set_is_reply(true);
   return 0;
@@ -174,7 +174,7 @@ void RedisConn::TryResizeBuffer() {
   gettimeofday(&now, nullptr);
   time_t idletime = now.tv_sec - last_interaction().tv_sec;
   if (rbuf_len_ > REDIS_MBULK_BIG_ARG && ((rbuf_len_ / (msg_peak_ + 1)) > 2 || idletime > 2)) {
-    int new_size = ((last_read_pos_ + REDIS_IOBUF_LEN) / REDIS_IOBUF_LEN) * REDIS_IOBUF_LEN;
+    int32_t new_size = ((last_read_pos_ + REDIS_IOBUF_LEN) / REDIS_IOBUF_LEN) * REDIS_IOBUF_LEN;
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
@@ -195,7 +195,7 @@ void RedisConn::NotifyEpoll(bool success) {
   net_multiplexer()->Register(ti, true);
 }
 
-int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {
+int32_t RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {
   auto conn = reinterpret_cast<RedisConn*>(parser->data);
   if (conn->GetHandleType() == HandleType::kSynchronous) {
     return conn->DealMessage(argv, &(conn->response_));
@@ -204,7 +204,7 @@ int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& 
   }
 }
 
-int RedisConn::ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs) {
+int32_t RedisConn::ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs) {
   auto conn = reinterpret_cast<RedisConn*>(parser->data);
   bool async = conn->GetHandleType() == HandleType::kAsynchronous;
   conn->ProcessRedisCmds(argvs, async, &(conn->response_));

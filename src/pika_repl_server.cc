@@ -16,7 +16,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) {
+PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int32_t port, int32_t cron_interval) {
   server_tp_ = std::make_unique<net::ThreadPool>(PIKA_REPL_SERVER_TP_SIZE, 100000);
   pika_repl_server_thread_ = std::make_unique<PikaReplServerThread>(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
@@ -26,8 +26,8 @@ PikaReplServer::~PikaReplServer() {
   LOG(INFO) << "PikaReplServer exit!!!";
 }
 
-int PikaReplServer::Start() {
-  int res = pika_repl_server_thread_->StartThread();
+int32_t PikaReplServer::Start() {
+  int32_t res = pika_repl_server_thread_->StartThread();
   if (res != net::kSuccess) {
     LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
                << (res == net::kBindError
@@ -43,14 +43,14 @@ int PikaReplServer::Start() {
   return res;
 }
 
-int PikaReplServer::Stop() {
+int32_t PikaReplServer::Stop() {
   server_tp_->stop_thread_pool();
   pika_repl_server_thread_->StopThread();
   pika_repl_server_thread_->Cleanup();
   return 0;
 }
 
-pstd::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip, int port,
+pstd::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip, int32_t port,
                                                   const std::vector<WriteTask>& tasks) {
   InnerMessage::InnerResponse response;
   BuildBinlogSyncResp(tasks, &response);
@@ -108,13 +108,13 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
   }
 }
 
-pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const std::string& msg) {
+pstd::Status PikaReplServer::Write(const std::string& ip, const int32_t port, const std::string& msg) {
   std::shared_lock l(client_conn_rwlock_);
   const std::string ip_port = pstd::IpPortString(ip, port);
   if (client_conn_map_.find(ip_port) == client_conn_map_.end()) {
     return Status::NotFound("The " + ip_port + " fd cannot be found");
   }
-  int fd = client_conn_map_[ip_port];
+  int32_t fd = client_conn_map_[ip_port];
   std::shared_ptr<net::PbConn> conn = std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
   if (!conn) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
@@ -130,12 +130,12 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
 
 void PikaReplServer::Schedule(net::TaskFunc func, void* arg) { server_tp_->Schedule(func, arg); }
 
-void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
+void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int32_t fd) {
   std::lock_guard l(client_conn_rwlock_);
   client_conn_map_[ip_port] = fd;
 }
 
-void PikaReplServer::RemoveClientConn(int fd) {
+void PikaReplServer::RemoveClientConn(int32_t fd) {
   std::lock_guard l(client_conn_rwlock_);
   auto iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {

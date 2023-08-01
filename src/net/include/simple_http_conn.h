@@ -38,14 +38,14 @@ class Request {
 
   Request();
   void Clear();
-  bool ParseHeadFromArray(const char* data, int size);
-  bool ParseBodyFromArray(const char* data, int size);
+  bool ParseHeadFromArray(const char* data, int32_t size);
+  bool ParseBodyFromArray(const char* data, int32_t size);
 
  private:
   enum ParseStatus { kHeaderMethod, kHeaderPath, kHeaderVersion, kHeaderParamKey, kHeaderParamValue, kBody };
 
   bool ParseGetUrl();
-  bool ParseHeadLine(const char* data, int line_start, int line_end, ParseStatus* parseStatus);
+  bool ParseHeadLine(const char* data, int32_t line_start, int32_t line_end, ParseStatus* parseStatus);
   bool ParseParameters(const std::string& data, size_t line_start = 0, bool from_url = true);
 };
 
@@ -53,20 +53,20 @@ class Response {
  public:
   Response() = default;
   void Clear();
-  int SerializeHeaderToArray(char* data, size_t size);
-  int SerializeBodyToArray(char* data, size_t size, int* pos);
+  int32_t SerializeHeaderToArray(char* data, size_t size);
+  int32_t SerializeBodyToArray(char* data, size_t size, int32_t* pos);
   bool HasMoreBody(size_t pos) { return pos < body_.size(); }
 
-  void SetStatusCode(int code);
+  void SetStatusCode(int32_t code);
 
   void SetHeaders(const std::string& key, const std::string& value) { headers_[key] = value; }
 
-  void SetHeaders(const std::string& key, const int value) { headers_[key] = std::to_string(value); }
+  void SetHeaders(const std::string& key, const int32_t value) { headers_[key] = std::to_string(value); }
 
   void SetBody(const std::string& body) { body_.assign(body); }
 
  private:
-  int status_code_{0};
+  int32_t status_code_{0};
   std::string reason_phrase_;
   std::map<std::string, std::string> headers_;
   std::string body_;
@@ -74,7 +74,7 @@ class Response {
 
 class SimpleHTTPConn : public NetConn {
  public:
-  SimpleHTTPConn(int fd, const std::string& ip_port, Thread* thread);
+  SimpleHTTPConn(int32_t fd, const std::string& ip_port, Thread* thread);
   ~SimpleHTTPConn() override;
 
   ReadStatus GetRequest() override;
@@ -98,7 +98,7 @@ class SimpleHTTPConn : public NetConn {
   uint64_t remain_packet_len_{0};
 
   Request* request_;
-  int response_pos_{-1};
+  int32_t response_pos_{-1};
   Response* response_;
 };
 

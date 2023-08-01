@@ -18,7 +18,7 @@ namespace storage {
 class StringsFilter : public rocksdb::CompactionFilter {
  public:
   StringsFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
+  bool Filter(int32_t level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);

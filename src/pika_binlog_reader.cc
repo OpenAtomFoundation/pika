@@ -35,7 +35,7 @@ bool PikaBinlogReader::ReadToTheEnd() {
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
-int PikaBinlogReader::Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset) {
+int32_t PikaBinlogReader::Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename(), filenum);
   if (!pstd::FileExists(confile)) {
     LOG(WARNING) << confile << " not exits";
@@ -98,7 +98,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
     const uint32_t a = static_cast<uint32_t>(header[0]) & 0xff;
     const uint32_t b = static_cast<uint32_t>(header[1]) & 0xff;
     const uint32_t c = static_cast<uint32_t>(header[2]) & 0xff;
-    const unsigned int type = header[7];
+    const uint32_t type = header[7];
     const uint32_t length = a | (b << 8) | (c << 16);
 
     if (length > (kBlockSize - kHeaderSize)) {
@@ -132,7 +132,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
   return is_error;
 }
 
-unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset) {
+uint32_t PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset) {
   pstd::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
@@ -152,7 +152,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
   const uint32_t a = static_cast<uint32_t>(header[0]) & 0xff;
   const uint32_t b = static_cast<uint32_t>(header[1]) & 0xff;
   const uint32_t c = static_cast<uint32_t>(header[2]) & 0xff;
-  const unsigned int type = header[7];
+  const uint32_t type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
 
   if (length > (kBlockSize - kHeaderSize)) {
@@ -182,7 +182,7 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
 
   pstd::Slice fragment;
   while (true) {
-    const unsigned int record_type = ReadPhysicalRecord(&fragment, filenum, offset);
+    const uint32_t record_type = ReadPhysicalRecord(&fragment, filenum, offset);
 
     switch (record_type) {
       case kFullType:

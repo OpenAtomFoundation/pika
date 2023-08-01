@@ -10,18 +10,18 @@
 
 class PikaRsyncService {
  public:
-  PikaRsyncService(const std::string& raw_path, int port);
+  PikaRsyncService(const std::string& raw_path, int32_t port);
   ~PikaRsyncService();
-  int StartRsync();
+  int32_t StartRsync();
   bool CheckRsyncAlive();
-  int ListenPort();
+  int32_t ListenPort();
 
  private:
-  int CreateSecretFile();
+  int32_t CreateSecretFile();
   std::string raw_path_;
   std::string rsync_path_;
   std::string pid_path_;
-  int port_ = 0;
+  int32_t port_ = 0;
 };
 
 #endif

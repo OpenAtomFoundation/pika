@@ -39,7 +39,7 @@ static bool elements_match(const std::vector<std::string>& elements_out,
     return false;
   }
   for (uint64_t idx = 0; idx < elements_out.size(); ++idx) {
-    if (static_cast<int>(strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) != 0) {
+    if (static_cast<int32_t>(strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) != 0) {
       return false;
     }
   }
@@ -60,7 +60,7 @@ static bool len_match(storage::Storage* const db, const Slice& key, uint64_t exp
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int32_t ret = db->Expire(key, 1, &type_status);
   if ((ret == 0) || !type_status[storage::DataType::kLists].ok()) {
     return false;
   }
@@ -2699,7 +2699,7 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

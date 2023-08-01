@@ -44,7 +44,7 @@ void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t bit_val = 0;
   rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, static_cast<int32_t>(on_), &bit_val);
   if (s.ok()) {
-    res_.AppendInteger(static_cast<int>(bit_val));
+    res_.AppendInteger(static_cast<int32_t>(bit_val));
     AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -71,7 +71,7 @@ void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t bit_val = 0;
   rocksdb::Status s = slot->db()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
-    res_.AppendInteger(static_cast<int>(bit_val));
+    res_.AppendInteger(static_cast<int32_t>(bit_val));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -167,7 +167,7 @@ void BitPosCmd::Do(std::shared_ptr<Slot> slot) {
     s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
-    res_.AppendInteger(static_cast<int>(pos));
+    res_.AppendInteger(static_cast<int32_t>(pos));
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -203,7 +203,7 @@ void BitOpCmd::DoInitial() {
   }
 
   dest_key_ = argv_[2];
-  for (unsigned int i = 3; i <= argv_.size() - 1; i++) {
+  for (uint32_t i = 3; i <= argv_.size() - 1; i++) {
     src_keys_.emplace_back(argv_[i].data());
   }
 }

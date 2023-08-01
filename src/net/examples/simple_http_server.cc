@@ -17,7 +17,7 @@ using namespace net;
 
 class MyHTTPConn : public net::SimpleHTTPConn {
  public:
-  MyHTTPConn(const int fd, const std::string& ip_port, Thread* worker) : SimpleHTTPConn(fd, ip_port, worker) {}
+  MyHTTPConn(const int32_t fd, const std::string& ip_port, Thread* worker) : SimpleHTTPConn(fd, ip_port, worker) {}
   virtual void DealMessage(const net::Request* req, net::Response* res) {
     std::cout << "handle get" << std::endl;
     std::cout << " + method: " << req->method << std::endl;
@@ -44,7 +44,7 @@ class MyHTTPConn : public net::SimpleHTTPConn {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data, NetMultiplexer* net_epoll) const {
     return std::make_shared<MyHTTPConn>(connfd, ip_port, thread);
   }
@@ -52,7 +52,7 @@ class MyConnFactory : public ConnFactory {
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -66,8 +66,8 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main(int argc, char* argv[]) {
-  int port;
+int32_t main(int32_t argc, char* argv[]) {
+  int32_t port;
   if (argc < 2) {
     printf("Usage: ./simple_http_server port");
   } else {

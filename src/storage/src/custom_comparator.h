@@ -21,7 +21,7 @@ class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
   // keep compatible with blackwidow
   const char* Name() const override { return "blackwidow.ListsDataKeyComparator"; }
 
-  int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const override {
+  int32_t Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const override {
     assert(!a.empty() && !b.empty());
     const char* ptr_a = a.data();
     const char* ptr_b = b.data();
@@ -87,7 +87,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
  public:
   // keep compatible with blackwidow
   const char* Name() const override { return "blackwidow.ZSetsScoreKeyComparator"; }
-  int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const override {
+  int32_t Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const override {
     assert(a.size() > sizeof(int32_t));
     assert(a.size() >= DecodeFixed32(a.data()) + 2 * sizeof(int32_t) + sizeof(uint64_t));
     assert(b.size() > sizeof(int32_t));
@@ -103,7 +103,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     rocksdb::Slice key_b_prefix(ptr_b, key_b_len + 2 * sizeof(int32_t));
     ptr_a += key_a_len + 2 * sizeof(int32_t);
     ptr_b += key_b_len + 2 * sizeof(int32_t);
-    int ret = key_a_prefix.compare(key_b_prefix);
+    int32_t ret = key_a_prefix.compare(key_b_prefix);
      if (ret) {
       return ret;
     }

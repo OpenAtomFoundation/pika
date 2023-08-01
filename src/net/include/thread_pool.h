@@ -39,8 +39,8 @@ class ThreadPool : public pstd::noncopyable {
     explicit Worker(ThreadPool* tp) : start_(false), thread_pool_(tp){};
     static void* WorkerMain(void* arg);
 
-    int start();
-    int stop();
+    int32_t start();
+    int32_t stop();
 
    private:
     pthread_t thread_id_;
@@ -52,8 +52,8 @@ class ThreadPool : public pstd::noncopyable {
   explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
-  int start_thread_pool();
-  int stop_thread_pool();
+  int32_t start_thread_pool();
+  int32_t stop_thread_pool();
   bool should_stop();
   void set_should_stop();
 

@@ -48,7 +48,7 @@ class ClientHandle {
   /*
    *  FdTimeoutHandle(...) will be invoked after connection timeout.
    */
-  virtual void FdTimeoutHandle(int fd, const std::string& ip_port) const {
+  virtual void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -56,7 +56,7 @@ class ClientHandle {
   /*
    *  FdClosedHandle(...) will be invoked before connection closed.
    */
-  virtual void FdClosedHandle(int fd, const std::string& ip_port) const {
+  virtual void FdClosedHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -74,7 +74,7 @@ class ClientHandle {
    *  CreateWorkerSpecificData(...) will be invoked in StartThread() routine.
    *  'data' pointer should be assigned.
    */
-  virtual int CreateWorkerSpecificData(void** data) const {
+  virtual int32_t CreateWorkerSpecificData(void** data) const {
     UNUSED(data);
     return 0;
   }
@@ -85,7 +85,7 @@ class ClientHandle {
    *  resources assigned in CreateWorkerSpecificData(...) should be deleted in
    *  this handle
    */
-  virtual int DeleteWorkerSpecificData(void* data) const {
+  virtual int32_t DeleteWorkerSpecificData(void* data) const {
     UNUSED(data);
     return 0;
   }
@@ -101,17 +101,17 @@ class ClientHandle {
 
 class ClientThread : public Thread {
  public:
-  ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
+  ClientThread(ConnFactory* conn_factory, int32_t cron_interval, int32_t keepalive_timeout, ClientHandle* handle,
                void* private_data);
   ~ClientThread() override;
   /*
    * StartThread will return the error code as pthread_create return
    *  Return 0 if success
    */
-  int StartThread() override;
-  int StopThread() override;
-  pstd::Status Write(const std::string& ip, int port, const std::string& msg);
-  pstd::Status Close(const std::string& ip, int port);
+  int32_t StartThread() override;
+  int32_t StopThread() override;
+  pstd::Status Write(const std::string& ip, int32_t port, const std::string& msg);
+  pstd::Status Close(const std::string& ip, int32_t port);
 
  private:
   void* ThreadMain() override;
@@ -119,22 +119,22 @@ class ClientThread : public Thread {
   void InternalDebugPrint();
   // Set connect fd into epoll
   // connect condition: no EPOLLERR EPOLLHUP events,  no error in socket opt
-  pstd::Status ProcessConnectStatus(NetFiredEvent* pfe, int* should_close);
-  void SetWaitConnectOnEpoll(int sockfd);
+  pstd::Status ProcessConnectStatus(NetFiredEvent* pfe, int32_t* should_close);
+  void SetWaitConnectOnEpoll(int32_t sockfd);
 
-  void NewConnection(const std::string& peer_ip, int peer_port, int sockfd);
+  void NewConnection(const std::string& peer_ip, int32_t peer_port, int32_t sockfd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
-  pstd::Status ScheduleConnect(const std::string& dst_ip, int dst_port);
+  pstd::Status ScheduleConnect(const std::string& dst_ip, int32_t dst_port);
   void CloseFd(const std::shared_ptr<NetConn>& conn);
-  void CloseFd(int fd, const std::string& ip_port);
+  void CloseFd(int32_t fd, const std::string& ip_port);
   void CleanUpConnRemaining(const std::string& ip_port);
   void DoCronTask();
   void NotifyWrite(const std::string& ip_port);
   void ProcessNotifyEvents(const NetFiredEvent* pfe);
 
-  int keepalive_timeout_;
-  int cron_interval_;
+  int32_t keepalive_timeout_;
+  int32_t cron_interval_;
   ClientHandle* handle_;
   bool own_handle_{false};
   void* private_data_;
@@ -149,9 +149,9 @@ class ClientThread : public Thread {
   pstd::Mutex mu_;
   std::map<std::string, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
-  std::map<int, std::shared_ptr<NetConn>> fd_conns_;
+  std::map<int32_t, std::shared_ptr<NetConn>> fd_conns_;
   std::map<std::string, std::shared_ptr<NetConn>> ipport_conns_;
-  std::set<int> connecting_fds_;
+  std::set<int32_t> connecting_fds_;
 
   pstd::Mutex to_del_mu_;
   std::vector<std::string> to_del_;

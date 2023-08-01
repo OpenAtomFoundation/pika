@@ -56,7 +56,7 @@ class ServerHandle {
   /*
    *  FdTimeoutHandle(...) will be invoked after connection timeout.
    */
-  virtual void FdTimeoutHandle(int fd, const std::string& ip_port) const {
+  virtual void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -64,7 +64,7 @@ class ServerHandle {
   /*
    *  FdClosedHandle(...) will be invoked before connection closed.
    */
-  virtual void FdClosedHandle(int fd, const std::string& ip_port) const {
+  virtual void FdClosedHandle(int32_t fd, const std::string& ip_port) const {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -78,7 +78,7 @@ class ServerHandle {
     return true;
   }
 
-  virtual bool AccessHandle(int fd, std::string& ip) const {
+  virtual bool AccessHandle(int32_t fd, std::string& ip) const {
     UNUSED(fd);
     UNUSED(ip);
     return true;
@@ -89,7 +89,7 @@ class ServerHandle {
    *  'data' pointer should be assigned, we will pass the pointer as parameter
    *  in every connection's factory create function.
    */
-  virtual int CreateWorkerSpecificData(void** data) const {
+  virtual int32_t CreateWorkerSpecificData(void** data) const {
     UNUSED(data);
     return 0;
   }
@@ -100,7 +100,7 @@ class ServerHandle {
    *  resources assigned in CreateWorkerSpecificData(...) should be deleted in
    *  this handle
    */
-  virtual int DeleteWorkerSpecificData(void* data) const {
+  virtual int32_t DeleteWorkerSpecificData(void* data) const {
     UNUSED(data);
     return 0;
   }
@@ -108,54 +108,54 @@ class ServerHandle {
 
 const char kKillAllConnsTask[] = "kill_all_conns";
 
-const int kDefaultKeepAliveTime = 60;  // (s)
+const int32_t kDefaultKeepAliveTime = 60;  // (s)
 
 class ServerThread : public Thread {
  public:
-  ServerThread(int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval, const ServerHandle* handle);
+  ServerThread(int32_t port, int32_t cron_interval, const ServerHandle* handle);
+  ServerThread(const std::string& bind_ip, int32_t port, int32_t cron_interval, const ServerHandle* handle);
+  ServerThread(const std::set<std::string>& bind_ips, int32_t port, int32_t cron_interval, const ServerHandle* handle);
 
 #ifdef __ENABLE_SSL
   /*
    * Enable TLS, set before StartThread, default: false
    * Just HTTPConn has supported for now.
    */
-  int EnableSecurity(const std::string& cert_file, const std::string& key_file);
+  int32_t EnableSecurity(const std::string& cert_file, const std::string& key_file);
   SSL_CTX* ssl_ctx() { return ssl_ctx_; }
   bool security() { return security_; }
 #endif
 
-  int SetTcpNoDelay(int connfd);
+  int32_t SetTcpNoDelay(int32_t connfd);
 
   /*
    * StartThread will return the error code as pthread_create
    * Return 0 if success
    */
-  int StartThread() override;
+  int32_t StartThread() override;
 
-  virtual void set_keepalive_timeout(int timeout) = 0;
+  virtual void set_keepalive_timeout(int32_t timeout) = 0;
 
-  virtual int conn_num() const = 0;
+  virtual int32_t conn_num() const = 0;
 
   struct ConnInfo {
-    int fd;
+    int32_t fd;
     std::string ip_port;
     struct timeval last_interaction;
   };
   virtual std::vector<ConnInfo> conns_info() const = 0;
 
   // Move out from server thread
-  virtual std::shared_ptr<NetConn> MoveConnOut(int fd) = 0;
+  virtual std::shared_ptr<NetConn> MoveConnOut(int32_t fd) = 0;
   // Move into server thread
   virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) = 0;
 
   virtual void KillAllConns() = 0;
   virtual bool KillConn(const std::string& ip_port) = 0;
 
-  virtual void HandleNewConn(int connfd, const std::string& ip_port) = 0;
+  virtual void HandleNewConn(int32_t connfd, const std::string& ip_port) = 0;
 
-  virtual void SetQueueLimit(int queue_limit) {}
+  virtual void SetQueueLimit(int32_t queue_limit) {}
 
   ~ServerThread() override;
 
@@ -170,7 +170,7 @@ class ServerThread : public Thread {
   friend class DispatchThread;
   friend class WorkerThread;
 
-  int cron_interval_ = 0;
+  int32_t cron_interval_ = 0;
   virtual void DoCronTask();
 
   // process events in notify_queue
@@ -187,12 +187,12 @@ class ServerThread : public Thread {
   /*
    * The tcp server port and address
    */
-  int port_ = -1;
+  int32_t port_ = -1;
   std::set<std::string> ips_;
   std::vector<std::shared_ptr<ServerSocket>> server_sockets_;
   std::set<int32_t> server_fds_;
 
-  virtual int InitHandle();
+  virtual int32_t InitHandle();
   void* ThreadMain() override;
   /*
    * The server event handle
@@ -204,14 +204,14 @@ class ServerThread : public Thread {
 // be equal to kDefaultKeepAliveTime(60s). In master-slave mode, the slave
 // binlog receiver will close the binlog sync connection in HolyThread::DoCronTask
 // if master did not send data in kDefaultKeepAliveTime.
-extern ServerThread* NewHolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0,
+extern ServerThread* NewHolyThread(int32_t port, ConnFactory* conn_factory, int32_t cron_interval = 0,
                                    const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory,
-                                   int cron_interval = 0, const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   int cron_interval = 0, const ServerHandle* handle = nullptr);
-extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int port, ConnFactory* conn_factory,
-                                   bool async, int cron_interval = 0, const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::string& bind_ip, int32_t port, ConnFactory* conn_factory,
+                                   int32_t cron_interval = 0, const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int32_t port, ConnFactory* conn_factory,
+                                   int32_t cron_interval = 0, const ServerHandle* handle = nullptr);
+extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int32_t port, ConnFactory* conn_factory,
+                                   bool async, int32_t cron_interval = 0, const ServerHandle* handle = nullptr);
 
 /**
  * This type Dispatch thread just get Connection and then Dispatch the fd to
@@ -226,13 +226,13 @@ extern ServerThread* NewHolyThread(const std::set<std::string>& bind_ips, int po
  * @param handle        the server's handle (e.g. CronHandle, AccessHandle...)
  * @param ehandle       the worker's enviroment setting handle
  */
-extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval = 0,
-                                       int queue_limit = 1000, const ServerHandle* handle = nullptr);
-extern ServerThread* NewDispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
-                                       int cron_interval = 0, int queue_limit = 1000,
+extern ServerThread* NewDispatchThread(int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval = 0,
+                                       int32_t queue_limit = 1000, const ServerHandle* handle = nullptr);
+extern ServerThread* NewDispatchThread(const std::string& ip, int32_t port, int32_t work_num, ConnFactory* conn_factory,
+                                       int32_t cron_interval = 0, int32_t queue_limit = 1000,
                                        const ServerHandle* handle = nullptr);
-extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int port, int work_num,
-                                       ConnFactory* conn_factory, int cron_interval = 0, int queue_limit = 1000,
+extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int32_t port, int32_t work_num,
+                                       ConnFactory* conn_factory, int32_t cron_interval = 0, int32_t queue_limit = 1000,
                                        const ServerHandle* handle = nullptr);
 
 }  // namespace net

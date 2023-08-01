@@ -52,7 +52,7 @@
 namespace pstd {
 
 /* Glob-style pattern matching. */
-int stringmatchlen(const char* pattern, int patternLen, const char* string, int stringLen, int nocase) {
+int32_t stringmatchlen(const char* pattern, int32_t patternLen, const char* string, int32_t stringLen, int32_t nocase) {
   while (patternLen != 0) {
     switch (pattern[0]) {
       case '*':
@@ -80,12 +80,12 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
         stringLen--;
         break;
       case '[': {
-        int nott;
-        int match;
+        int32_t nott;
+        int32_t match;
 
         pattern++;
         patternLen--;
-        nott = static_cast<int>(pattern[0] == '^');
+        nott = static_cast<int32_t>(pattern[0] == '^');
         if (nott != 0) {
           pattern++;
           patternLen--;
@@ -105,11 +105,11 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
             patternLen++;
             break;
           } else if (pattern[1] == '-' && patternLen >= 3) {
-            int start = pattern[0];
-            int end = pattern[2];
-            int c = string[0];
+            int32_t start = pattern[0];
+            int32_t end = pattern[2];
+            int32_t c = string[0];
             if (start > end) {
-              int t = start;
+              int32_t t = start;
               start = end;
               end = t;
             }
@@ -129,7 +129,7 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
                 match = 1;
               }
             } else {
-              if (tolower(static_cast<int>(pattern[0])) == tolower(static_cast<int>(string[0]))) {
+              if (tolower(static_cast<int32_t>(pattern[0])) == tolower(static_cast<int32_t>(string[0]))) {
                 match = 1;
               }
             }
@@ -138,7 +138,7 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
           patternLen--;
         }
         if (nott != 0) {
-          match = static_cast<int>(match == 0);
+          match = static_cast<int32_t>(match == 0);
         }
         if (match == 0) {
           return 0; /* no match */
@@ -159,7 +159,7 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
             return 0; /* no match */
           }
         } else {
-          if (tolower(static_cast<int>(pattern[0])) != tolower(static_cast<int>(string[0]))) {
+          if (tolower(static_cast<int32_t>(pattern[0])) != tolower(static_cast<int32_t>(string[0]))) {
             return 0; /* no match */
           }
         }
@@ -183,7 +183,7 @@ int stringmatchlen(const char* pattern, int patternLen, const char* string, int 
   return 0;
 }
 
-int stringmatch(const char* pattern, const char* string, int nocase) {
+int32_t stringmatch(const char* pattern, const char* string, int32_t nocase) {
   return stringmatchlen(pattern, static_cast<int32_t>(strlen(pattern)), 
 				        string, static_cast<int32_t>(strlen(string)), nocase);
 }
@@ -194,12 +194,12 @@ int stringmatch(const char* pattern, const char* string, int nocase) {
  *
  * On parsing error, if *err is not null, it's set to 1, otherwise it's
  * set to 0 */
-long long memtoll(const char* p, int* err) {
+int64_t memtoll(const char* p, int32_t* err) {
   const char* u;
   char buf[128];
-  long mul; /* unit multiplier */
-  long long val;
-  unsigned int digits;
+  int32_t mul; /* unit multiplier */
+  int64_t val;
+  uint32_t digits;
 
   if (err) {
     *err = 0;
@@ -263,19 +263,19 @@ uint32_t digits10(uint64_t v) {
         if (v < 10000) {
           return 4;
         }
-        return 5 + static_cast<int>(v >= 100000);
+        return 5 + static_cast<int32_t>(v >= 100000);
       }
-      return 7 + static_cast<int>(v >= 10000000UL);
+      return 7 + static_cast<int32_t>(v >= 10000000UL);
     }
     if (v < 10000000000UL) {
-      return 9 + static_cast<int>(v >= 1000000000UL);
+      return 9 + static_cast<int32_t>(v >= 1000000000UL);
     }
-    return 11 + static_cast<int>(v >= 100000000000UL);
+    return 11 + static_cast<int32_t>(v >= 100000000000UL);
   }
   return 12 + digits10(v / 1000000000000UL);
 }
 
-/* Convert a long long into a string. Returns the number of
+/* Convert a int64_t into a string. Returns the number of
  * characters needed to represent the number.
  * If the buffer is not big enough to store the string, 0 is returned.
  *
@@ -286,15 +286,15 @@ uint32_t digits10(uint64_t v) {
  *
  * Modified in order to handle signed integers since the original code was
  * designed for unsigned integers. */
-int ll2string(char* dst, size_t dstlen, long long svalue) {
+int32_t ll2string(char* dst, size_t dstlen, int64_t svalue) {
   static const char digits[201] =
       "0001020304050607080910111213141516171819"
       "2021222324252627282930313233343536373839"
       "4041424344454647484950515253545556575859"
       "6061626364656667686970717273747576777879"
       "8081828384858687888990919293949596979899";
-  int negative;
-  unsigned long long value;
+  int32_t negative;
+  uint64_t value;
 
   /* The main loop works with 64bit unsigned integers for simplicity, so
    * we convert the number here and remember if it is negative. */
@@ -302,7 +302,7 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
     if (svalue != LLONG_MIN) {
       value = -svalue;
     } else {
-      value = (static_cast<unsigned long long>(LLONG_MAX) + 1);
+      value = (static_cast<uint64_t>(LLONG_MAX) + 1);
     }
     negative = 1;
   } else {
@@ -321,7 +321,7 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
   dst[next] = '\0';
   next--;
   while (value >= 100) {
-    int const i = static_cast<int32_t>((value % 100) * 2);
+    auto const i = static_cast<int32_t>((value % 100) * 2);
     value /= 100;
     dst[next] = digits[i + 1];
     dst[next - 1] = digits[i];
@@ -344,14 +344,14 @@ int ll2string(char* dst, size_t dstlen, long long svalue) {
   return static_cast<int32_t>(length);
 }
 
-/* Convert a string into a long long. Returns 1 if the string could be parsed
- * into a (non-overflowing) long long, 0 otherwise. The value will be set to
+/* Convert a string into a int64_t. Returns 1 if the string could be parsed
+ * into a (non-overflowing) int64_t, 0 otherwise. The value will be set to
  * the parsed value when appropriate. */
-int string2int(const char* s, size_t slen, long long* value) {
+int32_t string2int(const char* s, size_t slen, int64_t* value) {
   const char* p = s;
   size_t plen = 0;
-  int negative = 0;
-  unsigned long long v;
+  int32_t negative = 0;
+  uint64_t v;
 
   if (plen == slen) {
     return 0;
@@ -421,18 +421,18 @@ int string2int(const char* s, size_t slen, long long* value) {
   }
 
   if (negative != 0) {
-    if (v > (static_cast<unsigned long long>(-(LLONG_MIN + 1)) + 1)) { /* Overflow. */
+    if (v > (static_cast<uint64_t>(-(LLONG_MIN + 1)) + 1)) { /* Overflow. */
       return 0;
     }
     if (value) {
-      *value = static_cast<long long>(-v);
+      *value = static_cast<int64_t>(-v);
     }
   } else {
     if (v > LLONG_MAX) { /* Overflow. */
       return 0;
     }
     if (value) {
-      *value = static_cast<long long>(v);
+      *value = static_cast<int64_t>(v);
     }
   }
   return 1;
@@ -441,8 +441,8 @@ int string2int(const char* s, size_t slen, long long* value) {
 /* Convert a string into a long. Returns 1 if the string could be parsed into a
  * (non-overflowing) long, 0 otherwise. The value will be set to the parsed
  * value when appropriate. */
-int string2int(const char* s, size_t slen, long* lval) {
-  long long llval;
+int32_t string2int(const char* s, size_t slen, int32_t* lval) {
+  int64_t llval;
 
   if (string2int(s, slen, &llval) == 0) {
     return 0;
@@ -452,31 +452,31 @@ int string2int(const char* s, size_t slen, long* lval) {
     return 0;
   }
 
-  *lval = static_cast<long>(llval);
+  *lval = static_cast<int32_t>(llval);
   return 1;
 }
 
-/* Convert a string into a unsigned long. Returns 1 if the string could be parsed into a
- * (non-overflowing) unsigned long, 0 otherwise. The value will be set to the parsed
+/* Convert a string into a uint32_t. Returns 1 if the string could be parsed into a
+ * (non-overflowing) uint32_t, 0 otherwise. The value will be set to the parsed
  * value when appropriate. */
-int string2int(const char* s, size_t slen, unsigned long* lval) {
-  long long llval;
+int32_t string2int(const char* s, size_t slen, uint32_t* lval) {
+  int64_t llval;
 
   if (string2int(s, slen, &llval) == 0) {
     return 0;
   }
 
-  if (llval > static_cast<long long>(ULONG_MAX)) {
+  if (llval > static_cast<int64_t>(ULONG_MAX)) {
     return 0;
   }
 
-  *lval = static_cast<unsigned long>(llval);
+  *lval = static_cast<uint32_t>(llval);
   return 1;
 }
 
 /* Convert a double to a string representation. Returns the number of bytes
  * required. The representation should always be parsable by strtod(3). */
-int d2string(char* buf, size_t len, double value) {
+int32_t d2string(char* buf, size_t len, double value) {
   if (std::isnan(value)) {
     len = snprintf(buf, len, "nan");
   } else if (std::isinf(value)) {
@@ -495,18 +495,18 @@ int d2string(char* buf, size_t len, double value) {
   } else {
 #if (DBL_MANT_DIG >= 52) && (LLONG_MAX == 0x7fffffffffffffffLL)
     /* Check if the float is in a safe range to be casted into a
-     * long long. We are assuming that long long is 64 bit here.
+     * int64_t. We are assuming that int64_t is 64 bit here.
      * Also we are assuming that there are no implementations around where
      * double has precision < 52 bit.
      *
      * Under this assumptions we test if a double is inside an interval
-     * where casting to long long is safe. Then using two castings we
+     * where casting to int64_t is safe. Then using two castings we
      * make sure the decimal part is zero. If all this is true we use
      * integer printing function that is much faster. */
     double min = -4503599627370495; /* (2^52)-1 */
     double max = 4503599627370496;  /* -(2^52) */
-    if (value > min && value < max && value == (static_cast<double>(static_cast<long long>(value)))) {
-      len = ll2string(buf, len, static_cast<long long>(value));
+    if (value > min && value < max && value == (static_cast<double>(static_cast<int64_t>(value)))) {
+      len = ll2string(buf, len, static_cast<int64_t>(value));
     } else  // NOLINT
 #endif
       len = snprintf(buf, len, "%.17g", value);
@@ -515,7 +515,7 @@ int d2string(char* buf, size_t len, double value) {
   return static_cast<int32_t>(len);
 }
 
-int string2d(const char* s, size_t slen, double* dval) {
+int32_t string2d(const char* s, size_t slen, double* dval) {
   char* pEnd;
   double d = strtod(s, &pEnd);
   if (pEnd != s + slen) {
@@ -542,7 +542,7 @@ std::string getRandomHexChars(const size_t len) {
   };
 
   char charset[] = "0123456789abcdef";
-  unsigned int j{0};
+  uint32_t j{0};
   std::string buf(len, '\0');
   char* p = buf.data();
 
@@ -551,7 +551,7 @@ std::string getRandomHexChars(const size_t len) {
      * in order to create some entropy, since this function is used to
      * generate run_id and cluster instance IDs */
     char* x = p;
-    unsigned int l = len;
+    uint32_t l = len;
     struct timeval tv;
     pid_t pid = getpid();
 
@@ -621,7 +621,7 @@ std::string& StringToUpper(std::string& ori) {
   return ori;
 }
 
-std::string IpPortString(const std::string& ip, int port) {
+std::string IpPortString(const std::string& ip, int32_t port) {
   if (ip.empty()) {
     return {};
   }
@@ -677,7 +677,7 @@ std::string ToRead(const std::string& str) {
   return read;
 }
 
-bool ParseIpPortString(const std::string& ip_port, std::string& ip, int& port) {
+bool ParseIpPortString(const std::string& ip_port, std::string& ip, int32_t& port) {
   if (ip_port.empty()) {
     return false;
   }
@@ -687,11 +687,11 @@ bool ParseIpPortString(const std::string& ip_port, std::string& ip, int& port) {
   }
   ip = ip_port.substr(0, pos);
   std::string port_str = ip_port.substr(pos + 1);
-  long lport = 0;
+  int32_t lport = 0;
   if (1 != string2int(port_str.data(), port_str.size(), &lport)) {
     return false;
   }
-  port = static_cast<int>(lport);
+  port = static_cast<int32_t>(lport);
   return true;
 }
 

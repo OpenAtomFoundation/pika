@@ -19,8 +19,8 @@ PikaClientProcessor::~PikaClientProcessor() {
   LOG(INFO) << "PikaClientProcessor exit!!!";
 }
 
-int PikaClientProcessor::Start() {
-  int res = pool_->start_thread_pool();
+int32_t PikaClientProcessor::Start() {
+  int32_t res = pool_->start_thread_pool();
   if (res != net::kSuccess) {
     return res;
   }

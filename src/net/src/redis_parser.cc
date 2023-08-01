@@ -18,7 +18,7 @@ static bool IsHexDigit(char ch) {
   return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
 }
 
-static int HexDigitToInt32(char ch) {
+static int32_t HexDigitToInt32(char ch) {
   if (ch <= '9' && ch >= '0') {
     return ch - '0';
   } else if (ch <= 'F' && ch >= 'A') {
@@ -30,7 +30,7 @@ static int HexDigitToInt32(char ch) {
   }
 }
 
-static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
+static int32_t split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
   const char* p = req_buf.data();
   std::string arg;
 
@@ -41,9 +41,9 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
     }
     if (*p != 0) {
       // get a token
-      int inq = 0;   // set to 1 if we are in "quotes"
-      int insq = 0;  // set to 1 if we are in 'single quotes'
-      int done = 0;
+      int32_t inq = 0;   // set to 1 if we are in "quotes"
+      int32_t insq = 0;  // set to 1 if we are in 'single quotes'
+      int32_t done = 0;
 
       arg.clear();
       while (done == 0) {
@@ -143,11 +143,11 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
   }
 }
 
-int RedisParser::FindNextSeparators() {
+int32_t RedisParser::FindNextSeparators() {
   if (cur_pos_ > length_ - 1) {
     return -1;
   }
-  int pos = cur_pos_;
+  int32_t pos = cur_pos_;
   while (pos <= length_ - 1) {
     if (input_buf_[pos] == '\n') {
       return pos;
@@ -157,7 +157,7 @@ int RedisParser::FindNextSeparators() {
   return -1;
 }
 
-int RedisParser::GetNextNum(int pos, long* value) {
+int32_t RedisParser::GetNextNum(int32_t pos, int32_t* value) {
   assert(pos > cur_pos_);
   //     cur_pos_       pos
   //      |    ----------|
@@ -203,8 +203,8 @@ RedisParserStatus RedisParser::RedisParserInit(RedisParserType type, const Redis
 }
 
 RedisParserStatus RedisParser::ProcessInlineBuffer() {
-  int pos;
-  int ret;
+  int32_t pos;
+  int32_t ret;
   pos = FindNextSeparators();
   if (pos == -1) {
     // change rbuf_len_ to length_
@@ -232,7 +232,7 @@ RedisParserStatus RedisParser::ProcessInlineBuffer() {
 }
 
 RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
-  int pos = 0;
+  int32_t pos = 0;
   if (multibulk_len_ == 0) {
     /* The client should have been reset */
     pos = FindNextSeparators();
@@ -310,7 +310,7 @@ void RedisParser::PrintCurrentStatus() {
   LOG(INFO) << "input_buf len " << length_;
 }
 
-RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int length, int* parsed_len) {
+RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int32_t length, int32_t* parsed_len) {
   if (status_code_ == kRedisParserInitDone || status_code_ == kRedisParserHalf || status_code_ == kRedisParserDone) {
     // TODO(): AZ: avoid copy
     std::string tmp_str(input_buf, length);

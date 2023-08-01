@@ -37,19 +37,19 @@ class PubSubThread : public Thread {
 
   // PubSub
 
-  int Publish(const std::string& channel, const std::string& msg);
+  int32_t Publish(const std::string& channel, const std::string& msg);
 
   void Subscribe(const std::shared_ptr<NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
-                 std::vector<std::pair<std::string, int>>* result);
+                 std::vector<std::pair<std::string, int32_t>>* result);
 
-  int UnSubscribe(const std::shared_ptr<NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
-                  std::vector<std::pair<std::string, int>>* result);
+  int32_t UnSubscribe(const std::shared_ptr<NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
+                  std::vector<std::pair<std::string, int32_t>>* result);
 
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
 
-  void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
+  void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int32_t>>* result);
 
-  int PubSubNumPat();
+  int32_t PubSubNumPat();
 
   // Move out from pubsub thread
   void MoveConnOut(const std::shared_ptr<NetConn>& conn);
@@ -69,20 +69,20 @@ class PubSubThread : public Thread {
     ReadyState ready_state;
   };
 
-  void UpdateConnReadyState(int fd, const ReadyState& state);
+  void UpdateConnReadyState(int32_t fd, const ReadyState& state);
 
-  bool IsReady(int fd);
+  bool IsReady(int32_t fd);
 
  private:
   void RemoveConn(const std::shared_ptr<NetConn>& conn);
 
-  int ClientChannelSize(const std::shared_ptr<NetConn>& conn);
+  int32_t ClientChannelSize(const std::shared_ptr<NetConn>& conn);
 
-  int msg_pfd_[2];
+  int32_t msg_pfd_[2];
   bool should_exit_;
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<ConnHandle>> conns_;
+  std::map<int32_t, std::shared_ptr<ConnHandle>> conns_;
 
   pstd::Mutex pub_mutex_;
   pstd::CondVar receiver_rsignal_;
@@ -96,7 +96,7 @@ class PubSubThread : public Thread {
 
   std::string channel_;
   std::string message_;
-  int receivers_{-1};
+  int32_t receivers_{-1};
 
   /*
    * The epoll handler

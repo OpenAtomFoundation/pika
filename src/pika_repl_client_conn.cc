@@ -19,7 +19,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread,
+PikaReplClientConn::PikaReplClientConn(int32_t fd, const std::string& ip_port, net::Thread* thread,
                                        void* worker_specific_data, net::NetMultiplexer* mpx)
     : net::PbConn(fd, ip_port, thread, mpx) {}
 
@@ -36,7 +36,7 @@ bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& curre
   return true;
 }
 
-int PikaReplClientConn::DealMessage() {
+int32_t PikaReplClientConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerResponse> response = std::make_shared<InnerMessage::InnerResponse>();
   ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, static_cast<int32_t>(header_len_));
   ::google::protobuf::io::CodedInputStream decoder(&input);
@@ -107,7 +107,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
 
   std::vector<DBStruct> master_db_structs;
-  for (int idx = 0; idx < meta_sync.dbs_info_size(); ++idx) {
+  for (int32_t idx = 0; idx < meta_sync.dbs_info_size(); ++idx) {
     const InnerMessage::InnerResponse_MetaSync_DBInfo& db_info = meta_sync.dbs_info(idx);
     master_db_structs.push_back({db_info.db_name(), static_cast<uint32_t>(db_info.slot_num()), {0}});
   }
@@ -251,7 +251,7 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
                                                  const std::shared_ptr<SyncMasterSlot>& slot,
                                                  const std::shared_ptr<SyncSlaveSlot>& slave_slot) {
   std::vector<LogOffset> hints;
-  for (int i = 0; i < consensus_meta.hint_size(); ++i) {
+  for (int32_t i = 0; i < consensus_meta.hint_size(); ++i) {
     const InnerMessage::BinlogOffset& pb_offset = consensus_meta.hint(i);
     LogOffset offset;
     offset.b_offset.filenum = pb_offset.filenum();
@@ -272,13 +272,13 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
 
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
   // slot to a bunch of binlog chips
-  std::unordered_map<SlotInfo, std::vector<int>*, hash_slot_info> par_binlog;
-  for (int i = 0; i < res->binlog_sync_size(); ++i) {
+  std::unordered_map<SlotInfo, std::vector<int32_t>*, hash_slot_info> par_binlog;
+  for (int32_t i = 0; i < res->binlog_sync_size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // hash key: db + slot_id
     SlotInfo p_info(binlog_res.slot().db_name(), binlog_res.slot().slot_id());
     if (par_binlog.find(p_info) == par_binlog.end()) {
-      par_binlog[p_info] = new std::vector<int>();
+      par_binlog[p_info] = new std::vector<int32_t>();
     }
     par_binlog[p_info]->push_back(i);
   }

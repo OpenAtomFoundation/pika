@@ -18,7 +18,7 @@ class SyncMasterSlot;
 
 class PikaReplServerConn : public net::PbConn {
  public:
-  PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
+  PikaReplServerConn(int32_t fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                      net::NetMultiplexer* mpx);
   ~PikaReplServerConn() override;
 
@@ -43,7 +43,7 @@ class PikaReplServerConn : public net::PbConn {
   static void HandleBinlogSyncRequest(void* arg);
   static void HandleRemoveSlaveNodeRequest(void* arg);
 
-  int DealMessage() override;
+  int32_t DealMessage() override;
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_

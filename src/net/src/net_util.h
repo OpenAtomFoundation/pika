@@ -13,7 +13,7 @@
 
 namespace net {
 
-int Setnonblocking(int sockfd);
+int32_t Setnonblocking(int32_t sockfd);
 
 
 

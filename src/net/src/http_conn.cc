@@ -20,7 +20,7 @@ namespace net {
 static const uint32_t kHTTPMaxMessage = 1024 * 1024 * 8;
 static const uint32_t kHTTPMaxHeader = 1024 * 1024;
 
-static const std::map<int, std::string> http_status_map = {
+static const std::map<int32_t, std::string> http_status_map = {
     {100, "Continue"},
     {101, "Switching Protocols"},
     {102, "Processing"},
@@ -58,9 +58,9 @@ static const std::map<int, std::string> http_status_map = {
     {509, "Not Extended"},
 };
 
-inline int find_lf(const char* data, int size) {
+inline int32_t find_lf(const char* data, int32_t size) {
   const char* c = data;
-  int count = 0;
+  int32_t count = 0;
   while (count < size) {
     if (*c == '\n') {
       break;
@@ -71,10 +71,10 @@ inline int find_lf(const char* data, int size) {
   return count;
 }
 
-bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) {
+bool HTTPRequest::ParseHeadLine(const char* data, int32_t line_start, int32_t line_end) {
   std::string param_key;
   std::string param_value;
-  for (int i = line_start; i <= line_end; i++) {
+  for (int32_t i = line_start; i <= line_end; i++) {
     switch (parse_status_) {
       case kHeaderMethod:
         if (data[i] != ' ') {
@@ -166,7 +166,7 @@ bool HTTPRequest::ParseParameters(std::string& data, size_t line_start) {
   return true;
 }
 
-int HTTPRequest::ParseHeader() {
+int32_t HTTPRequest::ParseHeader() {
   rbuf_[rbuf_pos_] = '\0';  // Avoid strstr() parsing expire char
   char* sep_pos = strstr(rbuf_, "\r\n\r\n");
   if (!sep_pos) {
@@ -174,15 +174,15 @@ int HTTPRequest::ParseHeader() {
     return 0;
   }
   auto header_len = static_cast<int32_t>(sep_pos - rbuf_ + 4);
-  int remain_size = header_len;
+  int32_t remain_size = header_len;
   if (remain_size <= 5) {
     // Header error
     return -1;
   }
 
   // Parse header line
-  int line_start = 0;
-  int line_end = 0;
+  int32_t line_start = 0;
+  int32_t line_end = 0;
   while (remain_size > 4) {
     line_end += find_lf(rbuf_ + line_start, remain_size);
     if (line_end < line_start) {
@@ -231,15 +231,15 @@ void HTTPRequest::Dump() const {
 
 // Return bytes actual be writen, should be less than size
 bool HTTPResponse::SerializeHeader() {
-  int serial_size = 0;
-  int ret;
+  int32_t serial_size = 0;
+  int32_t ret;
 
   const std::string& reason_phrase = http_status_map.at(status_code_);
 
   // Serialize statues line
   ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase.c_str());
   serial_size += ret;
-  if (ret < 0 || ret == static_cast<int>(kHTTPMaxHeader)) {
+  if (ret < 0 || ret == static_cast<int32_t>(kHTTPMaxHeader)) {
     return false;
   }
 
@@ -247,14 +247,14 @@ bool HTTPResponse::SerializeHeader() {
     ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size, "%s: %s\r\n", line.first.c_str(),
                    line.second.c_str());
     serial_size += ret;
-    if (ret < 0 || serial_size == static_cast<int>(kHTTPMaxHeader)) {
+    if (ret < 0 || serial_size == static_cast<int32_t>(kHTTPMaxHeader)) {
       return false;
     }
   }
 
   ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size, "\r\n");
   serial_size += ret;
-  if (ret < 0 || serial_size == static_cast<int>(kHTTPMaxHeader)) {
+  if (ret < 0 || serial_size == static_cast<int32_t>(kHTTPMaxHeader)) {
     return false;
   }
 
@@ -262,7 +262,7 @@ bool HTTPResponse::SerializeHeader() {
   return true;
 }
 
-HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std::shared_ptr<HTTPHandles> handles,
+HTTPConn::HTTPConn(const int32_t fd, const std::string& ip_port, Thread* thread, std::shared_ptr<HTTPHandles> handles,
                    void* worker_specific_data)
     : NetConn(fd, ip_port, thread),
 #ifdef __ENABLE_SSL
@@ -338,9 +338,9 @@ ReadStatus HTTPRequest::DoRead() {
   ssize_t nread;
 #ifdef __ENABLE_SSL
   if (conn_->security_) {
-    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_, static_cast<int>(kHTTPMaxMessage));
+    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_, static_cast<int32_t>(kHTTPMaxMessage));
     if (nread <= 0) {
-      int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nread));
+      int32_t sslerr = SSL_get_error(conn_->ssl(), static_cast<int32_t>(nread));
       switch (sslerr) {
         case SSL_ERROR_WANT_READ:
         case SSL_ERROR_WANT_WRITE:
@@ -384,7 +384,7 @@ ReadStatus HTTPRequest::ReadData() {
 
   ReadStatus s;
   while (true) {
-    int header_len = 0;
+    int32_t header_len = 0;
     switch (req_status_) {
       case kHeaderReceiving:
         if ((s = DoRead()) != kOk) {
@@ -477,7 +477,7 @@ void HTTPResponse::Reset() {
 
 bool HTTPResponse::Finished() { return finished_; }
 
-void HTTPResponse::SetStatusCode(int code) {
+void HTTPResponse::SetStatusCode(int32_t code) {
   assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) || (code >= 400 && code <= 409) ||
          (code == 416) || (code >= 500 && code <= 509));
   status_code_ = code;
@@ -506,10 +506,10 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int32_t>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
-        int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));
+        int32_t sslerr = SSL_get_error(conn_->ssl(), static_cast<int32_t>(nwritten));
         switch (sslerr) {
           case SSL_ERROR_WANT_READ:
           case SSL_ERROR_WANT_WRITE:
@@ -567,10 +567,10 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int32_t>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
-        int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));
+        int32_t sslerr = SSL_get_error(conn_->ssl(), static_cast<int32_t>(nwritten));
         switch (sslerr) {
           case SSL_ERROR_WANT_READ:
           case SSL_ERROR_WANT_WRITE:

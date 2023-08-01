@@ -81,18 +81,18 @@ class HTTPRequest {
   uint64_t remain_recv_len_{0};
 
   ReadStatus ReadData();
-  int ParseHeader();
+  int32_t ParseHeader();
 
   ReadStatus DoRead();
-  bool ParseHeadFromArray(const char* data, int size);
+  bool ParseHeadFromArray(const char* data, int32_t size);
   bool ParseGetUrl();
-  bool ParseHeadLine(const char* data, int line_start, int line_end);
+  bool ParseHeadLine(const char* data, int32_t line_start, int32_t line_end);
   bool ParseParameters(std::string& data, size_t line_start = 0);
 };
 
 class HTTPResponse {
  public:
-  void SetStatusCode(int code);
+  void SetStatusCode(int32_t code);
   void SetHeaders(const std::string& key, const std::string& value);
   void SetHeaders(const std::string& key, size_t value);
   void SetContentLength(uint64_t size);
@@ -122,7 +122,7 @@ class HTTPResponse {
   uint64_t remain_send_len_{0};
   bool finished_{true};
 
-  int status_code_{200};
+  int32_t status_code_{200};
   std::map<std::string, std::string> headers_;
 
   bool Flush();
@@ -157,7 +157,7 @@ class HTTPHandles : public pstd::noncopyable {
    * Return -2 if has written all
    * Return Other as Error and close connection
    */
-  virtual int WriteResponseBody(char* buf, size_t max_size) = 0;
+  virtual int32_t WriteResponseBody(char* buf, size_t max_size) = 0;
 
   // Close handle
   virtual void HandleConnClosed() {}
@@ -178,7 +178,7 @@ class HTTPHandles : public pstd::noncopyable {
 
 class HTTPConn : public NetConn {
  public:
-  HTTPConn(int fd, const std::string& ip_port, Thread* sthread, std::shared_ptr<HTTPHandles> handles_,
+  HTTPConn(int32_t fd, const std::string& ip_port, Thread* sthread, std::shared_ptr<HTTPHandles> handles_,
            void* worker_specific_data);
   ~HTTPConn() override;
 

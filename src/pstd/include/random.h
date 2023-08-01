@@ -13,7 +13,7 @@ class Random {
   /*
    * return Random number in [1...n]
    */
-  static uint32_t Uniform(int n) { return (random() % n) + 1; }
+  static uint32_t Uniform(int32_t n) { return (random() % n) + 1; }
 };
 
 };  // namespace pstd

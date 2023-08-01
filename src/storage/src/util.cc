@@ -17,7 +17,7 @@
 
 namespace storage {
 
-/* Convert a long long into a string. Returns the number of
+/* Convert a int64_t into a string. Returns the number of
  * characters needed to represent the number.
  * If the buffer is not big enough to store the string, 0 is returned.
  *
@@ -28,23 +28,23 @@ namespace storage {
  *
  * Modified in order to handle signed integers since the original code was
  * designed for unsigned integers. */
-int Int64ToStr(char* dst, size_t dstlen, int64_t svalue) {
+int32_t Int64ToStr(char* dst, size_t dstlen, int64_t svalue) {
   return pstd::ll2string(dst, dstlen, svalue);
 }
 
-/* Convert a string into a long long. Returns 1 if the string could be parsed
- * into a (non-overflowing) long long, 0 otherwise. The value will be set to
+/* Convert a string into a int64_t. Returns 1 if the string could be parsed
+ * into a (non-overflowing) int64_t, 0 otherwise. The value will be set to
  * the parsed value when appropriate. */
-int StrToInt64(const char* s, size_t slen, int64_t* value) {
+int32_t StrToInt64(const char* s, size_t slen, int64_t* value) {
   return pstd::string2int(s, slen, value);
 }
 
 /* Glob-style pattern matching. */
-int StringMatch(const char* pattern, uint64_t pattern_len, const char* str, uint64_t string_len, int nocase) {
+int32_t StringMatch(const char* pattern, uint64_t pattern_len, const char* str, uint64_t string_len, int32_t nocase) {
   return pstd::stringmatchlen(pattern, static_cast<int32_t>(pattern_len), str, static_cast<int32_t>(string_len), nocase);
 }
 
-int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
+int32_t StrToLongDouble(const char* s, size_t slen, long double* ldval) {
   char* pEnd;
   std::string t(s, slen);
   if (t.find(' ') != std::string::npos) {
@@ -61,9 +61,9 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
   return 0;
 }
 
-int LongDoubleToStr(long double ldval, std::string* value) {
+int32_t LongDoubleToStr(long double ldval, std::string* value) {
   char buf[256];
-  int len;
+  int32_t len;
   if (std::isnan(ldval)) {
     return -1;
   } else if (std::isinf(ldval)) {
@@ -100,9 +100,9 @@ int LongDoubleToStr(long double ldval, std::string* value) {
   }
 }
 
-int do_mkdir(const char* path, mode_t mode) {
+int32_t do_mkdir(const char* path, mode_t mode) {
   struct stat st;
-  int status = 0;
+  int32_t status = 0;
 
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
@@ -124,10 +124,10 @@ int do_mkdir(const char* path, mode_t mode) {
 ** each directory in path exists, rather than optimistically creating
 ** the last element and working backwards.
 */
-int mkpath(const char* path, mode_t mode) {
+int32_t mkpath(const char* path, mode_t mode) {
   char* pp;
   char* sp;
-  int status;
+  int32_t status;
   char* copypath = strdup(path);
 
   status = 0;
@@ -148,11 +148,11 @@ int mkpath(const char* path, mode_t mode) {
   return (status);
 }
 
-int delete_dir(const char* dirname) {
+int32_t delete_dir(const char* dirname) {
   char chBuf[256];
   DIR* dir = nullptr;
   struct dirent* ptr;
-  int ret = 0;
+  int32_t ret = 0;
   dir = opendir(dirname);
   if (nullptr == dir) {
     return -1;
@@ -190,9 +190,9 @@ int delete_dir(const char* dirname) {
   return 0;
 }
 
-int is_dir(const char* filename) {
+int32_t is_dir(const char* filename) {
   struct stat buf;
-  int ret = stat(filename, &buf);
+  int32_t ret = stat(filename, &buf);
   if (0 == ret) {
     if ((buf.st_mode & S_IFDIR) != 0) {
       // folder
@@ -205,7 +205,7 @@ int is_dir(const char* filename) {
   return -1;
 }
 
-int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
+int32_t CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
   size_t needed = key.size() + 1;
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
@@ -217,7 +217,7 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
   return 0;
 }
 
-int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
+int32_t CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
   size_t needed = sizeof(int32_t) + key.size() + 1;
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();

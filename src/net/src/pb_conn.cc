@@ -18,7 +18,7 @@ extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
 namespace net {
 
-PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
+PbConn::PbConn(const int32_t fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
     : NetConn(fd, ip_port, thread, mpx),
       
       write_buf_(0)
@@ -165,7 +165,7 @@ bool PbConn::is_reply() {
   return is_reply_ > 0;
 }
 
-int PbConn::WriteResp(const std::string& resp) {
+int32_t PbConn::WriteResp(const std::string& resp) {
   std::string tag;
   BuildInternalTag(resp, &tag);
   std::lock_guard l(resp_mu_);

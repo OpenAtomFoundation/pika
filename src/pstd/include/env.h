@@ -20,7 +20,7 @@ class RandomRWFile;
 /*
  *  Set the resource limits of a process
  */
-int SetMaxFileDescriptorNum(int64_t max_file_descriptor_num);
+int32_t SetMaxFileDescriptorNum(int64_t max_file_descriptor_num);
 
 /*
  * Set size of initial mmap size
@@ -32,11 +32,11 @@ extern const size_t kPageSize;
 /*
  * File Operations
  */
-int IsDir(const std::string& path);
-int DeleteDir(const std::string& path);
+int32_t IsDir(const std::string& path);
+int32_t DeleteDir(const std::string& path);
 bool DeleteDirIfExist(const std::string& path);
-int CreateDir(const std::string& path);
-int CreatePath(const std::string& path, mode_t mode = 0755);
+int32_t CreateDir(const std::string& path);
+int32_t CreatePath(const std::string& path, mode_t mode = 0755);
 uint64_t Du(const std::string& filename);
 
 /*
@@ -47,22 +47,22 @@ bool FileExists(const std::string& path);
 
 bool DeleteFile(const std::string& fname);
 
-int RenameFile(const std::string& oldname, const std::string& newname);
+int32_t RenameFile(const std::string& oldname, const std::string& newname);
 
 class FileLock : public pstd::noncopyable {
  public:
   FileLock() = default;
   virtual ~FileLock()= default;;
 
-  int fd_ = -1;
+  int32_t fd_ = -1;
   std::string name_;
 };
 
-int GetChildren(const std::string& dir, std::vector<std::string>& result);
+int32_t GetChildren(const std::string& dir, std::vector<std::string>& result);
 void GetDescendant(const std::string& dir, std::vector<std::string>& result);
 
 uint64_t NowMicros();
-void SleepForMicroseconds(int micros);
+void SleepForMicroseconds(int32_t micros);
 
 Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result);
 
@@ -101,7 +101,7 @@ class SequentialFile {
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;
   virtual Status Skip(uint64_t n) = 0;
   // virtual Status Close() = 0;
-  virtual char* ReadLine(char* buf, int n) = 0;
+  virtual char* ReadLine(char* buf, int32_t n) = 0;
 };
 
 class RWFile : public pstd::noncopyable {

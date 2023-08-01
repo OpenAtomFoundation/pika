@@ -43,4 +43,4 @@ void NetworkStatistic::IncrReplOutputBytes(uint64_t bytes) {
   stat_net_repl_output_bytes.fetch_add(bytes, std::memory_order_relaxed);
 }
 
-}
+}  // namespace net

@@ -87,7 +87,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
     return false;
   }
 
-  int delete_num = 0;
+  int32_t delete_num = 0;
   struct stat file_stat;
   auto remain_expire_num = static_cast<int32_t>(binlogs.size() - g_pika_conf->expire_logs_nums());
   std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
@@ -142,7 +142,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
-  int ret = pstd::GetChildren(log_path_, children);
+  int32_t ret = pstd::GetChildren(log_path_, children);
    if (ret) {
     LOG(WARNING) << log_path_ << " Get all files in log path failed! error:" << ret;
     return false;
@@ -165,7 +165,7 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
 
 void StableLog::UpdateFirstOffset(uint32_t filenum) {
   PikaBinlogReader binlog_reader;
-  int res = binlog_reader.Seek(stable_logger_, filenum, 0);
+  int32_t res = binlog_reader.Seek(stable_logger_, filenum, 0);
   if (res != 0) {
     LOG(WARNING) << "Binlog reader init failed";
     return;

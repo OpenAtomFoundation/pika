@@ -40,7 +40,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
       LOG(WARNING) << s.ToString();
     }
     // send to peer
-    int res = g_pika_server->SendToPeer();
+    int32_t res = g_pika_server->SendToPeer();
     if (res == 0) {
       // sleep 100 ms
       std::unique_lock lock(mu_);

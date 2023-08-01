@@ -21,7 +21,7 @@ struct InstMetric{
   size_t last_sample_base;  /* The divisor of last sample window */
   size_t last_sample_value; /* The dividend of last sample window */
   double samples[STATS_METRIC_SAMPLES];
-  int idx;
+  int32_t idx;
 };
 
 class Instant {
@@ -29,8 +29,8 @@ class Instant {
    Instant() = default;
    ~Instant() = default;
 
-   void trackInstantaneousMetric(std::string metric, size_t current_value, size_t current_base, size_t factor);
-   double getInstantaneousMetric(std::string metric);
+   void trackInstantaneousMetric(const std::string& metric, size_t current_value, size_t current_base, size_t factor);
+   double getInstantaneousMetric(const std::string& metric);
 
    private:
     std::unordered_map<std::string, InstMetric> inst_metrics_;

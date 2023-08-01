@@ -14,7 +14,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplServerConn::PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
+PikaReplServerConn::PikaReplServerConn(int32_t fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                                        net::NetMultiplexer* mpx)
     : PbConn(fd, ip_port, thread, mpx) {}
 
@@ -493,7 +493,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   conn->NotifyWrite();
 }
 
-int PikaReplServerConn::DealMessage() {
+int32_t PikaReplServerConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerRequest> req = std::make_shared<InnerMessage::InnerRequest>();
   bool parse_res = req->ParseFromArray(rbuf_ + cur_pos_ - header_len_, static_cast<int32_t>(header_len_));
   if (!parse_res) {

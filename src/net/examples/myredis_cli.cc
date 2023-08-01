@@ -15,23 +15,23 @@ using namespace net;
 
 class MyConn : public RedisConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn() = default;
 
  protected:
-  int DealMessage(const RedisCmdArgsType& argv, std::string* response) override;
+  int32_t DealMessage(const RedisCmdArgsType& argv, std::string* response) override;
 
  private:
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : RedisConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
 
 std::unique_ptr<ClientThread> client;
-int sendto_port;
-int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
+int32_t sendto_port;
+int32_t MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
   sleep(1);
   std::cout << "DealMessage" << std::endl;
   std::string set = "*3\r\n$3\r\nSet\r\n$3\r\nabc\r\n$3\r\nabc\r\n";
@@ -41,7 +41,7 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data,
                                               net::NetMultiplexer* net_epoll = nullptr) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
@@ -51,17 +51,17 @@ class MyConnFactory : public ConnFactory {
 class MyClientHandle : public net::ClientHandle {
  public:
   void CronHandle() const override {}
-  void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
-  void FdClosedHandle(int fd, const std::string& ip_port) const override;
+  void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const override;
+  void FdClosedHandle(int32_t fd, const std::string& ip_port) const override;
   bool AccessHandle(std::string& ip) const override { return true; }
-  int CreateWorkerSpecificData(void** data) const override { return 0; }
-  int DeleteWorkerSpecificData(void* data) const override { return 0; }
+  int32_t CreateWorkerSpecificData(void** data) const override { return 0; }
+  int32_t DeleteWorkerSpecificData(void* data) const override { return 0; }
   void DestConnectFailedHandle(std::string ip_port, std::string reason) const override {}
 };
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -76,7 +76,7 @@ static void SignalSetup() {
 }
 
 bool first_time = true;
-void DoCronWork(ClientThread* client, int port) {
+void DoCronWork(ClientThread* client, int32_t port) {
   if (first_time) {
     first_time = false;
     std::string ping = "*1\r\n$4\r\nPING\r\n";
@@ -84,7 +84,7 @@ void DoCronWork(ClientThread* client, int port) {
   }
 }
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc < 2) {
     printf("client will send to 6379\n");
   } else {

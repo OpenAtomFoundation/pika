@@ -15,14 +15,14 @@ namespace net {
 
 class NetEpoll final : public NetMultiplexer {
  public:
-  NetEpoll(int queue_limit = kUnlimitedQueue);
+  NetEpoll(int32_t queue_limit = kUnlimitedQueue);
   ~NetEpoll() override = default;
 
-  int NetAddEvent(int fd, int mask) override;
-  int NetDelEvent(int fd, [[maybe_unused]] int mask) override;
-  int NetModEvent(int fd, int old_mask, int mask) override;
+  int32_t NetAddEvent(int32_t fd, int32_t mask) override;
+  int32_t NetDelEvent(int32_t fd, [[maybe_unused]] int32_t mask) override;
+  int32_t NetModEvent(int32_t fd, int32_t old_mask, int32_t mask) override;
 
-  int NetPoll(int timeout) override;
+  int32_t NetPoll(int32_t timeout) override;
 
  private:
   std::vector<struct epoll_event> events_;

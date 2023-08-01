@@ -19,8 +19,8 @@ uint32_t HashModulo::Distribute(const std::string& str, uint32_t slot_num) {
 void Crc32::Init() { Crc32TableInit(IEEE_POLY); }
 
 void Crc32::Crc32TableInit(uint32_t poly) {
-  int i;
-  int j;
+  int32_t i;
+  int32_t j;
   for (i = 0; i < 256; i++) {
     uint32_t crc = i;
     for (j = 0; j < 8; j++) {
@@ -36,13 +36,13 @@ void Crc32::Crc32TableInit(uint32_t poly) {
 
 uint32_t Crc32::Distribute(const std::string& str, uint32_t slot_num) {
   std::string key = GetHashkey(str);
-  uint32_t crc = Crc32Update(0, key.data(), static_cast<int>(key.size()));
+  uint32_t crc = Crc32Update(0, key.data(), static_cast<int32_t>(key.size()));
   assert(slot_num != 0);
   return crc % slot_num;
 }
 
-uint32_t Crc32::Crc32Update(uint32_t crc, const char* buf, int len) {
-  int i;
+uint32_t Crc32::Crc32Update(uint32_t crc, const char* buf, int32_t len) {
+  int32_t i;
   crc = ~crc;
   for (i = 0; i < len; i++) {
     crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^ (crc >> 8);

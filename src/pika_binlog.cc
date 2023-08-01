@@ -59,7 +59,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(std::string  binlog_path, const int file_size)
+Binlog::Binlog(std::string  binlog_path, const int32_t file_size)
     : opened_(false),
       binlog_path_(std::move(binlog_path)),
       file_size_(file_size),
@@ -168,7 +168,7 @@ Status Binlog::Put(const std::string& item) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
-  Status s = Put(item.c_str(), static_cast<int>(item.size()));
+  Status s = Put(item.c_str(), static_cast<int32_t>(item.size()));
   if (!s.ok()) {
     binlog_io_error_.store(true);
   }
@@ -176,7 +176,7 @@ Status Binlog::Put(const std::string& item) {
 }
 
 // Note: mutex lock should be held
-Status Binlog::Put(const char* item, int len) {
+Status Binlog::Put(const char* item, int32_t len) {
   Status s;
 
   /* Check to roll log file */
@@ -202,7 +202,7 @@ Status Binlog::Put(const char* item, int len) {
     InitLogFile();
   }
 
-  int pro_offset;
+  int32_t pro_offset;
   s = Produce(pstd::Slice(item, len), &pro_offset);
   if (s.ok()) {
     std::lock_guard l(version_->rwlock_);
@@ -214,7 +214,7 @@ Status Binlog::Put(const char* item, int len) {
   return s;
 }
 
-Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset) {
+Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int32_t* temp_pro_offset) {
   Status s;
   assert(n <= 0xffffff);
   assert(block_offset_ + kHeaderSize + n <= kBlockSize);
@@ -247,15 +247,15 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* 
   return s;
 }
 
-Status Binlog::Produce(const pstd::Slice& item, int* temp_pro_offset) {
+Status Binlog::Produce(const pstd::Slice& item, int32_t* temp_pro_offset) {
   Status s;
   const char* ptr = item.data();
   size_t left = item.size();
   bool begin = true;
 
-  *temp_pro_offset = static_cast<int>(version_->pro_offset_);
+  *temp_pro_offset = static_cast<int32_t>(version_->pro_offset_);
   do {
-    const int leftover = static_cast<int>(kBlockSize) - block_offset_;
+    const int32_t leftover = static_cast<int32_t>(kBlockSize) - block_offset_;
     assert(leftover >= 0);
     if (static_cast<size_t>(leftover) < kHeaderSize) {
       if (leftover > 0) {
@@ -382,7 +382,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
 Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
   queue_.reset();
   std::string profile = NewFileName(filename_, pro_num);
-  const int fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);
+  const int32_t fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
     return Status::IOError("fd open failed");
   }

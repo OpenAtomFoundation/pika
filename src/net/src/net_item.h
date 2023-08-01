@@ -16,10 +16,10 @@ namespace net {
 class NetItem {
  public:
   NetItem() = default;
-  NetItem(const int fd, std::string  ip_port, const NotifyType& type = kNotiConnect)
+  NetItem(const int32_t fd, std::string  ip_port, const NotifyType& type = kNotiConnect)
       : fd_(fd), ip_port_(std::move(ip_port)), notify_type_(type) {}
 
-  int fd() const { return fd_; }
+  int32_t fd() const { return fd_; }
   std::string ip_port() const { return ip_port_; }
   std::string String() const {
         return std::to_string(fd_) + ":" + ip_port_ + ":" + std::to_string(notify_type_);
@@ -28,7 +28,7 @@ class NetItem {
   NotifyType notify_type() const { return notify_type_; }
 
  private:
-  int fd_ = -1;
+  int32_t fd_ = -1;
   std::string ip_port_;
   NotifyType notify_type_ = kNotiConnect;
 };

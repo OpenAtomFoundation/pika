@@ -148,21 +148,22 @@ class PikaServer : public pstd::noncopyable {
   void Exit();
 
   std::string host();
-  int port();
+  int32_t port();
   time_t start_time_s();
   std::string master_ip();
   std::string master_run_id();
   void set_master_run_id(const std::string& master_run_id);
-  int master_port();
-  int role();
+  int32_t master_port();
+  int32_t role();
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
-  int repl_state();
+  bool ConsensusCheck(const std::string& db_name, const std::string& key);
+  int32_t repl_state();
   std::string repl_state_str();
   bool force_full_sync();
   void SetForceFullSync(bool v);
-  void SetDispatchQueueLimit(int queue_limit);
+  void SetDispatchQueueLimit(int32_t queue_limit);
   storage::StorageOptions storage_options();
 
   /*
@@ -197,11 +198,11 @@ class PikaServer : public pstd::noncopyable {
    * Master use
    */
   void BecomeMaster();
-  void DeleteSlave(int fd);  // conn fd
+  void DeleteSlave(int32_t fd);  // conn fd
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
-  bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& table_structs);
+  bool TryAddSlave(const std::string& ip, int64_t port, int32_t fd, const std::vector<DBStruct>& table_structs);
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
@@ -215,7 +216,7 @@ class PikaServer : public pstd::noncopyable {
    */
   void SyncError();
   void RemoveMaster();
-  bool SetMaster(std::string& master_ip, int master_port);
+  bool SetMaster(std::string& master_ip, int32_t master_port);
 
   /*
    * Slave State Machine
@@ -227,7 +228,7 @@ class PikaServer : public pstd::noncopyable {
   bool AllSlotConnectSuccess();
   bool LoopSlotStateMachine();
   void SetLoopSlotStateMachine(bool need_loop);
-  int GetMetaSyncTimestamp();
+  int32_t GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
   bool IsFirstMetaSync();
@@ -262,10 +263,10 @@ class PikaServer : public pstd::noncopyable {
    */
   pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
   pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
-  void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  void DBSync(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id);
+  void TryDBSync(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id);
+  std::string DbSyncTaskIndex(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id);
 
   /*
    * Keyscan used
@@ -276,7 +277,7 @@ class PikaServer : public pstd::noncopyable {
    * Client used
    */
   void ClientKillAll();
-  int ClientKill(const std::string& ip_port);
+  int32_t ClientKill(const std::string& ip_port);
   int64_t ClientList(std::vector<ClientInfo>* clients = nullptr);
 
   /*
@@ -324,22 +325,22 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Slave to Master communication used
    */
-  int SendToPeer();
+  int32_t SendToPeer();
   void SignalAuxiliary();
   pstd::Status TriggerSendBinlogSync();
 
   /*
    * PubSub used
    */
-  int PubSubNumPat();
-  int Publish(const std::string& channel, const std::string& msg);
-  void EnablePublish(int fd);
-  int UnSubscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
-                  std::vector<std::pair<std::string, int>>* result);
+  int32_t PubSubNumPat();
+  int32_t Publish(const std::string& channel, const std::string& msg);
+  void EnablePublish(int32_t fd);
+  int32_t UnSubscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
+                  std::vector<std::pair<std::string, int32_t>>* result);
   void Subscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
-                 std::vector<std::pair<std::string, int>>* result);
+                 std::vector<std::pair<std::string, int32_t>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
-  void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
+  void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int32_t>>* result);
 
   pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 
@@ -349,7 +350,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
+  int32_t SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot> &slot);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
@@ -421,7 +422,7 @@ class PikaServer : public pstd::noncopyable {
     int64_t count = 100;
     std::shared_ptr<Slot> slot;
     storage::DataType type_;
-    std::vector<int> cleanup_slots;
+    std::vector<int32_t> cleanup_slots;
     BGSlotsCleanup() = default;
     void Clear() {
       cleaningup = false;
@@ -458,11 +459,11 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cursor;
   }
-  void SetCleanupSlots(std::vector<int> cleanup_slots) {
+  void SetCleanupSlots(std::vector<int32_t> cleanup_slots) {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
-  std::vector<int> GetCleanupSlots() {
+  std::vector<int32_t> GetCleanupSlots() {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
@@ -470,11 +471,11 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.end_time = time(nullptr);
   }
-  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
+  void Bgslotscleanup(std::vector<int32_t> cleanup_slots, const std::shared_ptr<Slot>& slot);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = false;
-    std::vector<int> cleanup_slots;
+    std::vector<int32_t> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
 
@@ -513,7 +514,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoUpdateNetworkMetric();
 
   std::string host_;
-  int port_ = 0;
+  int32_t port_ = 0;
   time_t start_time_s_ = 0;
 
   std::shared_mutex storage_options_rw_;
@@ -544,7 +545,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Communicate with the client used
    */
-  int worker_num_ = 0;
+  int32_t worker_num_ = 0;
   std::unique_ptr<PikaClientProcessor> pika_client_processor_;
   std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
@@ -552,11 +553,11 @@ class PikaServer : public pstd::noncopyable {
    * Slave used
    */
   std::string master_ip_;
-  int master_port_ = 0;
+  int32_t master_port_ = 0;
   std::string master_run_id_;
-  int repl_state_ = PIKA_REPL_NO_CONNECT;
-  int role_ = PIKA_ROLE_SINGLE;
-  int last_meta_sync_timestamp_ = 0;
+  int32_t repl_state_ = PIKA_REPL_NO_CONNECT;
+  int32_t role_ = PIKA_ROLE_SINGLE;
+  int32_t last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
   bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;

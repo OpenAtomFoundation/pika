@@ -52,7 +52,7 @@
 static inline uint64_t interleave64(uint32_t xlo, uint32_t ylo) {
   static const uint64_t B[] = {0x5555555555555555ULL, 0x3333333333333333ULL, 0x0F0F0F0F0F0F0F0FULL,
                                0x00FF00FF00FF00FFULL, 0x0000FFFF0000FFFFULL};
-  static const unsigned int S[] = {1, 2, 4, 8, 16};
+  static const uint32_t S[] = {1, 2, 4, 8, 16};
 
   uint64_t x = xlo;
   uint64_t y = ylo;
@@ -81,7 +81,7 @@ static inline uint64_t interleave64(uint32_t xlo, uint32_t ylo) {
 static inline uint64_t deinterleave64(uint64_t interleaved) {
   static const uint64_t B[] = {0x5555555555555555ULL, 0x3333333333333333ULL, 0x0F0F0F0F0F0F0F0FULL,
                                0x00FF00FF00FF00FFULL, 0x0000FFFF0000FFFFULL, 0x00000000FFFFFFFFULL};
-  static const unsigned int S[] = {0, 1, 2, 4, 8, 16};
+  static const uint32_t S[] = {0, 1, 2, 4, 8, 16};
 
   uint64_t x = interleaved;
   uint64_t y = interleaved >> 1;
@@ -116,7 +116,7 @@ void geohashGetCoordRange(GeoHashRange* long_range, GeoHashRange* lat_range) {
   lat_range->min = GEO_LAT_MIN;
 }
 
-int geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range, double longitude, double latitude,
+int32_t geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range, double longitude, double latitude,
                   uint8_t step, GeoHashBits* hash) {
   /* Check basic arguments sanity. */
   if (!hash || step > 32 || step == 0 || RANGEPISZERO(lat_range) || RANGEPISZERO(long_range)) {
@@ -147,17 +147,17 @@ int geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range,
   return 1;
 }
 
-int geohashEncodeType(double longitude, double latitude, uint8_t step, GeoHashBits* hash) {
+int32_t geohashEncodeType(double longitude, double latitude, uint8_t step, GeoHashBits* hash) {
   GeoHashRange r[2] = {{0}};
   geohashGetCoordRange(&r[0], &r[1]);
   return geohashEncode(&r[0], &r[1], longitude, latitude, step, hash);
 }
 
-int geohashEncodeWGS84(double longitude, double latitude, uint8_t step, GeoHashBits* hash) {
+int32_t geohashEncodeWGS84(double longitude, double latitude, uint8_t step, GeoHashBits* hash) {
   return geohashEncodeType(longitude, latitude, step, hash);
 }
 
-int geohashDecode(const GeoHashRange long_range, const GeoHashRange lat_range, const GeoHashBits hash,
+int32_t geohashDecode(const GeoHashRange long_range, const GeoHashRange lat_range, const GeoHashBits hash,
                   GeoHashArea* area) {
   if (HASHISZERO(hash) || nullptr == area || RANGEISZERO(lat_range) || RANGEISZERO(long_range)) {
     return 0;
@@ -171,7 +171,7 @@ int geohashDecode(const GeoHashRange long_range, const GeoHashRange lat_range, c
   double long_scale = long_range.max - long_range.min;
 
   uint32_t ilato = hash_sep;       /* get lat part of deinterleaved hash */
-  uint32_t ilono = hash_sep >> 32; /* shift over to get long part of hash */
+  uint32_t ilono = hash_sep >> 32; /* shift over to get uint32_t part of hash */
 
   /* divide by 2**step.
    * Then, for 0-1 coordinate, multiply times scale and add
@@ -184,15 +184,15 @@ int geohashDecode(const GeoHashRange long_range, const GeoHashRange lat_range, c
   return 1;
 }
 
-int geohashDecodeType(const GeoHashBits hash, GeoHashArea* area) {
+int32_t geohashDecodeType(const GeoHashBits hash, GeoHashArea* area) {
   GeoHashRange r[2] = {{0}};
   geohashGetCoordRange(&r[0], &r[1]);
   return geohashDecode(r[0], r[1], hash, area);
 }
 
-int geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea* area) { return geohashDecodeType(hash, area); }
+int32_t geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea* area) { return geohashDecodeType(hash, area); }
 
-int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
+int32_t geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
   if (!xy) {
     return 0;
   }
@@ -201,7 +201,7 @@ int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
   return 1;
 }
 
-int geohashDecodeToLongLatType(const GeoHashBits hash, double* xy) {
+int32_t geohashDecodeToLongLatType(const GeoHashBits hash, double* xy) {
   GeoHashArea area = {{0}};
   if (!xy || !(geohashDecodeType(hash, &area))) {
     return 0;
@@ -209,7 +209,7 @@ int geohashDecodeToLongLatType(const GeoHashBits hash, double* xy) {
   return geohashDecodeAreaToLongLat(&area, xy);
 }
 
-int geohashDecodeToLongLatWGS84(const GeoHashBits hash, double* xy) { return geohashDecodeToLongLatType(hash, xy); }
+int32_t geohashDecodeToLongLatWGS84(const GeoHashBits hash, double* xy) { return geohashDecodeToLongLatType(hash, xy); }
 
 static void geohash_move_x(GeoHashBits* hash, int8_t d) {
   if (d == 0) {

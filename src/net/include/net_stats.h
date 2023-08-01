@@ -31,6 +31,6 @@ class NetworkStatistic {
   std::atomic<size_t> stat_net_repl_output_bytes {0}; /* Bytes written during replication, added to stat_net_output_bytes in 'info'. */
 };
 
-}
+}  // namespace net
 
 #endif  // NET_INCLUDE_REDIS_STSTS_H_

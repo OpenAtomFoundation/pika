@@ -18,7 +18,7 @@
 
 namespace net {
 
-ServerSocket::ServerSocket(int port, bool is_block)
+ServerSocket::ServerSocket(int32_t port, bool is_block)
     : port_(port),
       
       is_block_(is_block) {}
@@ -29,12 +29,12 @@ ServerSocket::~ServerSocket() { Close(); }
  * Listen to a specific ip addr on a multi eth machine
  * Return 0 if Listen success, other wise
  */
-int ServerSocket::Listen(const std::string& bind_ip) {
-  int ret = 0;
+int32_t ServerSocket::Listen(const std::string& bind_ip) {
+  int32_t ret = 0;
   sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
   memset(&servaddr_, 0, sizeof(servaddr_));
 
-  int yes = 1;
+  int32_t yes = 1;
   ret = setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
   if (ret < 0) {
     return kSetSockOptError;
@@ -66,7 +66,7 @@ int ServerSocket::Listen(const std::string& bind_ip) {
   return kSuccess;
 }
 
-int ServerSocket::SetNonBlock() {
+int32_t ServerSocket::SetNonBlock() {
   flags_ = Setnonblocking(sockfd());
   if (flags_ == -1) {
     return -1;

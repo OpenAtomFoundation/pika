@@ -38,7 +38,7 @@ namespace pstd {
  */
 const size_t kPageSize = getpagesize();
 
-int SetMaxFileDescriptorNum(int64_t max_file_descriptor_num) {
+int32_t SetMaxFileDescriptorNum(int64_t max_file_descriptor_num) {
   // Try to Set the number of file descriptor
   struct rlimit limit;
   if (getrlimit(RLIMIT_NOFILE, &limit) != -1) {
@@ -69,11 +69,11 @@ size_t kMmapBoundSize = 1024 * 1024 * 4;
 
 void SetMmapBoundSize(size_t size) { kMmapBoundSize = size; }
 
-static Status IOError(const std::string& context, int err_number) {
+static Status IOError(const std::string& context, int32_t err_number) {
   return Status::IOError(context, strerror(err_number));
 }
 
-int CreateDir(const std::string& path) {
+int32_t CreateDir(const std::string& path) {
   try {
     if (filesystem::create_directory(path)) {
       return 0;
@@ -114,7 +114,7 @@ bool DeleteFile(const std::string& fname) {
  ** each directory in path exists, rather than optimistically creating
  ** the last element and working backwards.
  */
-int CreatePath(const std::string& path, mode_t mode) {
+int32_t CreatePath(const std::string& path, mode_t mode) {
   try {
     if (!filesystem::create_directories(path)) {
       return -1;
@@ -130,7 +130,7 @@ int CreatePath(const std::string& path, mode_t mode) {
   return -1;
 }
 
-int GetChildren(const std::string& dir, std::vector<std::string>& result) {
+int32_t GetChildren(const std::string& dir, std::vector<std::string>& result) {
   result.clear();
   for (auto& de : filesystem::directory_iterator(dir)) {
     result.emplace_back(de.path().filename());
@@ -145,7 +145,7 @@ void GetDescendant(const std::string& dir, std::vector<std::string>& result) {
   }
 }
 
-int RenameFile(const std::string& oldname, const std::string& newname) {
+int32_t RenameFile(const std::string& oldname, const std::string& newname) {
   try {
     filesystem::rename(oldname, newname);
     return 0;
@@ -157,7 +157,7 @@ int RenameFile(const std::string& oldname, const std::string& newname) {
   return -1;
 }
 
-int IsDir(const std::string& path) {
+int32_t IsDir(const std::string& path) {
   std::error_code ec;
   if (filesystem::is_directory(path, ec)) {
     return 0;
@@ -167,7 +167,7 @@ int IsDir(const std::string& path) {
   return -1;
 }
 
-int DeleteDir(const std::string& path) {
+int32_t DeleteDir(const std::string& path) {
   try {
     if (filesystem::remove_all(path) == 0) {
       return -1;
@@ -216,7 +216,7 @@ uint64_t NowMicros() {
   return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
 
-void SleepForMicroseconds(int micros) { std::this_thread::sleep_for(std::chrono::microseconds(micros)); }
+void SleepForMicroseconds(int32_t micros) { std::this_thread::sleep_for(std::chrono::microseconds(micros)); }
 
 SequentialFile::~SequentialFile() = default;
 
@@ -261,7 +261,7 @@ class PosixSequentialFile : public SequentialFile {
     return Status::OK();
   }
 
-  char* ReadLine(char* buf, int n) override { return fgets(buf, n, file_); }
+  char* ReadLine(char* buf, int32_t n) override { return fgets(buf, n, file_); }
 
   virtual Status Close() {
     if (fclose(file_) != 0) {
@@ -281,7 +281,7 @@ WritableFile::~WritableFile() = default;
 class PosixMmapFile : public WritableFile {
  private:
   std::string filename_;
-  int fd_ = -1;
+  int32_t fd_ = -1;
   size_t page_size_      = 0;
   size_t map_size_       = 0;       // How much extra memory to map at a time
   char* base_            = nullptr; // The mapped region
@@ -331,7 +331,7 @@ class PosixMmapFile : public WritableFile {
   bool MapNewRegion() {
     assert(base_ == nullptr);
 #if defined(__APPLE__)
-    if (ftruncate(fd_, file_offset_ + map_size_) != 0) {
+    if (ftruncate(fd_, static_cast<off_t>(file_offset_ + map_size_)) != 0) {
 #else
     if (posix_fallocate(fd_, static_cast<int64_t>(file_offset_), static_cast<int64_t>(map_size_)) != 0) {
 #endif
@@ -352,7 +352,7 @@ class PosixMmapFile : public WritableFile {
   }
 
  public:
-  PosixMmapFile(std::string  fname, int fd, size_t page_size, uint64_t write_len = 0)
+  PosixMmapFile(std::string  fname, int32_t fd, size_t page_size, uint64_t write_len = 0)
       : filename_(std::move(fname)),
         fd_(fd),
         page_size_(page_size),
@@ -470,7 +470,7 @@ RWFile::~RWFile() = default;
 
 class MmapRWFile : public RWFile {
  public:
-  MmapRWFile(std::string  fname, int fd, size_t page_size)
+  MmapRWFile(std::string  fname, int32_t fd, size_t page_size)
       : filename_(std::move(fname)), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)) {
     DoMapRegion();
   }
@@ -483,7 +483,7 @@ class MmapRWFile : public RWFile {
 
   bool DoMapRegion() {
 #if defined(__APPLE__)
-    if (ftruncate(fd_, map_size_) != 0) {
+    if (ftruncate(fd_, static_cast<off_t>(map_size_)) != 0) {
 #else
     if (posix_fallocate(fd_, 0, static_cast<int64_t>(map_size_)) != 0) {
 #endif
@@ -503,7 +503,7 @@ class MmapRWFile : public RWFile {
  private:
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
   std::string filename_;
-  int fd_ = -1;
+  int32_t fd_ = -1;
   size_t page_size_[[maybe_unused]] = 0;
   size_t map_size_ = 0;
   char* base_ = nullptr;
@@ -512,13 +512,13 @@ class MmapRWFile : public RWFile {
 class PosixRandomRWFile : public RandomRWFile {
  private:
   const std::string filename_;
-  int fd_ = -1;
+  int32_t fd_ = -1;
   bool pending_sync_ = false;
   bool pending_fsync_ = false;
   // bool fallocate_with_keep_size_;
 
  public:
-  PosixRandomRWFile(std::string fname, int fd)
+  PosixRandomRWFile(std::string fname, int32_t fd)
       : filename_(std::move(fname)), fd_(fd) {
     // fallocate_with_keep_size_ = options.fallocate_with_keep_size;
   }
@@ -611,7 +611,7 @@ class PosixRandomRWFile : public RandomRWFile {
 
   //  virtual Status Allocate(off_t offset, off_t len) override {
   //    TEST_KILL_RANDOM(rocksdb_kill_odds);
-  //    int alloc_status = fallocate(
+  //    int32_t alloc_status = fallocate(
   //        fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0, offset, len);
   //    if (alloc_status == 0) {
   //      return Status::OK();
@@ -633,7 +633,7 @@ Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFil
 
 Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result) {
   Status s;
-  const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
+  const int32_t fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
@@ -644,7 +644,7 @@ Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& 
 
 Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
   Status s;
-  const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
+  const int32_t fd = open(fname.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
@@ -655,7 +655,7 @@ Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
 
 Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result, uint64_t write_len) {
   Status s;
-  const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
+  const int32_t fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
@@ -666,7 +666,7 @@ Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile
 
 Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result) {
   Status s;
-  const int fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
+  const int32_t fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {

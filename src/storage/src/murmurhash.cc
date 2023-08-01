@@ -20,9 +20,9 @@
 //
 // 64-bit hash for 64-bit platforms
 
-uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
+uint64_t MurmurHash64A(const void* key, int32_t len, uint32_t seed) {
   const uint64_t m = 0xc6a4a7935bd1e995;
-  const int r = 47;
+  const int32_t r = 47;
 
   uint64_t h = seed ^ (len * m);
 
@@ -80,7 +80,7 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
 // Note - This code makes a few assumptions about how your machine behaves -
 //
 // 1. We can read a 4-byte value from any address without crashing
-// 2. sizeof(int) == 4
+// 2. sizeof(int32_t) == 4
 //
 // And it has a few limitations -
 //
@@ -88,23 +88,23 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
 // 2. It will not produce the same results on little-endian and big-endian
 //    machines.
 
-unsigned int MurmurHash2(const void* key, int len, unsigned int seed) {
+uint32_t MurmurHash2(const void* key, int32_t len, uint32_t seed) {
   // 'm' and 'r' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
 
-  const unsigned int m = 0x5bd1e995;
-  const int r = 24;
+  const uint32_t m = 0x5bd1e995;
+  const int32_t r = 24;
 
   // Initialize the hash to a 'random' value
 
-  unsigned int h = seed ^ len;
+  uint32_t h = seed ^ len;
 
   // Mix 4 bytes at a time into the hash
 
   auto data = (const unsigned char*)key;
 
   while (len >= 4) {
-    unsigned int k = *(unsigned int*)data;
+    uint32_t k = *(uint32_t*)data;
 
     k *= m;
     k ^= k >> r;
@@ -148,16 +148,16 @@ unsigned int MurmurHash2(const void* key, int len, unsigned int seed) {
 // Same as MurmurHash2, but endian- and alignment-neutral.
 // Half the speed though, alas.
 
-unsigned int MurmurHashNeutral2(const void* key, int len, unsigned int seed) {
-  const unsigned int m = 0x5bd1e995;
-  const int r = 24;
+uint32_t MurmurHashNeutral2(const void* key, int32_t len, uint32_t seed) {
+  const uint32_t m = 0x5bd1e995;
+  const int32_t r = 24;
 
-  unsigned int h = seed ^ len;
+  uint32_t h = seed ^ len;
 
   auto data = static_cast<const unsigned char*>(key);
 
   while (len >= 4) {
-    unsigned int k;
+    uint32_t k;
 
     k = data[0];
     k |= data[1] << 8;

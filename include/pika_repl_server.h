@@ -25,20 +25,20 @@ struct ReplServerTaskArg {
 
 class PikaReplServer {
  public:
-  PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
+  PikaReplServer(const std::set<std::string>& ips, int32_t port, int32_t cron_interval);
   ~PikaReplServer();
 
-  int Start();
-  int Stop();
+  int32_t Start();
+  int32_t Stop();
 
-  pstd::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  pstd::Status SendSlaveBinlogChips(const std::string& ip, int32_t port, const std::vector<WriteTask>& tasks);
   void BuildBinlogOffset(const LogOffset& offset, InnerMessage::BinlogOffset* boffset);
   void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
-  pstd::Status Write(const std::string& ip, int port, const std::string& msg);
+  pstd::Status Write(const std::string& ip, int32_t port, const std::string& msg);
 
   void Schedule(net::TaskFunc func, void* arg);
-  void UpdateClientConnMap(const std::string& ip_port, int fd);
-  void RemoveClientConn(int fd);
+  void UpdateClientConnMap(const std::string& ip_port, int32_t fd);
+  void RemoveClientConn(int32_t fd);
   void KillAllConns();
 
  private:
@@ -46,7 +46,7 @@ class PikaReplServer {
   std::unique_ptr<PikaReplServerThread> pika_repl_server_thread_ = nullptr;
 
   std::shared_mutex client_conn_rwlock_;
-  std::map<std::string, int> client_conn_map_;
+  std::map<std::string, int32_t> client_conn_map_;
 };
 
 #endif

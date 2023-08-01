@@ -16,7 +16,7 @@ class PikaClientProcessor {
  public:
   PikaClientProcessor(size_t worker_num, size_t max_queue_size, const std::string& name_prefix = "CliProcessor");
   ~PikaClientProcessor();
-  int Start();
+  int32_t Start();
   void Stop();
   void SchedulePool(net::TaskFunc func, void* arg);
   void ScheduleBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);

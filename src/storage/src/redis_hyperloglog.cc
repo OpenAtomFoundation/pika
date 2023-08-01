@@ -109,6 +109,6 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
 }
 
 // ::__builtin_ctz(x): 返回右起第一个‘1’之后的0的个数
-uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
+uint8_t HyperLogLog::Nctz(uint32_t x, int32_t b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
 
 }  // namespace storage

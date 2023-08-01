@@ -15,14 +15,14 @@ namespace net {
 
 class NetKqueue final : public NetMultiplexer {
  public:
-  NetKqueue(int queue_limit = kUnlimitedQueue);
+  NetKqueue(int32_t queue_limit = kUnlimitedQueue);
   ~NetKqueue() override = default;
 
-  int NetAddEvent(int fd, int mask) override;
-  int NetDelEvent(int fd, int mask) override;
-  int NetModEvent(int fd, int old_mask, int mask) override;
+  int32_t NetAddEvent(int32_t fd, int32_t mask) override;
+  int32_t NetDelEvent(int32_t fd, int32_t mask) override;
+  int32_t NetModEvent(int32_t fd, int32_t old_mask, int32_t mask) override;
 
-  int NetPoll(int timeout) override;
+  int32_t NetPoll(int32_t timeout) override;
 
  private:
   std::vector<struct kevent> events_;

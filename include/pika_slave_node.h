@@ -23,7 +23,7 @@ struct SyncWinItem {
   explicit SyncWinItem(const LogOffset& offset, std::size_t binlog_size = 0)
       : offset_(offset), binlog_size_(binlog_size) {}
   std::string ToString() const {
-    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) + " acked: " + std::to_string(static_cast<int>(acked_));
+    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) + " acked: " + std::to_string(static_cast<int32_t>(acked_));
   }
 };
 
@@ -32,7 +32,7 @@ class SyncWindow {
   SyncWindow()  = default;
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset);
-  int Remaining();
+  int32_t Remaining();
   std::string ToStringStatus() const {
     if (win_.empty()) {
       return "      Size: " + std::to_string(win_.size()) + "\r\n";
@@ -59,7 +59,7 @@ class SyncWindow {
 // role master use
 class SlaveNode : public RmNode {
  public:
-  SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int session_id);
+  SlaveNode(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id, int32_t session_id);
   ~SlaveNode() override;
   void Lock() { slave_mu.lock(); }
   void Unlock() { slave_mu.unlock(); }

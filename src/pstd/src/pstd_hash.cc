@@ -82,22 +82,22 @@ namespace pstd {
 class SHA256 {
  protected:
   using uint8 = unsigned char;
-  using uint32 = unsigned int;
+  using uint32 = uint32_t;
   using uint64 = uint64_t;
 
   const static uint32 sha256_k[];
-  static const unsigned int SHA224_256_BLOCK_SIZE = (512 / 8);
+  static const uint32_t SHA224_256_BLOCK_SIZE = (512 / 8);
 
  public:
   void init();
-  void update(const unsigned char* message, unsigned int len);
+  void update(const unsigned char* message, uint32_t len);
   void final(unsigned char* digest);
-  static const unsigned int DIGEST_SIZE = (256 / 8);
+  static const uint32_t DIGEST_SIZE = (256 / 8);
 
  protected:
-  void transform(const unsigned char* message, unsigned int block_nb);
-  unsigned int m_tot_len;
-  unsigned int m_len;
+  void transform(const unsigned char* message, uint32_t block_nb);
+  uint32_t m_tot_len;
+  uint32_t m_len;
   unsigned char m_block[2 * SHA224_256_BLOCK_SIZE];
   uint32 m_h[8];
 };
@@ -134,15 +134,15 @@ const unsigned int SHA256::sha256_k[64] = {  // UL = uint32
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-void SHA256::transform(const unsigned char* message, unsigned int block_nb) {
+void SHA256::transform(const unsigned char* message, uint32_t block_nb) {
   uint32 w[64];
   uint32 wv[8];
   uint32 t1;
   uint32 t2;
   const unsigned char* sub_block;
-  int i;
-  int j;
-  for (i = 0; i < static_cast<int>(block_nb); i++) {
+  int32_t i;
+  int32_t j;
+  for (i = 0; i < static_cast<int32_t>(block_nb); i++) {
     sub_block = message + (i << 6);
     for (j = 0; j < 16; j++) {
       SHA2_PACK32(&sub_block[j << 2], &w[j]);
@@ -184,11 +184,11 @@ void SHA256::init() {
   m_tot_len = 0;
 }
 
-void SHA256::update(const unsigned char* message, unsigned int len) {
-  unsigned int block_nb;
-  unsigned int new_len;
-  unsigned int rem_len;
-  unsigned int tmp_len;
+void SHA256::update(const unsigned char* message, uint32_t len) {
+  uint32_t block_nb;
+  uint32_t new_len;
+  uint32_t rem_len;
+  uint32_t tmp_len;
   const unsigned char* shifted_message;
   tmp_len = SHA224_256_BLOCK_SIZE - m_len;
   rem_len = len < tmp_len ? len : tmp_len;
@@ -209,11 +209,11 @@ void SHA256::update(const unsigned char* message, unsigned int len) {
 }
 
 void SHA256::final(unsigned char* digest) {
-  unsigned int block_nb;
-  unsigned int pm_len;
-  unsigned int len_b;
-  int i;
-  block_nb = (1 + static_cast<int>((SHA224_256_BLOCK_SIZE - 9) < (m_len % SHA224_256_BLOCK_SIZE)));
+  uint32_t block_nb;
+  uint32_t pm_len;
+  uint32_t len_b;
+  int32_t i;
+  block_nb = (1 + static_cast<int32_t>((SHA224_256_BLOCK_SIZE - 9) < (m_len % SHA224_256_BLOCK_SIZE)));
   len_b = (m_tot_len + m_len) << 3;
   pm_len = block_nb << 6;
   memset(m_block + m_len, 0, pm_len - m_len);
@@ -244,7 +244,7 @@ std::string sha256(const std::string& input, bool raw) {
   char buf[2 * SHA256::DIGEST_SIZE + 1];
   buf[2 * SHA256::DIGEST_SIZE] = 0;
   for (size_t i = 0; i < SHA256::DIGEST_SIZE; i++) {
-    sprintf(buf + i * 2, "%02x", digest[i]);
+    snprintf(buf + i * 2, 3, "%02x", digest[i]);
   }
   return {buf};
 }
@@ -281,7 +281,7 @@ inline MD5::uint4 MD5::H(uint4 x, uint4 y, uint4 z) { return x ^ y ^ z; }
 inline MD5::uint4 MD5::I(uint4 x, uint4 y, uint4 z) { return y ^ (x | ~z); }
 
 // rotate_left rotates x left n bits.
-inline MD5::uint4 MD5::rotate_left(uint4 x, int n) { return (x << n) | (x >> (32 - n)); }
+inline MD5::uint4 MD5::rotate_left(uint4 x, int32_t n) { return (x << n) | (x >> (32 - n)); }
 
 // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 // Rotation is separate from addition to prevent recomputation.
@@ -334,7 +334,7 @@ void MD5::init() {
 
 // decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
 void MD5::decode(uint4 output[], const uint1 input[], size_type len) {
-  for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
+  for (uint32_t i = 0, j = 0; j < len; i++, j += 4) {
     output[i] = (static_cast<uint4>(input[j])) | ((static_cast<uint4>(input[j + 1])) << 8) |
                 ((static_cast<uint4>(input[j + 2])) << 16) | ((static_cast<uint4>(input[j + 3])) << 24);
   }
@@ -535,8 +535,8 @@ std::string MD5::hexdigest() const {
   }
 
   char buf[33];
-  for (int i = 0; i < 16; i++) {
-    sprintf(buf + i * 2, "%02x", digest[i]);
+  for (int32_t i = 0; i < 16; i++) {
+    snprintf(buf + i * 2, 3, "%02x", digest[i]);
   }
   buf[32] = 0;
 

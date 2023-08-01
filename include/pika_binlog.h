@@ -47,7 +47,7 @@ class Version final : public pstd::noncopyable {
 
 class Binlog : public pstd::noncopyable {
  public:
-  Binlog(std::string  Binlog_path, int file_size = 100 * 1024 * 1024);
+  Binlog(std::string  Binlog_path, int32_t file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   void Lock() { mutex_.lock(); }
@@ -84,17 +84,17 @@ class Binlog : public pstd::noncopyable {
   void Close();
 
  private:
-  pstd::Status Put(const char* item, int len);
+  pstd::Status Put(const char* item, int32_t len);
   static pstd::Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
   // pstd::WritableFile *queue() { return queue_; }
 
   void InitLogFile();
-  pstd::Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
+  pstd::Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int32_t* temp_pro_offset);
 
   /*
    * Produce
    */
-  pstd::Status Produce(const pstd::Slice& item, int* pro_offset);
+  pstd::Status Produce(const pstd::Slice& item, int32_t* pro_offset);
 
   std::atomic<bool> opened_;
 
@@ -107,7 +107,7 @@ class Binlog : public pstd::noncopyable {
 
   uint32_t pro_num_ = 0;
 
-  int block_offset_ = 0;
+  int32_t block_offset_ = 0;
 
   char* pool_ = nullptr;
   bool exit_all_consume_ = false;

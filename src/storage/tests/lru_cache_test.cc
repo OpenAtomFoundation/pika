@@ -487,7 +487,7 @@ TEST(LRUCacheTest, TestRemoveCase1) {
   ASSERT_TRUE(lru_cache.LRUAsExpected({}));
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

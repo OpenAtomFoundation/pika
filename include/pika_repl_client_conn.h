@@ -19,7 +19,7 @@ class SyncSlaveSlot;
 
 class PikaReplClientConn : public net::PbConn {
  public:
-  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
+  PikaReplClientConn(int32_t fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                      net::NetMultiplexer* mpx);
   ~PikaReplClientConn() override = default;
 
@@ -33,7 +33,7 @@ class PikaReplClientConn : public net::PbConn {
                                       const std::shared_ptr<SyncSlaveSlot>& slave_slot);
   static bool IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
                                       const std::vector<DBStruct>& expect_tables);
-  int DealMessage() override;
+  int32_t DealMessage() override;
 
  private:
   // dispatch binlog by its table_name + slot

@@ -35,7 +35,7 @@ class Crc32 : public PikaDataDistribution {
 
  private:
   void Crc32TableInit(uint32_t poly);
-  uint32_t Crc32Update(uint32_t crc, const char* buf, int len);
+  uint32_t Crc32Update(uint32_t crc, const char* buf, int32_t len);
   uint32_t crc32tab[256];
 };
 

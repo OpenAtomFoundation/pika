@@ -187,8 +187,8 @@ Status RedisStrings::Append(const Slice& key, const Slice& value, int32_t* ret) 
   return s;
 }
 
-int GetBitCount(const unsigned char* value, int64_t bytes) {
-  int bit_num = 0;
+int32_t GetBitCount(const unsigned char* value, int64_t bytes) {
+  int32_t bit_num = 0;
   static const unsigned char bitsinbyte[256] = {
       0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2,
       3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3,
@@ -197,8 +197,8 @@ int GetBitCount(const unsigned char* value, int64_t bytes) {
       3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4,
       5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6,
       6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
-  for (int i = 0; i < bytes; i++) {
-    bit_num += bitsinbyte[static_cast<unsigned int>(value[i])];
+  for (int32_t i = 0; i < bytes; i++) {
+    bit_num += bitsinbyte[static_cast<uint32_t>(value[i])];
   }
   return bit_num;
 }
@@ -845,12 +845,12 @@ Status RedisStrings::Strlen(const Slice& key, int32_t* len) {
   return s;
 }
 
-int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
+int32_t GetBitPos(const unsigned char* s, uint32_t bytes, int32_t bit) {
   uint64_t word = 0;
   uint64_t skip_val = 0;
   auto value = const_cast<unsigned char*>(s);
   auto l = reinterpret_cast<uint64_t*>(value);
-  int pos = 0;
+  int32_t pos = 0;
   if (bit == 0) {
     skip_val = std::numeric_limits<uint64_t>::max();
   } else {
@@ -882,7 +882,7 @@ int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
   mask = mask >> 1;
   mask = ~(mask);
   while (mask != 0U) {
-    if (static_cast<int>((word & mask) != 0) == bit) {
+    if (static_cast<int32_t>((word & mask) != 0) == bit) {
       return pos;
     }
     pos++;

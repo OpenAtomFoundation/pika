@@ -40,15 +40,15 @@ class PikaClientConn : public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
-                 const net::HandleType& handle_type, int max_conn_rbuf_size);
+  PikaClientConn(int32_t fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
+                 const net::HandleType& handle_type, int32_t max_conn_rbuf_size);
   ~PikaClientConn() override = default;
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                 std::string* response) override;
 
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
-  int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
+  int32_t DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
 
@@ -62,7 +62,7 @@ class PikaClientConn : public net::RedisConn {
 
   AuthStat& auth_stat() { return auth_stat_; }
 
-  std::atomic<int> resp_num;
+  std::atomic<int32_t> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;
 
  private:
@@ -84,7 +84,7 @@ class PikaClientConn : public net::RedisConn {
 };
 
 struct ClientInfo {
-  int fd;
+  int32_t fd;
   std::string ip_port;
   int64_t last_interaction = 0;
   std::shared_ptr<PikaClientConn> conn;

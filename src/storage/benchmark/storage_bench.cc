@@ -10,10 +10,10 @@
 
 #include "storage/storage.h"
 
-const int KEYLENGTH = 1024 * 10;
-const int VALUELENGTH = 1024 * 10;
-const int THREADNUM = 20;
-const int HASH_TABLE_FIELD_SIZE = 10000000;
+const int32_t KEYLENGTH = 1024 * 10;
+const int32_t VALUELENGTH = 1024 * 10;
+const int32_t THREADNUM = 20;
+const int32_t HASH_TABLE_FIELD_SIZE = 10000000;
 
 using namespace storage;
 using namespace std::chrono;
@@ -226,7 +226,7 @@ void BenchScan() {
   std::cout << "Test case 3, Scan " << kv_num << " Cost: " << cost << "s" << std::endl;
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   // keys
   BenchSet();
 

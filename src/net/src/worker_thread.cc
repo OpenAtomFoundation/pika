@@ -15,7 +15,7 @@
 
 namespace net {
 
-WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
+WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int32_t queue_limit, int32_t cron_interval)
     :
       server_thread_(server_thread),
       conn_factory_(conn_factory),
@@ -30,7 +30,7 @@ WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_threa
 
 WorkerThread::~WorkerThread() = default;
 
-int WorkerThread::conn_num() const {
+int32_t WorkerThread::conn_num() const {
   std::shared_lock lock(rwlock_);
   return static_cast<int32_t>(conns_.size());
 }
@@ -44,10 +44,10 @@ std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
   return result;
 }
 
-std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
+std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int32_t fd) {
   std::lock_guard lock(rwlock_);
   if (auto iter = conns_.find(fd); iter != conns_.end()) {
-    int fd = iter->first;
+    int32_t fd = iter->first;
     auto conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
     DLOG(INFO) << "move out connection " << conn->String();
@@ -71,7 +71,7 @@ bool WorkerThread::MoveConnIn(const std::shared_ptr<NetConn>& conn, const Notify
 bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multiplexer_->Register(it, force); }
 
 void* WorkerThread::ThreadMain() {
-  int nfds;
+  int32_t nfds;
   NetFiredEvent* pfe = nullptr;
   char bb[2048];
   NetItem ti;
@@ -83,7 +83,7 @@ void* WorkerThread::ThreadMain() {
 
   when.tv_sec += (cron_interval_ / 1000);
   when.tv_usec += ((cron_interval_ % 1000) * 1000);
-  int timeout = cron_interval_;
+  int32_t timeout = cron_interval_;
   if (timeout <= 0) {
     timeout = NET_CRON_INTERVAL;
   }
@@ -103,7 +103,7 @@ void* WorkerThread::ThreadMain() {
 
     nfds = net_multiplexer_->NetPoll(timeout);
 
-    for (int i = 0; i < nfds; i++) {
+    for (int32_t i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       if (!pfe) {
           continue;
@@ -155,7 +155,7 @@ void* WorkerThread::ThreadMain() {
         }
       } else {
         in_conn = nullptr;
-        int should_close = 0;
+        int32_t should_close = 0;
 
         {
           std::shared_lock lock(rwlock_);
@@ -211,7 +211,7 @@ void* WorkerThread::ThreadMain() {
           should_close = 0;
         }
       }  // connection event
-    }    // for (int i = 0; i < nfds; i++)
+    }    // for (int32_t i = 0; i < nfds; i++)
   }      // while (!should_stop())
 
   Cleanup();
@@ -306,7 +306,7 @@ void WorkerThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
 }
 
 void WorkerThread::Cleanup() {
-  std::map<int, std::shared_ptr<NetConn>> to_close;
+  std::map<int32_t, std::shared_ptr<NetConn>> to_close;
   {
     std::lock_guard l(rwlock_);
     to_close = std::move(conns_);

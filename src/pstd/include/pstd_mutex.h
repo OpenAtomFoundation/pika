@@ -41,7 +41,7 @@ class RefMutex : public pstd::noncopyable {
 
  private:
   std::mutex mu_;
-  int refs_ = 0;
+  int32_t refs_ = 0;
 };
 
 class RecordMutex : public pstd::noncopyable {

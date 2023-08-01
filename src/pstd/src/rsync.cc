@@ -12,7 +12,7 @@ namespace pstd {
 // Clean files for rsync info, such as the lock, log, pid, conf file
 static bool CleanRsyncInfo(const std::string& path) { return pstd::DeleteDirIfExist(path + kRsyncSubDir); }
 
-int StartRsync(const std::string& raw_path, const std::string& module, const std::string& ip, const int port,
+int32_t StartRsync(const std::string& raw_path, const std::string& module, const std::string& ip, const int32_t port,
                const std::string& passwd) {
   // Sanity check
   if (raw_path.empty() || module.empty() || passwd.empty()) {
@@ -69,7 +69,7 @@ int StartRsync(const std::string& raw_path, const std::string& module, const std
     ss << " --port=" << port;
   }
   std::string rsync_start_cmd = ss.str();
-  int ret = system(rsync_start_cmd.c_str());
+  int32_t ret = system(rsync_start_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
@@ -77,7 +77,7 @@ int StartRsync(const std::string& raw_path, const std::string& module, const std
   return ret;
 }
 
-int StopRsync(const std::string& raw_path) {
+int32_t StopRsync(const std::string& raw_path) {
   // Sanity check
   if (raw_path.empty()) {
     LOG(WARNING) << "empty rsync path!";
@@ -115,7 +115,7 @@ int StopRsync(const std::string& raw_path) {
   }
 
   std::string rsync_stop_cmd = "kill -- -$(ps -o pgid -p" + std::to_string(pid) + " | grep -o '[0-9]*')";
-  int ret = system(rsync_stop_cmd.c_str());
+  int32_t ret = system(rsync_stop_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     LOG(INFO) << "Stop rsync success!";
   } else {
@@ -125,7 +125,7 @@ int StopRsync(const std::string& raw_path) {
   return ret;
 }
 
-int RsyncSendFile(const std::string& local_file_path, const std::string& remote_file_path,
+int32_t RsyncSendFile(const std::string& local_file_path, const std::string& remote_file_path,
                   const std::string& secret_file_path, const RsyncRemote& remote) {
   std::stringstream ss;
   ss << ""
@@ -133,7 +133,7 @@ int RsyncSendFile(const std::string& local_file_path, const std::string& remote_
      << remote.kbps << " --password-file=" << secret_file_path << " --port=" << remote.port << " " << local_file_path
      << " " << kRsyncUser << "@" << remote.host << "::" << remote.module << "/" << remote_file_path;
   std::string rsync_cmd = ss.str();
-  int ret = system(rsync_cmd.c_str());
+  int32_t ret = system(rsync_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
@@ -141,7 +141,7 @@ int RsyncSendFile(const std::string& local_file_path, const std::string& remote_
   return ret;
 }
 
-int RsyncSendClearTarget(const std::string& local_dir_path, const std::string& remote_dir_path,
+int32_t RsyncSendClearTarget(const std::string& local_dir_path, const std::string& remote_dir_path,
                          const std::string& secret_file_path, const RsyncRemote& remote) {
   if (local_dir_path.empty() || remote_dir_path.empty()) {
     return -2;
@@ -158,7 +158,7 @@ int RsyncSendClearTarget(const std::string& local_dir_path, const std::string& r
   ss << "rsync -avP --delete --port=" << remote.port << " --password-file=" << secret_file_path << " " << local_dir
      << " " << kRsyncUser << "@" << remote.host << "::" << remote.module << "/" << remote_dir;
   std::string rsync_cmd = ss.str();
-  int ret = system(rsync_cmd.c_str());
+  int32_t ret = system(rsync_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }

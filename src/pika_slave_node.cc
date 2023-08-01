@@ -52,15 +52,15 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
   return true;
 }
 
-int SyncWindow::Remaining() {
+int32_t SyncWindow::Remaining() {
   std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
-  return static_cast<int>(remaining_size > 0 ? remaining_size : 0);
+  return static_cast<int32_t>(remaining_size > 0 ? remaining_size : 0);
 }
 
 /* SlaveNode */
 
-SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                     int session_id)
+SlaveNode::SlaveNode(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id,
+                     int32_t session_id)
     : RmNode(ip, port, db_name, slot_id, session_id)
       
       {}
@@ -69,7 +69,7 @@ SlaveNode::~SlaveNode() = default;
 
 Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset) {
   binlog_reader = std::make_shared<PikaBinlogReader>();
-  int res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
+  int32_t res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
   if (res != 0) {
     return Status::Corruption(ToString() + "  binlog reader init failed");
   }

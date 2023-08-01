@@ -77,7 +77,7 @@ class Slice {
   //   <  0 iff "*this" <  "b",
   //   == 0 iff "*this" == "b",
   //   >  0 iff "*this" >  "b"
-  int compare(const Slice& b) const;
+  int32_t compare(const Slice& b) const;
 
   // Return true iff "x" is a prefix of "*this"
   bool starts_with(const Slice& x) const { return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0)); }
@@ -95,9 +95,9 @@ inline bool operator==(const Slice& x, const Slice& y) {
 
 inline bool operator!=(const Slice& x, const Slice& y) { return !(x == y); }
 
-inline int Slice::compare(const Slice& b) const {
+inline int32_t Slice::compare(const Slice& b) const {
   const size_t min_len = (size_ < b.size_) ? size_ : b.size_;
-  int r = memcmp(data_, b.data_, min_len);
+  int32_t r = memcmp(data_, b.data_, min_len);
   if (r == 0) {
     if (size_ < b.size_) {
       r = -1;

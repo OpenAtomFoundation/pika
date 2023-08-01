@@ -26,13 +26,13 @@ class PbConn : public NetConn {
     std::queue<std::string> queue_;
     size_t item_pos_;
   };
-  PbConn(int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
+  PbConn(int32_t fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
   ~PbConn() override;
 
   ReadStatus GetRequest() override;
   WriteStatus SendReply() override;
   void TryResizeBuffer() override;
-  int WriteResp(const std::string& resp) override;
+  int32_t WriteResp(const std::string& resp) override;
   void NotifyWrite();
   void NotifyClose();
   void set_is_reply(bool reply) override;
@@ -76,7 +76,7 @@ class PbConn : public NetConn {
 
   // If you want to send response back, build your pb version response yourself,
   // serializeToString and invoke WriteResp and NotifyWrite if necessary.
-  virtual int DealMessage() = 0;
+  virtual int32_t DealMessage() = 0;
 
  private:
   pstd::Mutex resp_mu_;

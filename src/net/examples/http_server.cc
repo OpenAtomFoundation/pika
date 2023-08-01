@@ -53,7 +53,7 @@ class MyHTTPHandles : public net::HTTPHandles {
     std::cout << "Use: " << diff.count() << " ms" << std::endl;
   }
 
-  virtual int WriteResponseBody(char* buf, size_t max_size) {
+  virtual int32_t WriteResponseBody(char* buf, size_t max_size) {
     size_t size = std::min(max_size, body_md5.size() - write_pos);
     memcpy(buf, body_md5.data() + write_pos, size);
     write_pos += size;
@@ -63,7 +63,7 @@ class MyHTTPHandles : public net::HTTPHandles {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     auto my_handles = std::make_shared<MyHTTPHandles>();
     return std::make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
@@ -72,7 +72,7 @@ class MyConnFactory : public ConnFactory {
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -86,8 +86,8 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main(int argc, char* argv[]) {
-  int port;
+int32_t main(int32_t argc, char* argv[]) {
+  int32_t port;
   if (argc < 2) {
     printf("Usage: ./http_server port");
   } else {

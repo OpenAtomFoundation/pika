@@ -32,10 +32,10 @@
 class PikaServer;
 
 /* Port shift */
-const int kPortShiftRSync = 1000;
-const int kPortShiftReplServer = 2000;
+const int32_t kPortShiftRSync = 1000;
+const int32_t kPortShiftReplServer = 2000;
 //TODO: Temporarily used for rsync server port shift. will be deleted.
-const int kPortShiftRsync2 = 10001;
+const int32_t kPortShiftRsync2 = 10001;
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
@@ -54,7 +54,7 @@ struct DBStruct {
 };
 
 struct WorkerCronTask {
-  int task;
+  int32_t task;
   std::string ip_port;
 };
 using MonitorCronTask = WorkerCronTask;
@@ -66,9 +66,9 @@ using MonitorCronTask = WorkerCronTask;
 struct SlaveItem {
   std::string ip_port;
   std::string ip;
-  int port;
-  int conn_fd;
-  int stage;
+  int32_t port;
+  int32_t conn_fd;
+  int32_t stage;
   std::vector<DBStruct> db_structs;
   struct timeval create_time;
 };
@@ -161,10 +161,10 @@ struct LogOffset {
 struct DBSyncArg {
   PikaServer* p;
   std::string ip;
-  int port;
+  int32_t port;
   std::string db_name;
   uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
+  DBSyncArg(PikaServer* const _p, std::string _ip, int32_t _port, std::string _db_name,
             uint32_t _slot_id)
       : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
 };
@@ -225,29 +225,29 @@ struct hash_slot_info {
 
 class Node {
  public:
-  Node(std::string  ip, int port) : ip_(std::move(ip)), port_(port) {}
+  Node(std::string  ip, int32_t port) : ip_(std::move(ip)), port_(port) {}
   virtual ~Node() = default;
   Node() = default;
   const std::string& Ip() const { return ip_; }
-  int Port() const { return port_; }
+  int32_t Port() const { return port_; }
   std::string ToString() const { return ip_ + ":" + std::to_string(port_); }
 
  private:
   std::string ip_;
-  int port_ = 0;
+  int32_t port_ = 0;
 };
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
+  RmNode(const std::string& ip, int32_t port, SlotInfo  slot_info)
       : Node(ip, port), slot_info_(std::move(slot_info)) {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
+  RmNode(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id)
       : Node(ip, port),
         slot_info_(db_name, slot_id)
         {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
+  RmNode(const std::string& ip, int32_t port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
       : Node(ip, port),
         slot_info_(db_name, slot_id),
         session_id_(session_id)
@@ -287,7 +287,7 @@ class RmNode : public Node {
 struct hash_rm_node {
   size_t operator()(const RmNode& n) const {
     return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^
-           std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
+           std::hash<std::string>()(n.Ip()) ^ std::hash<int32_t>()(n.Port());
   }
 };
 
@@ -313,19 +313,19 @@ struct SlowlogEntry {
 
 #define PIKA_MIN_RESERVED_FDS 5000
 
-const int SLAVE_ITEM_STAGE_ONE = 1;
-const int SLAVE_ITEM_STAGE_TWO = 2;
+const int32_t SLAVE_ITEM_STAGE_ONE = 1;
+const int32_t SLAVE_ITEM_STAGE_TWO = 2;
 
 // repl_state_
-const int PIKA_REPL_NO_CONNECT = 0;
-const int PIKA_REPL_SHOULD_META_SYNC = 1;
-const int PIKA_REPL_META_SYNC_DONE = 2;
-const int PIKA_REPL_ERROR = 3;
+const int32_t PIKA_REPL_NO_CONNECT = 0;
+const int32_t PIKA_REPL_SHOULD_META_SYNC = 1;
+const int32_t PIKA_REPL_META_SYNC_DONE = 2;
+const int32_t PIKA_REPL_ERROR = 3;
 
 // role
-const int PIKA_ROLE_SINGLE = 0;
-const int PIKA_ROLE_SLAVE = 1;
-const int PIKA_ROLE_MASTER = 2;
+const int32_t PIKA_ROLE_SINGLE = 0;
+const int32_t PIKA_ROLE_SLAVE = 1;
+const int32_t PIKA_ROLE_MASTER = 2;
 
 /*
  * The size of Binlogfile
@@ -381,8 +381,8 @@ const std::string kContext = "context";
 const std::string kInnerReplOk = "ok";
 const std::string kInnerReplWait = "wait";
 
-const unsigned int kMaxBitOpInputKey = 12800;
-const int kMaxBitOpInputBit = 21;
+const uint32_t kMaxBitOpInputKey = 12800;
+const int32_t kMaxBitOpInputBit = 21;
 /*
  * db sync
  */

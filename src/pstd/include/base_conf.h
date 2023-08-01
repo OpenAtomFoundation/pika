@@ -42,12 +42,12 @@ class BaseConf {
   explicit BaseConf(const std::string& path);
   virtual ~BaseConf();
 
-  int LoadConf();
+  int32_t LoadConf();
   int32_t ReloadConf();
 
   // return false if the item dosen't exist
-  bool GetConfInt(const std::string& name, int* value) const;
-  bool GetConfIntHuman(const std::string& name, int* value) const;
+  bool GetConfInt(const std::string& name, int32_t* value) const;
+  bool GetConfIntHuman(const std::string& name, int32_t* value) const;
   bool GetConfInt64(const std::string& name, int64_t* value) const;
   bool GetConfInt64Human(const std::string& name, int64_t* value) const;
 
@@ -56,7 +56,7 @@ class BaseConf {
   bool GetConfStrVec(const std::string& name, std::vector<std::string>* value) const;
   bool GetConfDouble(const std::string& name, double* value) const;
 
-  bool SetConfInt(const std::string& name, int value);
+  bool SetConfInt(const std::string& name, int32_t value);
   bool SetConfInt64(const std::string& name, int64_t value);
 
   bool SetConfStr(const std::string& name, const std::string& value);

@@ -17,7 +17,7 @@
  */
 class BitGetCmd : public Cmd {
  public:
-  BitGetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitGetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -40,7 +40,7 @@ class BitGetCmd : public Cmd {
 
 class BitSetCmd : public Cmd {
  public:
-  BitSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitSetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -65,7 +65,7 @@ class BitSetCmd : public Cmd {
 
 class BitCountCmd : public Cmd {
  public:
-  BitCountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitCountCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -92,7 +92,7 @@ class BitCountCmd : public Cmd {
 
 class BitPosCmd : public Cmd {
  public:
-  BitPosCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BitPosCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -123,7 +123,7 @@ class BitPosCmd : public Cmd {
 
 class BitOpCmd : public Cmd {
  public:
-  BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+  BitOpCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   };
   BitOpCmd(const BitOpCmd& other)

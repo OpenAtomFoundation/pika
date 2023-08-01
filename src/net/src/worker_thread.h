@@ -29,17 +29,17 @@ class ConnFactory;
 
 class WorkerThread : public Thread {
  public:
-  explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval = 0);
+  explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int32_t queue_limit, int32_t cron_interval = 0);
 
   ~WorkerThread() override;
 
-  void set_keepalive_timeout(int timeout) { keepalive_timeout_ = timeout; }
+  void set_keepalive_timeout(int32_t timeout) { keepalive_timeout_ = timeout; }
 
-  int conn_num() const;
+  int32_t conn_num() const;
 
   std::vector<ServerThread::ConnInfo> conns_info() const;
 
-  std::shared_ptr<NetConn> MoveConnOut(int fd);
+  std::shared_ptr<NetConn> MoveConnOut(int32_t fd);
 
   bool MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type, bool force);
 
@@ -49,21 +49,21 @@ class WorkerThread : public Thread {
   bool TryKillConn(const std::string& ip_port);
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<NetConn>> conns_;
+  std::map<int32_t, std::shared_ptr<NetConn>> conns_;
 
   void* private_data_ = nullptr;
 
  private:
   ServerThread* server_thread_ = nullptr;
   ConnFactory* conn_factory_ = nullptr;
-  int cron_interval_ = 0;
+  int32_t cron_interval_ = 0;
 
   /*
    * The epoll handler
    */
   std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
-  std::atomic<int> keepalive_timeout_;  // keepalive second
+  std::atomic<int32_t> keepalive_timeout_;  // keepalive second
 
   void* ThreadMain() override;
   void DoCronTask();

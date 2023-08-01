@@ -134,8 +134,8 @@ Status PikaConf::DelDBSanityCheck(const std::string& db_name) {
   return InternalGetTargetDB(db_name, &db_index);
 }
 
-int PikaConf::Load() {
-  int ret = LoadConf();
+int32_t PikaConf::Load() {
+  int32_t ret = LoadConf();
   if (ret) {
     return ret;
   }
@@ -179,7 +179,7 @@ int PikaConf::Load() {
   GetConfStr("slotmigrate", &smgrt);
   slotmigrate_ = (smgrt == "yes") ? true : false;
 
-  int binlog_writer_num = 1 ;
+  int32_t binlog_writer_num = 1 ;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
   if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
     binlog_writer_num_ = 1;
@@ -187,7 +187,7 @@ int PikaConf::Load() {
     binlog_writer_num_ = binlog_writer_num;
   }
 
-  int tmp_slowlog_log_slower_than;
+  int32_t tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
   slowlog_log_slower_than_.store(tmp_slowlog_log_slower_than);
 
@@ -277,20 +277,20 @@ int PikaConf::Load() {
     if (databases_ < 1 || databases_ > 8) {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
-    for (int idx = 0; idx < databases_; ++idx) {
+    for (int32_t idx = 0; idx < databases_; ++idx) {
       db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
     }
   }
   default_db_ = db_structs_[0].db_name;
 
-  int tmp_replication_num = 0;
+  int32_t tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
   if (tmp_replication_num > 4 || tmp_replication_num < 0) {
     LOG(FATAL) << "replication-num " << tmp_replication_num << "is invalid, please pick from [0...4]";
   }
   replication_num_.store(tmp_replication_num);
 
-  int tmp_consensus_level = 0;
+  int32_t tmp_consensus_level = 0;
   GetConfInt("consensus-level", &tmp_consensus_level);
   if (tmp_consensus_level < 0 || tmp_consensus_level > replication_num_.load()) {
     LOG(FATAL) << "consensus-level " << tmp_consensus_level
@@ -327,10 +327,10 @@ int PikaConf::Load() {
         colon + 1 == underline || underline + 1 >= len) {
       compact_cron_ = "";
     } else {
-      int week = std::atoi(week_str.c_str());
-      int start = std::atoi(compact_cron.substr(0, colon).c_str());
-      int end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
-      int usage = std::atoi(compact_cron.substr(underline + 1).c_str());
+      int32_t week = std::atoi(week_str.c_str());
+      int32_t start = std::atoi(compact_cron.substr(0, colon).c_str());
+      int32_t end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
+      int32_t usage = std::atoi(compact_cron.substr(underline + 1).c_str());
       if ((have_week && (week < 1 || week > 7)) || start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 ||
           usage > 100) {
         compact_cron_ = "";
@@ -346,8 +346,8 @@ int PikaConf::Load() {
     if (slash == std::string::npos || slash + 1 >= len) {
       compact_interval_ = "";
     } else {
-      int interval = std::atoi(compact_interval_.substr(0, slash).c_str());
-      int usage = std::atoi(compact_interval_.substr(slash + 1).c_str());
+      int32_t interval = std::atoi(compact_interval_.substr(0, slash).c_str());
+      int32_t usage = std::atoi(compact_interval_.substr(slash + 1).c_str());
       if (interval <= 0 || usage < 0 || usage > 100) {
         compact_interval_ = "";
       }
@@ -558,7 +558,7 @@ int PikaConf::Load() {
   }
 
   // sync window size
-  int tmp_sync_window_size = kBinlogReadWinDefaultSize;
+  int32_t tmp_sync_window_size = kBinlogReadWinDefaultSize;
   GetConfInt("sync-window-size", &tmp_sync_window_size);
   if (tmp_sync_window_size <= 0) {
     sync_window_size_.store(kBinlogReadWinDefaultSize);
@@ -569,7 +569,7 @@ int PikaConf::Load() {
   }
 
   // max conn rbuf size
-  int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
+  int32_t tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
   GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
   if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
     max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
@@ -609,7 +609,7 @@ void PikaConf::TryPushDiffCommands(const std::string& command, const std::string
   }
 }
 
-int PikaConf::ConfigRewrite() {
+int32_t PikaConf::ConfigRewrite() {
   std::string userblacklist = suser_blacklist();
 
   std::lock_guard l(rwlock_);
@@ -671,7 +671,7 @@ int PikaConf::ConfigRewrite() {
     }
     diff_commands_.clear();
   }
-  return static_cast<int>(WriteBack());
+  return static_cast<int32_t>(WriteBack());
 }
 
 rocksdb::CompressionType PikaConf::GetCompression(const std::string& value) {

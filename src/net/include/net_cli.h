@@ -16,13 +16,13 @@ namespace net {
 
 class NetCli : public pstd::noncopyable {
  public:
-  explicit NetCli(const std::string& ip = "", int port = 0);
+  explicit NetCli(const std::string& ip = "", int32_t port = 0);
   virtual ~NetCli();
 
   pstd::Status Connect(const std::string& bind_ip = "");
-  pstd::Status Connect(const std::string& peer_ip, int peer_port, const std::string& bind_ip = "");
+  pstd::Status Connect(const std::string& peer_ip, int32_t peer_port, const std::string& bind_ip = "");
   // Check whether the connection got fin from peer or not
-  virtual int CheckAliveness();
+  virtual int32_t CheckAliveness();
   // Compress and write the message
   virtual pstd::Status Send(void* msg) = 0;
 
@@ -32,16 +32,16 @@ class NetCli : public pstd::noncopyable {
   void Close();
 
   // TODO(baotiao): delete after redis_cli use RecvRaw
-  int fd() const;
+  int32_t fd() const;
 
   bool Available() const;
 
   struct timeval last_interaction_;
 
   // default connect timeout is 1000ms
-  int set_send_timeout(int send_timeout);
-  int set_recv_timeout(int recv_timeout);
-  void set_connect_timeout(int connect_timeout);
+  int32_t set_send_timeout(int32_t send_timeout);
+  int32_t set_recv_timeout(int32_t recv_timeout);
+  void set_connect_timeout(int32_t connect_timeout);
 
  protected:
   pstd::Status SendRaw(void* buf, size_t count);
@@ -50,11 +50,11 @@ class NetCli : public pstd::noncopyable {
  private:
   struct Rep;
   std::unique_ptr<Rep> rep_;
-  int set_tcp_nodelay();
+  int32_t set_tcp_nodelay();
 
 };
 
-extern NetCli* NewPbCli(const std::string& peer_ip = "", int peer_port = 0);
+extern NetCli* NewPbCli(const std::string& peer_ip = "", int32_t peer_port = 0);
 
 extern NetCli* NewRedisCli();
 

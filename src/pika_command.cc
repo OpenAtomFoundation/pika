@@ -865,7 +865,7 @@ void Cmd::ProcessMultiSlotCmd() {
     return;
   }
 
-  int hint = 0;
+  int32_t hint = 0;
   std::unordered_map<uint32_t, ProcessArg> process_map;
   // split cur_key into slots
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);

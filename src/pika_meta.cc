@@ -102,10 +102,10 @@ Status PikaMeta::ParseMeta(std::vector<DBStruct>* const db_structs) {
   }
 
   db_structs->clear();
-  for (int idx = 0; idx < meta.db_infos_size(); ++idx) {
+  for (int32_t idx = 0; idx < meta.db_infos_size(); ++idx) {
     const InnerMessage::DBInfo& ti = meta.db_infos(idx);
     std::set<uint32_t> slot_ids;
-    for (int sidx = 0; sidx < ti.slot_ids_size(); ++sidx) {
+    for (int32_t sidx = 0; sidx < ti.slot_ids_size(); ++sidx) {
       slot_ids.insert(ti.slot_ids(sidx));
     }
     db_structs->emplace_back(ti.db_name(), ti.slot_num(), slot_ids);

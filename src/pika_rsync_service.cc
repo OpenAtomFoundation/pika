@@ -17,7 +17,7 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
+PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int32_t port) : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
@@ -34,8 +34,8 @@ PikaRsyncService::~PikaRsyncService() {
   LOG(INFO) << "PikaRsyncService exit!!!";
 }
 
-int PikaRsyncService::StartRsync() {
-  int ret = 0;
+int32_t PikaRsyncService::StartRsync() {
+  int32_t ret = 0;
   std::string auth;
   if (g_pika_conf->masterauth().empty()) {
     auth = kDefaultRsyncAuth;
@@ -63,7 +63,7 @@ int PikaRsyncService::StartRsync() {
   return 0;
 }
 
-int PikaRsyncService::CreateSecretFile() {
+int32_t PikaRsyncService::CreateSecretFile() {
   std::string secret_file_path = g_pika_conf->db_sync_path();
   if (g_pika_conf->db_sync_path().back() != '/') {
     secret_file_path += "/";
@@ -89,7 +89,7 @@ int PikaRsyncService::CreateSecretFile() {
 
   // secret file cant be other-accessible
   std::string cmd = "chmod 600 " + secret_file_path;
-  int ret = system(cmd.c_str());
+  int32_t ret = system(cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
@@ -98,4 +98,4 @@ int PikaRsyncService::CreateSecretFile() {
 
 bool PikaRsyncService::CheckRsyncAlive() { return pstd::FileExists(pid_path_); }
 
-int PikaRsyncService::ListenPort() { return port_; }
+int32_t PikaRsyncService::ListenPort() { return port_; }

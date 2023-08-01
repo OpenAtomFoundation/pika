@@ -16,9 +16,9 @@
 
 namespace net {
 
-NetMultiplexer* CreateNetMultiplexer(int limit) { return new NetEpoll(limit); }
+NetMultiplexer* CreateNetMultiplexer(int32_t limit) { return new NetEpoll(limit); }
 
-NetEpoll::NetEpoll(int queue_limit) : NetMultiplexer(queue_limit) {
+NetEpoll::NetEpoll(int32_t queue_limit) : NetMultiplexer(queue_limit) {
 #if defined(EPOLL_CLOEXEC)
   multiplexer_ = epoll_create1(EPOLL_CLOEXEC);
 #else
@@ -35,7 +35,7 @@ NetEpoll::NetEpoll(int queue_limit) : NetMultiplexer(queue_limit) {
   events_.resize(NET_MAX_CLIENTS);
 }
 
-int NetEpoll::NetAddEvent(int fd, int mask) {
+int32_t NetEpoll::NetAddEvent(int32_t fd, int32_t mask) {
   struct epoll_event ee;
   ee.data.fd = fd;
   ee.events = 0;
@@ -50,7 +50,7 @@ int NetEpoll::NetAddEvent(int fd, int mask) {
   return epoll_ctl(multiplexer_, EPOLL_CTL_ADD, fd, &ee);
 }
 
-int NetEpoll::NetModEvent(int fd, int old_mask, int mask) {
+int32_t NetEpoll::NetModEvent(int32_t fd, int32_t old_mask, int32_t mask) {
   struct epoll_event ee;
   ee.data.fd = fd;
   ee.events = (old_mask | mask);
@@ -65,7 +65,7 @@ int NetEpoll::NetModEvent(int fd, int old_mask, int mask) {
   return epoll_ctl(multiplexer_, EPOLL_CTL_MOD, fd, &ee);
 }
 
-int NetEpoll::NetDelEvent(int fd, [[maybe_unused]] int mask) {
+int32_t NetEpoll::NetDelEvent(int32_t fd, [[maybe_unused]] int32_t mask) {
   /*
    * Kernel < 2.6.9 need a non null event point to EPOLL_CTL_DEL
    */
@@ -74,13 +74,13 @@ int NetEpoll::NetDelEvent(int fd, [[maybe_unused]] int mask) {
   return epoll_ctl(multiplexer_, EPOLL_CTL_DEL, fd, &ee);
 }
 
-int NetEpoll::NetPoll(int timeout) {
-  int num_events = epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
+int32_t NetEpoll::NetPoll(int32_t timeout) {
+  int32_t num_events = epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
   if (num_events <= 0) {
     return 0;
   }
 
-  for (int i = 0; i < num_events; i++) {
+  for (int32_t i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];
     ev.fd = events_[i].data.fd;
     ev.mask = 0;

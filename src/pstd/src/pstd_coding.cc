@@ -34,7 +34,7 @@ void PutFixed64(std::string* dst, uint64_t value) {
 char* EncodeVarint32(char* dst, uint32_t v) {
   // Operate on characters as unsigneds
   auto ptr = reinterpret_cast<unsigned char*>(dst);
-  static const int B = 128;
+  static const int32_t B = 128;
   if (v < (1 << 7)) {
     *(ptr++) = v;
   } else if (v < (1 << 14)) {
@@ -66,7 +66,7 @@ void PutVarint32(std::string* dst, uint32_t v) {
 }
 
 char* EncodeVarint64(char* dst, uint64_t v) {
-  static const int B = 128;
+  static const int32_t B = 128;
   auto ptr = reinterpret_cast<unsigned char*>(dst);
   while (v >= B) {
     *(ptr++) = (v & (B - 1)) | B;
@@ -87,8 +87,8 @@ void PutLengthPrefixedString(std::string* dst, const std::string& value) {
   dst->append(value.data(), value.size());
 }
 
-int VarintLength(uint64_t v) {
-  int len = 1;
+int32_t VarintLength(uint64_t v) {
+  int32_t len = 1;
   while (v >= 128) {
     v >>= 7;
     len++;

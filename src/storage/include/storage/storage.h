@@ -1035,12 +1035,19 @@ class Storage {
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
   // Storage start the background thread for compaction task
+#ifdef __APPLE__
+  // For macOS, use nullptr for initialization
+  pthread_t bg_tasks_thread_id_ = nullptr;
+#else
+  // For Linux, use 0 for initialization (or any valid thread ID if available)
   pthread_t bg_tasks_thread_id_ = 0;
+#endif
+
   pstd::Mutex bg_tasks_mutex_;
   pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
-  std::atomic<int> current_task_type_ = kNone;
+  std::atomic<int32_t> current_task_type_ = kNone;
   std::atomic<bool> bg_tasks_should_exit_ = false;
 
   // For scan keys in data base

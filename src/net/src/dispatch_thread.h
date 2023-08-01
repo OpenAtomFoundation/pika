@@ -78,26 +78,26 @@ class TimedScanThread : public Thread {
 
 class DispatchThread : public ServerThread {
  public:
-  DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
+  DispatchThread(int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval, int32_t queue_limit,
                  const ServerHandle* handle);
-  DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
-                 int queue_limit, const ServerHandle* handle);
-  DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
-                 int queue_limit, const ServerHandle* handle);
+  DispatchThread(const std::string& ip, int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval,
+                 int32_t queue_limit, const ServerHandle* handle);
+  DispatchThread(const std::set<std::string>& ips, int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval,
+                 int32_t queue_limit, const ServerHandle* handle);
 
   ~DispatchThread() override;
 
-  int StartThread() override;
+  int32_t StartThread() override;
 
-  int StopThread() override;
+  int32_t StopThread() override;
 
-  void set_keepalive_timeout(int timeout) override;
+  void set_keepalive_timeout(int32_t timeout) override;
 
-  int conn_num() const override;
+  int32_t conn_num() const override;
 
   std::vector<ServerThread::ConnInfo> conns_info() const override;
 
-  std::shared_ptr<NetConn> MoveConnOut(int fd) override;
+  std::shared_ptr<NetConn> MoveConnOut(int32_t fd) override;
 
   void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override;
 
@@ -105,19 +105,19 @@ class DispatchThread : public ServerThread {
 
   bool KillConn(const std::string& ip_port) override;
 
-  void HandleNewConn(int connfd, const std::string& ip_port) override;
+  void HandleNewConn(int32_t connfd, const std::string& ip_port) override;
 
-  void SetQueueLimit(int queue_limit) override;
+  void SetQueueLimit(int32_t queue_limit) override;
 
   /**
    * BlPop/BrPop used start
    */
-  void CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked);
+  void CleanWaitNodeOfUnBlockedBlrConn(const std::shared_ptr<net::RedisConn>& conn_unblocked);
 
   void CleanKeysAfterWaitNodeCleaned();
 
   // if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
-  void ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close);
+  void ClosingConnCheckForBlrPop(const std::shared_ptr<net::RedisConn>& conn_to_close);
 
 
   void ScanExpiredBlockedConnsOfBlrpop();
@@ -125,7 +125,7 @@ class DispatchThread : public ServerThread {
   std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
     return key_to_blocked_conns_;
   }
-  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>>& GetMapFromConnToKeys() {
+  std::unordered_map<int32_t, std::unique_ptr<std::list<BlockKey>>>& GetMapFromConnToKeys() {
     return blocked_conn_to_keys_;
   }
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
@@ -137,13 +137,13 @@ class DispatchThread : public ServerThread {
    * Here we used auto poll to find the next work thread,
    * last_thread_ is the last work thread
    */
-  int last_thread_;
-  int work_num_;
+  int32_t last_thread_;
+  int32_t work_num_;
   /*
    * This is the work threads
    */
   std::vector<std::unique_ptr<WorkerThread>> worker_thread_;
-  int queue_limit_;
+  int32_t queue_limit_;
   std::map<WorkerThread*, void*> localdata_;
 
   void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
@@ -161,7 +161,7 @@ class DispatchThread : public ServerThread {
    *  blocked_conn_to_keys_:
    *  mapping from conn(fd) to a list of keys that the client is waiting for.
    */
-  std::unordered_map<int, std::unique_ptr<std::list<BlockKey>>> blocked_conn_to_keys_;
+  std::unordered_map<int32_t, std::unique_ptr<std::list<BlockKey>>> blocked_conn_to_keys_;
 
   /*
    * latch of the two maps above.

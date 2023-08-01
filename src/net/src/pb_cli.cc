@@ -22,7 +22,7 @@ namespace net {
 // Default PBCli is block IO;
 class PbCli : public NetCli {
  public:
-  PbCli(const std::string& ip, int port);
+  PbCli(const std::string& ip, int32_t port);
   ~PbCli() override;
 
   // msg should have been parsed
@@ -38,7 +38,7 @@ class PbCli : public NetCli {
 
 };
 
-PbCli::PbCli(const std::string& ip, const int port) : NetCli(ip, port) {
+PbCli::PbCli(const std::string& ip, const int32_t port) : NetCli(ip, port) {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kProtoMaxMessage));
   wbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kProtoMaxMessage));
 }
@@ -86,6 +86,6 @@ Status PbCli::Recv(void* msg_res) {
   return Status::OK();
 }
 
-NetCli* NewPbCli(const std::string& peer_ip, const int peer_port) { return new PbCli(peer_ip, peer_port); }
+NetCli* NewPbCli(const std::string& peer_ip, const int32_t peer_port) { return new PbCli(peer_ip, peer_port); }
 
 }  // namespace net

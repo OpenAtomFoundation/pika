@@ -17,10 +17,6 @@
 
 #if defined(_MSC_VER)
 
-typedef unsigned char uint8_t;
-typedef unsigned long uint32_t;
-typedef unsigned __int64 uint64_t;
-
 // Other compilers
 
 #else  // defined(_MSC_VER)
@@ -88,10 +84,10 @@ extern "C"
 extern
 #endif
     void
-    MurmurHash3_x86_32(const void* key, int len, uint32_t seed, void* out) {
+    MurmurHash3_x86_32(const void* key, int32_t len, uint32_t seed, void* out) {
   const auto data = (const uint8_t*)key;
-  const int nblocks = len / 4;
-  int i;
+  const int32_t nblocks = len / 4;
+  int32_t i;
 
   uint32_t h1 = seed;
 

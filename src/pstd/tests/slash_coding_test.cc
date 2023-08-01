@@ -36,7 +36,7 @@ TEST_F(Coding, Fixed32) {
 
 TEST_F(Coding, Fixed64) {
   std::string s;
-  for (int power = 0; power <= 63; power++) {
+  for (int32_t power = 0; power <= 63; power++) {
     uint64_t v = static_cast<uint64_t>(1) << power;
     PutFixed64(&s, v - 1);
     PutFixed64(&s, v + 0);
@@ -44,7 +44,7 @@ TEST_F(Coding, Fixed64) {
   }
 
   const char* p = s.data();
-  for (int power = 0; power <= 63; power++) {
+  for (int32_t power = 0; power <= 63; power++) {
     uint64_t v = static_cast<uint64_t>(1) << power;
     uint64_t actual;
     actual = DecodeFixed64(p);
@@ -66,22 +66,22 @@ TEST_F(Coding, EncodingOutput) {
   std::string dst;
   PutFixed32(&dst, 0x04030201);
   ASSERT_EQ(4, dst.size());
-  ASSERT_EQ(0x01, static_cast<int>(dst[0]));
-  ASSERT_EQ(0x02, static_cast<int>(dst[1]));
-  ASSERT_EQ(0x03, static_cast<int>(dst[2]));
-  ASSERT_EQ(0x04, static_cast<int>(dst[3]));
+  ASSERT_EQ(0x01, static_cast<int32_t>(dst[0]));
+  ASSERT_EQ(0x02, static_cast<int32_t>(dst[1]));
+  ASSERT_EQ(0x03, static_cast<int32_t>(dst[2]));
+  ASSERT_EQ(0x04, static_cast<int32_t>(dst[3]));
 
   dst.clear();
   PutFixed64(&dst, 0x0807060504030201ULL);
   ASSERT_EQ(8, dst.size());
-  ASSERT_EQ(0x01, static_cast<int>(dst[0]));
-  ASSERT_EQ(0x02, static_cast<int>(dst[1]));
-  ASSERT_EQ(0x03, static_cast<int>(dst[2]));
-  ASSERT_EQ(0x04, static_cast<int>(dst[3]));
-  ASSERT_EQ(0x05, static_cast<int>(dst[4]));
-  ASSERT_EQ(0x06, static_cast<int>(dst[5]));
-  ASSERT_EQ(0x07, static_cast<int>(dst[6]));
-  ASSERT_EQ(0x08, static_cast<int>(dst[7]));
+  ASSERT_EQ(0x01, static_cast<int32_t>(dst[0]));
+  ASSERT_EQ(0x02, static_cast<int32_t>(dst[1]));
+  ASSERT_EQ(0x03, static_cast<int32_t>(dst[2]));
+  ASSERT_EQ(0x04, static_cast<int32_t>(dst[3]));
+  ASSERT_EQ(0x05, static_cast<int32_t>(dst[4]));
+  ASSERT_EQ(0x06, static_cast<int32_t>(dst[5]));
+  ASSERT_EQ(0x07, static_cast<int32_t>(dst[6]));
+  ASSERT_EQ(0x08, static_cast<int32_t>(dst[7]));
 }
 
 TEST_F(Coding, Varint32) {

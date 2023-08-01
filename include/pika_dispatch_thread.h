@@ -10,29 +10,29 @@
 
 class PikaDispatchThread {
  public:
-  PikaDispatchThread(std::set<std::string>& ips, int port, int work_num, int cron_interval, int queue_limit,
-                     int max_conn_rbuf_size);
+  PikaDispatchThread(std::set<std::string>& ips, int32_t port, int32_t work_num, int32_t cron_interval, int32_t queue_limit,
+                     int32_t max_conn_rbuf_size);
   ~PikaDispatchThread();
-  int StartThread();
+  int32_t StartThread();
 
   uint64_t ThreadClientList(std::vector<ClientInfo>* clients);
 
   bool ClientKill(const std::string& ip_port);
   void ClientKillAll();
 
-  void SetQueueLimit(int queue_limit) { thread_rep_->SetQueueLimit(queue_limit); }
+  void SetQueueLimit(int32_t queue_limit) { thread_rep_->SetQueueLimit(queue_limit); }
 
  private:
   class ClientConnFactory : public net::ConnFactory {
    public:
-    explicit ClientConnFactory(int max_conn_rbuf_size) : max_conn_rbuf_size_(max_conn_rbuf_size) {}
-    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* server_thread,
+    explicit ClientConnFactory(int32_t max_conn_rbuf_size) : max_conn_rbuf_size_(max_conn_rbuf_size) {}
+    std::shared_ptr<net::NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, net::Thread* server_thread,
                                                      void* worker_specific_data, net::NetMultiplexer* net) const override {
       return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_);
     }
 
    private:
-    int max_conn_rbuf_size_ = 0;
+    int32_t max_conn_rbuf_size_ = 0;
   };
 
   class Handles : public net::ServerHandle {

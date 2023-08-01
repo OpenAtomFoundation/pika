@@ -24,7 +24,7 @@ uint64_t NowMicros() {
 static pstd::Mutex print_lock;
 
 void task(void* arg) {
-  std::unique_ptr<int> int_arg(static_cast<int*>(arg));
+  std::unique_ptr<int32_t> int_arg(static_cast<int32_t*>(arg));
   {
     std::lock_guard l(print_lock);
     std::cout << " task : " << *int_arg << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
@@ -33,7 +33,7 @@ void task(void* arg) {
   sleep(1);
 }
 
-int main() {
+int32_t main() {
   // 10 threads
   net::ThreadPool t(10, 1000), t2(10, 5);
   t.start_thread_pool();
@@ -41,8 +41,8 @@ int main() {
   size_t qsize = 0, pqsize = 0;
 
   std::cout << "Test Normal Task... " << std::endl;
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t.Schedule(task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
@@ -61,8 +61,8 @@ int main() {
   std::cout << "Test Time Task" << std::endl;
   t.stop_thread_pool();
   t.start_thread_pool();
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
@@ -80,8 +80,8 @@ int main() {
   t.stop_thread_pool();
   t.start_thread_pool();
   std::cout << "Test Drop Task... " << std::endl;
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);

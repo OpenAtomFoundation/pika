@@ -18,10 +18,10 @@ namespace net {
 class RedisParser;
 
 using RedisCmdArgsType = std::vector<std::string>;
-using RedisParserDataCb = int (*)(RedisParser *, const RedisCmdArgsType &);
-using RedisParserMultiDataCb = int (*)(RedisParser *, const std::vector<RedisCmdArgsType> &);
-using RedisParserCb = int (*)(RedisParser *);
-using RedisParserType = int;
+using RedisParserDataCb = int32_t (*)(RedisParser *, const RedisCmdArgsType &);
+using RedisParserMultiDataCb = int32_t (*)(RedisParser *, const std::vector<RedisCmdArgsType> &);
+using RedisParserCb = int32_t (*)(RedisParser *);
+using RedisParserType = int32_t;
 
 enum RedisParserStatus {
   kRedisParserNone = 0,
@@ -53,8 +53,8 @@ class RedisParser {
  public:
   RedisParser();
   RedisParserStatus RedisParserInit(RedisParserType type, const RedisParserSettings& settings);
-  RedisParserStatus ProcessInputBuffer(const char* input_buf, int length, int* parsed_len);
-  long get_bulk_len() { return bulk_len_; }
+  RedisParserStatus ProcessInputBuffer(const char* input_buf, int32_t length, int32_t* parsed_len);
+  int32_t get_bulk_len() { return bulk_len_; }
   RedisParserError get_error_code() { return error_code_; }
   void* data = nullptr; /* A pointer to get hook to the "connection" or "socket" object */
  private:
@@ -62,8 +62,8 @@ class RedisParser {
   void PrintCurrentStatus();
 
   void CacheHalfArgv();
-  int FindNextSeparators();
-  int GetNextNum(int pos, long* value);
+  int32_t FindNextSeparators();
+  int32_t GetNextNum(int32_t pos, int32_t* value);
   RedisParserStatus ProcessInlineBuffer();
   RedisParserStatus ProcessMultibulkBuffer();
   RedisParserStatus ProcessRequestBuffer();
@@ -76,21 +76,21 @@ class RedisParser {
   RedisParserStatus status_code_{kRedisParserNone};
   RedisParserError error_code_{kRedisParserOk};
 
-  int redis_type_ = -1;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
+  int32_t redis_type_ = -1;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
 
-  long multibulk_len_ = 0;
-  long bulk_len_ = 0;
+  int32_t multibulk_len_ = 0;
+  int32_t bulk_len_ = 0;
   std::string half_argv_;
 
-  int redis_parser_type_ = -1;  // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
+  int32_t redis_parser_type_ = -1;  // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
 
   RedisCmdArgsType argv_;
   std::vector<RedisCmdArgsType> argvs_;
 
-  int cur_pos_ = 0;
+  int32_t cur_pos_ = 0;
   const char* input_buf_{nullptr};
   std::string input_str_;
-  int length_ = 0;
+  int32_t length_ = 0;
 };
 
 }  // namespace net

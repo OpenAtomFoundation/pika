@@ -251,7 +251,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& sadd_argv = sadd_cmd_->argv();
   size_t data_size = value_to_dest_[0].size();
 
-  for(int i = 1; i < value_to_dest_.size(); i++){
+  for(int32_t i = 1; i < value_to_dest_.size(); i++){
     if(data_size >= 131072){
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       sadd_cmd_->DoBinlog(slot);
@@ -436,7 +436,7 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   rocksdb::Status s = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
   if (s.ok() || s.IsNotFound()) {
-    if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
+    if (!reply_arr && (static_cast<uint32_t>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
     } else {

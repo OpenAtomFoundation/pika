@@ -10,7 +10,7 @@
 
 using namespace storage;
 
-void Func(LockMgr* mgr, int id, const std::string& key) {
+void Func(LockMgr* mgr, int32_t id, const std::string& key) {
   mgr->TryLock(key);
   printf("thread %d TryLock %s success\n", id, key.c_str());
   std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -18,7 +18,7 @@ void Func(LockMgr* mgr, int id, const std::string& key) {
   printf("thread %d UnLock %s\n", id, key.c_str());
 }
 
-int main() {
+int32_t main() {
   std::shared_ptr<MutexFactory> factory = std::make_shared<MutexFactoryImpl>();
   LockMgr mgr(1, 3, factory);
 

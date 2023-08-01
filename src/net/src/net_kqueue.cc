@@ -16,9 +16,9 @@
 
 namespace net {
 
-NetMultiplexer* CreateNetMultiplexer(int limit) { return new NetKqueue(limit); }
+NetMultiplexer* CreateNetMultiplexer(int32_t limit) { return new NetKqueue(limit); }
 
-NetKqueue::NetKqueue(int queue_limit) : NetMultiplexer(queue_limit) {
+NetKqueue::NetKqueue(int32_t queue_limit) : NetMultiplexer(queue_limit) {
   multiplexer_ = ::kqueue();
   LOG(INFO) << "create kqueue";
 
@@ -32,8 +32,8 @@ NetKqueue::NetKqueue(int queue_limit) : NetMultiplexer(queue_limit) {
   events_.resize(NET_MAX_CLIENTS);
 }
 
-int NetKqueue::NetAddEvent(int fd, int mask) {
-  int cnt = 0;
+int32_t NetKqueue::NetAddEvent(int32_t fd, int32_t mask) {
+  int32_t cnt = 0;
   struct kevent change[2];
 
   if (mask & kReadable) {
@@ -49,8 +49,8 @@ int NetKqueue::NetAddEvent(int fd, int mask) {
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
 
-int NetKqueue::NetModEvent(int fd, int /*old_mask*/, int mask) {
-  int ret = NetDelEvent(fd, kReadable | kWritable);
+int32_t NetKqueue::NetModEvent(int32_t fd, int32_t /*old_mask*/, int32_t mask) {
+  int32_t ret = NetDelEvent(fd, kReadable | kWritable);
   if (mask == 0) {
     return ret;
   }
@@ -58,8 +58,8 @@ int NetKqueue::NetModEvent(int fd, int /*old_mask*/, int mask) {
   return NetAddEvent(fd, mask);
 }
 
-int NetKqueue::NetDelEvent(int fd, int mask) {
-  int cnt = 0;
+int32_t NetKqueue::NetDelEvent(int32_t fd, int32_t mask) {
+  int32_t cnt = 0;
   struct kevent change[2];
 
   if (mask & kReadable) {
@@ -79,7 +79,7 @@ int NetKqueue::NetDelEvent(int fd, int mask) {
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
 
-int NetKqueue::NetPoll(int timeout) {
+int32_t NetKqueue::NetPoll(int32_t timeout) {
   struct timespec* p_timeout = nullptr;
   struct timespec s_timeout;
   if (timeout >= 0) {
@@ -88,14 +88,14 @@ int NetKqueue::NetPoll(int timeout) {
     s_timeout.tv_nsec = timeout % 1000 * 1000000;
   }
 
-  int num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0], NET_MAX_CLIENTS, p_timeout);
+  int32_t num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0], NET_MAX_CLIENTS, p_timeout);
   if (num_events <= 0) {
     return 0;
   }
 
-  for (int i = 0; i < num_events; i++) {
+  for (int32_t i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];
-    ev.fd = events_[i].ident;
+    ev.fd = static_cast<int32_t>(events_[i].ident);
     ev.mask = 0;
 
     if (events_[i].filter == EVFILT_READ) {

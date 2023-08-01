@@ -90,7 +90,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int32_t ret = db->Expire(key, 1, &type_status);
   if ((ret == 0) || !type_status[storage::DataType::kHashes].ok()) {
     return false;
   }
@@ -2419,7 +2419,7 @@ TEST_F(HashesTest, PKHRScanRangeTest) {
   ASSERT_EQ(next_field, "i");
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

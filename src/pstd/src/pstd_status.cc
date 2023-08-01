@@ -18,8 +18,8 @@ const char* Status::CopyState(const char* state) {
 
 Status::Status(Code code, const Slice& msg, const Slice& msg2) {
   assert(code != kOk);
-  const uint32_t len1 = static_cast<int>(msg.size());
-  const uint32_t len2 = static_cast<int>(msg2.size());
+  const uint32_t len1 = static_cast<int32_t>(msg.size());
+  const uint32_t len2 = static_cast<int32_t>(msg2.size());
   const uint32_t size = len1 + (len2 != 0U ? (2 + len2) : 0);
   char* result = new char[size + 5];
   memcpy(result, &size, sizeof(size));
@@ -77,7 +77,7 @@ std::string Status::ToString() const {
         type = "Busy:";
         break;
       default:
-        snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int>(code()));
+        snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int32_t>(code()));
         type = tmp;
         break;
     }

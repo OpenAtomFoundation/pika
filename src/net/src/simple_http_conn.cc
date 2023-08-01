@@ -20,7 +20,7 @@ namespace net {
 static const uint32_t kHTTPMaxMessage = 1024 * 1024 * 8;
 static const uint32_t kHTTPMaxHeader = 1024 * 64;
 
-static const std::map<int, std::string> http_status_map = {
+static const std::map<int32_t, std::string> http_status_map = {
     {100, "Continue"},
     {101, "Switching Protocols"},
     {102, "Processing"},
@@ -60,9 +60,9 @@ static const std::map<int, std::string> http_status_map = {
 
 Request::Request() : method("GET"), path("/index") {}
 
-inline int find_lf(const char* data, int size) {
+inline int32_t find_lf(const char* data, int32_t size) {
   const char* c = data;
-  int count = 0;
+  int32_t count = 0;
   while (count < size) {
     if (*c == '\n') {
       break;
@@ -73,10 +73,10 @@ inline int find_lf(const char* data, int size) {
   return count;
 }
 
-bool Request::ParseHeadLine(const char* data, int line_start, int line_end, ParseStatus* parseStatus) {
+bool Request::ParseHeadLine(const char* data, int32_t line_start, int32_t line_end, ParseStatus* parseStatus) {
   std::string param_key;
   std::string param_value;
-  for (int i = line_start; i <= line_end; i++) {
+  for (int32_t i = line_start; i <= line_end; i++) {
     switch (*parseStatus) {
       case kHeaderMethod:
         if (data[i] != ' ') {
@@ -174,15 +174,15 @@ bool Request::ParseParameters(const std::string& data, size_t line_start, bool f
   return true;
 }
 
-bool Request::ParseHeadFromArray(const char* data, const int size) {
-  int remain_size = size;
+bool Request::ParseHeadFromArray(const char* data, const int32_t size) {
+  int32_t remain_size = size;
   if (remain_size <= 5) {
     return false;
   }
 
   // Parse header line
-  int line_start = 0;
-  int line_end = 0;
+  int32_t line_start = 0;
+  int32_t line_end = 0;
   ParseStatus parseStatus = kHeaderMethod;
   while (remain_size > 4) {
     line_end += find_lf(data + line_start, remain_size);
@@ -200,7 +200,7 @@ bool Request::ParseHeadFromArray(const char* data, const int size) {
   return ParseGetUrl();
 }
 
-bool Request::ParseBodyFromArray(const char* data, const int size) {
+bool Request::ParseBodyFromArray(const char* data, const int32_t size) {
   content.append(data, size);
   if (method == "POST" && headers["content-type"] == "application/x-www-form-urlencoded") {
     return ParseParameters(content, 0, false);
@@ -226,13 +226,13 @@ void Response::Clear() {
 }
 
 // Return bytes actual be writen, should be less than size
-int Response::SerializeHeaderToArray(char* data, size_t size) {
-  int serial_size = 0;
-  int ret;
+int32_t Response::SerializeHeaderToArray(char* data, size_t size) {
+  int32_t serial_size = 0;
+  int32_t ret;
 
   // Serialize statues line
   ret = snprintf(data, size, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase_.c_str());
-  if (ret < 0 || ret == static_cast<int>(size)) {
+  if (ret < 0 || ret == static_cast<int32_t>(size)) {
     return ret;
   }
   serial_size += ret;
@@ -247,7 +247,7 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
       return ret;
     }
     serial_size += ret;
-    if (serial_size == static_cast<int>(size)) {
+    if (serial_size == static_cast<int32_t>(size)) {
       return serial_size;
     }
   }
@@ -258,7 +258,7 @@ int Response::SerializeHeaderToArray(char* data, size_t size) {
 }
 
 // Serialize body begin from 'pos', return the new pos
-int Response::SerializeBodyToArray(char* data, size_t size, int* pos) {
+int32_t Response::SerializeBodyToArray(char* data, size_t size, int32_t* pos) {
   // Serialize body
   size_t actual = size;
   if (body_.size() - *pos < size) {
@@ -269,14 +269,14 @@ int Response::SerializeBodyToArray(char* data, size_t size, int* pos) {
   return static_cast<int32_t>(actual);
 }
 
-void Response::SetStatusCode(int code) {
+void Response::SetStatusCode(int32_t code) {
   assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) || (code >= 400 && code <= 409) ||
          (code == 416) || (code >= 500 && code <= 509));
   status_code_ = code;
   reason_phrase_.assign(http_status_map.at(code));
 }
 
-SimpleHTTPConn::SimpleHTTPConn(const int fd, const std::string& ip_port, Thread* thread)
+SimpleHTTPConn::SimpleHTTPConn(const int32_t fd, const std::string& ip_port, Thread* thread)
     : NetConn(fd, ip_port, thread)
       {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kHTTPMaxMessage));
@@ -304,7 +304,7 @@ bool SimpleHTTPConn::BuildRequestHeader() {
   if (iter == request_->headers.end()) {
     remain_packet_len_ = 0;
   } else {
-    long tmp = 0;
+    int32_t tmp = 0;
     if (pstd::string2int(iter->second.data(), iter->second.size(), &tmp) != 0) {
       remain_packet_len_ = tmp;
     } else {
@@ -408,7 +408,7 @@ ReadStatus SimpleHTTPConn::GetRequest() {
 bool SimpleHTTPConn::FillResponseBuf() {
   if (response_pos_ < 0) {
     // Not ever serialize response header
-    int actual = response_->SerializeHeaderToArray(wbuf_ + wbuf_len_, kHTTPMaxMessage - wbuf_len_);
+    int32_t actual = response_->SerializeHeaderToArray(wbuf_ + wbuf_len_, kHTTPMaxMessage - wbuf_len_);
     if (actual < 0) {
       return false;
     }

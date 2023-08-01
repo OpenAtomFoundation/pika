@@ -18,7 +18,7 @@ void* ThreadPool::Worker::WorkerMain(void* arg) {
   return nullptr;
 }
 
-int ThreadPool::Worker::start() {
+int32_t ThreadPool::Worker::start() {
   if (!start_.load()) {
     if (pthread_create(&thread_id_, nullptr, &WorkerMain, thread_pool_) != 0) {
       return -1;
@@ -30,7 +30,7 @@ int ThreadPool::Worker::start() {
   return 0;
 }
 
-int ThreadPool::Worker::stop() {
+int32_t ThreadPool::Worker::stop() {
   if (start_.load()) {
     if (pthread_join(thread_id_, nullptr) != 0) {
       return -1;
@@ -50,12 +50,12 @@ ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string  th
 
 ThreadPool::~ThreadPool() { stop_thread_pool(); }
 
-int ThreadPool::start_thread_pool() {
+int32_t ThreadPool::start_thread_pool() {
   if (!running_.load()) {
     should_stop_.store(false);
     for (size_t i = 0; i < worker_num_; ++i) {
       workers_.push_back(new Worker(this));
-      int res = workers_[i]->start();
+      int32_t res = workers_[i]->start();
       if (res != 0) {
         return kCreateThreadError;
       }
@@ -65,8 +65,8 @@ int ThreadPool::start_thread_pool() {
   return kSuccess;
 }
 
-int ThreadPool::stop_thread_pool() {
-  int res = 0;
+int32_t ThreadPool::stop_thread_pool() {
+  int32_t res = 0;
   if (running_.load()) {
     should_stop_.store(true);
     rsignal_.notify_all();

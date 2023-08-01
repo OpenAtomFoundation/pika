@@ -54,7 +54,7 @@ TEST_F(StorageOptionsTest, ResetOptionsTest) {
   ASSERT_EQ(storage_options.options.max_background_compactions, 32);
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

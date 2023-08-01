@@ -18,25 +18,25 @@ using namespace net;
 
 class MyConn : public PbConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
+  MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn();
 
  protected:
-  virtual int DealMessage();
+  virtual int32_t DealMessage();
 
  private:
   myproto::Ping ping_;
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
+MyConn::MyConn(int32_t fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : PbConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
 
 MyConn::~MyConn() {}
 
-int MyConn::DealMessage() {
+int32_t MyConn::DealMessage() {
   printf("In the myconn DealMessage branch\n");
   ping_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   ping_res_.Clear();
@@ -51,7 +51,7 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(int32_t connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
@@ -59,7 +59,7 @@ class MyConnFactory : public ConnFactory {
 
 static std::atomic<bool> running(false);
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   printf("Catch Signal %d, cleanup...\n", sig);
   running.store(false);
   printf("server Exit");
@@ -73,7 +73,7 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main() {
+int32_t main() {
   SignalSetup();
   std::unique_ptr<ConnFactory> my_conn_factory = std::make_unique<MyConnFactory>();
   std::unique_ptr<ServerThread> st(NewDispatchThread(9211, 10, my_conn_factory.get(), 1000));

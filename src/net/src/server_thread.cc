@@ -26,11 +26,11 @@ using pstd::Status;
 class DefaultServerHandle : public ServerHandle {
  public:
   void CronHandle() const override {}
-  void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
+  void FdTimeoutHandle(int32_t fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
-  void FdClosedHandle(int fd, const std::string& ip_port) const override {
+  void FdClosedHandle(int32_t fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -38,16 +38,16 @@ class DefaultServerHandle : public ServerHandle {
     UNUSED(ip);
     return true;
   }
-  bool AccessHandle(int fd, std::string& ip) const override {
+  bool AccessHandle(int32_t fd, std::string& ip) const override {
     UNUSED(fd);
     UNUSED(ip);
     return true;
   }
-  int CreateWorkerSpecificData(void** data) const override {
+  int32_t CreateWorkerSpecificData(void** data) const override {
     UNUSED(data);
     return 0;
   }
-  int DeleteWorkerSpecificData(void* data) const override {
+  int32_t DeleteWorkerSpecificData(void* data) const override {
     UNUSED(data);
     return 0;
   }
@@ -60,7 +60,7 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
   return raw_handle;
 }
 
-ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(int32_t port, int32_t cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -73,7 +73,7 @@ ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* hand
   ips_.insert("0.0.0.0");
 }
 
-ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(const std::string& bind_ip, int32_t port, int32_t cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -86,7 +86,7 @@ ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interv
   ips_.insert(bind_ip);
 }
 
-ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval,
+ServerThread::ServerThread(const std::set<std::string>& bind_ips, int32_t port, int32_t cron_interval,
                            const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
@@ -112,13 +112,13 @@ ServerThread::~ServerThread() {
   }
 }
 
-int ServerThread::SetTcpNoDelay(int connfd) {
-  int val = 1;
+int32_t ServerThread::SetTcpNoDelay(int32_t connfd) {
+  int32_t val = 1;
   return setsockopt(connfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
 }
 
-int ServerThread::StartThread() {
-  int ret = 0;
+int32_t ServerThread::StartThread() {
+  int32_t ret = 0;
   ret = InitHandle();
   if (ret != kSuccess) {
     return ret;
@@ -126,8 +126,8 @@ int ServerThread::StartThread() {
   return Thread::StartThread();
 }
 
-int ServerThread::InitHandle() {
-  int ret = 0;
+int32_t ServerThread::InitHandle() {
+  int32_t ret = 0;
   std::shared_ptr<ServerSocket> socket_p;
   if (ips_.find("0.0.0.0") != ips_.end()) {
     ips_.clear();
@@ -154,13 +154,13 @@ void ServerThread::DoCronTask() {}
 void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) { UNUSED(pfe); }
 
 void* ServerThread::ThreadMain() {
-  int nfds;
+  int32_t nfds;
   NetFiredEvent* pfe;
   Status s;
   struct sockaddr_in cliaddr;
   socklen_t clilen = sizeof(struct sockaddr);
-  int fd;
-  int connfd;
+  int32_t fd;
+  int32_t connfd;
 
   struct timeval when;
   gettimeofday(&when, nullptr);
@@ -168,7 +168,7 @@ void* ServerThread::ThreadMain() {
 
   when.tv_sec += (cron_interval_ / 1000);
   when.tv_usec += ((cron_interval_ % 1000) * 1000);
-  int timeout = cron_interval_;
+  int32_t timeout = cron_interval_;
   if (timeout <= 0) {
     timeout = NET_CRON_INTERVAL;
   }
@@ -195,7 +195,7 @@ void* ServerThread::ThreadMain() {
     }
 
     nfds = net_multiplexer_->NetPoll(timeout);
-    for (int i = 0; i < nfds; i++) {
+    for (int32_t i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
@@ -268,7 +268,7 @@ void* ServerThread::ThreadMain() {
 #ifdef __ENABLE_SSL
 static std::vector<std::unique_ptr<pstd::Mutex>> ssl_mutex_;
 
-static void SSLLockingCallback(int mode, int type, const char* file, int line) {
+static void SSLLockingCallback(int32_t mode, int32_t type, const char* file, int32_t line) {
   if (mode & CRYPTO_LOCK) {
     ssl_mutex_[type]->Lock();
   } else {
@@ -276,9 +276,9 @@ static void SSLLockingCallback(int mode, int type, const char* file, int line) {
   }
 }
 
-static unsigned long SSLIdCallback() { return (unsigned long)pthread_self(); }
+static uint32_i SSLIdCallback() { return (uint32_i)pthread_self(); }
 
-int ServerThread::EnableSecurity(const std::string& cert_file, const std::string& key_file) {
+int32_t ServerThread::EnableSecurity(const std::string& cert_file, const std::string& key_file) {
   if (cert_file.empty() || key_file.empty()) {
     LOG(WARNING) << "cert_file and key_file can not be empty!";
   }

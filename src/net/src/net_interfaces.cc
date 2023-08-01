@@ -34,7 +34,7 @@ std::string GetDefaultInterface() {
 #if defined(__APPLE__)
   std::string name("lo0");
 
-  int fd = socket(AF_INET, SOCK_DGRAM, 0);
+  int32_t fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0) {
     return name;
   }
@@ -53,7 +53,7 @@ std::string GetDefaultInterface() {
   }
 
   ifreq = ifconf.ifc_req;
-  for (unsigned int i = 0; i < ifconf.ifc_len;) {
+  for (uint32_t i = 0; i < ifconf.ifc_len;) {
     /* some systems have ifr_addr.sa_len and adjust the length that
      * way, but not mine. weird */
     size_t len = IFNAMSIZ + ifreq->ifr_addr.sa_len;

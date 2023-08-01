@@ -14,7 +14,7 @@ using namespace std;
 static pstd::Mutex print_lock;
 
 void task(void* arg) {
-  std::unique_ptr<int> int_arg(static_cast<int*>(arg));
+  std::unique_ptr<int32_t> int_arg(static_cast<int32_t*>(arg));
   {
     std::lock_guard l(print_lock);
     std::cout << " task : " << *int_arg << std::endl;
@@ -31,15 +31,15 @@ struct TimerItem {
   bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
 };
 
-int main() {
+int32_t main() {
   net::BGThread t, t2(5);
   t.StartThread();
   t2.StartThread();
-  int qsize = 0, pqsize = 0;
+  int32_t qsize = 0, pqsize = 0;
 
   std::cout << "Normal BGTask... " << std::endl;
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t.Schedule(task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
     std::lock_guard l(print_lock);
@@ -54,8 +54,8 @@ int main() {
 
   qsize = pqsize = 0;
   std::cout << "Limit queue BGTask... " << std::endl;
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t2.Schedule(task, (void*)pi);
     t2.QueueSize(&pqsize, &qsize);
     std::lock_guard l(print_lock);
@@ -86,8 +86,8 @@ int main() {
   t.StopThread();
   t.StartThread();
   std::cout << "Time BGTask... " << std::endl;
-  for (int i = 0; i < 10; i++) {
-    int* pi = new int(i);
+  for (int32_t i = 0; i < 10; i++) {
+    int32_t* pi = new int32_t(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
     std::lock_guard l(print_lock);

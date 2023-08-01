@@ -88,7 +88,7 @@ static void daemonize() {
 }
 
 static void close_std() {
-  int fd;
+  int32_t fd;
   if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
     dup2(fd, STDIN_FILENO);
     dup2(fd, STDOUT_FILENO);
@@ -111,12 +111,12 @@ static void create_pid_file() {
 
   FILE* fp = fopen(path.c_str(), "w");
   if (fp) {
-    fprintf(fp, "%d\n", static_cast<int>(getpid()));
+    fprintf(fp, "%d\n", static_cast<int32_t>(getpid()));
     fclose(fp);
   }
 }
 
-static void IntSigHandle(const int sig) {
+static void IntSigHandle(const int32_t sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
   g_pika_server->Exit();
 }
@@ -142,7 +142,7 @@ static void usage() {
           version);
 }
 
-int main(int argc, char* argv[]) {
+int32_t main(int32_t argc, char* argv[]) {
   if (argc != 2 && argc != 3) {
     usage();
     exit(-1);

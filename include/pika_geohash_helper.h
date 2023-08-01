@@ -47,15 +47,15 @@ struct GeoHashRadius {
   GeoHashNeighbors neighbors;
 };
 
-int GeoHashBitsComparator(const GeoHashBits* a, const GeoHashBits* b);
+int32_t GeoHashBitsComparator(const GeoHashBits* a, const GeoHashBits* b);
 uint8_t geohashEstimateStepsByRadius(double range_meters, double lat);
-int geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds);
+int32_t geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds);
 GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double radius_meters);
 GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude, double radius_meters);
 GeoHashRadius geohashGetAreasByRadiusMercator(double longitude, double latitude, double radius_meters);
 GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits& hash);
 double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d);
-int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance);
-int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance);
+int32_t geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance);
+int32_t geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance);
 
 #endif /* PIKA_GEOHASH_HELPER_HPP_ */

@@ -26,13 +26,13 @@ class PikaBinlogReader {
   ~PikaBinlogReader() = default;
 
   pstd::Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
-  int Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset);
+  int32_t Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset);
   bool ReadToTheEnd();
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
 
  private:
   bool GetNext(uint64_t* size);
-  unsigned int ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset);
+  uint32_t ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset);
   // Returns scratch binflog and corresponding offset
   pstd::Status Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset);
 

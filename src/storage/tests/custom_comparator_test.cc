@@ -145,7 +145,7 @@ TEST(ZSetScoreKeyComparator, FindShortestSeparatorTest) {
   ASSERT_TRUE(impl.Compare(change_start_9, limit_9) < 0);
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

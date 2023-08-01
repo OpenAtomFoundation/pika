@@ -63,7 +63,7 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
   if (range_meters == 0) {
     return 26;
   }
-  int step = 1;
+  int32_t step = 1;
   while (range_meters < MERCATOR_MAX) {
     range_meters *= 2;
     step++;
@@ -108,7 +108,7 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
  * Since this function is currently only used as an optimization, the
  * optimization is not used for very big radiuses, however the function
  * should be fixed. */
-int geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds) {
+int32_t geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds) {
   if (!bounds) {
     return 0;
   }
@@ -134,7 +134,7 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   double min_lat;
   double max_lat;
   double bounds[4];
-  int steps;
+  int32_t steps;
 
   geohashBoundingBox(longitude, latitude, radius_meters, bounds);
   min_lon = bounds[0];
@@ -154,7 +154,7 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
    * area, the estimated step is not small enough, since one of the
    * north / south / west / east square is too near to the search area
    * to cover everything. */
-  int decrease_step = 0;
+  int32_t decrease_step = 0;
   {
     GeoHashArea north;
     GeoHashArea south;
@@ -243,7 +243,7 @@ double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d
   return 2.0 * EARTH_RADIUS_IN_METERS * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }
 
-int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance) {
+int32_t geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance) {
   *distance = geohashGetDistance(x1, y1, x2, y2);
   if (*distance > radius) {
     return 0;
@@ -251,6 +251,6 @@ int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, dou
   return 1;
 }
 
-int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance) {
+int32_t geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance) {
   return geohashGetDistanceIfInRadius(x1, y1, x2, y2, radius, distance);
 }

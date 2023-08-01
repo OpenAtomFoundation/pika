@@ -17,7 +17,7 @@
 class SetCmd : public Cmd {
  public:
   enum SetCondition { kNONE, kNX, kXX, kVX, kEXORPX };
-  SetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
+  SetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -47,7 +47,7 @@ class SetCmd : public Cmd {
 
 class GetCmd : public Cmd {
  public:
-  GetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  GetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -65,7 +65,7 @@ class GetCmd : public Cmd {
 
 class DelCmd : public Cmd {
  public:
-  DelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  DelCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -81,7 +81,7 @@ class DelCmd : public Cmd {
 
 class IncrCmd : public Cmd {
  public:
-  IncrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -100,7 +100,7 @@ class IncrCmd : public Cmd {
 
 class IncrbyCmd : public Cmd {
  public:
-  IncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrbyCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -119,7 +119,7 @@ class IncrbyCmd : public Cmd {
 
 class IncrbyfloatCmd : public Cmd {
  public:
-  IncrbyfloatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  IncrbyfloatCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -138,7 +138,7 @@ class IncrbyfloatCmd : public Cmd {
 
 class DecrCmd : public Cmd {
  public:
-  DecrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  DecrCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -157,7 +157,7 @@ class DecrCmd : public Cmd {
 
 class DecrbyCmd : public Cmd {
  public:
-  DecrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  DecrbyCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -176,7 +176,7 @@ class DecrbyCmd : public Cmd {
 
 class GetsetCmd : public Cmd {
  public:
-  GetsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  GetsetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -195,7 +195,7 @@ class GetsetCmd : public Cmd {
 
 class AppendCmd : public Cmd {
  public:
-  AppendCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  AppendCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -214,7 +214,7 @@ class AppendCmd : public Cmd {
 
 class MgetCmd : public Cmd {
  public:
-  MgetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  MgetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -229,7 +229,7 @@ class MgetCmd : public Cmd {
 
 class KeysCmd : public Cmd {
  public:
-  KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  KeysCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -244,7 +244,7 @@ class KeysCmd : public Cmd {
 
 class SetnxCmd : public Cmd {
  public:
-  SetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetnxCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -266,7 +266,7 @@ class SetnxCmd : public Cmd {
 
 class SetexCmd : public Cmd {
  public:
-  SetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetexCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -288,7 +288,7 @@ class SetexCmd : public Cmd {
 
 class PsetexCmd : public Cmd {
  public:
-  PsetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PsetexCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -310,7 +310,7 @@ class PsetexCmd : public Cmd {
 
 class DelvxCmd : public Cmd {
  public:
-  DelvxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DelvxCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -330,7 +330,7 @@ class DelvxCmd : public Cmd {
 
 class MsetCmd : public Cmd {
  public:
-  MsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+  MsetCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   MsetCmd(const MsetCmd& other) : Cmd(other), kvs_(other.kvs_) {
@@ -359,7 +359,7 @@ class MsetCmd : public Cmd {
 
 class MsetnxCmd : public Cmd {
  public:
-  MsetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+  MsetnxCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   MsetnxCmd(const MsetnxCmd& other)
@@ -389,7 +389,7 @@ class MsetnxCmd : public Cmd {
 
 class GetrangeCmd : public Cmd {
  public:
-  GetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  GetrangeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -409,7 +409,7 @@ class GetrangeCmd : public Cmd {
 
 class SetrangeCmd : public Cmd {
  public:
-  SetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SetrangeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -429,7 +429,7 @@ class SetrangeCmd : public Cmd {
 
 class StrlenCmd : public Cmd {
  public:
-  StrlenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  StrlenCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -447,7 +447,7 @@ class StrlenCmd : public Cmd {
 
 class ExistsCmd : public Cmd {
  public:
-  ExistsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExistsCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
@@ -462,7 +462,7 @@ class ExistsCmd : public Cmd {
 
 class ExpireCmd : public Cmd {
  public:
-  ExpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExpireCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -483,7 +483,7 @@ class ExpireCmd : public Cmd {
 
 class PexpireCmd : public Cmd {
  public:
-  PexpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PexpireCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -504,7 +504,7 @@ class PexpireCmd : public Cmd {
 
 class ExpireatCmd : public Cmd {
  public:
-  ExpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ExpireatCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -523,7 +523,7 @@ class ExpireatCmd : public Cmd {
 
 class PexpireatCmd : public Cmd {
  public:
-  PexpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PexpireatCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -544,7 +544,7 @@ class PexpireatCmd : public Cmd {
 
 class TtlCmd : public Cmd {
  public:
-  TtlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  TtlCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -562,7 +562,7 @@ class TtlCmd : public Cmd {
 
 class PttlCmd : public Cmd {
  public:
-  PttlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PttlCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -580,7 +580,7 @@ class PttlCmd : public Cmd {
 
 class PersistCmd : public Cmd {
  public:
-  PersistCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PersistCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -598,7 +598,7 @@ class PersistCmd : public Cmd {
 
 class TypeCmd : public Cmd {
  public:
-  TypeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  TypeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -616,7 +616,7 @@ class TypeCmd : public Cmd {
 
 class PTypeCmd : public Cmd {
  public:
-  PTypeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PTypeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -634,7 +634,7 @@ class PTypeCmd : public Cmd {
 
 class ScanCmd : public Cmd {
  public:
-  ScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  ScanCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -655,7 +655,7 @@ class ScanCmd : public Cmd {
 
 class ScanxCmd : public Cmd {
  public:
-  ScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  ScanxCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -675,7 +675,7 @@ class ScanxCmd : public Cmd {
 
 class PKSetexAtCmd : public Cmd {
  public:
-  PKSetexAtCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PKSetexAtCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -696,7 +696,7 @@ class PKSetexAtCmd : public Cmd {
 
 class PKScanRangeCmd : public Cmd {
  public:
-  PKScanRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  PKScanRangeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_start_);
@@ -724,7 +724,7 @@ class PKScanRangeCmd : public Cmd {
 
 class PKRScanRangeCmd : public Cmd {
  public:
-  PKRScanRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  PKRScanRangeCmd(const std::string& name, int32_t arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_start_);

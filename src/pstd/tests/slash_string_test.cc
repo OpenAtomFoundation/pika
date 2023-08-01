@@ -24,7 +24,7 @@ TEST_F(StringTest, StringTrim) {
 
 TEST_F(StringTest, ParseIpPort) {
   std::string ip;
-  int port;
+  int32_t port;
   ASSERT_TRUE(ParseIpPortString("192.168.1.1:9221", ip, port));
   ASSERT_EQ(ip, "192.168.1.1");
   ASSERT_EQ(port, 9221);
@@ -32,7 +32,7 @@ TEST_F(StringTest, ParseIpPort) {
 
 TEST_F(StringTest, test_string2ll) {
   char buf[32];
-  long long v;
+  int64_t v;
 
   /* May not start with +. */
   strcpy(buf, "+1");
@@ -83,7 +83,7 @@ TEST_F(StringTest, test_string2ll) {
 
 TEST_F(StringTest, test_string2l) {
   char buf[32];
-  long v;
+  int32_t v;
 
   /* May not start with +. */
   strcpy(buf, "+1");

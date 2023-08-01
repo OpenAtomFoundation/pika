@@ -17,7 +17,7 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-PikaReplBgWorker::PikaReplBgWorker(int queue_size) : bg_thread_(queue_size) {
+PikaReplBgWorker::PikaReplBgWorker(int32_t queue_size) : bg_thread_(queue_size) {
   bg_thread_.set_thread_name("ReplBgWorker");
   net::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
@@ -27,9 +27,9 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size) : bg_thread_(queue_size) {
   slot_id_ = 0;
 }
 
-int PikaReplBgWorker::StartThread() { return bg_thread_.StartThread(); }
+int32_t PikaReplBgWorker::StartThread() { return bg_thread_.StartThread(); }
 
-int PikaReplBgWorker::StopThread() { return bg_thread_.StopThread(); }
+int32_t PikaReplBgWorker::StopThread() { return bg_thread_.StopThread(); }
 
 void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) { bg_thread_.Schedule(func, arg); }
 
@@ -46,7 +46,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   auto task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
-  auto index = static_cast<std::vector<int>*>(task_arg->res_private_data);
+  auto index = static_cast<std::vector<int32_t>*>(task_arg->res_private_data);
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
@@ -75,7 +75,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   }
 
   // find the last not keepalive binlogsync
-  for (int i = static_cast<int>(index->size() - 1); i >= 0; i--) {
+  for (auto i = static_cast<int32_t>(index->size() - 1); i >= 0; i--) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_end);
@@ -138,7 +138,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
   }
 
-  for (int i : *index) {
+  for (int32_t i : *index) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // if pika are not current a slave or Slot not in
     // BinlogSync state, we drop remain write binlog task
@@ -168,8 +168,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       return;
     }
     const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
-    int redis_parser_len = static_cast<int>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
-    int processed_len = 0;
+    int32_t redis_parser_len = static_cast<int32_t>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
+    int32_t processed_len = 0;
     net::RedisParserStatus ret =
         worker->redis_parser_.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
     if (ret != net::kRedisParserDone) {
@@ -202,7 +202,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, ack_start, ack_end);
 }
 
-int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
+int32_t PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);
 

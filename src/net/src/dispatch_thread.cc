@@ -14,37 +14,37 @@
 
 namespace net {
 
-DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
+DispatchThread::DispatchThread(int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval, int32_t queue_limit,
                                const ServerHandle* handle)
     : ServerThread::ServerThread(port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
-  for (int i = 0; i < work_num_; i++) {
+  for (int32_t i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
   timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
-DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
-                               int cron_interval, int queue_limit, const ServerHandle* handle)
+DispatchThread::DispatchThread(const std::string& ip, int32_t port, int32_t work_num, ConnFactory* conn_factory,
+                               int32_t cron_interval, int32_t queue_limit, const ServerHandle* handle)
     : ServerThread::ServerThread(ip, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
-  for (int i = 0; i < work_num_; i++) {
+  for (int32_t i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
   timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
-DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
-                               int cron_interval, int queue_limit, const ServerHandle* handle)
+DispatchThread::DispatchThread(const std::set<std::string>& ips, int32_t port, int32_t work_num, ConnFactory* conn_factory,
+                               int32_t cron_interval, int32_t queue_limit, const ServerHandle* handle)
     : ServerThread::ServerThread(ips, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit) {
-  for (int i = 0; i < work_num_; i++) {
+  for (int32_t i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
   timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
@@ -52,9 +52,9 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
 
 DispatchThread::~DispatchThread() = default;
 
-int DispatchThread::StartThread() {
-  for (int i = 0; i < work_num_; i++) {
-    int ret = handle_->CreateWorkerSpecificData(&(worker_thread_[i]->private_data_));
+int32_t DispatchThread::StartThread() {
+  for (int32_t i = 0; i < work_num_; i++) {
+    int32_t ret = handle_->CreateWorkerSpecificData(&(worker_thread_[i]->private_data_));
     if (ret) {
       return ret;
     }
@@ -71,12 +71,12 @@ int DispatchThread::StartThread() {
   return ServerThread::StartThread();
 }
 
-int DispatchThread::StopThread() {
-  for (int i = 0; i < work_num_; i++) {
+int32_t DispatchThread::StopThread() {
+  for (int32_t i = 0; i < work_num_; i++) {
     worker_thread_[i]->set_should_stop();
   }
-  for (int i = 0; i < work_num_; i++) {
-    int ret = worker_thread_[i]->StopThread();
+  for (int32_t i = 0; i < work_num_; i++) {
+    int32_t ret = worker_thread_[i]->StopThread();
     if (ret) {
       return ret;
     }
@@ -92,15 +92,15 @@ int DispatchThread::StopThread() {
   return ServerThread::StopThread();
 }
 
-void DispatchThread::set_keepalive_timeout(int timeout) {
-  for (int i = 0; i < work_num_; ++i) {
+void DispatchThread::set_keepalive_timeout(int32_t timeout) {
+  for (int32_t i = 0; i < work_num_; ++i) {
     worker_thread_[i]->set_keepalive_timeout(timeout);
   }
 }
 
-int DispatchThread::conn_num() const {
-  int conn_num = 0;
-  for (int i = 0; i < work_num_; ++i) {
+int32_t DispatchThread::conn_num() const {
+  int32_t conn_num = 0;
+  for (int32_t i = 0; i < work_num_; ++i) {
     conn_num += worker_thread_[i]->conn_num();
   }
   return conn_num;
@@ -108,15 +108,15 @@ int DispatchThread::conn_num() const {
 
 std::vector<ServerThread::ConnInfo> DispatchThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
-  for (int i = 0; i < work_num_; ++i) {
+  for (int32_t i = 0; i < work_num_; ++i) {
     const auto worker_conns_info = worker_thread_[i]->conns_info();
     result.insert(result.end(), worker_conns_info.begin(), worker_conns_info.end());
   }
   return result;
 }
 
-std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int fd) {
-  for (int i = 0; i < work_num_; ++i) {
+std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int32_t fd) {
+  for (int32_t i = 0; i < work_num_; ++i) {
     std::shared_ptr<NetConn> conn = worker_thread_[i]->MoveConnOut(fd);
     if (conn) {
       return conn;
@@ -136,7 +136,7 @@ void DispatchThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType&
 
 bool DispatchThread::KillConn(const std::string& ip_port) {
   bool result = false;
-  for (int i = 0; i < work_num_; ++i) {
+  for (int32_t i = 0; i < work_num_; ++i) {
     result = worker_thread_[i]->TryKillConn(ip_port) || result;
   }
   return result;
@@ -144,14 +144,14 @@ bool DispatchThread::KillConn(const std::string& ip_port) {
 
 void DispatchThread::KillAllConns() { KillConn(kKillAllConnsTask); }
 
-void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port) {
+void DispatchThread::HandleNewConn(const int32_t connfd, const std::string& ip_port) {
   // Slow workers may consume many fds.
   // We simply loop to find next legal worker.
   NetItem ti(connfd, ip_port);
   LOG(INFO) << "accept new conn " << ti.String();
-  int next_thread = last_thread_;
+  int32_t next_thread = last_thread_;
   bool find = false;
-  for (int cnt = 0; cnt < work_num_; cnt++) {
+  for (int32_t cnt = 0; cnt < work_num_; cnt++) {
     std::unique_ptr<WorkerThread>& worker_thread = worker_thread_[next_thread];
     find = worker_thread->MoveConnIn(ti, false);
     if (find) {
@@ -185,7 +185,7 @@ bool BlockedConnNode::IsExpired() {
 std::shared_ptr<RedisConn>& BlockedConnNode::GetConnBlocked() { return conn_blocked_; }
 BlockKeyType BlockedConnNode::GetBlockType() const { return block_type_; }
 
-void DispatchThread::CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
+void DispatchThread::CleanWaitNodeOfUnBlockedBlrConn(const std::shared_ptr<net::RedisConn>& conn_unblocked) {
   // removed all the waiting info of this conn/ doing cleaning work
   auto pair = blocked_conn_to_keys_.find(conn_unblocked->fd());
   if (pair == blocked_conn_to_keys_.end()) {
@@ -220,7 +220,7 @@ void DispatchThread::CleanKeysAfterWaitNodeCleaned() {
   }
 }
 
-void DispatchThread::ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close) {
+void DispatchThread::ClosingConnCheckForBlrPop(const std::shared_ptr<net::RedisConn>& conn_to_close) {
   if (!conn_to_close) {
     // dynamic pointer cast failed, it's not an instance of RedisConn, no need of the process below
     return;
@@ -256,18 +256,18 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
   CleanKeysAfterWaitNodeCleaned();
 }
 
-void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
+void DispatchThread::SetQueueLimit(int32_t queue_limit) { queue_limit_ = queue_limit; }
 
-extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
-                                       int queue_limit, const ServerHandle* handle) {
+extern ServerThread* NewDispatchThread(int32_t port, int32_t work_num, ConnFactory* conn_factory, int32_t cron_interval,
+                                       int32_t queue_limit, const ServerHandle* handle) {
   return new DispatchThread(port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }
-extern ServerThread* NewDispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
-                                       int cron_interval, int queue_limit, const ServerHandle* handle) {
+extern ServerThread* NewDispatchThread(const std::string& ip, int32_t port, int32_t work_num, ConnFactory* conn_factory,
+                                       int32_t cron_interval, int32_t queue_limit, const ServerHandle* handle) {
   return new DispatchThread(ip, port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }
-extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int port, int work_num,
-                                       ConnFactory* conn_factory, int cron_interval, int queue_limit,
+extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int32_t port, int32_t work_num,
+                                       ConnFactory* conn_factory, int32_t cron_interval, int32_t queue_limit,
                                        const ServerHandle* handle) {
   return new DispatchThread(ips, port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }

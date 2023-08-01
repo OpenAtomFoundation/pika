@@ -20,9 +20,9 @@ class Thread : public pstd::noncopyable {
   Thread();
   virtual ~Thread();
 
-  virtual int StartThread();
-  virtual int StopThread();
-  int JoinThread();
+  virtual int32_t StartThread();
+  virtual int32_t StopThread();
+  int32_t JoinThread();
 
   bool should_stop() { return should_stop_.load(); }
 

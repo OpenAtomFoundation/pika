@@ -221,7 +221,7 @@ void GeoHashCmd::Do(std::shared_ptr<Slot> slot) {
       geohashEncode(&r[0], &r[1], xy[0], xy[1], 26, &encode_hash);
 
       char buf[12];
-      int i;
+      int32_t i;
       for (i = 0; i < 11; i++) {
         uint64_t idx = (encode_hash.bits >> (52 - ((i + 1) * 5))) & 0x1f;
         buf[i] = geoalphabet[idx];
@@ -253,7 +253,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
   double longitude = range.longitude;
   double latitude = range.latitude;
   double distance = range.distance;
-  int count_limit = 0;
+  int32_t count_limit = 0;
   // Convert other units to meters
   if (range.unit == "m") {
     distance = distance;
@@ -337,7 +337,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
   if (range.store || range.storedist) {
     // Target key, create a sorted set with the results.
     std::vector<storage::ScoreMember> score_members;
-    for (int i = 0; i < count_limit; ++i) {
+    for (int32_t i = 0; i < count_limit; ++i) {
       double distance = length_converter(result[i].distance, range.unit);
       double score = range.store ? result[i].score : distance;
       score_members.push_back({score, result[i].member});
@@ -355,7 +355,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
 
     // For each the result
     res.AppendArrayLen(count_limit);
-    for (int i = 0; i < count_limit; ++i) {
+    for (int32_t i = 0; i < count_limit; ++i) {
       if (range.option_num != 0) {
         res.AppendArrayLen(range.option_num + 1);
       }

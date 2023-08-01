@@ -7,7 +7,7 @@
 namespace pstd {
 
 extern char* get_date_time();
-extern int GetTestDirectory(std::string* result);
+extern int32_t GetTestDirectory(std::string* result);
 extern void current_time_str(char * str, size_t max_len);
 
 #define output(fmt, args...) do { \

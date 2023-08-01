@@ -12,7 +12,7 @@
 #  include <unordered_map>
 #  include <unordered_set>
 
-static CommandCmd::EncodablePtr operator""_RedisInt(unsigned long long value) {
+static CommandCmd::EncodablePtr operator""_RedisInt(uint64_t value) {
   return std::make_shared<CommandCmd::EncodableInt>(value);
 }
 

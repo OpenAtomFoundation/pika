@@ -182,7 +182,7 @@ TEST_F(HyperLogLogTest, MultipleKeysTest) {
   ASSERT_LT(ratio_nums, static_cast<double>(result / 100) * 5);
 }
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

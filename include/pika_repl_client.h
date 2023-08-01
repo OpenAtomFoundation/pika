@@ -59,14 +59,14 @@ struct ReplClientWriteDBTaskArg {
 
 class PikaReplClient {
  public:
-  PikaReplClient(int cron_interval, int keepalive_timeout);
+  PikaReplClient(int32_t cron_interval, int32_t keepalive_timeout);
   ~PikaReplClient();
 
-  int Start();
-  int Stop();
+  int32_t Start();
+  int32_t Stop();
 
-  pstd::Status Write(const std::string& ip, int port, const std::string& msg);
-  pstd::Status Close(const std::string& ip, int port);
+  pstd::Status Write(const std::string& ip, int32_t port, const std::string& msg);
+  pstd::Status Close(const std::string& ip, int32_t port);
 
   void Schedule(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res, 
@@ -90,7 +90,7 @@ class PikaReplClient {
   void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % static_cast<int32_t>(bg_workers_.size()); }
 
   std::unique_ptr<PikaReplClientThread> client_thread_;
-  int next_avail_ = 0;
+  int32_t next_avail_ = 0;
   std::hash<std::string> str_hash;
   std::vector<std::unique_ptr<PikaReplBgWorker>> bg_workers_;
 };
