@@ -625,7 +625,8 @@ ExternalProject_Add(rocksdb
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
-
+option(USE_PIKA_TOOLS "compile pika-tools" OFF)
+if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
     URL
     https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
@@ -653,6 +654,7 @@ ExternalProject_Add(rocksdb
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
   set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+endif()
 
   ExternalProject_Add(bz2
     URL
