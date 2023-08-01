@@ -269,10 +269,6 @@ bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }
 
-bool PikaServer::ConsensusCheck(const std::string& db_name, const std::string& key) {
-  return true;
-}
-
 int PikaServer::repl_state() {
   std::shared_lock l(state_protector_);
   return repl_state_;
@@ -428,10 +424,6 @@ bool PikaServer::IsDBSlotExist(const std::string& db_name, uint32_t slot_id) {
   } else {
     return static_cast<bool>(db_ptr->GetSlotById(slot_id));
   }
-}
-
-bool PikaServer::IsCommandSupport(const std::string& command) {
-  return true;
 }
 
 bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
