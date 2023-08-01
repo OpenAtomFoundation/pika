@@ -53,7 +53,8 @@ public:
   static void HandleMetaRsyncRequest(void* arg);
   static void HandleFileRsyncRequest(void* arg);
 private:
-  std::unique_ptr<RsyncReader> reader_;
+  std::vector<std::shared_ptr<RsyncReader> > readers_;
+  std::mutex mu_;
   void* data_ = nullptr;
 };
 
@@ -94,11 +95,15 @@ public:
     block_data_ = new char[kBlockSize];
   }
   ~RsyncReader() {
+    if (!filepath_.empty()) {
+      Reset();
+    }
     delete []block_data_;
   }
   pstd::Status Read(const std::string filepath, const size_t offset,
                     const size_t count, char* data, size_t* bytes_read,
                     std::string* checksum, bool* is_eof) {
+    std::lock_guard<std::mutex> guard(mu_);
     pstd::Status s = Seek(filepath, offset);
     if (!s.ok()) {
       return s;
@@ -108,7 +113,6 @@ public:
     memcpy(data, block_data_ + offset_in_block, copy_count);
     *bytes_read = copy_count;
     *is_eof = (offset + copy_count == total_size_);
-    //LOG(WARNING) << "file: " << filepath_ << " slave offset: " << offset << "start_offset: " << start_offset_ << " end_offset: " << end_offset_ << " total_size: " << total_size_ << "offset_in_block: " << offset_in_block << " copy_count: " << copy_count;
     return pstd::Status::OK();
   }
 private:
@@ -150,7 +154,6 @@ private:
     return pstd::Status::OK();
   }
   void Reset() {
-    std::lock_guard<std::mutex> guard(mu_);
     total_size_ = -1;
     start_offset_ = 0xFFFFFFFF;
     end_offset_ = 0xFFFFFFFF;

@@ -17,13 +17,41 @@ using namespace RsyncService;
 
 extern PikaServer* g_pika_server;
 
+const int kFlushIntervalUs = 10 * 1000 * 1000;
+const int kThrottleBytesPerSecond = 30 << 20;
+const int kBytesPerRequest = 4 << 20;
+const int kThrottleCheckCycle = 10;
+
 namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
-    : flush_period_(10), snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
+    : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
-  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
-  wo_.reset(new WaitObject());
-  throttle_.reset(new Throttle());
+  wo_mgr_.reset(new WaitObjectManager());
+  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, wo_mgr_.get());
+  work_threads_.resize(kMaxRsyncParallelNum);
+  throttle_.reset(new Throttle(kThrottleBytesPerSecond, kThrottleCheckCycle));
+  finished_work_cnt_.store(0);
+}
+
+void RsyncClient::Copy(const std::set<std::string>& file_set, int index) {
+  Status s = Status::OK();
+  for (const auto& file : file_set) {
+    while (state_.load() == RUNNING) {
+      LOG(INFO) << "copy remote file, filename: " << file;
+      s = CopyRemoteFile(file, index);
+      if (!s.ok()) {
+        LOG(WARNING) << "copy remote file failed, msg: " << s.ToString();
+        continue;
+      }
+      break;
+    }
+    if (state_.load() != RUNNING) {
+      break;
+    }
+  }
+  LOG(INFO) << "work_thread index: " << index << " copy remote files done";
+  finished_work_cnt_.fetch_add(1);
+  cond_.notify_all();
 }
 
 bool RsyncClient::Init() {
@@ -37,113 +65,107 @@ bool RsyncClient::Init() {
   client_thread_->StartThread();
   bool ret = Recover();
   if (!ret) {
-    LOG(WARNING) << "RsyncClient recover failed...";
+    LOG(WARNING) << "RsyncClient recover failed";
     client_thread_->StopThread();
     return false;
   }
-  LOG(INFO) << "RsyncClient recover success...";
+  finished_work_cnt_.store(0);
+  LOG(INFO) << "RsyncClient recover success";
   return true;
 }
 
 void* RsyncClient::ThreadMain() {
-  int cnt = 0;
-  int period = 0;
-  Status s = Status::OK();
-  LOG(INFO) << "RsyncClient ThreadMain...";
   if (file_set_.empty()) {
+    LOG(INFO) << "No remote files need copy, RsyncClient exit";
     state_.store(STOP);
     return nullptr;
   }
 
+  Status s = Status::OK();
+  LOG(INFO) << "RsyncClient begin to copy remote files";
+  std::vector<std::set<std::string> > file_vec(kMaxRsyncParallelNum);
+  int index = 0;
+  for (const auto& file : file_set_) {
+    file_vec[index++ % kMaxRsyncParallelNum].insert(file);
+  }
+
+  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+    work_threads_[i] = std::move(std::thread(&RsyncClient::Copy, this, file_vec[i], i));
+  }
+
   std::string meta_file_path = GetLocalMetaFilePath();
   std::ofstream outfile;
-  outfile.open(meta_file_path, std::ios_base::app); // append instead of overwrite
+  outfile.open(meta_file_path, std::ios_base::app);
   std::string meta_rep;
+  uint64_t start_time = pstd::NowMicros();
 
-  for (const auto& file : file_set_) {
-    LOG(INFO) << "CopyRemoteFile: " << file;
-    while (state_.load() == RUNNING) {
-      s = CopyRemoteFile(file);
-      if (!s.ok()) {
-        LOG(WARNING) << "rsync CopyRemoteFile failed, filename: " << file;
-        continue;
-      }
+  while (state_.load() == RUNNING) {
+    uint64_t now = pstd::NowMicros();
+    uint64_t elapse = pstd::NowMicros() - start_time;
+    if (elapse < kFlushIntervalUs) {
+      int wait_for_us = kFlushIntervalUs - elapse;
+      std::unique_lock<std::mutex> lock(mu_);
+      cond_.wait_for(lock, std::chrono::microseconds(wait_for_us));
+    }
+
+    if (state_.load() != RUNNING) {
       break;
     }
-    if (state_.load(std::memory_order_relaxed) != RUNNING) {
-      break;
+
+    start_time = pstd::NowMicros();
+    std::map<std::string, std::string> files_map;
+    {
+      std::lock_guard<std::mutex> guard(mu_);
+      files_map.swap(meta_table_);
     }
-    meta_rep.append(file + ":" + meta_table_[file]);
-    meta_rep.append("\n");
-    if (++period == flush_period_) {
-      period = 0;
-      outfile << meta_rep;
-      outfile.flush();
-      meta_rep.clear();
+    for (const auto& file : files_map) {
+      meta_rep.append(file.first + ":" + file.second);
+      meta_rep.append("\n");
     }
-  }
-  if (!meta_rep.empty()) {
     outfile << meta_rep;
     outfile.flush();
+    meta_rep.clear();
+
+    if (finished_work_cnt_.load() == kMaxRsyncParallelNum) {
+      break;
+    }
   }
+
+  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+    work_threads_[i].join();
+  }
+  finished_work_cnt_.store(0);
   state_.store(STOP);
-  LOG(INFO) << "RsyncClient fetch copy remote files done...";
+  LOG(INFO) << "RsyncClient copy remote files done";
   return nullptr;
 }
 
-void RsyncClient::OnReceive(RsyncResponse* resp) {
-  std::unique_lock<std::mutex> lock(mu_);
-  if (resp->type() != wo_->type_) {
-    delete resp;
-    resp = nullptr;
-    return;
-  }
-  if (resp->type() == kRsyncFile &&
-      (resp->file_resp().filename() != wo_->filename_ || resp->file_resp().offset() != wo_->offset_)) {
-    delete resp;
-    resp = nullptr;
-    return;
-  }
-  wo_->resp_ = resp;
-  cond_.notify_all();
-}
-
-Status RsyncClient::Wait(RsyncResponse*& resp) {
-  Status s = Status::Timeout("rsync timeout", "timeout");
-  {
-    std::unique_lock<std::mutex> lock(mu_);
-    auto cv_s = cond_.wait_for(lock, std::chrono::seconds(3), [this] {
-        return this->wo_->resp_ != nullptr;
-    });
-    if (!cv_s) {
-      return s;
-    }
-    resp = wo_->resp_;
-    s = Status::OK();
-  }
-  return s;
-}
-
-Status RsyncClient::CopyRemoteFile(const std::string& filename) {
-    Status s;
-    int retries = 0;
-    size_t offset = 0;
-    size_t copy_file_begin_time = pstd::NowMicros();
-    size_t count = throttle_->ThrottledByThroughput(4 * 1024 * 1024);
-    MD5 md5;
+Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
     std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
+    Status s = Status::OK();
+    size_t offset = 0;
+    int retries = 0;
+
     DEFER {
-        if (writer) {
-            writer->Close();
-            writer.reset();
-        }
-        if (!s.ok()) {
-            DeleteFile(filename);
-        }
+      if (writer) {
+        writer->Close();
+        writer.reset();
+      }
+      if (!s.ok()) {
+        DeleteFile(filename);
+      }
     };
 
     while (retries < max_retries_) {
+      size_t copy_file_begin_time = pstd::NowMicros();
+      //size_t count = throttle_->ThrottledByThroughput(kBytesPerRequest);
+      size_t count = kBytesPerRequest;
+      if (count == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / kThrottleCheckCycle));
+        continue;
+      }
       RsyncRequest request;
+      request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
       request.set_slot_id(slot_id_);
@@ -151,31 +173,27 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
       file_req->set_filename(filename);
       file_req->set_offset(offset);
       file_req->set_count(count);
+
       std::string to_send;
       request.SerializeToString(&to_send);
-
+      WaitObject* wo = wo_mgr_->UpdateWaitObject(index, filename, kRsyncFile, offset);
       s = client_thread_->Write(master_ip_, master_port_, to_send);
       if (!s.ok()) {
         LOG(WARNING) << "send rsync request failed";
         continue;
       }
 
-      {
-        std::lock_guard<std::mutex> lock(mu_);
-        wo_->Reset(filename, kRsyncFile, offset);
-      }
-
       RsyncResponse* resp = nullptr;
-      s = Wait(resp);
+      s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
         LOG(WARNING) << "rsync request timeout";
         retries++;
         continue;
       }
 
-      size_t copy_file_end_time = pstd::NowMicros();
-      size_t elaspe_time_us = copy_file_end_time - copy_file_begin_time;
-      throttle_->ReturnUnusedThroughput(count, resp->file_resp().count(), elaspe_time_us);
+      size_t ret_count = resp->file_resp().count();
+      size_t elaspe_time_us = pstd::NowMicros() - copy_file_begin_time;
+      //throttle_->ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
 
       if (resp->code() != RsyncService::kOk) {
         //TODO: handle different error
@@ -191,24 +209,14 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
         return s;
       }
 
-      size_t ret_count = resp->file_resp().count();
-      resp->file_resp().data();
       s = writer->Write((uint64_t)offset, ret_count, resp->file_resp().data().c_str());
       if (!s.ok()) {
         LOG(WARNING) << "rsync client write file error";
         break;
       }
 
-      //md5.update(resp->file_resp().data().c_str(), ret_count);
       offset += resp->file_resp().count();
       if (resp->file_resp().eof()) {
-/*
-        if (md5.finalize().hexdigest() != resp->file_resp().checksum()) {
-          LOG(WARNING) << "mismatch file checksum for file: " << filename;
-          s = Status::IOError("mismatch checksum", "mismatch checksum");
-          return s;
-        }
-*/
         s = writer->Fsync();
         if (!s.ok()) {
             return s;
@@ -218,7 +226,9 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename) {
             return s;
         }
         writer.reset();
-        meta_table_[filename] = resp->file_resp().checksum();
+        mu_.lock();
+        meta_table_[filename] = "";
+        mu_.unlock();
         break;
       }
       retries = 0;
@@ -238,6 +248,7 @@ Status RsyncClient::Stop() {
   }
   LOG(WARNING) << "RsyncClient stop ...";
   state_ = STOP;
+  cond_.notify_all();
   StopThread();
   client_thread_->StopThread();
   JoinThread();
@@ -247,11 +258,11 @@ Status RsyncClient::Stop() {
 }
 
 bool RsyncClient::Recover() {
-  std::string remote_snapshot_uuid;
-  std::set<std::string> remote_file_set;
   std::string local_snapshot_uuid;
-  std::map<std::string, std::string> local_file_map;
+  std::string remote_snapshot_uuid;
   std::set<std::string> local_file_set;
+  std::set<std::string> remote_file_set;
+  std::map<std::string, std::string> local_file_map;
 
   Status s = CopyRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
   if (!s.ok()) {
@@ -274,13 +285,12 @@ bool RsyncClient::Recover() {
     file_set_ = remote_file_set;
     expired_files = local_file_set;
   } else {
-    for_each(remote_file_set.begin(), remote_file_set.end(), [](auto& file) {LOG(WARNING) << "remote_file_set: " << file;});
-    for_each(local_file_set.begin(), local_file_set.end(), [](auto& file) {LOG(WARNING) << "local_file_set: " << file;});
-
     std::set<std::string> newly_files;
-    set_difference(remote_file_set.begin(), remote_file_set.end(), local_file_set.begin(), local_file_set.end(),
+    set_difference(remote_file_set.begin(), remote_file_set.end(),
+                   local_file_set.begin(), local_file_set.end(),
                    inserter(newly_files, newly_files.begin()));
-    set_difference(local_file_set.begin(), local_file_set.end(), remote_file_set.begin(), remote_file_set.end(),
+    set_difference(local_file_set.begin(), local_file_set.end(),
+                   remote_file_set.begin(), remote_file_set.end(),
                    inserter(expired_files, expired_files.begin()));
     file_set_.insert(newly_files.begin(), newly_files.end());
   }
@@ -297,12 +307,17 @@ bool RsyncClient::Recover() {
   }
 
   state_ = RUNNING;
-  LOG(INFO) << "copy meta data done, slot_id: " << slot_id_ << "snapshot_uuid: " << snapshot_uuid_
-            << "file count: " << file_set_.size() << "expired file count: " << expired_files.size()
-            << ", local file count: " << local_file_set.size() << "remote file count: " << remote_file_set.size()
-            << "remote snapshot_uuid: " << remote_snapshot_uuid << "local snapshot_uuid: " << local_snapshot_uuid
-            << "file_set_: " << file_set_.size();
-  for_each(file_set_.begin(), file_set_.end(), [](auto& file) {LOG(WARNING) << "file_set: " << file;});
+  LOG(INFO) << "copy meta data done, slot_id: " << slot_id_
+            << " snapshot_uuid: " << snapshot_uuid_
+            << " file count: " << file_set_.size()
+            << " expired file count: " << expired_files.size()
+            << " local file count: " << local_file_set.size()
+            << " remote file count: " << remote_file_set.size()
+            << " remote snapshot_uuid: " << remote_snapshot_uuid
+            << " local snapshot_uuid: " << local_snapshot_uuid
+            << " file_set_: " << file_set_.size();
+  for_each(file_set_.begin(), file_set_.end(),
+           [](auto& file) {LOG(WARNING) << "file_set: " << file;});
   return true;
 }
 
@@ -310,22 +325,20 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   Status s;
   int retries = 0;
   RsyncRequest request;
+  request.set_reader_index(0);
   request.set_db_name(db_name_);
   request.set_slot_id(slot_id_);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);
   while (retries < max_retries_) {
+    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, 0xFFFFFFFF);
     s = client_thread_->Write(master_ip_, master_port_, to_send);
     if (!s.ok()) {
       retries++;
     }
-    {
-      std::lock_guard<std::mutex> lock(mu_);
-      wo_->Reset(kRsyncMeta);
-    }
     RsyncResponse* resp = nullptr;
-    s = Wait(resp);
+    s = wo->Wait(resp);
     if (s.IsTimeout() || resp == nullptr) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
                    << "retry times: " << retries;
@@ -358,6 +371,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
 Status RsyncClient::LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map) {
   std::string meta_file_path = GetLocalMetaFilePath();
   if (!FileExists(meta_file_path)) {
+    LOG(WARNING) << kDumpMetaFileName << " not exist";
     return Status::OK();
   }
 
