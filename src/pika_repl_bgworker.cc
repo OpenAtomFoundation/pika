@@ -276,15 +276,4 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
       }
     }
   }
-
-
-  if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<SyncMasterSlot> slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-    if (!slot) {
-      LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
-      return;
-    }
-    slot->ConsensusUpdateAppliedIndex(offset);
-  }
 }
