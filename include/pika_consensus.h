@@ -57,7 +57,6 @@ class SyncProgress {
   int SlaveSize();
 
  private:
-  LogOffset InternalCalCommittedIndex(const std::unordered_map<std::string, LogOffset>& match_index);
 
   std::shared_mutex rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
@@ -128,7 +127,6 @@ class ConsensusCoordinator {
 
   // invoked by follower
   pstd::Status ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
-  pstd::Status ProcessLocalUpdate(const LogOffset& leader_commit);
 
   // Negotiate
   pstd::Status LeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
@@ -191,7 +189,6 @@ class ConsensusCoordinator {
   pstd::Status InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr, LogOffset* log_offset);
   void InternalApply(const MemLog::LogItem& log);
   void InternalApplyFollower(const MemLog::LogItem& log);
-  bool InternalUpdateCommittedIndex(const LogOffset& slave_committed_index, LogOffset* updated_committed_index);
 
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, const BinlogOffset& end_offset,
