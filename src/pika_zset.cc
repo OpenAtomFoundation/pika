@@ -917,7 +917,7 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  res_.AppendInteger(count);
+  res_.SetRes(CmdRes::kOk, "Successfully deleted!");
 }
 
 void ZRemrangebylexCmd::DoInitial() {
