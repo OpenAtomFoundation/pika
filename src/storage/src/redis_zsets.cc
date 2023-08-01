@@ -794,22 +794,24 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
     } else if (parsed_zsets_meta_value.count() == 0) {
       return Status::NotFound();
     } else {
+      rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
       ZSetsScoreKey zsets_score_key_max(key, version, max, Slice());
-//    iter->Seek(zsets_score_key_min.Encode());
-//    ParsedZSetsScoreKey parsed_zsets_score_key_min(iter->key());
-//    ZSetsMemberKey zsets_member_key_min(key, version, iter->key());
-//    iter->Seek(zsets_score_key_max.Encode());
-//    ParsedZSetsScoreKey parsed_zsets_score_key_max(iter->key());
-//    ZSetsMemberKey zsets_member_key_max(key, version, iter->key());
+      iter->Seek(zsets_score_key_min.Encode());
+      ParsedZSetsScoreKey parsed_zsets_score_key_min(iter->key());
+      ZSetsMemberKey zsets_member_key_min(key, version, iter->key());
+      iter->Seek(zsets_score_key_max.Encode());
+      ParsedZSetsScoreKey parsed_zsets_score_key_max(iter->key());
+      ZSetsMemberKey zsets_member_key_max(key, version, iter->key());
       rocksdb::Slice score_begin_key(zsets_score_key_min.Encode());
       rocksdb::Slice score_end_key(zsets_score_key_max.Encode());
       rocksdb::WriteOptions write_options;
       s = db_->DeleteRange(write_options, handles_[2], score_begin_key, score_end_key);
-//    rocksdb::Slice begin_key(zsets_member_key_min.Encode());
-//    rocksdb::Slice end_key(zsets_member_key_max.Encode());
-//    s = db_->DeleteRange(write_options, handles_[2], begin_key, end_key);
+      rocksdb::Slice begin_key(zsets_member_key_min.Encode());
+      rocksdb::Slice end_key(zsets_member_key_max.Encode());
+      s = db_->DeleteRange(write_options, handles_[1], begin_key, end_key);
+      delete iter;
     }
   } else {
     return s;
