@@ -917,8 +917,7 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  // NB. use `DeleteRange` could not get delete counts, just set to 0
-  res_.AppendInteger(0);
+  res_.AppendInteger(count);
 }
 
 void ZRemrangebylexCmd::DoInitial() {
