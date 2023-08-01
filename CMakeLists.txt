@@ -625,6 +625,7 @@ ExternalProject_Add(rocksdb
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
+
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
@@ -654,7 +655,6 @@ if (USE_PIKA_TOOLS)
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
   set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
-endif()
 
   ExternalProject_Add(bz2
     URL
@@ -683,6 +683,7 @@ endif()
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
   set(BZ2_LIBRARY ${INSTALL_LIBDIR}/libbz2.a)
+endif()
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)
