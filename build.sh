@@ -93,9 +93,7 @@ fi
 cd ${BUILD_DIR}
 
 use_pika_tools=""
-if [ $1 = "tools" ]; then
-  use_pika_tools="-DUSE_PIKA_TOOLS=ON"
-fi
+use_pika_tools="-DUSE_PIKA_TOOLS=ON"
 
 with_command_docs=""
 if [ "${WITH_COMMAND_DOCS}" = "ON" ]; then

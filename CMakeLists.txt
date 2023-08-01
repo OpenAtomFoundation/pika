@@ -626,8 +626,6 @@ ExternalProject_Add(rocksdb
   make -j${CPU_CORE}
 )
 
-option(USE_PIKA_TOOLS "compile pika-tools" OFF)
-if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
     URL
     https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
@@ -683,7 +681,6 @@ if (USE_PIKA_TOOLS)
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
   set(BZ2_LIBRARY ${INSTALL_LIBDIR}/libbz2.a)
-endif()
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)

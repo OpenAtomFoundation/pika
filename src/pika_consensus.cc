@@ -416,9 +416,7 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, const std
   if (!s.ok()) {
     return s;
   }
-  if (g_pika_conf->consensus_level() == 0) {
-    return Status::OK();
-  }
+  return Status::OK();
 }
 
 // precheck if prev_offset match && drop this log if this log exist
@@ -443,9 +441,6 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
 }
 
 Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) {
-  if (g_pika_conf->consensus_level() == 0) {
-    return Status::OK();
-  }
   return Status::OK();
 }
 

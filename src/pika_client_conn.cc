@@ -275,7 +275,6 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   }
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
-  // level is always 0
   *resp_ptr = std::move(cmd_ptr->res().message());
   resp_num--;
 }
