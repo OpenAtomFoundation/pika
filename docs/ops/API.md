@@ -157,4 +157,4 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 * 数据展示：pika对于keyspace的展示选择了分类型展示而非redis的分库展示（因为pika没有分库概念），pika对于keyspace的统计是被动的，需要手动触发并不会立即输出，命令为：info keyspace [ 0|1 ]，默认为0不触发，pika的keyspace统计是精确的。
 
-* Pika 的 ZRemrangebyscore 命令采用 RocksDB 的 DeleteRange 方法，不再迭代删除元素，命令现在不返回删除的个数，返回 DeleteRange 的执行状态，成功时返回 0. 
+* Pika 的 ZRemrangebyscore 命令采用 RocksDB 的 DeleteRange 方法

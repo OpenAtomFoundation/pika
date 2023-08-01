@@ -824,7 +824,6 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       delete iter;
       del_cnt = num_elements_before_delete - num_elements_after_delete;
       *ret = del_cnt;
-      //std::cout << "del_cnt: " << del_cnt << std::endl;
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
