@@ -6,6 +6,7 @@
 #ifndef PIKA_CLIENT_CONN_H_
 #define PIKA_CLIENT_CONN_H_
 
+#include <bitset>
 #include <utility>
 
 #include "include/pika_command.h"
@@ -23,15 +24,13 @@ class PikaClientConn : public net::RedisConn {
     std::string db_name;
     uint32_t slot_id;
   };
-  //! InitCmdFailed指的是初始化某个任务的时候失败了
-  // WatchFailed指的是在watch之后，某个客户端修改了此事务watch的key
-  //!值得注意的是，watch的key是有db之分的
+
   class TxnStateBitMask {
    public:
     static constexpr uint8_t Start = 0;
     static constexpr uint8_t InitCmdFailed = 1;
     static constexpr uint8_t WatchFailed = 2;
-    static constexpr uint8_t Execing = 3;  // exec执行中
+    static constexpr uint8_t Execing = 3;
   };
 
   // Auth related
@@ -100,10 +99,10 @@ class PikaClientConn : public net::RedisConn {
   std::string current_db_;
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
-  std::queue<std::shared_ptr<Cmd>> txn_cmd_que_; // redis事务的队列
-  std::bitset<16> txn_state_;  // class TxnStateBitMask
+  std::queue<std::shared_ptr<Cmd>> txn_cmd_que_;
+  std::bitset<16> txn_state_;
   std::unordered_set<std::string> watched_db_keys_;
-  std::mutex txn_state_mu_;  // 用于锁事务状态
+  std::mutex txn_state_mu_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
