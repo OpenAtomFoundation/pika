@@ -184,7 +184,7 @@ void* ServerThread::ThreadMain() {
   if (dispatcher_ != nullptr) {
     dispatch_ptr = dynamic_cast<net::DispatchThread*>(dispatcher_);
     dispatch_ptr->GetTimerTaskManager()->AddTimerTask(
-        "blrpop_blocking_info_scan", 250, true, [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop();std::cout << "scan" << std::endl;});
+        "blrpop_blocking_info_scan", 250, true, [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop();});
   }
 
   while (!should_stop()) {
