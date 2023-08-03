@@ -13,7 +13,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## Keys
 |接口|DEL|DUMP|EXISTS|EXPIRE|EXPIREAT|KEYS|MIGRATE|MOVE|OBJECT|
-|:-:|:-:|:-:|:-:|::|:-:|:-:|:-:|:-:|:-:|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |状态|o|x|o|o|o|o|x|x|x|
 |接口|PERSIST|PEXPIRE|PEXPIREAT|PTTL|RANDOMKEY|RENAME|RENAMENX|RESTORE|SORT|
 |状态|o|!|!|o|x|x|x|x|x|
