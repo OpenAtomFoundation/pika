@@ -795,14 +795,24 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
     } else if (parsed_zsets_meta_value.count() == 0) {
       return Status::NotFound();
     } else {
+      int32_t cur_index = 0;
+      int32_t version = parsed_zsets_meta_value.version();
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       int num_elements_before_delete = 0;
       for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
         num_elements_before_delete++;
       }
-      int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
-      ZSetsScoreKey zsets_score_key_max(key, version, max, Slice());
+      double score;
+      for (iter->Seek(zsets_score_key_min.Encode()); iter->Valid(); iter->Next(), ++cur_index) {
+        ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+        if (parsed_zsets_score_key.score() > max) {
+          score = parsed_zsets_score_key.score();
+          std::cout << "score: " << score << std::endl;
+          break;
+        }
+      }
+      ZSetsScoreKey zsets_score_key_max(key, version, score, Slice());
       iter->Seek(zsets_score_key_min.Encode());
       ParsedZSetsScoreKey parsed_zsets_score_key_min(iter->key());
       ZSetsMemberKey zsets_member_key_min(key, version, iter->key());
@@ -811,11 +821,10 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       ZSetsMemberKey zsets_member_key_max(key, version, iter->key());
       rocksdb::Slice score_begin_key(zsets_score_key_min.Encode());
       rocksdb::Slice score_end_key(zsets_score_key_max.Encode());
-      rocksdb::WriteOptions write_options;
-      s = db_->DeleteRange(write_options, handles_[2], score_begin_key, score_end_key);
+      s = db_->DeleteRange(default_write_options_, handles_[2], score_begin_key, score_end_key);
       rocksdb::Slice begin_key(zsets_member_key_min.Encode());
       rocksdb::Slice end_key(zsets_member_key_max.Encode());
-      s = db_->DeleteRange(write_options, handles_[1], begin_key, end_key);
+
       int num_elements_after_delete = 0;
       iter = db_->NewIterator(default_read_options_, handles_[2]);
       for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -824,6 +833,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       delete iter;
       del_cnt = num_elements_before_delete - num_elements_after_delete;
       *ret = del_cnt;
+      statistic = del_cnt;
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
