@@ -13,12 +13,13 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## Keys
 |接口|DEL|DUMP|EXISTS|EXPIRE|EXPIREAT|KEYS|MIGRATE|MOVE|OBJECT|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|:-:|:-:|:-:|:-:|::|:-:|:-:|:-:|:-:|:-:|
 |状态|o|x|o|o|o|o|x|x|x|
 |接口|PERSIST|PEXPIRE|PEXPIREAT|PTTL|RANDOMKEY|RENAME|RENAMENX|RESTORE|SORT|
 |状态|o|!|!|o|x|x|x|x|x|
 |接口|TOUCH|TTL|TYPE|UNLINK|WAIT|SCAN|
 |状态|x|o|!|o|x|!|
+
 **备注:**  
 
 * PEXPIRE：无法精确到毫秒，底层会自动截断按秒级别进行处理;  
@@ -120,9 +121,11 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## 管理命令（这里仅列出pika兼容的）
 
+
 |接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|TYPE|HELLO|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |状态|!|o|!|o|o|o|!|!|o|
+
 
 **备注：**  
 
