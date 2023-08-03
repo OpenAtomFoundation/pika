@@ -18,7 +18,8 @@
 
 * 在 v3.5.0 版本我们兼容并支持了更多的 Redis 命令
 
-  [#1273](https://github.com/OpenAtomFoundation/pika/pull/1273) [#1660](https://github.com/OpenAtomFoundation/pika/pull/1660) [#1245](https://github.com/OpenAtomFoundation/pika/pull/1245) [#1548](https://github.com/OpenAtomFoundation/pika/pull/1548)
+  [#1273](https://github.com/OpenAtomFoundation/pika/pull/1273) [#1660](https://github.com/OpenAtomFoundation/pika/pull/1660) [#1245](https://github.com/OpenAtomFoundation/pika/pull/1245) [#1548](https://github.com/OpenAtomFoundation/pika/pull/1548) [#1843](https://github.com/OpenAtomFoundation/pika/pull/1843)
+
 
   [@wanghenshui](https://github.com/wanghenshui)  [@Mixficsol](https://github.com/Mixficsol) [@weedge](https://github.com/weedge) [@cheniujh](https://github.com/cheniujh)
 
@@ -26,6 +27,8 @@
 2. 支持 INFO COMMANDSTATS 命令
 3. 支持 HELLO、SETNAME 命令
 4. 支持 BLPOP、BRPOP 命令
+5. 新增 Pika 原创命令 DISKRECOVERY
+
 
 ### 3.RocksDB 版本升级和分级压缩
 
@@ -218,7 +221,7 @@
 - 修复 INFO 命令 Metrics 指标获取失败的问题 [#1646](https://github.com/OpenAtomFoundation/pika/issues/1646) [@chejinge](https://github.com/chejinge)
 - 修复单侧 basic 类型错误的问题 [#1625](https://github.com/OpenAtomFoundation/pika/pull/1625) [@chenbt-hz](https://github.com/chenbt-hz)
 - 修复 LPOP, RPOP 接口提示参数不对的问题 [#1520](https://github.com/OpenAtomFoundation/pika/issues/1520) [@luky116](https://github.com/luky116)
-- 修复实例硬盘容量满清理数据后，Pika 仍然保持错误的状态，需要重启才能恢复的问题 [#1765](https://github.com/OpenAtomFoundation/pika/pull/1765) [#1822](https://github.com/OpenAtomFoundation/pika/pull/1822) [@Yangsx-1](https://github.com/Yangsx-1) [@Mixficsol](https://github.com/Mixficsol)
+- 修复实例硬盘容量满清理数据后，Pika 仍然保持错误的状态，需要重启才能恢复的问题 [#1765](https://github.com/OpenAtomFoundation/pika/pull/1765) [#1822](https://github.com/OpenAtomFoundation/pika/pull/1822) [#1843](https://github.com/OpenAtomFoundation/pika/pull/1843) [@Yangsx-1](https://github.com/Yangsx-1) [@Mixficsol](https://github.com/Mixficsol)
 
 # 注意事项
 
