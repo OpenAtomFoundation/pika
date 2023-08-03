@@ -158,7 +158,6 @@ class PikaServer : public pstd::noncopyable {
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
-  bool ConsensusCheck(const std::string& db_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -179,7 +178,6 @@ class PikaServer : public pstd::noncopyable {
   bool IsCompacting();
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
-  bool IsCommandSupport(const std::string& command);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
 
@@ -496,6 +494,13 @@ class PikaServer : public pstd::noncopyable {
   * Instantaneous Metric used
   */
   std::unique_ptr<Instant> instant_;
+
+ /*
+  * Diskrecovery used
+  */
+  std::map<std::string, std::shared_ptr<DB>> GetDB() {
+    return dbs_;
+  }
 
   friend class Cmd;
   friend class InfoCmd;

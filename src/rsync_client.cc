@@ -21,7 +21,7 @@ namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
     : flush_period_(10), snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
-  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, this);
+  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 1 * 1000, this);
   wo_.reset(new WaitObject());
   throttle_.reset(new Throttle());
 }
