@@ -77,6 +77,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       return c_ptr;
     }
   }
+  if (!g_pika_server->IsCommandSupport(opt)) {
+    c_ptr->res().SetRes(CmdRes::kErrOther, "This command is not supported in current configuration");
+    return c_ptr;
+  }
 
   // reject all the request before new master sync finished
   if (g_pika_server->leader_protected_mode()) {

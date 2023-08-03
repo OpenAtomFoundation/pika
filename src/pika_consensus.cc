@@ -416,6 +416,7 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
   return Status::OK();
 }
 
+
 Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const LogOffset& start,
                                          const LogOffset& end) {
   LogOffset committed_index;
