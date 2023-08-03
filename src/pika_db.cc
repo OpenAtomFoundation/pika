@@ -80,7 +80,7 @@ bool DB::FlushSlotSubDB(const std::string& db_name) {
 }
 
 void DB::SetBinlogIoError() { return binlog_io_error_.store(true); }
-
+void DB::SetBinlogIoErrorrelieve() { return binlog_io_error_.store(false); }
 bool DB::IsBinlogIoError() { return binlog_io_error_.load(); }
 
 uint32_t DB::SlotNum() { return slot_num_; }
