@@ -269,26 +269,6 @@ bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }
 
-bool PikaServer::ConsensusCheck(const std::string& db_name, const std::string& key) {
-  if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<DB> db = GetDB(db_name);
-    if (!db) {
-      return false;
-    }
-    uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
-
-    std::shared_ptr<SyncMasterSlot> master_slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, index));
-    if (!master_slot) {
-      LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << index << ", NotFound";
-      return false;
-    }
-    Status s = master_slot->ConsensusSanityCheck();
-    return s.ok();
-  }
-  return true;
-}
-
 int PikaServer::repl_state() {
   std::shared_lock l(state_protector_);
   return repl_state_;
@@ -446,18 +426,6 @@ bool PikaServer::IsDBSlotExist(const std::string& db_name, uint32_t slot_id) {
   }
 }
 
-bool PikaServer::IsCommandSupport(const std::string& command) {
-  if (g_pika_conf->consensus_level() != 0) {
-    // dont support multi key command
-    // used the same list as sharding mode use
-    bool res = ConsensusNotSupportCommands.count(command) == 0U;
-    if (!res) {
-      return res;
-    }
-  }
-  return true;
-}
-
 bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   std::shared_ptr<DB> db = GetDB(db_name);
   return db ? db->IsBinlogIoError() : true;
@@ -613,10 +581,6 @@ Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
 
 void PikaServer::BecomeMaster() {
   std::lock_guard l(state_protector_);
-  if ((role_ & PIKA_ROLE_MASTER) == 0 && g_pika_conf->write_binlog() && g_pika_conf->consensus_level() > 0) {
-    LOG(INFO) << "Become new master, start protect mode to waiting binlog sync and commit";
-    leader_protected_mode_ = true;
-  }
   role_ |= PIKA_ROLE_MASTER;
 }
 
@@ -1063,9 +1027,6 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       fix.open(fn, std::ios::in | std::ios::trunc);
       if (fix.is_open()) {
         fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
-        if (g_pika_conf->consensus_level() != 0) {
-          fix << term << "\n" << index << "\n";
-        }
         fix.close();
       }
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
@@ -1324,8 +1285,6 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
 /******************************* PRIVATE *******************************/
 
 void PikaServer::DoTimingTask() {
-  // Resume DB if satisfy the condition
-  AutoResumeDB();
   // Maybe schedule compactrange
   AutoCompactRange();
   // Purge log
@@ -1516,58 +1475,6 @@ void PikaServer::AutoKeepAliveRSync() {
   if (!pika_rsync_service_->CheckRsyncAlive()) {
     LOG(WARNING) << "The Rsync service is down, Try to restart";
     pika_rsync_service_->StartRsync();
-  }
-}
-
-void PikaServer::AutoResumeDB() {
-  int64_t interval = g_pika_conf->resume_interval();
-  int64_t least_free_size = g_pika_conf->least_resume_free_disk_size();
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  // first check or time interval between now and last check is larger than variable "interval"
-  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval) {
-    struct statvfs disk_info;
-    int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
-    if (ret == -1) {
-      LOG(WARNING) << "statvfs error: " << strerror(errno);
-      return;
-    }
-    double min_check_resume_ratio = g_pika_conf->min_check_resume_ratio();
-    uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-    uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
-    double disk_use_ratio = 1.0 - static_cast<double>(free_size) / static_cast<double>(total_size);
-    if (disk_use_ratio > min_check_resume_ratio) {
-      gettimeofday(&last_check_resume_time_, nullptr);
-      if (disk_use_ratio < min_check_resume_ratio || free_size < least_free_size) {
-        return;
-      }
-
-      std::map<std::string, uint64_t> background_errors;
-      std::shared_lock db_rwl(g_pika_server->dbs_rw_);
-      // loop every db
-      for (const auto &db_item: g_pika_server->dbs_) {
-        if (!db_item.second) {
-          continue;
-        }
-        std::shared_lock slot_rwl(db_item.second->slots_rw_);
-        // loop every slot
-        for (const auto &slot_item: db_item.second->slots_) {
-          background_errors.clear();
-          slot_item.second->DbRWLockReader();
-          slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS,
-                                           &background_errors);
-          slot_item.second->DbRWUnLock();
-          for (const auto &item: background_errors) {
-            if (item.second != 0) {
-              rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
-              if (!s.ok()) {
-                LOG(WARNING) << s.ToString();
-              }
-            }
-          }
-        }
-      }
-    }
   }
 }
 
