@@ -16,38 +16,35 @@ namespace net {
 
 DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                                const ServerHandle* handle)
-    : ServerThread::ServerThread(port, cron_interval, handle),
+    : ServerThread::ServerThread(port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ip, port, cron_interval, handle),
+    : ServerThread::ServerThread(ip, port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ips, port, cron_interval, handle),
+    : ServerThread::ServerThread(ips, port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::~DispatchThread() = default;
@@ -67,7 +64,6 @@ int DispatchThread::StartThread() {
       return ret;
     }
   }
-  timed_scan_thread.StartThread();
   return ServerThread::StartThread();
 }
 
@@ -88,7 +84,6 @@ int DispatchThread::StopThread() {
       worker_thread_[i]->private_data_ = nullptr;
     }
   }
-  timed_scan_thread.StopThread();
   return ServerThread::StopThread();
 }
 
@@ -257,6 +252,8 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 }
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
+
+TimerTaskManager* DispatchThread::GetTimerTaskManager() { return &timerTaskManager; }
 
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                                        int queue_limit, const ServerHandle* handle) {

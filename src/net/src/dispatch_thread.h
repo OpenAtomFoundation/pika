@@ -129,8 +129,9 @@ class DispatchThread : public ServerThread {
     return blocked_conn_to_keys_;
   }
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
-
   // BlPop/BrPop used end
+
+  TimerTaskManager* GetTimerTaskManager();
 
  private:
   /*
@@ -168,9 +169,7 @@ class DispatchThread : public ServerThread {
    */
   std::shared_mutex block_mtx_;
 
-  //used for blpop/brpop currently
-  TimedScanThread timed_scan_thread;
-
+  TimerTaskManager timerTaskManager;
 };  // class DispatchThread
 
 }  // namespace net

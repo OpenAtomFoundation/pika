@@ -60,41 +60,44 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
   return raw_handle;
 }
 
-ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port) {
+      port_(port),
+      dispatcher_(dispatcher) {
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_.insert("0.0.0.0");
 }
 
-ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port) {
+      port_(port),
+      dispatcher_(dispatcher) {
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_.insert(bind_ip);
 }
 
 ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval,
-                           const ServerHandle* handle)
+                           const ServerHandle* handle, ServerThread* dispatcher)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port) {
+      port_(port),
+      dispatcher_(dispatcher){
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_ = bind_ips;
@@ -177,6 +180,12 @@ void* ServerThread::ThreadMain() {
   char port_buf[32];
   char ip_addr[INET_ADDRSTRLEN] = "";
 
+  net::DispatchThread* dispatch_ptr = nullptr;
+  if (dispatcher_ != nullptr) {
+    dispatch_ptr = dynamic_cast<net::DispatchThread*>(dispatcher_);
+    dispatch_ptr->GetTimerTaskManager()->AddTimerTask(
+        "blrpop_blocking_info_scan", 250, true, [dispatch_ptr] { dispatch_ptr->ScanExpiredBlockedConnsOfBlrpop();std::cout << "scan" << std::endl;});
+  }
 
   while (!should_stop()) {
     if (cron_interval_ > 0) {
@@ -191,6 +200,17 @@ void* ServerThread::ThreadMain() {
         when.tv_sec = now.tv_sec + (cron_interval_ / 1000);
         when.tv_usec = now.tv_usec + ((cron_interval_ % 1000) * 1000);
         timeout = cron_interval_;
+      }
+    }
+
+    if(dispatch_ptr != nullptr){
+      int min_timer_interval = dispatch_ptr->GetTimerTaskManager()->GetMinIntervalMs();
+      //min_interval_ms != -1 means there are tasks registered within TimerTaskManager
+      if(min_timer_interval != -1){
+        dispatch_ptr->GetTimerTaskManager()->ExecTimerTask();
+        if(timeout > min_timer_interval){
+          timeout = min_timer_interval;
+        }
       }
     }
 
