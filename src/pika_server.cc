@@ -269,26 +269,6 @@ bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }
 
-bool PikaServer::ConsensusCheck(const std::string& db_name, const std::string& key) {
-  if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<DB> db = GetDB(db_name);
-    if (!db) {
-      return false;
-    }
-    uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
-
-    std::shared_ptr<SyncMasterSlot> master_slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, index));
-    if (!master_slot) {
-      LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << index << ", NotFound";
-      return false;
-    }
-    Status s = master_slot->ConsensusSanityCheck();
-    return s.ok();
-  }
-  return true;
-}
-
 int PikaServer::repl_state() {
   std::shared_lock l(state_protector_);
   return repl_state_;
@@ -446,18 +426,6 @@ bool PikaServer::IsDBSlotExist(const std::string& db_name, uint32_t slot_id) {
   }
 }
 
-bool PikaServer::IsCommandSupport(const std::string& command) {
-  if (g_pika_conf->consensus_level() != 0) {
-    // dont support multi key command
-    // used the same list as sharding mode use
-    bool res = ConsensusNotSupportCommands.count(command) == 0U;
-    if (!res) {
-      return res;
-    }
-  }
-  return true;
-}
-
 bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   std::shared_ptr<DB> db = GetDB(db_name);
   return db ? db->IsBinlogIoError() : true;
@@ -613,10 +581,6 @@ Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
 
 void PikaServer::BecomeMaster() {
   std::lock_guard l(state_protector_);
-  if ((role_ & PIKA_ROLE_MASTER) == 0 && g_pika_conf->write_binlog() && g_pika_conf->consensus_level() > 0) {
-    LOG(INFO) << "Become new master, start protect mode to waiting binlog sync and commit";
-    leader_protected_mode_ = true;
-  }
   role_ |= PIKA_ROLE_MASTER;
 }
 
@@ -1063,9 +1027,6 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       fix.open(fn, std::ios::in | std::ios::trunc);
       if (fix.is_open()) {
         fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
-        if (g_pika_conf->consensus_level() != 0) {
-          fix << term << "\n" << index << "\n";
-        }
         fix.close();
       }
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);

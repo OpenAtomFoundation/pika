@@ -62,7 +62,7 @@ start_server {tags {"zset"}} {
             catch {r zadd myzset 10 a 20 b 30.badscore c} e
             assert_match {*ERR*not*float*} $e
             #r exists myzset
-        } 
+        }
 
         test {ZADD - Variadic version will raise error on missing arg} {
             r del myzset
