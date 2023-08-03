@@ -18,7 +18,8 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 |接口|PERSIST|PEXPIRE|PEXPIREAT|PTTL|RANDOMKEY|RENAME|RENAMENX|RESTORE|SORT|
 |状态|o|!|!|o|x|x|x|x|x|
 |接口|TOUCH|TTL|TYPE|UNLINK|WAIT|SCAN|
-|状态|x|o|!|x|x|!|
+|状态|x|o|!|o|x|!|
+
 
 **备注:**  
 
@@ -57,11 +58,11 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## Lists
 
-|接口|LINDEX|LINSERT|LLEN|LPOP|LPUSH|LPUSHX|LRANGE|LREM|LSET|LTRIM|
+|接口|LINDEX|LINSERT|LLEN|LPOP| LPUSH | LPUSHX |LRANGE|LREM|LSET|LTRIM|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|状态|o|o|o|o|o|o|o|o|o|o|
-|接口|RPOP|RPOPLPUSH|RPUSH|RPUSHX|BLPOP|BRPOP|BRPOPLPUSH|
-|状态|o|o|o|o|x|x|x|
+|状态|o|o|o|o|o|x|o|o|o|o|
+|接口|RPOP|RPOPLPUSH|RPUSH|RPUSHX| BLPOP | BRPOP  |BRPOPLPUSH|
+|状态|o|o|o|o|o|o|x|
 
 ## Sets
 
@@ -82,6 +83,8 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 |状态|o|o|o|o|o|o|o|o|o|o|
 |接口|ZREVRANGE|ZREVRANGEBYSCORE|ZREVRANK|ZSCORE|ZUNIONSTORE|ZINTERSTORE|ZSCAN|ZRANGEBYLEX|ZLEXCOUNT|ZREMRANGEBYLEX|
 |状态|o|o|o|o|o|o|o|o|o|o|
+|接口|ZPOPMAX|ZPOPMIN|ZREVERANGEBYLEX||||||||
+|状态|o|o|o||||||||
 
 * ZADD 的选项 [NX|XX] [CH] [INCR] 暂不支持
 
@@ -101,6 +104,11 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |状态|o|o|o|o|o|o|
 
+## BitMap
+
+|接口|SETBIT|GETBIT|BITPOS|BITOP|BITCOUNT|
+|:-:|:-:|:-:|:-:|:-:|:-:|
+|状态|o|o|o|o|o|
 
 ## Pub/Sub
 
@@ -114,15 +122,15 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## 管理命令（这里仅列出pika兼容的）
 
-|接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|状态|!|o|!|o|o|o|!|
+|接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|TYPE|HELLO|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|状态|!|o|!|o|o|o|!|!|o|
 
 **备注：**  
 
-* info：info支持全部输出，也支持匹配形式的输出，例如可以通过info stats查看状态信息，需要注意的是key space与redis不同，pika对于key space的展示选择了分类型展示而非redis的分库展示（因为pika没有库），pika对于key space的统计是被动的，需要手动触发，然后pika会在后台进行统计，pika的key space统计是精确的。触发方式为执行：keyspace命令即可，然后pika会在后台统计，此时可以使用：keyspace readonly命令来进行查看，readonly参数可以避免反复进行统计，如果当前数据为0，则证明还在统计中；  
+* info：info支持全部输出，也支持匹配形式的输出，例如可以通过info stats查看状态信息，需要注意的是key space与redis不同，pika对于key space的展示选择了分类型展示而非redis的分库展示（因为pika没有库），pika对于key space的统计是被动的，需要手动触发，然后pika会在后台进行统计，pika的key space统计是精确的。触发方式为执行：keyspace命令即可，然后pika会在后台统计，此时可以使用：keyspace readonly命令来进行查看，readonly参数可以避免反复进行统计，如果当前数据为0，则证明还在统计中.info commandstats可以查询到各个命令的调用次数和统计用时以及平均用时，和redis不同的是我们统计耗时的时间单位是毫秒；  
 
-* client：当前client命令支持client list及client kill，client list显示的内容少于redis；  
+* client：当前client命令支持client list及client kill还有client setname，client list显示的内容少于redis；  
 
 * select：该命令在3.1.0版前无任何效果，自3.1.0版开始与Redis一致;
 
