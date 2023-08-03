@@ -18,7 +18,7 @@ using namespace RsyncService;
 extern PikaServer* g_pika_server;
 
 const int kFlushIntervalUs = 10 * 1000 * 1000;
-const int kThrottleBytesPerSecond = 30 << 20;
+const int kThrottleBytesPerSecond = 300 << 20;
 const int kBytesPerRequest = 4 << 20;
 const int kThrottleCheckCycle = 10;
 
@@ -158,8 +158,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
     while (retries < max_retries_) {
       size_t copy_file_begin_time = pstd::NowMicros();
-      //size_t count = throttle_->ThrottledByThroughput(kBytesPerRequest);
-      size_t count = kBytesPerRequest;
+      size_t count = throttle_->ThrottledByThroughput(kBytesPerRequest);
       if (count == 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000 / kThrottleCheckCycle));
         continue;
@@ -193,7 +192,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
       size_t ret_count = resp->file_resp().count();
       size_t elaspe_time_us = pstd::NowMicros() - copy_file_begin_time;
-      //throttle_->ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
+      throttle_->ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
 
       if (resp->code() != RsyncService::kOk) {
         //TODO: handle different error
