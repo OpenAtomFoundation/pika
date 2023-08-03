@@ -123,6 +123,8 @@ class SyncMasterSlot : public SyncSlot {
   int32_t session_id_ = 0;
 
   ConsensusCoordinator coordinator_;
+
+  std::atomic<uint32_t> sent_acked_mismatch_count_ = 0;
 };
 
 class SyncSlaveSlot : public SyncSlot {

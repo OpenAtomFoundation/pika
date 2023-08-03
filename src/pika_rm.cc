@@ -369,10 +369,14 @@ Status SyncMasterSlot::CheckSyncTimeout(uint64_t now) {
   for (auto& slave_iter : slaves) {
     std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
     std::lock_guard l(slave_ptr->slave_mu);
-    if (slave_ptr->LastRecvTime() + kRecvKeepAliveTimeout < now) {
+    // When there is still no equality after ten heartbeats, the slave will be deleted.
+    if (slave_ptr->LastRecvTime() + kRecvKeepAliveTimeout < now || sent_acked_mismatch_count_ >= 10) {
       to_del.emplace_back(slave_ptr->Ip(), slave_ptr->Port());
-    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now &&
-               slave_ptr->sent_offset == slave_ptr->acked_offset) {
+    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now) {
+      // Increase the counter sent_acked_mismatch_count_ to record the counts of sent_offset != acked_offset to avoid
+      // blocking the sending of heartbeat packets.
+      sent_acked_mismatch_count_ = (slave_ptr->sent_offset == slave_ptr->acked_offset) ? 0 : (sent_acked_mismatch_count_ + 1);
+
       std::vector<WriteTask> task;
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SlotId(),
                      slave_ptr->SessionId());
