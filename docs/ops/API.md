@@ -20,6 +20,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 |接口|TOUCH|TTL|TYPE|UNLINK|WAIT|SCAN|
 |状态|x|o|!|o|x|!|
 
+
 **备注:**  
 
 * PEXPIRE：无法精确到毫秒，底层会自动截断按秒级别进行处理;  
@@ -57,11 +58,11 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## Lists
 
-|接口|LINDEX|LINSERT|LLEN|LPOP|LPUSH|LPUSHX|LRANGE|LREM|LSET|LTRIM|
+|接口|LINDEX|LINSERT|LLEN|LPOP| LPUSH | LPUSHX |LRANGE|LREM|LSET|LTRIM|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|状态|o|o|o|o|o|o|o|o|o|o|
-|接口|RPOP|RPOPLPUSH|RPUSH|RPUSHX|BLPOP|BRPOP|BRPOPLPUSH|
-|状态|o|o|o|o|x|x|x|
+|状态|o|o|o|o|o|x|o|o|o|o|
+|接口|RPOP|RPOPLPUSH|RPUSH|RPUSHX| BLPOP | BRPOP  |BRPOPLPUSH|
+|状态|o|o|o|o|o|o|x|
 
 ## Sets
 
@@ -121,11 +122,9 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## 管理命令（这里仅列出pika兼容的）
 
-
 |接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|TYPE|HELLO|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |状态|!|o|!|o|o|o|!|!|o|
-
 
 **备注：**  
 
