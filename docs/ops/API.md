@@ -121,9 +121,11 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 ## 管理命令（这里仅列出pika兼容的）
 
-|接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|HELLO|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|状态|!|o|!|o|o|o|!|o|
+
+|接口|INFO|CONFIG|CLIENT|PING|BGSAVE|SHUTDOWN|SELECT|TYPE|HELLO|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|状态|!|o|!|o|o|o|!|!|o|
+
 
 **备注：**  
 
