@@ -20,6 +20,7 @@
 
   [#1273](https://github.com/OpenAtomFoundation/pika/pull/1273) [#1660](https://github.com/OpenAtomFoundation/pika/pull/1660) [#1245](https://github.com/OpenAtomFoundation/pika/pull/1245) [#1548](https://github.com/OpenAtomFoundation/pika/pull/1548) [#1843](https://github.com/OpenAtomFoundation/pika/pull/1843)
 
+
   [@wanghenshui](https://github.com/wanghenshui)  [@Mixficsol](https://github.com/Mixficsol) [@weedge](https://github.com/weedge) [@cheniujh](https://github.com/cheniujh)
 
 1. 支持 UNLINK 命令
@@ -27,6 +28,7 @@
 3. 支持 HELLO、SETNAME 命令
 4. 支持 BLPOP、BRPOP 命令
 5. 新增 Pika 原创命令 DISKRECOVERY
+
 
 ### 3.RocksDB 版本升级和分级压缩
 
