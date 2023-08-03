@@ -797,62 +797,65 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
     } else if (parsed_zsets_meta_value.count() == 0) {
       return Status::NotFound();
     } else {
-      std::cout << "no1" << std::endl;
+      int32_t del_cnt = 0;
       int32_t cur_index = 0;
-      int32_t version = parsed_zsets_meta_value.version();
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
-      int32_t cnt = 0;
+      int32_t version = parsed_zsets_meta_value.version();
+      bool flag = true;
+      double score;
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
-      int num_elements_before_delete = 0;
-      for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-        num_elements_before_delete++;
+      {
+        ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
+        double score;
+        for (iter->Seek(zsets_score_key_min.Encode());
+             iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
+            bool left_pass = false;
+            bool right_pass = false;
+            ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+            if (parsed_zsets_score_key.key() != key) {
+              break;
+            }
+            if (parsed_zsets_score_key.version() != version) {
+              break;
+            }
+            if (parsed_zsets_score_key.score() > min && flag) {
+              score = parsed_zsets_score_key.score();
+              flag = false;
+            }
+            if ((left_close && min <= parsed_zsets_score_key.score()) ||
+                (!left_close && min < parsed_zsets_score_key.score())) {
+              left_pass = true;
+            }
+            if ((right_close && parsed_zsets_score_key.score() <= max) ||
+                (!right_close && parsed_zsets_score_key.score() < max)) {
+              right_pass = true;
+            }
+            if (left_pass && right_pass) {
+              ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
+              batch.Delete(handles_[1], zsets_member_key.Encode());
+              if (parsed_zsets_score_key.score() == max) {
+                batch.Delete(handles_[2], iter->key());
+              }
+              del_cnt++;
+              statistic++;
+            }
+            if (!right_pass) {
+                break;
+            }
+        }
+      }
+      if (!left_close) {
+        min = score;
       }
       ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
       ZSetsScoreKey zsets_score_key_max(key, version, max, Slice());
-      double score;
-      for (iter->Seek(zsets_score_key_min.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
-        ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
-        bool right_pass = false;
-        if ((right_close && parsed_zsets_score_key.score() <= max) ||
-            (!right_close && parsed_zsets_score_key.score() < max)) {
-            right_pass = true;
-        }
-        if (parsed_zsets_score_key.score() == max) {
-          score = parsed_zsets_score_key.score();
-          ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
-          batch.Delete(handles_[1], zsets_member_key.Encode());
-          batch.Delete(handles_[2], iter->key());
-          cnt++;
-        }
-        if (!right_pass) {
-          break;
-        }
-      }
-      if (min > max) {
-        iter->Seek(zsets_score_key_min.Encode());
-        ParsedZSetsScoreKey parsed_zsets_score_key_min(iter->key());
-        ZSetsMemberKey zsets_member_key_min(key, version, iter->key());
-        iter->Seek(zsets_score_key_max.Encode());
-        ParsedZSetsScoreKey parsed_zsets_score_key_max(iter->key());
-        ZSetsMemberKey zsets_member_key_max(key, version, iter->key());
+      if (del_cnt > 0) {
         rocksdb::Slice score_begin_key(zsets_score_key_min.Encode());
         rocksdb::Slice score_end_key(zsets_score_key_max.Encode());
         s = db_->DeleteRange(default_write_options_, handles_[2], score_begin_key, score_end_key);
-        rocksdb::Slice begin_key(zsets_member_key_min.Encode());
-        rocksdb::Slice end_key(zsets_member_key_max.Encode());
-        s = db_->DeleteRange(default_write_options_, handles_[1], begin_key, end_key);
       }
-      int num_elements_after_delete = 0;
-      iter = db_->NewIterator(default_read_options_, handles_[2]);
-      for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-        num_elements_after_delete++;
-      }
-
       delete iter;
-      del_cnt = num_elements_before_delete - num_elements_after_delete + cnt;
       *ret = del_cnt;
-      std::cout << "del_num: " << del_cnt << std::endl;
-      statistic = del_cnt;
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
