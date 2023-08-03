@@ -98,12 +98,12 @@ class BlockingBaseCmd : public Cmd {
 class BLPopCmd final : public BlockingBaseCmd {
  public:
   BLPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const {
+  virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  virtual void Merge() override {};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
   void DoInitial() override;
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
@@ -257,12 +257,12 @@ class LTrimCmd : public Cmd {
 class BRPopCmd final : public BlockingBaseCmd {
  public:
   BRPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const {
+  virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  virtual void Merge() override {};
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
   void DoInitial() override;
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
