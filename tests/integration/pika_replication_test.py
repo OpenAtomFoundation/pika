@@ -22,6 +22,12 @@ def test_del_replication():
     # 创建Redis客户端
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -118,6 +124,12 @@ def test_msetnx_replication():
     print("start test_msetnx_replication")
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -187,6 +199,12 @@ def test_mset_replication():
     print("start test_mset_replication")
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -254,6 +272,11 @@ def test_smove_replication():
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
 
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -303,6 +326,12 @@ def test_rpoplpush_replication():
     print("start test_rpoplpush_replication")
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -386,6 +415,12 @@ def test_sdiffstore_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -451,6 +486,12 @@ def test_sinterstore_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -513,6 +554,12 @@ def test_zunionstore_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -567,6 +614,12 @@ def test_zinterstore_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -629,6 +682,12 @@ def test_sunionstore_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -684,6 +743,12 @@ def test_bitop_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -737,6 +802,12 @@ def test_pfmerge_replication():
 
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
+
     if delay_slave_of:
         slave.slaveof("no", "one")
     else:
@@ -785,6 +856,11 @@ def test_migrateslot_replication():
     print("start test_migrateslot_replication")
     master = redis.Redis(host=master_ip, port=int(master_port), db=0)
     slave = redis.Redis(host=slave_ip, port=int(slave_port), db=0)
+
+    slave.slaveof("no", "one")
+    time.sleep(5)
+    master.flushdb()
+    slave.flushdb()
 
     # open slot migrate
     master.config_set("slotmigrate", "yes")
