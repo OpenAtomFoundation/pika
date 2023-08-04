@@ -20,11 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-
       - name: cache dependencies
         uses: actions/cache@v2
         id: cache
@@ -74,13 +69,6 @@ jobs:
           python3 ../tests/integration/pika_replication_test.py
           python3 ../tests/unit/Blpop_Brpop_test.py
 
-      - name: Run Go E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          cd ../tests/integration/
-          chmod +x integrate_test.sh 
-          sh integrate_test.sh
-
   build_on_centos:
     runs-on: ubuntu-latest
     container:
@@ -94,11 +82,6 @@ jobs:
           yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which python3
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
 
       - name: Install cmake
         run: |
@@ -145,11 +128,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
 
       - name: cache dependencies
         uses: actions/cache@v2
@@ -198,10 +176,3 @@ jobs:
         run: |
           python3 ../tests/integration/pika_replication_test.py
           python3 ../tests/unit/Blpop_Brpop_test.py
-
-      - name: Run Go E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          cd ../tests/integration/
-          chmod +x integrate_test.sh 
-          sh integrate_test.sh

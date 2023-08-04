@@ -87,7 +87,7 @@ void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
   work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
-  rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 1 * 1000, this);
+  rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 60 * 1000, this);
 }
 
 RsyncServer::~RsyncServer() {
