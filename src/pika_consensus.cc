@@ -411,8 +411,11 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
   stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
   stable_logger_->Logger()->Unlock();
-
   InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
+  return Status::OK();
+}
+
+Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) {
   return Status::OK();
 }
 
