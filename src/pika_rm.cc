@@ -371,9 +371,8 @@ Status SyncMasterSlot::CheckSyncTimeout(uint64_t now) {
     std::lock_guard l(slave_ptr->slave_mu);
     if (slave_ptr->LastRecvTime() + kRecvKeepAliveTimeout < now) {
       to_del.emplace_back(slave_ptr->Ip(), slave_ptr->Port());
-    //} else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now &&
-    //           slave_ptr->sent_offset == slave_ptr->acked_offset) {
-    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now) {
+    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now &&
+               slave_ptr->sent_offset == slave_ptr->acked_offset) {
       std::vector<WriteTask> task;
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SlotId(),
                      slave_ptr->SessionId());

@@ -196,8 +196,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     return;
   }
 
-  //LOG(INFO) << "filepath: " << filepath << " offset: " << offset << " count: " << count << " bytes_read: " << bytes_read << " is_eof: " << is_eof;
-
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
   file_resp->set_data(buffer, bytes_read);
   file_resp->set_eof(is_eof);
