@@ -786,11 +786,8 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
   std::string meta_value;
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
-  std::cout << "min: " << min << std::endl;
-  std::cout << "max: " << max << std::endl;
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
-    int32_t del_cnt = 0;
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -801,47 +798,43 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       int32_t cur_index = 0;
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       int32_t version = parsed_zsets_meta_value.version();
+      ZSetsScoreKey zsets_score_key(key, version, min, Slice());
       bool flag = true;
-      double score;
+      double score = 0;
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
-      {
-        ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
-        double score;
-        for (iter->Seek(zsets_score_key_min.Encode());
-             iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
-            bool left_pass = false;
-            bool right_pass = false;
-            ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
-            if (parsed_zsets_score_key.key() != key) {
-              break;
-            }
-            if (parsed_zsets_score_key.version() != version) {
-              break;
-            }
-            if (parsed_zsets_score_key.score() > min && flag) {
-              score = parsed_zsets_score_key.score();
-              flag = false;
-            }
-            if ((left_close && min <= parsed_zsets_score_key.score()) ||
-                (!left_close && min < parsed_zsets_score_key.score())) {
-              left_pass = true;
-            }
-            if ((right_close && parsed_zsets_score_key.score() <= max) ||
-                (!right_close && parsed_zsets_score_key.score() < max)) {
-              right_pass = true;
-            }
-            if (left_pass && right_pass) {
-              ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
-              batch.Delete(handles_[1], zsets_member_key.Encode());
-              if (parsed_zsets_score_key.score() == max) {
-                batch.Delete(handles_[2], iter->key());
-              }
-              del_cnt++;
-              statistic++;
-            }
-            if (!right_pass) {
-                break;
-            }
+      for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
+        bool left_pass = false;
+        bool right_pass = false;
+        ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+        if (parsed_zsets_score_key.key() != key) {
+          break;
+        }
+        if (parsed_zsets_score_key.version() != version) {
+          break;
+        }
+        if (parsed_zsets_score_key.score() > min && flag) {
+          score = parsed_zsets_score_key.score();
+          flag = false;
+        }
+        if ((left_close && min <= parsed_zsets_score_key.score()) ||
+            (!left_close && min < parsed_zsets_score_key.score())) {
+          left_pass = true;
+        }
+        if ((right_close && parsed_zsets_score_key.score() <= max) ||
+            (!right_close && parsed_zsets_score_key.score() < max)) {
+          right_pass = true;
+        }
+        if (left_pass && right_pass) {
+          ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
+          batch.Delete(handles_[1], zsets_member_key.Encode());
+          if (parsed_zsets_score_key.score() == max) {
+            batch.Delete(handles_[2], iter->key());
+          }
+          del_cnt++;
+          statistic++;
+        }
+        if (!right_pass) {
+          break;
         }
       }
       if (!left_close) {
