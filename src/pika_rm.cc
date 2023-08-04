@@ -639,6 +639,10 @@ std::string SyncSlaveSlot::LocalIp() {
   return local_ip_;
 }
 
+void SyncSlaveSlot::StopRsync() {
+  rsync_cli_->Stop();
+}
+
 void SyncSlaveSlot::ActivateRsync() {
   if (!rsync_cli_->IsIdle()) {
     return;

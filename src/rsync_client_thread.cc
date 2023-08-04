@@ -31,8 +31,8 @@ int RsyncClientConn::DealMessage() {
                  << " msg_len: " << header_len_;
     return -1;
   }
-  RsyncClient* handler = (RsyncClient*)cb_handler_;
-  handler->OnReceive(response);
+  WaitObjectManager* handler = (WaitObjectManager*)cb_handler_;
+  handler->WakeUp(response);
   return 0;
 }
 
