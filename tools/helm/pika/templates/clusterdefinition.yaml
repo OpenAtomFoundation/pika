@@ -72,7 +72,7 @@ spec:
             - name: data
               mountPath: /data
             - name: config
-              mountPath: /etc/conf
+              mountPath: /etc/sentinel
           command:
             - /bin/bash
           args:
@@ -88,9 +88,7 @@ spec:
       workloadType: Stateful
       characterType: etcd
       probes:
-      logconfigs:
       configSpecs:
-      scriptsSpecs:
       podSpec:
         containers:
           - name: etcd
@@ -98,30 +96,29 @@ spec:
             securityContext:
               runAsNonRoot: true
               runAsUser: 1001
-            livenessProbe:
-              exec:
-                command:
-                  - /opt/bitnami/scripts/etcd/healthcheck.sh
-              failureThreshold: 5
-              initialDelaySeconds: 60
-              periodSeconds: 30
-              successThreshold: 1
-              timeoutSeconds: 5
-            readinessProbe:
-              exec:
-                command:
-                  - /opt/bitnami/scripts/etcd/healthcheck.sh
-              failureThreshold: 5
-              initialDelaySeconds: 60
-              periodSeconds: 10
-              successThreshold: 1
-              timeoutSeconds: 5
+           # livenessProbe:
+           #   exec:
+           #     command:
+           #       - /opt/bitnami/scripts/etcd/healthcheck.sh
+           #   failureThreshold: 5
+           #   initialDelaySeconds: 60
+           #   periodSeconds: 30
+           #   successThreshold: 1
+           #   timeoutSeconds: 5
+           # readinessProbe:
+           #   exec:
+           #     command:
+           #       - /opt/bitnami/scripts/etcd/healthcheck.sh
+           #   failureThreshold: 5
+           #   initialDelaySeconds: 60
+           #   periodSeconds: 10
+           #   successThreshold: 1
+           #   timeoutSeconds: 5
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
             volumeMounts:
               - mountPath: /bitnami/etcd
                 name: data
-            dnsPolicy: ClusterFirst
             ports:
               - name: client
                 containerPort: 2379
@@ -174,6 +171,8 @@ spec:
                 value: "500"
               - name: ETCD_ELECTION_TIMEOUT
                 value: "2500"
+              - name: ETCD_ENABLE_V2
+                value: "true"
     - name: codis-proxy
       workloadType: Replication
       characterType: pika
@@ -190,9 +189,6 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
-      volumeTypes:
-        - name: data
-          type: data
       podSpec:
         containers:
         - name: codis-proxy
@@ -203,10 +199,8 @@ spec:
             - containerPort: 19000
               name: admin
           volumeMounts:
-            - name: data
-              mountPath: /data
             - name: config
-              mountPath: /etc/conf
+              mountPath: /etc/codis
           env:
             - name: POD_IP
               valueFrom:
@@ -217,18 +211,16 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-headless:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
             - name: DASHBOARD_ADDR
-              value: "codis-dashboard:18080"
+              value: "pika-cluster-codis-dashboard:18080"
             - name: PRODUCT_NAME
               value: "codis-test"
           command:
-            - "codis-proxy"
+            - "/codis/bin/codis-proxy"
           args:
-            - "-l"
-            - "log/$(POD_NAME).log"
             - "-c"
-            - "$(CODIS_PATH)/config/proxy.toml"
+            - "/etc/codis/proxy.toml"
             - "--host-admin"
             - "$(POD_IP):11080"
             - "--host-proxy"
@@ -239,13 +231,13 @@ spec:
             - "$(PRODUCT_NAME)"
             - "--pidfile"
             - "log/proxy.pid"
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - "/bin/sh"
-                  - "-c"
-                  - "codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
+         #lifecycle:
+         #  postStart:
+         #    exec:
+         #      command:
+         #        - "/bin/sh"
+         #        - "-c"
+         #        - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
     - name: codis-ha
       workloadType: Stateful
       characterType: pika
@@ -273,17 +265,20 @@ spec:
             - name: data
               mountPath: /data
             - name: config
-              mountPath: /etc/conf
+              mountPath: /etc/codis
           env:
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
             - name: DASHBOARD_ADDR
-              value: "codis-dashboard:18080"
+              value: "pika-cluster-codis-dashboard:18080"
           command:
             - "/codis/bin/codis-ha"
-          args: ["-l","log/$(POD_NAME).log","--interval","5","--dashboard=$(DASHBOARD_ADDR)"]
+          args:
+            - "--interval"
+            - "5"
+            - "--dashboard=$(DASHBOARD_ADDR)"
     - name: codis-fe
       workloadType: Stateless
       characterType: pika
@@ -309,12 +304,10 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-headless:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
           command:
             - "/codis/bin/codis-fe"
           args:
-          - "-l"
-          - "log/$(POD_NAME).log"
           - "--etcd"
           - "$(ETCD_ADDR)"
           - "--listen=$(POD_IP):8080"
@@ -346,7 +339,7 @@ spec:
             - name: data
               mountPath: /data
             - name: config
-              mountPath: /etc/conf
+              mountPath: /etc/codis
           env:
             - name: POD_IP
               valueFrom:
@@ -357,16 +350,14 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-headless:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
             - name: PRODUCT_NAME
               value: "codis-test"
           command:
             - "/codis/bin/codis-dashboard"
           args:
-            - "-l"
-            - "log/$(POD_NAME).log"
             - "-c"
-            - "$(CODIS_PATH)/config/dashboard.toml"
+            - "/etc/codis/dashboard.toml"
             - "--host-admin"
             - "$(POD_IP):18080"
             - "--etcd"
@@ -376,10 +367,10 @@ spec:
             - "--pidfile"
             - "log/dashboard.pid"
             - "--remove-lock"
-          lifecycle:
-            postStart:
-              exec:
-                command: ["/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}"]
-            preStop:
-              exec:
-                command: [/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done"]
+         #lifecycle:
+         #  postStart:
+         #    exec:
+         #      command: ["/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}"]
+         #  preStop:
+         #    exec:
+         #      command: ["/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done"]

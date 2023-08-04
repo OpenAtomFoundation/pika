@@ -13,3 +13,5 @@ data:
     {{- .Files.Get "config/codis-proxy.tpl" | nindent 4 }}
   sentinel.conf: |-
     {{- .Files.Get "config/codis-sentinel.tpl" | nindent 4 }}
+  etcd.yml: |-
+    {{- .Files.Get "config/etcd.yml" | nindent 4 }}

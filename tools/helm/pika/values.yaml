@@ -14,5 +14,5 @@ pika:
       tag: unstable-2597ac3c
       pullPolicy: IfNotPresent
   etcd:
-    repository: docker.io/milvusdb/etcd
-    tag: 3.5.5-r2
+    repository: docker.io/bitnami/etcd
+    tag: 3.5.9

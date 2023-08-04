@@ -7,17 +7,17 @@ fullnameOverride: ""
 
 replicaCount: 2
 
-sentinelReplicaCount: 0
+sentinelReplicaCount: 3
 
 etcdReplicaCount: 3
 
-codisProxyReplicaCount: 0
+codisProxyReplicaCount: 2
 
-codisHaReplicaCount: 0
+codisHaReplicaCount: 2
 
-codisFeReplicaCount: 0
+codisFeReplicaCount: 2
 
-codisDashboardReplicaCount: 0
+codisDashboardReplicaCount: 2
 
 terminationPolicy: Delete
 
@@ -42,7 +42,7 @@ resources:
     memory: 1Gi
 
 persistence:
-  enabled: true
+  enabled: false
   data:
     storageClassName:
     size: 1Gi

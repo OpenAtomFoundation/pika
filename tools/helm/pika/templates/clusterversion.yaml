@@ -45,6 +45,6 @@ spec:
   - componentDefRef: codis-dashboard
     versionsContext:
       containers:
-      - name: codis-codis-dashboard
+      - name: codis-dashboard
         image: {{ include "codis.image" . }}
         imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
