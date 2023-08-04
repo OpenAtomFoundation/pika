@@ -228,11 +228,7 @@ bool Slot::TryUpdateMasterOffset() {
     LOG(WARNING) << "Master Slot: " << slot_name_ << " not exist";
     return false;
   }
-  if (g_pika_conf->consensus_level() != 0) {
-    master_slot->ConsensusReset(LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
-  } else {
-    master_slot->Logger()->SetProducerStatus(filenum, offset);
-  }
+  master_slot->Logger()->SetProducerStatus(filenum, offset);
   slave_slot->SetReplState(ReplState::kTryConnect);
   return true;
 }
@@ -359,9 +355,6 @@ void Slot::DoBgSave(void* arg) {
                  << g_pika_server->port() << "\n"
                  << info.offset.b_offset.filenum << "\n"
                  << info.offset.b_offset.offset << "\n";
-    if (g_pika_conf->consensus_level() != 0) {
-      info_content << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
-    }
     bg_task_arg->slot->snapshot_uuid_ = md5(info_content.str());
     out << info_content.rdbuf();
     out.close();
@@ -439,12 +432,8 @@ bool Slot::InitBgsaveEngine() {
   {
     std::lock_guard lock(db_rwlock_);
     LogOffset bgsave_offset;
-    if (g_pika_conf->consensus_level() != 0) {
-      bgsave_offset = slot->ConsensusAppliedIndex();
-    } else {
-      // term, index are 0
-      slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
-    }
+    // term, index are 0
+    slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
     {
       std::lock_guard l(bgsave_protector_);
       bgsave_info_.offset = bgsave_offset;
