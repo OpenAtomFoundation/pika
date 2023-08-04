@@ -96,6 +96,9 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZsetAutoDel, std::move(zsetautodelptr)));
   std::unique_ptr<Cmd> zsetautodeloffptr = std::make_unique<ZsetAutoDelOffCmd>(kCmdNameZsetAutoDelOff, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZsetAutoDelOff, std::move(zsetautodeloffptr)));
+  std::unique_ptr<Cmd> diskrecoveryptr = std::make_unique<DiskRecoveryCmd>(kCmdNameDiskRecovery, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiskRecovery, std::move(diskrecoveryptr)));
+
 #ifdef WITH_COMMAND_DOCS
   std::unique_ptr<Cmd> commandptr = std::make_unique<CommandCmd>(kCmdNameCommand, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCommand, std::move(commandptr)));

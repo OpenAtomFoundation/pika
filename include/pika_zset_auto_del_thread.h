@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #ifndef PIKA_ZSET_AUTO_DEL_THREAD_H_
 #define PIKA_ZSET_AUTO_DEL_THREAD_H_
 
@@ -7,6 +12,7 @@
 #include "storage//storage.h"
 #include "net/include/net_thread.h"
 #include "pstd/include/pstd_mutex.h"
+#include "pstd/include/mutex_impl.h"
 
 
 enum ZsetTaskType {
@@ -60,8 +66,10 @@ class PikaZsetAutoDelThread : public net::Thread {
 
  private:
   std::atomic<bool> should_exit_;
-  std::mutex mutex_;
-  std::condition_variable task_cond_;
+  //std::mutex mutex_;
+  pstd::CondVar task_cond_;
+  pthread_mutex_t mu_;
+  pstd::Mutex mutex_;
   std::deque<ZsetTaskItem> task_queue_;
 
   std::atomic<ZsetTaskType> current_task_type_;

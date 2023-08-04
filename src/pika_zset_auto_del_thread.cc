@@ -13,6 +13,13 @@ extern PikaServer *g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 pthread_mutex_t mutex;
 
+static void PthreadCall(const char* label, int result) {
+  if (result != 0) {
+    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+    abort();
+  }
+}
+
 PikaZsetAutoDelThread::PikaZsetAutoDelThread()
     : should_exit_(false)
     , task_cond_()
@@ -35,7 +42,7 @@ PikaZsetAutoDelThread::~PikaZsetAutoDelThread() {
   {
     std::unique_lock<std::mutex> lock(mutex_);
     should_exit_ = true;
-    //task_cond_.signal();
+    PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
   }
 
   StopThread();
@@ -48,7 +55,7 @@ void PikaZsetAutoDelThread::RequestCronTask() {
     item.task_type = ZSET_CRON_TASK;
     item.speed_factor = g_pika_conf->zset_auto_del_cron_speed_factor();
     task_queue_.push_back(item);
-    //task_cond_.Signal();
+    PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
   }
 }
 
@@ -64,7 +71,7 @@ void PikaZsetAutoDelThread::RequestManualTask(int64_t cursor, double speed_facto
   item.cursor = cursor;
   item.speed_factor = speed_factor;
   task_queue_.push_back(item);
-  //task_cond_.Signal();
+  PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
 }
 
 void PikaZsetAutoDelThread::StopManualTask() {
@@ -248,7 +255,7 @@ void* PikaZsetAutoDelThread::ThreadMain() {
     {
       std::unique_lock<std::mutex> lock(mutex_);
       while (!should_exit_ && task_queue_.empty()) {
-      //  task_cond_.Wait();
+        PthreadCall("wait", pthread_cond_wait(reinterpret_cast<pthread_cond_t *>(&task_cond_), &mu_));
       }
 
       if (should_exit_) {

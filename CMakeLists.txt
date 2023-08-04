@@ -731,7 +731,7 @@ message("pika GIT_DATE = ${PIKA_GIT_DATE}")
 message("pika GIT_TAG = ${PIKA_GIT_TAG}")
 message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
-set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc include/pika_zset_auto_del_thread.h)
+set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc src/pika_zset_auto_del_thread.cc)
 message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 

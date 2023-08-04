@@ -52,6 +52,7 @@ const std::string kCmdNameHello = "hello";
 const std::string kCmdNameCommand = "command";
 const std::string kCmdNameZsetAutoDel = "zsetautodel";
 const std::string kCmdNameZsetAutoDelOff = "zsetautodeloff";
+const std::string kCmdNameDiskRecovery = "diskrecovery";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";

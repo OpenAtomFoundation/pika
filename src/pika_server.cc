@@ -1287,8 +1287,6 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
 /******************************* PRIVATE *******************************/
 
 void PikaServer::DoTimingTask() {
-  // Resume DB if satisfy the condition
-  AutoResumeDB();
   // Maybe schedule compactrange
   AutoCompactRange();
   // Purge log
@@ -1481,55 +1479,6 @@ void PikaServer::AutoKeepAliveRSync() {
   if (!pika_rsync_service_->CheckRsyncAlive()) {
     LOG(WARNING) << "The Rsync service is down, Try to restart";
     pika_rsync_service_->StartRsync();
-  }
-}
-
-void PikaServer::AutoResumeDB() {
-  int64_t interval = g_pika_conf->resume_interval();
-  int64_t least_free_size = g_pika_conf->least_resume_free_disk_size();
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  // first check or time interval between now and last check is larger than variable "interval"
-  if (last_check_resume_time_.tv_sec == 0 || now.tv_sec - last_check_resume_time_.tv_sec >= interval) {
-    struct statvfs disk_info;
-    int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
-    if (ret == -1) {
-      LOG(WARNING) << "statvfs error: " << strerror(errno);
-      return;
-    }
-    double min_check_resume_ratio = g_pika_conf->min_check_resume_ratio();
-    uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-    uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
-    double disk_use_ratio = 1.0 - static_cast<double>(free_size) / static_cast<double>(total_size);
-    if (disk_use_ratio > min_check_resume_ratio && free_size > least_free_size) {
-      gettimeofday(&last_check_resume_time_, nullptr);
-
-      std::map<std::string, uint64_t> background_errors;
-      std::shared_lock db_rwl(g_pika_server->dbs_rw_);
-      // loop every db
-      for (const auto &db_item: g_pika_server->dbs_) {
-        if (!db_item.second) {
-          continue;
-        }
-        std::shared_lock slot_rwl(db_item.second->slots_rw_);
-        // loop every slot
-        for (const auto &slot_item: db_item.second->slots_) {
-          background_errors.clear();
-          slot_item.second->DbRWLockReader();
-          slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS,
-                                           &background_errors);
-          slot_item.second->DbRWUnLock();
-          for (const auto &item: background_errors) {
-            if (item.second != 0) {
-              rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
-              if (!s.ok()) {
-                LOG(WARNING) << s.ToString();
-              }
-            }
-          }
-        }
-      }
-    }
   }
 }
 
@@ -1844,7 +1793,7 @@ void PikaServer::DoAutoDelZsetMember() {
   }
 
   // check interval
-  if (0 != zset_auto_del_interval) {
+  if (zset_auto_del_interval != 0) {
     struct timeval now;
     gettimeofday(&now, NULL);
     int64_t last_check_time = pika_zset_auto_del_thread_->LastFinishCheckAllZsetTime();
@@ -1857,7 +1806,7 @@ void PikaServer::DoAutoDelZsetMember() {
   if (zset_auto_del_cron != "") {
     std::string::size_type colon = zset_auto_del_cron.find("-");
     int start = std::atoi(zset_auto_del_cron.substr(0, colon).c_str());
-    int end = std::atoi(zset_auto_del_cron.substr(colon+1).c_str());
+    int end = std::atoi(zset_auto_del_cron.substr(colon + 1).c_str());
     std::time_t t = std::time(nullptr);
     std::tm* t_m = std::localtime(&t);
 
@@ -1878,12 +1827,9 @@ Status PikaServer::ZsetAutoDel(int64_t cursor, double speed_factor) {
   if (is_slave()) {
     return Status::NotSupported("slave not support this command");
   }
-  std::cout << "zset_auto_del_threshold: " << g_pika_conf->zset_auto_del_threshold() << std::endl;
   if (g_pika_conf->zset_auto_del_threshold() == 0) {
     return Status::NotSupported("zset_auto_del_threshold is 0, means not use zset length limit");
   }
-  std::cout << "cursor: " << cursor << std::endl;
-  std::cout << "speed_factor: " << speed_factor << std::endl;
   pika_zset_auto_del_thread_->RequestManualTask(cursor, speed_factor);
   return Status::OK();
 }
@@ -1892,7 +1838,6 @@ Status PikaServer::ZsetAutoDelOff() {
   if (is_slave()) {
     return Status::NotSupported("slave not support this command");
   }
-
   pika_zset_auto_del_thread_->StopManualTask();
   return Status::OK();
 }

@@ -496,8 +496,9 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unique_ptr<Instant> instant_;
 
+
   const std::shared_ptr<storage::Storage> db() {
-      return db_;
+    return db_;
   }
   // for manual zset del
   pstd::Status ZsetAutoDel(int64_t cursor, double speed_factor);
@@ -505,7 +506,16 @@ class PikaServer : public pstd::noncopyable {
   rocksdb::Status RecoveryDB();
   rocksdb::Status RecoveryTest();
   void DoAutoDelZsetMember();
+ /*
+  * Diskrecovery used
+  */
+  std::map<std::string, std::shared_ptr<DB>> GetDB() {
+    return dbs_;
+  }
 
+  pstd::lock::LockMgr* LockMgr() {
+    return lock_mgr_;
+  }
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
@@ -573,6 +583,7 @@ class PikaServer : public pstd::noncopyable {
   bool force_full_sync_ = false;
   bool leader_protected_mode_ = false;  // reject request after master slave sync done
   std::shared_mutex state_protector_;   // protect below, use for master-slave mode
+  pstd::lock::LockMgr* lock_mgr_;
 
   /*
    * Bgsave used
