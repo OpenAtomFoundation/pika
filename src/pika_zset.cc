@@ -908,6 +908,7 @@ void ZRemrangebyscoreCmd::DoInitial() {
 void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
+    int i;
     return;
   }
   int32_t count = 0;
