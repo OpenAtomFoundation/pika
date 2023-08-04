@@ -1,4 +1,4 @@
-pika当前支持的redis接口
+# Pika 当前支持 Redis 接口情况
 pika支持redis五种类型（分别为string、hash、list、set、zset）的接口，先列出其对redis的五种数据结构兼容统计。  
 
 #### 统计所用的标记含义如下：
@@ -6,7 +6,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 | 图标        |    含义                               |
 | :--------:  | :--------:                           | 
 | o           | 该接口完全支持，使用方式与redis没有任何区别   |
-| ！          |	功能支持，但使用或输出与redis有部分差异，需注意|
+| !          |	功能支持，但使用或输出与redis有部分差异，需注意|
 |×            |当前还未支持                                |
 
 ---
@@ -137,7 +137,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 * ping: 该命令仅支持无参数使用，即使用`PING`，客户端返回`PONG`.
 ---
 
-# Pika Pub/Sub文档
+## Pika Pub/Sub文档
 
 可用版本： >= 2.3.0
 
@@ -145,7 +145,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 
 ## Pika 发布订阅命令
-##### 以下为Pub/Sub发布订阅命令, 与Redis完全兼容
+以下为Pub/Sub发布订阅命令, 与Redis完全兼容
 
 * PUBSUB subcommand [argument [argument ...]]
 * PUBLISH channel message
@@ -154,7 +154,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 * UNSUBSCRIBE [channel [channel ...]]
 * PUNSUBSCRIBE [pattern [pattern ...]]
 
-#### 具体使用方法参考Redis的[Pub/Sub文档](http://redisdoc.com/topic/pubsub.html)
+具体使用方法参考Redis的[Pub/Sub文档](http://redisdoc.com/topic/pubsub.html)
 
 
 ## 重要说明  
