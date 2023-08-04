@@ -175,10 +175,7 @@ class ServerThread : public Thread {
 
   // process events in notify_queue
   virtual void ProcessNotifyEvents(const NetFiredEvent* pfe);
-
-  //dispatcher's life time should not be managed by this serverThread,
-  //so, use raw pointer instead of smart pointer
-  ServerThread* dispatcher_;
+  
 
   const ServerHandle* handle_;
   bool own_handle_ = false;

@@ -67,7 +67,7 @@ ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* hand
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port){
+      port_(port) {
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_.insert("0.0.0.0");
@@ -80,7 +80,7 @@ ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interv
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port){
+      port_(port) {
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_.insert(bind_ip);
@@ -94,7 +94,7 @@ ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int 
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
-      port_(port){
+      port_(port) {
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
   ips_ = bind_ips;
