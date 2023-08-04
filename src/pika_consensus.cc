@@ -158,12 +158,32 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
     match_index_[ip + std::to_string(port)] = acked_offset;
   }
 
+  // if consensus_level == 0 LogOffset() return
+  *committed_index = InternalCalCommittedIndex(GetAllMatchIndex());
   return Status::OK();
 }
 
 int SyncProgress::SlaveSize() {
   std::shared_lock l(rwlock_);
   return static_cast<int32_t>(slaves_.size());
+}
+
+LogOffset SyncProgress::InternalCalCommittedIndex(const std::unordered_map<std::string, LogOffset>& match_index) {
+  int consensus_level = g_pika_conf->consensus_level();
+  if (consensus_level == 0) {
+    return {};
+  }
+  if (static_cast<int>(match_index.size()) < consensus_level) {
+    return {};
+  }
+  std::vector<LogOffset> offsets;
+  offsets.reserve(match_index.size());
+  for (const auto& index : match_index) {
+    offsets.push_back(index.second);
+  }
+  std::sort(offsets.begin(), offsets.end());
+  LogOffset offset = offsets[offsets.size() - consensus_level];
+  return offset;
 }
 
 /* MemLog */
@@ -411,7 +431,12 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
   stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
   stable_logger_->Logger()->Unlock();
-  InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
+
+  if (g_pika_conf->consensus_level() == 0) {
+    InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
+    return Status::OK();
+  }
+
   return Status::OK();
 }
 
@@ -427,7 +452,46 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const 
     return s;
   }
 
+  if (g_pika_conf->consensus_level() == 0) {
+    return Status::OK();
+  }
+
+  // do not commit log which is not current term log
+  if (committed_index.l_offset.term != term()) {
+    LOG_EVERY_N(INFO, 1000) << "Will not commit log term which is not equals to current term"  // NOLINT
+                            << " To updated committed_index" << committed_index.ToString() << " current term " << term()
+                            << " from " << ip << " " << port << " start " << start.ToString() << " end "
+                            << end.ToString();
+    return Status::OK();
+  }
+
+  LogOffset updated_committed_index;
+  bool need_update = false;
+  {
+    std::lock_guard l(index_mu_);
+    need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
+  }
+  if (need_update) {
+    s = ScheduleApplyLog(updated_committed_index);
+    // updateslave could be invoked by many thread
+    // not found means a late offset pass in ScheduleApplyLog
+    // an early offset is not found
+    if (!s.ok() && !s.IsNotFound()) {
+      return s;
+    }
+  }
+
   return Status::OK();
+}
+
+bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_committed_index,
+                                                        LogOffset* updated_committed_index) {
+  if (slave_committed_index <= committed_index_) {
+    return false;
+  }
+  committed_index_ = slave_committed_index;
+  *updated_committed_index = slave_committed_index;
+  return true;
 }
 
 Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
