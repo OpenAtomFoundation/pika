@@ -14,10 +14,9 @@
 
 #include <glog/logging.h>
 
-#include "dispatch_thread.h"
 #include "net/src/server_socket.h"
-#include "pstd/include/testutil.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
@@ -134,7 +133,7 @@ int ServerThread::InitHandle() {
     ips_.insert("0.0.0.0");
   }
 
-  for (const auto& ip : ips_) {
+  for (const auto & ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
     ret = socket_p->Listen(ip);
@@ -177,7 +176,6 @@ void* ServerThread::ThreadMain() {
   char port_buf[32];
   char ip_addr[INET_ADDRSTRLEN] = "";
 
-
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
@@ -198,7 +196,6 @@ void* ServerThread::ThreadMain() {
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
-
 
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);

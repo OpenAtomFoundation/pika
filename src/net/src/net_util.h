@@ -5,17 +5,10 @@
 
 #ifndef NET_SRC_NET_UTIL_H_
 #define NET_SRC_NET_UTIL_H_
-#include <unistd.h>
-#include <functional>
-#include <memory>
-#include <string>
-#include <vector>
 
 namespace net {
 
 int Setnonblocking(int sockfd);
-
-
 
 }  // namespace net
 

@@ -1,7 +1,6 @@
 #ifndef __PSTD_ENV_H__
 #define __PSTD_ENV_H__
 
-
 #include <unistd.h>
 #include <string>
 #include <vector>
@@ -153,5 +152,6 @@ class RandomRWFile : public pstd::noncopyable {
     return Status::OK();
   }
 };
+
 }  // namespace pstd
 #endif  // __PSTD_ENV_H__

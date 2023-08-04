@@ -936,4 +936,3 @@ test_sunionstore_replication()
 #     test_zinterstore_replication()
 #     delay_slave_of = not delay_slave_of
 # ---------For Local Stress Test---------End
-

@@ -72,49 +72,6 @@ class LLenCmd : public Cmd {
   void DoInitial() override;
 };
 
-class BlockingBaseCmd : public Cmd {
- public:
-  BlockingBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-
-  //blpop/brpop used start
-  struct WriteBinlogOfPopArgs{
-    BlockKeyType block_type;
-    std::string key;
-    std::shared_ptr<Slot> slot;
-    std::shared_ptr<net::NetConn> conn;
-    WriteBinlogOfPopArgs() = default;
-    WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
-                         std::shared_ptr<Slot> slot_, std::shared_ptr<net::NetConn> conn_)
-        : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
-  };
-  void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
-  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
-  static void ServeAndUnblockConns(void* args);
-  static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);
-  void removeDuplicates(std::vector<std::string> & keys_);
-  //blpop/brpop used functions end
-};
-
-class BLPopCmd final : public BlockingBaseCmd {
- public:
-  BLPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const {
-    return { keys_ };
-  }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new BLPopCmd(*this); }
-  void DoInitial() override;
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
-
- private:
-  std::vector<std::string> keys_;
-  int64_t expire_time_{0};
-  WriteBinlogOfPopArgs binlog_args_;
-  bool is_binlog_deferred_{false};
-};
-
 class LPopCmd : public Cmd {
  public:
   LPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
@@ -134,10 +91,9 @@ class LPopCmd : public Cmd {
   void DoInitial() override;
 };
 
-
-class LPushCmd : public BlockingBaseCmd {
+class LPushCmd : public Cmd {
  public:
-  LPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  LPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -254,25 +210,6 @@ class LTrimCmd : public Cmd {
   void DoInitial() override;
 };
 
-class BRPopCmd final : public BlockingBaseCmd {
- public:
-  BRPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const {
-    return { keys_ };
-  }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr);
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new BRPopCmd(*this); }
-  void DoInitial() override;
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
- private:
-  std::vector<std::string> keys_;
-  int64_t expire_time_{0};
-  WriteBinlogOfPopArgs binlog_args_;
-  bool is_binlog_deferred_{false};
-};
-
 class RPopCmd : public Cmd {
  public:
   RPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
@@ -292,14 +229,14 @@ class RPopCmd : public Cmd {
   void DoInitial() override;
 };
 
-class RPopLPushCmd : public BlockingBaseCmd {
+class RPopLPushCmd : public Cmd {
  public:
-  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag) {
+  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
     rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
     lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
-      : BlockingBaseCmd(other),
+      : Cmd(other),
         source_(other.source_),
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
@@ -330,9 +267,9 @@ class RPopLPushCmd : public BlockingBaseCmd {
   void DoInitial() override;
 };
 
-class RPushCmd : public BlockingBaseCmd {
+class RPushCmd : public Cmd {
  public:
-  RPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  RPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
