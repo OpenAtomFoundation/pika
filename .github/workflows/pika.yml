@@ -2,9 +2,9 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable" ]
+    branches: [ "unstable", "3.5.0"]
   pull_request:
-    branches: [ "unstable" ]
+    branches: [ "unstable", "3.5.0"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
