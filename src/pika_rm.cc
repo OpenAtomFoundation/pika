@@ -486,14 +486,9 @@ Status SyncMasterSlot::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) 
   return coordinator_.ProposeLog(cmd_ptr);
 }
 
-Status SyncMasterSlot::ConsensusSanityCheck() { return coordinator_.CheckEnoughFollower(); }
 
 Status SyncMasterSlot::ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute) {
   return coordinator_.ProcessLeaderLog(cmd_ptr, attribute);
-}
-
-Status SyncMasterSlot::ConsensusProcessLocalUpdate(const LogOffset& leader_commit) {
-  return coordinator_.ProcessLocalUpdate(leader_commit);
 }
 
 LogOffset SyncMasterSlot::ConsensusCommittedIndex() { return coordinator_.committed_index(); }

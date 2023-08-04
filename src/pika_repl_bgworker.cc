@@ -183,7 +183,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     LogOffset leader_commit;
     ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
     // Update follower commit && apply
-    slot->ConsensusProcessLocalUpdate(leader_commit);
+    return;
   }
 
   LogOffset ack_end;
