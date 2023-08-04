@@ -16,7 +16,7 @@ namespace net {
 
 DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                                const ServerHandle* handle)
-    : ServerThread::ServerThread(port, cron_interval, handle, this),
+    : ServerThread::ServerThread(port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
@@ -27,7 +27,7 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
 
 DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ip, port, cron_interval, handle, this),
+    : ServerThread::ServerThread(ip, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit){
@@ -38,7 +38,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
 
 DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ips, port, cron_interval, handle, this),
+    : ServerThread::ServerThread(ips, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
       queue_limit_(queue_limit) {
@@ -64,6 +64,13 @@ int DispatchThread::StartThread() {
       return ret;
     }
   }
+
+  // Adding timer tasks and run timertaskThread
+  timerTaskThread_.AddTimerTask(
+      "blrpop_blocking_info_scan", 250, true, [this] { this->ScanExpiredBlockedConnsOfBlrpop();});
+
+
+  timerTaskThread_.StartThread();
   return ServerThread::StartThread();
 }
 
@@ -84,6 +91,7 @@ int DispatchThread::StopThread() {
       worker_thread_[i]->private_data_ = nullptr;
     }
   }
+  timerTaskThread_.StopThread();
   return ServerThread::StopThread();
 }
 
@@ -253,7 +261,6 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
-TimerTaskManager* DispatchThread::GetTimerTaskManager() { return &timerTaskManager; }
 
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                                        int queue_limit, const ServerHandle* handle) {
