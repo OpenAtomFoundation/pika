@@ -175,6 +175,7 @@ class ServerThread : public Thread {
 
   // process events in notify_queue
   virtual void ProcessNotifyEvents(const NetFiredEvent* pfe);
+  
 
   const ServerHandle* handle_;
   bool own_handle_ = false;
