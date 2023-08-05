@@ -7,6 +7,7 @@
 
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/statvfs.h>
 
 #include <algorithm>
 #include <unordered_map>
@@ -1176,10 +1177,6 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << db_name << " binlog_offset=" << filenum << " " << offset;
       s = master_slot->GetSafetyPurgeBinlog(&safety_purge);
       tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
-      if (g_pika_conf->consensus_level() != 0) {
-        LogOffset last_log = master_slot->ConsensusLastIndex();
-        tmp_stream << db_name << " consensus last_log=" << last_log.ToString() << "\r\n";
-      }
     }
   }
 
@@ -2649,6 +2646,58 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.AppendArrayLenUint64(fvs.size() * 2);
   res_.AppendStringRaw(raw);
+}
+
+void DiskRecoveryCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDiskRecovery);
+    return;
+  }
+}
+
+void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
+  struct statvfs disk_info;
+  int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
+  if (ret == -1) {
+    std::stringstream tmp_stream;
+    tmp_stream << "statvfs error:" << strerror(errno);
+    const std::string res = tmp_stream.str();
+    res_.SetRes(CmdRes::kErrOther, res);
+    return;
+  }
+  int64_t least_free_size = g_pika_conf->least_resume_free_disk_size();
+  uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
+  if (free_size < least_free_size) {
+    res_.SetRes(CmdRes::kErrOther, "The available disk capacity is insufficient");
+    return;
+  }
+  std::shared_mutex slots_rw;
+  std::shared_mutex dbs_rw;
+  std::shared_lock db_rwl(dbs_rw);
+  // loop every db
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    if (!db_item.second) {
+      continue;
+    }
+    db_item.second->SetBinlogIoErrorrelieve();
+    std::shared_lock slot_rwl(slots_rw);
+    // loop every slot
+    for (const auto &slot_item: db_item.second->GetSlots()) {
+      background_errors_.clear();
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
+      slot_item.second->DbRWUnLock();
+      for (const auto &item: background_errors_) {
+        if (item.second != 0) {
+          rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
+          if (!s.ok()) {
+            res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
+          }
+        }
+      }
+    }
+  }
+  res_.SetRes(CmdRes::kOk, "The disk error has been recovered");
 }
 
 #ifdef WITH_COMMAND_DOCS

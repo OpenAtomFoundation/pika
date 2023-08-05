@@ -92,14 +92,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   }
 
-  if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
-    c_ptr->SetStage(Cmd::kBinlogStage);
-  }
-  if (!g_pika_server->IsCommandSupport(opt)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "This command is not supported in current configuration");
-    return c_ptr;
-  }
-
   // reject all the request before new master sync finished
   if (g_pika_server->leader_protected_mode()) {
     c_ptr->res().SetRes(CmdRes::kErrOther, "Cannot process command before new leader sync finished");
@@ -124,9 +116,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     if (g_pika_server->readonly(current_db_, cur_key.front())) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
-    }
-    if (!g_pika_server->ConsensusCheck(current_db_, cur_key.front())) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Consensus level not match");
     }
   }
 
@@ -154,9 +143,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
-  }
-  if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
-    c_ptr->SetStage(Cmd::kExecuteStage);
   }
 
   return c_ptr;
@@ -416,11 +402,8 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   }
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
-  // level == 0 or (cmd error) or (is_read)
-  if (g_pika_conf->consensus_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
-    *resp_ptr = std::move(cmd_ptr->res().message());
-    resp_num--;
-  }
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  resp_num--;
 }
 std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() {
   return txn_cmd_que_;

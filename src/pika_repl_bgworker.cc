@@ -183,7 +183,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     LogOffset leader_commit;
     ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
     // Update follower commit && apply
-    slot->ConsensusProcessLocalUpdate(leader_commit);
+    return;
   }
 
   LogOffset ack_end;
@@ -274,16 +274,5 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
         LOG(ERROR) << "command: " << argv[0] << ", start_time(s): " << start_time << ", duration(us): " << duration;
       }
     }
-  }
-
-
-  if (g_pika_conf->consensus_level() != 0) {
-    std::shared_ptr<SyncMasterSlot> slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-    if (!slot) {
-      LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
-      return;
-    }
-    slot->ConsensusUpdateAppliedIndex(offset);
   }
 }

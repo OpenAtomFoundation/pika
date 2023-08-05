@@ -91,7 +91,6 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status ConsensusSanityCheck();
   pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
-  pstd::Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
   uint32_t ConsensusTerm();
@@ -157,6 +156,8 @@ class SyncSlaveSlot : public SyncSlot {
   void SetLocalIp(const std::string& local_ip);
 
   std::string LocalIp();
+
+  void StopRsync();
 
   void ActivateRsync();
 

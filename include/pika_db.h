@@ -32,6 +32,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool FlushSlotDB();
   bool FlushSlotSubDB(const std::string& db_name);
   void SetBinlogIoError();
+  void SetBinlogIoErrorrelieve();
   bool IsBinlogIoError();
   uint32_t SlotNum();
   void GetAllSlots(std::set<uint32_t>& slot_ids);
@@ -59,7 +60,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool DBIsEmpty();
   pstd::Status MovetoToTrash(const std::string& path);
   pstd::Status Leave();
-
+  std::map<uint32_t, std::shared_ptr<Slot>> GetSlots() {
+    return slots_;
+  }
  private:
   std::string db_name_;
   uint32_t slot_num_ = 0;

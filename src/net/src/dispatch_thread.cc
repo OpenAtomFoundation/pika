@@ -23,7 +23,6 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
@@ -35,7 +34,6 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
@@ -47,7 +45,6 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
-  timed_scan_thread.SetTimedTask(0.3, [this]{this->ScanExpiredBlockedConnsOfBlrpop();});
 }
 
 DispatchThread::~DispatchThread() = default;
@@ -67,7 +64,13 @@ int DispatchThread::StartThread() {
       return ret;
     }
   }
-  timed_scan_thread.StartThread();
+
+  // Adding timer tasks and run timertaskThread
+  timerTaskThread_.AddTimerTask(
+      "blrpop_blocking_info_scan", 250, true, [this] { this->ScanExpiredBlockedConnsOfBlrpop();});
+
+
+  timerTaskThread_.StartThread();
   return ServerThread::StartThread();
 }
 
@@ -88,7 +91,7 @@ int DispatchThread::StopThread() {
       worker_thread_[i]->private_data_ = nullptr;
     }
   }
-  timed_scan_thread.StopThread();
+  timerTaskThread_.StopThread();
   return ServerThread::StopThread();
 }
 

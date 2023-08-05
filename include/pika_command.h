@@ -51,6 +51,7 @@ const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
 const std::string kCmdNameHello = "hello";
 const std::string kCmdNameCommand = "command";
+const std::string kCmdNameDiskRecovery = "diskrecovery";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
