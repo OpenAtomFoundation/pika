@@ -27,6 +27,7 @@ jobs:
 
     - name: Test
       run: |
+       cd codis && make -j
 
    build_codis_image:
     name: Build Codis Docker image
@@ -49,4 +50,3 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-       cd codis && make -j
