@@ -29,7 +29,7 @@ jobs:
       run: |
        cd codis && make -j
 
-   build_codis_image:
+  build_codis_image:
     name: Build Codis Docker image
     runs-on: ubuntu-latest
     steps:
