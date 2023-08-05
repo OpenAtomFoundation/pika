@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-sentinel-scripts
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+data:
+  redis-sentinel-setup.sh: |-
+    {{- .Files.Get "scripts/redis-sentinel-setup.sh.tpl" | nindent 4 }}
+  redis-sentinel-start.sh: |-
+    {{- .Files.Get "scripts/redis-sentinel-start.sh.tpl" | nindent 4 }}
+  redis-sentinel-post-start.sh: |-
+    #!/bin/sh
+    set -ex
+    # set default user password and replication user password
+    if [ ! -z "$SENTINEL_PASSWORD" ]; then
+      until redis-cli -h 127.0.0.1 -p 26379 -a $SENTINEL_PASSWORD ping; do sleep 1; done
+      redis-cli -h 127.0.0.1 -p 26379 ACL SETUSER $SENTINEL_USER ON \>$SENTINEL_PASSWORD allchannels +@all
+    fi
+  redis-sentinel-ping.sh: |-
+    #!/bin/sh
+    set -e
+    if [ ! -z "$SENTINEL_PASSWORD" ]; then
+      cmd="redis-cli -h localhost -p 26379 -a $SENTINEL_PASSWORD ping"
+    else
+      cmd="redis-cli -h localhost -p 26379 ping"
+    fi
+    response=$(timeout -s 3 $1 $cmd)
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi

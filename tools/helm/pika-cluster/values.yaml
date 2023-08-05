@@ -13,8 +13,6 @@ etcdReplicaCount: 3
 
 codisProxyReplicaCount: 2
 
-codisHaReplicaCount: 2
-
 codisFeReplicaCount: 2
 
 codisDashboardReplicaCount: 2

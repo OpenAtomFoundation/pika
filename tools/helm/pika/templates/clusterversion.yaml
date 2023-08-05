@@ -30,12 +30,6 @@ spec:
         - name: codis-proxy
           image: {{ include "codis.image" . }}
           imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
-  - componentDefRef: codis-ha
-    versionsContext:
-      containers:
-        - name: codis-ha
-          image: {{ include "codis.image" . }}
-          imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
   - componentDefRef: codis-fe
     versionsContext:
       containers:

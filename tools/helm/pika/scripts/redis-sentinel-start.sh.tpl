@@ -3,14 +3,14 @@ set -e
 {{- $clusterName := $.cluster.metadata.name }}
 {{- $namespace := $.cluster.metadata.namespace }}
 {{- /* find redis component */}}
-{{- $redis_component := fromJson "{}" }}
+{{- $pika_component := fromJson "{}" }}
 {{- range $i, $e := $.cluster.spec.componentSpecs }}
-  {{- if eq $e.componentDefRef "redis" }}
-  {{- $redis_component = $e }}
+  {{- if eq $e.componentDefRef "pika" }}
+  {{- $pika_component = $e }}
   {{- end }}
 {{- end }}
 {{- /* build redis engine service */}}
-{{- $primary_svc := printf "%s-%s.%s.svc" $clusterName $redis_component.name $namespace }}
+{{- $primary_svc := printf "%s-%s.%s.svc" $clusterName $pika_component.name $namespace }}
 echo "Waiting for redis service {{ $primary_svc }} to be ready..."
 until redis-cli -h {{ $primary_svc }} -p 6379 -a $REDIS_DEFAULT_PASSWORD ping; do sleep 1; done
 echo "redis service ready, Starting sentinel..."

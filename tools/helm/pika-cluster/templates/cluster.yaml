@@ -114,28 +114,6 @@ spec:
               requests:
                 storage: {{ .Values.persistence.data.size }}
       {{- end }}
-    - name: codis-ha
-      componentDefRef: codis-ha # ref clusterDefinition componentDefs.name
-      replicas: {{ .Values.codisHaReplicaCount | default 2 }}
-      {{- with  .Values.resources }}
-      resources:
-        limits:
-          cpu: {{ .limits.cpu | quote }}
-          memory: {{ .limits.memory | quote }}
-        requests:
-          cpu: {{ .requests.cpu | quote }}
-          memory: {{ .requests.memory | quote }}
-      {{- end }}
-      {{- if .Values.persistence.enabled }}
-      volumeClaimTemplates:
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: {{ .Values.persistence.data.size }}
-      {{- end }}
     - name: codis-fe
       componentDefRef: codis-fe # ref clusterDefinition componentDefs.name
       replicas: {{ .Values.codisFeReplicaCount | default 2 }}

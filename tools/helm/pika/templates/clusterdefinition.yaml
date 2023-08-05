@@ -58,6 +58,12 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
+      scriptSpecs:
+        - name: redis-scripts
+          templateRef: redis-sentinel-scripts
+          namespace: {{ .Release.Namespace }}
+          volumeName: scripts
+          defaultMode: 493
       volumeTypes:
         - name: data
           type: data
@@ -73,6 +79,8 @@ spec:
               mountPath: /data
             - name: config
               mountPath: /etc/sentinel
+            - name: scripts
+              mountPath: /scripts
           command:
             - /bin/bash
           args:
@@ -96,24 +104,24 @@ spec:
             securityContext:
               runAsNonRoot: true
               runAsUser: 1001
-           # livenessProbe:
-           #   exec:
-           #     command:
-           #       - /opt/bitnami/scripts/etcd/healthcheck.sh
-           #   failureThreshold: 5
-           #   initialDelaySeconds: 60
-           #   periodSeconds: 30
-           #   successThreshold: 1
-           #   timeoutSeconds: 5
-           # readinessProbe:
-           #   exec:
-           #     command:
-           #       - /opt/bitnami/scripts/etcd/healthcheck.sh
-           #   failureThreshold: 5
-           #   initialDelaySeconds: 60
-           #   periodSeconds: 10
-           #   successThreshold: 1
-           #   timeoutSeconds: 5
+            livenessProbe:
+              exec:
+                command:
+                  - /opt/bitnami/scripts/etcd/healthcheck.sh
+              failureThreshold: 5
+              initialDelaySeconds: 60
+              periodSeconds: 30
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              exec:
+                command:
+                  - /opt/bitnami/scripts/etcd/healthcheck.sh
+              failureThreshold: 5
+              initialDelaySeconds: 60
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 5
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
             volumeMounts:
@@ -174,7 +182,7 @@ spec:
               - name: ETCD_ENABLE_V2
                 value: "true"
     - name: codis-proxy
-      workloadType: Replication
+      workloadType: Stateless
       characterType: pika
       service:
         ports:
@@ -190,6 +198,19 @@ spec:
           namespace: {{ .Release.Namespace }}
           volumeName: config
       podSpec:
+        initContainers:
+          - name: wait-etcd
+            env:
+            - name: ETCD_ADDR
+              value: "pika-cluster-etcd-headless"
+            - name: DASHBOARD_ADDR
+              value: "pika-cluster-codis-dashboard"
+            image: busybox:1.28
+            command:
+              - 'sh'
+              - '-c'
+              - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
+              - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
         containers:
         - name: codis-proxy
           imagePullPolicy: IfNotPresent
@@ -211,7 +232,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
             - name: DASHBOARD_ADDR
               value: "pika-cluster-codis-dashboard:18080"
             - name: PRODUCT_NAME
@@ -231,54 +252,14 @@ spec:
             - "$(PRODUCT_NAME)"
             - "--pidfile"
             - "log/proxy.pid"
-         #lifecycle:
-         #  postStart:
-         #    exec:
-         #      command:
-         #        - "/bin/sh"
-         #        - "-c"
-         #        - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
-    - name: codis-ha
-      workloadType: Stateful
-      characterType: pika
-      service:
-        ports:
-          - name: codis-ha
-            targetPort: codis-ha
-            port: 12345
-      configSpecs:
-        - name: codis-ha-config
-          templateRef: pika-conf-template
-          namespace: {{ .Release.Namespace }}
-          volumeName: config
-      volumeTypes:
-        - name: data
-          type: data
-      podSpec:
-        containers:
-        - name: codis-ha
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 26379
-              name: pika-sentinel
-          volumeMounts:
-            - name: data
-              mountPath: /data
-            - name: config
-              mountPath: /etc/codis
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: DASHBOARD_ADDR
-              value: "pika-cluster-codis-dashboard:18080"
-          command:
-            - "/codis/bin/codis-ha"
-          args:
-            - "--interval"
-            - "5"
-            - "--dashboard=$(DASHBOARD_ADDR)"
+            - "--log-level=DEBUG"
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
     - name: codis-fe
       workloadType: Stateless
       characterType: pika
@@ -288,6 +269,19 @@ spec:
             targetPort: fe
             port: 8080
       podSpec:
+        initContainers:
+          - name: wait-etcd
+            env:
+              - name: ETCD_ADDR
+                value: "pika-cluster-etcd-headless"
+              - name: DASHBOARD_ADDR
+                value: "pika-cluster-codis-dashboard"
+            image: busybox:1.28
+            command:
+              - 'sh'
+              - '-c'
+              - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
+              - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
         containers:
         - name: codis-fe
           imagePullPolicy: IfNotPresent
@@ -304,14 +298,15 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
           command:
             - "/codis/bin/codis-fe"
           args:
           - "--etcd"
           - "$(ETCD_ADDR)"
-          - "--listen=$(POD_IP):8080"
+          - "--listen=0.0.0.0:8080"
           - "--assets=/codis/bin/assets"
+          - "--log-level=DEBUG"
     - name: codis-dashboard
       workloadType: Stateful
       characterType: pika
@@ -329,6 +324,16 @@ spec:
         - name: data
           type: data
       podSpec:
+        initContainers:
+          - name: wait-etcd
+            env:
+              - name: ETCD_ADDR
+                value: "pika-cluster-etcd-headless"
+            image: busybox:1.28
+            command:
+              - 'sh'
+              - '-c'
+              - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
         containers:
         - name: codis-dashboard
           imagePullPolicy: IfNotPresent
@@ -350,7 +355,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless.default.svc.cluster.local:2379,pika-cluster-etcd-2.pika-cluster-etcd-headless.default.svc.cluster.local:2379"
+              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
             - name: PRODUCT_NAME
               value: "codis-test"
           command:
@@ -367,10 +372,11 @@ spec:
             - "--pidfile"
             - "log/dashboard.pid"
             - "--remove-lock"
-         #lifecycle:
-         #  postStart:
-         #    exec:
-         #      command: ["/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}"]
-         #  preStop:
-         #    exec:
-         #      command: ["/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done"]
+            - "--log-level=DEBUG"
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done"]
