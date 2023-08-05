@@ -5,6 +5,8 @@ on:
     - cron: '0 2 * * *' # run at 2 AM UTC
   push:
     branches: [ "unstable", "3.5.0" ]
+  pull_request:
+    branches: [ "unstable", "3.5.0" ]
 
 jobs:
   push_pika_to_registry:
@@ -24,7 +26,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: pikadb/pika-dev-nightly
+          images: machinly/pika-dev-nightly
       
       - name: Build and push Docker image
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
@@ -52,7 +54,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: pikadb/codis-dev-nightly
+          images: machinly/codis-dev-nightly
       
       - name: Build and push Docker image
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
