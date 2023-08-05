@@ -3,6 +3,8 @@ name: Publish Docker image Nightly
 on:
   schedule:
     - cron: '0 2 * * *' # run at 2 AM UTC
+  push:
+    branches: [ "unstable", "3.5.0" ]
 
 jobs:
   push_pika_to_registry:
