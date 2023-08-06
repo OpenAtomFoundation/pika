@@ -61,9 +61,14 @@ Define image
 {{ .Values.pika.pika.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}
 
+{{/*
+Define codis image
+*/}}
+
 {{- define "codis.image" -}}
 {{ .Values.pika.codis.image.registry | default "docker.io" }}/{{ .Values.pika.codis.image.repository }}:{{ .Values.pika.codis.image.tag }}
 {{- end }}
+
 {{- define "codis.imagePullPolicy" -}}
 {{ .Values.pika.codis.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}

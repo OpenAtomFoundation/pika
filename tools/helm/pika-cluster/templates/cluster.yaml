@@ -116,7 +116,7 @@ spec:
       {{- end }}
     - name: codis-fe
       componentDefRef: codis-fe # ref clusterDefinition componentDefs.name
-      replicas: {{ .Values.codisFeReplicaCount | default 2 }}
+      replicas: {{ .Values.codisFeReplicaCount | default 1 }}
       {{- with  .Values.resources }}
       resources:
         limits:
@@ -138,7 +138,7 @@ spec:
       {{- end }}
     - name: codis-dashboard
       componentDefRef: codis-dashboard # ref clusterDefinition componentDefs.name
-      replicas: {{ .Values.codisDashboardReplicaCount | default 2 }}
+      replicas: 1
     {{- with  .Values.resources }}
       resources:
         limits:
