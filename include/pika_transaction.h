@@ -47,11 +47,13 @@ class ExecCmd : public Cmd {
   void Unlock();
   bool IsTxnFailedAndSetState();
   void SetCmdsVec();
+  void ServeToBLrPopWithKeys();
   std::unordered_set<std::shared_ptr<DB>> lock_db_{};
   std::unordered_map<std::shared_ptr<Slot>, std::vector<std::string>> lock_slot_keys_{};
   std::unordered_set<std::shared_ptr<Slot>> r_lock_slots_{};
   bool is_lock_rm_slots_{false};  // g_pika_rm->slots_rw_;
   std::vector<CmdInfo> cmds_;
+  std::vector<CmdInfo> list_cmd_;
   std::vector<std::string> keys_;
 };
 class DiscardCmd : public Cmd {

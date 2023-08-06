@@ -76,7 +76,6 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringRaw(r.message());
   }
 }
-// 如果是multi和exec的话，不应该写binlog
 void ExecCmd::Execute() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -96,6 +95,8 @@ void ExecCmd::Execute() {
   Lock();
   Do();
   Unlock();
+  ServeToBLrPopWithKeys();
+  list_cmd_.clear();
   client_conn->ExitTxn();
 }
 
@@ -188,8 +189,24 @@ void ExecCmd::SetCmdsVec() {
       }
       auto cmd_keys = cmd->current_key();
       lock_slot_keys_[cmd_slot].insert(lock_slot_keys_[cmd_slot].end(), cmd_keys.begin(), cmd_keys.end());
+      if (cmd->name() == kCmdNameLPush || cmd->name() == kCmdNameRPush) {
+        list_cmd_.insert(list_cmd_.end(), cmds_.back());
+      }
     }
     cmd_que.pop();
+  }
+}
+
+void ExecCmd::ServeToBLrPopWithKeys() {
+  for (auto each_list_cmd : list_cmd_) {
+    auto push_keys =  each_list_cmd.cmd_->current_key();
+    auto type_status = std::map<storage::DataType, storage::Status>{};
+    if (each_list_cmd.slot_->db()->Exists(push_keys, &type_status)) {
+      if (type_status.count(storage::DataType::kLists) > 0) {
+        // TODO(leehao for junhua): 这里需要将这些key所牵扯到的客户端（阻塞的）给释放掉
+
+      }
+    }
   }
 }
 
@@ -197,7 +214,6 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto mp = std::map<storage::DataType, storage::Status>{};
   auto type_count = slot->db()->Exists(keys_, &mp);
   if (type_count > 1) {
-    // 说明一个key里面有多种类型
     res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
     return;
   }

@@ -205,6 +205,11 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
+    if (client_conn->IsInTxn()) {
+      return;
+    }
+  }
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
@@ -292,16 +297,19 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
       return;
     }
   }
-  /*
-   * To Do: If blpop is exec within a transaction and no elements can pop from keys_,
-   * jsut return nil(-1), do not block the conn, maybe need to add a if here
-   */
   is_binlog_deferred_ = true;
+  if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
+    if (client_conn->IsInTxn()) {
+      // TODO(leehao for junhua): 这里需要将dispatcher里面记录的map信息给删掉
+      res_.AppendArrayLen(-1);
+      return ;
+    }
+  }
   BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
 }
 
 void BLPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(is_binlog_deferred_){
+  if(is_binlog_deferred_) {
     return;
   }
   std::vector<WriteBinlogOfPopArgs> args;
@@ -495,11 +503,14 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
       return;
     }
   }
-  /*
-   * nedd To Do: If blpop is exec within a transaction and no elements can pop from keys_,
-   * jsut return nil(-1), do not block the conn, maybe need to add a if here
-   */
   is_binlog_deferred_ = true;
+  if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
+    if (client_conn->IsInTxn()) {
+      // TODO(leehao for junhua): 这里需要将dispatcher里面记录的map信息给删掉
+      res_.AppendArrayLen(-1);
+      return ;
+    }
+  }
   BlockThisClientToWaitLRPush(BlockKeyType::Brpop, keys_, expire_time_);
 }
 
@@ -646,6 +657,11 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
     AddSlotKey("l", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
+    if (client_conn->IsInTxn()) {
+      return;
+    }
   }
   TryToServeBLrPopWithThisKey(key_, slot);
 }
