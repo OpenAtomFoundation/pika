@@ -784,6 +784,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
   *ret = 0;
   uint32_t statistic = 0;
   double min_score = min;
+  double parsed_zsets_score_key_score = 0;
   std::string meta_value;
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
@@ -806,28 +807,29 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
         bool left_pass = false;
         bool right_pass = false;
         ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+        parsed_zsets_score_key_score = parsed_zsets_score_key.score();
         if (parsed_zsets_score_key.key() != key) {
           break;
         }
         if (parsed_zsets_score_key.version() != version) {
           break;
         }
-        if (!left_close && left_close_flag && parsed_zsets_score_key.score() > min) {
-          min_score = parsed_zsets_score_key.score();
+        if (!left_close && left_close_flag && parsed_zsets_score_key_score > min) {
+          min_score = parsed_zsets_score_key_score;
           left_close_flag = false;
         }
-        if ((left_close && min <= parsed_zsets_score_key.score()) ||
-            (!left_close && min < parsed_zsets_score_key.score())) {
+        if ((left_close && min <= parsed_zsets_score_key_score) ||
+            (!left_close && min < parsed_zsets_score_key_score)) {
           left_pass = true;
         }
-        if ((right_close && parsed_zsets_score_key.score() <= max) ||
-            (!right_close && parsed_zsets_score_key.score() < max)) {
+        if ((right_close && parsed_zsets_score_key_score <= max) ||
+            (!right_close && parsed_zsets_score_key_score < max)) {
           right_pass = true;
         }
         if (left_pass && right_pass) {
           ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
           batch.Delete(handles_[1], zsets_member_key.Encode());
-          if (parsed_zsets_score_key.score() == max) {
+          if (parsed_zsets_score_key_score == max) {
             batch.Delete(handles_[2], iter->key());
           }
           del_cnt++;
