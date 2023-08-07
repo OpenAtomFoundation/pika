@@ -7,32 +7,33 @@ metadata:
 spec:
   clusterDefinitionRef: pika
   componentVersions:
-  - componentDefRef: pika
-    versionsContext:
-      containers:
-      - name: pika
-        image: {{ include "pika.image" . }}
-        imagePullPolicy: {{ default .Values.pika.imagePullPolicy "IfNotPresent" }}
-  - componentDefRef: etcd
-    versionsContext:
-      containers:
-        - name: etcd
-          image: {{ .Values.pika.etcd.repository }}:{{ default .Chart.AppVersion .Values.pika.etcd.tag }}
-  - componentDefRef: codis-proxy
-    versionsContext:
-      containers:
-        - name: codis-proxy
-          image: {{ include "codis.image" . }}
-          imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
-  - componentDefRef: codis-fe
-    versionsContext:
-      containers:
-      - name: codis-fe
-        image: {{ include "codis.image" . }}
-        imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
-  - componentDefRef: codis-dashboard
-    versionsContext:
-      containers:
-      - name: codis-dashboard
-        image: {{ include "codis.image" . }}
-        imagePullPolicy: {{ default .Values.imagePullPolicy "IfNotPresent" }}
+    - componentDefRef: pika
+      versionsContext:
+        containers:
+          - name: pika
+            image: {{ include "pika.image" . }}
+            imagePullPolicy: {{ include "pika.imagePullPolicy" . }}
+    - componentDefRef: etcd
+      versionsContext:
+        containers:
+          - name: etcd
+            image: {{ include "etcd.image" . }}
+            imagePullPolicy: {{ include "etcd.imagePullPolicy" . }}
+    - componentDefRef: codis-proxy
+      versionsContext:
+        containers:
+          - name: codis-proxy
+            image: {{ include "codis.image" . }}
+            imagePullPolicy: {{ include "codis.imagePullPolicy" . }}
+    - componentDefRef: codis-fe
+      versionsContext:
+        containers:
+          - name: codis-fe
+            image: {{ include "codis.image" . }}
+            imagePullPolicy: {{ include "codis.imagePullPolicy" . }}
+    - componentDefRef: codis-dashboard
+      versionsContext:
+        containers:
+          - name: codis-dashboard
+            image: {{ include "codis.image" . }}
+            imagePullPolicy: {{ include "codis.imagePullPolicy" . }}

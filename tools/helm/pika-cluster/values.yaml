@@ -38,7 +38,7 @@ resources:
     memory: 1Gi
 
 persistence:
-  enabled: false
+  enabled: true
   data:
     storageClassName:
     size: 1Gi
@@ -57,3 +57,5 @@ tolerations: [ ]
 # The RBAC permission used by cluster component pod, now include event.create
 serviceAccount:
   name: ""
+
+etcdAddrs: "etcd-0.etcd-headless.default.svc.cluster.local:2379,etcd-1.etcd-headless.default.svc.cluster.local:2379,etcd-2.etcd-headless.default.svc.cluster.local:2379"

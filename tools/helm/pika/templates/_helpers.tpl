@@ -54,11 +54,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Define image
 */}}
 {{- define "pika.image" -}}
-{{ .Values.pika.pika.image.registry | default "docker.io" }}/{{ .Values.pika.pika.image.repository }}:{{ .Values.pika.pika.image.tag }}
+{{ .Values.image.pika.registry | default "docker.io" }}/{{ .Values.image.pika.repository }}:{{ .Values.image.pika.tag }}
 {{- end }}
 
 {{- define "pika.imagePullPolicy" -}}
-{{ .Values.pika.pika.image.pullPolicy | default "IfNotPresent" }}
+{{ .Values.image.pika.pullPolicy | default "IfNotPresent" }}
 {{- end }}
 
 {{/*
@@ -66,9 +66,51 @@ Define codis image
 */}}
 
 {{- define "codis.image" -}}
-{{ .Values.pika.codis.image.registry | default "docker.io" }}/{{ .Values.pika.codis.image.repository }}:{{ .Values.pika.codis.image.tag }}
+{{ .Values.image.codis.registry | default "docker.io" }}/{{ .Values.image.codis.repository }}:{{ .Values.image.codis.tag }}
 {{- end }}
 
 {{- define "codis.imagePullPolicy" -}}
-{{ .Values.pika.codis.image.pullPolicy | default "IfNotPresent" }}
+{{ .Values.image.codis.pullPolicy | default "IfNotPresent" }}
 {{- end }}
+
+{{/*
+Define etcd image
+*/}}
+
+{{- define "etcd.image" -}}
+{{ .Values.image.etcd.registry | default "docker.io" }}/{{ .Values.image.etcd.repository }}:{{ .Values.image.etcd.tag }}
+{{- end }}
+
+{{- define "etcd.imagePullPolicy" -}}
+{{ .Values.image.etcd.pullPolicy | default "IfNotPresent" }}
+{{- end }}
+
+{{/*
+Define ETCD env
+*/}}
+
+{{- define "etcd.name" -}}
+$(KB_CLUSTER_NAME)-etcd
+{{- end}}
+
+{{- define "etcd.clusterDomain" -}}
+{{ include "etcd.name" .}}-headless.$(KB_NAMESPACE).svc{{.Values.clusterDomain}}
+{{- end}}
+
+{{- define "etcd.clusterDomainNoHeadless" -}}
+{{ include "etcd.name" .}}-headless.$(KB_NAMESPACE).svc{{.Values.clusterDomain}}
+{{- end}}
+
+{{- define "etcd.clusterDomainPort" -}}
+{{ include "etcd.clusterDomain" .}}:2380
+{{- end}}
+
+{{- define "etcd.initialCluster" -}}
+{{- include "etcd.name" .}}-0=http://{{ include "etcd.name" .}}-0.{{ include "etcd.clusterDomainPort" .}},
+{{- include "etcd.name" .}}-1=http://{{ include "etcd.name" .}}-1.{{ include "etcd.clusterDomainPort" .}},
+{{- include "etcd.name" .}}-2=http://{{ include "etcd.name" .}}-2.{{ include "etcd.clusterDomainPort" .}}
+{{- end}}
+
+{{- define "etcd.advertiseClientURLs" -}}
+http://$(KB_POD_FQDN):2379,http://{{ include "etcd.clusterDomain" .}}:2379,http://{{ include "etcd.clusterDomainNoHeadless" .}}:2379
+{{- end}}

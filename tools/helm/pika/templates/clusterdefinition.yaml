@@ -48,7 +48,17 @@ spec:
     - name: etcd
       workloadType: Stateful
       characterType: etcd
-      probes:
+      service:
+        ports:
+          - name: client
+            port: 2379
+            targetPort: client
+          - name: peer
+            port: 2380
+            targetPort: peer
+      volumeTypes:
+        - name: data
+          type: data
       configSpecs:
       podSpec:
         containers:
@@ -57,24 +67,6 @@ spec:
             securityContext:
               runAsNonRoot: true
               runAsUser: 1001
-            livenessProbe:
-              exec:
-                command:
-                  - /opt/bitnami/scripts/etcd/healthcheck.sh
-              failureThreshold: 5
-              initialDelaySeconds: 60
-              periodSeconds: 30
-              successThreshold: 1
-              timeoutSeconds: 5
-            readinessProbe:
-              exec:
-                command:
-                  - /opt/bitnami/scripts/etcd/healthcheck.sh
-              failureThreshold: 5
-              initialDelaySeconds: 60
-              periodSeconds: 10
-              successThreshold: 1
-              timeoutSeconds: 5
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
             volumeMounts:
@@ -87,7 +79,7 @@ spec:
                 containerPort: 2380
             env:
               - name: BITNAMI_DEBUG
-                value: "false"
+                value: "true"
               - name: MY_POD_IP
                 valueFrom:
                   fieldRef:
@@ -98,6 +90,8 @@ spec:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.name
+              - name: MY_STS_NAME
+                value: $(KB_CLUSTER_COMP_NAME)
               - name: ETCDCTL_API
                 value: "3"
               - name: ETCD_ON_K8S
@@ -114,18 +108,26 @@ spec:
                 value: info
               - name: ALLOW_NONE_AUTHENTICATION
                 value: "yes"
+              - name: ETCD_INITIAL_CLUSTER_TOKEN
+                value: "$(KB_CLUSTER_NAME)"
+              - name: ETCD_INITIAL_CLUSTER_STATE
+                value: "new"
+              - name: ETCD_INITIAL_CLUSTER
+                value: "{{ include "etcd.initialCluster" .}}"
+              - name: ETCD_CLUSTER_DOMAIN
+                value: "{{ include "etcd.clusterDomain" .}}"
+              - name: ETCD_AUTO_COMPACTION_MODE
+                value: "periodic"
+              - name: ETCD_AUTO_COMPACTION_RETENTION
+                value: "1h"
               - name: ETCD_ADVERTISE_CLIENT_URLS
-                value: http://$(MY_POD_NAME).$(KB_CLUSTER_NAME)-etcd-headless.default.svc.cluster.local:2379
+                value: "{{ include "etcd.advertiseClientURLs" .}}"
               - name: ETCD_LISTEN_CLIENT_URLS
                 value: http://0.0.0.0:2379
               - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
-                value: http://$(MY_POD_NAME).$(KB_CLUSTER_NAME)-etcd-headless.default.svc.cluster.local:2380
+                value: http://$(KB_POD_FQDN){{ .Values.clusterDomain }}:2380
               - name: ETCD_LISTEN_PEER_URLS
                 value: http://0.0.0.0:2380
-              - name: ETCD_AUTO_COMPACTION_MODE
-                value: revision
-              - name: ETCD_AUTO_COMPACTION_RETENTION
-                value: "1000"
               - name: ETCD_QUOTA_BACKEND_BYTES
                 value: "4294967296"
               - name: ETCD_HEARTBEAT_INTERVAL
@@ -154,10 +156,10 @@ spec:
         initContainers:
           - name: wait-etcd
             env:
-            - name: ETCD_ADDR
-              value: "pika-cluster-etcd-headless"
-            - name: DASHBOARD_ADDR
-              value: "pika-cluster-codis-dashboard"
+              - name: ETCD_ADDR
+                value: "{{ include "etcd.clusterDomain" .}}"
+              - name: DASHBOARD_ADDR
+                value: "$(KB_CLUSTER_NAME)-codis-dashboard"
             image: busybox:1.28
             command:
               - 'sh'
@@ -165,54 +167,54 @@ spec:
               - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
               - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
         containers:
-        - name: codis-proxy
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 11080
-              name: proxy
-            - containerPort: 19000
-              name: admin
-          volumeMounts:
-            - name: config
-              mountPath: /etc/codis
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
-            - name: DASHBOARD_ADDR
-              value: "pika-cluster-codis-dashboard:18080"
-            - name: PRODUCT_NAME
-              value: "codis-test"
-          command:
-            - "/codis/bin/codis-proxy"
-          args:
-            - "-c"
-            - "/etc/codis/proxy.toml"
-            - "--host-admin"
-            - "$(POD_IP):11080"
-            - "--host-proxy"
-            - "$(POD_IP):19000"
-            - "--etcd"
-            - "$(ETCD_ADDR)"
-            - "--product_name"
-            - "$(PRODUCT_NAME)"
-            - "--pidfile"
-            - "log/proxy.pid"
-            - "--log-level=DEBUG"
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - "/bin/sh"
-                  - "-c"
-                  - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
+          - name: codis-proxy
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 11080
+                name: proxy
+              - containerPort: 19000
+                name: admin
+            volumeMounts:
+              - name: config
+                mountPath: /etc/codis
+            env:
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: ETCD_ADDR
+                value: "{{ include "etcd.clusterDomain" .}}:2379"
+              - name: DASHBOARD_ADDR
+                value: "$(KB_CLUSTER_NAME)-codis-dashboard:18080"
+              - name: PRODUCT_NAME
+                value: "$(KB_CLUSTER_NAME)"
+            command:
+              - "/codis/bin/codis-proxy"
+            args:
+              - "-c"
+              - "/etc/codis/proxy.toml"
+              - "--host-admin"
+              - "$(POD_IP):11080"
+              - "--host-proxy"
+              - "$(POD_IP):19000"
+              - "--etcd"
+              - "$(ETCD_ADDR)"
+              - "--product_name"
+              - "$(PRODUCT_NAME)"
+              - "--pidfile"
+              - "log/proxy.pid"
+              - "--log-level=DEBUG"
+            lifecycle:
+              preStop:
+                exec:
+                  command:
+                    - "/bin/sh"
+                    - "-c"
+                    - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"
     - name: codis-fe
       workloadType: Stateless
       characterType: pika
@@ -226,9 +228,9 @@ spec:
           - name: wait-etcd
             env:
               - name: ETCD_ADDR
-                value: "pika-cluster-etcd-headless"
+                value: "{{ include "etcd.clusterDomain" .}}"
               - name: DASHBOARD_ADDR
-                value: "pika-cluster-codis-dashboard"
+                value: "$(KB_CLUSTER_NAME)-codis-dashboard"
             image: busybox:1.28
             command:
               - 'sh'
@@ -236,30 +238,30 @@ spec:
               - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
               - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
         containers:
-        - name: codis-fe
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8080
-              name: fe
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
-          command:
-            - "/codis/bin/codis-fe"
-          args:
-          - "--etcd"
-          - "$(ETCD_ADDR)"
-          - "--listen=0.0.0.0:8080"
-          - "--assets=/codis/bin/assets"
-          - "--log-level=DEBUG"
+          - name: codis-fe
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 8080
+                name: fe
+            env:
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: ETCD_ADDR
+                value: "{{ include "etcd.clusterDomain" .}}:2379"
+            command:
+              - "/codis/bin/codis-fe"
+            args:
+              - "--etcd"
+              - "$(ETCD_ADDR)"
+              - "--listen=0.0.0.0:8080"
+              - "--assets=/codis/bin/assets"
+              - "--log-level=DEBUG"
     - name: codis-dashboard
       workloadType: Stateful
       characterType: pika
@@ -281,55 +283,55 @@ spec:
           - name: wait-etcd
             env:
               - name: ETCD_ADDR
-                value: "pika-cluster-etcd-headless"
+                value: "{{ include "etcd.clusterDomain" .}}"
             image: busybox:1.28
             command:
               - 'sh'
               - '-c'
               - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
         containers:
-        - name: codis-dashboard
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 18080
-              name: dashboard
-          volumeMounts:
-            - name: data
-              mountPath: /data
-            - name: config
-              mountPath: /etc/codis
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: ETCD_ADDR
-              value: "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
-            - name: PRODUCT_NAME
-              value: "codis-test"
-          command:
-            - "/codis/bin/codis-dashboard"
-          args:
-            - "-c"
-            - "/etc/codis/dashboard.toml"
-            - "--host-admin"
-            - "$(POD_IP):18080"
-            - "--etcd"
-            - "$(ETCD_ADDR)"
-            - "--product_name"
-            - "$(PRODUCT_NAME)"
-            - "--pidfile"
-            - "log/dashboard.pid"
-            - "--remove-lock"
-            - "--log-level=DEBUG"
-          lifecycle:
-            postStart:
-              exec:
-                command: ["/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}"]
-            preStop:
-              exec:
-                command: ["/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done"]
+          - name: codis-dashboard
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 18080
+                name: dashboard
+            volumeMounts:
+              - name: data
+                mountPath: /data
+              - name: config
+                mountPath: /etc/codis
+            env:
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: ETCD_ADDR
+                value: "{{ include "etcd.clusterDomain" .}}:2379"
+              - name: PRODUCT_NAME
+                value: "$(KB_CLUSTER_NAME)"
+            command:
+              - "/codis/bin/codis-dashboard"
+            args:
+              - "-c"
+              - "/etc/codis/dashboard.toml"
+              - "--host-admin"
+              - "$(POD_IP):18080"
+              - "--etcd"
+              - "$(ETCD_ADDR)"
+              - "--product_name"
+              - "$(PRODUCT_NAME)"
+              - "--pidfile"
+              - "log/dashboard.pid"
+              - "--remove-lock"
+              - "--log-level=DEBUG"
+            lifecycle:
+              postStart:
+                exec:
+                  command: [ "/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}" ]
+              preStop:
+                exec:
+                  command: [ "/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done" ]

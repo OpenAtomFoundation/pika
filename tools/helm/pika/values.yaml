@@ -1,18 +1,46 @@
-clusterVersionOverride: 3.5.0
 pika:
   version: unstable-2597ac3c
+image:
   pika:
-    image:
-      registry: docker.io
-      repository: machinly/pika
-      tag: unstable-2597ac3c
-      pullPolicy: IfNotPresent
+    registry: docker.io
+    repository: machinly/pika
+    tag: unstable-2597ac3c
+    pullPolicy: IfNotPresent
   codis:
-    image:
-      registry: docker.io
-      repository: machinly/codis
-      tag: unstable-2597ac3c
-      pullPolicy: IfNotPresent
+    registry: docker.io
+    repository: machinly/codis
+    tag: unstable-2597ac3c
+    pullPolicy: IfNotPresent
   etcd:
-    repository: docker.io/bitnami/etcd
+    registry: docker.io
+    repository: bitnami/etcd
     tag: 3.5.9
+    pullPolicy: IfNotPresent
+
+roleProbe:
+  pika:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+  codis-proxy:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+  codis-dashboard:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+  codis-fe:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+  etcd:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+
+clusterVersionOverride: 3.5.0
+nameOverride: ""
+fullnameOverride: ""
+
+clusterDomain: ".cluster.local"
