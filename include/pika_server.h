@@ -652,7 +652,7 @@ class PikaServer : public pstd::noncopyable {
   /*
   * Auto delete zset use
   */
-  PikaZsetAutoDelThread* pika_zset_auto_del_thread_;
+  std::unique_ptr<PikaZsetAutoDelThread> pika_zset_auto_del_thread_;
 };
 
 #endif

@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #include <glog/logging.h>
 
 #include "pstd/include/env.h"
@@ -11,18 +16,11 @@
 
 extern PikaServer *g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
-pthread_mutex_t mutex;
-
-static void PthreadCall(const char* label, int result) {
-  if (result != 0) {
-    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
-    abort();
-  }
-}
+std::mutex mutex;
 
 PikaZsetAutoDelThread::PikaZsetAutoDelThread()
     : should_exit_(false)
-    , task_cond_()
+    , task_cond_(&mutexs_)
     , current_task_type_(ZSET_NO_TASK)
     , current_cursor_(0)
     , stop_manual_task_(false)
@@ -40,28 +38,30 @@ PikaZsetAutoDelThread::PikaZsetAutoDelThread()
 
 PikaZsetAutoDelThread::~PikaZsetAutoDelThread() {
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex);
     should_exit_ = true;
-    PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
+    task_cond_.Signal();
   }
 
   StopThread();
 }
 
 void PikaZsetAutoDelThread::RequestCronTask() {
-  std::unique_lock<std::mutex> lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex);
   if (task_queue_.empty()) {
     ZsetTaskItem item;
+    std::cout << "ZSET_CRON_TASK: " << ZSET_CRON_TASK << std::endl;
+    std::cout << "speed_factor: " << g_pika_conf->zset_auto_del_cron_speed_factor() << std::endl;
     item.task_type = ZSET_CRON_TASK;
     item.speed_factor = g_pika_conf->zset_auto_del_cron_speed_factor();
     task_queue_.push_back(item);
-    PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
+    task_cond_.Signal();
   }
 }
 
 void PikaZsetAutoDelThread::RequestManualTask(int64_t cursor, double speed_factor) {
   LOG(INFO) << "start manual zset auto delete task";
-  std::unique_lock<std::mutex> lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex);
   if (!task_queue_.empty()) {
     task_queue_.clear();
   }
@@ -71,7 +71,7 @@ void PikaZsetAutoDelThread::RequestManualTask(int64_t cursor, double speed_facto
   item.cursor = cursor;
   item.speed_factor = speed_factor;
   task_queue_.push_back(item);
-  PthreadCall("signal", pthread_cond_signal(reinterpret_cast<pthread_cond_t *>(&task_cond_)));
+  task_cond_.Signal();
 }
 
 void PikaZsetAutoDelThread::StopManualTask() {
@@ -147,7 +147,7 @@ void PikaZsetAutoDelThread::WriteZsetAutoDelBinlog(const std::string &key, int s
   RedisAppendLen(raw_args, std::to_string(end).size(), "$");
   RedisAppendContent(raw_args, std::to_string(end));
 
-  //PikaCommonFunc::BinlogPut(key, raw_args);
+  // PikaCommonFunc::BinlogPut(key, raw_args);
 }
 
 bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
@@ -181,7 +181,7 @@ bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
       }
 
       {
-        // pstd::lock::ScopeRecordLock l(g_pika_server->LockMgr(), key);
+        pstd::lock::ScopeRecordLock l(g_pika_server->LockMgr(), key);
         int32_t count = 0;
         int start = (0 == g_pika_conf->zset_auto_del_direction()) ? 0 : -need_delete_nums;
         int end = (0 == g_pika_conf->zset_auto_del_direction()) ? need_delete_nums - 1 : -1;
@@ -205,15 +205,13 @@ bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
     TrimAllZsetKeysFinished();
     return true;
   }
-
   return false;
 }
 
 void PikaZsetAutoDelThread::DoZsetCronTask(double speed_factor) {
-  if (0 == current_cursor_) {
+  if (current_cursor_ == 0) {
     start_check_all_zset_time_ = static_cast<int64_t>(time(nullptr));;
   }
-
   BatchTrimZsetKeys(speed_factor);
 }
 
@@ -250,24 +248,26 @@ void PikaZsetAutoDelThread::DoZsetAutoDelTask(ZsetTaskItem &task_item) {
 }
 
 void* PikaZsetAutoDelThread::ThreadMain() {
+  std::cout << "yy" << std::endl;
   while (!should_exit_) {
     ZsetTaskItem task_item;
     {
-      std::unique_lock<std::mutex> lock(mutex_);
+      std::unique_lock<std::mutex> lock(mutex);
       while (!should_exit_ && task_queue_.empty()) {
-        PthreadCall("wait", pthread_cond_wait(reinterpret_cast<pthread_cond_t *>(&task_cond_), &mu_));
+          std::cout << "px" << std::endl;
+        task_cond_.Wait();
       }
 
       if (should_exit_) {
-        return NULL;
+        return nullptr;
       }
 
       task_item = task_queue_.front();
       task_queue_.pop_front();
     }
-
+    std::cout << "type: " << task_item.task_type << std::endl;
     DoZsetAutoDelTask(task_item);
   }
 
-  return NULL;
+  return nullptr;
 }

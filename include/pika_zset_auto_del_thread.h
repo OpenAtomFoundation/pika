@@ -62,14 +62,12 @@ class PikaZsetAutoDelThread : public net::Thread {
   void DoZsetCronTask(double speed_factor);
   void DoZsetManualTask(int64_t cursor, double speed_factor);
   void DoZsetAutoDelTask(ZsetTaskItem &task_item);
-  virtual void* ThreadMain();
+  void* ThreadMain() override;
 
  private:
-  std::atomic<bool> should_exit_;
-  //std::mutex mutex_;
-  pstd::CondVar task_cond_;
-  pthread_mutex_t mu_;
-  pstd::Mutex mutex_;
+  std::atomic<bool> should_exit_ = false;
+  pstd::CondVars task_cond_;
+  pstd::Mutexs mutexs_;
   std::deque<ZsetTaskItem> task_queue_;
 
   std::atomic<ZsetTaskType> current_task_type_;
