@@ -6,7 +6,7 @@ type: application
 
 version: 0.6.0-alpha.21
 
-appVersion: "3.5.0"
+appVersion: "3.5.0-alpha"
 
 home: https://github.com/OpenAtomFoundation/pika
 keywords:
