@@ -783,6 +783,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
                                     int32_t* ret) {
   *ret = 0;
   uint32_t statistic = 0;
+  double min_score = min;
   std::string meta_value;
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
@@ -799,8 +800,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, min, Slice());
-      bool flag = true;
-      double score = 0;
+      bool left_close_flag = true;
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         bool left_pass = false;
@@ -812,9 +812,9 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
         if (parsed_zsets_score_key.version() != version) {
           break;
         }
-        if (parsed_zsets_score_key.score() > min && flag) {
-          score = parsed_zsets_score_key.score();
-          flag = false;
+        if (!left_close && left_close_flag && parsed_zsets_score_key.score() > min) {
+          min_score = parsed_zsets_score_key.score();
+          left_close_flag = false;
         }
         if ((left_close && min <= parsed_zsets_score_key.score()) ||
             (!left_close && min < parsed_zsets_score_key.score())) {
@@ -837,15 +837,10 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
           break;
         }
       }
-      if (!left_close) {
-        min = score;
-      }
-      ZSetsScoreKey zsets_score_key_min(key, version, min, Slice());
-      ZSetsScoreKey zsets_score_key_max(key, version, max, Slice());
       if (del_cnt > 0) {
-        rocksdb::Slice score_begin_key(zsets_score_key_min.Encode());
-        rocksdb::Slice score_end_key(zsets_score_key_max.Encode());
-        s = db_->DeleteRange(default_write_options_, handles_[2], score_begin_key, score_end_key);
+        ZSetsScoreKey zsets_score_key_min(key, version, min_score, Slice());
+        ZSetsScoreKey zsets_score_key_max(key, version, max, Slice());
+        s = db_->DeleteRange(default_write_options_, handles_[2], zsets_score_key_min.Encode(), zsets_score_key_max.Encode());
       }
       delete iter;
       *ret = del_cnt;
