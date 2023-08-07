@@ -8,6 +8,7 @@
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
+#include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
@@ -199,12 +200,15 @@ void ExecCmd::SetCmdsVec() {
 
 void ExecCmd::ServeToBLrPopWithKeys() {
   for (auto each_list_cmd : list_cmd_) {
-    auto push_keys =  each_list_cmd.cmd_->current_key();
+    auto push_keys = each_list_cmd.cmd_->current_key();
+    auto push_key = push_keys[0];
     auto type_status = std::map<storage::DataType, storage::Status>{};
-    if (each_list_cmd.slot_->db()->Exists(push_keys, &type_status)) {
-      if (type_status.count(storage::DataType::kLists) > 0) {
-        // TODO(leehao for junhua): 这里需要将这些key所牵扯到的客户端（阻塞的）给释放掉
-
+    if (each_list_cmd.slot_->db()->IsExist(push_key, &type_status)) {
+      if (type_status[storage::DataType::kLists].ok()) {
+        if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_);
+            push_list_cmd != nullptr) {
+          push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.slot_);
+        }
       }
     }
   }
@@ -212,11 +216,15 @@ void ExecCmd::ServeToBLrPopWithKeys() {
 
 void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   auto mp = std::map<storage::DataType, storage::Status>{};
-  auto type_count = slot->db()->Exists(keys_, &mp);
-  if (type_count > 1) {
-    res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
-    return;
+  for (const auto& key : keys_) {
+    auto type_count = slot->db()->IsExist(key, &mp);
+    if (type_count > 1) {
+      res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
+      return;
+    }
+    mp.clear();
   }
+
 
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -232,7 +240,6 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk);
 }
 
-// 如果是multi和exec的话，不应该写binlog
 void WatchCmd::Execute() {
     std::shared_ptr<Slot> slot;
     slot = g_pika_server->GetSlotByDBName(db_name_);
@@ -263,8 +270,6 @@ void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
     return ;
   }
   client_conn->RemoveWatchedKeys();
-  // 这里是因为其他客户端连接的时候会修改这个watch了的客户端连接，状态设置为WatchFailed
-  // 那么这里得将WatchFailed状态设置为未失败
   if (client_conn->IsTxnWatchFailed()) {
     client_conn->SetTxnWatchFailState(false);
   }

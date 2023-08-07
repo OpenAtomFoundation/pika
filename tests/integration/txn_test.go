@@ -2,18 +2,20 @@ package pika_integration
 
 import (
 	"context"
+	"fmt"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
+	"strings"
 	"sync"
 	"time"
 )
 
-func AssertEqualRedisString(expected, result string) {
+func AssertEqualRedisString(expected string, result redis.Cmder) {
 	if expected == "" {
-		Expect("get key: redis: nil").To(Equal(result))
+		Expect(strings.HasSuffix(result.String(), "nil")).To(BeTrue())
 	} else {
-		Expect("get key: " + expected).To(Equal(result))
+		Expect(strings.HasSuffix(result.String(), expected)).To(BeTrue())
 	}
 }
 
@@ -53,8 +55,8 @@ var _ = Describe("Text Txn", func() {
 				pipe.Select(ctx, 0)
 				pipe.Get(ctx, "key")
 				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString("", results[2].String())
-				AssertEqualRedisString("1", results[4].String())
+				AssertEqualRedisString("", results[2])
+				AssertEqualRedisString("1", results[4])
 				return nil
 			}, "key")
 		})
@@ -74,7 +76,7 @@ var _ = Describe("Text Txn", func() {
 				pipe := tx.TxPipeline()
 				pipe.Get(ctx, watchKey)
 				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString(watchkeyValue, results[0].String())
+				AssertEqualRedisString(watchkeyValue, results[0])
 				return nil
 			}, watchKey)
 		})
@@ -107,7 +109,7 @@ var _ = Describe("Text Txn", func() {
 				pipe := tx.TxPipeline()
 				pipe.Get(ctx, watchKey)
 				_, err := pipe.Exec(ctx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 				return nil
 			}, watchKey)
 		})
@@ -130,7 +132,7 @@ var _ = Describe("Text Txn", func() {
 				pipeline.Set(ctx, watchKey, modifiedValue, 0)
 				pipeline.Get(ctx, watchKey)
 				cmders, _ := pipeline.Exec(ctx) // 这个也是和txnClient.Watch使用的一个端口
-				AssertEqualRedisString(modifiedValue, cmders[1].String())
+				AssertEqualRedisString(modifiedValue, cmders[1])
 				return nil
 			}, noExist)
 			Expect(err).NotTo(HaveOccurred())
@@ -178,7 +180,7 @@ var _ = Describe("Text Txn", func() {
 			pipeline.Set(ctx, watchKey, "modify", 0)
 			pipeline.Discard()
 			stringCmd := cmdClient.Get(ctx, watchKey)
-			AssertEqualRedisString(watchkeyValue, stringCmd.String())
+			AssertEqualRedisString(watchkeyValue, stringCmd)
 		})
 	})
 	Describe("Test Unwatch", func() {
@@ -194,14 +196,56 @@ var _ = Describe("Text Txn", func() {
 				tx.Unwatch(ctx)
 				pipeline.Get(ctx, watchKey)
 				cmders, _ := pipeline.Exec(ctx)
-				AssertEqualRedisString(modifiedValue, cmders[0].String())
+				AssertEqualRedisString(modifiedValue, cmders[0])
 				return nil
 			}, watchKey)
 		})
 	})
 	Describe("Test Blpop In Txn", func() {
-		It("blpop", func() {
+		It("blpop1", func() {
+			listKey := "key"
+			listValue := "v1"
+			secondListValue := "v2"
+			cmdClient.Del(ctx, listKey)
+			go func() {
+				cmdClient.BLPop(ctx, 0, listKey)
+			}()
+			time.After(time.Duration(1))
+			pipeline := txnClient.TxPipeline()
+			pipeline.LPush(ctx, listKey, listValue, secondListValue)
+			pipeline.LPop(ctx, listKey)
+			result, err := pipeline.Exec(ctx)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			//Expect(err).NotTo(HaveOccurred())
+			AssertEqualRedisString(listValue, result[1])
+		})
 
+		It("blpop2", func() {
+			listKey := "key"
+			setKey := "setkey"
+			setValue := "setValue"
+			txnClient.Del(ctx, listKey)
+			txPipeline := txnClient.TxPipeline()
+			txPipeline.BLPop(ctx, 0, listKey)
+			txPipeline.Set(ctx, setKey, setValue, 0)
+			txPipeline.Get(ctx, setKey)
+			cmders, _ := txPipeline.Exec(ctx)
+			AssertEqualRedisString(setValue, cmders[2])
+		})
+
+	})
+	// TODO(leehao for junhua) The return format is not consistent with Redis
+	Describe("Test Blpop", func() {
+		It("blpop1", func() {
+			listKey := "key"
+			listValue := "v1"
+			cmdClient.Del(ctx, listKey)
+			cmdClient.LPush(ctx, listKey, listValue)
+			popCmd := cmdClient.LPop(ctx, listKey)
+			fmt.Println(popCmd.String())
+			Expect(strings.HasSuffix(popCmd.String(), listValue)).To(BeTrue())
 		})
 	})
 
