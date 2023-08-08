@@ -1,5 +1,5 @@
 pika:
-  version: unstable-2597ac3c
+  version: v3.5.0-alpha
 image:
   pika:
     registry: docker.io
@@ -39,7 +39,7 @@ roleProbe:
     periodSeconds: 1
     timeoutSeconds: 1
 
-clusterVersionOverride: 3.5.0
+clusterVersionOverride: 3.5.0-alpha
 nameOverride: ""
 fullnameOverride: ""
 
