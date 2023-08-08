@@ -300,9 +300,6 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   is_binlog_deferred_ = true;
   if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
     if (client_conn->IsInTxn()) {
-      auto dispatchThread = dynamic_cast<net::DispatchThread*>(client_conn->thread());
-      std::lock_guard latch(dispatchThread->GetBlockMtx());
-      dispatchThread->CleanWaitNodeOfUnBlockedBlrConn(client_conn);
       res_.AppendArrayLen(-1);
       return ;
     }
@@ -508,9 +505,6 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
   is_binlog_deferred_ = true;
   if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
     if (client_conn->IsInTxn()) {
-      auto dispatchThread = dynamic_cast<net::DispatchThread*>(client_conn->thread());
-      std::lock_guard latch(dispatchThread->GetBlockMtx());
-      dispatchThread->CleanWaitNodeOfUnBlockedBlrConn(client_conn);
       res_.AppendArrayLen(-1);
       return ;
     }

@@ -201,15 +201,12 @@ void ExecCmd::SetCmdsVec() {
 void ExecCmd::ServeToBLrPopWithKeys() {
   for (auto each_list_cmd : list_cmd_) {
     auto push_keys = each_list_cmd.cmd_->current_key();
+    //PS: currently, except for blpop/brpop, there are three cmds inherited from BlockingBaseCmd: lpush, rpush, rpoplpush
+    //For rpoplpush which has 2 keys（source and receiver), push_keys[0] fetchs the receiver, push_keys[1] fetchs the source.(see RpopLpushCmd::current_key()
     auto push_key = push_keys[0];
-    auto type_status = std::map<storage::DataType, storage::Status>{};
-    if (each_list_cmd.slot_->db()->IsExist(push_key, &type_status)) {
-      if (type_status[storage::DataType::kLists].ok()) {
-        if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_);
-            push_list_cmd != nullptr) {
-          push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.slot_);
-        }
-      }
+    if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_);
+        push_list_cmd != nullptr) {
+      push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.slot_);
     }
   }
 }
