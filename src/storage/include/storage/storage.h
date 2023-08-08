@@ -1059,7 +1059,7 @@ class Storage {
 
     // zset db cursors
   LRU<int64_t, std::string> zset_cursors_store_;
-  std::shared_ptr<Mutex> zset_cursors_mutex_;
+  std::mutex zset_cursors_mutex_;
 };
 
 }  //  namespace storage

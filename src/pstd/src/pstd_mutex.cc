@@ -82,7 +82,7 @@ CondVars::CondVars(Mutexs* mu)
         : mu_(mu) {
     pthread_condattr_t condattr;
     PthreadCall("pthread_condattr_init", pthread_condattr_init(&condattr));
-    PthreadCall("pthread_condattr_setclock", pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC));
+    //PthreadCall("pthread_condattr_setclock", pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC));
     PthreadCall("init cv", pthread_cond_init(&cv_, &condattr));
     PthreadCall("pthread_condattr_destroy", pthread_condattr_destroy(&condattr));
 }

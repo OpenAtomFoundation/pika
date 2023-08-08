@@ -48,15 +48,14 @@ PikaZsetAutoDelThread::~PikaZsetAutoDelThread() {
 
 void PikaZsetAutoDelThread::RequestCronTask() {
   std::unique_lock<std::mutex> lock(mutex);
-  if (task_queue_.empty()) {
+ // if (task_queue_.empty()) {
     ZsetTaskItem item;
-    std::cout << "ZSET_CRON_TASK: " << ZSET_CRON_TASK << std::endl;
-    std::cout << "speed_factor: " << g_pika_conf->zset_auto_del_cron_speed_factor() << std::endl;
     item.task_type = ZSET_CRON_TASK;
     item.speed_factor = g_pika_conf->zset_auto_del_cron_speed_factor();
-    task_queue_.push_back(item);
-    task_cond_.Signal();
-  }
+    //task_queue_.push_back(item);
+    //task_cond_.Signal();
+    DoZsetAutoDelTask(item);
+  //}
 }
 
 void PikaZsetAutoDelThread::RequestManualTask(int64_t cursor, double speed_factor) {
@@ -71,7 +70,7 @@ void PikaZsetAutoDelThread::RequestManualTask(int64_t cursor, double speed_facto
   item.cursor = cursor;
   item.speed_factor = speed_factor;
   task_queue_.push_back(item);
-  task_cond_.Signal();
+  DoZsetAutoDelTask(item);
 }
 
 void PikaZsetAutoDelThread::StopManualTask() {
@@ -101,14 +100,15 @@ void PikaZsetAutoDelThread::CompactZsetDB() {
 
   uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
   uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-
-  rocksdb::Status s = g_pika_server->db()->Compact(storage::kZSets);
-  if (s.ok()) {
-    LOG(INFO) << "zset auto delete compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
-  } else {
-    LOG(INFO) << "zset auto delete compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
-              << "MB, error: " << s.ToString();
-  }
+//  std::shared_ptr<Slot> slot;
+//  slot = g_pika_server->GetSlotByDBName("db0");
+//  rocksdb::Status s = slot->db()->Compact(storage::kZSets);
+//  if (s.ok()) {
+//    LOG(INFO) << "zset auto delete compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
+//  } else {
+//    LOG(INFO) << "zset auto delete compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
+//              << "MB, error: " << s.ToString();
+//  }
 }
 
 void PikaZsetAutoDelThread::TrimAllZsetKeysFinished() {
@@ -118,14 +118,13 @@ void PikaZsetAutoDelThread::TrimAllZsetKeysFinished() {
             << ", delete ratio:" << delete_ratio
             << ", compact ratio:" << g_pika_conf->zset_compact_del_ratio();
 
-  if (g_pika_conf->zset_compact_del_ratio() < delete_ratio
-    && g_pika_conf->zset_compact_del_num() < auto_del_keys_num_) {
-    CompactZsetDB();
-    last_compact_zset_db_ = true;
-  } else {
-    last_compact_zset_db_ = false;
-  }
-
+//  if (g_pika_conf->zset_compact_del_ratio() < delete_ratio
+//    && g_pika_conf->zset_compact_del_num() < auto_del_keys_num_) {
+//    CompactZsetDB();
+//    last_compact_zset_db_ = true;
+//  } else {
+//    last_compact_zset_db_ = false;
+//  }
   last_finish_check_all_zset_time_ = static_cast<int64_t>(time(nullptr));;
   last_spend_time_ = last_finish_check_all_zset_time_ - start_check_all_zset_time_;
   last_all_keys_num_ = zset_db_keys_num_;
@@ -146,7 +145,6 @@ void PikaZsetAutoDelThread::WriteZsetAutoDelBinlog(const std::string &key, int s
   RedisAppendContent(raw_args, std::to_string(start));
   RedisAppendLen(raw_args, std::to_string(end).size(), "$");
   RedisAppendContent(raw_args, std::to_string(end));
-
   // PikaCommonFunc::BinlogPut(key, raw_args);
 }
 
@@ -154,8 +152,10 @@ bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
   bool db_scan_finished = false;
   std::vector<std::string> keys;
   int64_t count = g_pika_conf->zset_auto_del_scan_round_num();
-  int64_t next_cursor = g_pika_server->db()->ScanZset(current_cursor_, "*", count, &keys);
-  if (0 == next_cursor) {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName("db0");
+  int64_t next_cursor = slot->db()->ScanZset(current_cursor_, "*", count, &keys);
+  if (next_cursor == 0) {
     db_scan_finished = true;
   }
   zset_db_keys_num_ += keys.size();
@@ -164,12 +164,12 @@ bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
   int zset_auto_del_num = g_pika_conf->zset_auto_del_num();
   for (auto& key : keys) {
     uint64_t start_us = 0;
-    if (0 < speed_factor) {
+    if (speed_factor > 0) {
       start_us = pstd::NowMicros();
     }
 
     int32_t zset_size = 0;
-    rocksdb::Status s = g_pika_server->db()->ZCard(key, &zset_size);
+    rocksdb::Status s = slot->db()->ZCard(key, &zset_size);
     if (s.ok() && zset_size > zset_auto_del_threshold) {
       zset_auto_del_num = zset_auto_del_num > zset_auto_del_threshold ? zset_auto_del_threshold : zset_auto_del_num;
 
@@ -181,19 +181,18 @@ bool PikaZsetAutoDelThread::BatchTrimZsetKeys(double speed_factor) {
       }
 
       {
-        pstd::lock::ScopeRecordLock l(g_pika_server->LockMgr(), key);
+        //pstd::lock::ScopeRecordLock l(lock_mgr_, key);
         int32_t count = 0;
-        int start = (0 == g_pika_conf->zset_auto_del_direction()) ? 0 : -need_delete_nums;
-        int end = (0 == g_pika_conf->zset_auto_del_direction()) ? need_delete_nums - 1 : -1;
-        s = g_pika_server->db()->ZRemrangebyrank(key, start, end, &count);
+        int start = (g_pika_conf->zset_auto_del_direction() == 0) ? 0 : -need_delete_nums;
+        int end = (g_pika_conf->zset_auto_del_direction() == 0) ? need_delete_nums - 1 : -1;
+        s = slot->db()->ZRemrangebyrank(key, start, end, &count);
         if (s.ok()) {
-          WriteZsetAutoDelBinlog(key, start, end);
+          //WriteZsetAutoDelBinlog(key, start, end);
           ++auto_del_keys_num_;
         }
       }
-
       // sleep for a moment to avoid a lot of disk IO
-      if (0 < speed_factor) {
+      if (speed_factor > 0) {
         uint64_t duration = pstd::NowMicros() - start_us;
         usleep(static_cast<int64_t>(duration * speed_factor));
       }
@@ -222,21 +221,26 @@ void PikaZsetAutoDelThread::DoZsetManualTask(int64_t cursor, double speed_factor
   zset_db_keys_num_ = 0;
   auto_del_keys_num_ = 0;
 
-  stop_manual_task_ = false;
+  //stop_manual_task_ = false;
   current_cursor_ = cursor;
-  while (!stop_manual_task_) {
+  std::cout << "current_cursor_: " << current_cursor_ << std::endl;
+  //while (!stop_manual_task_) {
     // return true means trim all zset keys finish
     if (BatchTrimZsetKeys(speed_factor)) {
       return;
     }
-  }
+  //}
 }
 
 void PikaZsetAutoDelThread::DoZsetAutoDelTask(ZsetTaskItem &task_item) {
   current_task_type_ = task_item.task_type;
+    std::cout << "cursor: " << task_item.cursor << std::endl;
+    std::cout << "factor: " << task_item.speed_factor << std::endl;
+    std::cout << "type: " << task_item.task_type << std::endl;
   switch (current_task_type_) {
     case ZSET_CRON_TASK:
-      DoZsetCronTask(task_item.speed_factor);
+      //DoZsetCronTask(task_item.speed_factor);
+      DoZsetManualTask(task_item.cursor, task_item.speed_factor);
       break;
     case ZSET_MANUAL_TASK:
       DoZsetManualTask(task_item.cursor, task_item.speed_factor);

@@ -65,6 +65,7 @@ class PikaZsetAutoDelThread : public net::Thread {
   void* ThreadMain() override;
 
  private:
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::atomic<bool> should_exit_ = false;
   pstd::CondVars task_cond_;
   pstd::Mutexs mutexs_;

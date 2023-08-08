@@ -1769,7 +1769,6 @@ int64_t Storage::ScanZset(int64_t cursor, const std::string& pattern, int64_t co
   std::string prefix;
 
   prefix = isTailWildcard(pattern) ? pattern.substr(0, pattern.size() - 1) : "";
-
   if (cursor < 0) {
     return cursor_ret;
   } else {
@@ -1779,7 +1778,6 @@ int64_t Storage::ScanZset(int64_t cursor, const std::string& pattern, int64_t co
       cursor = 0;
     }
   }
-
   is_finish = zsets_db_->Scan(start_key, pattern, keys, &count, &next_key);
   if (is_finish) {
     return 0;
@@ -1790,9 +1788,8 @@ int64_t Storage::ScanZset(int64_t cursor, const std::string& pattern, int64_t co
 }
 
 Status Storage::GetZsetStartKey(int64_t cursor, std::string* start_key) {
-  zset_cursors_mutex_->Lock();
+ // std::lock_guard<std::mutex> lock(zset_cursors_mutex_);
   if (zset_cursors_store_.map_.end() == zset_cursors_store_.map_.find(cursor)) {
-    zset_cursors_mutex_->UnLock();
     return Status::NotFound();
   } else {
     // If the cursor is present in the list,
@@ -1800,13 +1797,12 @@ Status Storage::GetZsetStartKey(int64_t cursor, std::string* start_key) {
     zset_cursors_store_.list_.remove(cursor);
     zset_cursors_store_.list_.push_front(cursor);
     *start_key = zset_cursors_store_.map_[cursor];
-    zset_cursors_mutex_->UnLock();
     return Status::OK();
   }
 }
 
 int64_t Storage::StoreAndGetZsetCursor(int64_t cursor, const std::string& next_key) {
-  zset_cursors_mutex_->Lock();
+  //std::lock_guard<std::mutex> lock(zset_cursors_mutex_);
   if (zset_cursors_store_.map_.size() > zset_cursors_store_.max_size_) {
     int64_t tail = zset_cursors_store_.list_.back();
     zset_cursors_store_.list_.remove(tail);
@@ -1819,7 +1815,6 @@ int64_t Storage::StoreAndGetZsetCursor(int64_t cursor, const std::string& next_k
 
   zset_cursors_store_.list_.push_front(cursor);
   zset_cursors_store_.map_[cursor] = next_key;
-  zset_cursors_mutex_->UnLock();
   return cursor;
 }
 
