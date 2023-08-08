@@ -19,4 +19,4 @@ keywords:
 
 maintainers:
   - name: pika
-    url: https://github.com/OpenAtomFoundation/pika/tools/helm
+    url: https://github.com/OpenAtomFoundation/pika/tools/kubeblocks_helm

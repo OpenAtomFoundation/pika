@@ -46,7 +46,7 @@ redis-cli -p 19000 info
 
 ## Scale pika cluster
 
-Use kb cli horizontal scale pika instance, you will get 2 new pika instances.
+Use kbcli horizontal scale pika instance, you will get 2 new pika instances.
 ```bash
 kbcli cluster hscale pika-cluster --replicas 4 --components pika
 ```
