@@ -15,7 +15,9 @@ func AssertEqualRedisString(expected string, result redis.Cmder) {
 	if expected == "" {
 		Expect(strings.HasSuffix(result.String(), "nil")).To(BeTrue())
 	} else {
-		Expect(strings.HasSuffix(result.String(), expected)).To(BeTrue())
+		if !strings.HasSuffix(result.String(), expected) {
+			Expect(expected).To(BeEquivalentTo(result.String()))
+		}
 	}
 }
 
@@ -218,7 +220,6 @@ var _ = Describe("Text Txn", func() {
 			if err != nil {
 				fmt.Println(err.Error())
 			}
-			//Expect(err).NotTo(HaveOccurred())
 			AssertEqualRedisString(listValue, result[1])
 		})
 
@@ -236,7 +237,9 @@ var _ = Describe("Text Txn", func() {
 		})
 
 	})
-	// TODO(leehao for junhua) The return format is not consistent with Redis
+	// Because when there is only one list result, Redis returns in two cases, one with * and one without * ,
+	// but go-redis knows only the ones without *
+	// pika return pop result with *
 	Describe("Test Blpop", func() {
 		It("blpop1", func() {
 			listKey := "key"
