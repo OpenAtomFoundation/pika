@@ -67,8 +67,8 @@ class PikaZsetAutoDelThread : public net::Thread {
  private:
   std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::atomic<bool> should_exit_ = false;
-  pstd::CondVars task_cond_;
-  pstd::Mutexs mutexs_;
+  pstd::CondVar task_cond_;
+  pstd::Mutex mutexs_;
   std::deque<ZsetTaskItem> task_queue_;
 
   std::atomic<ZsetTaskType> current_task_type_;

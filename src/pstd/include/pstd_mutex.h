@@ -70,45 +70,6 @@ class RecordLock : public pstd::noncopyable {
   std::string key_;
 };
 
-class Mutexs {
- public:
-  Mutexs();
-  ~Mutexs();
-
-  void Lock();
-  int Trylock();
-  void Unlock();
-  void AssertHeld() { }
- private:
-
-  friend class CondVars;
-  pthread_mutex_t mu_;
-
-  // No copying
-  Mutexs(const Mutexs&);
-  void operator=(const Mutexs&);
-};
-
-class CondVars {
- public:
-  CondVars(Mutexs* mu);
-  ~CondVars();
-  void Wait();
-  /*
-   * timeout is millisecond
-   * so if you want to wait for 1 s, you should call
-   * TimeWait(1000);
-   * return false if timeout
-   */
-  bool TimedWait(uint32_t timeout);
-  void Signal();
-  void SignalAll();
-
- private:
-  pthread_cond_t cv_;
-  Mutexs* mu_;
-};
-
 }  // namespace pstd
 
 #endif

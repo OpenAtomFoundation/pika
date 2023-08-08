@@ -1788,7 +1788,7 @@ int64_t Storage::ScanZset(int64_t cursor, const std::string& pattern, int64_t co
 }
 
 Status Storage::GetZsetStartKey(int64_t cursor, std::string* start_key) {
- // std::lock_guard<std::mutex> lock(zset_cursors_mutex_);
+  std::lock_guard<std::mutex> lock(zset_cursors_mutex_);
   if (zset_cursors_store_.map_.end() == zset_cursors_store_.map_.find(cursor)) {
     return Status::NotFound();
   } else {

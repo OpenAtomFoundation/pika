@@ -773,6 +773,7 @@ void Cmd::ProcessFlushAllCmd() {
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
   slot = g_pika_server->GetSlotByDBName(db_name_);
+
   if (!slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;

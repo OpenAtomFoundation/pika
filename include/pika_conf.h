@@ -21,7 +21,7 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
-#define PIKA_CACHE_NONE  0
+
 const uint32_t configRunIDSize = 40;
 
 // global class, class members well initialized
@@ -739,7 +739,9 @@ class PikaConf : public pstd::BaseConf {
   std::unique_ptr<PikaMeta> local_meta_;
 
   std::shared_mutex rwlock_;
-
+ /*
+  * Zset auto del used
+  */
   std::atomic<int> zset_auto_del_threshold_;
   std::atomic<int> zset_auto_del_direction_;
   std::atomic<int> zset_auto_del_num_;

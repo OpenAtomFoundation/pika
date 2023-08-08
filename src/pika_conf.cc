@@ -753,4 +753,3 @@ std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
   }
   return types;
 }
-

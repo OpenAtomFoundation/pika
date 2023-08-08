@@ -496,11 +496,9 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unique_ptr<Instant> instant_;
 
-
-  const std::shared_ptr<storage::Storage> db() {
-    return db_;
-  }
-  // for manual zset del
+ /*
+  * for manual zset del
+  */
   pstd::Status ZsetAutoDel(int64_t cursor, double speed_factor);
   pstd::Status ZsetAutoDelOff();
   rocksdb::Status RecoveryDB();
@@ -513,9 +511,6 @@ class PikaServer : public pstd::noncopyable {
     return dbs_;
   }
 
-  pstd::lock::LockMgr* LockMgr() {
-    return lock_mgr_;
-  }
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
@@ -536,7 +531,6 @@ class PikaServer : public pstd::noncopyable {
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
-  std::shared_ptr<storage::Storage> db_;
   std::shared_mutex storage_options_rw_;
   storage::StorageOptions storage_options_;
   void InitStorageOptions();
@@ -583,7 +577,6 @@ class PikaServer : public pstd::noncopyable {
   bool force_full_sync_ = false;
   bool leader_protected_mode_ = false;  // reject request after master slave sync done
   std::shared_mutex state_protector_;   // protect below, use for master-slave mode
-  pstd::lock::LockMgr* lock_mgr_;
 
   /*
    * Bgsave used
@@ -632,7 +625,10 @@ class PikaServer : public pstd::noncopyable {
    * Async slotsMgrt use
    */
   std::unique_ptr<PikaMigrateThread> pika_migrate_thread_;
-
+  /*
+   * Auto delete zset use
+   */
+  std::unique_ptr<PikaZsetAutoDelThread> pika_zset_auto_del_thread_;
   /*
    * Slowlog used
    */
@@ -645,14 +641,10 @@ class PikaServer : public pstd::noncopyable {
    */
   Statistic statistic_;
 
-  /*
+ /*
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
-  /*
-  * Auto delete zset use
-  */
-  std::unique_ptr<PikaZsetAutoDelThread> pika_zset_auto_del_thread_;
 };
 
 #endif

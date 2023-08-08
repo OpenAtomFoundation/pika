@@ -23,7 +23,6 @@
 #include "rocksdb/table.h"
 
 #include "pstd/include/pstd_mutex.h"
-#include "src/mutex.h"
 
 namespace storage {
 
@@ -146,7 +145,6 @@ class Storage {
   Status GetStartKey(const DataType& dtype, int64_t cursor, std::string* start_key);
 
   Status StoreCursorStartKey(const DataType& dtype, int64_t cursor, const std::string& next_key);
-
 
   template <typename T1, typename T2>
   struct LRU {
@@ -1032,8 +1030,8 @@ class Storage {
                     const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
   int64_t ScanZset(int64_t cursor, const std::string& pattern, int64_t count, std::vector<std::string>* keys);
-  Status GetZsetStartKey(int64_t cursor, std::string* start_key);
   int64_t StoreAndGetZsetCursor(int64_t cursor, const std::string& next_key);
+  Status GetZsetStartKey(int64_t cursor, std::string* start_key);
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
@@ -1057,7 +1055,7 @@ class Storage {
   // For scan keys in data base
   std::atomic<bool> scan_keynum_exit_ = false;
 
-    // zset db cursors
+  // zset db cursors
   LRU<int64_t, std::string> zset_cursors_store_;
   std::mutex zset_cursors_mutex_;
 };

@@ -65,6 +65,7 @@ PikaServer::PikaServer()
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
+
   std::set<std::string> ips;
   if (g_pika_conf->network_interface().empty()) {
     ips.insert("0.0.0.0");
@@ -171,11 +172,6 @@ void PikaServer::Start() {
     dbs_.clear();
     LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == net::kBindError ? ": bind port conflict" : ": other error");
   }
-//  ret = pika_zset_auto_del_thread_->StartThread();
-//  if (ret != net::kSuccess) {
-//    dbs_.clear();
-//    LOG(FATAL) << "Start ZsetAutoDel Error: " << ret << (ret == net::kBindError ? ": bind port conflict" : ": other error");
-//  }
   ret = pika_auxiliary_thread_->StartThread();
   if (ret != net::kSuccess) {
     dbs_.clear();
@@ -1303,9 +1299,8 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
-//  // auto del zset member
+  // auto del zset member
   DoAutoDelZsetMember();
-
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1780,34 +1775,30 @@ void PikaServer::DoAutoDelZsetMember() {
   if (is_slave() || g_pika_conf->zset_auto_del_threshold() == 0) {
     return;
   }
-
   int zset_auto_del_interval = g_pika_conf->zset_auto_del_interval();
   std::string zset_auto_del_cron = g_pika_conf->zset_auto_del_cron();
 
   if (zset_auto_del_interval == 0 && zset_auto_del_cron == "") {
     return;
   }
-
   if (zset_auto_del_interval == 0) {
     zset_auto_del_interval = 24;
   }
-
   if (zset_auto_del_cron == "") {
     zset_auto_del_cron = "00-23";
   }
-
   // check interval
   if (zset_auto_del_interval != 0) {
     struct timeval now;
     gettimeofday(&now, nullptr);
     int64_t last_check_time = pika_zset_auto_del_thread_->LastFinishCheckAllZsetTime();
-//    if (now.tv_sec - last_check_time < zset_auto_del_interval * 3600) {
-//      return;
-//    }
+    if (now.tv_sec - last_check_time < zset_auto_del_interval * 3600) {
+      return;
+    }
   }
 
   // check cron
-  //if (zset_auto_del_cron != "") {
+  if (zset_auto_del_cron != "") {
     std::string::size_type colon = zset_auto_del_cron.find("-");
     int start = std::atoi(zset_auto_del_cron.substr(0, colon).c_str());
     int end = std::atoi(zset_auto_del_cron.substr(colon + 1).c_str());
@@ -1821,10 +1812,10 @@ void PikaServer::DoAutoDelZsetMember() {
       in_window = true;
     }
 
-    //if (in_window) {
+    if (in_window) {
       pika_zset_auto_del_thread_->RequestCronTask();
-   // }
-  //}
+    }
+  }
 }
 
 Status PikaServer::ZsetAutoDel(int64_t cursor, double speed_factor) {
