@@ -11,7 +11,7 @@ Fellow the kubeblock docs [kubeblocks](https://kubeblocks.io/docs/preview/user_d
 First, use helm install pika cluster definition and install pika cluster.
 
 ```bash
-cd ./tools/kubeblock-helm/
+cd ./tools/kubeblocks-helm/
 helm install pika ./pika
 helm install pika-cluster ./pika-cluster
 ```
