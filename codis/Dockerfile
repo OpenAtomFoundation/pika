@@ -1,9 +1,15 @@
 FROM golang:1.20 AS builder
 
+ARG ENABLE_PROXY=false
+
+RUN if [ "$ENABLE_PROXY" = "true" ] ; \
+    then go env -w GOPROXY=https://goproxy.io,direct; \
+    fi 
+
 WORKDIR /codis
 COPY . /codis
 
-RUN make build-all
+RUN go env && make build-all
 
 FROM ubuntu:22.04
 
