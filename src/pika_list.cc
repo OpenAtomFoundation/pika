@@ -560,13 +560,13 @@ void RPopCmd::DoInitial() {
   }
 }
 void RPopCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> elements;
+  std::vector <std::string> elements;
   rocksdb::Status s = slot->db()->RPop(key_, count_, &elements);
   if (s.ok()) {
-    if (elements.size() > 1){
-    res_.AppendArrayLenUint64(elements.size());
+    if (elements.size() > 1) {
+      res_.AppendArrayLenUint64(elements.size());
     }
-    for (const auto& element : elements) {
+    for (const auto &element: elements) {
       res_.AppendString(element);
     }
   } else if (s.IsNotFound()) {
