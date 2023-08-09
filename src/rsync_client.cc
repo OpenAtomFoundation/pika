@@ -27,7 +27,7 @@ RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, con
     : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
   wo_mgr_.reset(new WaitObjectManager());
-  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 60 * 1000, wo_mgr_.get());
+  client_thread_ = std::make_unique<RsyncClientThread>(10 * 1000, 1 * 1000, wo_mgr_.get());
   work_threads_.resize(kMaxRsyncParallelNum);
   throttle_.reset(new Throttle(kThrottleBytesPerSecond, kThrottleCheckCycle));
   finished_work_cnt_.store(0);
