@@ -190,6 +190,9 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       };
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
+        if (state_.load() != RUNNING) {
+        break;
+        }
         LOG(WARNING) << "rsync request timeout";
         retries++;
         continue;
