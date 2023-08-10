@@ -1818,13 +1818,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "loglevel");
     EncodeString(&config_body, g_pika_conf->log_level());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "min-blob-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "min-blob-size");
     EncodeNumber(&config_body, g_pika_conf->min_blob_size());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "pin_l0_filter_and_index_blocks_in_cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "pin_l0_filter_and_index_blocks_in_cache");
@@ -2282,7 +2282,7 @@ void DelbackupCmd::Do(std::shared_ptr<Slot> slot) {
     }
 
     std::string dump_dir_name = db_sync_path + i + "/" + db_name_;
-    if (g_pika_server->CountSyncSlaves() == 0) {
+    if (!g_pika_rm->IsDumpInUse()) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
       pstd::DeleteDirIfExist(dump_dir_name);
       len--;

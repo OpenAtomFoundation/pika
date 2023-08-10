@@ -71,6 +71,7 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status CheckSyncTimeout(uint64_t now);
 
   int GetNumberOfSlaveNode();
+  bool IsDBSyncing();
   bool CheckSlaveNodeExist(const std::string& ip, int port);
   pstd::Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
 
@@ -182,6 +183,8 @@ class PikaReplicaManager {
   void Stop();
 
   bool CheckMasterSyncFinished();
+
+  bool IsDumpInUse();
 
   pstd::Status AddSyncSlotSanityCheck(const std::set<SlotInfo>& p_infos);
   pstd::Status AddSyncSlot(const std::set<SlotInfo>& p_infos);

@@ -41,6 +41,18 @@ SyncMasterSlot::SyncMasterSlot(const std::string& db_name, uint32_t slot_id)
 
 int SyncMasterSlot::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
+bool SyncMasterSlot::IsDBSyncing() {
+  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
+  for (const auto& slave : slaves) {
+    std::shared_ptr<SlaveNode> slave_ptr = slave.second;
+    std::lock_guard l(slave_ptr->slave_mu);
+    if (slave_ptr->slave_state == kSlaveDbSync) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool SyncMasterSlot::CheckSlaveNodeExist(const std::string& ip, int port) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   return static_cast<bool>(slave_ptr);
@@ -682,6 +694,16 @@ void PikaReplicaManager::Start() {
 void PikaReplicaManager::Stop() {
   pika_repl_client_->Stop();
   pika_repl_server_->Stop();
+}
+
+bool PikaReplicaManager::IsDumpInUse() {
+  for (auto& iter : sync_master_slots_) {
+    std::shared_ptr<SyncMasterSlot> slot = iter.second;
+    if (slot->IsDBSyncing()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool PikaReplicaManager::CheckMasterSyncFinished() {
