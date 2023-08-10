@@ -437,22 +437,25 @@ CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamR
   return res;
 }
 
-void StreamUtil::GenerateKeyByTreeID(std::string &field, const treeID tid) {
-  field.clear();
-  field.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
-  field.append(STERAM_TREE_PREFIX);
-  field.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
-}
-
-rocksdb::Status StreamUtil::GetTreeNodeValue(const std::string &key, std::string &filed, std::string &value,
+rocksdb::Status StreamUtil::GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
                                              const std::shared_ptr<Slot> &slot) {
+  std::string key;
+  key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
+  key.append(STERAM_TREE_PREFIX);
+  key.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
+
   rocksdb::Status s;
-  s = slot->db()->HGet(key, filed, &value);
+  s = slot->db()->HGet(key, field, &value);
   return s;
 }
 
-rocksdb::Status StreamUtil::InsertTreeNodeValue(const std::string &key, const std::string &filed,
+rocksdb::Status StreamUtil::InsertTreeNodeValue(const treeID tid, const std::string &filed,
                                                 const std::string &value, const std::shared_ptr<Slot> &slot) {
+  std::string key;
+  key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
+  key.append(STERAM_TREE_PREFIX);
+  key.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
+
   rocksdb::Status s;
   int res;
   s = slot->db()->HSet(key, filed, value, &res);
