@@ -13,6 +13,7 @@
 #include "include/pika_stream_consumer_meta_value.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
+#include "rocksdb/metadata.h"
 #include "rocksdb/status.h"
 #include "storage/storage.h"
 
@@ -102,6 +103,8 @@ class StreamUtil {
   static rocksdb::Status InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
                                              const std::shared_ptr<Slot> &slot);
 
+  static rocksdb::Status DeleteTreeNode(const treeID tid, const std::string &field, const std::shared_ptr<Slot> &slot);
+
   //===--------------------------------------------------------------------===//
   // Parse instraction args
   //===--------------------------------------------------------------------===//
@@ -154,7 +157,8 @@ class StreamUtil {
   // do the scan in a stream and append messages to res
   // @skey: the key of the stream
   static void ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
-                                        int32_t count, CmdRes &res, const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids) {
+                                        int32_t count, CmdRes &res, const std::shared_ptr<Slot> &slot,
+                                        std::vector<std::string> *row_ids) {
     std::string start_field;
     std::string end_field;
     rocksdb::Slice pattern = "*";
@@ -182,7 +186,6 @@ class StreamUtil {
     LOG(INFO) << "XRange Found " << field_values.size() << " messages";
     res.AppendArrayLenUint64(field_values.size());
     for (auto &fv : field_values) {
-
       // if ids is not null, we need to record the id of each message
       if (row_ids) {
         row_ids->push_back(fv.field);
@@ -234,8 +237,9 @@ class StreamUtil {
 
   // return ok if consumer meta exists or create a new one
   // @consumer_meta: used to return the consumer meta
-  static rocksdb::Status GetOrCreateConsumerMeta(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot,
-                                      StreamConsumerMetaValue &consumer_meta) {
+  static rocksdb::Status GetOrCreateConsumerMeta(treeID consumer_tid, std::string &consumername,
+                                                 const std::shared_ptr<Slot> &slot,
+                                                 StreamConsumerMetaValue &consumer_meta) {
     std::string consumer_meta_value;
     auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
     if (s.ok()) {

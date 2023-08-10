@@ -449,8 +449,8 @@ rocksdb::Status StreamUtil::GetTreeNodeValue(const treeID tid, std::string &fiel
   return s;
 }
 
-rocksdb::Status StreamUtil::InsertTreeNodeValue(const treeID tid, const std::string &filed,
-                                                const std::string &value, const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamUtil::InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
+                                                const std::shared_ptr<Slot> &slot) {
   std::string key;
   key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
   key.append(STERAM_TREE_PREFIX);
@@ -459,6 +459,20 @@ rocksdb::Status StreamUtil::InsertTreeNodeValue(const treeID tid, const std::str
   rocksdb::Status s;
   int res;
   s = slot->db()->HSet(key, filed, value, &res);
+  (void)res;
+  return s;
+}
+
+rocksdb::Status StreamUtil::DeleteTreeNode(const treeID tid, const std::string &field,
+                                           const std::shared_ptr<Slot> &slot) {
+  std::string key;
+  key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
+  key.append(STERAM_TREE_PREFIX);
+  key.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
+
+  rocksdb::Status s;
+  int res;
+  s = slot->db()->HDel(key, std::vector<std::string>{field}, &res);
   (void)res;
   return s;
 }

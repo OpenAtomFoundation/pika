@@ -13,16 +13,17 @@ static const size_t kDefaultStreamPelMetaValueLength = sizeof(mstime_t) + sizeof
 class StreamPelMeta {
  public:
   // consumer must been set at beginning
-  StreamPelMeta(std::string consumer) : consumer_(consumer) {}
+  StreamPelMeta() = default;
 
-  void Init(mstime_t delivery_time) {
+  void Init(std::string consumer, mstime_t delivery_time) {
+    consumer_ = consumer;
+    delivery_time_ = delivery_time;
     size_t needed = kDefaultStreamPelMetaValueLength;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
       LOG(ERROR) << "Init on a existed stream pel meta value!";
       return;
     }
-    delivery_time_ = delivery_time;
     value_.resize(needed);
     char* dst = value_.data();
 
@@ -70,7 +71,7 @@ class StreamPelMeta {
     memcpy(dst + sizeof(mstime_t), &delivery_count_, sizeof(uint64_t));
   }
 
-  std::string consumer() { return consumer_; }
+  std::string& consumer() { return consumer_; }
 
   std::string& value() { return value_; }
 
