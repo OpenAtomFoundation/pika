@@ -108,7 +108,7 @@ class XGROUP : public Cmd {
   bool mkstream_{false};
 
   // CREATECONSUMER and DELCONSUMER options
-  std::string consumer_name_;
+  std::string consumername;
 
   void DoInitial() override;
   // void Clear() override { .clear(); }
