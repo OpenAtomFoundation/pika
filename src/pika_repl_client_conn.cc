@@ -164,6 +164,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   slave_slot->SetMasterSessionId(session_id);
 
   std::string slot_name = slave_slot->SlotName();
+  slave_slot->StopRsync();
   slave_slot->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "Slot: " << slot_name << " Need Wait To Sync";
 }

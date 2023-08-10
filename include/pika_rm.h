@@ -157,6 +157,8 @@ class SyncSlaveSlot : public SyncSlot {
 
   std::string LocalIp();
 
+  void StopRsync();
+
   void ActivateRsync();
 
   bool IsRsyncRunning() {return rsync_cli_->IsRunning();}

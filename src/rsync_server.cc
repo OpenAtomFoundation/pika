@@ -17,63 +17,8 @@ extern PikaServer* g_pika_server;
 namespace rsync {
 
 using namespace net;
-using namespace RsyncService;
 using namespace pstd;
-
-//TODO: optimzie file read and calculate checksum, maybe use RsyncReader prefeching file content
-Status ReadDumpFile(const std::string filepath, const size_t offset, const size_t count,
-                    char* data, size_t* bytes_read, std::string* checksum) {
-  int fd = open(filepath.c_str(), O_RDONLY);
-  if (fd < 0) {
-    return Status::IOError("fd open failed");
-  }
-  DEFER { close(fd); };
-
-  const int kMaxCopyBlockSize = 1 << 20;
-  size_t read_offset = offset;
-  size_t read_count = count;
-  if (read_count > kMaxCopyBlockSize) {
-    read_count = kMaxCopyBlockSize;
-  }
-  ssize_t bytesin = 0;
-  size_t left_read_count = count;
-
-  while ((bytesin = pread(fd, data, read_count, read_offset)) > 0) {
-    left_read_count -= bytesin;
-    if (left_read_count < 0) {
-      break ;
-    }
-    if (read_count > left_read_count) {
-      read_count = left_read_count;
-    }
-
-    data += bytesin;
-    *bytes_read += bytesin;
-    read_offset += bytesin;
-  }
-
-  if (bytesin == -1) {
-    LOG(ERROR) << "unable to read from " << filepath;
-    return pstd::Status::IOError("unable to read from " + filepath);
-  }
-
-  if (bytesin == 0) {
-    char* buffer = new char[kMaxCopyBlockSize];
-    pstd::MD5 md5;
-
-    while ((bytesin = read(fd, buffer, kMaxCopyBlockSize)) > 0) {
-      md5.update(buffer, bytesin);
-    }
-    if (bytesin == -1) {
-      LOG(ERROR) << "unable to read from " << filepath;
-      delete []buffer;
-      return pstd::Status::IOError("unable to read from " + filepath);
-    }
-    delete []buffer;
-    *checksum = md5.finalize().hexdigest();
-  }
-  return pstd::Status::OK();
-}
+using namespace RsyncService;
 
 void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::PbConn> conn) {
   std::string reply_str;
@@ -122,9 +67,19 @@ int RsyncServer::Stop() {
 
 RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
                                  void* worker_specific_data, NetMultiplexer* mpx)
-    : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {}
+    : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {
+  readers_.resize(kMaxRsyncParallelNum);
+  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+    readers_[i].reset(new RsyncReader());
+  }
+}
 
-RsyncServerConn::~RsyncServerConn() {}
+RsyncServerConn::~RsyncServerConn() {
+  std::lock_guard<std::mutex> guard(mu_);
+  for (int i = 0; i < readers_.size(); i++) {
+    readers_[i].reset();
+  }
+}
 
 int RsyncServerConn::DealMessage() {
   std::shared_ptr<RsyncService::RsyncRequest> req = std::make_shared<RsyncService::RsyncRequest>();
@@ -166,6 +121,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   }
 
   RsyncService::RsyncResponse response;
+  response.set_reader_index(req->reader_index());
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
@@ -192,7 +148,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
 void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   std::unique_ptr<RsyncServerTaskArg> task_arg(static_cast<RsyncServerTaskArg*>(arg));
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
-  std::shared_ptr<net::PbConn> conn = task_arg->conn;
+  std::shared_ptr<RsyncServerConn> conn = task_arg->conn;
 
   uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
@@ -201,6 +157,7 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   size_t count = req->file_req().count();
 
   RsyncService::RsyncResponse response;
+  response.set_reader_index(req->reader_index());
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
   response.set_db_name(db_name);
@@ -226,9 +183,12 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   const std::string filepath = slot->bgsave_info().path + "/" + filename;
   char* buffer = new char[req->file_req().count() + 1];
-  std::string checksum = "";
   size_t bytes_read{0};
-  s = ReadDumpFile(filepath, offset, count, buffer, &bytes_read, &checksum);
+  std::string checksum = "";
+  bool is_eof = false;
+  std::shared_ptr<RsyncReader> reader = conn->readers_[req->reader_index()];
+  s = reader->Read(filepath, offset, count, buffer,
+                   &bytes_read, &checksum, &is_eof);
   if (!s.ok()) {
     response.set_code(RsyncService::kErr);
     RsyncWriteResp(response, conn);
@@ -238,7 +198,7 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   RsyncService::FileResponse* file_resp = response.mutable_file_resp();
   file_resp->set_data(buffer, bytes_read);
-  file_resp->set_eof(bytes_read != count);
+  file_resp->set_eof(is_eof);
   file_resp->set_checksum(checksum);
   file_resp->set_filename(filename);
   file_resp->set_count(bytes_read);
