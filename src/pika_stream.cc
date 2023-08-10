@@ -292,7 +292,7 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
 
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    
+
     // 5. add message to pending list
     std::vector<std::string> row_ids;
     StreamUtil::ScanAndAppendMessageToRes(key, id, STREAMID_MAX, args_.count, res_, slot, &row_ids);
@@ -538,5 +538,42 @@ void XRangeCmd::DoInitial() {
 void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
   // FIXME: deal with start_ex and end_ex
   StreamUtil::ScanAndAppendMessageToRes(key_, start_sid, end_sid, count_, res_, slot, nullptr);
+  return;
+}
+
+void XLenCmd::DoInitial() {
+  if (!CheckArg(argv_.size()) || argv_.size() < 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXRange);
+    return;
+  }
+  if (argv_.size() != 2) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXLen);
+    return;
+  }
+
+  key_ = argv_[1];
+}
+
+void XLenCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string meta_value;
+  rocksdb::Status s;
+  s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kNotFound);
+    return;
+  } else if (!s.ok()) {
+    LOG(ERROR) << "Unexpected error of key: " << key_;
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+
+  StreamMetaValue stream_meta;
+  stream_meta.ParseFrom(meta_value);
+  // FIXME: deal with stream_meta.length() > INT_MAX
+  if (stream_meta.length() > INT_MAX) {
+    res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
+    return;
+  }
+  res_.AppendInteger(static_cast<int>(stream_meta.length()));
   return;
 }

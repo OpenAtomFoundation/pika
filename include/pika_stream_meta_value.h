@@ -35,13 +35,15 @@ class StreamMetaValue {
     // Encode each member into the string
     memcpy(dst, &groups_id_, sizeof(treeID));
     dst += sizeof(treeID);
-    memcpy(dst, &entries_added_, sizeof(uint64_t));
-    dst += sizeof(uint64_t);
+    memcpy(dst, &entries_added_, sizeof(size_t));
+    dst += sizeof(size_t);
     memcpy(dst, &first_id_, sizeof(streamID));
     dst += sizeof(streamID);
     memcpy(dst, &last_id_, sizeof(streamID));
     dst += sizeof(streamID);
     memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
+    dst += sizeof(length_);
+    memcpy(dst, &length_, sizeof(size_t));
   }
 
   // used only when parse a existed stream meta
@@ -56,26 +58,30 @@ class StreamMetaValue {
     char* pos = value_.data();
     memcpy(&groups_id_, pos, sizeof(treeID));
     pos += sizeof(treeID);
-    memcpy(&entries_added_, pos, sizeof(uint64_t));
-    pos += sizeof(uint64_t);
+    memcpy(&entries_added_, pos, sizeof(size_t));
+    pos += sizeof(size_t);
     memcpy(&first_id_, pos, sizeof(streamID));
     pos += sizeof(streamID);
     memcpy(&last_id_, pos, sizeof(streamID));
     pos += sizeof(streamID);
     memcpy(&max_deleted_entry_id_, pos, sizeof(streamID));
+    pos += sizeof(length_);
+    memcpy(&length_, pos, sizeof(size_t));
   }
 
  const treeID groups_id() { return groups_id_; }
 
-  const uint64_t entries_added() { return entries_added_; }
+  const size_t entries_added() { return entries_added_; }
 
-  void ModifyEntriesAdded(uint64_t delta) { set_entries_added(entries_added_ + delta); }
+  void ModifyEntriesAdded(size_t delta) { set_entries_added(entries_added_ + delta); }
 
   const streamID first_id() { return first_id_; }
 
   const streamID last_id() const { return last_id_; }
 
   const streamID max_deleted_entry_id() { return max_deleted_entry_id_; }
+
+  const size_t length() { return length_; }
 
   std::string& value() { return value_; }
 
@@ -114,12 +120,35 @@ class StreamMetaValue {
     memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
   }
 
+  void set_length(size_t length) {
+    assert(value_.size() == kDefaultStreamValueLength);
+    length_ = length;
+    char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
+    memcpy(dst, &length_, sizeof(size_t));
+  }
+
+  void add_length(size_t delta) {
+    assert(value_.size() == kDefaultStreamValueLength);
+    length_ += delta;
+    char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
+    memcpy(dst, &length_, sizeof(size_t));
+  }
+
+  void sub_length(size_t delta) {
+    assert(value_.size() == kDefaultStreamValueLength);
+    assert(length_ >= delta);
+    length_ -= delta;
+    char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
+    memcpy(dst, &length_, sizeof(size_t));
+  }
+
  private:
   treeID groups_id_ = kINVALID_TREE_ID;
-  uint64_t entries_added_ = 0;
+  size_t entries_added_{0};
   streamID first_id_;
   streamID last_id_;
   streamID max_deleted_entry_id_;
+  size_t length_{0}; // number of the messages in the stream
 
   std::string value_{};
 };
