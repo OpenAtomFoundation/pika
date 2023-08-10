@@ -158,7 +158,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
     while (retries < max_retries_) {
       if (state_.load() != RUNNING) {
-        break;
+          break;
         }
       size_t copy_file_begin_time = pstd::NowMicros();
       size_t count = throttle_->ThrottledByThroughput(kBytesPerRequest);
