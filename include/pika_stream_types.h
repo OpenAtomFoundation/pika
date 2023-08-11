@@ -9,12 +9,16 @@
 // FIXME: will move to pika_command.h in the future
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
+  std::string ToString() const {
+    return std::to_string(ms) + "-" + std::to_string(seq);
+  }
   streamID() = default;
   uint64_t ms = 0;  /* Unix time in milliseconds. */
   uint64_t seq = 0; /* Sequence number. */
 };
 
 static const streamID STREAMID_MAX = streamID(UINT64_MAX, UINT64_MAX);
+static const streamID STREAMID_MIN = streamID(0, 0);
 
 enum class StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
 

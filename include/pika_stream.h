@@ -18,11 +18,7 @@
 class XAddCmd : public Cmd {
  public:
   XAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
+  std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -75,30 +71,29 @@ class XReadGroupCmd : public Cmd {
   }
 };
 
-class XGROUP : public Cmd {
+class XGroupCmd : public Cmd {
  public:
-  XGROUP(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
+  XGroupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
-  Cmd* Clone() override { return new XGROUP(*this); }
+  Cmd* Clone() override { return new XGroupCmd(*this); }
 
  private:
   // create a consumer group, initialize the pel and consumers
   void Create(const std::shared_ptr<Slot>& slot = nullptr);
   void CreateConsumer(const std::shared_ptr<Slot>& slot = nullptr);
+  void DeleteConsumer(const std::shared_ptr<Slot>& slot = nullptr);
+  void Destroy(const std::shared_ptr<Slot>& slot = nullptr);
 
  private:
   // XGROUP common options
-  std::string opt_;
+  std::string subcmd_;
   std::string key_;
-  std::string group_name_;
+  std::string cgroupname_;
   streamID sid_;
+  StreamMetaValue stream_meta_;
 
   // CREATE and SETID options
   uint64_t entries_read_{0};
@@ -152,11 +147,7 @@ class XAckCmd : public Cmd {
  public:
   XAckCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   // FIXME: use different lock
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
+  std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -167,10 +158,31 @@ class XAckCmd : public Cmd {
   std::string cgroup_name_;
   std::vector<std::string> ids_;
 
-  void Clear() override {
-    ids_.clear();
-  }
+  void Clear() override { ids_.clear(); }
   void DoInitial() override;
 };
+
+// class XAckCmd : public Cmd {
+//  public:
+//   XAckCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+//   // FIXME: use different lock
+//   std::vector<std::string> current_key() const override {
+//     return {key_};
+//   }
+//   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+//   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+//   void Merge() override{};
+//   Cmd* Clone() override { return new XAckCmd(*this); }
+
+//  private:
+//   std::string key_;
+//   std::string cgroup_name_;
+//   std::vector<std::string> ids_;
+
+//   void Clear() override {
+//     ids_.clear();
+//   }
+//   void DoInitial() override;
+// };
 
 #endif

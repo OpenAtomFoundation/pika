@@ -85,6 +85,13 @@ class StreamMetaValue {
 
   std::string& value() { return value_; }
 
+  std::string ToString() {
+    return std::string("groups_id: ") + std::to_string(groups_id_) + std::string(", entries_added: ") +
+           std::to_string(entries_added_) + std::string(", first_id: ") + first_id_.ToString() +
+           std::string(", last_id: ") + last_id_.ToString() + std::string(", max_deleted_entry_id: ") +
+           max_deleted_entry_id_.ToString() + std::string(", length: ") + std::to_string(length_);
+  }
+
   void set_groups_id(treeID groups_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     groups_id_ = groups_id;

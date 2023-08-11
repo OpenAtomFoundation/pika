@@ -221,7 +221,7 @@ const std::string kCmdNamePUnSubscribe = "punsubscribe";
 const std::string kCmdNameXAdd = "xadd";
 const std::string kCmdNameXRead = "xread";
 const std::string kCmdNameXReadGroup = "xreadgroup";
-const std::string kCmdNameXGroupCreate = "xgroupcreate";
+const std::string kCmdNameXGroup = "xgroup";
 const std::string kCmdNameXLen = "xlen";
 const std::string kCmdNameXRange = "xrange";
 const std::string kCmdNameXRevRange = "xrevrange";
@@ -271,6 +271,7 @@ enum CmdFlags {
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsPreDo = 2048,
+  kCmdFlagsStream = 1536
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
