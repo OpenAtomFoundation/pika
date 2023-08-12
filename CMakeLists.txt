@@ -812,4 +812,4 @@ add_custom_target(clang-tidy-fix
 
 
 # will be deleted when merge
-# add_subdirectory(tests/stream)
+add_subdirectory(tests/stream)

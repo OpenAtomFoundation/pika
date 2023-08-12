@@ -8,7 +8,7 @@ find_package(GTest REQUIRED)
 # add_definitions(-DSRC_UNIT_TESTS)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src ROOT_SRC_DIR)
 
-set(PROTO_FILES ${CMAKE_SOURCE_DIR}/src/pika_inner_message.proto)
+set(PROTO_FILES ${CMAKE_SOURCE_DIR}/src/pika_inner_message.proto ${CMAKE_SOURCE_DIR}/src/rsync_service.proto)
 custom_protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
 foreach(test_source ${TEST_SOURCES})
