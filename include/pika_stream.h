@@ -93,6 +93,8 @@ class XGROUP : public Cmd {
   void Create(const std::shared_ptr<Slot>& slot = nullptr);
   void CreateConsumer(const std::shared_ptr<Slot>& slot = nullptr);
 
+  void Help(const std::shared_ptr<Slot>& slot = nullptr);
+
  private:
   // XGROUP common options
   std::string opt_;

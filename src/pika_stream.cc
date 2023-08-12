@@ -277,6 +277,9 @@ void XGROUP::DoInitial() {
     consumer_name_ = argv_[4];
   } else if (!strcasecmp(opt_.c_str(), "DELCONSUMER") && argv_.size() == 5) {
     consumer_name_ = argv_[4];
+  }else if (!strcasecmp(opt_.c_str(), "HELP")) {
+    this->Help();
+    return;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
@@ -418,6 +421,23 @@ void XGROUP::CreateConsumer(const std::shared_ptr<Slot> &slot) {
     }
     res_.AppendInteger(1);
   }
+}
+
+void XGROUP::Help(const std::shared_ptr<Slot> &slot) {
+  res_.SetRes(CmdRes::kOk, std::string("CREATE <key> <groupname> <id|$> [option]\n"
+                                      "\tCreate a new consumer group. Options are:\n"
+                                      "\t* MKSTREAM\n"
+                                      "\t  Create the empty stream if it does not exist.\n"
+                                      "\t* ENTRIESREAD entries_read\n"
+                                      "\t  Set the group's entries_read counter (internal use).\n"
+                                      "CREATECONSUMER <key> <groupname> <consumer>\n"
+                                      "\tCreate a new consumer in the specified group.\n"
+                                      "DELCONSUMER <key> <groupname> <consumer>\n"
+                                      "\tRemove the specified consumer.\n"
+                                      "DESTROY <key> <groupname>\n"
+                                      "\tRemove the specified group.\n"
+                                      "SETID <key> <groupname> <id|$> [ENTRIESREAD entries_read]\n"
+                                      "\tSet the current group ID and entries_read counter."));
 }
 
 void XRangeCmd::DoInitial() {

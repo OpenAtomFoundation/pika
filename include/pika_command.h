@@ -222,6 +222,7 @@ const std::string kCmdNameXAdd = "xadd";
 const std::string kCmdNameXRead = "xread";
 const std::string kCmdNameXReadGroup = "xreadgroup";
 const std::string kCmdNameXGroupCreate = "xgroupcreate";
+const std::string kCmdNameXGroupHelp = "xgrouphelp"
 const std::string kCmdNameXLen = "xlen";
 const std::string kCmdNameXRange = "xrange";
 const std::string kCmdNameXRevRange = "xrevrange";
