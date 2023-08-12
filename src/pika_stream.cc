@@ -375,20 +375,13 @@ void XGroupCmd::DoInitial() {
   } else if (!strcasecmp(subcmd_.c_str(), "DESTROY") && argv_.size() == 4) {
     LOG(INFO) << "XGROUP DESTROY";
     // nothing todo
-<<<<<<< HEAD
-  } else if (!strcasecmp(opt_.c_str(), "CREATECONSUMEFR") && argv_.size() == 5) {
-    consumer_name_ = argv_[4];
-  } else if (!strcasecmp(opt_.c_str(), "DELCONSUMER") && argv_.size() == 5) {
-    consumer_name_ = argv_[4];
-  }else if (!strcasecmp(opt_.c_str(), "HELP")) {
-    this->Help();
-    return;
-=======
   } else if (!strcasecmp(subcmd_.c_str(), "CREATECONSUMEFR") && argv_.size() == 5) {
     consumername = argv_[4];
   } else if (!strcasecmp(subcmd_.c_str(), "DELCONSUMER") && argv_.size() == 5) {
     consumername = argv_[4];
->>>>>>> a062db21371cf5c899e937c79a0a1c020daf5f16
+  } else if (!strcasecmp(subcmd_.c_str(), "HELP")) {
+    this->Help();
+    return;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
@@ -512,8 +505,7 @@ void XGroupCmd::CreateConsumer(const std::shared_ptr<Slot> &slot) {
   }
 }
 
-<<<<<<< HEAD
-void XGROUP::Help(const std::shared_ptr<Slot> &slot) {
+void XGroupCmd::Help(const std::shared_ptr<Slot> &slot) {
   res_.SetRes(CmdRes::kOk, std::string("CREATE <key> <groupname> <id|$> [option]\n"
                                       "\tCreate a new consumer group. Options are:\n"
                                       "\t* MKSTREAM\n"
@@ -528,7 +520,8 @@ void XGROUP::Help(const std::shared_ptr<Slot> &slot) {
                                       "\tRemove the specified group.\n"
                                       "SETID <key> <groupname> <id|$> [ENTRIESREAD entries_read]\n"
                                       "\tSet the current group ID and entries_read counter."));
-=======
+}
+
 void XGroupCmd::Destroy(const std::shared_ptr<Slot> &slot) {
   // 1 find the cgroup_tid
   auto s = StreamUtil::DestoryCGroup(stream_meta_.groups_id(), cgroupname_, slot);
@@ -540,7 +533,6 @@ void XGroupCmd::Destroy(const std::shared_ptr<Slot> &slot) {
     return;
   }
   res_.AppendInteger(1);
->>>>>>> a062db21371cf5c899e937c79a0a1c020daf5f16
 }
 
 void XRangeCmd::DoInitial() {
