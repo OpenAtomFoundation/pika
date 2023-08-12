@@ -67,7 +67,7 @@ class StreamConsumerMetaValue {
   }
 
   // pel was set in constructor,  can't be modified
-  treeID pel() { return pel_; }
+  treeID pel_tid() { return pel_; }
 
   std::string& value() { return value_; }
 

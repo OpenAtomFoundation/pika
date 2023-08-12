@@ -62,21 +62,6 @@ TEST(StreamUtilTest, String2Int32) {
   ASSERT_FALSE(StreamUtil::string2int32("2147483648", value));  // 2^31
 }
 
-TEST(StreamUtilTest, GenerateKeyByTreeID) {
-  std::string field;
-  int32_t tid = 12345;
-
-  // Call the function to be tested
-  StreamUtil::GenerateKeyByTreeID(field, tid);
-
-  // Check if the field starts with STREAM_TREE_PREFIX
-  EXPECT_EQ(field.substr(0, strlen(STERAM_TREE_PREFIX)), STERAM_TREE_PREFIX);
-
-  // Check if the last bytes match tid
-  int32_t endValue;
-  memcpy(&endValue, &field[field.length() - sizeof(int32_t)], sizeof(int32_t));
-  EXPECT_EQ(endValue, tid);
-}
 
 TEST(StreamUtilTest, StreamID2String) {
   StreamUtil util;

@@ -5,6 +5,7 @@
 
 #include "include/pika_kv.h"
 
+#include "include/pika_stream_util.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_binlog_transverter.h"
@@ -162,7 +163,13 @@ void DelCmd::DoInitial() {
 
 void DelCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, storage::Status> type_status;
+
+  // stream's data value are stored in a hash, we can delete it as a hash
   int64_t count = slot->db()->Del(keys_, &type_status);
+  
+  // but stream's meta value need to be treated specially
+  StreamUtil::DestoryStreams(keys_, slot);
+
   if (count >= 0) {
     res_.AppendInteger(count);
     std::vector<std::string>::const_iterator it;

@@ -54,27 +54,6 @@ class BlockedConnNode {
   BlockKeyType block_type_;
 };
 
-class TimedScanThread : public Thread {
- public:
-  template <class F, class... Args>
-  void SetTimedTask(double interval, F&& f, Args&&... args) {
-    time_interval_ = interval;
-    timed_task_ = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...)]{
-      std::apply(f, args);
-    };
-  }
- private:
-  void* ThreadMain() override{
-    while(!should_stop()){
-      timed_task_();
-      sleep(time_interval_);
-    }
-    return nullptr;
-  }
-  std::function<void()> timed_task_;
-  // unit in seconds
-  double time_interval_;
-};
 
 class DispatchThread : public ServerThread {
  public:
@@ -129,8 +108,8 @@ class DispatchThread : public ServerThread {
     return blocked_conn_to_keys_;
   }
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
-
   // BlPop/BrPop used end
+
 
  private:
   /*
@@ -168,9 +147,7 @@ class DispatchThread : public ServerThread {
    */
   std::shared_mutex block_mtx_;
 
-  //used for blpop/brpop currently
-  TimedScanThread timed_scan_thread;
-
+  TimerTaskThread timerTaskThread_;
 };  // class DispatchThread
 
 }  // namespace net
