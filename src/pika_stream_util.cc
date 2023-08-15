@@ -317,7 +317,7 @@ rocksdb::Status StreamUtil::InsertStreamMessage(const std::string &key, const st
 }
 
 bool StreamUtil::SerializeMessage(const std::vector<std::string> &field_values, std::string &message, int field_pos) {
-  assert(argv.size() - filed_pos >= 2 && (argv.size() - filed_pos) % 2 == 0);
+  assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
   assert(message.empty());
   // count the size of serizlized message
   size_t size = 0;
@@ -547,7 +547,7 @@ rocksdb::Status StreamUtil::GetAllTreeNode(const treeID tid, std::vector<storage
 }
 
 bool StreamUtil::DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot) {
-  assert(tid != INVALID_TREE_ID);
+  assert(tid != kINVALID_TREE_ID);
   auto key = std::move(TreeID2Key(tid));
   std::map<storage::DataType, storage::Status> type_status;
   int64_t count = slot->db()->Del({key}, &type_status);

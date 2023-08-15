@@ -167,7 +167,7 @@ void XReadCmd::DoInitial() {
 }
 
 void XReadCmd::Do(std::shared_ptr<Slot> slot) {
-  assert(args_.unedited_keys.size() == args_.unparsed_ids.size());
+  assert(args_.keys.size() == args_.unparsed_ids.size());
   rocksdb::Status s;
   streamID id;
   for (int i = 0; i < args_.unparsed_ids.size(); i++) {
@@ -223,7 +223,7 @@ void XReadGroupCmd::DoInitial() {
 }
 
 void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
-  assert(args_.unedited_keys.size() == args_.unparsed_ids.size());
+  assert(args_.keys.size() == args_.unparsed_ids.size());
   rocksdb::Status s;
   streamID id;
   for (int i = 0; i < args_.unparsed_ids.size(); i++) {

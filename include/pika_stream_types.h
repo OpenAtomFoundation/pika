@@ -33,7 +33,7 @@ static const std::string STREAM_TREE_STRING_KEY = "STREAM";  // key of string to
 static const int kSTREAM_MAX_LIMIT = 1000000;
 static const int KSTREAM_MIN_LIMIT = 10000;
 
-static const treeID kINVALID_TREE_ID = 0;
+static const treeID kINVALID_TREE_ID = -1;
 
 struct StreamAddTrimArgs {
   // XADD options

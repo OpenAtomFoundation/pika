@@ -57,7 +57,7 @@ class StreamCGroupMetaValue {
   streamID last_id() { return last_id_; }
 
   void set_last_id(streamID last_id) {
-    assert(value.size() == kDefaultStreamCGroupValueLength);
+    assert(value_.size() == kDefaultStreamCGroupValueLength);
     last_id_ = last_id;
     char* dst = const_cast<char*>(value_.data());
     memcpy(dst, &last_id_, sizeof(streamID));
@@ -66,7 +66,7 @@ class StreamCGroupMetaValue {
   uint64_t entries_read() { return entries_read_; }
 
   void set_entries_read(uint64_t entries_read) {
-    assert(value.size() == kDefaultStreamCGroupValueLength);
+    assert(value_.size() == kDefaultStreamCGroupValueLength);
     entries_read_ = entries_read;
       char* dst = const_cast<char*>(value_.data()) + sizeof(streamID);
       memcpy(dst, &entries_read_, sizeof(uint64_t));

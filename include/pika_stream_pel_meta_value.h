@@ -38,7 +38,7 @@ class StreamPelMeta {
 
   void ParseFrom(std::string& value) {
     value_ = std::move(value);
-    assert(value_->size() == kDefaultStreamPelMetaValueLength);
+    assert(value_.size() == kDefaultStreamPelMetaValueLength);
     if (value_.size() != kDefaultStreamPelMetaValueLength) {
       LOG(ERROR) << "Invalid stream pel meta value length: ";
       return;

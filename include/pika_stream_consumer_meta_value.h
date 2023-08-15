@@ -52,7 +52,7 @@ class StreamConsumerMetaValue {
 
   void set_seen_time(mstime_t seen_time) {
     seen_time_ = seen_time;
-    assert(value.size() == kDefaultStreamConsumerValueLength);
+    assert(value_.size() == kDefaultStreamConsumerValueLength);
     char* dst = const_cast<char*>(value_.data());
     memcpy(dst, &seen_time_, sizeof(mstime_t));
   }
@@ -61,7 +61,7 @@ class StreamConsumerMetaValue {
 
   void set_active_time(mstime_t active_time) {
     active_time_ = active_time;
-    assert(value.size() == kDefaultStreamConsumerValueLength);
+    assert(value_.size() == kDefaultStreamConsumerValueLength);
     char* dst = const_cast<char*>(value_.data()) + sizeof(mstime_t);
     memcpy(dst, &active_time_, sizeof(mstime_t));
   }

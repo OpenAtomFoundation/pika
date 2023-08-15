@@ -35,11 +35,11 @@ class TreeIDGenerator {
 
   // FIXME: return rocksdb::Status instead of treeID
   treeID GetNextTreeID(const std::shared_ptr<Slot> &slot) {
-    treeID expected_id = INVALID_TREE_ID;
+    treeID expected_id = kINVALID_TREE_ID;
     if (tree_id_.compare_exchange_strong(expected_id, START_TREE_ID)) {
       TryToFetchLastIdFromStorage(slot);
     }
-    assert(tree_id_ != INVALID_TREE_ID);
+    assert(tree_id_ != kINVALID_TREE_ID);
     ++tree_id_;
     std::string tree_id_str = std::to_string(tree_id_);
     rocksdb::Status s = slot->db()->Set(STREAM_TREE_STRING_KEY, tree_id_str);
@@ -66,9 +66,8 @@ class TreeIDGenerator {
   }
 
  private:
-  static const treeID INVALID_TREE_ID = -1;
   static const treeID START_TREE_ID = 0;
-  std::atomic<treeID> tree_id_ = INVALID_TREE_ID;
+  std::atomic<treeID> tree_id_ = kINVALID_TREE_ID;
 };
 
 class StreamUtil {
