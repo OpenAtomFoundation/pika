@@ -44,7 +44,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 ## 特点
 * 容量大，支持百G数据量的存储
 * 兼容redis，不用修改代码即可平滑从redis迁移到pika
-* 支持主从(slaveof)
+* 支持主从模式(slaveof)
 * 完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令
 
 
