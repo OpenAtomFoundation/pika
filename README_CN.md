@@ -1,7 +1,7 @@
 # Pika
 
 ## 简介 [English](https://github.com/Qihoo360/pika/blob/master/README.md)
-Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大部分接口([兼容详情](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步，pika还可以用在twemproxy或者codis中来实现静态数据分片（pika已经可以支持codis的动态迁移slot功能，目前在合并到master分支，欢迎使用，感谢作者[left2right](https://github.com/left2right)和[fancy-rabbit](https://github.com/fancy-rabbit)提交的pr）
+Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大部分接口([兼容详情](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步，pika还可以用在twemproxy或者codis中来实现静态数据分片（pika已经可以支持codis的动态迁移slot功能，目前已合并到master分支，欢迎使用，感谢作者[left2right](https://github.com/left2right)和[fancy-rabbit](https://github.com/fancy-rabbit)提交的pr）
 
 ## Pika用户
 
@@ -52,7 +52,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 ### 二进制包使用
 
-用户可以直接从[releases](https://github.com/Qihoo360/pika/releases)下载最新的二进制版本包直接使用.
+用户可以直接从[releases](https://github.com/Qihoo360/pika/releases)下载最新的二进制版本包使用.
 
 ### 编译
 
@@ -97,7 +97,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
   c. scl enable devtoolset-7 bash
 ```
 
-第一次编译时，建议使用构建脚本`build.sh` 该脚本会检查本机上，是否有编译所需的软件
+第一次编译时，建议使用构建脚本`build.sh`，该脚本会检查本机上是否有编译所需的软件
 ```
   ./build.sh
 ```
@@ -119,9 +119,9 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
 
 ## 清空编译
 
-```
-  如果需要清空编译内容，视不同情况使用以下两种方法其一：
 
+  如果需要清空编译内容，视不同情况使用以下两种方法其一：
+```
   1. 执行 cd output && make clean来清空pika的编译内容
   2. 执行 rm -fr output 重新生成cmkae（一般用于彻底重新编译）
 ```
@@ -149,7 +149,7 @@ redis-cli -p 9221 "info"
 脚本接受几个可选参数：
 
 - `-t tag`: 指定镜像的Docker标签。默认情况下，标签是 `pikadb/pika:<git tag>`。
-- `-p platform`: 指定Docker镜像的平台。默认使用当前 docker 的 platform 设置 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
+- `-p platform`: 指定Docker镜像的平台。选项有 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`，默认使用当前 docker 的 platform 设置。
 - `--proxy`: 使用代理下载 package 以加快构建过程，构建时会使用阿里云的镜像源。
 - `--help`: 显示帮助信息。
 
@@ -161,7 +161,7 @@ redis-cli -p 9221 "info"
 
 ### 使用 pika-operator 部署
 
-使用 `pika-operator` 可以简单的在 Kubernetes 环境中部署单实例 `pika` 。
+使用 `pika-operator` 可以简单地在 Kubernetes 环境中部署单实例 `pika` 。
 请勿在生产环境中使用此功能。
 
 本地安装：
