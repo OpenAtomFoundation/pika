@@ -68,6 +68,17 @@ enum class AclPermission {
 };
 
 struct AclKeyPattern {
+  void ToString(std::string* str) {
+    if (flags & static_cast<uint32_t>(AclPermission::ALL)) {
+      str->append("~");
+    } else if (flags & static_cast<uint32_t>(AclPermission::WRITE)) {
+      str->append("%W~");
+    } else if (flags & static_cast<uint32_t>(AclPermission::READ)) {
+      str->append("%R~");
+    }
+    str->append(pattern);
+  }
+
   uint32_t flags;      /* The CMD_KEYS_* flags for this key pattern */
   std::string pattern; /* The pattern to match keys against */
 };
@@ -87,6 +98,8 @@ class AclSelector {
 
   pstd::Status SetSelectorFromOpSet(const std::string& opSet);
 
+  void ACLDescribeSelector(std::string* str);
+
  private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
 
@@ -96,12 +109,27 @@ class AclSelector {
 
   void ChangeSelector(const Cmd* cmd, bool allow);
   void ChangeSelector(const std::shared_ptr<Cmd>& cmd, bool allow);
-  void ChangeSelector(const std::shared_ptr<Cmd>& cmd, const std::string& subCmd, bool allow);
+  pstd::Status ChangeSelector(const std::shared_ptr<Cmd>& cmd, const std::string& subCmd, bool allow);
+
   void SetSubCommand(const uint32_t cmdId);
   void SetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
   void ResetSubCommand();
   void ResetSubCommand(const uint32_t cmdId);
   void ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+
+  void DescribeSelectorCommandRules(std::string* str);
+
+  // process acl command op, and sub command
+  pstd::Status SetCommandOp(const std::string& op, bool allow);
+
+  // when modify command, do update Selector commandRule string
+  void UpdateCommonRule(const std::string& rule, bool allow);
+
+  // remove rule string from Selector commandRule
+  void RemoveCommonRule(const std::string& rule);
+
+  // clean commandRule
+  void CleanCommandRule();
 
   uint32_t flags_;  // See SELECTOR_FLAG_*
 
@@ -119,13 +147,18 @@ class AclSelector {
   /* A list of allowed Pub/Sub channel patterns. If this field is empty the user cannot mention any
    * channel in a `PUBLISH` or [P][UNSUBSCRIBE] command, unless the flag ALLCHANNELS is set in the user. */
   std::list<std::string> channels_;
+
+  /* A string representation of the ordered categories and commands, this
+   * is used to regenerate the original ACL string for display.
+   */
+  std::string commandRules;
 };
 
 // acl user
 class User {
  public:
-  explicit User() = delete;
-  User(const std::string& name);
+  User() = delete;
+  explicit User(const std::string& name);
 
   std::string Name() const;
 
@@ -134,17 +167,7 @@ class User {
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
 
-  /**
-   * get user cached string represent of ACLs
-   * @return
-   */
-  std::string AclString() const;
-
-  /**
-   * modify cached string represent of ACLs
-   * @param aclString
-   */
-  void SetAclString(const std::string& aclString);
+  void CleanAclString(bool lock = false);
 
   /**
    * store a password
@@ -156,7 +179,9 @@ class User {
    * delete a stored password
    * @param password
    */
-  void RemovePassword(const std::string& password, bool look = false);
+  void RemovePassword(const std::string& password);
+
+  void CleanPassword();
 
   void AddSelector(const std::shared_ptr<AclSelector>& selector);
 
@@ -165,6 +190,8 @@ class User {
   pstd::Status CreateSelectorFromOpSet(const std::string& opSet);
 
   std::shared_ptr<AclSelector> GetRootSelector();
+
+  void DescribeUser(std::string* str);
 
  private:
   mutable std::shared_mutex mutex_;
@@ -183,6 +210,9 @@ class User {
 };
 
 class Acl {
+  friend User;
+  friend AclSelector;
+
  public:
   explicit Acl() = default;
   ~Acl() = default;
@@ -218,8 +248,14 @@ class Acl {
    */
   void AddUser(const std::shared_ptr<User>& user);
 
+  // save acl rule to file
+  pstd::Status SaveToFile();
+
   // 根据 cmd 分类名 获取分类的值
   inline static uint32_t GetCommandCategoryFlagByName(const std::string& name);
+
+  // 根据 category获取对应的name
+  static std::string GetCommandCategoryFlagByName(const uint32_t category);
 
  private:
   /**
@@ -250,7 +286,11 @@ class Acl {
   void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
   mutable std::shared_mutex mutex_;
 
-  static std::map<std::string, uint32_t> commandCategories;
+  static std::map<std::string, uint32_t> CommandCategories;
+
+  static std::map<std::string, uint32_t> UserFlags;
+
+  static std::map<std::string, uint32_t> SelectorFlags;
 
   std::map<std::string, std::shared_ptr<User>> users_;
 };

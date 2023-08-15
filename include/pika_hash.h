@@ -8,6 +8,7 @@
 
 #include "storage/storage.h"
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
 
@@ -16,15 +17,16 @@
  */
 class HDelCmd : public Cmd {
  public:
-  HDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HDelCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HDelCmd(*this); }
 
  private:
@@ -35,15 +37,16 @@ class HDelCmd : public Cmd {
 
 class HGetCmd : public Cmd {
  public:
-  HGetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HGetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HGetCmd(*this); }
 
  private:
@@ -53,15 +56,16 @@ class HGetCmd : public Cmd {
 
 class HGetallCmd : public Cmd {
  public:
-  HGetallCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HGetallCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HGetallCmd(*this); }
 
  private:
@@ -71,15 +75,16 @@ class HGetallCmd : public Cmd {
 
 class HSetCmd : public Cmd {
  public:
-  HSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HSetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HSetCmd(*this); }
 
  private:
@@ -89,15 +94,16 @@ class HSetCmd : public Cmd {
 
 class HExistsCmd : public Cmd {
  public:
-  HExistsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HExistsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HExistsCmd(*this); }
 
  private:
@@ -107,15 +113,16 @@ class HExistsCmd : public Cmd {
 
 class HIncrbyCmd : public Cmd {
  public:
-  HIncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HIncrbyCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HIncrbyCmd(*this); }
 
  private:
@@ -126,15 +133,16 @@ class HIncrbyCmd : public Cmd {
 
 class HIncrbyfloatCmd : public Cmd {
  public:
-  HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HIncrbyfloatCmd(*this); }
 
  private:
@@ -144,15 +152,16 @@ class HIncrbyfloatCmd : public Cmd {
 
 class HKeysCmd : public Cmd {
  public:
-  HKeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HKeysCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HKeysCmd(*this); }
 
  private:
@@ -162,15 +171,16 @@ class HKeysCmd : public Cmd {
 
 class HLenCmd : public Cmd {
  public:
-  HLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HLenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HLenCmd(*this); }
 
  private:
@@ -180,15 +190,16 @@ class HLenCmd : public Cmd {
 
 class HMgetCmd : public Cmd {
  public:
-  HMgetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HMgetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HMgetCmd(*this); }
 
  private:
@@ -199,15 +210,16 @@ class HMgetCmd : public Cmd {
 
 class HMsetCmd : public Cmd {
  public:
-  HMsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HMsetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HMsetCmd(*this); }
 
  private:
@@ -218,15 +230,16 @@ class HMsetCmd : public Cmd {
 
 class HSetnxCmd : public Cmd {
  public:
-  HSetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HSetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HSetnxCmd(*this); }
 
  private:
@@ -236,15 +249,16 @@ class HSetnxCmd : public Cmd {
 
 class HStrlenCmd : public Cmd {
  public:
-  HStrlenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HStrlenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HStrlenCmd(*this); }
 
  private:
@@ -254,15 +268,16 @@ class HStrlenCmd : public Cmd {
 
 class HValsCmd : public Cmd {
  public:
-  HValsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HValsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HValsCmd(*this); }
 
  private:
@@ -272,19 +287,20 @@ class HValsCmd : public Cmd {
 
 class HScanCmd : public Cmd {
  public:
-  HScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  HScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HScanCmd(*this); }
 
  private:
-  std::string key_; 
+  std::string key_;
   std::string pattern_;
   int64_t cursor_;
   int64_t count_{10};
@@ -297,19 +313,20 @@ class HScanCmd : public Cmd {
 
 class HScanxCmd : public Cmd {
  public:
-  HScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  HScanxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new HScanxCmd(*this); }
 
  private:
-  std::string key_; 
+  std::string key_;
   std::string start_field_;
   std::string pattern_;
   int64_t count_{10};
@@ -323,15 +340,15 @@ class HScanxCmd : public Cmd {
 class PKHScanRangeCmd : public Cmd {
  public:
   PKHScanRangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*") {}
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PKHScanRangeCmd(*this); }
 
  private:
@@ -350,15 +367,15 @@ class PKHScanRangeCmd : public Cmd {
 class PKHRScanRangeCmd : public Cmd {
  public:
   PKHRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*") {}
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PKHRScanRangeCmd(*this); }
 
  private:

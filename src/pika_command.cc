@@ -906,6 +906,7 @@ bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire)
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
+std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 

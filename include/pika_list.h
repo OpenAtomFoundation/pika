@@ -6,6 +6,7 @@
 #ifndef PIKA_LIST_H_
 #define PIKA_LIST_H_
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
 #include "storage/storage.h"
@@ -15,7 +16,8 @@
  */
 class LIndexCmd : public Cmd {
  public:
-  LIndexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LIndexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -35,7 +37,8 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
  public:
-  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
+  LInsertCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -56,7 +59,8 @@ class LInsertCmd : public Cmd {
 
 class LLenCmd : public Cmd {
  public:
-  LLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LLenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -117,7 +121,8 @@ class BLPopCmd final : public BlockingBaseCmd {
 
 class LPopCmd : public Cmd {
  public:
-  LPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPopCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -138,6 +143,8 @@ class LPopCmd : public Cmd {
 class LPushCmd : public BlockingBaseCmd {
  public:
   LPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+//  LPushCmd(const std::string& name, int arity, uint16_t flag)
+//      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -157,7 +164,8 @@ class LPushCmd : public BlockingBaseCmd {
 
 class LPushxCmd : public Cmd {
  public:
-  LPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPushxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -176,7 +184,8 @@ class LPushxCmd : public Cmd {
 
 class LRangeCmd : public Cmd {
  public:
-  LRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -196,7 +205,8 @@ class LRangeCmd : public Cmd {
 
 class LRemCmd : public Cmd {
  public:
-  LRemCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRemCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -216,7 +226,8 @@ class LRemCmd : public Cmd {
 
 class LSetCmd : public Cmd {
  public:
-  LSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LSetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -236,7 +247,8 @@ class LSetCmd : public Cmd {
 
 class LTrimCmd : public Cmd {
  public:
-  LTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LTrimCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -275,7 +287,8 @@ class BRPopCmd final : public BlockingBaseCmd {
 
 class RPopCmd : public Cmd {
  public:
-  RPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPopCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -352,7 +365,8 @@ class RPushCmd : public BlockingBaseCmd {
 
 class RPushxCmd : public Cmd {
  public:
-  RPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPushxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
