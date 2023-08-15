@@ -29,7 +29,7 @@ void XAddCmd::DoInitial() {
   }
   key_ = argv_[1];
   int idpos{-1};
-  res_ = StreamUtil::ParseAddOrTrimArgs(argv_, args_, idpos, true);
+  res_ = StreamUtil::ParseAddOrTrimArgs(argv_, args_, &idpos, true);
   if (!res_.ok()) {
     return;
   } else if (idpos < 0) {
@@ -47,15 +47,12 @@ void XAddCmd::DoInitial() {
 }
 
 void XAddCmd::Do(std::shared_ptr<Slot> slot) {
-  // 1.get stream meta
+  // 1 get stream meta
   std::string meta_value{};
   rocksdb::Status s;
   s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
   StreamMetaValue stream_meta;
-  if (s.ok()) {
-    LOG(INFO) << "Stream meta found, Parse";
-    stream_meta.ParseFrom(meta_value);
-  } else if (s.IsNotFound() && args_.no_mkstream) {
+  if (s.IsNotFound() && args_.no_mkstream) {
     LOG(INFO) << "Stream not exists and not create";
     res_.SetRes(CmdRes::kInvalidParameter, "Stream not exists");
     return;
@@ -67,8 +64,9 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  stream_meta.ParseFrom(meta_value);
 
-  // 2.append the message to storage
+  // 2 append the message to storage
   std::string message_str;
   std::string id_str;
   res_ = GenerateStreamID(stream_meta, args_, args_.id);
@@ -92,7 +90,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  // 3.update stream meta, Korpse TODO: is there any arg left to update?
+  // 3 update stream meta, Korpse TODO: is there any arg left to update?
   auto message_len = (argv_.size() - field_pos_) / 2;
   if (stream_meta.entries_added() == 0) {
     stream_meta.set_first_id(args_.id);
@@ -101,9 +99,16 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   stream_meta.set_last_id(args_.id);
   stream_meta.add_length(message_len);
 
-  // 4.Korpse TODO: trim the stream if needed
+  // 4 trim the stream if needed
+  if (args_.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
+    res_ = StreamUtil::TrimStream(key_, args_, slot);
+    if (!res_.ok()) {
+      return;
+    }
+    res_.clear();
+  }
 
-  // n.insert stream meta
+  // 5 insert stream meta
   s = StreamUtil::InsertStreamMeta(key_, stream_meta.value(), slot);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -209,7 +214,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
 
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    StreamUtil::ScanAndAppendMessageToRes(key, id, STREAMID_MAX, args_.count, res_, slot, nullptr);
+    res_ = StreamUtil::ScanAndAppendMessageToRes(key, id, kSTREAMID_MAX, args_.count, slot, nullptr);
   }
 }
 
@@ -299,7 +304,7 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
 
     // 5.add message to pending list
     std::vector<std::string> row_ids;
-    StreamUtil::ScanAndAppendMessageToRes(key, id, STREAMID_MAX, args_.count, res_, slot, &row_ids);
+    res_ = StreamUtil::ScanAndAppendMessageToRes(key, id, kSTREAMID_MAX, args_.count, slot, &row_ids);
 
     // add to both consumer and cgroup's pel
     for (const auto &id : row_ids) {
@@ -507,19 +512,19 @@ void XGroupCmd::CreateConsumer(const std::shared_ptr<Slot> &slot) {
 
 void XGroupCmd::Help(const std::shared_ptr<Slot> &slot) {
   res_.SetRes(CmdRes::kOk, std::string("CREATE <key> <groupname> <id|$> [option]\n"
-                                      "\tCreate a new consumer group. Options are:\n"
-                                      "\t* MKSTREAM\n"
-                                      "\t  Create the empty stream if it does not exist.\n"
-                                      "\t* ENTRIESREAD entries_read\n"
-                                      "\t  Set the group's entries_read counter (internal use).\n"
-                                      "CREATECONSUMER <key> <groupname> <consumer>\n"
-                                      "\tCreate a new consumer in the specified group.\n"
-                                      "DELCONSUMER <key> <groupname> <consumer>\n"
-                                      "\tRemove the specified consumer.\n"
-                                      "DESTROY <key> <groupname>\n"
-                                      "\tRemove the specified group.\n"
-                                      "SETID <key> <groupname> <id|$> [ENTRIESREAD entries_read]\n"
-                                      "\tSet the current group ID and entries_read counter."));
+                                       "\tCreate a new consumer group. Options are:\n"
+                                       "\t* MKSTREAM\n"
+                                       "\t  Create the empty stream if it does not exist.\n"
+                                       "\t* ENTRIESREAD entries_read\n"
+                                       "\t  Set the group's entries_read counter (internal use).\n"
+                                       "CREATECONSUMER <key> <groupname> <consumer>\n"
+                                       "\tCreate a new consumer in the specified group.\n"
+                                       "DELCONSUMER <key> <groupname> <consumer>\n"
+                                       "\tRemove the specified consumer.\n"
+                                       "DESTROY <key> <groupname>\n"
+                                       "\tRemove the specified group.\n"
+                                       "SETID <key> <groupname> <id|$> [ENTRIESREAD entries_read]\n"
+                                       "\tSet the current group ID and entries_read counter."));
 }
 
 void XGroupCmd::Destroy(const std::shared_ptr<Slot> &slot) {
@@ -536,7 +541,7 @@ void XGroupCmd::Destroy(const std::shared_ptr<Slot> &slot) {
 }
 
 void XRangeCmd::DoInitial() {
-  if (!CheckArg(argv_.size()) || argv_.size() < 4) {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXRange);
     return;
   }
@@ -572,12 +577,12 @@ void XRangeCmd::DoInitial() {
 
 void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
   // FIXME: deal with start_ex and end_ex
-  StreamUtil::ScanAndAppendMessageToRes(key_, start_sid, end_sid, count_, res_, slot, nullptr);
+  res_ = StreamUtil::ScanAndAppendMessageToRes(key_, start_sid, end_sid, count_, slot, nullptr);
   return;
 }
 
 void XLenCmd::DoInitial() {
-  if (!CheckArg(argv_.size()) || argv_.size() < 4) {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXLen);
     return;
   }
@@ -609,7 +614,7 @@ void XLenCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void XAckCmd::DoInitial() {
-  if (!CheckArg(argv_.size()) || argv_.size() < 4) {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXAck);
     return;
   }
@@ -629,9 +634,8 @@ void XAckCmd::DoInitial() {
 
 void XAckCmd::Do(std::shared_ptr<Slot> slot) {
   // 1.try to get stream meta, if not found, return error
-  std::string meta_value;
-  StreamMetaValue stream_meta;
-  auto s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  std::string stream_meta_value;
+  auto s = StreamUtil::GetStreamMeta(key_, stream_meta_value, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -639,11 +643,11 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  stream_meta.ParseFrom(meta_value);
+  StreamMetaValue stream_meta;
+  stream_meta.ParseFrom(stream_meta_value);
 
   // 2.try to get cgroup meta, if not found, return error
   std::string cgroup_meta_value;
-  StreamCGroupMetaValue cgroup_meta;
   s = StreamUtil::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
@@ -652,6 +656,7 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  StreamCGroupMetaValue cgroup_meta;
   cgroup_meta.ParseFrom(cgroup_meta_value);
 
   // 3.delete the id from the pending list
@@ -700,3 +705,18 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 }
+
+void XTrimCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXTrim);
+    return;
+  }
+
+  key_ = argv_[1];
+  res_ = StreamUtil::ParseAddOrTrimArgs(argv_, args_, nullptr, true);
+  if (!res_.ok()) {
+    return;
+  }
+}
+
+void XTrimCmd::Do(std::shared_ptr<Slot> slot) { res_ = StreamUtil::TrimStream(key_, args_, slot); }

@@ -164,27 +164,23 @@ class XAckCmd : public Cmd {
   void DoInitial() override;
 };
 
-// class XAckCmd : public Cmd {
-//  public:
-//   XAckCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-//   // FIXME: use different lock
-//   std::vector<std::string> current_key() const override {
-//     return {key_};
-//   }
-//   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-//   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-//   void Merge() override{};
-//   Cmd* Clone() override { return new XAckCmd(*this); }
+class XTrimCmd : public Cmd {
+ public:
+  XTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  // FIXME: use different lock
+  std::vector<std::string> current_key() const override {
+    return {key_};
+  }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XTrimCmd(*this); }
 
-//  private:
-//   std::string key_;
-//   std::string cgroup_name_;
-//   std::vector<std::string> ids_;
+ private:
+  std::string key_;
+  StreamAddTrimArgs args_;
 
-//   void Clear() override {
-//     ids_.clear();
-//   }
-//   void DoInitial() override;
-// };
+  void DoInitial() override;
+};
 
 #endif

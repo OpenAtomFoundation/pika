@@ -132,8 +132,8 @@ TEST(StreamUtilTest, StreamParseID) {
   // Test special ID: "+"
   res = util.StreamParseID("+", id, missing_seq);
   EXPECT_TRUE(res.ok());
-  EXPECT_EQ(id.ms, STREAMID_MAX.ms);
-  EXPECT_EQ(id.seq, STREAMID_MAX.seq);
+  EXPECT_EQ(id.ms, kSTREAMID_MAX.ms);
+  EXPECT_EQ(id.seq, kSTREAMID_MAX.seq);
 
   // Test special ID: "-"
   res = util.StreamParseID("-", id, missing_seq);

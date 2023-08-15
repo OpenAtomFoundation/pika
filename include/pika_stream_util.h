@@ -73,7 +73,7 @@ class TreeIDGenerator {
 class StreamUtil {
  public:
   //===--------------------------------------------------------------------===//
-  // Meta data get and insert
+  // Meta data get and set
   //===--------------------------------------------------------------------===//
 
   // Korpse TODO: unit test
@@ -113,13 +113,175 @@ class StreamUtil {
                                         const std::shared_ptr<Slot> &slot);
 
   //===--------------------------------------------------------------------===//
-  // Parse instraction args
+  // Common functions for command implementation
   //===--------------------------------------------------------------------===//
 
-  static CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd);
+  static CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos, bool is_xadd);
   static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
                                          bool is_xreadgroup);
 
+  static inline void TrimByMaxlen(StreamMetaValue &stream_meta, const std::string &key,
+                                  const std::shared_ptr<Slot> &slot, CmdRes &res, StreamAddTrimArgs &args) {
+    // trim the stream in batches
+    int32_t count{0};
+    std::string next_field;
+    // FIXME: 处理 max_deleted_field 为空的情况
+    std::string max_deleted_field;
+    bool has_change{false};
+    while (stream_meta.length() - count > args.maxlen) {
+      auto cur_batch =
+          static_cast<int32_t>(std::min(stream_meta.length() - count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
+      count += cur_batch;
+      assert(cur_batch > 0);
+
+      std::vector<storage::FieldValue> filed_values;
+      res =
+          StreamUtil::ScanStream(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, filed_values, next_field, slot);
+      if (!res.ok()) {
+        return;
+      }
+      assert(!filed_values.empty());
+      max_deleted_field = filed_values.back().field;
+
+      // delete the message in batch
+      std::vector<std::string> fields_to_del;
+      fields_to_del.reserve(filed_values.size());
+      for (auto &fv : filed_values) {
+        fields_to_del.emplace_back(std::move(fv.field));
+      }
+      int32_t ret;
+      auto s = slot->db()->HDel(key, fields_to_del, &ret);
+      if (!s.ok()) {
+        res.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+      assert(ret == fields_to_del.size());
+
+      has_change = true;
+    }
+    if (!has_change) {
+      return;
+    }
+
+    // reset the stream meta
+    res.AppendInteger(count);
+    streamID first_id;
+    streamID max_deleted_entry_id;
+    if (stream_meta.length() - count == 0) {
+      next_field = max_deleted_field;
+    }
+    if (!StreamUtil::StreamParseStrictID(next_field, first_id, 0, nullptr).ok() ||
+        !StreamUtil::StreamParseStrictID(max_deleted_field, max_deleted_entry_id, 0, nullptr).ok()) {
+      LOG(ERROR) << "Parse stream id failed";
+      res.SetRes(CmdRes::kErrOther, "Parse stream id failed");
+      return;
+    }
+    stream_meta.set_first_id(first_id);
+    stream_meta.set_max_deleted_entry_id(max_deleted_entry_id);
+    stream_meta.set_length(stream_meta.length() - count);
+  }
+
+  static inline void TrimByMinid(StreamMetaValue &stream_meta, const std::string &key,
+                                 const std::shared_ptr<Slot> &slot, CmdRes &res, StreamAddTrimArgs &args) {
+    int32_t count{0};
+    std::string next_field;
+    std::string min_sid_str;
+    std::string max_deleted_field;
+    if (!StreamUtil::StreamID2String(stream_meta.first_id(), next_field) ||
+        !StreamUtil::StreamID2String(args.minid, min_sid_str)) {
+      LOG(ERROR) << "Serialize stream id failed";
+      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+      return;
+    }
+
+    // do the trim
+    bool has_change{false};
+    while (next_field < min_sid_str && stream_meta.length() - count > 0) {
+      auto cur_batch =
+          static_cast<int32_t>(std::min(stream_meta.length() - count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
+      count += cur_batch;
+      assert(cur_batch > 0);
+
+      std::vector<storage::FieldValue> filed_values;
+      res =
+          StreamUtil::ScanStream(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, filed_values, next_field, slot);
+      if (!res.ok()) {
+        return;
+      }
+      assert(!filed_values.empty());
+      max_deleted_field = filed_values.back().field;
+
+      // delete the message in batch
+      std::vector<std::string> fields_to_del;
+      fields_to_del.reserve(filed_values.size());
+      for (auto &fv : filed_values) {
+        fields_to_del.emplace_back(std::move(fv.field));
+      }
+      int32_t ret;
+      auto s = slot->db()->HDel(key, fields_to_del, &ret);
+      if (!s.ok()) {
+        res.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+      assert(ret == fields_to_del.size());
+      has_change = true;
+    }
+
+    if (!has_change) {
+      return;
+    }
+
+    // reset the stream meta
+    res.AppendInteger(count);
+    streamID first_id;
+    streamID max_deleted_entry_id;
+    if (stream_meta.length() - count == 0) {
+      next_field = max_deleted_field;
+    }
+    if (!StreamUtil::StreamParseStrictID(next_field, first_id, 0, nullptr).ok() ||
+        !StreamUtil::StreamParseStrictID(max_deleted_field, max_deleted_entry_id, 0, nullptr).ok()) {
+      LOG(ERROR) << "Parse stream id failed";
+      res.SetRes(CmdRes::kErrOther, "Parse stream id failed");
+      return;
+    }
+    stream_meta.set_first_id(first_id);
+    stream_meta.set_max_deleted_entry_id(max_deleted_entry_id);
+    stream_meta.set_length(stream_meta.length() - count);
+  }
+
+  static CmdRes TrimStream(const std::string &key, StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
+    CmdRes res;
+    // 1 try to get the stram meta
+    std::string meta_value;
+    auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+    if (s.IsNotFound()) {
+      res.AppendInteger(0);
+      return res;
+    } else if (!s.ok()) {
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return res;
+    }
+    StreamMetaValue stream_meta;
+    stream_meta.ParseFrom(meta_value);
+
+    // 2 do the trim
+    if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
+      TrimByMaxlen(stream_meta, key, slot, res, args);
+    } else if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MINID) {
+      TrimByMinid(stream_meta, key, slot, res, args);
+    } else {
+      LOG(ERROR) << "Invalid trim strategy";
+      res.SetRes(CmdRes::kErrOther, "Invalid trim strategy");
+    }
+
+    // 3 insert stream meta
+    s = StreamUtil::InsertStreamMeta(key, stream_meta.value(), slot);
+    if (!s.ok()) {
+      LOG(ERROR) << "Insert stream message failed";
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+    }
+    return res;
+  }
   //===--------------------------------------------------------------------===//
   // Serialize and deserialize
   //===--------------------------------------------------------------------===//
@@ -158,12 +320,47 @@ class StreamUtil {
 
   static uint64_t GetCurrentTimeMs();
 
+  static inline CmdRes ScanStream(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
+                                  int32_t count, std::vector<storage::FieldValue> &field_values,
+                                  std::string &next_field, const std::shared_ptr<Slot> &slot) {
+    CmdRes res;
+    std::string start_field;
+    std::string end_field;
+    rocksdb::Slice pattern = "*";  // match all the fields from start_field to end_field
+    if (!StreamUtil::StreamID2String(start_sid, start_field)) {
+      LOG(ERROR) << "Serialize stream id failed";
+      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+    }
+    if (end_sid == kSTREAMID_MAX) {
+      end_field = "";  // empty for no end_sid
+    } else if (!StreamUtil::StreamID2String(end_sid, end_field)) {
+      LOG(ERROR) << "Serialize stream id failed";
+      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+    }
+
+    rocksdb::Status s =
+        slot->db()->PKHScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
+    if (s.IsNotFound()) {
+      LOG(INFO) << "no message found in XRange";
+      res.AppendArrayLen(0);
+      return res;
+    } else if (!s.ok()) {
+      LOG(ERROR) << "PKHScanRange failed";
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return res;
+    }
+
+    res.SetRes(CmdRes::kOk);
+    return res;
+  }
+
   // used to support range scan cmd, like xread, xrange, xrevrange
   // do the scan in a stream and append messages to res
   // @skey: the key of the stream
-  static void ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
-                                        int32_t count, CmdRes &res, const std::shared_ptr<Slot> &slot,
-                                        std::vector<std::string> *row_ids);
+  // @row_ids: if not null, will append the id to it
+  static CmdRes ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
+                                          int32_t count, const std::shared_ptr<Slot> &slot,
+                                          std::vector<std::string> *row_ids);
 
   //  private:
   static CmdRes StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,

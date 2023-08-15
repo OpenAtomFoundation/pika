@@ -20,52 +20,49 @@
 bool StreamUtil::is_stream_meta_hash_created_ = false;
 
 // Korpse TODO: test
-CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int &idpos, bool is_xadd) {
+CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos, bool is_xadd) {
   CmdRes res;
   int i = 2;
   bool limit_given = false;
   for (; i < argv.size(); ++i) {
     size_t moreargs = argv.size() - 1 - i;
     const std::string &opt = argv[i];
+
     if (is_xadd && strcasecmp(opt.c_str(), "*") == 0 && opt.size() == 1) {
       // case: XADD mystream * field value [field value ...]
       break;
+
     } else if (strcasecmp(opt.c_str(), "maxlen") == 0 && moreargs) {
+      // case: XADD mystream ... MAXLEN [= | ~] threshold ...
       if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
         res.SetRes(CmdRes::kSyntaxErr, "syntax error, MAXLEN and MINID options at the same time are not compatible");
         return res;
       }
-      args.approx_trim = false;
       const auto &next = argv[i + 1];
-      if (moreargs >= 2 && next == "~") {
-        // case: XADD mystream MAXLEN ~ <count> * field value [field value ...]
-        args.approx_trim = true;
-        i++;
-      } else if (moreargs >= 2 && strcasecmp(next.c_str(), "=") == 0) {
-        // case: XADD mystream MAXLEN = <count> * field value [field value ...]
+      if (moreargs >= 2 && (next == "~" || next == "=")) {
+        // we allways not do approx trim, so we ignore the ~ and =
         i++;
       }
+      // parse threshold as uint64
       if (!StreamUtil::string2uint64(argv[i + 1].c_str(), args.maxlen)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid MAXLEN argument");
       }
       i++;
       args.trim_strategy = StreamTrimStrategy::TRIM_STRATEGY_MAXLEN;
       args.trim_strategy_arg_idx = i;
+
     } else if (strcasecmp(opt.c_str(), "minid") == 0 && moreargs) {
+      // case: XADD mystream ... MINID [= | ~] threshold ...
       if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
         res.SetRes(CmdRes::kSyntaxErr, "syntax error, MAXLEN and MINID options at the same time are not compatible");
         return res;
       }
-      args.approx_trim = false;
       const auto &next = argv[i + 1];
-      if (moreargs >= 2 && strcasecmp(next.c_str(), "~") == 0 && next.size() == 1) {
-        // case: XADD mystream MINID ~ <id> * field value [field value ...]
-        args.approx_trim = true;
-        i++;
-      } else if (moreargs >= 2 && strcasecmp(next.c_str(), "=") == 0 && next.size() == 1) {
-        // case: XADD mystream MINID ~ <id> = field value [field value ...]
+      if (moreargs >= 2 && (next == "~" || next == "=") && next.size() == 1) {
+        // we allways not do approx trim, so we ignore the ~ and =
         i++;
       }
+      // parse threshold as stremID
       auto ret = StreamUtil::StreamParseID(argv[i + 1], args.minid, 0);
       if (!ret.ok()) {
         res = ret;
@@ -74,21 +71,20 @@ CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrim
       i++;
       args.trim_strategy = StreamTrimStrategy::TRIM_STRATEGY_MINID;
       args.trim_strategy_arg_idx = i;
+
     } else if (strcasecmp(opt.c_str(), "limit") == 0 && moreargs) {
-      // case: XADD mystream ... LIMIT ...
-      if (!StreamUtil::string2uint64(argv[i + 1].c_str(), args.limit)) {
-        res.SetRes(CmdRes::kInvalidParameter);
-        return res;
-      }
-      limit_given = true;
-      i++;
+      // case: XADD mystream ... ~ threshold LIMIT count ...
+      // we do not need approx trim, so we do not support LIMIT option
+      res.SetRes(CmdRes::kSyntaxErr, "syntax error, Pika do not support LIMIT option");
+      return res;
+
     } else if (is_xadd && strcasecmp(opt.c_str(), "nomkstream") == 0) {
       // case: XADD mystream ... NOMKSTREAM ...
       args.no_mkstream = true;
+
     } else if (is_xadd) {
       // case: XADD mystream ... ID ...
-      // FIXME: deal with seq_given
-      auto ret = StreamUtil::StreamParseStrictID(argv[i], args.id, 0, &args.id_given);
+      auto ret = StreamUtil::StreamParseStrictID(argv[i], args.id, 0, &args.seq_given);
       if (!ret.ok()) {
         res = ret;
         return res;
@@ -100,43 +96,13 @@ CmdRes StreamUtil::ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrim
     }
   }  // end for
 
-  if (args.limit && args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_NONE) {
-    res.SetRes(CmdRes::kSyntaxErr, "syntax error, LIMIT cannot be used without specifying a trimming strategy");
-    return res;
+  if (idpos) {
+    *idpos = i;
+  } else if (is_xadd) {
+    LOG(ERROR) << "idpos is null, xadd comand must parse idpos";
   }
 
-  if (!is_xadd && args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_NONE) {
-    res.SetRes(CmdRes::kSyntaxErr, "syntax error, XTRIM must be called with a trimming strategy");
-    return res;
-  }
-
-  // FIXME: figure out what is mustObeyClient() means in redis
-  // if (mustObeyClient(c)) {
-  //   args->limit = 0;
-  // } else {
-
-  if (limit_given) {
-    if (!args.approx_trim) {
-      res.SetRes(CmdRes::kSyntaxErr, "syntax error, LIMIT cannot be used without the special ~ option");
-      return res;
-    }
-  } else {
-    // if limit given but not give
-    if (args.approx_trim) {
-      // FIXME: let limit can be defined in config
-      args.limit = 100 * 10000;
-      if (args.limit <= 0) {
-        args.limit = KSTREAM_MIN_LIMIT;
-      }
-      if (args.limit > kSTREAM_MAX_LIMIT) {
-        args.limit = kSTREAM_MAX_LIMIT;
-      }
-    } else {
-      args.limit = 0;
-    }
-  }
-
-  idpos = i;
+  res.SetRes(CmdRes::kOk);
   return res;
 }
 
@@ -238,7 +204,6 @@ bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
   char *end;
   errno = 0;
   uint64_t tmp = strtoull(s, &end, 10);
-
   if (*end || errno == ERANGE) {
     // Conversion either didn't consume the entire string, or overflow occurred
     return false;
@@ -256,7 +221,6 @@ bool StreamUtil::string2int64(const char *s, int64_t &value) {
   char *end;
   errno = 0;
   int64_t tmp = std::strtoll(s, &end, 10);
-
   if (*end || errno == ERANGE) {
     // Conversion either didn't consume the entire string, or overflow occurred
     return false;
@@ -274,7 +238,6 @@ bool StreamUtil::string2int32(const char *s, int32_t &value) {
   char *end;
   errno = 0;
   long tmp = strtol(s, &end, 10);
-
   if (*end || errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX) {
     // Conversion either didn't consume the entire string,
     // or overflow or underflow occurred
@@ -371,29 +334,18 @@ uint64_t StreamUtil::GetCurrentTimeMs() {
   return now;
 }
 
-void StreamUtil::ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
-                                           int32_t count, CmdRes &res, const std::shared_ptr<Slot> &slot,
-                                           std::vector<std::string> *row_ids) {
-  std::string start_field;
-  std::string end_field;
-  rocksdb::Slice pattern = "*";
-  std::string next_field;
+CmdRes StreamUtil::ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid,
+                                             const streamID &end_sid, int32_t count, const std::shared_ptr<Slot> &slot,
+                                             std::vector<std::string> *row_ids) {
+  CmdRes res;
   std::vector<storage::FieldValue> field_values;
-  if (!StreamUtil::StreamID2String(start_sid, start_field) || !StreamUtil::StreamID2String(end_sid, end_field)) {
-    LOG(ERROR) << "Serialize stream id failed";
-    res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+  std::string next_field;
+  res = StreamUtil::ScanStream(skey, start_sid, end_sid, count, field_values, next_field, slot);
+  (void) next_field;
+  if (!res.ok()) {
+    return res;
   }
-  rocksdb::Status s =
-      slot->db()->PKHScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
-  if (s.IsNotFound()) {
-    LOG(INFO) << "XRange not found";
-    res.AppendArrayLen(0);
-    return;
-  } else if (!s.ok()) {
-    LOG(ERROR) << "PKHScanRange failed";
-    res.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
+  res.clear();
 
   // append the result to res_
   // the outer layer is an array, each element is a inner array witch has 2 elements
@@ -410,7 +362,7 @@ void StreamUtil::ScanAndAppendMessageToRes(const std::string &skey, const stream
     if (!DeserializeMessage(fv.value, message)) {
       LOG(ERROR) << "Deserialize message failed";
       res.SetRes(CmdRes::kErrOther, "Deserialize message failed");
-      return;
+      return res;
     }
 
     assert(message.size() % 2 == 0);
@@ -421,6 +373,9 @@ void StreamUtil::ScanAndAppendMessageToRes(const std::string &skey, const stream
       res.AppendString(m);
     }
   }
+
+  res.SetRes(CmdRes::kOk);
+  return res;
 }
 
 // Korpse TODO: test
