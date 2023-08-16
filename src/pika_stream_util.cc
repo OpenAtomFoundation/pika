@@ -250,7 +250,7 @@ bool StreamUtil::string2int32(const char *s, int32_t &value) {
 
 // no need to be thread safe, only xadd will call this function
 // and xadd can be locked by the same key using current_key()
-rocksdb::Status StreamUtil::InsertStreamMeta(const std::string &key, std::string &meta_value,
+rocksdb::Status StreamUtil::UpdateStreamMeta(const std::string &key, std::string &meta_value,
                                              const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s;
   int32_t temp{0};
@@ -341,7 +341,7 @@ CmdRes StreamUtil::ScanAndAppendMessageToRes(const std::string &skey, const stre
   std::vector<storage::FieldValue> field_values;
   std::string next_field;
   res = StreamUtil::ScanStream(skey, start_sid, end_sid, count, field_values, next_field, slot);
-  (void) next_field;
+  (void)next_field;
   if (!res.ok()) {
     return res;
   }
@@ -453,6 +453,161 @@ CmdRes StreamUtil::ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamR
   }
 
   res.SetRes(CmdRes::kOk);
+  return res;
+}
+
+inline StreamUtil::TrimRet StreamUtil::TrimByMaxlen(StreamMetaValue &stream_meta, const std::string &key,
+                                                    const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                    const StreamAddTrimArgs &args) {
+  TrimRet trim_ret;
+  // we delete the message in batchs, prevent from using too much memory
+  while (stream_meta.length() - trim_ret.count > args.maxlen) {
+    auto cur_batch =
+        static_cast<int32_t>(std::min(stream_meta.length() - trim_ret.count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
+    std::vector<storage::FieldValue> filed_values;
+    res = StreamUtil::ScanStream(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, filed_values, trim_ret.next_field, slot);
+    if (!res.ok()) {
+      return trim_ret;
+    }
+    assert(filed_values.size() == cur_batch);
+    trim_ret.count += cur_batch;
+    trim_ret.max_deleted_field = filed_values.back().field;
+
+    // delete the message in batchs
+    std::vector<std::string> fields_to_del;
+    fields_to_del.reserve(filed_values.size());
+    for (auto &fv : filed_values) {
+      fields_to_del.emplace_back(std::move(fv.field));
+    }
+    int32_t ret;
+    auto s = slot->db()->HDel(key, fields_to_del, &ret);
+    if (!s.ok()) {
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return trim_ret;
+    }
+    assert(ret == fields_to_del.size());
+  }
+
+  return trim_ret;
+}
+
+inline StreamUtil::TrimRet StreamUtil::TrimByMinid(StreamMetaValue &stream_meta, const std::string &key,
+                                                   const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                   const StreamAddTrimArgs &args) {
+  TrimRet trim_ret;
+  std::string min_sid_str;
+  if (!StreamUtil::StreamID2String(stream_meta.first_id(), trim_ret.next_field) ||
+      !StreamUtil::StreamID2String(args.minid, min_sid_str)) {
+    LOG(ERROR) << "Serialize stream id failed";
+    res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+    return trim_ret;
+  }
+
+  // we delete the message in batchs, prevent from using too much memory
+  bool has_change{false};
+  while (trim_ret.next_field < min_sid_str && stream_meta.length() - trim_ret.count > 0) {
+    auto cur_batch = static_cast<int32_t>(std::min(stream_meta.length() - trim_ret.count, kDEFAULT_TRIM_BATCH_SIZE));
+    std::vector<storage::FieldValue> filed_values;
+    res = StreamUtil::ScanStream(key, stream_meta.first_id(), args.minid, cur_batch, filed_values, trim_ret.next_field,
+                                 slot);
+    if (!res.ok()) {
+      return trim_ret;
+    }
+
+    // FIXME: should I do some check here?
+    trim_ret.count += static_cast<int32_t>(filed_values.size());
+    if (!filed_values.empty()) {
+      trim_ret.max_deleted_field = filed_values.back().field;
+    }
+    if (filed_values.size() < cur_batch) {
+      // reach the minid, stop
+      break;
+    }
+
+    // do the delete in batch
+    std::vector<std::string> fields_to_del;
+    fields_to_del.reserve(filed_values.size());
+    for (auto &fv : filed_values) {
+      fields_to_del.emplace_back(std::move(fv.field));
+    }
+    int32_t ret;
+    auto s = slot->db()->HDel(key, fields_to_del, &ret);
+    if (!s.ok()) {
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return trim_ret;
+    }
+    assert(ret == fields_to_del.size());
+    has_change = true;
+  }
+
+  return trim_ret;
+}
+
+CmdRes StreamUtil::TrimStream(const std::string &key, StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
+  CmdRes res;
+  // 1 try to get the stram meta
+  std::string meta_value;
+  auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+  if (s.IsNotFound()) {
+    res.AppendInteger(0);
+    return res;
+  } else if (!s.ok()) {
+    res.SetRes(CmdRes::kErrOther, s.ToString());
+    return res;
+  }
+  StreamMetaValue stream_meta;
+  stream_meta.ParseFrom(meta_value);
+
+  // 2 do the trim
+  TrimRet trim_ret;
+  if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
+    trim_ret = TrimByMaxlen(stream_meta, key, slot, res, args);
+  } else if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MINID) {
+    trim_ret = TrimByMinid(stream_meta, key, slot, res, args);
+  } else {
+    LOG(ERROR) << "Invalid trim strategy";
+    res.SetRes(CmdRes::kErrOther, "Invalid trim strategy");
+    return res;
+  }
+
+  if (!res.ok()) {
+    LOG(ERROR) << "Trim stream failed";
+    return res;
+  } else {
+    res.clear();
+  }
+
+  // 3 update stream meta
+  if (trim_ret.count == 0) {
+    res.AppendInteger(0);
+    return res;
+  }
+
+  streamID first_id;
+  streamID max_deleted_id;
+  if (stream_meta.length() == trim_ret.count) {
+    // all the message in the stream were deleted
+    trim_ret.next_field = trim_ret.max_deleted_field;
+  }
+  assert(!trim_ret.max_deleted_field.empty());
+  if (!StreamUtil::StreamParseStrictID(trim_ret.next_field, first_id, 0, nullptr).ok() ||
+      !StreamUtil::StreamParseStrictID(trim_ret.max_deleted_field, max_deleted_id, 0, nullptr).ok()) {
+    LOG(ERROR) << "Parse stream id failed";
+    res.SetRes(CmdRes::kErrOther, "Parse stream id failed");
+    return res;
+  }
+  stream_meta.set_first_id(first_id);
+  stream_meta.set_max_deleted_entry_id(max_deleted_id);
+  stream_meta.set_length(stream_meta.length() - trim_ret.count);
+
+  s = StreamUtil::UpdateStreamMeta(key, stream_meta.value(), slot);
+  if (!s.ok()) {
+    LOG(ERROR) << "Insert stream message failed";
+    res.SetRes(CmdRes::kErrOther, s.ToString());
+    return res;
+  }
+
+  res.AppendInteger(trim_ret.count);
   return res;
 }
 

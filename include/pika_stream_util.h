@@ -83,7 +83,7 @@ class StreamUtil {
   // will create stream meta hash if it dosent't exist.
   // return !s.ok() only when insert failed
   // Korpse TODO: unit test
-  static rocksdb::Status InsertStreamMeta(const std::string &key, std::string &meta_value,
+  static rocksdb::Status UpdateStreamMeta(const std::string &key, std::string &meta_value,
                                           const std::shared_ptr<Slot> &slot);
 
   // delete the stream meta
@@ -120,168 +120,21 @@ class StreamUtil {
   static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
                                          bool is_xreadgroup);
 
-  static inline void TrimByMaxlen(StreamMetaValue &stream_meta, const std::string &key,
-                                  const std::shared_ptr<Slot> &slot, CmdRes &res, StreamAddTrimArgs &args) {
-    // trim the stream in batches
+  struct TrimRet {
+    // the count of deleted messages
     int32_t count{0};
+    // the next field after trim
     std::string next_field;
-    // FIXME: 处理 max_deleted_field 为空的情况
+    // the max deleted field, will be empty if no message is deleted
     std::string max_deleted_field;
-    bool has_change{false};
-    while (stream_meta.length() - count > args.maxlen) {
-      auto cur_batch =
-          static_cast<int32_t>(std::min(stream_meta.length() - count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
-      count += cur_batch;
-      assert(cur_batch > 0);
+  };
 
-      std::vector<storage::FieldValue> filed_values;
-      res =
-          StreamUtil::ScanStream(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, filed_values, next_field, slot);
-      if (!res.ok()) {
-        return;
-      }
-      assert(!filed_values.empty());
-      max_deleted_field = filed_values.back().field;
+  static inline TrimRet TrimByMaxlen(StreamMetaValue &stream_meta, const std::string &key,
+                                     const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
+  static inline TrimRet TrimByMinid(StreamMetaValue &stream_meta, const std::string &key,
+                                    const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
 
-      // delete the message in batch
-      std::vector<std::string> fields_to_del;
-      fields_to_del.reserve(filed_values.size());
-      for (auto &fv : filed_values) {
-        fields_to_del.emplace_back(std::move(fv.field));
-      }
-      int32_t ret;
-      auto s = slot->db()->HDel(key, fields_to_del, &ret);
-      if (!s.ok()) {
-        res.SetRes(CmdRes::kErrOther, s.ToString());
-        return;
-      }
-      assert(ret == fields_to_del.size());
-
-      has_change = true;
-    }
-    if (!has_change) {
-      return;
-    }
-
-    // reset the stream meta
-    res.AppendInteger(count);
-    streamID first_id;
-    streamID max_deleted_entry_id;
-    if (stream_meta.length() - count == 0) {
-      next_field = max_deleted_field;
-    }
-    if (!StreamUtil::StreamParseStrictID(next_field, first_id, 0, nullptr).ok() ||
-        !StreamUtil::StreamParseStrictID(max_deleted_field, max_deleted_entry_id, 0, nullptr).ok()) {
-      LOG(ERROR) << "Parse stream id failed";
-      res.SetRes(CmdRes::kErrOther, "Parse stream id failed");
-      return;
-    }
-    stream_meta.set_first_id(first_id);
-    stream_meta.set_max_deleted_entry_id(max_deleted_entry_id);
-    stream_meta.set_length(stream_meta.length() - count);
-  }
-
-  static inline void TrimByMinid(StreamMetaValue &stream_meta, const std::string &key,
-                                 const std::shared_ptr<Slot> &slot, CmdRes &res, StreamAddTrimArgs &args) {
-    int32_t count{0};
-    std::string next_field;
-    std::string min_sid_str;
-    std::string max_deleted_field;
-    if (!StreamUtil::StreamID2String(stream_meta.first_id(), next_field) ||
-        !StreamUtil::StreamID2String(args.minid, min_sid_str)) {
-      LOG(ERROR) << "Serialize stream id failed";
-      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
-      return;
-    }
-
-    // do the trim
-    bool has_change{false};
-    while (next_field < min_sid_str && stream_meta.length() - count > 0) {
-      auto cur_batch =
-          static_cast<int32_t>(std::min(stream_meta.length() - count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
-      count += cur_batch;
-      assert(cur_batch > 0);
-
-      std::vector<storage::FieldValue> filed_values;
-      res =
-          StreamUtil::ScanStream(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, filed_values, next_field, slot);
-      if (!res.ok()) {
-        return;
-      }
-      assert(!filed_values.empty());
-      max_deleted_field = filed_values.back().field;
-
-      // delete the message in batch
-      std::vector<std::string> fields_to_del;
-      fields_to_del.reserve(filed_values.size());
-      for (auto &fv : filed_values) {
-        fields_to_del.emplace_back(std::move(fv.field));
-      }
-      int32_t ret;
-      auto s = slot->db()->HDel(key, fields_to_del, &ret);
-      if (!s.ok()) {
-        res.SetRes(CmdRes::kErrOther, s.ToString());
-        return;
-      }
-      assert(ret == fields_to_del.size());
-      has_change = true;
-    }
-
-    if (!has_change) {
-      return;
-    }
-
-    // reset the stream meta
-    res.AppendInteger(count);
-    streamID first_id;
-    streamID max_deleted_entry_id;
-    if (stream_meta.length() - count == 0) {
-      next_field = max_deleted_field;
-    }
-    if (!StreamUtil::StreamParseStrictID(next_field, first_id, 0, nullptr).ok() ||
-        !StreamUtil::StreamParseStrictID(max_deleted_field, max_deleted_entry_id, 0, nullptr).ok()) {
-      LOG(ERROR) << "Parse stream id failed";
-      res.SetRes(CmdRes::kErrOther, "Parse stream id failed");
-      return;
-    }
-    stream_meta.set_first_id(first_id);
-    stream_meta.set_max_deleted_entry_id(max_deleted_entry_id);
-    stream_meta.set_length(stream_meta.length() - count);
-  }
-
-  static CmdRes TrimStream(const std::string &key, StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
-    CmdRes res;
-    // 1 try to get the stram meta
-    std::string meta_value;
-    auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
-    if (s.IsNotFound()) {
-      res.AppendInteger(0);
-      return res;
-    } else if (!s.ok()) {
-      res.SetRes(CmdRes::kErrOther, s.ToString());
-      return res;
-    }
-    StreamMetaValue stream_meta;
-    stream_meta.ParseFrom(meta_value);
-
-    // 2 do the trim
-    if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
-      TrimByMaxlen(stream_meta, key, slot, res, args);
-    } else if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MINID) {
-      TrimByMinid(stream_meta, key, slot, res, args);
-    } else {
-      LOG(ERROR) << "Invalid trim strategy";
-      res.SetRes(CmdRes::kErrOther, "Invalid trim strategy");
-    }
-
-    // 3 insert stream meta
-    s = StreamUtil::InsertStreamMeta(key, stream_meta.value(), slot);
-    if (!s.ok()) {
-      LOG(ERROR) << "Insert stream message failed";
-      res.SetRes(CmdRes::kErrOther, s.ToString());
-    }
-    return res;
-  }
+  static CmdRes TrimStream(const std::string &key, StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot);
   //===--------------------------------------------------------------------===//
   // Serialize and deserialize
   //===--------------------------------------------------------------------===//

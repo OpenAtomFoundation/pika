@@ -109,7 +109,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   // 5 insert stream meta
-  s = StreamUtil::InsertStreamMeta(key_, stream_meta.value(), slot);
+  s = StreamUtil::UpdateStreamMeta(key_, stream_meta.value(), slot);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
