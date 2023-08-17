@@ -5,6 +5,7 @@
 #include <future>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -34,7 +35,7 @@ class EventLoop {
 
   // Exec func in loop thread, it's thread-safe
   template <typename F, typename... Args>
-  auto Execute(F&&, Args&&...) -> std::future<typename std::result_of<F(Args...)>::type>;
+  auto Execute(F&&, Args&&...) -> std::future<typename std::invoke_result<F, Args...>::type>;
 
   // Exec func every some time, it's thread-safe
   template <typename Duration, typename F, typename... Args>
@@ -98,8 +99,8 @@ class EventLoop {
 };
 
 template <typename F, typename... Args>
-auto EventLoop::Execute(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
-  using resultType = typename std::result_of<F(Args...)>::type;
+auto EventLoop::Execute(F&& f, Args&&... args) -> std::future<typename std::invoke_result<F, Args...>::type> {
+  using resultType = typename std::invoke_result<F, Args...>::type;
 
   auto task =
       std::make_shared<std::packaged_task<resultType()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));

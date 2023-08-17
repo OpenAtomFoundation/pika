@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <spawn.h>
 #include <iostream>
 #include <thread>
 
@@ -308,7 +309,8 @@ int main(int ac, char* av[]) {
   }
 
   if (pikiwidb::g_config.daemonize) {
-    ::daemon(1, 0);
+    pid_t pid;
+    ::posix_spawn(&pid, av[0], nullptr, nullptr, av, nullptr);
   }
 
   if (g_pikiwidb->Init()) {
