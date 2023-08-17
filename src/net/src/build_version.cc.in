@@ -1,4 +1,0 @@
-#include "net/include/build_version.h"
-const char* net_build_git_sha = "net_build_git_sha:@@GIT_SHA@@";
-const char* net_build_git_date = "net_build_git_date:@@GIT_DATE_TIME@@";
-const char* net_build_compile_date = __DATE__;

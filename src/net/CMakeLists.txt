@@ -1,35 +1,14 @@
-cmake_minimum_required (VERSION 3.18)
+INCLUDE(${PROJECT_SOURCE_DIR}/CMakeCommon.txt)
 
-set (CMAKE_CXX_STANDARD 17)
+AUX_SOURCE_DIRECTORY(. NET_SRC)
+AUX_SOURCE_DIRECTORY(./lzf NET_SRC)
+LIST(FILTER NET_SRC EXCLUDE REGEX ".*_test.cc")
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+ADD_LIBRARY(libnet ${NET_SRC})
 
-project (net)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/std)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/net)
 
-aux_source_directory(./src  DIR_SRCS)
+TARGET_LINK_LIBRARIES(libnet; libstd event_extra event_core llhttp::llhttp)
 
-if(USE_SSL)
-  add_definitions("-D__ENABLE_SSL")
-endif()
-
-add_subdirectory(test)
-add_subdirectory(examples)
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  list(FILTER DIR_SRCS EXCLUDE REGEX ".net_kqueue.*")
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  list(FILTER DIR_SRCS EXCLUDE REGEX ".net_epoll.*")
-endif()
-
-add_library(net STATIC ${DIR_SRCS} )
-
-add_dependencies(net protobuf glog gflags ${LIBUNWIND_NAME})
-
-
-target_include_directories(net
-  PUBLIC ${PROJECT_SOURCE_DIR}/..
-  PUBLIC ${INSTALL_INCLUDEDIR})
-
-target_link_libraries(net
-    PUBLIC ${GLOG_LIBRARY}
-           ${GFLAGS_LIBRARY}
-           ${LIBUNWIND_LIBRARY}
-)
+SET_TARGET_PROPERTIES(libnet PROPERTIES LINKER_LANGUAGE CXX)

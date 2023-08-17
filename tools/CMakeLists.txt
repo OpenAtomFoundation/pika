@@ -1,8 +1,0 @@
-add_subdirectory(./aof_to_pika)
-add_subdirectory(./benchmark_client)
-add_subdirectory(./binlog_sender)
-add_subdirectory(./manifest_generator)
-add_subdirectory(./rdb_to_pika)
-add_subdirectory(./pika_to_txt)
-add_subdirectory(./txt_to_pika)
-add_subdirectory(./pika-port/pika_port_3)

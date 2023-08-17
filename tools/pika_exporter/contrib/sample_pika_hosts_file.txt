@@ -1,4 +1,0 @@
-localhost:6379
-
-localhost:7000,password,alias
-localhost:7000,second-pwd

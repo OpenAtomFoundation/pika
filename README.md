@@ -1,202 +1,79 @@
-<img src="https://s1.ax1x.com/2020/05/08/YnbjQf.png" alt="YnbjQf.png"  width="300" />
+# PikiwiDB
 
-[![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika) ![Downloads](https://img.shields.io/github/downloads/Qihoo360/pika/total)
+[Click me switch to English](README.en.md)
 
-|                                             **Stargazers Over Time**                                              |                                                                                                            **Contributors Over Time**                                                                                                            |
-|:-----------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-|      [![Stargazers over time](https://starchart.cc/OpenAtomFoundation/pika.svg)](https://starchart.cc/OpenAtomFoundation/pika)      | [![Contributor over time](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=OpenAtomFoundation/pika)](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=OpenAtomFoundation/pika) |
+C++11实现的增强版Redis服务器,使用Leveldb作为持久化存储引擎。(集群支持尚正在计划中)
 
-## Introduction[中文](https://github.com/OpenAtomFoundation/pika/blob/unstable/README_CN.md)
+## 环境需求
+* C++11、CMake
+* Linux 或 MAC OS
 
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right) and [fancy-rabbit](https://github.com/fancy-rabbit)*) for distributed Redis solution
+## 与Redis完全兼容
+ 你可以用redis的各种工具来测试PikiwiDB，比如官方的redis-cli, redis-benchmark。
 
+ PikiwiDB可以和redis之间进行复制，可以读取redis的rdb文件或aof文件。当然，PikiwiDB生成的aof或rdb文件也可以被redis读取。
 
-## UserList
+ 你还可以用redis-sentinel来实现PikiwiDB的高可用！
 
-<table>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/dcHpCm4.png" alt="Qihoo"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/BIjqe9R.jpg" alt="360game"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/jjZczkN.png" alt="Weibo"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/zoel46r.gif" alt="Garena"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/kHqACbn.png" alt="Apus"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/2c57z8U.png" alt="Ffan"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/rUiO5VU.png" alt="Meituan"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/px5mEuW.png" alt="XES"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://imgur.com/yJe4FP8.png" alt="HX"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/o8ZDXCH.png" alt="XL"></td>
-<td height = "100" width = "150"><img src="http://imgur.com/w3qNQ9T.png" alt="GWD"></td>
-<td height = "100" width = "150"><img src="https://imgur.com/KMVr3Z6.png" alt="DYD"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/vJbAfri.png" alt="YM"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/aNxzwsY.png" alt="XM"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/mrWxwkF.png" alt="XL"></td>
-<td height = "100" width = "150"><img src="http://imgur.com/0oaVKlk.png" alt="YM"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="https://i.imgur.com/PI89mec.png" alt="MM"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/G9MOvZe.jpg" alt="VIP"></td>
-<td height = "100" width = "150"><img src="https://imgur.com/vQW5qr3.png" alt="LK"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/jIMG4mi.jpg" alt="KS"></td>
-</tr>
-</table>
+ 总之，PikiwiDB与Redis完全兼容。
 
-[More](docs/USERS.md)
+## 高性能
+- PikiwiDB性能大约比Redis3.2高出20%(使用redis-benchmark测试pipeline请求，比如设置-P=50或更高)
+- PikiwiDB的高性能有一部分得益于独立的网络线程处理IO，因此和redis比占了便宜。但PikiwiDB逻辑仍然是单线程的。
+- 另一部分得益于C++ STL的高效率（CLANG的表现比GCC更好）。
+- 在测试前，你要确保std::list的size()是O(1)复杂度，这才遵循C++11的标准。否则list相关命令不可测。
 
-## Feature
-
-* huge storage capacity
-* compatible with redis interface, you can migrate to pika easily
-* support master-slave mode (slaveof)
-* various [management](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明) interfaces
-
-## For developer
-
-### Releases
-The User can download the binary release from [releases](https://github.com/Qihoo360/pika/releases) or compile the source release.
-
-### Compile
-
-#### Supported platforms
-
-* linux - CentOS
-
-* linux - Ubuntu
-
-* macOS
-
-#### Dependencies
-
-* gcc g++, C++17 support (version>=7)
-* make
-* cmake (version>=3.18)
-* autoconf
-* tar
-
-
-#### Compile
-
-Upgrade your gcc to version at least 7 to get C++17 support.
-
-1. Get the source code
-
-```
-  git clone https://github.com/OpenAtomFoundation/pika.git
-```
-
-2. Checkout the latest release version
-
-```
-  a. exec git tag to get the latest release tag
-  b. exec git checkout TAG to switch to the latest version
-```
-
-3. Compile
-
-Please run the script build.sh before you compile this db to check the environment and build this repo.
-If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
-
-Do as follows
-```
-  a. sudo yum -y install centos-release-scl
-  b. sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
-  c. scl enable devtoolset-7 bash
-```
-
-
-Please run the script build.sh before you compile this db to check the environment and build this repo.
-
-```
-  ./build.sh
-```
-
-The compilation result is in the 'output' directory.
-
-By default the compilation process is in 'release' mode. If you wanna debug this db，you need to compile it in 'debug' mode.
-
-```
-  rm -fr output
-  cmake -B output -DCMAKE_BUILD_TYPE=Debug
-  cd output && make
-```
-
-## Usage
-
-```
-./output/pika -c ./conf/pika.conf
-```
-
-## Clean compilation
-
-```
-  If wanna clean up the compilation content, you can choose one of the following two methods as your will.
-  1. exec `cd output && make clean` clean pika Compile content
-  2. exec `rm -fr output` rebuild cmake (for complete recompilation)
-```
-
-## Dockerization
-
-### Run with docker
-
+运行下面这个命令，试试和redis比一比~
 ```bash
-docker run -d \
-  --restart=always \
-  -p 9221:9221 \
-  -v <log_dir>:/pika/log \
-  -v <db_dir>:/pika/db \
-  -v <dump_dir>:/pika/dump \
-  -v <dbsync_dir>:/pika/dbsync \
-  pikadb/pika:v3.3.6
-
-redis-cli -p 9221 "info"
-
+./redis-benchmark -q -n 1000000 -P 50 -c 50
 ```
 
-Meaning of dirs:
-- log_dir: Directory to store log files of Pika.
-- db_dir: Directory to store the data of Pika.
-- dump_dir: Directory to stored dump files that generated by command "bgsave".
-- dbsync_dir: Pika db sync path.
+## 编写扩展模块
+ PikiwiDB支持动态库模块，可以在运行时添加新命令。
+ 我添加了三个命令(ldel, skeys, hgets)作为演示。
+
+## 支持冷数据淘汰
+ 是的，在内存受限的情况下，你可以让PikiwiDB根据简单的LRU算法淘汰一些key以释放内存。
+
+## 主从复制，事务，RDB/AOF持久化，慢日志，发布订阅
+ 这些特性PikiwiDB都有:-)
+
+## 持久化：内存不再是上限
+ Leveldb可以配置为PikiwiDB的持久化存储引擎，可以存储更多的数据。
 
 
-### Build Image
-If you want to build the image yourself, we have provided a script `build_docker.sh` to simplify this process.
+## 命令列表
+#### 展示PikiwiDB支持的所有命令
+- cmdlist
 
-The script accepts several optional arguments:
+#### key commands
+- type exists del expire pexpire expireat pexpireat ttl pttl persist move keys randomkey rename renamenx scan sort
 
-- `-t tag`: Specify the Docker tag for the image. By default, the tag is `pikadb/pika:<git tag>`.
-- `-p platform`: Specify the platform for the Docker image. By default is current docker's platform. `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
-- `--proxy`: Use a proxy to download packages to speed up the build process. This is particularly useful if you are in China.
-- `--help`: Display help information.
+#### server commands
+- select dbsize bgsave save lastsave flushdb flushall client debug shutdown bgrewriteaof ping echo info monitor auth
 
-Here is an example usage of the script:
+#### string commands
+- set get getrange setrange getset append bitcount bitop getbit setbit incr incrby incrbyfloat decr decrby mget mset msetnx setnx setex psetex strlen
 
-```bash
-./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
-```
+#### list commands
+- lpush rpush lpushx rpushx lpop rpop lindex llen lset ltrim lrange linsert lrem rpoplpush blpop brpop brpoplpush
 
-## Performance
+#### hash commands
+- hget hmget hgetall hset hsetnx hmset hlen hexists hkeys hvals hdel hincrby hincrbyfloat hscan hstrlen
 
-More details on [Performance](docs/benchmark/performance.md).
+#### set commands
+- sadd scard srem sismember smembers sdiff sdiffstore sinter sinterstore sunion sunionstore smove spop srandmember sscan
 
-## Observability
+#### sorted set commands
+- zadd zcard zrank zrevrank zrem zincrby zscore zrange zrevrange zrangebyscore zrevrangebyscore zremrangebyrank zremrangebyscore
 
-1. [Metrics](tools/pika_exporter/README.md)
+#### pubsub commands
+- subscribe unsubscribe publish psubscribe punsubscribe pubsub
 
-## Documents
+#### multi commands
+- watch unwatch multi exec discard
 
-1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)
+#### replication commands
+- sync slaveof
 
-## Contact Us
-
-![](docs/images/pika-wechat.png)
-
-* [Slack Channel](https://join.slack.com/t/w1687838400-twm937235/shared_invite/zt-1y72dch5d-~9CuERHYUSmfeJZh32Z~qQ)
-
-QQ group: 294254078
 
