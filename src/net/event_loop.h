@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "event_obj.h"
+#include "http_client.h"
+#include "http_server.h"
 #include "pipe_obj.h"
 #include "reactor.h"
 #include "tcp_listener_obj.h"
@@ -60,6 +62,13 @@ class EventLoop {
 
   // TCP client
   std::shared_ptr<TcpObject> Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb);
+
+  // HTTP server
+  std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port,
+                                         HttpServer::OnNewClient cb = HttpServer::OnNewClient());
+
+  // HTTP client
+  std::shared_ptr<HttpClient> ConnectHTTP(const char* ip, int port);
 
   bool Register(std::shared_ptr<EventObject> src, int events);
   bool Modify(std::shared_ptr<EventObject> src, int events);

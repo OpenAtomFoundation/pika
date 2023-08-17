@@ -28,9 +28,10 @@ bool TcpListenerObj::Bind(const char* ip, int port) {
 
   sockaddr_in addr = MakeSockaddr(ip, port);
   auto base = reinterpret_cast<struct event_base*>(loop_->GetReactor()->Backend());
-  auto listener = evconnlistener_new_bind(base, &TcpListenerObj::OnNewConnection, this,
-                                          LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE | LEV_OPT_DISABLED, -1,
-                                          (const struct sockaddr*)&addr, int(sizeof(addr)));
+  auto listener =
+      evconnlistener_new_bind(base, &TcpListenerObj::OnNewConnection, this,
+                              LEV_OPT_CLOSE_ON_EXEC | LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE | LEV_OPT_DISABLED, -1,
+                              (const struct sockaddr*)&addr, int(sizeof(addr)));
   if (!listener) {
     ERROR("failed listen tcp port {}", port);
     return false;

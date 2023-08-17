@@ -1,7 +1,7 @@
 #include "event_loop.h"
 
 #if defined(__gnu_linux__)
-#include <sys/prctl.h>
+#  include <sys/prctl.h>
 #endif
 #include <unistd.h>
 
@@ -39,7 +39,9 @@ void EventLoop::Run() {
       funcs.swap(tasks_);
       task_mutex_.unlock();
 
-      for (const auto& f : funcs) f();
+      for (const auto& f : funcs) {
+        f();
+      }
     }
 
     if (!reactor_->Poll()) {
@@ -158,6 +160,30 @@ std::shared_ptr<TcpObject> EventLoop::Connect(const char* ip, int port, NewTcpCo
   }
 
   return c;
+}
+
+std::shared_ptr<HttpServer> EventLoop::ListenHTTP(const char* ip, int port, HttpServer::OnNewClient cb) {
+  auto server = std::make_shared<HttpServer>();
+  server->SetOnNewHttpContext(std::move(cb));
+
+  // capture server to make it long live with TcpListener
+  auto ncb = [server](TcpObject* conn) { server->OnNewConnection(conn); };
+  Listen(ip, port, ncb);
+
+  return server;
+}
+
+std::shared_ptr<HttpClient> EventLoop::ConnectHTTP(const char* ip, int port) {
+  auto client = std::make_shared<HttpClient>();
+
+  // capture client to make it long live with TcpObject
+  auto ncb = [client](TcpObject* conn) { client->OnConnect(conn); };
+  auto fcb = [client](EventLoop*, const char* ip, int port) { client->OnConnectFail(ip, port); };
+
+  client->SetLoop(this);
+  Connect(ip, port, std::move(ncb), std::move(fcb));
+
+  return client;
 }
 
 void EventLoop::Reset() {
