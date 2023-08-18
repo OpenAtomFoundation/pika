@@ -808,8 +808,3 @@ add_custom_target(clang-tidy-fix
     -fix
     -extra-arg=-std=c++17
 )
-
-
-
-# will be deleted when merge
-# add_subdirectory(tests/stream)

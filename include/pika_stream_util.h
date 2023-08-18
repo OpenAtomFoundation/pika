@@ -16,6 +16,7 @@
 #include "include/pika_stream_types.h"
 #include "rocksdb/metadata.h"
 #include "rocksdb/status.h"
+#include "storage/src/coding.h"
 #include "storage/storage.h"
 
 // get next tree id thread safly
@@ -116,9 +117,11 @@ class StreamUtil {
   // Common functions for command implementation
   //===--------------------------------------------------------------------===//
 
-  static CmdRes ParseAddOrTrimArgs(const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos, bool is_xadd);
-  static CmdRes ParseReadOrReadGroupArgs(const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
-                                         bool is_xreadgroup);
+  // @res: if error occurs, res will be set, otherwise res will be none
+  static void ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos,
+                                      bool is_xadd);
+  static void ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
+                                            bool is_xreadgroup);
 
   struct TrimRet {
     // the count of deleted messages
@@ -129,34 +132,37 @@ class StreamUtil {
     std::string max_deleted_field;
   };
 
-  static inline TrimRet TrimByMaxlen(StreamMetaValue &stream_meta, const std::string &key,
-                                     const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
-  static inline TrimRet TrimByMinid(StreamMetaValue &stream_meta, const std::string &key,
-                                    const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
+  // @res: if error occurs, res will be set, otherwise res will be none
+  static inline TrimRet TrimByMaxlenOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                          const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                          const StreamAddTrimArgs &args);
 
-  static CmdRes TrimStream(const std::string &key, StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot);
-  //===--------------------------------------------------------------------===//
-  // Serialize and deserialize
-  //===--------------------------------------------------------------------===//
+  // @res: if error occurs, res will be set, otherwise res will be none
+  static inline TrimRet TrimByMinidOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                         const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
 
-  static bool StreamID2String(const streamID &id, std::string &serialized_id);
+  // @res: if error occurs, res will be set, otherwise res will be none
+  static int32_t TrimStreamOrRep(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
+                                 StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot);
+
+  //===--------------------------------------------------------------------===//
+  // StreamID operator
+  //===--------------------------------------------------------------------===//
 
   // be used when - and + are acceptable IDs.
-  static CmdRes StreamParseID(const std::string &var, streamID &id, uint64_t missing_seq);
+  static void StreamParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq);
 
   // be used when we want to return an error if the special IDs + or - are provided.
-  static CmdRes StreamParseStrictID(const std::string &var, streamID &id, uint64_t missing_seq, bool *seq_given);
+  static void StreamParseStrictIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
+                                       bool *seq_given);
 
   // Helper for parsing a stream ID that is a range query interval. When the
   // exclude argument is NULL, StreamParseID() is called and the interval
   // is treated as close (inclusive). Otherwise, the exclude argument is set if
   // the interval is open (the "(" prefix) and StreamParseStrictID() is
   // called in that case.
-  static CmdRes StreamParseIntervalId(const std::string &var, streamID &id, bool *exclude, uint64_t missing_seq);
-
-  // serialize the message to a string, format: {field1.size, field1, value1.size, value1, field2.size, field2, ...}
-  static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
-                               int field_pos);
+  static void StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var, streamID &id, bool *exclude,
+                                         uint64_t missing_seq);
 
   //===--------------------------------------------------------------------===//
   // Type convert
@@ -173,22 +179,22 @@ class StreamUtil {
 
   static uint64_t GetCurrentTimeMs();
 
-  static inline CmdRes ScanStream(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
-                                  int32_t count, std::vector<storage::FieldValue> &field_values,
-                                  std::string &next_field, const std::shared_ptr<Slot> &slot) {
-    CmdRes res;
+  // serialize the message to a string, format: {field1.size, field1, value1.size, value1, field2.size, field2, ...}
+  static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
+                               int field_pos);
+
+  static inline void ScanStreamOrRep(CmdRes &res, const std::string &skey, const streamID &start_sid,
+                                     const streamID &end_sid, int32_t count,
+                                     std::vector<storage::FieldValue> &field_values, std::string &next_field,
+                                     const std::shared_ptr<Slot> &slot) {
     std::string start_field;
     std::string end_field;
     rocksdb::Slice pattern = "*";  // match all the fields from start_field to end_field
-    if (!StreamUtil::StreamID2String(start_sid, start_field)) {
-      LOG(ERROR) << "Serialize stream id failed";
-      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
-    }
+    start_sid.SerializeTo(start_field);
     if (end_sid == kSTREAMID_MAX) {
       end_field = "";  // empty for no end_sid
-    } else if (!StreamUtil::StreamID2String(end_sid, end_field)) {
-      LOG(ERROR) << "Serialize stream id failed";
-      res.SetRes(CmdRes::kErrOther, "Serialize stream id failed");
+    } else {
+      end_sid.SerializeTo(end_field);
     }
 
     rocksdb::Status s =
@@ -196,28 +202,26 @@ class StreamUtil {
     if (s.IsNotFound()) {
       LOG(INFO) << "no message found in XRange";
       res.AppendArrayLen(0);
-      return res;
+      return;
     } else if (!s.ok()) {
       LOG(ERROR) << "PKHScanRange failed";
       res.SetRes(CmdRes::kErrOther, s.ToString());
-      return res;
+      return;
     }
-
-    res.SetRes(CmdRes::kOk);
-    return res;
   }
 
   // used to support range scan cmd, like xread, xrange, xrevrange
   // do the scan in a stream and append messages to res
   // @skey: the key of the stream
   // @row_ids: if not null, will append the id to it
-  static CmdRes ScanAndAppendMessageToRes(const std::string &skey, const streamID &start_sid, const streamID &end_sid,
-                                          int32_t count, const std::shared_ptr<Slot> &slot,
-                                          std::vector<std::string> *row_ids);
+  static void ScanAndAppendMessageToResOrRep(CmdRes &res, const std::string &skey, const streamID &start_sid,
+                                             const streamID &end_sid, int32_t count, const std::shared_ptr<Slot> &slot,
+                                             std::vector<std::string> *row_ids, bool start_ex = false,
+                                             bool end_ex = false);
 
   //  private:
-  static CmdRes StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
-                                     bool *seq_given);
+  static void StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
+                                        bool strict, bool *seq_given);
 
   // note: filed_value here means the filed values in the message
   static bool DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message);
@@ -245,7 +249,7 @@ class StreamUtil {
       std::string meta_value;
       auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
       if (s.IsNotFound()) {
-        LOG(INFO) << "Stream meta not found, skip";
+        LOG(INFO) << "Stream meta not found, skip key: " << key;
         continue;
       } else if (!s.ok()) {
         LOG(ERROR) << "Get stream meta failed";
@@ -254,21 +258,27 @@ class StreamUtil {
       StreamMetaValue stream_meta;
       stream_meta.ParseFrom(meta_value);
 
+      LOG(INFO) << "Deleting stream: " << key << " meta: " << stream_meta.ToString();
+
       // 2 destroy all the cgroup
       // 2.1 find all the cgroups' meta
       auto cgroup_tid = stream_meta.groups_id();
-      std::vector<storage::FieldValue> field_values;
-      s = GetAllTreeNode(cgroup_tid, field_values, slot);
-      if (!s.ok() && !s.IsNotFound()) {
-        LOG(ERROR) << "Get all cgroups failed";
-        continue;
+      if (cgroup_tid == kINVALID_TREE_ID) {
+        LOG(INFO) << "No cgroup found, skip";
+      } else {
+        std::vector<storage::FieldValue> field_values;
+        s = GetAllTreeNode(cgroup_tid, field_values, slot);
+        if (!s.ok() && !s.IsNotFound()) {
+          LOG(ERROR) << "Get all cgroups failed";
+          continue;
+        }
+        // 2.2 loop all the cgroups, and destroy them
+        for (auto &fv : field_values) {
+          StreamUtil::DestoryCGroup(cgroup_tid, fv.field, slot);
+        }
+        // 2.3 delete the cgroup tree
+        StreamUtil::DeleteTree(cgroup_tid, slot);
       }
-      // 2.2 loop all the cgroups, and destroy them
-      for (auto &fv : field_values) {
-        StreamUtil::DestoryCGroup(cgroup_tid, fv.field, slot);
-      }
-      // 2.3 delete the cgroup tree
-      StreamUtil::DeleteTree(cgroup_tid, slot);
 
       // 3 delete stream meta
       StreamUtil::DeleteStreamMeta(key, slot);

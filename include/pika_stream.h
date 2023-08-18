@@ -32,7 +32,7 @@ class XAddCmd : public Cmd {
 
   void DoInitial() override;
   void Clear() override { filed_values_.clear(); }
-  static CmdRes GenerateStreamID(const StreamMetaValue& stream_meta, const StreamAddTrimArgs& args_, streamID& id);
+  inline void GenerateStreamIDOrRep(const StreamMetaValue& stream_meta);
 };
 
 class XReadCmd : public Cmd {

@@ -142,11 +142,6 @@ static void usage() {
           version);
 }
 
-// unit test for files in src need to link pika.cc
-// so we need to exclude main function when compiling unit test
-// SRC_UNIT_TESTS is defined in tests/stream :
-// target_compile_definitions(${test_name} PRIVATE SRC_UNIT_TESTS)
-#ifndef SRC_UNIT_TESTS
 int main(int argc, char* argv[]) {
   if (argc != 2 && argc != 3) {
     usage();
@@ -242,4 +237,3 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
-#endif

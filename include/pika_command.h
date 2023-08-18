@@ -229,7 +229,7 @@ const std::string kCmdNameXRange = "xrange";
 const std::string kCmdNameXRevRange = "xrevrange";
 const std::string kCmdNameXPending = "xpending";
 const std::string kCmdNameXAck = "xack";
-const std::string kCmdNameXTrim = "xack";
+const std::string kCmdNameXTrim = "xtrim";
 
 
 const std::string kClusterPrefix = "pkcluster";
@@ -318,6 +318,7 @@ class CmdRes {
 
   bool none() const { return ret_ == kNone && message_.empty(); }
   bool ok() const { return ret_ == kOk || ret_ == kNone; }
+  CmdRet ret() const { return ret_; }
   void clear() {
     message_.clear();
     ret_ = kNone;

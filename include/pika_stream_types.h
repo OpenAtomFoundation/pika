@@ -2,14 +2,59 @@
 #ifndef SRC_STREAM_TYPE_H_
 #define SRC_STREAM_TYPE_H_
 
+#include <memory.h>
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <vector>
+
+// We must store the streamID in memory in big-endian format. This way, our comparison of the serialized streamID byte
+// code will be equivalent to the comparison of the uint64_t numbers.
+inline void EncodeUint64(char* buf, uint64_t value) {
+  if ((__BYTE_ORDER == __LITTLE_ENDIAN)) {
+    // little endian, reverse the bytes
+    for (int i = 7; i >= 0; --i) {
+      buf[i] = static_cast<char>(value & 0xff);
+      value >>= 8;
+    }
+  } else {
+    // big endian, just copy the bytes
+    memcpy(buf, &value, sizeof(value));
+  }
+}
+
+inline uint64_t DecodeUint64(const char* ptr) {
+  uint64_t value;
+  if ((__BYTE_ORDER == __LITTLE_ENDIAN)) {
+    // little endian, reverse the bytes
+    value = 0;
+    for (int i = 0; i < 8; ++i) {
+      value <<= 8;
+      value |= static_cast<unsigned char>(ptr[i]);
+    }
+  } else {
+    // big endian, just copy the bytes
+    memcpy(&value, ptr, sizeof(value));
+  }
+  return value;
+}
 
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
   bool operator==(const streamID& other) const { return ms == other.ms && seq == other.seq; }
   std::string ToString() const { return std::to_string(ms) + "-" + std::to_string(seq); }
+  
+  void SerializeTo(std::string &dst) const {
+    dst.resize(sizeof(ms) + sizeof(seq));
+    EncodeUint64(&dst[0], ms);
+    EncodeUint64(&dst[0] + sizeof(ms), seq);
+  }
+  void DeserializeFrom(std::string &src) {
+    assert(src.size() == sizeof(ms) + sizeof(seq));
+    ms = DecodeUint64(&src[0]);
+    seq = DecodeUint64(&src[0] + sizeof(ms));
+  }
+
   streamID() = default;
   uint64_t ms = 0;  /* Unix time in milliseconds. */
   uint64_t seq = 0; /* Sequence number. */
@@ -39,7 +84,7 @@ struct StreamAddTrimArgs {
   streamID id;
   bool id_given{false};
   bool seq_given{false};
-  bool no_mkstream{true};
+  bool no_mkstream{false};
 
   // XADD + XTRIM common options
   StreamTrimStrategy trim_strategy{0};

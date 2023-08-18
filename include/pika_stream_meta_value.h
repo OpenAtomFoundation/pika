@@ -12,8 +12,9 @@
 
 #include "glog/logging.h"
 #include "include/pika_stream_types.h"
+#include "storage/src/coding.h"
 
-static const size_t kDefaultStreamValueLength = sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
+static const size_t kDefaultStreamValueLength = sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t);
 
 // used when create a new stream
 class StreamMetaValue {
@@ -42,7 +43,7 @@ class StreamMetaValue {
     memcpy(dst, &last_id_, sizeof(streamID));
     dst += sizeof(streamID);
     memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
-    dst += sizeof(length_);
+    dst += sizeof(streamID);
     memcpy(dst, &length_, sizeof(size_t));
   }
 
@@ -65,11 +66,11 @@ class StreamMetaValue {
     memcpy(&last_id_, pos, sizeof(streamID));
     pos += sizeof(streamID);
     memcpy(&max_deleted_entry_id_, pos, sizeof(streamID));
-    pos += sizeof(length_);
+    pos += sizeof(streamID);
     memcpy(&length_, pos, sizeof(size_t));
   }
 
- const treeID groups_id() { return groups_id_; }
+  const treeID groups_id() { return groups_id_; }
 
   const size_t entries_added() { return entries_added_; }
 
@@ -86,10 +87,11 @@ class StreamMetaValue {
   std::string& value() { return value_; }
 
   std::string ToString() {
-    return std::string("groups_id: ") + std::to_string(groups_id_) + std::string(", entries_added: ") +
-           std::to_string(entries_added_) + std::string(", first_id: ") + first_id_.ToString() +
-           std::string(", last_id: ") + last_id_.ToString() + std::string(", max_deleted_entry_id: ") +
-           max_deleted_entry_id_.ToString() + std::string(", length: ") + std::to_string(length_);
+    return "stream_meta: " + std::string("groups_id: ") + std::to_string(groups_id_) +
+           std::string(", entries_added: ") + std::to_string(entries_added_) + std::string(", first_id: ") +
+           first_id_.ToString() + std::string(", last_id: ") + last_id_.ToString() +
+           std::string(", max_deleted_entry_id: ") + max_deleted_entry_id_.ToString() + std::string(", length: ") +
+           std::to_string(length_);
   }
 
   void set_groups_id(treeID groups_id) {
@@ -101,7 +103,7 @@ class StreamMetaValue {
 
   void set_entries_added(uint64_t entries_added) {
     assert(value_.size() == kDefaultStreamValueLength);
-    entries_added_ += entries_added;
+    entries_added_ = entries_added;
     char* dst = const_cast<char*>(value_.data()) + sizeof(treeID);
     memcpy(dst, &entries_added_, sizeof(uint64_t));
   }
@@ -130,21 +132,6 @@ class StreamMetaValue {
   void set_length(size_t length) {
     assert(value_.size() == kDefaultStreamValueLength);
     length_ = length;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
-    memcpy(dst, &length_, sizeof(size_t));
-  }
-
-  void add_length(size_t delta) {
-    assert(value_.size() == kDefaultStreamValueLength);
-    length_ += delta;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
-    memcpy(dst, &length_, sizeof(size_t));
-  }
-
-  void sub_length(size_t delta) {
-    assert(value_.size() == kDefaultStreamValueLength);
-    assert(length_ >= delta);
-    length_ -= delta;
     char* dst = const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID);
     memcpy(dst, &length_, sizeof(size_t));
   }
