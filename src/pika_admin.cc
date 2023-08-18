@@ -148,6 +148,7 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   if (is_none_) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(std::string());
+    g_pika_conf->SetMasterRunID(std::string());
     return;
   }
 
