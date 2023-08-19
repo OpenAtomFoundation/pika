@@ -70,7 +70,7 @@ class StreamMetaValue {
     memcpy(&length_, pos, sizeof(size_t));
   }
 
-  const treeID groups_id() { return groups_id_; }
+  const treeID groups_id() const { return groups_id_; }
 
   const size_t entries_added() { return entries_added_; }
 

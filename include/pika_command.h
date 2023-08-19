@@ -219,6 +219,7 @@ const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 // Stream
 const std::string kCmdNameXAdd = "xadd";
+const std::string kCmdNameXDel = "xdel";
 const std::string kCmdNameXRead = "xread";
 const std::string kCmdNameXReadGroup = "xreadgroup";
 const std::string kCmdNameXGroupCreate = "xgroupcreate";

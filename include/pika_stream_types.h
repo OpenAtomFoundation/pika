@@ -42,14 +42,16 @@ inline uint64_t DecodeUint64(const char* ptr) {
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
   bool operator==(const streamID& other) const { return ms == other.ms && seq == other.seq; }
+  bool operator<(const streamID& other) const { return ms < other.ms || (ms == other.ms && seq < other.seq); }
+  bool operator>(const streamID& other) const { return ms > other.ms || (ms == other.ms && seq > other.seq); }
   std::string ToString() const { return std::to_string(ms) + "-" + std::to_string(seq); }
-  
-  void SerializeTo(std::string &dst) const {
+
+  void SerializeTo(std::string& dst) const {
     dst.resize(sizeof(ms) + sizeof(seq));
     EncodeUint64(&dst[0], ms);
     EncodeUint64(&dst[0] + sizeof(ms), seq);
   }
-  void DeserializeFrom(std::string &src) {
+  void DeserializeFrom(std::string& src) {
     assert(src.size() == sizeof(ms) + sizeof(seq));
     ms = DecodeUint64(&src[0]);
     seq = DecodeUint64(&src[0] + sizeof(ms));

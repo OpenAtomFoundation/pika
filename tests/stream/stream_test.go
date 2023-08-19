@@ -57,17 +57,14 @@ func streamRandomID(minID, maxID string) string {
 	return fmt.Sprintf("%d-%d", ms, seq)
 }
 
-func streamSimulateXRANGE(items []string, start, end string) []string {
-	var res []string
+func streamSimulateXRANGE(items []redis.XMessage, start, end string) []redis.XMessage {
+	result := make([]redis.XMessage, 0)
 	for _, item := range items {
-		thisID := strings.Split(item, " ")[0]
-		if streamCompareID(thisID, start) >= 0 {
-			if streamCompareID(thisID, end) <= 0 {
-				res = append(res, item)
-			}
+		if streamCompareID(item.ID, start) >= 0 && streamCompareID(item.ID, end) <= 0 {
+			result = append(result, item)
 		}
 	}
-	return res
+	return result
 }
 
 // Helper function for generating random integers
@@ -413,6 +410,62 @@ var _ = Describe("Stream Commands", func() {
 			Expect(r[0].Stream).To(Equal("mystream"))
 			Expect(len(r[0].Messages)).To(Equal(1))
 			Expect(r[0].Messages[0].Values).To(HaveKeyWithValue("item", "0"))
+		})
+
+		It("XDEL basic test", func() {
+			Expect(client.Del(ctx, "somestream").Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", Values: []string{"foo", "value0"}}).Err()).NotTo(HaveOccurred())
+			id := client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", Values: []string{"foo", "value1"}}).Val()
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", Values: []string{"foo", "value2"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XDel(ctx, "somestream", id).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(2)))
+			items := client.XRange(ctx, "somestream", "-", "+").Val()
+			Expect(items).To(HaveLen(2))
+			Expect(items[0].Values).To(SatisfyAny(HaveKeyWithValue("foo", "value0")))
+			Expect(items[1].Values).To(SatisfyAny(HaveKeyWithValue("foo", "value2")))
+		})
+
+		It("XDEL fuzz test", func() {
+			Expect(client.Del(ctx, "somestream").Err()).NotTo(HaveOccurred())
+			var ids []string
+			// add enough elements to have a few radix tree nodes inside the stream
+			cnt := 0
+			for {
+				ids = append(ids, client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", Values: map[string]interface{}{"item": cnt}}).Val())
+				cnt++
+				if cnt > 500 {
+					break
+				}
+			}
+			// Now remove all the elements till we reach an empty stream and after every deletion,
+			// check that the stream is sane enough to report the right number of elements with XRANGE:
+			// this will also force accessing the whole data structure to check sanity.
+			Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(cnt)))
+			// We want to remove elements in random order to really test the implementation in a better way.
+			rand.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
+			for _, id := range ids {
+				Expect(client.XDel(ctx, "somestream", id).Val()).To(Equal(int64(1)))
+				cnt--
+				Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(cnt)))
+				// The test would be too slow calling XRANGE for every iteration. Do it every 100 removal.
+				if cnt%100 == 0 {
+					Expect(client.XRange(ctx, "somestream", "-", "+").Val()).To(HaveLen(cnt))
+				}
+			}
+		})
+
+		It("XRANGE fuzz test", func() {
+			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+			insertIntoStreamKey(client, "mystream")
+			items := client.XRange(ctx, "mystream", "-", "+").Val()
+			lowID, highID := items[0].ID, items[len(items)-1].ID
+			for i := 0; i < 100; i++ {
+				start, end := streamRandomID(lowID, highID), streamRandomID(lowID, highID)
+				realRange, err := client.XRange(ctx, "mystream", start, end).Result()
+				Expect(err).NotTo(HaveOccurred())
+				fakeRange := streamSimulateXRANGE(items, start, end)
+				Expect(fakeRange).To(Equal(realRange))
+			}
 		})
 
 	})

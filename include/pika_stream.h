@@ -8,6 +8,7 @@
 #include "gflags/gflags_declare.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
+#include "include/pika_stream_consumer_meta_value.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
 #include "storage/storage.h"
@@ -26,12 +27,48 @@ class XAddCmd : public Cmd {
 
  private:
   std::string key_;
-  std::vector<std::pair<std::string, std::string>> filed_values_;
   StreamAddTrimArgs args_;
   int field_pos_{0};
 
   void DoInitial() override;
-  void Clear() override { filed_values_.clear(); }
+  inline void GenerateStreamIDOrRep(const StreamMetaValue& stream_meta);
+  inline std::string SerializeMessage(const std::vector<std::string>& field_values, int field_pos) {
+    assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
+
+    std::string message;
+    // count the size of serizlized message
+    size_t size = 0;
+    for (int i = field_pos; i < field_values.size(); i++) {
+      size += field_values[i].size() + sizeof(size_t);
+    }
+    message.reserve(size);
+
+    // serialize message
+    for (int i = field_pos; i < field_values.size(); i++) {
+      size_t len = field_values[i].size();
+      message.append(reinterpret_cast<const char*>(&len), sizeof(len));
+      message.append(field_values[i]);
+    }
+
+    return message;
+  }
+};
+
+class XDelCmd : public Cmd {
+ public:
+  XDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  std::vector<std::string> current_key() const override { return {key_}; }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XDelCmd(*this); }
+
+ private:
+  std::string key_;
+  std::vector<streamID> ids_;
+
+  void DoInitial() override;
+  void Clear() override { ids_.clear(); }
   inline void GenerateStreamIDOrRep(const StreamMetaValue& stream_meta);
 };
 
@@ -64,6 +101,10 @@ class XReadGroupCmd : public Cmd {
  private:
   StreamReadGroupReadArgs args_;
 
+  // return ok if consumer meta exists or create a new one
+  // @consumer_meta: used to return the consumer meta
+  rocksdb::Status GetOrCreateConsumer(treeID consumer_tid, std::string& consumername, const std::shared_ptr<Slot>& slot,
+                                      StreamConsumerMetaValue& consumer_meta);
   void DoInitial() override;
   void Clear() override {
     args_.unparsed_ids.clear();
@@ -168,9 +209,7 @@ class XTrimCmd : public Cmd {
  public:
   XTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   // FIXME: use different lock
-  std::vector<std::string> current_key() const override {
-    return {key_};
-  }
+  std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
