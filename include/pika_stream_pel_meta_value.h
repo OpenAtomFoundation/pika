@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <string>
+#include <utility>
 
 #include "glog/logging.h"
 #include "include/pika_stream_types.h"
@@ -16,7 +17,7 @@ class StreamPelMeta {
   StreamPelMeta() = default;
 
   void Init(std::string consumer, mstime_t delivery_time) {
-    consumer_ = consumer;
+    consumer_ = std::move(consumer);
     delivery_time_ = delivery_time;
     size_t needed = kDefaultStreamPelMetaValueLength;
     assert(value_.size() == 0);

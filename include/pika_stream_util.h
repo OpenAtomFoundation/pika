@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <vector>
@@ -72,6 +73,9 @@ class StreamUtil {
   static rocksdb::Status DeleteStreamMessage(const std::string &key,  const std::vector<streamID> &id, int32_t &ret,
                                              const std::shared_ptr<Slot> &slot);
 
+  static rocksdb::Status FindStreamMessage(const std::string &key, const std::string &sid, std::string &message,
+                                             const std::shared_ptr<Slot> &slot);
+
   // get the abstracted tree node, e.g. get a message in pel, get a consumer meta or get a cgroup meta.
   // in cgroup tree, field is groupname
   // in consumer tree, field is consumername
@@ -90,6 +94,8 @@ class StreamUtil {
 
   static rocksdb::Status GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
                                         const std::shared_ptr<Slot> &slot);
+
+  static size_t GetTreeSize(const treeID tid, const std::shared_ptr<Slot> &slot);
 
   // @return ok only when the cgroup meta exists and deleted
   static rocksdb::Status DestoryCGroup(treeID cgroup_tid, std::string &cgroupname, const std::shared_ptr<Slot> &slot);
@@ -153,6 +159,8 @@ class StreamUtil {
   static void StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var, streamID &id, bool *exclude,
                                          uint64_t missing_seq);
 
+  static int StreamIDCompare(const streamID &a, const streamID &b);
+
   //===--------------------------------------------------------------------===//
   // Type convert
   //===--------------------------------------------------------------------===//
@@ -202,6 +210,10 @@ class StreamUtil {
 
   // return true if created
   static bool CreateConsumer(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot);
+
+  //delete by Korpse
+  static rocksdb::Status GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
+                                             const std::shared_ptr<Slot> &slot, StreamConsumerMetaValue &consumer_meta);
 
   // delete the pels, consumers, cgroups and stream meta of a stream
   // note: this function do not delete the stream data value

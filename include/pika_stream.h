@@ -2,6 +2,7 @@
 #ifndef PIKA_STREAM_H_
 #define PIKA_STREAM_H_
 
+#include <bits/stdint-intn.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -220,6 +221,43 @@ class XTrimCmd : public Cmd {
   StreamAddTrimArgs args_;
 
   void DoInitial() override;
+};
+
+class XClaimCmd : public Cmd {
+ public:
+  XClaimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  // FIXME: use different lock
+  std::vector<std::string> current_key() const override { return {key_}; }
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XClaimCmd(*this); }
+
+ private:
+  std::string key_;
+  std::string cgroup_name_;
+  std::string consumer_name_;
+  mstime_t min_idle_time_;
+  mstime_t parse_option_time_;
+
+  // optional
+  std::vector<streamID> specified_ids_;
+  mstime_t deliverytime = 0;
+  uint64_t retrycount = 0;
+  bool deliverytime_flag = false;
+  bool retrycount_flag = false;
+  bool force = false;
+  bool justid = false;
+  streamID last_id = {0, 0};
+
+  // save results
+  std::vector<std::string> results;
+
+  void DoInitial() override;
+  void Clear() override { 
+    specified_ids_.clear();
+    results.clear();
+  };
 };
 
 #endif

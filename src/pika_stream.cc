@@ -1,4 +1,6 @@
 #include "include/pika_stream.h"
+#include <bits/stdint-uintn.h>
+#include <cstddef>
 #include <strings.h>
 #include <sys/types.h>
 #include <cassert>
@@ -823,14 +825,7 @@ void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
   // 1 try to get stream meta, if not found, return error
   std::string stream_meta_value;
   auto s = StreamUtil::GetStreamMeta(key_, stream_meta_value, slot);
-  if (s.IsNotFound()) {
-    res_.AppendInteger(0);
-    return;
-  } else if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
-  StreamMetaValue stream_meta;
+    StreamMetaValue stream_meta;
   stream_meta.ParseFrom(stream_meta_value);
 
   // 2 do the trim
@@ -846,4 +841,242 @@ void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
 
   res_.AppendInteger(count);
   return;
+}
+
+void XClaimCmd::DoInitial() {
+  if (!CheckArg(argv_.size()) || argv_.size() < 6) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXClaim);
+    return ;
+  }
+  key_ = argv_[1];
+  cgroup_name_ = argv_[2];
+  consumer_name_ = argv_[3];
+  if (!StreamUtil::string2uint64(argv_[4].c_str(), min_idle_time_)) {
+    res_.SetRes(CmdRes::kInvalidParameter, "Invalid min-idle-time argument for XCLAIM");
+    return ;
+  } else if (min_idle_time_ < 0) {
+    min_idle_time_ = 0;
+  }
+  int i = 5;
+  streamID id{0, 0};
+  do {
+    StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i++], id, 0, nullptr);
+    if (res_.ret() == CmdRes::kNone) {
+      specified_ids_.emplace_back(id);
+    }
+  } while (res_.ret() == CmdRes::kNone);
+  parse_option_time_ = StreamUtil::GetCurrentTimeMs();
+  // parse options
+  for ( ;i < argv_.size(); ++i) {
+    int more_args = argv_.size() - i;
+    const char *opt = argv_[i].c_str();
+    if (!strcasecmp(opt, "FORCE")) {
+      force = true;
+    } else if (!strcasecmp(opt, "JUSTID")) {
+      justid = true;
+    } else if (!strcasecmp(opt, "IDLE") && more_args) {
+      ++i;
+      if (!StreamUtil::string2uint64(argv_[i].c_str(), deliverytime)) {
+        res_.SetRes(CmdRes::kInvalidParameter, "Invalid IDLE option argument for XCLAIM");
+        return ;
+      }
+      deliverytime_flag = true;
+      deliverytime = parse_option_time_ - deliverytime;
+    } else if (!strcasecmp(opt, "TIME") && more_args) {
+      ++i;
+      if (!StreamUtil::string2uint64(argv_[i].c_str(), deliverytime)) {
+        res_.SetRes(CmdRes::kInvalidParameter, "Invalid TIME option argument for XCLAIM");
+        return ;
+      }
+      deliverytime_flag = true;
+    } else if (!strcasecmp(opt, "RETRYCOUNT") && more_args) {
+      ++i;
+      if (!StreamUtil::string2uint64(argv_[i].c_str(), retrycount)) {
+        res_.SetRes(CmdRes::kInvalidParameter, "Invalid RETRYCOUNT option argument for XCLAIM");
+        return ;
+      }
+      retrycount_flag = true;
+    } else if (!strcasecmp(opt, "LASTID") && more_args) {
+      ++i;
+      StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i], last_id, 0, nullptr);
+      if (res_.ret() != CmdRes::kNone) {
+        res_.SetRes(CmdRes::kInvalidParameter, "Invalid LASTID option argument for XCLAIM");
+        return ;
+      }
+    } else {
+      res_.SetRes(CmdRes::kInvalidParameter, "Unrecognized XCLAIM option " + argv_[i]);
+      return ;
+    }
+  }
+
+  if (deliverytime_flag) {
+    if (deliverytime < 0 || deliverytime > parse_option_time_) deliverytime = parse_option_time_;
+  } else {
+    deliverytime = parse_option_time_;
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
+  // 1.try to get stream meta, if not found, return error
+  std::string meta_value;
+  StreamMetaValue stream_meta;
+  auto s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  if (s.IsNotFound()) {
+    res_.AppendInteger(0);
+    return;
+  } else if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  stream_meta.ParseFrom(meta_value);
+
+  // 2.try to get cgroup meta, if not found, return error
+  std::string cgroup_meta_value;
+  StreamCGroupMetaValue cgroup_meta;
+  s = StreamUtil::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
+  if (s.IsNotFound()) {
+    res_.AppendInteger(0);
+    return;
+  } else if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  cgroup_meta.ParseFrom(cgroup_meta_value);
+  if (StreamUtil::StreamIDCompare(last_id, cgroup_meta.last_id()) > 0)
+  {
+    cgroup_meta.set_last_id(last_id);
+    s = StreamUtil::InsertTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta.value(), slot);
+    if (!s.ok()) {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+  auto consumer_tid = cgroup_meta.consumers();
+  StreamConsumerMetaValue consumer_meta;
+  s = StreamUtil::GetOrCreateConsumer(consumer_tid, consumer_name_, slot, consumer_meta);
+  if (!s.ok()) {
+    LOG(ERROR) << "Unexpected error of tree id: " << consumer_tid;
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  consumer_meta.set_seen_time(StreamUtil::GetCurrentTimeMs());
+  for (auto &id : specified_ids_) {
+    std::string serializedID;
+    const std::string id_str = id.ToString();
+    id.SerializeTo(serializedID);
+    std::string pel_meta_value;
+    auto pel_res = StreamUtil::GetTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta_value, slot);
+    StreamPelMeta pel_meta;
+    if (pel_res.ok()) {
+      pel_meta.ParseFrom(pel_meta_value);
+    } else if (!pel_res.IsNotFound()) {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+    // if item doesn't exist in stream, clear this entry from the PEL
+    std::string msg_kvs;
+    s = StreamUtil::FindStreamMessage(key_, serializedID, msg_kvs, slot);
+    if (s.IsNotFound()) {
+      if (pel_res.ok()) {
+        // delete the id from both consumer and cgroup's pel
+        s = StreamUtil::DeleteTreeNode(cgroup_meta.pel(), serializedID, slot);
+        if (!s.ok()) {
+          LOG(ERROR) << "delete id: " << id_str << " from cgroup: " << cgroup_name_ << "'s pel failed";
+          res_.SetRes(CmdRes::kErrOther, s.ToString());
+          return;
+        }
+        s = StreamUtil::DeleteTreeNode(consumer_meta.pel_tid(), serializedID, slot);
+        if (!s.ok()) {
+          LOG(ERROR) << "delete id: " << id_str << " from consumer: " << pel_meta.consumer() << "'s pel failed";
+          res_.SetRes(CmdRes::kErrOther, s.ToString());
+          return;
+        }
+      }
+      continue;
+    } else if (!s.ok()) {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+    // if FORCE is passed, lets check if at least the entry exists in the stream.
+    // In such case, we'll create a new entry in the PEL from scratch,
+    // so that XCLAIM can also be used to create entries in the PEL.
+    // Useful for AOF and replication of consumer groups
+    if (force && pel_res.IsNotFound()) {
+      pel_meta.Init(consumer_name_, StreamUtil::GetCurrentTimeMs());
+      StreamUtil::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
+    }
+
+    if (pel_res.ok()) {
+      std::string value;
+      // get the consumer meta of the pel
+      StreamConsumerMetaValue pel_consumer_meta;
+      std::string pel_consumer_meta_value;
+      s = StreamUtil::GetTreeNodeValue(cgroup_meta.consumers(), pel_meta.consumer(), pel_consumer_meta_value, slot);
+      if (!s.ok()) {
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+      pel_consumer_meta.ParseFrom(pel_consumer_meta_value);
+      
+      s = StreamUtil::GetTreeNodeValue(pel_consumer_meta.pel_tid(), serializedID, value, slot);
+      if (!s.ok()) {
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+
+      // check if the minimum idle time satisfied
+      if (min_idle_time_) {
+        mstime_t this_idle = parse_option_time_ - pel_meta.delivery_time();
+        if (this_idle < min_idle_time_) continue;
+      }
+
+      if (pel_meta.consumer() != consumer_name_) {
+        // remove from old consumer pel
+        s = StreamUtil::DeleteTreeNode(pel_consumer_meta.pel_tid(), serializedID, slot);
+        if (!s.ok()) {
+          res_.SetRes(CmdRes::kErrOther, s.ToString());
+          return;
+        }
+        s = StreamUtil::InsertTreeNodeValue(consumer_meta.pel_tid(), serializedID, value, slot);
+        if (!s.ok()) {
+          res_.SetRes(CmdRes::kErrOther, s.ToString());
+          return;
+        }
+        pel_meta.Init(consumer_name_, deliverytime);
+      }
+      if (retrycount_flag) {
+        pel_meta.set_delivery_count(retrycount);
+      } else if (!justid) {
+        pel_meta.set_delivery_count(pel_meta.delivery_count() + 1);
+      }
+      s = StreamUtil::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
+      if (!s.ok()) {
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+      if (justid) {
+        // append id
+        results.emplace_back(id_str);
+      } else {
+        // append message
+        std::vector<std::string> kOrvs;
+        StreamUtil::DeserializeMessage(msg_kvs, kOrvs);
+        for (const auto& kOrv : kOrvs) {
+          results.emplace_back(kOrv);
+        }
+      }
+      consumer_meta.set_active_time(StreamUtil::GetCurrentTimeMs());
+      s = StreamUtil::InsertTreeNodeValue(cgroup_meta.consumers(), consumer_name_, consumer_meta.value(), slot);
+      if (!s.ok()) {
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+    }
+  }
+  res_.AppendArrayLen(results.size());
+  for (auto &seg : results) {
+    res_.AppendString(seg);
+  }
+  return ;
 }

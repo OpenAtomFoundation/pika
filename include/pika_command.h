@@ -231,6 +231,7 @@ const std::string kCmdNameXRevRange = "xrevrange";
 const std::string kCmdNameXPending = "xpending";
 const std::string kCmdNameXAck = "xack";
 const std::string kCmdNameXTrim = "xtrim";
+const std::string kCmdNameXClaim = "xclaim";
 
 
 const std::string kClusterPrefix = "pkcluster";

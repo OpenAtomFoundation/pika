@@ -1,5 +1,6 @@
 
 #include "include/pika_stream_util.h"
+#include <bits/stdint-intn.h>
 #include <cassert>
 #include <chrono>
 #include <climits>
@@ -241,6 +242,17 @@ void StreamUtil::StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var,
   }
 }
 
+/* Compare two stream IDs. Return -1 if a < b, 0 if a == b, 1 if a > b. */
+int StreamUtil::StreamIDCompare(const streamID &a, const streamID &b) {
+  if (a.ms > b.ms) { return 1;
+    } else if (a.ms < b.ms) { return -1;
+    /* The ms part is the same. Check the sequence part. */
+    } else if (a.seq > b.seq) { return 1;
+    } else if (a.seq < b.seq) return -1;
+    /* Everything is the same: IDs are equal. */
+    return 0;
+}
+
 bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
   if (!s || !*s) {
     return false;
@@ -310,6 +322,11 @@ rocksdb::Status StreamUtil::InsertStreamMessage(const std::string &key, const st
   rocksdb::Status s = slot->db()->HSet(key, serialized_id, message, &temp);
   (void)temp;
   return s;
+}
+
+rocksdb::Status StreamUtil::FindStreamMessage(const std::string &key, const std::string &sid, std::string &message,
+                                             const std::shared_ptr<Slot> &slot) {
+  return slot->db()->HGet(key, sid, &message);
 }
 
 rocksdb::Status StreamUtil::DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id, int32_t &ret,
@@ -771,6 +788,13 @@ void StreamUtil::DestoryStreams(std::vector<std::string> &keys, const std::share
   }
 }
 
+size_t StreamUtil::GetTreeSize(const treeID tid, const std::shared_ptr<Slot> &slot) {
+  int32_t len;
+  auto key = std::move(TreeID2Key(tid));
+  slot->db()->HLen(key, &len);
+  return len;
+}
+
 bool StreamUtil::CreateConsumer(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot) {
   std::string consumer_meta_value;
   auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
@@ -789,6 +813,28 @@ bool StreamUtil::CreateConsumer(treeID consumer_tid, std::string &consumername, 
   }
   // consumer meta already exists or other error
   return false;
+}
+
+rocksdb::Status StreamUtil::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
+                                                const std::shared_ptr<Slot> &slot,
+                                                StreamConsumerMetaValue &consumer_meta) {
+  std::string consumer_meta_value;
+  auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  if (s.ok()) {
+    consumer_meta.ParseFrom(consumer_meta_value);
+  } else if (s.IsNotFound()) {
+    LOG(INFO) << "Consumer meta not found, create new one";
+    auto &tid_gen = TreeIDGenerator::GetInstance();
+    auto pel_tid = tid_gen.GetNextTreeID(slot);
+    consumer_meta.Init(pel_tid);
+    s = StreamUtil::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    if (!s.ok()) {
+      LOG(ERROR) << "Insert consumer meta failed";
+      return s;
+    }
+  }
+  // consumer meta already exists or other error
+  return s;
 }
 
 rocksdb::Status StreamUtil::DestoryCGroup(treeID cgroup_tid, std::string &cgroupname,
