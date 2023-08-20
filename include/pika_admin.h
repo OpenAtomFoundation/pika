@@ -76,7 +76,6 @@ class AuthCmd : public Cmd {
   Cmd* Clone() override { return new AuthCmd(*this); }
 
  private:
-  std::string pwd_;
   void DoInitial() override;
 };
 

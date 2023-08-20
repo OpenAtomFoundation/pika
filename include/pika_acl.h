@@ -8,10 +8,16 @@
 #define PIKA_ACL_CMD_H
 
 #include "include/pika_command.h"
+#include "include/pika_server.h"
+
+extern PikaServer* g_pika_server;
 
 class PikaAclCmd : public Cmd {
  public:
-  PikaAclCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PikaAclCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+    subCmdName_ = {"cat",  "deluser", "dryrun", "genpass", "getuser", "list",
+                   "load", "log",     "save",   "setuser", "users",   "whoami"};
+  }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -20,6 +26,22 @@ class PikaAclCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {}
+
+  void Cat();
+  void DelUser();
+  void DryRun();
+  void GenPass();
+  void GetUser();
+  void List();
+  void Load();
+  void Log();
+  void Save();
+  void SetUser();
+  void Users();
+  void WhoAmI();
+  void Help();
+
+  std::string subCmd_;
 };
 
 #endif  // PIKA_ACL_CMD_H

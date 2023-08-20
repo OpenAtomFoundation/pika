@@ -31,7 +31,8 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
     : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
       current_db_(g_pika_conf->default_db()) {
-  auth_stat_.Init();
+  // client init, set client user is default, and authenticated = false
+  UnAuth(g_pika_server->Acl()->GetUser(Acl::DefaultUser, true));
   time_stat_.reset(new TimeStat());
 }
 
@@ -51,11 +52,14 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->SetResp(resp_ptr);
 
   // Check authed
-  // AuthCmd will set stat_
-  if (!auth_stat_.IsAuthed(c_ptr)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
-    return c_ptr;
+  if (AuthRequired()) {  // the user is not authed, need to do auth
+    if (!(c_ptr->flag() & kCmdFlagsNoAuth)) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
+      return c_ptr;
+    }
   }
+
+  // todo check
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {
@@ -416,44 +420,30 @@ void PikaClientConn::AuthStat::Init() {
   if (stat_ == kLimitAuthed && g_pika_conf->requirepass().empty()) {
     stat_ = kAdminAuthed;
   }
+void PikaClientConn::DoAuth(const std::shared_ptr<User>& user) {
+  user_ = user;
+  authenticated_ = true;
 }
 
-// Check permission for current command
-bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
-  std::string opt = cmd_ptr->name();
-  if (opt == kCmdNameAuth) {
-    return true;
-  }
-  const std::vector<std::string>& blacklist = g_pika_conf->vuser_blacklist();
-  switch (stat_) {
-    case kNoAuthed:
-      return false;
-    case kAdminAuthed:
-      break;
-    case kLimitAuthed:
-      if (cmd_ptr->is_admin_require() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
-        return false;
-      }
-      break;
-    default:
-      LOG(WARNING) << "Invalid auth stat : " << static_cast<unsigned>(stat_);
-      return false;
-  }
-  return true;
+void PikaClientConn::UnAuth(const std::shared_ptr<User>& user) {
+  user_ = user;
+  authenticated_ = false;
 }
 
-// Update permission status
-bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
-  // Situations to change auth status
-  if (message == "USER") {
-    stat_ = kLimitAuthed;
-  } else if (message == "ROOT") {
-    stat_ = kAdminAuthed;
-  } else {
+bool PikaClientConn::IsAuthed() const { return authenticated_; }
+
+bool PikaClientConn::AuthRequired() const {
+  if (IsAuthed()) {  // the user is authed, not required
     return false;
   }
-  return true;
+
+  if (user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {  // the user is no password
+    return false;
+  }
+
+  return user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));  // user disabled
 }
+std::string PikaClientConn::UserName() const { return user_->Name(); }
 
 // compare addr in ClientInfo
 bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs) { return rhs.ip_port < lhs.ip_port; }

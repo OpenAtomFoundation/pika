@@ -100,6 +100,8 @@ class AclSelector {
 
   void ACLDescribeSelector(std::string* str);
 
+  void ACLDescribeSelector(std::vector<std::string>& vector);
+
  private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
 
@@ -151,7 +153,7 @@ class AclSelector {
   /* A string representation of the ordered categories and commands, this
    * is used to regenerate the original ACL string for display.
    */
-  std::string commandRules;
+  std::string commandRules_;
 };
 
 // acl user
@@ -167,7 +169,7 @@ class User {
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
 
-  void CleanAclString(bool lock = false);
+  void CleanAclString();
 
   /**
    * store a password
@@ -185,13 +187,27 @@ class User {
 
   void AddSelector(const std::shared_ptr<AclSelector>& selector);
 
-  pstd::Status SetUser(const std::string& op, bool look = false);
+  // Set rule for user based on given parameters
+  // Use this function to handle it because it allows locking specified users
+  pstd::Status SetUser(const std::vector<std::string>& rules);
+
+  pstd::Status SetUser(const std::string& op);
 
   pstd::Status CreateSelectorFromOpSet(const std::string& opSet);
 
   std::shared_ptr<AclSelector> GetRootSelector();
 
   void DescribeUser(std::string* str);
+
+  // match the user password, when do auth,
+  // if match,return true, else return false
+  bool MatchPassword(const std::string& password);
+
+  // handle Cmd Acl|get
+  void GetUserDescribe(CmdRes* res);
+
+  // check the user can exec the cmd
+  bool CheckUserPermission(Cmd& cmd, const PikaCmdArgsType& argv);
 
  private:
   mutable std::shared_mutex mutex_;
@@ -229,11 +245,13 @@ class Acl {
    */
   std::shared_ptr<User> CreateDefaultUser();
 
+  std::shared_ptr<User> CreatedUser(const std::string& name);
+
   /**
    * Set user properties according to the string "op".
    * @param op acl rule string
    */
-  bool SetUser(const std::string& op);
+  pstd::Status SetUser(const std::string& userName, std::vector<std::string>& op);
 
   /**
    * get user from users_ map
@@ -246,16 +264,42 @@ class Acl {
    * store a user to users_ map
    * @param user
    */
-  void AddUser(const std::shared_ptr<User>& user);
+  void AddUser(const std::shared_ptr<User>& user, bool lock = false);
+
+  // bo user auth, pass not is sha256
+  std::shared_ptr<User> Auth(const std::string& userName, const std::string& password);
+
+  // get all user
+  std::vector<std::string> Users();
+
+  void DescribeAllUser(std::vector<std::string>* content);
 
   // save acl rule to file
   pstd::Status SaveToFile();
+
+  // delete a user from users
+  std::set<std::string> DeleteUser(const std::vector<std::string>& userNames);
+
+  /**
+   * Load ACL from acl rule file
+   * @param fileName file full name
+   */
+  pstd::Status LoadUserFromFile(const std::string& fileName);
+
+  void UpdateDefaultUserPassword(const std::string& pass);
+
+  // check the user can be exec the command, after exec command
+  bool CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
 
   // 根据 cmd 分类名 获取分类的值
   inline static uint32_t GetCommandCategoryFlagByName(const std::string& name);
 
   // 根据 category获取对应的name
   static std::string GetCommandCategoryFlagByName(const uint32_t category);
+
+  static std::vector<std::string> GetAllCategoryName();
+
+  static const std::string DefaultUser;
 
  private:
   /**
@@ -276,12 +320,6 @@ class Acl {
    * @param users pika.conf users rule
    */
   pstd::Status LoadUserConfigured(std::vector<std::string>& users);
-
-  /**
-   * Load ACL from acl rule file
-   * @param fileName file full name
-   */
-  pstd::Status LoadUserFromFile(const std::string& fileName);
 
   void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
   mutable std::shared_mutex mutex_;

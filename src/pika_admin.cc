@@ -59,21 +59,16 @@ enum AuthResult {
   INVALID_CONN,
 };
 
-static AuthResult AuthenticateUser(const std::string& pwd, const std::shared_ptr<net::NetConn>& conn,
-                                   std::string& msg_role) {
+static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
+                                   const std::shared_ptr<net::NetConn>& conn) {
   std::string root_password(g_pika_conf->requirepass());
-  std::string user_password(g_pika_conf->userpass());
-  if (user_password.empty() && root_password.empty()) {
+  if (root_password.empty()) {
     return AuthResult::NO_REQUIRE_PASS;
   }
 
-  if (pwd == user_password) {
-    msg_role = "USER";
-  }
-  if (pwd == root_password) {
-    msg_role = "ROOT";
-  }
-  if (msg_role.empty()) {
+  auto user = g_pika_server->Acl()->Auth(userName, pwd);
+
+  if (!user) {
     return AuthResult::INVALID_PASSWORD;
   }
 
@@ -82,7 +77,8 @@ static AuthResult AuthenticateUser(const std::string& pwd, const std::shared_ptr
     return AuthResult::INVALID_CONN;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  cli_conn->auth_stat().ChecknUpdate(msg_role);
+
+  cli_conn->DoAuth(user);
 
   return AuthResult::OK;
 }
@@ -253,36 +249,42 @@ void AuthCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
     return;
   }
-  pwd_ = argv_[1];
 }
 
 void AuthCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string root_password(g_pika_conf->requirepass());
-  std::string user_password(g_pika_conf->userpass());
-  if (user_password.empty() && root_password.empty()) {
-    res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
-    return;
-  }
-
-  if (pwd_ == user_password) {
-    res_.SetRes(CmdRes::kOk, "USER");
-  }
-  if (pwd_ == root_password) {
-    res_.SetRes(CmdRes::kOk, "ROOT");
-  }
-  if (res_.none()) {
-    res_.SetRes(CmdRes::kInvalidPwd);
-    return;
-  }
-
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  cli_conn->auth_stat().ChecknUpdate(res().raw_message());
+
+  std::string userName = "";
+  std::string pwd = "";
+  if (argv_.size() == 2) {
+    userName = Acl::DefaultUser;
+    pwd = argv_[1];
+  } else {
+    userName = argv_[1];
+    pwd = argv_[2];
+  }
+
+  auto authResult = AuthenticateUser(userName, pwd, conn);
+
+  switch (authResult) {
+    case AuthResult::INVALID_CONN:
+      res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
+      return;
+    case AuthResult::INVALID_PASSWORD:
+      res_.SetRes(CmdRes::kInvalidPwd);
+      return;
+    case AuthResult::NO_REQUIRE_PASS:
+      res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
+      return;
+    case AuthResult::OK:
+      break;
+  }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void BgsaveCmd::DoInitial() {
@@ -1529,17 +1531,17 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->masterauth());
   }
 
-  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "userpass");
-    EncodeString(&config_body, g_pika_conf->userpass());
-  }
+  //  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
+  //    elements += 2;
+  //    EncodeString(&config_body, "userpass");
+  //    EncodeString(&config_body, g_pika_conf->userpass());
+  //  }
 
-  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "userblacklist");
-    EncodeString(&config_body, g_pika_conf->suser_blacklist());
-  }
+  //  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
+  //    elements += 2;
+  //    EncodeString(&config_body, "userblacklist");
+  //    EncodeString(&config_body, g_pika_conf->suser_blacklist());
+  //  }
 
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1) != 0) {
     elements += 2;
@@ -2023,15 +2025,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
     ret = "+OK\r\n";
-  } else if (set_item == "userpass") {
-    g_pika_conf->SetUserPass(value);
-    ret = "+OK\r\n";
+    //  } else if (set_item == "userpass") {
+    //    g_pika_conf->SetUserPass(value);
+    //    ret = "+OK\r\n";
   } else if (set_item == "slotmigrate") {
     g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
-  } else if (set_item == "userblacklist") {
-    g_pika_conf->SetUserBlackList(value);
-    ret = "+OK\r\n";
+    //  } else if (set_item == "userblacklist") {
+    //    g_pika_conf->SetUserBlackList(value);
+    //    ret = "+OK\r\n";
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
@@ -2658,8 +2660,7 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
     const std::string opt = argv_[next_arg];
     if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args != 0U)) {
       const std::string pwd = argv_[next_arg + 1];
-      std::string msg_role;
-      auto authResult = AuthenticateUser(pwd, conn, msg_role);
+      auto authResult = AuthenticateUser(Acl::DefaultUser, pwd, conn);
       switch (authResult) {
         case AuthResult::INVALID_CONN:
           res_.SetRes(CmdRes::kErrOther, kCmdNamePing);

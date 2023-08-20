@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <glog/logging.h>
+#include "include/pika_acl.h"
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
 #include "include/pika_cmd_table_manager.h"
@@ -38,7 +39,8 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> dbslaveofptr =
       std::make_unique<DbSlaveofCmd>(kCmdNameDbSlaveof, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDbSlaveof, std::move(dbslaveofptr)));
-  std::unique_ptr<Cmd> authptr = std::make_unique<AuthCmd>(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
+  std::unique_ptr<Cmd> authptr =
+      std::make_unique<AuthCmd>(kCmdNameAuth, -2, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsNoAuth);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameAuth, std::move(authptr)));
   std::unique_ptr<Cmd> bgsaveptr =
       std::make_unique<BgsaveCmd>(kCmdNameBgsave, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
@@ -50,7 +52,8 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePurgelogsto, std::move(purgelogsto)));
   std::unique_ptr<Cmd> pingptr = std::make_unique<PingCmd>(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePing, std::move(pingptr)));
-  std::unique_ptr<Cmd> helloptr = std::make_unique<HelloCmd>(kCmdNameHello, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  std::unique_ptr<Cmd> helloptr =
+      std::make_unique<HelloCmd>(kCmdNameHello, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsNoAuth);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHello, std::move(helloptr)));
   std::unique_ptr<Cmd> selectptr = std::make_unique<SelectCmd>(kCmdNameSelect, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSelect, std::move(selectptr)));
@@ -92,7 +95,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKPatternMatchDel, std::move(pkpatternmatchdelptr)));
   std::unique_ptr<Cmd> dummyptr = std::make_unique<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdDummy, std::move(dummyptr)));
-  std::unique_ptr<Cmd> quitptr = std::make_unique<QuitCmd>(kCmdNameQuit, 1, kCmdFlagsRead);
+  std::unique_ptr<Cmd> quitptr = std::make_unique<QuitCmd>(kCmdNameQuit, 1, kCmdFlagsRead | kCmdFlagsNoAuth);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
   std::unique_ptr<Cmd> diskrecoveryptr = std::make_unique<DiskRecoveryCmd>(kCmdNameDiskRecovery, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiskRecovery, std::move(diskrecoveryptr)));
@@ -688,6 +691,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr = std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
+
+  ////ACL
+  std::unique_ptr<Cmd> aclptr = std::make_unique<PikaAclCmd>(KCmdNameAcl, -2, kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(KCmdNameAcl, std::move(aclptr)));
 
   // Transaction
   ////Multi

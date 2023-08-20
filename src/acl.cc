@@ -22,12 +22,7 @@ User::User(const std::string& name) : name_(name) {
 
 std::string User::Name() const { return name_; }
 
-void User::CleanAclString(bool lock) {
-  if (lock) {
-    std::shared_lock rl(mutex_);
-  }
-  aclString_.clear();
-}
+void User::CleanAclString() { aclString_.clear(); }
 
 void User::AddPassword(const std::string& password) { passwords_.insert(password); }
 
@@ -37,33 +32,35 @@ void User::CleanPassword() { passwords_.clear(); }
 
 void User::AddSelector(const std::shared_ptr<AclSelector>& selector) { selectors_.push_back(selector); }
 
-pstd::Status User::SetUser(const std::string& op, bool look) {
-  if (look) {
-    std::unique_lock wl(mutex_);
+pstd::Status User::SetUser(const std::vector<std::string>& rules) {
+  std::unique_lock wl(mutex_);
+
+  for (const auto& rule : rules) {
+    auto status = SetUser(rule);
+    if (!status.ok()) {
+      LOG(ERROR) << "SetUser rule:" << rule << status.ToString();
+      return status;
+    }
   }
 
+  return pstd::Status::OK();
+}
+
+pstd::Status User::SetUser(const std::string& op) {
   CleanAclString();
   if (op.empty()) {
     return pstd::Status::OK();
   }
   if (!strcasecmp(op.data(), "on")) {
-    //    flags_ |= static_cast<uint32_t>(AclUserFlag::ENABLED);
-    //    flags_ &= ~static_cast<uint32_t>(AclUserFlag::DISABLED);
     AddFlags(static_cast<uint32_t>(AclUserFlag::ENABLED));
     DecFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));
   } else if (!strcasecmp(op.data(), "off")) {
-    //    flags_ |= static_cast<uint32_t>(AclUserFlag::DISABLED);
-    //    flags_ &= ~static_cast<uint32_t>(AclUserFlag::ENABLED);
     AddFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));
     DecFlags(static_cast<uint32_t>(AclUserFlag::ENABLED));
   } else if (!strcasecmp(op.data(), "nopass")) {
-    //    flags_ |= static_cast<uint32_t>(AclUserFlag::NO_PASS);
-    //    passwords_.clear();
     AddFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS));
     CleanPassword();
   } else if (!strcasecmp(op.data(), "resetpass")) {
-    //    flags_ &= ~static_cast<uint32_t>(AclUserFlag::NO_PASS);
-    //    passwords_.clear();
     DecFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS));
     CleanPassword();
   } else if (op[0] == '>' || op[0] == '#') {
@@ -72,12 +69,10 @@ pstd::Status User::SetUser(const std::string& op, bool look) {
       newpass = pstd::sha256(op.data() + 1);
     } else {
       if (!pstd::isSha256(op.data() + 1)) {
-        return pstd::Status::Corruption("acl password not sha256");
+        return pstd::Status::Error("acl password not sha256");
       }
       newpass = op.data() + 1;
     }
-    //    passwords_.insert(newpass);
-    //    flags_ &= ~static_cast<uint32_t>(AclUserFlag::NO_PASS);
     AddPassword(newpass);
     DecFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS));
   } else if (op[0] == '<' || op[0] == '!') {
@@ -86,7 +81,7 @@ pstd::Status User::SetUser(const std::string& op, bool look) {
       delpass = pstd::sha256(op.data() + 1);
     } else {
       if (!pstd::isSha256(op.data() + 1)) {
-        return pstd::Status::Corruption("acl password not sha256");
+        return pstd::Status::Error("acl password not sha256");
       }
       delpass = op.data() + 1;
     }
@@ -128,7 +123,12 @@ pstd::Status User::SetUser(const std::string& op, bool look) {
       return status;
     }
   } else {
-    auto status = GetRootSelector()->SetSelector(op);
+    auto root = GetRootSelector();
+    if (!root) {  // does not appear under normal circumstances
+      LOG(ERROR) << "set user:" << Name() << " not find root selector";
+      return pstd::Status::Error("set user error,See pika log for details");
+    }
+    auto status = root->SetSelector(op);
     if (!status.ok()) {
       return status;
     }
@@ -156,8 +156,11 @@ std::shared_ptr<AclSelector> User::GetRootSelector() {
 }
 
 void User::DescribeUser(std::string* str) {
+  std::unique_lock wl(mutex_);
+
   if (!aclString_.empty()) {
     str->append(aclString_);
+    return;
   }
 
   // flag
@@ -189,14 +192,67 @@ void User::DescribeUser(std::string* str) {
   str->append(aclString_);
 }
 
+bool User::MatchPassword(const std::string& password) {
+  std::shared_lock l(mutex_);
+  return passwords_.find(password) != passwords_.end();
+}
+
+void User::GetUserDescribe(CmdRes* res) {
+  std::shared_lock l(mutex_);
+
+  res->AppendArrayLen(6);
+
+  res->AppendString("flags");
+  std::vector<std::string> vector;
+  for (const auto& item : Acl::UserFlags) {
+    if (HasFlags(item.second)) {
+      vector.emplace_back(item.first);
+    }
+  }
+  res->AppendStringVector(vector);
+
+  vector.clear();
+  res->AppendString("passwords");
+  for (const auto& item : passwords_) {
+    vector.emplace_back(item);
+  }
+  res->AppendStringVector(vector);
+
+  size_t i = 0;
+  for (const auto& selector : selectors_) {
+    vector.clear();
+    if (i == 0) {
+      selector->ACLDescribeSelector(vector);
+      res->AppendStringVector(vector);
+      if (selectors_.size() == 1) {
+        res->AppendArrayLen(-1);
+      }
+      ++i;
+      continue;
+    }
+    if (i == 1) {
+      res->AppendArrayLen(selectors_.size() - 1);
+    }
+    selector->ACLDescribeSelector(vector);
+    res->AppendStringVector(vector);
+    ++i;
+  }
+}
+
+bool User::CheckUserPermission(Cmd& cmd, const PikaCmdArgsType& argv) {}
+
 // class User end
 
 // class Acl
 
 pstd::Status Acl::Initialization() {
-  AddUser(CreateDefaultUser());
-  LoadUsersAtStartup();
-  return LoadUsersAtStartup();
+  AddUser(CreateDefaultUser(), true);
+  auto status = LoadUsersAtStartup();
+  if (!status.ok()) {
+    return status;
+  }
+  UpdateDefaultUserPassword(g_pika_conf->requirepass());
+  return status;
 }
 
 std::shared_ptr<User> Acl::GetUser(const std::string& userName, bool look) {
@@ -207,8 +263,10 @@ std::shared_ptr<User> Acl::GetUser(const std::string& userName, bool look) {
   return users_[userName];
 }
 
-void Acl::AddUser(const std::shared_ptr<User>& user) {
-  std::unique_lock wl(mutex_);
+void Acl::AddUser(const std::shared_ptr<User>& user, bool lock) {
+  if (lock) {
+    std::unique_lock wl(mutex_);
+  }
 
   users_[user->Name()] = user;
 }
@@ -231,34 +289,39 @@ pstd::Status Acl::LoadUserConfigured(std::vector<std::string>& users) {
     userRules.clear();
     pstd::StringSplit(item, ' ', userRules);
     if (userRules.size() < 2) {
-      return pstd::Status::Corruption("acl from configuration file read rules error");
+      return pstd::Status::Error("acl from configuration file read rules error");
     }
     auto user = GetUser(userRules[0]);
     if (user) {
-      if (user->Name() != "default") {  // 只允许`default`用户可以重复
-        return pstd::Status::Corruption("acl user: " + user->Name() + " is repeated");
+      if (user->Name() != DefaultUser) {  // 只允许`default`用户可以重复
+        return pstd::Status::Error("acl user: " + user->Name() + " is repeated");
       }
     } else {
-      user = std::make_shared<User>(userRules[0]);
+      user = CreatedUser(userRules[0]);
     }
-    for (int i = 1; i < userRules.size(); ++i) {
-      auto status = user->SetUser(userRules[i]);
+    std::vector<std::string> aclArgc;
+    auto subRule = std::vector<std::string>(userRules.begin() + 1, userRules.end());
+    ACLMergeSelectorArguments(subRule, &aclArgc);
+
+    for (const auto& rule : aclArgc) {
+      auto status = user->SetUser(rule);
       if (!status.ok()) {
         LOG(ERROR) << "load user from configured file error," << status.ToString();
         return status;
       }
     }
-    users_[userRules[0]] = user;
+    AddUser(user);
   }
 
   return pstd::Status().OK();
 }
 
 pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
-  std::unique_lock wl(mutex_);
   if (fileName.empty()) {
     return pstd::Status::OK();
   }
+
+  std::unique_lock wl(mutex_);
 
   std::unique_ptr<pstd::SequentialFile> sequentialFile;
   auto status = NewSequentialFile(fileName, sequentialFile);
@@ -286,14 +349,14 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
 
     if (rules[0] != "user" || rules.size() < 2) {
       LOG(ERROR) << "load user from acl file,line: '" << lineContent << "' illegal";
-      return pstd::Status::Corruption("line: '" + lineContent + "' illegal");
+      return pstd::Status::Error("line: '" + lineContent + "' illegal");
     }
 
     auto u = GetUser(rules[1]);
-    if (u && u->Name() != "default") {
+    if (u && u->Name() != DefaultUser) {
       // if user is exists, exit
-      LOG(ERROR) << "load user from acl file error," << status.ToString();
-      return pstd::Status::Corruption("user: " + rules[1] + " is repeated");
+      LOG(ERROR) << "load user: " << rules[1] << "is repeated";
+      return pstd::Status::Error("user: " + rules[1] + " is repeated");
     }
 
     std::vector<std::string> aclArgc;
@@ -301,7 +364,7 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
     auto subRule = std::vector<std::string>(rules.begin() + 2, rules.end());
     ACLMergeSelectorArguments(subRule, &aclArgc);
 
-    u = std::make_shared<User>(rules[1]);
+    u = CreatedUser(rules[1]);
     for (const auto& item : aclArgc) {
       status = u->SetUser(item);
       if (!status.ok()) {
@@ -312,9 +375,9 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
     users[rules[1]] = u;
   }
 
-  auto defaultUser = users.find("default");
+  auto defaultUser = users.find(DefaultUser);
   if (defaultUser == users.end()) {  // 新的map里没有 default user
-    users["default"] = CreateDefaultUser();
+    users[DefaultUser] = CreateDefaultUser();
   }
 
   users_ = std::move(users);
@@ -322,8 +385,20 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
   return pstd::Status().OK();
 }
 
+void Acl::UpdateDefaultUserPassword(const std::string& pass) {
+  auto u = GetUser(DefaultUser);
+  u->SetUser("resetpass");
+  if (pass.empty()) {
+    u->SetUser("nopass");
+  } else {
+    u->SetUser(">" + pass);
+  }
+}
+
+bool Acl::CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) { cmd->name(); }
+
 std::shared_ptr<User> Acl::CreateDefaultUser() {
-  auto defaultUser = std::make_shared<User>("default");
+  auto defaultUser = std::make_shared<User>(DefaultUser);
   defaultUser->SetUser("+@all");
   defaultUser->SetUser("~*");
   defaultUser->SetUser("&*");
@@ -332,9 +407,33 @@ std::shared_ptr<User> Acl::CreateDefaultUser() {
   return defaultUser;
 }
 
-bool Acl::SetUser(const std::string& op) {
-  // todo
-  return false;
+std::shared_ptr<User> Acl::CreatedUser(const std::string& name) { return std::make_shared<User>(name); }
+
+pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>& op) {
+  if (op.empty()) {
+    return pstd::Status::OK();
+  }
+
+  auto user = GetUser(userName, true);
+
+  bool add = false;
+  if (!user) {  // if the user not exist, create new user
+    user = CreatedUser(userName);
+    add = true;
+  }
+
+  std::vector<std::string> aclArgc;
+  ACLMergeSelectorArguments(op, &aclArgc);
+
+  auto status = user->SetUser(aclArgc);
+  if (!status.ok()) {
+    return status;
+  }
+
+  if (add) {
+    AddUser(user, true);
+  }
+  return pstd::Status::OK();
 }
 
 uint32_t Acl::GetCommandCategoryFlagByName(const std::string& name) { return CommandCategories[name]; }
@@ -347,6 +446,15 @@ std::string Acl::GetCommandCategoryFlagByName(const uint32_t category) {
   }
 
   return "";
+}
+
+std::vector<std::string> Acl::GetAllCategoryName() {
+  std::vector<std::string> result;
+  result.reserve(CommandCategories.size());
+  for (const auto& item : CommandCategories) {
+    result.emplace_back(item.first);
+  }
+  return result;
 }
 
 void Acl::ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged) {
@@ -372,23 +480,61 @@ void Acl::ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<
   }
 }
 
+std::shared_ptr<User> Acl::Auth(const std::string& userName, const std::string& password) {
+  std::shared_lock l(mutex_);
+
+  auto user = GetUser(userName);
+  if (!user) {
+    return nullptr;
+  }
+  if (user->MatchPassword(password)) {
+    return user;
+  }
+  return nullptr;
+}
+
+std::vector<std::string> Acl::Users() {
+  std::shared_lock l(mutex_);
+  std::vector<std::string> result;
+  result.reserve(users_.size());
+
+  for (const auto& item : users_) {
+    result.emplace_back(item.first);
+  }
+
+  return result;
+}
+
+void Acl::DescribeAllUser(std::vector<std::string>* content) {
+  std::shared_lock l(mutex_);
+  content->reserve(users_.size());
+
+  for (const auto& item : users_) {
+    std::string saveContent;
+    saveContent += "user ";
+    saveContent += item.first;
+
+    item.second->DescribeUser(&saveContent);
+    content->emplace_back(saveContent);
+  }
+}
+
 pstd::Status Acl::SaveToFile() {
-  std::unique_lock wl(mutex_);
   std::string aclFileName = g_pika_conf->acl_file();
   if (aclFileName.empty()) {
     LOG(ERROR) << "save user to acl file, file name is empty";
-    return pstd::Status::Corruption("acl file name is empty");
+    return pstd::Status::Error("acl file name is empty");
   }
 
-  // todo
-  aclFileName = "../conf/users2222.acl";
+  std::unique_lock wl(mutex_);
 
   std::unique_ptr<pstd::WritableFile> file;
-  auto status = pstd::NewWritableFile(aclFileName, file);
+  const std::string tmpFile = aclFileName + ".tmp";
+  auto status = pstd::NewWritableFile(tmpFile, file);
   if (!status.ok()) {
     auto error = fmt::format("open acl user file:{} fail, error:{}", aclFileName, status.ToString());
     LOG(ERROR) << error;
-    return pstd::Status::Corruption(error);
+    return pstd::Status::Error(error);
   }
 
   std::string saveContent;
@@ -404,7 +550,23 @@ pstd::Status Acl::SaveToFile() {
   file->Sync();
   file->Close();
 
+  if (pstd::RenameFile(aclFileName, tmpFile) < 0) {  // rename fail
+    return pstd::Status::Error("save acl rule to file fail. specific information see pika log");
+  }
   return pstd::Status::OK();
+}
+
+std::set<std::string> Acl::DeleteUser(const std::vector<std::string>& userNames) {
+  std::unique_lock wl(mutex_);
+
+  std::set<std::string> delUserNames;
+  for (const auto& userName : userNames) {
+    if (users_.erase(userName)) {
+      delUserNames.insert(userName);
+    }
+  }
+
+  return delUserNames;
 }
 
 std::map<std::string, uint32_t> Acl::CommandCategories = {
@@ -443,6 +605,8 @@ std::map<std::string, uint32_t> Acl::SelectorFlags = {
     {"allcommands", static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS)},
 };
 
+const std::string Acl::DefaultUser = "default";
+
 // class Acl end
 
 // class AclSelector
@@ -477,7 +641,7 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
     CleanCommandRule();
   } else if (op[0] == '~' || op[0] == '%') {
     if (HasFlags(static_cast<int>(AclSelectorFlag::ALL_KEYS))) {
-      return pstd::Status::Corruption(
+      return pstd::Status::Error(
           fmt::format("Error in ACL SETUSER modifier '{}': Adding a pattern after the * "
                       "pattern (or the 'allkeys' flag) is not valid and does not have any effect."
                       " Try 'resetkeys' to start with an empty list of patterns",
@@ -495,7 +659,7 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
           offset++;
           break;
         } else {
-          return pstd::Status::Corruption("Syntax error");
+          return pstd::Status::Error("Syntax error");
         }
       }
     } else {
@@ -503,7 +667,7 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
     }
 
     if (pstd::isspace(op)) {
-      return pstd::Status::Corruption("Syntax error");
+      return pstd::Status::Error("Syntax error");
     }
 
     InsertKeyPattern(op.substr(offset, std::string::npos), flags);
@@ -511,12 +675,12 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS));
   } else if (op[0] == '&') {
     if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS))) {
-      return pstd::Status::Corruption(
+      return pstd::Status::Error(
           "Adding a pattern after the * pattern (or the 'allchannels' flag) is not valid and does not have any effect. "
           "Try 'resetchannels' to start with an empty list of channels");
     }
     if (pstd::isspace(op)) {
-      return pstd::Status::Corruption("Syntax error");
+      return pstd::Status::Error("Syntax error");
     }
     InsertChannel(op.substr(1, std::string::npos));
     //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
@@ -536,17 +700,17 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
   } else if ((op[0] == '+' || op[0] == '-') && op[1] == '@') {
     bool allow = op[0] == '+' ? true : false;
     if (!SetSelectorCommandBitsForCategory(op.data() + 1, allow)) {
-      return pstd::Status::Corruption("Unknown command or category name in ACL");
+      return pstd::Status::Error("Unknown command or category name in ACL");
     }
   } else {
-    return pstd::Status::Corruption("Syntax error");
+    return pstd::Status::Error("Syntax error");
   }
   return pstd::Status();
 }
 
 pstd::Status AclSelector::SetSelectorFromOpSet(const std::string& opSet) {
   if (opSet[0] != '(' || opSet[opSet.size() - 1] != ')') {
-    return pstd::Status::Corruption("Unmatched parenthesis in acl selector starting at" + opSet);
+    return pstd::Status::Error("Unmatched parenthesis in acl selector starting at" + opSet);
   }
 
   std::vector<std::string> args;
@@ -618,7 +782,7 @@ pstd::Status AclSelector::ChangeSelector(const std::shared_ptr<Cmd>& cmd, const 
   if (cmd->HasSubCommand()) {
     auto index = cmd->SubCmdIndex(subCmd);
     if (index == -1) {
-      return pstd::Status::Corruption("Unknown command or category name in ACL");
+      return pstd::Status::Error("Unknown command or category name in ACL");
     }
     if (allow) {
       SetSubCommand(cmd->GetCmdId(), index);
@@ -666,6 +830,40 @@ void AclSelector::ACLDescribeSelector(std::string* str) {
   DescribeSelectorCommandRules(str);
 }
 
+void AclSelector::ACLDescribeSelector(std::vector<std::string>& vector) {
+  vector.emplace_back("command");
+  if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS))) {
+    vector.emplace_back("+@all");
+  } else {
+    vector.emplace_back(commandRules_);
+  }
+
+  vector.emplace_back("key");
+  if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS))) {
+    vector.emplace_back("~*");
+  } else if (patterns_.empty()) {
+    vector.emplace_back("");
+  } else {
+    std::string keys;
+    for (auto it = patterns_.begin(); it != patterns_.end(); ++it) {
+      if (it != patterns_.begin()) {
+        keys += " ";
+        (*it)->ToString(&keys);
+      }
+    }
+    vector.emplace_back(keys);
+  }
+
+  vector.emplace_back("channels");
+  if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS))) {
+    vector.emplace_back("&*");
+  } else if (channels_.empty()) {
+    vector.emplace_back("");
+  } else {
+    vector.emplace_back(fmt::format("{}", fmt::join(channels_, " ")));
+  }
+}
+
 void AclSelector::DescribeSelectorCommandRules(std::string* str) {
   if (allowedCommands_.all()) {
     str->append(" +@all");
@@ -674,14 +872,14 @@ void AclSelector::DescribeSelectorCommandRules(std::string* str) {
   }
 
   // Category
-  str->append(commandRules);
+  str->append(commandRules_);
 }
 
 pstd::Status AclSelector::SetCommandOp(const std::string& op, bool allow) {
   if (op.find('|') == std::string::npos) {
     auto cmd = g_pika_cmd_table_manager->GetCmd(op.data() + 1);
     if (!cmd) {
-      return pstd::Status::Corruption("Unknown command or category name in ACL");
+      return pstd::Status::Error("Unknown command or category name in ACL");
     }
     ChangeSelector(cmd, allow);
     return pstd::Status::OK();
@@ -693,12 +891,12 @@ pstd::Status AclSelector::SetCommandOp(const std::string& op, bool allow) {
     /* The subcommand cannot be empty, so things like CONFIG|
      * are syntax errors of course. */
     if (cmds.size() != 2) {
-      return pstd::Status::Corruption("Syntax error");
+      return pstd::Status::Error("Syntax error");
     }
 
     auto parentCmd = g_pika_cmd_table_manager->GetCmd(cmds[0]);
     if (!parentCmd) {
-      return pstd::Status::Corruption("Unknown command or category name in ACL");
+      return pstd::Status::Error("Unknown command or category name in ACL");
     }
 
     return ChangeSelector(parentCmd, cmds[1], allow);
@@ -709,12 +907,12 @@ pstd::Status AclSelector::SetCommandOp(const std::string& op, bool allow) {
 
 void AclSelector::UpdateCommonRule(const std::string& rule, bool allow) {
   RemoveCommonRule(rule);
-  commandRules += allow ? " +" : " -";
-  commandRules += rule;
+  commandRules_ += allow ? " +" : " -";
+  commandRules_ += rule;
 }
 
 void AclSelector::RemoveCommonRule(const std::string& rule) {
-  if (commandRules.empty()) {
+  if (commandRules_.empty()) {
     return;
   }
 
@@ -722,21 +920,21 @@ void AclSelector::RemoveCommonRule(const std::string& rule) {
 
   size_t start = 0;
   while (true) {
-    start = commandRules.find(rule, start);
+    start = commandRules_.find(rule, start);
     if (start == std::string::npos) {
       return;
     }
 
-    size_t delNum = 0;                             // the length to be deleted this time
-    if (start + ruleLen >= commandRules.size()) {  // the remaining commandRule == rule, delete to end
+    size_t delNum = 0;                              // the length to be deleted this time
+    if (start + ruleLen >= commandRules_.size()) {  // the remaining commandRule == rule, delete to end
       delNum = ruleLen;
     } else {
-      if (commandRules[start + ruleLen] == ' ') {
+      if (commandRules_[start + ruleLen] == ' ') {
         delNum = ruleLen + 1;
-      } else if (commandRules[start + ruleLen] == '|') {
-        size_t end = commandRules.find(' ', start);  // find next ' '
-        if (end == std::string::npos) {              // not find ' ', delete to end
-          delNum = commandRules.size() - start;
+      } else if (commandRules_[start + ruleLen] == '|') {
+        size_t end = commandRules_.find(' ', start);  // find next ' '
+        if (end == std::string::npos) {               // not find ' ', delete to end
+          delNum = commandRules_.size() - start;
         } else {
           delNum = end + 1 - start;
         }
@@ -751,9 +949,9 @@ void AclSelector::RemoveCommonRule(const std::string& rule) {
       ++delNum;  // star position moved one forward So delNum takes +1
     }
 
-    commandRules.erase(start, delNum);
+    commandRules_.erase(start, delNum);
   }
 }
 
-void AclSelector::CleanCommandRule() { commandRules.clear(); }
+void AclSelector::CleanCommandRule() { commandRules_.clear(); }
 // class AclSelector end

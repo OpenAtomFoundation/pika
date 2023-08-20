@@ -36,6 +36,8 @@ class PikaCmdTableManager {
   CmdTable* GetCmdTable();
   uint32_t GetCmdId();
 
+  std::vector<std::string> GetAclCategoryCmdNames(uint32_t flag);
+
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
 

@@ -92,7 +92,7 @@ PikaServer::PikaServer()
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
 
-  acl_ = std::make_unique<Acl>();
+  acl_ = std::make_unique<::Acl>();
 }
 
 PikaServer::~PikaServer() {
@@ -1745,6 +1745,10 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   // Start new thread if needed
   bgslots_cleanup_thread_.StartThread();
   bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
+}
+
+void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {
+  pika_dispatch_thread_->UnAuthUser(users, acl_->GetUser(Acl::DefaultUser, true));
 }
 
 void DoBgslotscleanup(void* arg) {

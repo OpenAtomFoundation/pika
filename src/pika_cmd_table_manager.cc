@@ -81,3 +81,13 @@ uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t slo
 }
 
 bool PikaCmdTableManager::CmdExist(const std::string& cmd) const { return cmds_->find(cmd) != cmds_->end(); }
+
+std::vector<std::string> PikaCmdTableManager::GetAclCategoryCmdNames(uint32_t flag) {
+  std::vector<std::string> result;
+  for (const auto& item : (*cmds_)) {
+    if (item.second->AclCategory() & flag) {
+      result.emplace_back(item.first);
+    }
+  }
+  return result;
+}

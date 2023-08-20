@@ -430,6 +430,9 @@ class PikaServer : public pstd::noncopyable {
   }
   void Bgslotsreload(const std::shared_ptr<Slot>& slot);
 
+  // Revoke the authorization of the specified account, when handle Cmd deleteUser
+  void AllClientUnAuth(const std::set<std::string>& users);
+
 
   /*
    * BGSlotsCleanup used
@@ -527,6 +530,8 @@ class PikaServer : public pstd::noncopyable {
    * acl init
    */
   pstd::Status InitAcl() { return acl_->Initialization(); }
+
+  std::unique_ptr<::Acl>& Acl() { return acl_; }
 
   friend class Cmd;
   friend class InfoCmd;
@@ -665,7 +670,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * acl
    */
-  std::unique_ptr<Acl> acl_ = nullptr;
+  std::unique_ptr<::Acl> acl_ = nullptr;
 };
 
 #endif

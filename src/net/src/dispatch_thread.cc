@@ -8,8 +8,6 @@
 #include <glog/logging.h>
 
 #include "net/src/dispatch_thread.h"
-#include "net/src/net_item.h"
-#include "net/src/net_multiplexer.h"
 #include "net/src/worker_thread.h"
 
 namespace net {
@@ -30,7 +28,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
     : ServerThread::ServerThread(ip, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit){
+      queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -260,6 +258,16 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 }
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
+
+void DispatchThread::AllConn(const std::function<void(const std::shared_ptr<NetConn>&)>& func) {
+  for (const auto& item : worker_thread_) {
+    item->rwlock_.lock_shared();
+    for (const auto& conn : item->conns_) {
+      func(conn.second);
+    }
+    item->rwlock_.unlock_shared();
+  }
+}
 
 /**
  * @param keys format: tablename + key,because can watch the key of different db

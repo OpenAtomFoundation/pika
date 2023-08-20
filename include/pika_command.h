@@ -227,6 +227,9 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
+// ACL
+const std::string KCmdNameAcl = "acl";
+
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -245,29 +248,30 @@ enum CmdFlagsMask {
 };
 
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
-  kCmdFlagsWrite = 1,
-  kCmdFlagsAdmin = 0,  // default type
-  kCmdFlagsKv = 2,
-  kCmdFlagsHash = 4,
-  kCmdFlagsList = 6,
-  kCmdFlagsSet = 8,
-  kCmdFlagsZset = 10,
-  kCmdFlagsBit = 12,
-  kCmdFlagsHyperLogLog = 14,
-  kCmdFlagsGeo = 16,
-  kCmdFlagsPubSub = 18,
+  kCmdFlagsRead = 1,  // default rw
+  kCmdFlagsWrite = (1 << 1),
+  kCmdFlagsAdmin = (1 << 2),  // default type
+  kCmdFlagsKv = (1 << 3),
+  kCmdFlagsHash = (1 << 4),
+  kCmdFlagsList = (1 << 5),
+  kCmdFlagsSet = (1 << 6),
+  kCmdFlagsZset = (1 << 7),
+  kCmdFlagsBit = (1 << 8),
+  kCmdFlagsHyperLogLog = (1 << 9),
+  kCmdFlagsGeo = (1 << 10),
+  kCmdFlagsPubSub = (1 << 11),
   kCmdFlagsNoLocal = 0,  // default nolocal
-  kCmdFlagsLocal = 32,
+  kCmdFlagsLocal = (1 << 12),
   kCmdFlagsNoSuspend = 0,  // default nosuspend
-  kCmdFlagsSuspend = 64,
+  kCmdFlagsSuspend = (1 << 13),
   kCmdFlagsNoPrior = 0,  // default noprior
   kCmdFlagsPrior = 128,
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
-  kCmdFlagsAdminRequire = 256,
+  kCmdFlagsAdminRequire = (1 << 14),
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
-  kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsSingleSlot = (1 << 15),
+  kCmdFlagsMultiSlot = (1 << 16),
+  kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
   kCmdFlagsPreDo = 2048,
 };
 
@@ -419,6 +423,18 @@ class CmdRes {
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
+
+  void AppendStringVector(const std::vector<std::string>& strArray) {
+    if (strArray.empty()) {
+      AppendArrayLen(-1);
+      return;
+    }
+    AppendArrayLen(strArray.size());
+    for (const auto& item : strArray) {
+      AppendString(item);
+    }
+  }
+
   void SetRes(CmdRet _ret, const std::string& content = "") {
     ret_ = _ret;
     if (!content.empty()) {
