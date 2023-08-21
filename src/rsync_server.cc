@@ -68,8 +68,8 @@ int RsyncServer::Stop() {
 RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
                                  void* worker_specific_data, NetMultiplexer* mpx)
     : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {
-  readers_.resize(g_pika_conf->max_rsync_parallel_num());
-  for (int i = 0; i < g_pika_conf->max_rsync_parallel_num(); i++) {
+  readers_.resize(kMaxRsyncParallelNum);
+  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
     readers_[i].reset(new RsyncReader());
   }
 }

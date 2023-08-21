@@ -605,7 +605,7 @@ int PikaConf::Load() {
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
-    throttle_bytes_per_second_ = 805306368;
+    throttle_bytes_per_second_ = 307200000;
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);

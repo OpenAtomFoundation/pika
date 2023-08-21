@@ -2183,7 +2183,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-rsync-parallel-num") {
-     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
+     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
        ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
        return;
      }

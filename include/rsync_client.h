@@ -52,6 +52,7 @@ public:
   void* ThreadMain() override;
   void Copy(const std::set<std::string>& file_set, int index);
   bool Init();
+  int GetParallelNum();
   Status Start();
   Status Stop();
   bool IsRunning() {
@@ -97,6 +98,7 @@ private:
 
   std::string master_ip_;
   int master_port_;
+  int parallel_num_;
 };
 
 class RsyncWriter {
@@ -190,8 +192,8 @@ private:
 class WaitObjectManager {
 public:
   WaitObjectManager() {
-    wo_vec_.resize(g_pika_conf->max_rsync_parallel_num());
-    for (int i = 0; i < g_pika_conf->max_rsync_parallel_num(); i++) {
+    wo_vec_.resize(kMaxRsyncParallelNum);
+    for (int i = 0; i < kMaxRsyncParallelNum; i++) {
       wo_vec_[i] = new WaitObject();
     }
   }

@@ -24,10 +24,11 @@ const int kThrottleCheckCycle = 10;
 namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
     : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
-      state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
+      state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0),
+      parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
   client_thread_ = std::make_unique<RsyncClientThread>(3000, 60, wo_mgr_.get());
-  work_threads_.resize(g_pika_conf->max_rsync_parallel_num());
+  work_threads_.resize(GetParallelNum());
   finished_work_cnt_.store(0);
 }
 
@@ -81,13 +82,13 @@ void* RsyncClient::ThreadMain() {
 
   Status s = Status::OK();
   LOG(INFO) << "RsyncClient begin to copy remote files";
-  std::vector<std::set<std::string> > file_vec(g_pika_conf->max_rsync_parallel_num());
+  std::vector<std::set<std::string> > file_vec(GetParallelNum());
   int index = 0;
   for (const auto& file : file_set_) {
-    file_vec[index++ % g_pika_conf->max_rsync_parallel_num()].insert(file);
+    file_vec[index++ % GetParallelNum()].insert(file);
   }
 
-  for (int i = 0; i < g_pika_conf->max_rsync_parallel_num(); i++) {
+  for (int i = 0; i < GetParallelNum(); i++) {
     work_threads_[i] = std::move(std::thread(&RsyncClient::Copy, this, file_vec[i], i));
   }
 
@@ -124,12 +125,12 @@ void* RsyncClient::ThreadMain() {
     outfile.flush();
     meta_rep.clear();
 
-    if (finished_work_cnt_.load() == g_pika_conf->max_rsync_parallel_num()) {
+    if (finished_work_cnt_.load() == GetParallelNum()) {
       break;
     }
   }
 
-  for (int i = 0; i < g_pika_conf->max_rsync_parallel_num(); i++) {
+  for (int i = 0; i < GetParallelNum(); i++) {
     work_threads_[i].join();
   }
   finished_work_cnt_.store(0);
@@ -488,6 +489,10 @@ Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std:
 std::string RsyncClient::GetLocalMetaFilePath() {
   std::string db_path = dir_ + (dir_.back() == '/' ? "" : "/");
   return db_path + kDumpMetaFileName;
+}
+
+int RsyncClient::GetParallelNum() {
+  return parallel_num_;
 }
 
 }  // end namespace rsync
