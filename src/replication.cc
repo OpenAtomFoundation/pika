@@ -355,12 +355,7 @@ PError replconf(const std::vector<PString>& params, UnboundedBuffer* reply) {
       }
       info->listenPort = static_cast<unsigned short>(port);
     } else {
-      if (reply) {
-        reply->PushData("-ERR:Unrecognized REPLCONF option:", sizeof "-ERR:Unrecognized REPLCONF option:" - 1);
-        reply->PushData(params[i].data(), params[i].size());
-      }
-
-      return PError_syntax;
+        break;
     }
   }
 
