@@ -21,12 +21,14 @@
 #include "include/pika_set.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
+#include "include/pika_raft_server.h"
 
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaRaftServer> g_pika_raft_server;
 
 void InitCmdTable(CmdTable* cmd_table) {
   // Admin
@@ -706,15 +708,28 @@ std::vector<std::string> Cmd::current_key() const {
 }
 
 void Cmd::Execute() {
-  if (name_ == kCmdNameFlushdb) {
-    ProcessFlushDBCmd();
-  } else if (name_ == kCmdNameFlushall) {
-    ProcessFlushAllCmd();
-  } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
-    ProcessDoNotSpecifySlotCmd();
+  if (g_pika_conf->is_raft()) {
+    if (name_ == kCmdNameFlushdb) {
+      ProcessFlushDBCmdWithRaft();
+    } else if (name_ == kCmdNameFlushall) {
+      ProcessFlushAllCmdWithRaft();
+    } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
+      ProcessDoNotSpecifySlotCmdWithRaft();
+    } else {
+      ProcessSingleSlotCmdWithRaft();
+    }
   } else {
-    ProcessSingleSlotCmd();
+    if (name_ == kCmdNameFlushdb) {
+      ProcessFlushDBCmd();
+    } else if (name_ == kCmdNameFlushall) {
+      ProcessFlushAllCmd();
+    } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
+      ProcessDoNotSpecifySlotCmd();
+    } else {
+      ProcessSingleSlotCmd();
+    }
   }
+  
 }
 
 void Cmd::ProcessFlushDBCmd() {
@@ -820,6 +835,76 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
   }
 }
 
+void Cmd::ProcessFlushDBCmdWithRaft() {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
+  } else {
+    if (db->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    } else {
+      std::lock_guard l_prw(db->slots_rw_);
+      for (const auto& slot_item : db->slots_) {
+        std::shared_ptr<Slot> slot = slot_item.second;
+        if (!slot) {
+          res_.SetRes(CmdRes::kErrOther, "Slot not found");
+          return;
+        }
+        ProcessCommandWithRaft(slot);
+      }
+      res_.SetRes(CmdRes::kOk);
+    }
+  }
+}
+
+void Cmd::ProcessFlushAllCmdWithRaft() {
+  std::lock_guard l_trw(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    if (db_item.second->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+      return;
+    }
+  }
+
+  for (const auto& db_item : g_pika_server->dbs_) {
+    std::lock_guard l_prw(db_item.second->slots_rw_);
+    for (const auto& slot_item : db_item.second->slots_) {
+      std::shared_ptr<Slot> slot = slot_item.second;
+      if (!slot) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
+        return;
+      }
+      ProcessCommandWithRaft(slot);
+    }
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void Cmd::ProcessSingleSlotCmdWithRaft() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+
+  if (!slot) {
+    res_.SetRes(CmdRes::kErrOther, "Slot not found");
+    return;
+  }
+
+  ProcessCommandWithRaft(slot);
+}
+
+void Cmd::ProcessCommandWithRaft(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
+  // TODO(lap): other kind of cmd? i.e. conf change
+  if (stage_ == kNone) { // read or other cmd
+    DoCommand(slot, hint_keys);
+  } else {
+    if (stage_ == kBinlogStage) { // write
+      DoRaftlog(slot);
+    } else if (stage_ == kExecuteStage) {
+      DoCommand(slot, hint_keys);
+    }
+  }
+}
+
 void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
   if (!is_suspend()) {
     slot->DbRWLockReader();
@@ -851,8 +936,43 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     Status s =
         slot->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
     if (!s.ok()) {
-      LOG(WARNING) << slot->SyncSlotInfo().ToString() << " Writing binlog failed, maybe no space left on device "
-                   << s.ToString();
+      LOG(WARNING) << slot->SyncSlotInfo().ToString()
+                   << " Writing binlog failed, maybe no space left on device " << s.ToString();
+      res().SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+}
+
+void Cmd::DoRaftlog(const std::shared_ptr<Slot>& slot) {
+  if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
+    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
+    std::shared_ptr<std::string> resp_ptr = GetResp();
+    // Consider that dummy cmd appended by system, both conn and resp are null.
+    if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
+      if (!conn_ptr) {
+        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")" << " conn empty.";
+      }
+      if (!resp_ptr) {
+        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")" << " resp empty.";
+      }
+      res().SetRes(CmdRes::kErrOther);
+      return;
+    }
+
+    Status s = g_pika_raft_server->AppendRaftlog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr),
+                                              resp_ptr, slot->GetDBName(), slot->GetSlotID());
+    if (!s.ok()) {
+      if (s.IsIOError()) {
+        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
+                    << " Writing binlog failed, maybe no avaliable leader in cluster or no space left in disk " << s.ToString();
+      } else if (s.IsIncomplete()) {
+        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
+                    << " Consensus binlog failed " << s.ToString();
+      } else if (s.IsInvalidArgument()) {
+        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
+                    << " Consensus binlog failed, check CALL_TYPE of raft server " << s.ToString();
+      }
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
@@ -913,7 +1033,61 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
+void Cmd::ProcessMultiSlotCmdWithRaft() {
+  std::shared_ptr<Slot> slot;
+  std::vector<std::string> cur_key = current_key();
+  if (cur_key.empty()) {
+    res_.SetRes(CmdRes::kErrOther, "Internal Error");
+    return;
+  }
+
+  int hint = 0;
+  std::unordered_map<uint32_t, ProcessArg> process_map;
+  // split cur_key into slots
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kErrOther, "DB not found");
+    return;
+  }
+
+  CmdStage current_stage = stage_;
+  for (auto& key : cur_key) {
+    // in sharding mode we select slot by key
+    uint32_t slot_id = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
+    auto iter = process_map.find(slot_id);
+    if (iter == process_map.end()) {
+      std::shared_ptr<Slot> slot = db->GetSlotById(slot_id);
+      if (!slot) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
+        return;
+      }
+      HintKeys hint_keys;
+      hint_keys.Push(key, hint);
+      process_map[slot_id] = ProcessArg(slot, nullptr, hint_keys);
+    } else {
+      iter->second.hint_keys.Push(key, hint);
+    }
+    hint++;
+  }
+  for (auto& iter : process_map) {
+    ProcessArg& arg = iter.second;
+    ProcessCommandWithRaft(arg.slot, arg.hint_keys);
+    if (!res_.ok()) {
+      return;
+    }
+  }
+  if (current_stage == kNone || current_stage == kExecuteStage) {
+    Merge();
+  }
+}
+
 void Cmd::ProcessDoNotSpecifySlotCmd() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
+}
+
+void Cmd::ProcessDoNotSpecifySlotCmdWithRaft() {
   std::shared_ptr<Slot> slot;
   slot = g_pika_server->GetSlotByDBName(db_name_);
   Do(slot);
@@ -952,7 +1126,22 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
                                              content, {});
 }
 
+std::string Cmd::ToRaftlog(uint32_t exec_time, uint32_t filenum, uint64_t offset) {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, argv_.size(), "*");
+
+  for (const auto& v : argv_) {
+    RedisAppendLen(content, v.size(), "$");
+    RedisAppendContent(content, v);
+  }
+
+  return PikaBinlogTransverter::RaftlogEncode(BinlogType::TypeFirst, exec_time, filenum, offset,
+                                             content, {});
+}
+
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
+
 
 void Cmd::LogCommand() const {
   std::string command;

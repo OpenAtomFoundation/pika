@@ -17,6 +17,8 @@
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_version.h"
+#include "include/pika_raft_server.h"
+
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_defer.h"
 
@@ -24,6 +26,7 @@ std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
 PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
+std::unique_ptr<PikaRaftServer> g_pika_raft_server;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
@@ -208,6 +211,8 @@ int main(int argc, char* argv[]) {
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
+
+  g_pika_raft_server = std::make_unique<PikaRaftServer>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
 
   if (g_pika_conf->daemonize()) {
@@ -217,6 +222,7 @@ int main(int argc, char* argv[]) {
   DEFER {
     delete g_pika_server;
     g_pika_server = nullptr;
+    g_pika_raft_server.reset();
     g_pika_rm.reset();
     g_pika_cmd_table_manager.reset();
     g_network_statistic.reset();
@@ -224,7 +230,12 @@ int main(int argc, char* argv[]) {
     g_pika_conf.reset();
   };
 
-  g_pika_rm->Start();
+  
+  if (g_pika_conf->is_raft()) {
+    g_pika_raft_server->Start();
+  } else {
+    g_pika_rm->Start();
+  }
   g_pika_server->Start();
 
   if (g_pika_conf->daemonize()) {
@@ -234,6 +245,8 @@ int main(int argc, char* argv[]) {
   // stop PikaReplicaManager first，avoid internal threads
   // may references to dead PikaServer
   g_pika_rm->Stop();
+
+  // stop raft server ?
 
   return 0;
 }

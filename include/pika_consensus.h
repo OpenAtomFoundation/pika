@@ -85,6 +85,7 @@ class MemLog {
   pstd::Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   pstd::Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   pstd::Status TruncateTo(const LogOffset& offset);
+  pstd::Status TruncateToBefore(const LogOffset& offset);
 
   void Reset(const LogOffset& offset);
 

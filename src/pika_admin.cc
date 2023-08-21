@@ -1346,6 +1346,16 @@ static void EncodeNumber(std::string* dst, const T v) {
   dst->append(kNewLine);
 }
 
+static void EncodeInt64(std::string* dst, const int64_t v) {
+  std::string vstr = std::to_string(v);
+  dst->append("$");
+  dst->append(std::to_string(vstr.length()));
+  dst->append("\r\n");
+  dst->append(vstr);
+  dst->append("\r\n");
+}
+
+// TODO(lap): config about raft set/get
 void ConfigCmd::ConfigGet(std::string& ret) {
   size_t elements = 0;
   std::string config_body;

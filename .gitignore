@@ -37,6 +37,9 @@ log/
 lib/
 output/
 
+# Raft
+pikaraft/
+
 # DB
 db/
 dump/
