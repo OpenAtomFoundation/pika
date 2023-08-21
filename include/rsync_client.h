@@ -29,6 +29,8 @@
 #include "include/throttle.h"
 #include "rsync_service.pb.h"
 
+extern std::unique_ptr<PikaConf> g_pika_conf;
+
 const std::string kDumpMetaFileName = "DUMP_META_DATA";
 const std::string kUuidPrefix = "snapshot-uuid:";
 
@@ -93,7 +95,6 @@ private:
   std::condition_variable cond_;
   std::mutex mu_;
 
-  std::unique_ptr<Throttle> throttle_;
   std::string master_ip_;
   int master_port_;
 };
@@ -189,8 +190,8 @@ private:
 class WaitObjectManager {
 public:
   WaitObjectManager() {
-    wo_vec_.resize(kMaxRsyncParallelNum);
-    for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+    wo_vec_.resize(g_pika_conf->max_rsync_parallel_num());
+    for (int i = 0; i < g_pika_conf->max_rsync_parallel_num(); i++) {
       wo_vec_[i] = new WaitObject();
     }
   }

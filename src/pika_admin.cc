@@ -1837,6 +1837,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->slave_read_only() ? "yes" : "no");
   }
 
+  if (pstd::stringmatch(pattern.data(), "throttle-bytes-per-second", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "throttle-bytes-per-second");
+    EncodeNumber(&config_body, g_pika_conf->throttle_bytes_per_second());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "max-rsync-parallel-num", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-rsync-parallel-num");
+    EncodeNumber(&config_body, g_pika_conf->max_rsync_parallel_num());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -1879,6 +1891,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "write-buffer-size");
     EncodeString(&ret, "max-write-buffer-num");
     EncodeString(&ret, "arena-block-size");
+    EncodeString(&ret, "throttle-bytes-per-second");
+    EncodeString(&ret, "max-rsync-parallel-num");
     return;
   }
   long int ival;
@@ -2161,6 +2175,20 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetArenaBlockSize(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "throttle-bytes-per-second") {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'throttle-bytes-per-second'\r\n";
+      return;
+    }
+    g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "max-rsync-parallel-num") {
+     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
+       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
+       return;
+     }
+     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
+     ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }

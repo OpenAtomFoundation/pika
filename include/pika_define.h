@@ -40,9 +40,6 @@ const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
 
-/* Rsync */
-const int kMaxRsyncParallelNum = 4;
-
 struct DBStruct {
   DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)
       : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
