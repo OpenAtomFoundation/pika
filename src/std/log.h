@@ -16,6 +16,17 @@
 #  define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
 #endif
 
+#if defined(__clang__) && !defined(__ibmxl__)
+#  define CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
+#else
+#  define CLANG_VERSION 0
+#endif
+
+#if CLANG_VERSION
+// prevent the error "'codecvt<char32_t, char, __mbstate_t>' is deprecated" in C++20
+#  pragma clang diagnostic ignored "-Wdeprecated"
+#endif
+
 #include "spdlog/sinks/daily_file_sink.h"
 #include "spdlog/spdlog.h"
 
