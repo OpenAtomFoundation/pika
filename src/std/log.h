@@ -16,7 +16,7 @@
 #  define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
 #endif
 
-#if defined(__clang__) && !defined(__ibmxl__)
+#if defined(__clang__)
 #  define CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
 #else
 #  define CLANG_VERSION 0
