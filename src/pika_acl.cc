@@ -59,6 +59,11 @@ void PikaAclCmd::DoInitial() {
     }
   }
 
+  if (subCmd_ == "dryrun" && argv_.size() < 4) {
+    res_.SetRes(CmdRes::kWrongNum, "'acl|dryrun'");
+    return;
+  }
+
   if (subCmd_ == "save" || subCmd_ == "load") {
     if (g_pika_conf->acl_file().empty()) {
       res().SetRes(CmdRes::kErrOther,
@@ -91,7 +96,53 @@ void PikaAclCmd::DelUser() {
   g_pika_server->AllClientUnAuth(delUserNames);
 }
 
-void PikaAclCmd::DryRun() {}
+void PikaAclCmd::DryRun() {
+  auto user = g_pika_server->Acl()->GetUser(argv_[2], true);
+
+  if (!user) {
+    res().SetRes(CmdRes::kErrOther, fmt::format("User '{}' not found", argv_[2]));
+    return;
+  }
+  auto cmd = g_pika_cmd_table_manager->GetCmd(argv_[3]);
+
+  if (!cmd) {
+    res().SetRes(CmdRes::kErrOther, fmt::format("Command '{}' not found", argv_[3]));
+    return;
+  }
+
+  PikaCmdArgsType args;
+  if (argv_.size() > 4) {
+    args = PikaCmdArgsType(argv_.begin() + 3, argv_.end());
+  }
+  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args);
+
+  switch (checkRes) {
+    case AclDeniedCmd::OK:
+      res().SetRes(CmdRes::kOk);
+      break;
+    case AclDeniedCmd::CMD:
+      res().SetRes(CmdRes::kErrOther,
+                   cmd->HasSubCommand()
+                       ? fmt::format("This user has no permissions to run the '{}|{}' command", argv_[3], argv_[4])
+                       : fmt::format("This user has no permissions to run the '{}' command", argv_[3]));
+      break;
+    case AclDeniedCmd::KEY:
+      res().SetRes(CmdRes::kErrOther,
+                   cmd->HasSubCommand()
+                       ? fmt::format("This user has no permissions to run the '{}|{}' key", argv_[3], argv_[4])
+                       : fmt::format("This user has no permissions to run the '{}' key", argv_[3]));
+      break;
+    case AclDeniedCmd::CHANNEL:
+      res().SetRes(CmdRes::kErrOther,
+                   cmd->HasSubCommand()
+                       ? fmt::format("This user has no permissions to run the '{}|{}' channel", argv_[3], argv_[4])
+                       : fmt::format("This user has no permissions to run the '{}' channel", argv_[3]));
+      break;
+    case AclDeniedCmd::NUMBER:
+      res().SetRes(CmdRes::kErrOther, fmt::format("wrong number of arguments for '{}' command", argv_[3]));
+      break;
+  }
+}
 
 void PikaAclCmd::GenPass() {}
 
@@ -114,7 +165,7 @@ void PikaAclCmd::List() {
 }
 
 void PikaAclCmd::Load() {
-  auto status = g_pika_server->Acl()->LoadUserFromFile(g_pika_conf->acl_file());
+  auto status = g_pika_server->Acl()->LoadUserFromFile();
   if (status.ok()) {
     res().SetRes(CmdRes::kOk);
     return;

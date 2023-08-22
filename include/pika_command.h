@@ -507,7 +507,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
-  virtual int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
+  int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
@@ -547,6 +547,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
 
   uint32_t GetCmdId() const { return cmdId_; };
+
+  bool CheckArg(int num) const;
 
  protected:
   // enable copy, used default copy

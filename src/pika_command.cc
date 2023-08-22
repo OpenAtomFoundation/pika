@@ -901,7 +901,18 @@ void Cmd::ProcessDoNotSpecifySlotCmd() {
   Do(slot);
 }
 
-int8_t Cmd::SubCmdIndex(const std::string& cmdName) { return -1; }
+int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
+  if (subCmdName_.empty()) {
+    return -1;
+  }
+  for (int i = 0; i < subCmdName_.size(); i++) {
+    if (subCmdName_[i] == cmdName) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 uint16_t Cmd::flag() const { return flag_; }
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }

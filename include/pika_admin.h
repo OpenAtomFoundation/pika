@@ -285,7 +285,6 @@ class ConfigCmd : public Cmd {
   ConfigCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
     subCmdName_ = {"get", "set", "rewrite", "resetstat"};
   }
-  int8_t SubCmdIndex(const std::string& cmdName);
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

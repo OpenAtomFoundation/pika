@@ -12,6 +12,8 @@
 #include "include/pika_server.h"
 #include "pstd_hash.h"
 
+extern PikaServer* g_pika_server;
+
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // class User
@@ -23,6 +25,17 @@ User::User(const std::string& name) : name_(name) {
 std::string User::Name() const { return name_; }
 
 void User::CleanAclString() { aclString_.clear(); }
+
+void User::OverWrite(const User& user) {
+  name_ = user.Name();
+  flags_ = user.Flags();
+  passwords_ = user.passwords_;
+
+  for (const auto& item : user.selectors_) {
+    auto selector = std::make_shared<AclSelector>(*item);
+    selectors_.emplace_back(selector);
+  }
+}
 
 void User::AddPassword(const std::string& password) { passwords_.insert(password); }
 
@@ -239,7 +252,24 @@ void User::GetUserDescribe(CmdRes* res) {
   }
 }
 
-bool User::CheckUserPermission(Cmd& cmd, const PikaCmdArgsType& argv) {}
+AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) {
+  std::shared_lock l(mutex_);
+
+  if (!cmd->CheckArg(argv.size())) {
+    return AclDeniedCmd::NUMBER;
+  }
+  std::string subCmd = "";
+  std::vector<std::string> keys;
+
+  AclDeniedCmd res = AclDeniedCmd::OK;
+  for (const auto& selector : selectors_) {
+    res = selector->CheckCanExecCmd(cmd, subCmd, keys);
+    if (res == AclDeniedCmd::OK) {
+      return AclDeniedCmd::OK;
+    }
+  }
+  return res;
+}
 
 // class User end
 
@@ -316,6 +346,24 @@ pstd::Status Acl::LoadUserConfigured(std::vector<std::string>& users) {
   return pstd::Status().OK();
 }
 
+pstd::Status Acl::LoadUserFromFile() {
+  std::set<std::string> toUnAuthUsers;
+
+  for (const auto& item : users_) {
+    if (item.first != DefaultUser) {
+      toUnAuthUsers.insert(item.first);
+    }
+  }
+
+  auto status = LoadUserFromFile(g_pika_conf->acl_file());
+  if (!status.ok()) {
+    return status;
+  }
+
+  g_pika_server->AllClientUnAuth(toUnAuthUsers);
+  return status;
+}
+
 pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
   if (fileName.empty()) {
     return pstd::Status::OK();
@@ -333,6 +381,8 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
   std::vector<std::string> rules;
   const int lineLength = 1024 * 1024;
   char line[lineLength];
+
+  std::shared_ptr<User> defaultUser;
 
   while (sequentialFile->ReadLine(line, lineLength) != nullptr) {
     int lineLen = strlen(line);
@@ -372,15 +422,23 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
         return status;
       }
     }
-    users[rules[1]] = u;
+    if (rules[1] == DefaultUser) {
+      defaultUser = u;
+    } else {
+      users[rules[1]] = u;
+    }
   }
 
-  auto defaultUser = users.find(DefaultUser);
-  if (defaultUser == users.end()) {  // 新的map里没有 default user
-    users[DefaultUser] = CreateDefaultUser();
+  auto oldDefaultUser = GetUser(DefaultUser);
+  if (defaultUser && oldDefaultUser) {
+    oldDefaultUser->OverWrite(*oldDefaultUser);
   }
 
   users_ = std::move(users);
+
+  if (oldDefaultUser) {
+    AddUser(oldDefaultUser);
+  }
 
   return pstd::Status().OK();
 }
@@ -610,31 +668,40 @@ const std::string Acl::DefaultUser = "default";
 // class Acl end
 
 // class AclSelector
+AclSelector::AclSelector(const AclSelector& selector) {
+  flags_ = selector.Flags();
+  allowedCommands_ = selector.allowedCommands_;
+  subCommand_ = selector.subCommand_;
+  channels_ = selector.channels_;
+  commandRules_ = selector.commandRules_;
+
+  for (const auto& item : selector.patterns_) {
+    auto pattern = std::make_shared<AclKeyPattern>();
+    pattern->flags = item->flags;
+    pattern->pattern = item->pattern;
+    patterns_.emplace_back(pattern);
+  }
+}
+
 pstd::Status AclSelector::SetSelector(const std::string& op) {
   if (!strcasecmp(op.data(), "allkeys") || op == "~*") {
-    //    flags_ |= static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS);
     AddFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS));
     patterns_.clear();
   } else if (!strcasecmp(op.data(), "resetkeys")) {
-    //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS);
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS));
     patterns_.clear();
   } else if (!strcasecmp(op.data(), "allchannels") || !strcasecmp(op.data(), "&*")) {
-    //    flags_ |= static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
     AddFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS));
     channels_.clear();
   } else if (!strcasecmp(op.data(), "resetchannels")) {
-    //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS));
     channels_.clear();
   } else if (!strcasecmp(op.data(), "allcommands") || !strcasecmp(op.data(), "+@all")) {
-    //    flags_ |= static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS);
     AddFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS));
     allowedCommands_.set();
     ResetSubCommand();
     CleanCommandRule();
   } else if (!strcasecmp(op.data(), "nocommands") || !strcasecmp(op.data(), "-@all")) {
-    //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS);
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS));
     allowedCommands_.reset();
     ResetSubCommand();
@@ -671,7 +738,6 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
     }
 
     InsertKeyPattern(op.substr(offset, std::string::npos), flags);
-    //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS);
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS));
   } else if (op[0] == '&') {
     if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS))) {
@@ -683,7 +749,6 @@ pstd::Status AclSelector::SetSelector(const std::string& op) {
       return pstd::Status::Error("Syntax error");
     }
     InsertChannel(op.substr(1, std::string::npos));
-    //    flags_ &= ~static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
     DecFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS));
   } else if (op[0] == '+' && op[1] != '@') {
     auto status = SetCommandOp(op, true);
@@ -807,6 +872,18 @@ void AclSelector::ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdInd
   subCommand_[cmdId] = ~(1 << subCmdIndex);
 }
 
+bool AclSelector::CheckSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex) {
+  if (subCmdIndex < 0) {
+    return false;
+  }
+  auto bit = subCommand_.find(cmdId);
+  if (bit == subCommand_.end()) {
+    return false;
+  }
+
+  return bit->second << subCmdIndex;
+}
+
 void AclSelector::ACLDescribeSelector(std::string* str) {
   if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS))) {
     str->append(" ~*");
@@ -862,6 +939,44 @@ void AclSelector::ACLDescribeSelector(std::vector<std::string>& vector) {
   } else {
     vector.emplace_back(fmt::format("{}", fmt::join(channels_, " ")));
   }
+}
+
+AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, const std::string& subCmd,
+                                          const std::vector<std::string>& keys) {
+  if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS)) && !(cmd->flag() & kCmdFlagsNoAuth)) {
+    if (!allowedCommands_.test(cmd->GetCmdId())) {
+      return AclDeniedCmd::CMD;
+    }
+
+    // if the command has subCmd
+    if (!subCmd.empty()) {
+      if (auto subCmdIndex = cmd->SubCmdIndex(subCmd); subCmdIndex > 0) {
+        if (!CheckSubCommand(cmd->GetCmdId(), subCmdIndex)) {
+          return AclDeniedCmd::CMD;
+        }
+      }
+    }
+  }
+
+  // key match
+  if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS)) && !keys.empty()) {
+    for (const auto& key : keys) {
+      if (!CheckKey(key, cmd->flag())) {
+        return AclDeniedCmd::KEY;
+      }
+    }
+  }
+
+  // channel match
+  if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS)) && (cmd->flag() & kCmdFlagsPubSub)) {
+    bool isPattern = cmd->name() == kCmdNamePSubscribe || cmd->name() == kCmdNamePUnSubscribe;
+    for (const auto& key : keys) {
+      if (!CheckChannel(key, isPattern)) {
+        return AclDeniedCmd::CHANNEL;
+      }
+    }
+  }
+  return AclDeniedCmd::OK;
 }
 
 void AclSelector::DescribeSelectorCommandRules(std::string* str) {
@@ -954,4 +1069,39 @@ void AclSelector::RemoveCommonRule(const std::string& rule) {
 }
 
 void AclSelector::CleanCommandRule() { commandRules_.clear(); }
+
+bool AclSelector::CheckKey(const std::string& key, const uint32_t cmdFlag) {
+  uint32_t selectorFlag = 0;
+  if (cmdFlag & kCmdFlagsRead) {
+    selectorFlag |= static_cast<uint32_t>(AclPermission::READ);
+  }
+  if (cmdFlag & kCmdFlagsWrite) {
+    selectorFlag |= static_cast<uint32_t>(AclPermission::WRITE);
+  }
+  if ((selectorFlag & static_cast<uint32_t>(AclPermission::WRITE)) &&
+      (selectorFlag & static_cast<uint32_t>(AclPermission::READ))) {
+    selectorFlag |= static_cast<uint32_t>(AclPermission::ALL);
+  }
+
+  for (const auto& item : patterns_) {
+    if ((item->flags & selectorFlag) != selectorFlag) {
+      continue;
+    }
+
+    if (pstd::stringmatchlen(item->pattern.data(), item->pattern.size(), key.data(), key.size(), 0)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool AclSelector::CheckChannel(const std::string& key, bool isPattern) {
+  for (const auto& channel : channels_) {
+    if (isPattern ? (channel == key)
+                  : (pstd::stringmatchlen(channel.data(), channel.size(), key.data(), key.size(), 0))) {
+      return true;
+    }
+  }
+  return false;
+}
 // class AclSelector end

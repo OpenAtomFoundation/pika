@@ -5,6 +5,7 @@
 
 #include "include/pika_client_conn.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <utility>
 #include <vector>
@@ -59,7 +60,23 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   }
 
-  // todo check
+  auto checkRes = user_->CheckUserPermission(c_ptr, argv);
+  switch (checkRes) {
+    case AclDeniedCmd::CMD:
+      c_ptr->res().SetRes(CmdRes::kErrOther,
+                          fmt::format("-NOPERM this user has no permissions to run the '{}' command", c_ptr->name()));
+      return c_ptr;
+    case AclDeniedCmd::KEY:
+      c_ptr->res().SetRes(CmdRes::kErrOther,
+                          "-NOPERM this user has no permissions to access one of the keys used as arguments");
+      return c_ptr;
+    case AclDeniedCmd::CHANNEL:
+      c_ptr->res().SetRes(CmdRes::kErrOther,
+                          "-NOPERM this user has no permissions to access one of the keys used as arguments");
+      return c_ptr;
+    default:
+      break;
+  }
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {

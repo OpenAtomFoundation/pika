@@ -60,6 +60,8 @@ enum class AclUserFlag {
                          connection is immediately authenticated. */
 };
 
+enum class AclDeniedCmd { OK, CMD, KEY, CHANNEL, NUMBER };
+
 // ACL key permission types
 enum class AclPermission {
   READ = (1 << 0),
@@ -87,6 +89,7 @@ class AclSelector {
  public:
   explicit AclSelector() : AclSelector(0){};
   explicit AclSelector(uint32_t flag) : flags_(flag){};
+  explicit AclSelector(const AclSelector& selector);
   ~AclSelector() = default;
 
   inline uint32_t Flags() const { return flags_; };
@@ -101,6 +104,9 @@ class AclSelector {
   void ACLDescribeSelector(std::string* str);
 
   void ACLDescribeSelector(std::vector<std::string>& vector);
+
+  AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, const std::string& subCmd,
+                               const std::vector<std::string>& keys);
 
  private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
@@ -119,6 +125,8 @@ class AclSelector {
   void ResetSubCommand(const uint32_t cmdId);
   void ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
 
+  bool CheckSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+
   void DescribeSelectorCommandRules(std::string* str);
 
   // process acl command op, and sub command
@@ -132,6 +140,10 @@ class AclSelector {
 
   // clean commandRule
   void CleanCommandRule();
+
+  bool CheckKey(const std::string& key, const uint32_t cmdFlag);
+
+  bool CheckChannel(const std::string& key, bool isPattern);
 
   uint32_t flags_;  // See SELECTOR_FLAG_*
 
@@ -171,6 +183,8 @@ class User {
 
   void CleanAclString();
 
+  void OverWrite(const User& user);
+
   /**
    * store a password
    * @param password
@@ -207,7 +221,7 @@ class User {
   void GetUserDescribe(CmdRes* res);
 
   // check the user can exec the cmd
-  bool CheckUserPermission(Cmd& cmd, const PikaCmdArgsType& argv);
+  AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
 
  private:
   mutable std::shared_mutex mutex_;
@@ -280,11 +294,8 @@ class Acl {
   // delete a user from users
   std::set<std::string> DeleteUser(const std::vector<std::string>& userNames);
 
-  /**
-   * Load ACL from acl rule file
-   * @param fileName file full name
-   */
-  pstd::Status LoadUserFromFile(const std::string& fileName);
+  // reload User from acl file, whe exec acl|load command
+  pstd::Status LoadUserFromFile();
 
   void UpdateDefaultUserPassword(const std::string& pass);
 
@@ -320,6 +331,12 @@ class Acl {
    * @param users pika.conf users rule
    */
   pstd::Status LoadUserConfigured(std::vector<std::string>& users);
+
+  /**
+   * Load ACL from acl rule file
+   * @param fileName file full name
+   */
+  pstd::Status LoadUserFromFile(const std::string& fileName);
 
   void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
   mutable std::shared_mutex mutex_;
