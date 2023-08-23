@@ -130,8 +130,10 @@ std::string GetIpByInterface(const std::string& network_interface) {
       tmpAddrPtr = &(reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr))->sin6_addr;
       char addressBuffer[INET6_ADDRSTRLEN];
       inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+      LOG(INFO) << "got addressBuffer " << addressBuffer;
       if (std::string(ifa->ifa_name) == network_interface) {
         host = addressBuffer;
+        LOG(INFO) << "got ip " << host;
         break;
       }
     }
@@ -144,7 +146,6 @@ std::string GetIpByInterface(const std::string& network_interface) {
   if (!ifa) {
     LOG(ERROR) << "error network interface: " << network_interface;
   }
-
   LOG(INFO) << "got ip " << host;
   return host;
 }

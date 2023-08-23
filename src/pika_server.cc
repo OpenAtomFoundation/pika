@@ -124,8 +124,8 @@ bool PikaServer::ServerInit() {
     LOG(FATAL) << "Can't get Networker Interface";
     return false;
   }
-
   host_ = GetIpByInterface(network_interface);
+  LOG(INFO) << "host: " << host_;
   if (host_.empty()) {
     LOG(FATAL) << "can't get host ip for " << network_interface;
     return false;
