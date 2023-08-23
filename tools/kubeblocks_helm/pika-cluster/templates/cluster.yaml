@@ -24,7 +24,7 @@ spec:
       serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
       switchPolicy:
         type: {{ $.Values.switchPolicy.type}}
-      {{- with  $.Values.resources }}
+      {{- with  $.Values.resources.pikaGroup }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
@@ -35,21 +35,23 @@ spec:
       {{- end }}
       {{- if $.Values.persistence.enabled }}
       volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
-            storageClassName: {{ .Values.persistence.pikaData.storageClassName }}
+            storageClassName: {{ .storageClassName }}
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ $.Values.persistence.pikaData.size }}
+                storage: {{ .size }}
+        {{- end }}
       {{- end }}
     {{- end }}
     - name: etcd # user-defined
       componentDefRef: etcd # ref clusterdefinition components.name
       monitor: {{ .Values.monitor.enabled | default false }}
       replicas: {{ .Values.etcdReplicaCount| default 3 }}
-      {{- with  .Values.resources }}
+      {{- with  .Values.resources.etcd }}
       resources:
         {{- with .limits }}
         limits:
@@ -64,19 +66,21 @@ spec:
       {{- end }}
       {{- if .Values.persistence.enabled }}
       volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
-            storageClassName: {{ .Values.persistence.etcdData.storageClassName }}
+            storageClassName: {{ .storageClassName }}
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ .Values.persistence.etcdData.size }}
+                storage: {{ .size }}
+        {{- end }}
       {{- end }}
     - name: codis-proxy
       componentDefRef: codis-proxy # ref clusterDefinition componentDefs.name
       replicas: {{ .Values.codisProxyReplicaCount | default 2 }}
-      {{- with  .Values.resources }}
+      {{- with  .Values.resources.codisProxy }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
@@ -88,7 +92,7 @@ spec:
     - name: codis-fe
       componentDefRef: codis-fe # ref clusterDefinition componentDefs.name
       replicas: {{ .Values.codisFeReplicaCount | default 1 }}
-      {{- with  .Values.resources }}
+      {{- with  .Values.resources.codisFe }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
@@ -100,7 +104,7 @@ spec:
     - name: codis-dashboard
       componentDefRef: codis-dashboard # ref clusterDefinition componentDefs.name
       replicas: 1
-    {{- with  .Values.resources }}
+    {{- with  .Values.resources.codisFe }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
