@@ -115,6 +115,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   master_ip_ = argv_[1];
+  LOG(INFO) << "master_ip_" << master_ip_ << "argv_[1]" << argv_[1];
   std::string str_master_port = argv_[2];
   if ((pstd::string2int(str_master_port.data(), str_master_port.size(), &master_port_) == 0) || master_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -137,6 +138,7 @@ void SlaveofCmd::DoInitial() {
 
 void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   // Check if we are already connected to the specified master
+  LOG(INFO) << "master_ip_" << master_ip_ << "argv_[1]" << argv_[1];
   if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
       g_pika_server->master_port() == master_port_) {
     res_.SetRes(CmdRes::kOk);
@@ -152,10 +154,11 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, static_cast<int32_t>(master_port_));
-
+  LOG(INFO) << "SetMaster master_ip_" << master_ip_ << "argv_[1]" << argv_[1];
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
+    LOG(INFO) << "SetSlaveof master_ip_" << master_ip_ << "argv_[1]" << argv_[1];
     g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
