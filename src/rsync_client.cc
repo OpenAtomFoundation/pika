@@ -18,18 +18,17 @@ using namespace RsyncService;
 extern PikaServer* g_pika_server;
 
 const int kFlushIntervalUs = 10 * 1000 * 1000;
-const int kThrottleBytesPerSecond = 300 << 20;
 const int kBytesPerRequest = 4 << 20;
 const int kThrottleCheckCycle = 10;
 
 namespace rsync {
 RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
     : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
-      state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0) {
+      state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0),
+      parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
   client_thread_ = std::make_unique<RsyncClientThread>(3000, 60, wo_mgr_.get());
-  work_threads_.resize(kMaxRsyncParallelNum);
-  throttle_.reset(new Throttle(kThrottleBytesPerSecond, kThrottleCheckCycle));
+  work_threads_.resize(GetParallelNum());
   finished_work_cnt_.store(0);
 }
 
@@ -83,13 +82,13 @@ void* RsyncClient::ThreadMain() {
 
   Status s = Status::OK();
   LOG(INFO) << "RsyncClient begin to copy remote files";
-  std::vector<std::set<std::string> > file_vec(kMaxRsyncParallelNum);
+  std::vector<std::set<std::string> > file_vec(GetParallelNum());
   int index = 0;
   for (const auto& file : file_set_) {
-    file_vec[index++ % kMaxRsyncParallelNum].insert(file);
+    file_vec[index++ % GetParallelNum()].insert(file);
   }
 
-  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+  for (int i = 0; i < GetParallelNum(); i++) {
     work_threads_[i] = std::move(std::thread(&RsyncClient::Copy, this, file_vec[i], i));
   }
 
@@ -126,12 +125,12 @@ void* RsyncClient::ThreadMain() {
     outfile.flush();
     meta_rep.clear();
 
-    if (finished_work_cnt_.load() == kMaxRsyncParallelNum) {
+    if (finished_work_cnt_.load() == GetParallelNum()) {
       break;
     }
   }
 
-  for (int i = 0; i < kMaxRsyncParallelNum; i++) {
+  for (int i = 0; i < GetParallelNum(); i++) {
     work_threads_[i].join();
   }
   finished_work_cnt_.store(0);
@@ -161,7 +160,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         break;
         }
       size_t copy_file_begin_time = pstd::NowMicros();
-      size_t count = throttle_->ThrottledByThroughput(kBytesPerRequest);
+      size_t count = Throttle::GetInstance().ThrottledByThroughput(kBytesPerRequest);
       if (count == 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000 / kThrottleCheckCycle));
         continue;
@@ -200,7 +199,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
       size_t ret_count = resp->file_resp().count();
       size_t elaspe_time_us = pstd::NowMicros() - copy_file_begin_time;
-      throttle_->ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
+      Throttle::GetInstance().ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
 
       if (resp->code() != RsyncService::kOk) {
         //TODO: handle different error
@@ -490,6 +489,10 @@ Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std:
 std::string RsyncClient::GetLocalMetaFilePath() {
   std::string db_path = dir_ + (dir_.back() == '/' ? "" : "/");
   return db_path + kDumpMetaFileName;
+}
+
+int RsyncClient::GetParallelNum() {
+  return parallel_num_;
 }
 
 }  // end namespace rsync
