@@ -15,15 +15,16 @@ spec:
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
   componentSpecs:
-    - name: pika # user-defined
-      componentDefRef: pika # ref clusterDefinition componentDefs.name
-      monitor: {{ .Values.monitor.enabled | default false }}
-      enabledLogs: {{ .Values.enabledLogs | toJson | indent 4 }}
-      replicas: {{ .Values.replicaCount | default 2 }}
-      serviceAccountName: {{ include "pika-cluster.serviceAccountName" . }}
+    {{- range $i := until (int .Values.replicaCount) }}
+    - name: pika-group-{{ add ($i) 1 }} # user-defined
+      componentDefRef: pika-group # ref clusterDefinition componentDefs.name
+      monitor: {{ $.Values.monitor.enabled | default false }}
+      enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
+      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+      serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
       switchPolicy:
-        type: {{ .Values.switchPolicy.type}}
-      {{- with  .Values.resources }}
+        type: {{ $.Values.switchPolicy.type}}
+      {{- with  $.Values.resources }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
@@ -32,7 +33,7 @@ spec:
           cpu: {{ .requests.cpu | quote }}
           memory: {{ .requests.memory | quote }}
       {{- end }}
-      {{- if .Values.persistence.enabled }}
+      {{- if $.Values.persistence.enabled }}
       volumeClaimTemplates:
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
@@ -40,8 +41,9 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ .Values.persistence.data.size }}
+                storage: {{ $.Values.persistence.data.size }}
       {{- end }}
+    {{- end }}
     - name: etcd # user-defined
       componentDefRef: etcd # ref clusterdefinition components.name
       monitor: {{ .Values.monitor.enabled | default false }}

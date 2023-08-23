@@ -13,8 +13,8 @@ spec:
     host: "$(SVC_FQDN)"
     port: "$(SVC_PORT_pika)"
   componentDefs:
-    - name: pika
-      workloadType: Replication
+    - name: pika-group
+      workloadType: Stateful
       characterType: pika
       service:
         ports:
@@ -26,6 +26,11 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
+      scriptSpecs:
+        - name: pika-script
+          templateRef: pika-script-template
+          namespace: {{ .Release.Namespace }}
+          volumeName: script
       volumeTypes:
         - name: data
           type: data
@@ -45,6 +50,15 @@ spec:
             args:
               - "-c"
               - "/etc/pika/pika.conf"
+          - name: codis-admin
+            volumeMounts:
+              - name: script
+                mountPath: /script
+            command:
+              - "/bin/bash"
+            args:
+              - "-c"
+              - "bash /script/admin.sh --register-server;tail -f /dev/null"
     - name: etcd
       workloadType: Stateful
       characterType: etcd
@@ -137,7 +151,7 @@ spec:
               - name: ETCD_ENABLE_V2
                 value: "true"
     - name: codis-proxy
-      workloadType: Stateless
+      workloadType: Stateful
       characterType: pika
       service:
         ports:

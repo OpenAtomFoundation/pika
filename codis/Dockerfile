@@ -21,7 +21,10 @@ RUN if [ "$ENABLE_PROXY" = "true" ] ; \
     fi 
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y ca-certificates  \
+    jq \
+    netcat \
+    && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /codis/bin /codis/bin

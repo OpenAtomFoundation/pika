@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pika-script-template
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+data:
+  admin.sh: |-
+    {{- .Files.Get "script/admin.sh" | nindent 4 }}
