@@ -37,11 +37,12 @@ spec:
       volumeClaimTemplates:
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
+            storageClassName: {{ .Values.persistence.pikaData.storageClassName }}
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ $.Values.persistence.data.size }}
+                storage: {{ $.Values.persistence.pikaData.size }}
       {{- end }}
     {{- end }}
     - name: etcd # user-defined
@@ -65,12 +66,12 @@ spec:
       volumeClaimTemplates:
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
-            storageClassName: {{ .Values.persistence.data.storageClassName }}
+            storageClassName: {{ .Values.persistence.etcdData.storageClassName }}
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ .Values.persistence.data.size }}
+                storage: {{ .Values.persistence.etcdData.size }}
       {{- end }}
     - name: codis-proxy
       componentDefRef: codis-proxy # ref clusterDefinition componentDefs.name
@@ -84,16 +85,6 @@ spec:
           cpu: {{ .requests.cpu | quote }}
           memory: {{ .requests.memory | quote }}
       {{- end }}
-      {{- if .Values.persistence.enabled }}
-      volumeClaimTemplates:
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: {{ .Values.persistence.data.size }}
-      {{- end }}
     - name: codis-fe
       componentDefRef: codis-fe # ref clusterDefinition componentDefs.name
       replicas: {{ .Values.codisFeReplicaCount | default 1 }}
@@ -106,16 +97,6 @@ spec:
           cpu: {{ .requests.cpu | quote }}
           memory: {{ .requests.memory | quote }}
       {{- end }}
-      {{- if .Values.persistence.enabled }}
-      volumeClaimTemplates:
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: {{ .Values.persistence.data.size }}
-      {{- end }}
     - name: codis-dashboard
       componentDefRef: codis-dashboard # ref clusterDefinition componentDefs.name
       replicas: 1
@@ -127,14 +108,4 @@ spec:
         requests:
           cpu: {{ .requests.cpu | quote }}
           memory: {{ .requests.memory | quote }}
-    {{- end }}
-    {{- if .Values.persistence.enabled }}
-      volumeClaimTemplates:
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: {{ .Values.persistence.data.size }}
     {{- end }}

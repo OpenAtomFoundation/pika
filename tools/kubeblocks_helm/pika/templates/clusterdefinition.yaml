@@ -31,9 +31,6 @@ spec:
           templateRef: pika-script-template
           namespace: {{ .Release.Namespace }}
           volumeName: script
-      volumeTypes:
-        - name: data
-          type: data
       podSpec:
         containers:
           - name: pika
@@ -41,8 +38,6 @@ spec:
               - name: pika
                 containerPort: 9221
             volumeMounts:
-              - name: data
-                mountPath: /data
               - name: config
                 mountPath: /etc/pika
             command:
@@ -289,9 +284,6 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
-      volumeTypes:
-        - name: data
-          type: data
       podSpec:
         initContainers:
           - name: wait-etcd
@@ -310,8 +302,6 @@ spec:
               - containerPort: 18080
                 name: dashboard
             volumeMounts:
-              - name: data
-                mountPath: /data
               - name: config
                 mountPath: /etc/codis
             env:

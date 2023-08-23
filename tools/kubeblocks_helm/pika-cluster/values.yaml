@@ -41,7 +41,10 @@ resources:
 
 persistence:
   enabled: true
-  data:
+  pikaData:
+    storageClassName:
+    size: 10Gi
+  etcdData:
     storageClassName:
     size: 1Gi
 
