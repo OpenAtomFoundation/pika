@@ -35,12 +35,25 @@ wait_dashboard_running() {
   done
 }
 
+wait_master_registered() {
+  until $CODIS_ADMIN --list-group | jq -r '.[] | select(.id == '${GROUP_ID}') | .servers[] | select(.role == "master") | .server'; do
+    echo waiting for master registered
+    sleep 2
+  done
+}
+
+reload_until_success() {
+  until $CODIS_ADMIN --reload 1>/dev/null 2>&1; do
+    echo waiting for reload success
+    sleep 2
+  done
+}
+
 register_server() {
-  $CODIS_ADMIN --reload
-  if [ $? != 0 ]; then exit 1; fi
+  reload_until_success
+  if [ ${POD_ID} -gt 0 ]; then wait_master_registered; fi
   $CODIS_ADMIN --create-group --gid=${GROUP_ID} 1>/dev/null 2>&1
   $CODIS_ADMIN --group-add --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
-  if [ $? != 0 -a ${POD_ID} -gt 1 ]; then exit 1; fi
   $CODIS_ADMIN --sync-action --create --addr=${KB_POD_FQDN}:9221 1>/dev/null 2>&1
 }
 
@@ -50,6 +63,10 @@ remove_server() {
   gid=${GROUP_ID}
   sleep 5
   $CODIS_ADMIN --group-del --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
+}
+
+reblance() {
+  $CODIS_ADMIN --rebalance --confirm
 }
 
 set_group_id

@@ -31,6 +31,7 @@ spec:
           templateRef: pika-script-template
           namespace: {{ .Release.Namespace }}
           volumeName: script
+          defaultMode: 0555
       podSpec:
         containers:
           - name: pika
@@ -53,7 +54,7 @@ spec:
               - "/bin/bash"
             args:
               - "-c"
-              - "bash /script/admin.sh --register-server;tail -f /dev/null"
+              - "/script/admin.sh --register-server;tail -f /dev/null"
     - name: etcd
       workloadType: Stateful
       characterType: etcd
