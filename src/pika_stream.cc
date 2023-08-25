@@ -1,9 +1,9 @@
 #include "include/pika_stream.h"
 #include <bits/stdint-uintn.h>
-#include <cstddef>
 #include <strings.h>
 #include <sys/types.h>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -34,7 +34,7 @@ void XAddCmd::GenerateStreamIDOrRep(const StreamMetaValue &stream_meta) {
   if (!args_.id_given || !args_.seq_given) {
     // if id not given, generate one
     if (!args_.id_given) {
-      id.ms = StreamUtil::GetCurrentTimeMs();
+      id.ms = StreamUtils::GetCurrentTimeMs();
 
       if (id.ms < stream_meta.last_id().ms) {
         id.ms = stream_meta.last_id().ms;
@@ -82,7 +82,7 @@ void XAddCmd::DoInitial() {
   }
   key_ = argv_[1];
   int idpos{-1};
-  StreamUtil::ParseAddOrTrimArgsOrRep(res_, argv_, args_, &idpos, true);
+  StreamCmdBase::ParseAddOrTrimArgsOrRep(res_, argv_, args_, &idpos, true);
   if (res_.ret() != CmdRes::kNone) {
     return;
   } else if (idpos < 0) {
@@ -103,7 +103,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   // 1 get stream meta
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = StreamUtil::GetStreamMeta(stream_meta, key_, slot);
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound() && args_.no_mkstream) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -134,7 +134,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   assert(field > serialized_last_id);
 #endif  // DEBUG
 
-  s = StreamUtil::InsertStreamMessage(key_, args_.id, message, slot);
+  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, slot);
   if (!s.ok()) {
     LOG(ERROR) << "Insert stream message failed";
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -151,20 +151,57 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 4 trim the stream if needed
   if (args_.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
-    StreamUtil::TrimStreamOrRep(res_, stream_meta, key_, args_, slot);
+    StreamCmdBase::TrimStreamOrRep(res_, stream_meta, key_, args_, slot);
     if (res_.ret() != CmdRes::kNone) {
       return;
     }
   }
 
   // 5 insert stream meta
-  s = StreamUtil::UpdateStreamMeta(key_, stream_meta.value(), slot);
+  s = StreamStorage::UpdateStreamMeta(key_, stream_meta.value(), slot);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
 
   res_.AppendString(args_.id.ToString());
+}
+
+void XRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXRange);
+    return;
+  }
+  key_ = argv_[1];
+  StreamCmdBase::StreamParseIntervalIdOrRep(res_, argv_[2], start_sid, &start_ex_, 0);
+  if (res_.ret() != CmdRes::kNone) {
+    return;
+  }
+  StreamCmdBase::StreamParseIntervalIdOrRep(res_, argv_[3], end_sid, &end_ex_, UINT64_MAX);
+  if (res_.ret() != CmdRes::kNone) {
+    return;
+  }
+  if (start_ex_ && start_sid.ms == UINT64_MAX && start_sid.seq == UINT64_MAX) {
+    res_.SetRes(CmdRes::kInvalidParameter, "invalid start id");
+    return;
+  }
+  if (end_ex_ && end_sid.ms == 0 && end_sid.seq == 0) {
+    res_.SetRes(CmdRes::kInvalidParameter, "invalid end id");
+    return;
+  }
+  if (argv_.size() == 6) {
+    // pika's PKHScanRange() only sopport max count of INT32_MAX
+    // but redis supports max count of UINT64_MAX
+    if (!StreamUtils::string2int32(argv_[5].c_str(), count_)) {
+      res_.SetRes(CmdRes::kInvalidParameter, "COUNT should be a integer greater than 0 and not bigger than INT32_MAX");
+      return;
+    }
+  }
+}
+
+void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
+  StreamCmdBase::ScanStreamOptions options(key_, start_sid, end_sid, count_);
+  StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, start_ex_, end_ex_);
 }
 
 void XDelCmd::DoInitial() {
@@ -176,7 +213,7 @@ void XDelCmd::DoInitial() {
   key_ = argv_[1];
   for (int i = 2; i < argv_.size(); i++) {
     streamID id;
-    StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i], id, 0, nullptr);
+    StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[i], id, 0, nullptr);
     if (res_.ret() != CmdRes::kNone) {
       return;
     }
@@ -187,7 +224,7 @@ void XDelCmd::DoInitial() {
 void XDelCmd::Do(std::shared_ptr<Slot> slot) {
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
-  auto s = StreamUtil::GetStreamMeta(stream_meta, key_, slot);
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -198,7 +235,7 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 2 do the delete
   int32_t count{0};
-  s = StreamUtil::DeleteStreamMessage(key_, ids_, count, slot);
+  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, slot);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -219,7 +256,7 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
       // Korpse TODO:
     }
   }
-  s = StreamUtil::UpdateStreamMeta(key_, stream_meta.value(), slot);
+  s = StreamStorage::UpdateStreamMeta(key_, stream_meta.value(), slot);
 
   res_.AppendInteger(count);
 }
@@ -233,20 +270,17 @@ void XLenCmd::DoInitial() {
 }
 
 void XLenCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string meta_value;
   rocksdb::Status s;
-  s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  StreamMetaValue stream_meta;
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
     return;
   } else if (!s.ok()) {
-    LOG(ERROR) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
 
-  StreamMetaValue stream_meta;
-  stream_meta.ParseFrom(meta_value);
   if (stream_meta.length() > INT_MAX) {
     res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
     return;
@@ -261,7 +295,7 @@ void XReadCmd::DoInitial() {
     return;
   }
 
-  StreamUtil::ParseReadOrReadGroupArgsOrRep(res_, argv_, args_, false);
+  StreamCmdBase::ParseReadOrReadGroupArgsOrRep(res_, argv_, args_, false);
 }
 
 void XReadCmd::Do(std::shared_ptr<Slot> slot) {
@@ -273,16 +307,13 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
     const auto &key = args_.keys[i];
     const auto &unparsed_id = args_.unparsed_ids[i];
 
-    std::string meta_value{};
     StreamMetaValue stream_meta;
-    auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+    auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot);
     if (s.IsNotFound()) {
       continue;
     } else if (!s.ok()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
-    } else {
-      stream_meta.ParseFrom(meta_value);
     }
 
     streammeta_idx.emplace_back(std::move(stream_meta), i);
@@ -315,7 +346,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
       id = stream_meta.last_id();
     } else {
       LOG(INFO) << "given id: " << unparsed_id;
-      StreamUtil::StreamParseStrictIDOrRep(res_, unparsed_id, id, 0, nullptr);
+      StreamCmdBase::StreamParseStrictIDOrRep(res_, unparsed_id, id, 0, nullptr);
       if (res_.ret() != CmdRes::kNone) {
         return;
       }
@@ -324,8 +355,8 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
     // 2.2 scan
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    StreamUtil::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count);
-    StreamUtil::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, true, false);
+    StreamCmdBase::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count);
+    StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, true, false);
     if (res_.ret() != CmdRes::kNone) {
       return;
     }
@@ -339,7 +370,7 @@ void XTrimCmd::DoInitial() {
   }
 
   key_ = argv_[1];
-  StreamUtil::ParseAddOrTrimArgsOrRep(res_, argv_, args_, nullptr, true);
+  StreamCmdBase::ParseAddOrTrimArgsOrRep(res_, argv_, args_, nullptr, true);
   if (res_.ret() != CmdRes::kNone) {
     return;
   }
@@ -347,8 +378,8 @@ void XTrimCmd::DoInitial() {
 
 void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
   // 1 try to get stream meta, if not found, return error
-  std::string stream_meta_value;
-  auto s = StreamUtil::GetStreamMeta(key_, stream_meta_value, slot);
+  StreamMetaValue stream_meta;
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -356,14 +387,12 @@ void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  StreamMetaValue stream_meta;
-  stream_meta.ParseFrom(stream_meta_value);
 
   // 2 do the trim
-  auto count = StreamUtil::TrimStreamOrRep(res_, stream_meta, key_, args_, slot);
+  auto count = StreamCmdBase::TrimStreamOrRep(res_, stream_meta, key_, args_, slot);
 
   // 3 update stream meta
-  s = StreamUtil::UpdateStreamMeta(key_, stream_meta.value(), slot);
+  s = StreamStorage::UpdateStreamMeta(key_, stream_meta.value(), slot);
   if (!s.ok()) {
     LOG(ERROR) << "Insert stream message failed";
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -385,7 +414,7 @@ void XInfoCmd::DoInitial() {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
     if (argv_.size() > 3 && argv_[3] == "FULL") {
       is_full_ = true;
-      if (argv_.size() > 4 && !StreamUtil::string2uint64(argv_[4].c_str(), count_)) {
+      if (argv_.size() > 4 && !StreamUtils::string2uint64(argv_[4].c_str(), count_)) {
         res_.SetRes(CmdRes::kInvalidParameter, "invalid count");
         return;
       }
@@ -432,7 +461,7 @@ void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
 void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
-  auto s = StreamUtil::GetStreamMeta(stream_meta, key_, slot);
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -451,11 +480,12 @@ void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
 
   // Korpse TODO: add group info
 }
+
 rocksdb::Status XReadGroupCmd::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
                                                    const std::shared_ptr<Slot> &slot,
                                                    StreamConsumerMetaValue &consumer_meta) {
   std::string consumer_meta_value;
-  auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.ok()) {
     consumer_meta.ParseFrom(consumer_meta_value);
     return s;
@@ -464,7 +494,7 @@ rocksdb::Status XReadGroupCmd::GetOrCreateConsumer(treeID consumer_tid, std::str
     auto &tid_gen = TreeIDGenerator::GetInstance();
     auto pel_tid = tid_gen.GetNextTreeID(slot);
     consumer_meta.Init(pel_tid);
-    s = StreamUtil::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    s = StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
     if (!s.ok()) {
       return s;
     }
@@ -478,7 +508,7 @@ void XReadGroupCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXRead);
     return;
   }
-  StreamUtil::ParseReadOrReadGroupArgsOrRep(res_, argv_, args_, false);
+  StreamCmdBase::ParseReadOrReadGroupArgsOrRep(res_, argv_, args_, false);
 }
 
 void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
@@ -492,16 +522,13 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
     const auto &key = args_.keys[i];
     const auto &unparsed_id = args_.unparsed_ids[i];
 
-    std::string meta_value{};
     StreamMetaValue stream_meta;
-    auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+    auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot);
     if (s.IsNotFound()) {
       continue;
     } else if (!s.ok()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
-    } else {
-      stream_meta.ParseFrom(meta_value);
     }
 
     streammeta_idx.emplace_back(std::move(stream_meta), i);
@@ -524,7 +551,7 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
     const auto tid = stream_meta.groups_id();
     std::string cgroup_meta_str;
     StreamCGroupMetaValue cgroup_meta;
-    s = StreamUtil::GetTreeNodeValue(tid, args_.group_name, cgroup_meta_str, slot);
+    s = StreamStorage::GetTreeNodeValue(tid, args_.group_name, cgroup_meta_str, slot);
     if (s.IsNotFound()) {
       LOG(WARNING) << "CGroup meta not found";
       res_.SetRes(CmdRes::kInvalidParameter, "-NOGROUP No such key " + key + " or consumer group " + args_.group_name +
@@ -539,9 +566,8 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
     // 2.2 try to find consumer_meta, if not found, create it
     auto consumer_tid = cgroup_meta.consumers();
     StreamConsumerMetaValue consumer_meta;
-    s = GetOrCreateConsumer(consumer_tid, args_.consumer_name, slot, consumer_meta);
-    if (!s.ok()) {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
+    StreamCmdBase::GetOrCreateConsumer(res_, consumer_tid, args_.consumer_name, slot, consumer_meta);
+    if (res_.ret() != CmdRes::kNone) {
       return;
     }
 
@@ -558,7 +584,7 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
       id = cgroup_meta.last_id();
     } else {
       LOG(INFO) << "given id: " << unparsed_id;
-      StreamUtil::StreamParseStrictIDOrRep(res_, unparsed_id, id, 0, nullptr);
+      StreamCmdBase::StreamParseStrictIDOrRep(res_, unparsed_id, id, 0, nullptr);
       if (res_.ret() != CmdRes::kNone) {
         return;
       }
@@ -568,8 +594,8 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
     std::vector<std::string> row_ids;
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    StreamUtil::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count);
-    StreamUtil::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr);
+    StreamCmdBase::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count);
+    StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr);
     if (res_.ret() != CmdRes::kNone) {
       return;
     }
@@ -577,9 +603,9 @@ void XReadGroupCmd::Do(std::shared_ptr<Slot> slot) {
     // 2.5 add message to pel
     for (const auto &id : row_ids) {
       StreamPelMeta pel_meta;
-      pel_meta.Init(args_.consumer_name, StreamUtil::GetCurrentTimeMs());
-      StreamUtil::InsertTreeNodeValue(consumer_meta.pel_tid(), id, pel_meta.value(), slot);
-      StreamUtil::InsertTreeNodeValue(cgroup_meta.pel(), id, pel_meta.value(), slot);
+      pel_meta.Init(args_.consumer_name, StreamUtils::GetCurrentTimeMs());
+      StreamStorage::InsertTreeNodeValue(consumer_meta.pel_tid(), id, pel_meta.value(), slot);
+      StreamStorage::InsertTreeNodeValue(cgroup_meta.pel(), id, pel_meta.value(), slot);
     }
   }
 }
@@ -613,7 +639,7 @@ void XGroupCmd::DoInitial() {
         // XGROUP <CREATE | SETID> ...[ENTRIESREAD entries_read]
       } else if ((create_subcmd || setid_subcmd) && !strcasecmp(argv_[i].c_str(), "ENTRIESREAD") &&
                  i + 1 < argv_.size()) {
-        if (!StreamUtil::string2uint64(argv_[i + 1].c_str(), entries_read_)) {
+        if (!StreamUtils::string2uint64(argv_[i + 1].c_str(), entries_read_)) {
           res_.SetRes(CmdRes::kInvalidParameter, "invalue parameter for ENTRIESREAD");
           return;
         }
@@ -630,7 +656,7 @@ void XGroupCmd::DoInitial() {
     if (argv_[4] == "$") {
       id_given_ = false;
     } else {
-      StreamUtil::StreamParseStrictIDOrRep(res_, argv_[4], sid_, 0, &id_given_);
+      StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[4], sid_, 0, &id_given_);
       if (res_.ret() != CmdRes::kNone) {
         return;
       }
@@ -640,7 +666,7 @@ void XGroupCmd::DoInitial() {
     if (argv_[4] == "$") {
       id_given_ = false;
     } else {
-      StreamUtil::StreamParseStrictIDOrRep(res_, argv_[4], sid_, 0, &id_given_);
+      StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[4], sid_, 0, &id_given_);
       if (res_.ret() != CmdRes::kNone) {
         return;
       }
@@ -668,8 +694,7 @@ void XGroupCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 1 find stream meta and report error if needed
   std::string meta_value{};
-  rocksdb::Status s;
-  s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  auto s = StreamStorage::GetStreamMeta(stream_meta_, key_, slot);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kInvalidParameter,
                 "The XGROUP subcommand requires the key to exist."
@@ -677,12 +702,8 @@ void XGroupCmd::Do(std::shared_ptr<Slot> slot) {
                 "option to create an empty stream automatically.");
     return;
   } else if (!s.ok()) {
-    LOG(ERROR) << "Unexpected error of key: " << key_;
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
-  } else {
-    LOG(INFO) << "Stream meta found, Parse";
-    stream_meta_.ParseFrom(meta_value);
   }
 
   // 2 dispatch to the different subcommands
@@ -717,7 +738,7 @@ void XGroupCmd::Create(const std::shared_ptr<Slot> &slot) {
   std::string cgroup_meta_value;
 
   // 2 if cgroup_meta exists, return error, otherwise create one
-  auto s = StreamUtil::GetTreeNodeValue(tid, filed, cgroup_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(tid, filed, cgroup_meta_value, slot);
   if (s.ok()) {
     LOG(INFO) << "CGroup meta found, faild to create";
     res_.SetRes(CmdRes::kErrOther, "-BUSYGROUP Consumer Group name already exists");
@@ -735,7 +756,7 @@ void XGroupCmd::Create(const std::shared_ptr<Slot> &slot) {
   }
 
   // 3 insert cgroup meta
-  s = StreamUtil::InsertTreeNodeValue(tid, cgroupname_, cgroup_meta.value(), slot);
+  s = StreamStorage::InsertTreeNodeValue(tid, cgroupname_, cgroup_meta.value(), slot);
   if (!s.ok()) {
     LOG(ERROR) << "Insert cgroup meta failed";
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -756,7 +777,7 @@ void XGroupCmd::CreateConsumer(const std::shared_ptr<Slot> &slot) {
   }
 
   std::string cgroup_meta_value;
-  auto s = StreamUtil::GetTreeNodeValue(tid, cgroupname_, cgroup_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(tid, cgroupname_, cgroup_meta_value, slot);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kInvalidParameter, "-NOGROUP No such consumer group" + cgroupname_ + "for key name" + key_);
     return;
@@ -770,7 +791,7 @@ void XGroupCmd::CreateConsumer(const std::shared_ptr<Slot> &slot) {
   // 2 create and insert cgroup meta
   auto consumer_tid = cgroup_meta.consumers();
   std::string consumer_meta_value;
-  if (StreamUtil::CreateConsumer(consumer_tid, consumername, slot)) {
+  if (StreamUtils::CreateConsumer(consumer_tid, consumername, slot)) {
     res_.AppendInteger(1);
   } else {
     res_.AppendInteger(0);
@@ -797,53 +818,16 @@ void XGroupCmd::Help(const std::shared_ptr<Slot> &slot) {
 
 void XGroupCmd::Destroy(const std::shared_ptr<Slot> &slot) {
   // 1 find the cgroup_tid
-  auto s = StreamUtil::DestoryCGroup(stream_meta_.groups_id(), cgroupname_, slot);
-  if (s.IsNotFound()) {
+  StreamCmdBase::DestoryCGroupOrRep(res_, stream_meta_.groups_id(), cgroupname_, slot);
+  if (res_.ret() == CmdRes::kNotFound) {
+    res_.SetRes(CmdRes::kNone);
     res_.AppendInteger(0);
-  } else if (!s.ok()) {
-    LOG(ERROR) << "Destory cgroup failed";
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  } else if (res_.ret() != CmdRes::kNone) {
+    LOG(ERROR) << "Failed to destory cgroup ";
     return;
   }
   res_.AppendInteger(1);
-}
-
-void XRangeCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameXRange);
-    return;
-  }
-  key_ = argv_[1];
-  StreamUtil::StreamParseIntervalIdOrRep(res_, argv_[2], start_sid, &start_ex_, 0);
-  if (res_.ret() != CmdRes::kNone) {
-    return;
-  }
-  StreamUtil::StreamParseIntervalIdOrRep(res_, argv_[3], end_sid, &end_ex_, UINT64_MAX);
-  if (res_.ret() != CmdRes::kNone) {
-    return;
-  }
-  if (start_ex_ && start_sid.ms == UINT64_MAX && start_sid.seq == UINT64_MAX) {
-    res_.SetRes(CmdRes::kInvalidParameter, "invalid start id");
-    return;
-  }
-  if (end_ex_ && end_sid.ms == 0 && end_sid.seq == 0) {
-    res_.SetRes(CmdRes::kInvalidParameter, "invalid end id");
-    return;
-  }
-  if (argv_.size() == 6) {
-    // pika's PKHScanRange() only sopport max count of INT32_MAX
-    // but redis supports max count of UINT64_MAX
-    if (!StreamUtil::string2int32(argv_[5].c_str(), count_)) {
-      res_.SetRes(CmdRes::kInvalidParameter, "COUNT should be a integer greater than 0 and not bigger than INT32_MAX");
-      return;
-    }
-  }
-}
-
-void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
-  // FIXME: deal with start_ex_ and end_ex_
-  StreamUtil::ScanStreamOptions options(key_, start_sid, end_sid, count_);
-  StreamUtil::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, start_ex_, end_ex_);
 }
 
 void XAckCmd::DoInitial() {
@@ -857,7 +841,7 @@ void XAckCmd::DoInitial() {
   streamID tmp_id;
   for (size_t i = 3; i < argv_.size(); i++) {
     // check the id format
-    StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i], tmp_id, 0, nullptr);
+    StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[i], tmp_id, 0, nullptr);
     if (res_.ret() != CmdRes::kNone) {
       return;
     }
@@ -867,8 +851,8 @@ void XAckCmd::DoInitial() {
 
 void XAckCmd::Do(std::shared_ptr<Slot> slot) {
   // 1.try to get stream meta, if not found, return error
-  std::string stream_meta_value;
-  auto s = StreamUtil::GetStreamMeta(key_, stream_meta_value, slot);
+  StreamMetaValue stream_meta;
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -876,12 +860,10 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  StreamMetaValue stream_meta;
-  stream_meta.ParseFrom(stream_meta_value);
 
   // 2.try to get cgroup meta, if not found, return error
   std::string cgroup_meta_value;
-  s = StreamUtil::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
+  s = StreamStorage::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -897,7 +879,7 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto &id : ids_) {
     // 3.1.get the pel meta
     std::string pel_meta_value;
-    s = StreamUtil::GetTreeNodeValue(cgroup_meta.pel(), id, pel_meta_value, slot);
+    s = StreamStorage::GetTreeNodeValue(cgroup_meta.pel(), id, pel_meta_value, slot);
     if (!s.ok()) {
       LOG(INFO) << "id: " << id << " not found in cgroup: " << cgroup_name_ << "'s pel";
       continue;
@@ -911,7 +893,7 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     if (res == consumer_meta_map.end()) {
       // consumer is not in the map, get it's meta value and insert it into the map
       std::string consumer_meta_value;
-      s = StreamUtil::GetTreeNodeValue(cgroup_meta.consumers(), pel_meta.consumer(), consumer_meta_value, slot);
+      s = StreamStorage::GetTreeNodeValue(cgroup_meta.consumers(), pel_meta.consumer(), consumer_meta_value, slot);
       if (!s.ok()) {
         LOG(ERROR) << "consumer: " << pel_meta.consumer() << " not found in cgroup: " << cgroup_name_ << "'s consumers";
         res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -924,13 +906,13 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
     }
 
     // 3.2 delete the id from both consumer and cgroup's pel
-    s = StreamUtil::DeleteTreeNode(cgroup_meta.pel(), id, slot);
+    s = StreamStorage::DeleteTreeNode(cgroup_meta.pel(), id, slot);
     if (!s.ok()) {
       LOG(ERROR) << "delete id: " << id << " from cgroup: " << cgroup_name_ << "'s pel failed";
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
-    s = StreamUtil::DeleteTreeNode(cmeta.pel_tid(), id, slot);
+    s = StreamStorage::DeleteTreeNode(cmeta.pel_tid(), id, slot);
     if (!s.ok()) {
       LOG(ERROR) << "delete id: " << id << " from consumer: " << pel_meta.consumer() << "'s pel failed";
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -942,28 +924,28 @@ void XAckCmd::Do(std::shared_ptr<Slot> slot) {
 void XClaimCmd::DoInitial() {
   if (!CheckArg(argv_.size()) || argv_.size() < 6) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXClaim);
-    return ;
+    return;
   }
   key_ = argv_[1];
   cgroup_name_ = argv_[2];
   consumer_name_ = argv_[3];
-  if (!StreamUtil::string2uint64(argv_[4].c_str(), min_idle_time_)) {
+  if (!StreamUtils::string2uint64(argv_[4].c_str(), min_idle_time_)) {
     res_.SetRes(CmdRes::kInvalidParameter, "Invalid min-idle-time argument for XCLAIM");
-    return ;
+    return;
   } else if (min_idle_time_ < 0) {
     min_idle_time_ = 0;
   }
   int i = 5;
   streamID id{0, 0};
   do {
-    StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i++], id, 0, nullptr);
+    StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[i++], id, 0, nullptr);
     if (res_.ret() == CmdRes::kNone) {
       specified_ids_.emplace_back(id);
     }
   } while (res_.ret() == CmdRes::kNone);
-  parse_option_time_ = StreamUtil::GetCurrentTimeMs();
+  parse_option_time_ = StreamUtils::GetCurrentTimeMs();
   // parse options
-  for ( ;i < argv_.size(); ++i) {
+  for (; i < argv_.size(); ++i) {
     auto more_args = argv_.size() - i;
     const char *opt = argv_[i].c_str();
     if (!strcasecmp(opt, "FORCE")) {
@@ -972,36 +954,36 @@ void XClaimCmd::DoInitial() {
       justid = true;
     } else if (!strcasecmp(opt, "IDLE") && more_args) {
       ++i;
-      if (!StreamUtil::string2uint64(argv_[i].c_str(), deliverytime)) {
+      if (!StreamUtils::string2uint64(argv_[i].c_str(), deliverytime)) {
         res_.SetRes(CmdRes::kInvalidParameter, "Invalid IDLE option argument for XCLAIM");
-        return ;
+        return;
       }
       deliverytime_flag = true;
       deliverytime = parse_option_time_ - deliverytime;
     } else if (!strcasecmp(opt, "TIME") && more_args) {
       ++i;
-      if (!StreamUtil::string2uint64(argv_[i].c_str(), deliverytime)) {
+      if (!StreamUtils::string2uint64(argv_[i].c_str(), deliverytime)) {
         res_.SetRes(CmdRes::kInvalidParameter, "Invalid TIME option argument for XCLAIM");
-        return ;
+        return;
       }
       deliverytime_flag = true;
     } else if (!strcasecmp(opt, "RETRYCOUNT") && more_args) {
       ++i;
-      if (!StreamUtil::string2uint64(argv_[i].c_str(), retrycount)) {
+      if (!StreamUtils::string2uint64(argv_[i].c_str(), retrycount)) {
         res_.SetRes(CmdRes::kInvalidParameter, "Invalid RETRYCOUNT option argument for XCLAIM");
-        return ;
+        return;
       }
       retrycount_flag = true;
     } else if (!strcasecmp(opt, "LASTID") && more_args) {
       ++i;
-      StreamUtil::StreamParseStrictIDOrRep(res_, argv_[i], last_id, 0, nullptr);
+      StreamCmdBase::StreamParseStrictIDOrRep(res_, argv_[i], last_id, 0, nullptr);
       if (res_.ret() != CmdRes::kNone) {
         res_.SetRes(CmdRes::kInvalidParameter, "Invalid LASTID option argument for XCLAIM");
-        return ;
+        return;
       }
     } else {
       res_.SetRes(CmdRes::kInvalidParameter, "Unrecognized XCLAIM option " + argv_[i]);
-      return ;
+      return;
     }
   }
 
@@ -1015,9 +997,8 @@ void XClaimCmd::DoInitial() {
 
 void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
   // 1.try to get stream meta, if not found, return error
-  std::string meta_value;
   StreamMetaValue stream_meta;
-  auto s = StreamUtil::GetStreamMeta(key_, meta_value, slot);
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -1025,12 +1006,11 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  stream_meta.ParseFrom(meta_value);
 
   // 2.try to get cgroup meta, if not found, return error
   std::string cgroup_meta_value;
   StreamCGroupMetaValue cgroup_meta;
-  s = StreamUtil::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
+  s = StreamStorage::GetTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta_value, slot);
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -1039,10 +1019,9 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   cgroup_meta.ParseFrom(cgroup_meta_value);
-  if (StreamUtil::StreamIDCompare(last_id, cgroup_meta.last_id()) > 0)
-  {
+  if (StreamUtils::StreamIDCompare(last_id, cgroup_meta.last_id()) > 0) {
     cgroup_meta.set_last_id(last_id);
-    s = StreamUtil::InsertTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta.value(), slot);
+    s = StreamStorage::InsertTreeNodeValue(stream_meta.groups_id(), cgroup_name_, cgroup_meta.value(), slot);
     if (!s.ok()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -1050,19 +1029,17 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
   }
   auto consumer_tid = cgroup_meta.consumers();
   StreamConsumerMetaValue consumer_meta;
-  s = StreamUtil::GetOrCreateConsumer(consumer_tid, consumer_name_, slot, consumer_meta);
-  if (!s.ok()) {
-    LOG(ERROR) << "Unexpected error of tree id: " << consumer_tid;
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  StreamCmdBase::GetOrCreateConsumer(res_, consumer_tid, consumer_name_, slot, consumer_meta);
+  if (res_.ret() != CmdRes::kNone) {
     return;
   }
-  consumer_meta.set_seen_time(StreamUtil::GetCurrentTimeMs());
+  consumer_meta.set_seen_time(StreamUtils::GetCurrentTimeMs());
   for (auto &id : specified_ids_) {
     std::string serializedID;
     const std::string id_str = id.ToString();
     id.SerializeTo(serializedID);
     std::string pel_meta_value;
-    auto pel_res = StreamUtil::GetTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta_value, slot);
+    auto pel_res = StreamStorage::GetTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta_value, slot);
     StreamPelMeta pel_meta;
     if (pel_res.ok()) {
       pel_meta.ParseFrom(pel_meta_value);
@@ -1072,17 +1049,17 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
     }
     // if item doesn't exist in stream, clear this entry from the PEL
     std::string msg_kvs;
-    s = StreamUtil::FindStreamMessage(key_, serializedID, msg_kvs, slot);
+    s = StreamStorage::GetStreamMessage(key_, serializedID, msg_kvs, slot);
     if (s.IsNotFound()) {
       if (pel_res.ok()) {
         // delete the id from both consumer and cgroup's pel
-        s = StreamUtil::DeleteTreeNode(cgroup_meta.pel(), serializedID, slot);
+        s = StreamStorage::DeleteTreeNode(cgroup_meta.pel(), serializedID, slot);
         if (!s.ok()) {
           LOG(ERROR) << "delete id: " << id_str << " from cgroup: " << cgroup_name_ << "'s pel failed";
           res_.SetRes(CmdRes::kErrOther, s.ToString());
           return;
         }
-        s = StreamUtil::DeleteTreeNode(consumer_meta.pel_tid(), serializedID, slot);
+        s = StreamStorage::DeleteTreeNode(consumer_meta.pel_tid(), serializedID, slot);
         if (!s.ok()) {
           LOG(ERROR) << "delete id: " << id_str << " from consumer: " << pel_meta.consumer() << "'s pel failed";
           res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -1099,8 +1076,8 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
     // so that XCLAIM can also be used to create entries in the PEL.
     // Useful for AOF and replication of consumer groups
     if (force && pel_res.IsNotFound()) {
-      pel_meta.Init(consumer_name_, StreamUtil::GetCurrentTimeMs());
-      StreamUtil::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
+      pel_meta.Init(consumer_name_, StreamUtils::GetCurrentTimeMs());
+      StreamStorage::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
     }
 
     if (pel_res.ok()) {
@@ -1108,14 +1085,14 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
       // get the consumer meta of the pel
       StreamConsumerMetaValue pel_consumer_meta;
       std::string pel_consumer_meta_value;
-      s = StreamUtil::GetTreeNodeValue(cgroup_meta.consumers(), pel_meta.consumer(), pel_consumer_meta_value, slot);
+      s = StreamStorage::GetTreeNodeValue(cgroup_meta.consumers(), pel_meta.consumer(), pel_consumer_meta_value, slot);
       if (!s.ok()) {
         res_.SetRes(CmdRes::kErrOther, s.ToString());
         return;
       }
       pel_consumer_meta.ParseFrom(pel_consumer_meta_value);
-      
-      s = StreamUtil::GetTreeNodeValue(pel_consumer_meta.pel_tid(), serializedID, value, slot);
+
+      s = StreamStorage::GetTreeNodeValue(pel_consumer_meta.pel_tid(), serializedID, value, slot);
       if (!s.ok()) {
         res_.SetRes(CmdRes::kErrOther, s.ToString());
         return;
@@ -1129,12 +1106,12 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
 
       if (pel_meta.consumer() != consumer_name_) {
         // remove from old consumer pel
-        s = StreamUtil::DeleteTreeNode(pel_consumer_meta.pel_tid(), serializedID, slot);
+        s = StreamStorage::DeleteTreeNode(pel_consumer_meta.pel_tid(), serializedID, slot);
         if (!s.ok()) {
           res_.SetRes(CmdRes::kErrOther, s.ToString());
           return;
         }
-        s = StreamUtil::InsertTreeNodeValue(consumer_meta.pel_tid(), serializedID, value, slot);
+        s = StreamStorage::InsertTreeNodeValue(consumer_meta.pel_tid(), serializedID, value, slot);
         if (!s.ok()) {
           res_.SetRes(CmdRes::kErrOther, s.ToString());
           return;
@@ -1146,7 +1123,7 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
       } else if (!justid) {
         pel_meta.set_delivery_count(pel_meta.delivery_count() + 1);
       }
-      s = StreamUtil::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
+      s = StreamStorage::InsertTreeNodeValue(cgroup_meta.pel(), serializedID, pel_meta.value(), slot);
       if (!s.ok()) {
         res_.SetRes(CmdRes::kErrOther, s.ToString());
         return;
@@ -1157,22 +1134,22 @@ void XClaimCmd::Do(std::shared_ptr<Slot> slot) {
       } else {
         // append message
         std::vector<std::string> kOrvs;
-        StreamUtil::DeserializeMessage(msg_kvs, kOrvs);
-        for (const auto& kOrv : kOrvs) {
+        StreamUtils::DeserializeMessage(msg_kvs, kOrvs);
+        for (const auto &kOrv : kOrvs) {
           results.emplace_back(kOrv);
         }
       }
-      consumer_meta.set_active_time(StreamUtil::GetCurrentTimeMs());
-      s = StreamUtil::InsertTreeNodeValue(cgroup_meta.consumers(), consumer_name_, consumer_meta.value(), slot);
+      consumer_meta.set_active_time(StreamUtils::GetCurrentTimeMs());
+      s = StreamStorage::InsertTreeNodeValue(cgroup_meta.consumers(), consumer_name_, consumer_meta.value(), slot);
       if (!s.ok()) {
         res_.SetRes(CmdRes::kErrOther, s.ToString());
         return;
       }
     }
   }
-  res_.AppendArrayLen(results.size());
+  res_.AppendArrayLen(static_cast<int64_t>(results.size()));
   for (auto &seg : results) {
     res_.AppendString(seg);
   }
-  return ;
+  return;
 }

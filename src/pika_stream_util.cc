@@ -1,5 +1,6 @@
 
 #include "include/pika_stream_util.h"
+
 #include <bits/stdint-intn.h>
 #include <cassert>
 #include <chrono>
@@ -12,14 +13,13 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
 #include "include/pika_command.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
 #include "rocksdb/status.h"
 #include "src/coding.h"
 #include "storage/storage.h"
-
-bool StreamUtil::is_stream_meta_hash_created_ = false;
 
 treeID TreeIDGenerator::GetNextTreeID(const std::shared_ptr<Slot> &slot) {
   treeID expected_id = kINVALID_TREE_ID;
@@ -51,8 +51,8 @@ void TreeIDGenerator::TryToFetchLastIdFromStorage(const std::shared_ptr<Slot> &s
   }
 }
 
-void StreamUtil::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos,
-                                         bool is_xadd) {
+void StreamCmdBase::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamAddTrimArgs &args,
+                                            int *idpos, bool is_xadd) {
   int i = 2;
   bool limit_given = false;
   for (; i < argv.size(); ++i) {
@@ -75,7 +75,7 @@ void StreamUtil::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &arg
         i++;
       }
       // parse threshold as uint64
-      if (!StreamUtil::string2uint64(argv[i + 1].c_str(), args.maxlen)) {
+      if (!StreamUtils::string2uint64(argv[i + 1].c_str(), args.maxlen)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid MAXLEN argument");
       }
       i++;
@@ -94,7 +94,7 @@ void StreamUtil::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &arg
         i++;
       }
       // parse threshold as stremID
-      StreamUtil::StreamParseIDOrRep(res, argv[i + 1], args.minid, 0);
+      StreamCmdBase::StreamParseIDOrRep(res, argv[i + 1], args.minid, 0);
       if (res.ret() != CmdRes::kNone) {
         return;
       }
@@ -114,7 +114,7 @@ void StreamUtil::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &arg
 
     } else if (is_xadd) {
       // case: XADD mystream ... ID ...
-      StreamUtil::StreamParseStrictIDOrRep(res, argv[i], args.id, 0, &args.seq_given);
+      StreamCmdBase::StreamParseStrictIDOrRep(res, argv[i], args.id, 0, &args.seq_given);
       if (res.ret() != CmdRes::kNone) {
         return;
       }
@@ -133,13 +133,8 @@ void StreamUtil::ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &arg
   }
 }
 
-rocksdb::Status StreamUtil::GetStreamMeta(const std::string &key, std::string &value,
-                                          const std::shared_ptr<Slot> &slot) {
-  return slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
-}
-
-rocksdb::Status StreamUtil::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key,
-                                          const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key,
+                                             const std::shared_ptr<Slot> &slot) {
   std::string value;
   auto s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
   if (s.ok()) {
@@ -151,8 +146,8 @@ rocksdb::Status StreamUtil::GetStreamMeta(StreamMetaValue &stream_meta, const st
 
 // no need to be thread safe, only xadd will call this function
 // and xadd can be locked by the same key using current_key()
-rocksdb::Status StreamUtil::UpdateStreamMeta(const std::string &key, std::string &meta_value,
-                                             const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamStorage::UpdateStreamMeta(const std::string &key, std::string &meta_value,
+                                                const std::shared_ptr<Slot> &slot) {
   rocksdb::Status s;
   int32_t temp{0};
   s = slot->db()->HSet(STREAM_META_HASH_KEY, key, meta_value, &temp);
@@ -160,9 +155,92 @@ rocksdb::Status StreamUtil::UpdateStreamMeta(const std::string &key, std::string
   return s;
 }
 
-// Korpse TODO: test
-void StreamUtil::StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
-                                           bool strict, bool *seq_given) {
+void StreamStorage::DeleteStreamMeta(const std::string &key, const std::shared_ptr<Slot> &slot) {
+  int32_t ret;
+  auto s = slot->db()->HDel({STREAM_META_HASH_KEY}, {key}, &ret);
+  (void)ret;
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(WARNING) << "Delete stream meta failed, key: " << key << ", error: " << s.ToString();
+  }
+}
+
+rocksdb::Status StreamStorage::InsertStreamMessage(const std::string &key, const streamID &id,
+                                                   const std::string &message, const std::shared_ptr<Slot> &slot) {
+  int32_t temp{0};
+  std::string serialized_id;
+  id.SerializeTo(serialized_id);
+  rocksdb::Status s = slot->db()->HSet(key, serialized_id, message, &temp);
+  (void)temp;
+  return s;
+}
+
+rocksdb::Status StreamStorage::GetStreamMessage(const std::string &key, const std::string &sid, std::string &message,
+                                                const std::shared_ptr<Slot> &slot) {
+  return slot->db()->HGet(key, sid, &message);
+}
+
+rocksdb::Status StreamStorage::DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id,
+                                                   int32_t &ret, const std::shared_ptr<Slot> &slot) {
+  std::vector<std::string> serialized_ids;
+  for (auto &sid : id) {
+    std::string serialized_id;
+    sid.SerializeTo(serialized_id);
+    serialized_ids.emplace_back(std::move(serialized_id));
+  }
+  return slot->db()->HDel(key, {serialized_ids}, &ret);
+}
+
+rocksdb::Status StreamStorage::GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
+                                                const std::shared_ptr<Slot> &slot) {
+  auto key = std::move(StreamUtils::TreeID2Key(tid));
+  rocksdb::Status s;
+  s = slot->db()->HGet(key, field, &value);
+  return s;
+}
+
+rocksdb::Status StreamStorage::InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
+                                                   const std::shared_ptr<Slot> &slot) {
+  auto key = std::move(StreamUtils::TreeID2Key(tid));
+
+  rocksdb::Status s;
+  int res;
+  s = slot->db()->HSet(key, filed, value, &res);
+  (void)res;
+  return s;
+}
+
+rocksdb::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::string &field,
+                                              const std::shared_ptr<Slot> &slot) {
+  auto key = std::move(StreamUtils::TreeID2Key(tid));
+
+  rocksdb::Status s;
+  int res;
+  s = slot->db()->HDel(key, std::vector<std::string>{field}, &res);
+  (void)res;
+  return s;
+}
+
+rocksdb::Status StreamStorage::GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
+                                              const std::shared_ptr<Slot> &slot) {
+  auto key = std::move(StreamUtils::TreeID2Key(tid));
+  return slot->db()->PKHScanRange(key, "", "", "*", INT_MAX, &field_values, nullptr);
+}
+
+bool StreamStorage::DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot) {
+  assert(tid != kINVALID_TREE_ID);
+  auto key = std::move(StreamUtils::TreeID2Key(tid));
+  std::map<storage::DataType, storage::Status> type_status;
+  int64_t count = slot->db()->Del({key}, &type_status);
+  auto s = type_status[storage::DataType::kStrings];
+  if (!s.ok() || count == 0) {
+    LOG(ERROR) << "DeleteTree failed, key: " << key << ", count: " << count;
+    return false;
+  }
+  return true;
+}
+
+void StreamCmdBase::StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
+                                              bool strict, bool *seq_given) {
   char buf[128];
   if (var.size() > sizeof(buf) - 1) {
     res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
@@ -197,7 +275,7 @@ void StreamUtil::StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, 
   if (dot) {
     *dot = '\0';
   }
-  if (!string2uint64(buf, ms)) {
+  if (!StreamUtils::string2uint64(buf, ms)) {
     res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
     return;
   };
@@ -206,7 +284,7 @@ void StreamUtil::StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, 
     if (seq_given != nullptr && seqlen == 1 && *(dot + 1) == '*') {
       seq = 0;
       *seq_given = false;
-    } else if (!string2uint64(dot + 1, seq)) {
+    } else if (!StreamUtils::string2uint64(dot + 1, seq)) {
       res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
       return;
     }
@@ -217,20 +295,17 @@ void StreamUtil::StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, 
   id.seq = seq;
 }
 
-// Korpse TODO: test
-void StreamUtil::StreamParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq) {
+void StreamCmdBase::StreamParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq) {
   StreamGenericParseIDOrRep(res, var, id, missing_seq, false, nullptr);
 }
 
-// Korpse TODO: test
-void StreamUtil::StreamParseStrictIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
-                                          bool *seq_given) {
+void StreamCmdBase::StreamParseStrictIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
+                                             bool *seq_given) {
   StreamGenericParseIDOrRep(res, var, id, missing_seq, true, seq_given);
 }
 
-// Korpse TODO: test
-void StreamUtil::StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var, streamID &id, bool *exclude,
-                                            uint64_t missing_seq) {
+void StreamCmdBase::StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var, streamID &id, bool *exclude,
+                                               uint64_t missing_seq) {
   if (exclude != nullptr) {
     *exclude = (var.size() > 1 && var[0] == '(');
   }
@@ -241,148 +316,9 @@ void StreamUtil::StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var,
   }
 }
 
-/* Compare two stream IDs. Return -1 if a < b, 0 if a == b, 1 if a > b. */
-int StreamUtil::StreamIDCompare(const streamID &a, const streamID &b) {
-  if (a.ms > b.ms) { return 1;
-    } else if (a.ms < b.ms) { return -1;
-    /* The ms part is the same. Check the sequence part. */
-    } else if (a.seq > b.seq) { return 1;
-    } else if (a.seq < b.seq) return -1;
-    /* Everything is the same: IDs are equal. */
-    return 0;
-}
-
-bool StreamUtil::string2uint64(const char *s, uint64_t &value) {
-  if (!s || !*s) {
-    return false;
-  }
-
-  char *end;
-  errno = 0;
-  uint64_t tmp = strtoull(s, &end, 10);
-  if (*end || errno == ERANGE) {
-    // Conversion either didn't consume the entire string, or overflow occurred
-    return false;
-  }
-
-  value = tmp;
-  return true;
-}
-
-bool StreamUtil::string2int64(const char *s, int64_t &value) {
-  if (!s || !*s) {
-    return false;
-  }
-
-  char *end;
-  errno = 0;
-  int64_t tmp = std::strtoll(s, &end, 10);
-  if (*end || errno == ERANGE) {
-    // Conversion either didn't consume the entire string, or overflow occurred
-    return false;
-  }
-
-  value = tmp;
-  return true;
-}
-
-bool StreamUtil::string2int32(const char *s, int32_t &value) {
-  if (!s || !*s) {
-    return false;
-  }
-
-  char *end;
-  errno = 0;
-  long tmp = strtol(s, &end, 10);
-  if (*end || errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX) {
-    // Conversion either didn't consume the entire string,
-    // or overflow or underflow occurred
-    return false;
-  }
-
-  value = static_cast<int32_t>(tmp);
-  return true;
-}
-
-void StreamUtil::DeleteStreamMeta(const std::string &key, const std::shared_ptr<Slot> &slot) {
-  int32_t ret;
-  auto s = slot->db()->HDel({STREAM_META_HASH_KEY}, {key}, &ret);
-  (void)ret;
-  if (!s.ok() && !s.IsNotFound()) {
-    LOG(WARNING) << "Delete stream meta failed, key: " << key << ", error: " << s.ToString();
-  }
-}
-
-rocksdb::Status StreamUtil::InsertStreamMessage(const std::string &key, const streamID &id, const std::string &message,
-                                                const std::shared_ptr<Slot> &slot) {
-  int32_t temp{0};
-  std::string serialized_id;
-  id.SerializeTo(serialized_id);
-  rocksdb::Status s = slot->db()->HSet(key, serialized_id, message, &temp);
-  (void)temp;
-  return s;
-}
-
-rocksdb::Status StreamUtil::FindStreamMessage(const std::string &key, const std::string &sid, std::string &message,
-                                             const std::shared_ptr<Slot> &slot) {
-  return slot->db()->HGet(key, sid, &message);
-}
-
-rocksdb::Status StreamUtil::DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id, int32_t &ret,
-                                                const std::shared_ptr<Slot> &slot) {
-  std::vector<std::string> serialized_ids;
-  for (auto &sid : id) {
-    std::string serialized_id;
-    sid.SerializeTo(serialized_id);
-    serialized_ids.emplace_back(std::move(serialized_id));
-  }
-  return slot->db()->HDel(key, {serialized_ids}, &ret);
-}
-
-bool StreamUtil::SerializeMessage(const std::vector<std::string> &field_values, std::string &message, int field_pos) {
-  assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
-  assert(message.empty());
-  // count the size of serizlized message
-  size_t size = 0;
-  for (int i = field_pos; i < field_values.size(); i++) {
-    size += field_values[i].size() + sizeof(size_t);
-  }
-  message.reserve(size);
-
-  // serialize message
-  for (int i = field_pos; i < field_values.size(); i++) {
-    size_t len = field_values[i].size();
-    message.append(reinterpret_cast<const char *>(&len), sizeof(len));
-    message.append(field_values[i]);
-  }
-
-  return true;
-}
-
-bool StreamUtil::DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message) {
-  size_t pos = 0;
-  while (pos < message.size()) {
-    // Read the length of the next field value from the message
-    size_t len = *reinterpret_cast<const size_t *>(&message[pos]);
-    pos += sizeof(size_t);
-
-    // Check if the calculated end of the string is still within the message bounds
-    if (pos + len > message.size()) {
-      LOG(ERROR) << "Invalid message format, failed to parse message";
-      return false;  // Error: not enough data in the message string
-    }
-
-    // Extract the field value and add it to the vector
-    parsed_message.push_back(message.substr(pos, len));
-    pos += len;
-  }
-
-  return true;
-}
-
-inline void StreamUtil::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
-                                        std::vector<storage::FieldValue> &field_values, std::string &next_field,
-                                        const std::shared_ptr<Slot> &slot) {
+void StreamCmdBase::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
+                                    std::vector<storage::FieldValue> &field_values, std::string &next_field,
+                                    const std::shared_ptr<Slot> &slot) {
   auto &skey = option.skey;
   auto &start_sid = option.start_sid;
   auto &end_sid = option.end_sid;
@@ -402,7 +338,6 @@ inline void StreamUtil::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &op
       slot->db()->PKHScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
   if (s.IsNotFound()) {
     LOG(INFO) << "no message found in XRange";
-    res.AppendArrayLen(0);
     return;
   } else if (!s.ok()) {
     LOG(ERROR) << "PKHScanRange failed";
@@ -411,23 +346,16 @@ inline void StreamUtil::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &op
   }
 }
 
-uint64_t StreamUtil::GetCurrentTimeMs() {
-  uint64_t now =
-      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-          .count();
-  return now;
-}
-
-void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &op,
-                                                const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
-                                                bool start_ex, bool end_ex) {
+void StreamCmdBase::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &op,
+                                                   const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
+                                                   bool start_ex, bool end_ex) {
   std::vector<storage::FieldValue> field_values;
   std::string next_field;
   auto &start_sid = op.start_sid;
   auto &end_sid = op.end_sid;
 
   if (start_sid <= end_sid) {
-    StreamUtil::ScanStreamOrRep(res, op, field_values, next_field, slot);
+    StreamCmdBase::ScanStreamOrRep(res, op, field_values, next_field, slot);
   }
   (void)next_field;
   if (res.ret() != CmdRes::kNone) {
@@ -451,9 +379,6 @@ void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOpt
   }
 
   // append the result to res_
-  // the outer layer is an array, each element is a inner array witch has 2 elements
-  // the inner array's first element is the field, the second element is an array of messages
-  LOG(INFO) << "XRange Found " << field_values.size() << " messages";
   res.AppendArrayLenUint64(field_values.size());
   for (auto &fv : field_values) {
     // if ids is not null, we need to record the id of each message
@@ -462,7 +387,7 @@ void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOpt
     }
 
     std::vector<std::string> message;
-    if (!DeserializeMessage(fv.value, message)) {
+    if (!StreamUtils::DeserializeMessage(fv.value, message)) {
       LOG(ERROR) << "Deserialize message failed";
       res.SetRes(CmdRes::kErrOther, "Deserialize message failed");
       return;
@@ -470,7 +395,6 @@ void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOpt
 
     assert(message.size() % 2 == 0);
     res.AppendArrayLen(2);
-    // FIXME: make the stream id readable
     streamID sid;
     sid.DeserializeFrom(fv.field);
     res.AppendString(sid.ToString());  // field here is the stream id
@@ -481,13 +405,12 @@ void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOpt
   }
 }
 
-// Korpse TODO: test
 /* XREADGROUP GROUP group consumer [COUNT count] [BLOCK milliseconds]
  * [NOACK] STREAMS key [key ...] id [id ...]
  * XREAD [COUNT count] [BLOCK milliseconds] STREAMS key [key ...] id
  * [id ...] */
-void StreamUtil::ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
-                                               bool is_xreadgroup) {
+void StreamCmdBase::ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv,
+                                                  StreamReadGroupReadArgs &args, bool is_xreadgroup) {
   int streams_arg_idx{0};  // the index of stream keys arg
   size_t streams_cnt{0};   // the count of stream keys
 
@@ -496,13 +419,13 @@ void StreamUtil::ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsTyp
     const std::string &o = argv[i];
     if (strcasecmp(o.c_str(), "BLOCK") == 0 && moreargs) {
       i++;
-      if (!StreamUtil::string2uint64(argv[i].c_str(), args.block)) {
+      if (!StreamUtils::string2uint64(argv[i].c_str(), args.block)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid BLOCK argument");
         return;
       }
     } else if (strcasecmp(o.c_str(), "COUNT") == 0 && moreargs) {
       i++;
-      if (!StreamUtil::string2int32(argv[i].c_str(), args.count)) {
+      if (!StreamUtils::string2int32(argv[i].c_str(), args.count)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid COUNT argument");
         return;
       }
@@ -555,9 +478,9 @@ void StreamUtil::ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsTyp
   }
 }
 
-inline StreamUtil::TrimRet StreamUtil::TrimByMaxlenOrRep(StreamMetaValue &stream_meta, const std::string &key,
-                                                         const std::shared_ptr<Slot> &slot, CmdRes &res,
-                                                         const StreamAddTrimArgs &args) {
+StreamCmdBase::TrimRet StreamCmdBase::TrimByMaxlenOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                                        const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                        const StreamAddTrimArgs &args) {
   TrimRet trim_ret;
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
@@ -566,7 +489,7 @@ inline StreamUtil::TrimRet StreamUtil::TrimByMaxlenOrRep(StreamMetaValue &stream
     std::vector<storage::FieldValue> filed_values;
 
     ScanStreamOptions options(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch);
-    StreamUtil::ScanStreamOrRep(res, options, filed_values, trim_ret.next_field, slot);
+    StreamCmdBase::ScanStreamOrRep(res, options, filed_values, trim_ret.next_field, slot);
 
     if (res.ret() != CmdRes::kNone) {
       return trim_ret;
@@ -593,9 +516,9 @@ inline StreamUtil::TrimRet StreamUtil::TrimByMaxlenOrRep(StreamMetaValue &stream
   return trim_ret;
 }
 
-inline StreamUtil::TrimRet StreamUtil::TrimByMinidOrRep(StreamMetaValue &stream_meta, const std::string &key,
-                                                        const std::shared_ptr<Slot> &slot, CmdRes &res,
-                                                        const StreamAddTrimArgs &args) {
+inline StreamCmdBase::TrimRet StreamCmdBase::TrimByMinidOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                                              const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                              const StreamAddTrimArgs &args) {
   TrimRet trim_ret;
   std::string serialized_min_id;
   stream_meta.first_id().SerializeTo(trim_ret.next_field);
@@ -606,7 +529,7 @@ inline StreamUtil::TrimRet StreamUtil::TrimByMinidOrRep(StreamMetaValue &stream_
     auto cur_batch = static_cast<int32_t>(std::min(stream_meta.length() - trim_ret.count, kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<storage::FieldValue> filed_values;
     ScanStreamOptions options(key, stream_meta.first_id(), args.minid, cur_batch);
-    StreamUtil::ScanStreamOrRep(res, options, filed_values, trim_ret.next_field, slot);
+    StreamCmdBase::ScanStreamOrRep(res, options, filed_values, trim_ret.next_field, slot);
     if (!res.ok()) {
       return trim_ret;
     }
@@ -643,8 +566,8 @@ inline StreamUtil::TrimRet StreamUtil::TrimByMinidOrRep(StreamMetaValue &stream_
   return trim_ret;
 }
 
-int32_t StreamUtil::TrimStreamOrRep(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
-                                    StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
+int32_t StreamCmdBase::TrimStreamOrRep(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
+                                       StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
   // 1 do the trim
   TrimRet trim_ret;
   if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
@@ -687,78 +610,20 @@ int32_t StreamUtil::TrimStreamOrRep(CmdRes &res, StreamMetaValue &stream_meta, c
   return trim_ret.count;
 }
 
-std::string TreeID2Key(const treeID &tid) {
-  std::string key;
-  key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
-  key.append(STERAM_TREE_PREFIX);
-  key.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
-  return key;
-}
-
-rocksdb::Status StreamUtil::GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
-                                             const std::shared_ptr<Slot> &slot) {
-  auto key = std::move(TreeID2Key(tid));
-  rocksdb::Status s;
-  s = slot->db()->HGet(key, field, &value);
-  return s;
-}
-
-rocksdb::Status StreamUtil::InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
-                                                const std::shared_ptr<Slot> &slot) {
-  auto key = std::move(TreeID2Key(tid));
-
-  rocksdb::Status s;
-  int res;
-  s = slot->db()->HSet(key, filed, value, &res);
-  (void)res;
-  return s;
-}
-
-rocksdb::Status StreamUtil::DeleteTreeNode(const treeID tid, const std::string &field,
-                                           const std::shared_ptr<Slot> &slot) {
-  auto key = std::move(TreeID2Key(tid));
-
-  rocksdb::Status s;
-  int res;
-  s = slot->db()->HDel(key, std::vector<std::string>{field}, &res);
-  (void)res;
-  return s;
-}
-
-// can be used when delete all the consumer of a cgroup
-rocksdb::Status StreamUtil::GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
-                                           const std::shared_ptr<Slot> &slot) {
-  auto key = std::move(TreeID2Key(tid));
-  return slot->db()->PKHScanRange(key, "", "", "*", INT_MAX, &field_values, nullptr);
-}
-
-bool StreamUtil::DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot) {
-  assert(tid != kINVALID_TREE_ID);
-  auto key = std::move(TreeID2Key(tid));
-  std::map<storage::DataType, storage::Status> type_status;
-  int64_t count = slot->db()->Del({key}, &type_status);
-  auto s = type_status[storage::DataType::kStrings];
-  if (!s.ok() || count == 0) {
-    LOG(ERROR) << "DeleteTree failed, key: " << key << ", count: " << count;
-    return false;
-  }
-  return true;
-}
-
-void StreamUtil::DestoryStreams(std::vector<std::string> &keys, const std::shared_ptr<Slot> &slot) {
+void StreamCmdBase::DestoryStreamsOrRep(CmdRes &res, std::vector<std::string> &keys,
+                                        const std::shared_ptr<Slot> &slot) {
   for (const auto &key : keys) {
     // 1.try to get the stream meta
-    std::string meta_value;
-    auto s = StreamUtil::GetStreamMeta(key, meta_value, slot);
+    StreamMetaValue stream_meta;
+    auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot);
     if (s.IsNotFound()) {
       LOG(INFO) << "Stream meta not found, skip key: " << key;
       continue;
     } else if (!s.ok()) {
       LOG(ERROR) << "Get stream meta failed";
-      continue;
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
     }
-    StreamMetaValue stream_meta;
-    stream_meta.ParseFrom(meta_value);
 
     LOG(INFO) << "Deleting stream: " << key << " meta: " << stream_meta.ToString();
 
@@ -769,41 +634,205 @@ void StreamUtil::DestoryStreams(std::vector<std::string> &keys, const std::share
       LOG(INFO) << "No cgroup found, skip";
     } else {
       std::vector<storage::FieldValue> field_values;
-      s = GetAllTreeNode(cgroup_tid, field_values, slot);
+      s = StreamStorage::GetAllTreeNode(cgroup_tid, field_values, slot);
       if (!s.ok() && !s.IsNotFound()) {
         LOG(ERROR) << "Get all cgroups failed";
         continue;
       }
       // 2.2 loop all the cgroups, and destroy them
       for (auto &fv : field_values) {
-        StreamUtil::DestoryCGroup(cgroup_tid, fv.field, slot);
+        StreamCmdBase::DestoryCGroupOrRep(res, cgroup_tid, fv.field, slot);
       }
       // 2.3 delete the cgroup tree
-      StreamUtil::DeleteTree(cgroup_tid, slot);
+      StreamStorage::DeleteTree(cgroup_tid, slot);
     }
 
     // 3 delete stream meta
-    StreamUtil::DeleteStreamMeta(key, slot);
+    StreamStorage::DeleteStreamMeta(key, slot);
   }
 }
 
-size_t StreamUtil::GetTreeSize(const treeID tid, const std::shared_ptr<Slot> &slot) {
-  int32_t len;
-  auto key = std::move(TreeID2Key(tid));
-  slot->db()->HLen(key, &len);
-  return len;
+void StreamCmdBase::DestoryCGroupOrRep(CmdRes &res, treeID cgroup_tid, std::string &cgroupname,
+                                       const std::shared_ptr<Slot> &slot) {
+  // 1.get the cgroup meta
+  std::string cgroup_meta_value;
+  auto s = StreamStorage::GetTreeNodeValue(cgroup_tid, cgroupname, cgroup_meta_value, slot);
+  if (s.IsNotFound()) {
+    res.SetRes(CmdRes::kNotFound);
+    return;
+  } else if (!s.ok()) {
+    LOG(ERROR) << "Get consumer meta failed, cgroup: " << cgroupname << ", cgroup_tid: " << cgroup_tid;
+    res.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  StreamConsumerMetaValue cgroup_meta;
+  cgroup_meta.ParseFrom(cgroup_meta_value);
+
+  // 2 delete all the consumers
+  // 2.1 get all the consumer meta
+  auto consumer_tid = cgroup_meta.pel_tid();
+  std::vector<storage::FieldValue> field_values;
+  s = StreamStorage::GetAllTreeNode(consumer_tid, field_values, slot);
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(ERROR) << "Get all consumer meta failed"
+               << ", cgroup: " << cgroupname << ", cgroup_tid: " << cgroup_tid;
+    res.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  // 2.2 for each consumer, delete the pel of the consumer
+  for (auto &field_value : field_values) {
+    StreamConsumerMetaValue consumer_meta;
+    consumer_meta.ParseFrom(field_value.value);
+    auto pel_tid = consumer_meta.pel_tid();
+    StreamStorage::DeleteTree(pel_tid, slot);
+  }
+  // 2.3 delete the consumer tree
+  if (!StreamStorage::DeleteTree(consumer_tid, slot)) {
+    res.SetRes(CmdRes::kErrOther, "Delete consumer tree failed");
+    return;
+  }
+
+  // 3 delete the pel of the cgroup
+  auto pel_tid = cgroup_meta.pel_tid();
+  if (!StreamStorage::DeleteTree(pel_tid, slot)) {
+    res.SetRes(CmdRes::kErrOther, "Delete pel tree failed");
+    return;
+  }
+
+  return;
 }
 
-bool StreamUtil::CreateConsumer(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot) {
+/* Compare two stream IDs. Return -1 if a < b, 0 if a == b, 1 if a > b. */
+int StreamUtils::StreamIDCompare(const streamID &a, const streamID &b) {
+  if (a.ms > b.ms) {
+    return 1;
+  } else if (a.ms < b.ms) {
+    return -1;
+    /* The ms part is the same. Check the sequence part. */
+  } else if (a.seq > b.seq) {
+    return 1;
+  } else if (a.seq < b.seq) {
+    return -1;
+  }
+  /* Everything is the same: IDs are equal. */
+  return 0;
+}
+
+bool StreamUtils::string2uint64(const char *s, uint64_t &value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char *end;
+  errno = 0;
+  uint64_t tmp = strtoull(s, &end, 10);
+  if (*end || errno == ERANGE) {
+    // Conversion either didn't consume the entire string, or overflow occurred
+    return false;
+  }
+
+  value = tmp;
+  return true;
+}
+
+bool StreamUtils::string2int64(const char *s, int64_t &value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char *end;
+  errno = 0;
+  int64_t tmp = std::strtoll(s, &end, 10);
+  if (*end || errno == ERANGE) {
+    // Conversion either didn't consume the entire string, or overflow occurred
+    return false;
+  }
+
+  value = tmp;
+  return true;
+}
+
+bool StreamUtils::string2int32(const char *s, int32_t &value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char *end;
+  errno = 0;
+  long tmp = strtol(s, &end, 10);
+  if (*end || errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX) {
+    // Conversion either didn't consume the entire string,
+    // or overflow or underflow occurred
+    return false;
+  }
+
+  value = static_cast<int32_t>(tmp);
+  return true;
+}
+
+std::string StreamUtils::TreeID2Key(const treeID &tid) {
+  std::string key;
+  key.reserve(strlen(STERAM_TREE_PREFIX) + sizeof(tid));
+  key.append(STERAM_TREE_PREFIX);
+  key.append(reinterpret_cast<const char *>(&tid), sizeof(tid));
+  return key;
+}
+
+bool StreamUtils::SerializeMessage(const std::vector<std::string> &field_values, std::string &message, int field_pos) {
+  assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
+  assert(message.empty());
+  // count the size of serizlized message
+  size_t size = 0;
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size += field_values[i].size() + sizeof(size_t);
+  }
+  message.reserve(size);
+
+  // serialize message
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size_t len = field_values[i].size();
+    message.append(reinterpret_cast<const char *>(&len), sizeof(len));
+    message.append(field_values[i]);
+  }
+
+  return true;
+}
+
+bool StreamUtils::DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message) {
+  size_t pos = 0;
+  while (pos < message.size()) {
+    // Read the length of the next field value from the message
+    size_t len = *reinterpret_cast<const size_t *>(&message[pos]);
+    pos += sizeof(size_t);
+
+    // Check if the calculated end of the string is still within the message bounds
+    if (pos + len > message.size()) {
+      LOG(ERROR) << "Invalid message format, failed to parse message";
+      return false;  // Error: not enough data in the message string
+    }
+
+    // Extract the field value and add it to the vector
+    parsed_message.push_back(message.substr(pos, len));
+    pos += len;
+  }
+
+  return true;
+}
+
+uint64_t StreamUtils::GetCurrentTimeMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+bool StreamUtils::CreateConsumer(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot) {
   std::string consumer_meta_value;
-  auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.IsNotFound()) {
-    LOG(INFO) << "Consumer meta not found, create new one";
     auto &tid_gen = TreeIDGenerator::GetInstance();
     auto pel_tid = tid_gen.GetNextTreeID(slot);
     StreamConsumerMetaValue consumer_meta;
     consumer_meta.Init(pel_tid);
-    s = StreamUtil::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    s = StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
     if (!s.ok()) {
       LOG(ERROR) << "Insert consumer meta failed";
       return false;
@@ -814,69 +843,24 @@ bool StreamUtil::CreateConsumer(treeID consumer_tid, std::string &consumername, 
   return false;
 }
 
-rocksdb::Status StreamUtil::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
-                                                const std::shared_ptr<Slot> &slot,
-                                                StreamConsumerMetaValue &consumer_meta) {
+void StreamCmdBase::GetOrCreateConsumer(CmdRes &res, treeID consumer_tid, std::string &consumername,
+                                        const std::shared_ptr<Slot> &slot, StreamConsumerMetaValue &consumer_meta) {
   std::string consumer_meta_value;
-  auto s = StreamUtil::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.ok()) {
     consumer_meta.ParseFrom(consumer_meta_value);
+    return;
+
   } else if (s.IsNotFound()) {
-    LOG(INFO) << "Consumer meta not found, create new one";
     auto &tid_gen = TreeIDGenerator::GetInstance();
     auto pel_tid = tid_gen.GetNextTreeID(slot);
     consumer_meta.Init(pel_tid);
-    s = StreamUtil::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    s = StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
     if (!s.ok()) {
-      LOG(ERROR) << "Insert consumer meta failed";
-      return s;
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
     }
   }
-  // consumer meta already exists or other error
-  return s;
-}
-
-rocksdb::Status StreamUtil::DestoryCGroup(treeID cgroup_tid, std::string &cgroupname,
-                                          const std::shared_ptr<Slot> &slot) {
-  // 1.get the cgroup meta
-  std::string cgroup_meta_value;
-  auto s = StreamUtil::GetTreeNodeValue(cgroup_tid, cgroupname, cgroup_meta_value, slot);
-  if (s.IsNotFound()) {
-    return s;
-  } else if (!s.ok()) {
-    LOG(ERROR) << "Get consumer meta failed, cgroup: " << cgroupname << ", cgroup_tid: " << cgroup_tid;
-    return s;
-  }
-  StreamConsumerMetaValue cgroup_meta;
-  cgroup_meta.ParseFrom(cgroup_meta_value);
-
-  // 2 delete all the consumers
-  // 2.1 get all the consumer meta
-  auto consumer_tid = cgroup_meta.pel_tid();
-  std::vector<storage::FieldValue> field_values;
-  s = StreamUtil::GetAllTreeNode(consumer_tid, field_values, slot);
-  if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "Get all consumer meta failed"
-               << ", cgroup: " << cgroupname << ", cgroup_tid: " << cgroup_tid;
-    return s;
-  }
-  // 2.2 for each consumer, delete the pel of the consumer
-  for (auto &field_value : field_values) {
-    StreamConsumerMetaValue consumer_meta;
-    consumer_meta.ParseFrom(field_value.value);
-    auto pel_tid = consumer_meta.pel_tid();
-    StreamUtil::DeleteTree(pel_tid, slot);
-  }
-  // 2.3 delete the consumer tree
-  if (!StreamUtil::DeleteTree(consumer_tid, slot)) {
-    return storage::Status::Corruption();
-  }
-
-  // 3 delete the pel of the cgroup
-  auto pel_tid = cgroup_meta.pel_tid();
-  if (!StreamUtil::DeleteTree(consumer_tid, slot)) {
-    return storage::Status::Corruption();
-  }
-
-  return storage::Status::OK();
+  
+  res.SetRes(CmdRes::kErrOther, s.ToString());
 }

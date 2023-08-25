@@ -46,15 +46,12 @@ class TreeIDGenerator {
   std::atomic<treeID> tree_id_ = kINVALID_TREE_ID;
 };
 
-class StreamUtil {
+// implement all the functions that related to blackwidow derctly.
+// if we want to change the storage engine, we only need to rewrite this class.
+class StreamStorage {
  public:
-  //===--------------------------------------------------------------------===//
-  // Meta data get and set
-  //===--------------------------------------------------------------------===//
-
-  // Korpse TODO: delete this function, use the one with StreamMetaValue
-  static rocksdb::Status GetStreamMeta(const std::string &stream_key, std::string &meta_value,
-                                       const std::shared_ptr<Slot> &slot);
+  StreamStorage() = default;
+  ~StreamStorage() = default;
 
   // get and parse the stream meta if found
   // @return ok only when the stream meta exists
@@ -63,18 +60,15 @@ class StreamUtil {
 
   // will create stream meta hash if it dosent't exist.
   // return !s.ok() only when insert failed
-  // Korpse TODO: unit test
   static rocksdb::Status UpdateStreamMeta(const std::string &key, std::string &meta_value,
                                           const std::shared_ptr<Slot> &slot);
 
   static rocksdb::Status InsertStreamMessage(const std::string &key, const streamID &id, const std::string &message,
                                              const std::shared_ptr<Slot> &slot);
-
-  static rocksdb::Status DeleteStreamMessage(const std::string &key,  const std::vector<streamID> &id, int32_t &ret,
+  static rocksdb::Status DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id, int32_t &ret,
                                              const std::shared_ptr<Slot> &slot);
-
-  static rocksdb::Status FindStreamMessage(const std::string &key, const std::string &sid, std::string &message,
-                                             const std::shared_ptr<Slot> &slot);
+  static rocksdb::Status GetStreamMessage(const std::string &key, const std::string &sid, std::string &message,
+                                          const std::shared_ptr<Slot> &slot);
 
   // get the abstracted tree node, e.g. get a message in pel, get a consumer meta or get a cgroup meta.
   // in cgroup tree, field is groupname
@@ -82,23 +76,11 @@ class StreamUtil {
   // in pel tree, field is messageID
   static rocksdb::Status GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
                                           const std::shared_ptr<Slot> &slot);
-
-  // set the abstracted tree node, e.g. set a message in pel, add a consumer meta or add a cgroup meta.
-  // in cgroup tree, field is groupname, value is cgroup meta
-  // in consumer tree, field is consumername, value is consumer meta
-  // in pel tree, field is messageID, value is pel meta
   static rocksdb::Status InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
                                              const std::shared_ptr<Slot> &slot);
-
   static rocksdb::Status DeleteTreeNode(const treeID tid, const std::string &field, const std::shared_ptr<Slot> &slot);
-
   static rocksdb::Status GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
                                         const std::shared_ptr<Slot> &slot);
-
-  static size_t GetTreeSize(const treeID tid, const std::shared_ptr<Slot> &slot);
-
-  // @return ok only when the cgroup meta exists and deleted
-  static rocksdb::Status DestoryCGroup(treeID cgroup_tid, std::string &cgroupname, const std::shared_ptr<Slot> &slot);
 
   // delete the stream meta
   // @return true if the stream meta exists and deleted
@@ -107,17 +89,23 @@ class StreamUtil {
   // note: the tree must exist
   // @return true if the tree exists and is deleted
   static bool DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot);
+};
 
-  //===--------------------------------------------------------------------===//
-  // Common functions for command implementation
-  //===--------------------------------------------------------------------===//
+// Helper function of stream command.
+// Should be reconstructed when transfer to another command framework.
+class StreamCmdBase {
+ public:
+  StreamCmdBase() = default;
+  ~StreamCmdBase() = default;
 
   // @res: if error occurs, res will be set, otherwise res will be none
   static void ParseAddOrTrimArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos,
                                       bool is_xadd);
   static void ParseReadOrReadGroupArgsOrRep(CmdRes &res, const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
                                             bool is_xreadgroup);
-
+  // @return ok only when the cgroup meta exists and deleted
+  static void DestoryCGroupOrRep(CmdRes &res, treeID cgroup_tid, std::string &cgroupname,
+                                 const std::shared_ptr<Slot> &slot);
   struct TrimRet {
     // the count of deleted messages
     int32_t count{0};
@@ -128,22 +116,44 @@ class StreamUtil {
   };
 
   // @res: if error occurs, res will be set, otherwise res will be none
-  static inline TrimRet TrimByMaxlenOrRep(StreamMetaValue &stream_meta, const std::string &key,
-                                          const std::shared_ptr<Slot> &slot, CmdRes &res,
-                                          const StreamAddTrimArgs &args);
+  static TrimRet TrimByMaxlenOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                   const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
 
   // @res: if error occurs, res will be set, otherwise res will be none
-  static inline TrimRet TrimByMinidOrRep(StreamMetaValue &stream_meta, const std::string &key,
-                                         const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
+  static TrimRet TrimByMinidOrRep(StreamMetaValue &stream_meta, const std::string &key,
+                                  const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
 
   // @res: if error occurs, res will be set, otherwise res will be none
   static int32_t TrimStreamOrRep(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
                                  StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot);
 
+  struct ScanStreamOptions {
+    const std::string &skey;
+    const streamID &start_sid;
+    const streamID &end_sid;
+    const int32_t count;
+    ScanStreamOptions(const std::string &skey, const streamID &start_sid, const streamID &end_sid, const int32_t count)
+        : skey(skey), start_sid(start_sid), end_sid(end_sid), count(count) {}
+  };
+
+  static void ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
+                              std::vector<storage::FieldValue> &field_values, std::string &next_field,
+                              const std::shared_ptr<Slot> &slot);
+
+  // used to support range scan cmd, like xread, xrange, xrevrange
+  // do the scan in a stream and append messages to res
+  // @skey: the key of the stream
+  // @row_ids: if not null, will append the id to it
+  static void ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &option,
+                                             const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
+                                             bool start_ex = false, bool end_ex = false);
+
   //===--------------------------------------------------------------------===//
   // StreamID operator
   //===--------------------------------------------------------------------===//
 
+  static void StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
+                                        bool strict, bool *seq_given);
   // be used when - and + are acceptable IDs.
   static void StreamParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq);
 
@@ -159,22 +169,27 @@ class StreamUtil {
   static void StreamParseIntervalIdOrRep(CmdRes &res, const std::string &var, streamID &id, bool *exclude,
                                          uint64_t missing_seq);
 
-  static int StreamIDCompare(const streamID &a, const streamID &b);
+  // delete the pels, consumers, cgroups and stream meta of a stream
+  // note: this function do not delete the stream data value
+  static void DestoryStreamsOrRep(CmdRes &res, std::vector<std::string> &keys, const std::shared_ptr<Slot> &slot);
 
-  //===--------------------------------------------------------------------===//
-  // Type convert
-  //===--------------------------------------------------------------------===//
+  static void GetOrCreateConsumer(CmdRes &res, treeID consumer_tid, std::string &consumername,
+                                  const std::shared_ptr<Slot> &slot, StreamConsumerMetaValue &consumer_meta);
+};
 
-  // return false if the string is invalid
+class StreamUtils {
+ public:
+  StreamUtils() = default;
+  ~StreamUtils() = default;
+
   static bool string2uint64(const char *s, uint64_t &value);
   static bool string2int64(const char *s, int64_t &value);
   static bool string2int32(const char *s, int32_t &value);
-
-  //===--------------------------------------------------------------------===//
-  // Other helper functions
-  //===--------------------------------------------------------------------===//
+  static std::string TreeID2Key(const treeID &tid);
 
   static uint64_t GetCurrentTimeMs();
+
+  static int StreamIDCompare(const streamID &a, const streamID &b);
 
   // serialize the message to a string, format: {field1.size, field1, value1.size, value1, field2.size, field2, ...}
   static bool SerializeMessage(const std::vector<std::string> &field_values, std::string &serialized_message,
@@ -183,48 +198,8 @@ class StreamUtil {
   // note: filed_value here means the filed values in the message
   static bool DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message);
 
-  struct ScanStreamOptions {
-    const std::string &skey;
-    const streamID &start_sid;
-    const streamID &end_sid;
-    const int32_t count;
-    ScanStreamOptions(const std::string &skey, const streamID &start_sid, const streamID &end_sid, const int32_t count)
-        : skey(skey), start_sid(start_sid), end_sid(end_sid), count(count) {}
-  };
-
-  static inline void ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
-                                     std::vector<storage::FieldValue> &field_values, std::string &next_field,
-                                     const std::shared_ptr<Slot> &slot);
-
-  // used to support range scan cmd, like xread, xrange, xrevrange
-  // do the scan in a stream and append messages to res
-  // @skey: the key of the stream
-  // @row_ids: if not null, will append the id to it
-  static void ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &option,
-                                             const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
-                                             bool start_ex = false, bool end_ex = false);
-
-  //  private:
-  static void StreamGenericParseIDOrRep(CmdRes &res, const std::string &var, streamID &id, uint64_t missing_seq,
-                                        bool strict, bool *seq_given);
-
   // return true if created
   static bool CreateConsumer(treeID consumer_tid, std::string &consumername, const std::shared_ptr<Slot> &slot);
-
-  //delete by Korpse
-  static rocksdb::Status GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
-                                             const std::shared_ptr<Slot> &slot, StreamConsumerMetaValue &consumer_meta);
-
-  // delete the pels, consumers, cgroups and stream meta of a stream
-  // note: this function do not delete the stream data value
-  static void DestoryStreams(std::vector<std::string> &keys, const std::shared_ptr<Slot> &slot);
-
- private:
-  // used when create the first stream meta
-  static std::mutex create_stream_meta_hash_mutex_;
-
-  // a flag to reduce the times of checking the existence of stream meta hash.
-  static bool is_stream_meta_hash_created_;
 };
 
 #endif

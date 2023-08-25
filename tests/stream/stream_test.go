@@ -103,7 +103,6 @@ var _ = Describe("Stream Commands", func() {
 	BeforeEach(func() {
 		// client = redis.NewClient(pikaOptions1())
 		// Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-		fmt.Print("\n")
 	})
 
 	AfterEach(func() {
@@ -464,7 +463,9 @@ var _ = Describe("Stream Commands", func() {
 				Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(cnt)))
 				// The test would be too slow calling XRANGE for every iteration. Do it every 100 removal.
 				if cnt%100 == 0 {
-					Expect(client.XRange(ctx, "somestream", "-", "+").Val()).To(HaveLen(cnt))
+					items, err := client.XRange(ctx, "somestream", "-", "+").Result()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(items).To(HaveLen(cnt))
 				}
 			}
 		})
