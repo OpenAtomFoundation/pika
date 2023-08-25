@@ -13,8 +13,8 @@ spec:
     host: "$(SVC_FQDN)"
     port: "$(SVC_PORT_pika)"
   componentDefs:
-    - name: pika
-      workloadType: Replication
+    - name: pika-group
+      workloadType: Stateful
       characterType: pika
       service:
         ports:
@@ -26,9 +26,12 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
-      volumeTypes:
-        - name: data
-          type: data
+      scriptSpecs:
+        - name: pika-script
+          templateRef: pika-script-template
+          namespace: {{ .Release.Namespace }}
+          volumeName: script
+          defaultMode: 0555
       podSpec:
         containers:
           - name: pika
@@ -36,8 +39,6 @@ spec:
               - name: pika
                 containerPort: 9221
             volumeMounts:
-              - name: data
-                mountPath: /data
               - name: config
                 mountPath: /etc/pika
             command:
@@ -45,6 +46,15 @@ spec:
             args:
               - "-c"
               - "/etc/pika/pika.conf"
+          - name: codis-admin
+            volumeMounts:
+              - name: script
+                mountPath: /script
+            command:
+              - "/bin/bash"
+            args:
+              - "-c"
+              - "/script/admin.sh --register-server;tail -f /dev/null"
     - name: etcd
       workloadType: Stateful
       characterType: etcd
@@ -137,7 +147,7 @@ spec:
               - name: ETCD_ENABLE_V2
                 value: "true"
     - name: codis-proxy
-      workloadType: Stateless
+      workloadType: Stateful
       characterType: pika
       service:
         ports:
@@ -275,9 +285,6 @@ spec:
           templateRef: pika-conf-template
           namespace: {{ .Release.Namespace }}
           volumeName: config
-      volumeTypes:
-        - name: data
-          type: data
       podSpec:
         initContainers:
           - name: wait-etcd
@@ -296,8 +303,6 @@ spec:
               - containerPort: 18080
                 name: dashboard
             volumeMounts:
-              - name: data
-                mountPath: /data
               - name: config
                 mountPath: /etc/codis
             env:
