@@ -111,7 +111,7 @@ var _ = Describe("Stream Commands", func() {
 		// Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
 	})
 
-	Describe("streams", func() {
+	Describe("passed tests", func() {
 		It("XADD wrong number of args", func() {
 			_, err := client.Do(ctx, "XADD", "mystream").Result()
 			Expect(err).To(HaveOccurred())
@@ -425,6 +425,21 @@ var _ = Describe("Stream Commands", func() {
 			Expect(items[1].Values).To(SatisfyAny(HaveKeyWithValue("foo", "value2")))
 		})
 
+		It("XDEL multiply id test", func() {
+			Expect(client.Del(ctx, "somestream").Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", ID: "1-1", Values: []string{"a", "1"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", ID: "1-2", Values: []string{"b", "2"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", ID: "1-3", Values: []string{"c", "3"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", ID: "1-4", Values: []string{"d", "4"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "somestream", ID: "1-5", Values: []string{"e", "5"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(5)))
+			Expect(client.XDel(ctx, "somestream", "1-1", "1-4", "1-5", "2-1").Val()).To(Equal(int64(3)))
+			Expect(client.XLen(ctx, "somestream").Val()).To(Equal(int64(2)))
+			result := client.XRange(ctx, "somestream", "-", "+").Val()
+			Expect(result[0].Values["b"]).To(Equal("2"))
+			Expect(result[1].Values["c"]).To(Equal("3"))
+		})
+
 		It("XDEL fuzz test", func() {
 			Expect(client.Del(ctx, "somestream").Err()).NotTo(HaveOccurred())
 			var ids []string
@@ -467,6 +482,119 @@ var _ = Describe("Stream Commands", func() {
 				Expect(fakeRange).To(Equal(realRange))
 			}
 		})
+
+		// It("XREVRANGE regression test for (redis issue #5006)", func() {
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891240", Values: []string{"key2", "value2"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891250", Values: []string{"key3", "value3"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891240", Values: []string{"key1", "value2"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891250", Values: []string{"key1", "value3"}}).Err()).NotTo(HaveOccurred())
+		// 	items := client.XRevRange(ctx, "teststream", "1234567891245", "-").Val()
+		// 	Expect(items).To(HaveLen(2))
+		// 	Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key2": "value2"}}))
+		// 	Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
+		// 	items = client.XRevRange(ctx, "teststream2", "1234567891245", "-").Val()
+		// 	Expect(items).To(HaveLen(2))
+		// 	Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key1": "value2"}}))
+		// 	Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
+		// })
+
+		It("XREAD streamID edge (no-blocking)", func() {
+			Expect(client.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "1-1", Values: []string{"f", "v"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "1-18446744073709551615", Values: []string{"f", "v"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "2-1", Values: []string{"f", "v"}}).Err()).NotTo(HaveOccurred())
+			r := client.XRead(ctx, &redis.XReadArgs{Streams: []string{"x", "1-18446744073709551615"}}).Val()
+			Expect(r).To(HaveLen(1))
+			Expect(r[0].Stream).To(Equal("x"))
+			Expect(r[0].Messages).To(HaveLen(1))
+			Expect(r[0].Messages[0].ID).To(Equal("2-1"))
+			Expect(r[0].Messages[0].Values).To(Equal(map[string]interface{}{"f": "v"}))
+		})
+
+		It("XADD streamID edge", func() {
+			Expect(client.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "2577343934890-18446744073709551615", Values: []string{"f", "v"}}).Err()).NotTo(HaveOccurred()) // we need the timestamp to be in the future
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", Values: []string{"f2", "v2"}}).Err()).NotTo(HaveOccurred())
+			items := client.XRange(ctx, "x", "-", "+").Val()
+			Expect(items).To(HaveLen(2))
+			Expect(items[0]).To(Equal(redis.XMessage{ID: "2577343934890-18446744073709551615", Values: map[string]interface{}{"f": "v"}}))
+			Expect(items[1]).To(Equal(redis.XMessage{ID: "2577343934891-0", Values: map[string]interface{}{"f2": "v2"}}))
+		})
+
+		It("XTRIM with MAXLEN option basic test", func() {
+			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+			for i := 0; i < 1000; i++ {
+				if rand.Float64() < 0.9 {
+					Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: map[string]interface{}{"xitem": i}}).Err()).NotTo(HaveOccurred())
+				} else {
+					Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: map[string]interface{}{"yitem": i}}).Err()).NotTo(HaveOccurred())
+				}
+			}
+			Expect(client.XTrimMaxLen(ctx, "mystream", 666).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(666)))
+			Expect(client.XTrimMaxLen(ctx, "mystream", 555).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(555)))
+		})
+
+		It("XADD with LIMIT consecutive calls", func() {
+			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+			for i := 0; i < 100; i++ {
+				Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: map[string]interface{}{"xitem": "v"}}).Err()).NotTo(HaveOccurred())
+			}
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", MaxLen: 55, Values: map[string]interface{}{"xitem": "v"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(55)))
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", MaxLen: 55, Values: map[string]interface{}{"xitem": "v"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(55)))
+		})
+	})
+
+	Describe("unpassed tests", func() {
+		// It("XADD advances the entries-added counter and sets the recorded-first-entry-id", func() {
+		// 	Expect(client.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "1-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+
+		// 	reply, err := client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.EntriesAdded).To(Equal(int64(1)))
+		// 	Expect(reply.FirstEntry.ID).To(Equal("1-0"))
+
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "2-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+		// 	reply, err = client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.EntriesAdded).To(Equal(int64(2)))
+		// 	Expect(reply.FirstEntry.ID).To(Equal("1-0"))
+		// })
+
+		// It("XDEL/TRIM are reflected by recorded first entry", func() {
+		// 	Expect(client.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "1-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "2-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "3-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "4-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "x", ID: "5-0", Values: []string{"data", "a"}}).Err()).NotTo(HaveOccurred())
+
+		// 	reply, err := client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.EntriesAdded).To(Equal(int64(5)))
+		// 	Expect(reply.FirstEntry.ID).To(Equal("1-0"))
+
+		// 	Expect(client.XDel(ctx, "x", "2-0").Result()).To(Equal(int64(1)))
+		// 	reply, err = client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.FirstEntry.ID).To(Equal("1-0"))
+
+		// 	Expect(client.XDel(ctx, "x", "1-0").Result()).To(Equal(int64(1)))
+		// 	reply, err = client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.FirstEntry.ID).To(Equal("3-0"))
+
+		// 	Expect(client.XTrimMaxLen(ctx, "x", 2).Result()).To(Equal(int64(3)))
+		// 	reply, err = client.XInfoStreamFull(ctx, "x", 0).Result()
+		// 	Expect(err).NotTo(HaveOccurred())
+		// 	Expect(reply.FirstEntry.ID).To(Equal("4-0"))
+		// })
 
 	})
 })

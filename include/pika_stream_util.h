@@ -58,7 +58,7 @@ class StreamUtil {
 
   // get and parse the stream meta if found
   // @return ok only when the stream meta exists
-  static rocksdb::Status GetStreamMeta(StreamMetaValue *stream_meta, const std::string &key,
+  static rocksdb::Status GetStreamMeta(StreamMetaValue &tream_meta, const std::string &key,
                                        const std::shared_ptr<Slot> &slot);
 
   // will create stream meta hash if it dosent't exist.

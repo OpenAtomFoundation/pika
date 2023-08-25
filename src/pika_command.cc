@@ -722,6 +722,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> xdelptr =
       std::make_unique<XDelCmd>(kCmdNameXDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXDel, std::move(xdelptr)));
+  ////XINFO
+    std::unique_ptr<Cmd> xinfoptr =
+        std::make_unique<XInfoCmd>(kCmdNameXInfo, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream);
+    cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXInfo, std::move(xinfoptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {

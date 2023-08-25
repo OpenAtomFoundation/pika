@@ -44,6 +44,7 @@ using streamID = struct streamID {
   bool operator==(const streamID& other) const { return ms == other.ms && seq == other.seq; }
   bool operator<(const streamID& other) const { return ms < other.ms || (ms == other.ms && seq < other.seq); }
   bool operator>(const streamID& other) const { return ms > other.ms || (ms == other.ms && seq > other.seq); }
+  bool operator<=(const streamID& other) const { return ms < other.ms || (ms == other.ms && seq <= other.seq); }
   std::string ToString() const { return std::to_string(ms) + "-" + std::to_string(seq); }
 
   void SerializeTo(std::string& dst) const {

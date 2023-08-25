@@ -254,10 +254,31 @@ class XClaimCmd : public Cmd {
   std::vector<std::string> results;
 
   void DoInitial() override;
-  void Clear() override { 
+  void Clear() override {
     specified_ids_.clear();
     results.clear();
-  };
+  }
+};
+class XInfoCmd : public Cmd {
+ public:
+  XInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new XInfoCmd(*this); }
+
+ private:
+  std::string key_;
+  std::string cgroupname_;
+  std::string consumername_;
+  std::string subcmd_;
+  uint64_t count_{0};
+  bool is_full_{false};
+
+  void DoInitial() override;
+  void StreamInfo(std::shared_ptr<Slot>& slot);
+  void GroupsInfo(std::shared_ptr<Slot>& slot);
+  void ConsumersInfo(std::shared_ptr<Slot>& slot);
 };
 
-#endif
+#endif //  PIKA_STREAM_H_

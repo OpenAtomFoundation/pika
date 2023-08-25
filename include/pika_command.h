@@ -232,6 +232,7 @@ const std::string kCmdNameXPending = "xpending";
 const std::string kCmdNameXAck = "xack";
 const std::string kCmdNameXTrim = "xtrim";
 const std::string kCmdNameXClaim = "xclaim";
+const std::string kCmdNameXInfo = "xinfo";
 
 
 const std::string kClusterPrefix = "pkcluster";

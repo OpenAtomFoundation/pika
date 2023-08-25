@@ -138,13 +138,12 @@ rocksdb::Status StreamUtil::GetStreamMeta(const std::string &key, std::string &v
   return slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
 }
 
-rocksdb::Status StreamUtil::GetStreamMeta(StreamMetaValue *stream_meta, const std::string &key,
+rocksdb::Status StreamUtil::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key,
                                           const std::shared_ptr<Slot> &slot) {
-  assert(stream_meta);
   std::string value;
   auto s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
   if (s.ok()) {
-    stream_meta->ParseFrom(value);
+    stream_meta.ParseFrom(value);
     return rocksdb::Status::OK();
   }
   return s;
@@ -427,7 +426,9 @@ void StreamUtil::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOpt
   auto &start_sid = op.start_sid;
   auto &end_sid = op.end_sid;
 
-  StreamUtil::ScanStreamOrRep(res, op, field_values, next_field, slot);
+  if (start_sid <= end_sid) {
+    StreamUtil::ScanStreamOrRep(res, op, field_values, next_field, slot);
+  }
   (void)next_field;
   if (res.ret() != CmdRes::kNone) {
     return;
@@ -610,7 +611,6 @@ inline StreamUtil::TrimRet StreamUtil::TrimByMinidOrRep(StreamMetaValue &stream_
       return trim_ret;
     }
 
-    // FIXME: should I do some check here?
     if (!filed_values.empty()) {
       if (filed_values.back().field == serialized_min_id) {
         // we do not need to delete the message that it's id matches the minid
@@ -726,7 +726,6 @@ rocksdb::Status StreamUtil::DeleteTreeNode(const treeID tid, const std::string &
 }
 
 // can be used when delete all the consumer of a cgroup
-// FIXME: what if the memory is not enough to hold all the node?
 rocksdb::Status StreamUtil::GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
                                            const std::shared_ptr<Slot> &slot) {
   auto key = std::move(TreeID2Key(tid));
