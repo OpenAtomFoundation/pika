@@ -31,7 +31,7 @@ monotime getMonotonicUs() {
   return static_cast<uint64_t>(ts.tv_sec) * 1000000 + static_cast<uint64_t>(ts.tv_nsec) / 1000;
 }
 
-#elif __arm__  // ARM
+#elif __arm__ || __aarch64__  // ARM
 
 #include <sys/time.h>
 
