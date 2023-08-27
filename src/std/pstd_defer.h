@@ -9,38 +9,6 @@
 #include <functional>
 #include <type_traits>
 
-// The defer class for C++11
-//
-// Usage:
-// void f() {
-//    FILE* fp = fopen(xxx);
-//    if (!fp) return;
-//
-//    DEFER {
-//        // it'll be executed on f() exiting.
-//        fclose(fp);
-//    }
-//
-//    ... // Do your business
-// }
-//
-// An example for statics function time cost:
-//
-// #define STAT_FUNC_COST
-//     // !!! omits std::chrono namespace
-//     auto _start_ = steady_clock::now();
-//     DEFER {
-//          auto end = steady_clock::now();
-//          cout << "Used:" << duration_cast<milliseconds>(end-_start_).count();
-//     }
-//
-// // Insert into your function at first line.
-// void f() {
-//     STAT_FUNC_COST;
-//     // when f() exit, will print its running time.
-// }
-//
-
 // CTAD: See https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
 #if __cpp_deduction_guides >= 201606
 
