@@ -6,10 +6,10 @@
  */
 
 #include "common.h"
-#include <errno.h>
-#include <stdlib.h>
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include "unbounded_buffer.h"
@@ -389,4 +389,3 @@ int64_t Now() {
   auto now = system_clock::now();
   return duration_cast<milliseconds>(now.time_since_epoch()).count();
 }
-

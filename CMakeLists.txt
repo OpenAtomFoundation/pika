@@ -3,7 +3,7 @@ PROJECT(PikiwiDB)
 
 SET(CMAKE_CXX_STANDARD 20)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -g -D'GIT_COMMIT_ID=\"${GIT_COMMIT_ID}\"' -D'BUILD_TIME=\"${BUILD_TIME}\"'")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -g -D'GIT_COMMIT_ID=\"${GIT_COMMIT_ID}\"'")
 
 # Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
 IF (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
@@ -105,6 +105,8 @@ include(cmake/leveldb.cmake)
 include(cmake/libevent.cmake)
 include(cmake/llhttp.cmake)
 include(cmake/spdlog.cmake)
+include(cmake/fmt.cmake)
+
 
 ADD_SUBDIRECTORY(src/std)
 ADD_SUBDIRECTORY(src/net)

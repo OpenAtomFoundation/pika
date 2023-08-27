@@ -5,13 +5,12 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
-#include <assert.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cassert>
+#include <cstring>
 
 #include "memory_file.h"
 
@@ -190,7 +189,8 @@ void OutputMemoryFile::TruncateTailZero() {
   }
 
   size_t tail = size_;
-  while (tail > 0 && pMemory_[--tail] == '\0');
+  while (tail > 0 && pMemory_[--tail] == '\0')
+    ;
 
   ++tail;
 
@@ -221,4 +221,3 @@ void OutputMemoryFile::_AssureSpace(size_t size) {
 
   _ExtendFileSize(newSize);
 }
-
