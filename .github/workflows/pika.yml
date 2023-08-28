@@ -164,7 +164,7 @@ jobs:
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           brew update
-          brew install autoconf protobuf python llvm wget git
+          brew install --overwrite python autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
