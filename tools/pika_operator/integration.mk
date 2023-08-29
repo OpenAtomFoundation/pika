@@ -1,6 +1,6 @@
 ##@ MiniKube
 
-PIKA_IMAGE ?= pikadb/pika:v3.4.0
+PIKA_IMAGE ?= pikadb/pika:v3.5.0
 PIKA_OPERATOR_IMAGE ?= pika-operator:dev
 
 LOCAL_CLUSTER_NAME ?= mini-pika
