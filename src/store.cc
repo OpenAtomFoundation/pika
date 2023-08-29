@@ -8,7 +8,6 @@
 #include "store.h"
 #include <cassert>
 #include <limits>
-#include "aof.h"
 #include "client.h"
 #include "config.h"
 #include "event_loop.h"
@@ -510,7 +509,7 @@ PError PStore::getValueByType(const PString& key, PObject*& value, PType type, b
   value = const_cast<PObject*>(cobj);
   // Do not update if child process exists
   extern pid_t g_qdbPid;
-  if (touch && g_rewritePid == -1 && g_qdbPid == -1) {
+  if (touch && g_qdbPid == -1) {
     value->lru = PObject::lruclock;
   }
 
@@ -755,10 +754,6 @@ void Propagate(const std::vector<PString>& params) {
     ++PStore::dirty_;
     PMulti::Instance().NotifyDirty(PSTORE.GetDB(), params[1]);
     PSTORE.AddDirtyKey(params[1]);  // TODO optimize
-  }
-
-  if (g_config.appendonly) {
-    PAOFThreadController::Instance().SaveCommand(params, PSTORE.GetDB());
   }
 
   PREPL.SendToSlaves(params);

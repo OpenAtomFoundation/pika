@@ -43,7 +43,6 @@ const PCommandInfo PCommandTable::s_info[] = {
     {"client", PAttr_read, -2, &client},
     {"debug", PAttr_read, -2, &debug},
     {"shutdown", PAttr_read, -1, &shutdown},
-    {"bgrewriteaof", PAttr_read, 1, &bgrewriteaof},
     {"ping", PAttr_read, 1, &ping},
     {"echo", PAttr_read, 2, &echo},
     {"info", PAttr_read, -1, &info},

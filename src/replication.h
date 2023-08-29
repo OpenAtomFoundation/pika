@@ -18,6 +18,45 @@
 
 namespace pikiwidb {
 
+template <typename DEST>
+inline void WriteBulkString(const char* str, size_t strLen, DEST& dst) {
+  char tmp[32];
+  size_t n = snprintf(tmp, sizeof tmp, "$%lu\r\n", strLen);
+
+  dst.Write(tmp, n);
+  dst.Write(str, strLen);
+  dst.Write("\r\n", 2);
+}
+
+template <typename DEST>
+inline void WriteBulkString(const PString& str, DEST& dst) {
+  WriteBulkString(str.data(), str.size(), dst);
+}
+
+template <typename DEST>
+inline void WriteMultiBulkLong(long val, DEST& dst) {
+  char tmp[32];
+  size_t n = snprintf(tmp, sizeof tmp, "*%lu\r\n", val);
+  dst.Write(tmp, n);
+}
+
+template <typename DEST>
+inline void WriteBulkLong(long val, DEST& dst) {
+  char tmp[32];
+  size_t n = snprintf(tmp, sizeof tmp, "%lu", val);
+
+  WriteBulkString(tmp, n, dst);
+}
+
+template <typename DEST>
+inline void SaveCommand(const std::vector<PString>& params, DEST& dst) {
+  WriteMultiBulkLong(params.size(), dst);
+
+  for (const auto& s : params) {
+    WriteBulkString(s, dst);
+  }
+}
+
 // master side
 enum PSlaveState {
   PSlaveState_none,
