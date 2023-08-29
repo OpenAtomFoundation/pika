@@ -222,7 +222,7 @@ int PClient::handlePacket(pikiwidb::TcpObject* obj, const char* start, int bytes
   }
 
   if (err == PError_ok && (info->attr & PAttr_write)) {
-    Propogate(params);
+    Propagate(params);
   }
 
   return static_cast<int>(ptr - start);
@@ -341,7 +341,7 @@ bool PClient::Exec() {
 
     // may dirty clients;
     if (err == PError_ok && (info->attr & PAttr_write)) {
-      Propogate(cmd);
+      Propagate(cmd);
     }
   }
 
