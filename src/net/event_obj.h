@@ -15,9 +15,9 @@ enum EventType {
 class EventObject : public std::enable_shared_from_this<EventObject> {
  public:
   /// Constructor, printf is for debug, you can comment it
-  EventObject() { printf("New event object %p\n", reinterpret_cast<void*>(this)); }
+  EventObject() {}
   /// Destructor, printf is for debug, you can comment it
-  virtual ~EventObject() { printf("Delete event object %p\n", reinterpret_cast<void*>(this)); }
+  virtual ~EventObject() { }
 
   EventObject(const EventObject&) = delete;
   void operator=(const EventObject&) = delete;

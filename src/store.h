@@ -209,7 +209,7 @@ class PStore {
 
 // ugly, but I don't want to write signalModifiedKey() every where
 extern std::vector<PString> g_dirtyKeys;
-extern void Propogate(const std::vector<PString>& params);
-extern void Propogate(int dbno, const std::vector<PString>& params);
+extern void Propagate(const std::vector<PString>& params);
+extern void Propagate(int dbno, const std::vector<PString>& params);
 
 }  // namespace pikiwidb

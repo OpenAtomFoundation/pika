@@ -57,7 +57,7 @@ class Logger {
     const char* pattern = "[%Y-%m-%d %H:%M:%S.%e #%t %s:%# %l] %v";
     logger->set_pattern(pattern);
     spdlog::register_logger(logger);
-    spdlog::flush_every(std::chrono::seconds(3));
+    // spdlog::flush_every(std::chrono::seconds(3));
   }
 
   void SetLogFiles(int nfiles) {

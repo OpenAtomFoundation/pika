@@ -48,7 +48,7 @@ PError dbsize(const std::vector<PString>& params, UnboundedBuffer* reply) {
 PError flushdb(const std::vector<PString>& params, UnboundedBuffer* reply) {
   PSTORE.dirty_ += PSTORE.DBSize();
   PSTORE.ClearCurrentDB();
-  Propogate(PSTORE.GetDB(), params);
+  Propagate(PSTORE.GetDB(), params);
 
   FormatOK(reply);
   return PError_ok;
@@ -59,7 +59,7 @@ PError flushall(const std::vector<PString>& params, UnboundedBuffer* reply) {
 
   DEFER {
     PSTORE.SelectDB(currentDB);
-    Propogate(-1, params);
+    Propagate(-1, params);
     PSTORE.ResetDB();
   };
 

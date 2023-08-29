@@ -168,7 +168,7 @@ int PStore::ExpiredDB::LoopCheck(uint64_t now) {
       INFO("LoopCheck try delete key:{}", it->first);
 
       std::vector<PString> params{"del", it->first};
-      Propogate(params);
+      Propagate(params);
 
       PSTORE.DeleteKey(it->first);
       expireKeys_.erase(it++);
@@ -269,7 +269,7 @@ size_t PStore::BlockedClients::ServeClient(const PString& key, const PLIST& list
           INFO("{} success lpush to target list {}", list->front(), target);
 
           std::vector<PString> params{"lpush", target, list->back()};
-          Propogate(params);
+          Propagate(params);
         }
 
         UnboundedBuffer reply;
@@ -284,13 +284,13 @@ size_t PStore::BlockedClients::ServeClient(const PString& key, const PLIST& list
           list->pop_front();
 
           std::vector<PString> params{"lpop", key};
-          Propogate(params);
+          Propagate(params);
         } else {
           FormatBulk(list->back(), &reply);
           list->pop_back();
 
           std::vector<PString> params{"rpop", key};
-          Propogate(params);
+          Propagate(params);
         }
 
         cli->SendPacket(reply);
@@ -740,7 +740,7 @@ void PStore::AddDirtyKey(const PString& key, const PObject* value) {
 
 std::vector<PString> g_dirtyKeys;
 
-void Propogate(const std::vector<PString>& params) {
+void Propagate(const std::vector<PString>& params) {
   assert(!params.empty());
 
   if (!g_dirtyKeys.empty()) {
@@ -764,9 +764,9 @@ void Propogate(const std::vector<PString>& params) {
   PREPL.SendToSlaves(params);
 }
 
-void Propogate(int dbno, const std::vector<PString>& params) {
+void Propagate(int dbno, const std::vector<PString>& params) {
   PMulti::Instance().NotifyDirtyAll(dbno);
-  Propogate(params);
+  Propagate(params);
 }
 
 }  // namespace pikiwidb
