@@ -48,7 +48,8 @@ type GroupServer struct {
 	ReplyOffset int `json:"reply_offset"`
 	// Monitoring status, 0 normal, 1 subjective offline, 2 actual offline
 	// If marked as 2 , no service is provided
-	State GroupServerState `json:"state"`
+	IsOnceGroupMaster bool             `json:"isOnceGroupMaster"`
+	State             GroupServerState `json:"state"`
 
 	ReCallTimes int8 `json:"recall_times"`
 
