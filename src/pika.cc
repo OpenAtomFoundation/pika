@@ -211,7 +211,6 @@ int main(int argc, char* argv[]) {
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
-
   g_pika_raft_server = std::make_unique<PikaRaftServer>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
 
@@ -245,8 +244,6 @@ int main(int argc, char* argv[]) {
   // stop PikaReplicaManager first，avoid internal threads
   // may references to dead PikaServer
   g_pika_rm->Stop();
-
-  // stop raft server ?
 
   return 0;
 }

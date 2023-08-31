@@ -233,6 +233,22 @@ void PikaClientConn::DoExecTask(void* arg) {
   conn_ptr->TryWriteResp();
 }
 
+void PikaClientConn::DoRaftRollBackTask(void* arg) {
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
+  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
+  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+  bg_arg.reset();
+
+  if (!conn_ptr || !resp_ptr) {
+    return;
+  }
+
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  conn_ptr->resp_num--;
+  conn_ptr->TryWriteResp();
+}
+
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
   resp_num.store(static_cast<int32_t>(argvs.size()));
   for (const auto& argv : argvs) {

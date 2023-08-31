@@ -481,7 +481,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   PikaCmdArgsType& argv();
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
-  virtual std::string ToRaftlog(uint32_t exec_time, uint32_t filenum, uint64_t offset);
+  virtual std::string ToRaftlog(uint32_t exec_time);
 
   void SetConn(const std::shared_ptr<net::NetConn>& conn);
   std::shared_ptr<net::NetConn> GetConn();
@@ -500,7 +500,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
                       const HintKeys& hint_key = HintKeys());
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
-  void ProcessCommandWithRaft(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key = HintKeys());
+  void ProcessCommandWithRaft(const std::shared_ptr<Slot> slot, const HintKeys& hint_key = HintKeys());
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
   void DoRaftlog(const std::shared_ptr<Slot>& slot);
   bool CheckArg(uint64_t num) const;

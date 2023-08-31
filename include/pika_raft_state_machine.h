@@ -17,11 +17,11 @@ using pstd::Status;
 class PikaStateMachine : public nuraft::state_machine {
  public:
   using OnApply = std::function<void(ulong log_idx, uint32_t slot_id, 
-                                    std::string db_name, std::string binlog)>;
+                                    std::string db_name, std::string raftlog)>;
   using OnRollback = std::function<void(ulong log_idx, uint32_t slot_id, 
-                                    std::string db_name, std::string binlog)>;
+                                    std::string db_name, std::string raftlog)>;
   using OnPrecommit = std::function<void(ulong log_idx, uint32_t slot_id, 
-                                        std::string db_name, std::string binlog)>;
+                                        std::string db_name, std::string raftlog)>;
 
   PikaStateMachine(OnPrecommit _on_precommit, OnRollback _on_rollback, OnApply _on_apply, bool async_snapshot = false)
     : last_committed_idx_(0)
@@ -32,7 +32,6 @@ class PikaStateMachine : public nuraft::state_machine {
     , snapshot_manager_(std::make_unique<RaftSnapshotManager>())
     {}
   ~PikaStateMachine() {}
-  Status GetLogStatus(uint32_t& filenum, uint64_t& offset);
   nuraft::ptr<nuraft::buffer> pre_commit(const ulong log_idx, nuraft::buffer& data) override;
   nuraft::ptr<nuraft::buffer> commit(const ulong log_idx, nuraft::buffer& data) override;
   void commit_config(const ulong log_idx, nuraft::ptr<nuraft::cluster_config>& new_conf) override;
@@ -71,8 +70,8 @@ class PikaStateMachine : public nuraft::state_machine {
   // If `true`, snapshot will be created asynchronously.
   bool async_snapshot_;
 
-  pstd::Mutex   binlog_mutex_;
-  std::string   binlog_commit_;
+  pstd::Mutex   raftlog_mutex_;
+  std::string   raftlog_commit_;
 
   OnPrecommit   on_precommit_;
   OnRollback    on_rollback_;

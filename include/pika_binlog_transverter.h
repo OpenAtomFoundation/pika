@@ -22,6 +22,15 @@
  */
 #define BINLOG_ENCODE_LEN 34
 
+/******************* Type First Raftlog Item Format ******************
+ * +-----------------------------------------------------------------+
+ * | Type (2 bytes)           | Create Time (4 bytes)                |
+ * |-----------------------------------------------------------------|
+ * | Content Length (4 bytes) | Content (content length bytes)       |
+ * +-----------------------------------------------------------------+
+ */
+#define RAFTLOG_ENCODE_LEN 10
+
 enum BinlogType {
   TypeFirst = 1,
 };
@@ -70,10 +79,10 @@ class PikaBinlogTransverter {
   static bool BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item);
 
   static std::string RaftlogEncode(BinlogType type, uint32_t exec_time, 
-                                  uint32_t filenum, uint64_t offset, const std::string& content,
+                                  const std::string& content,
                                   const std::vector<std::string>& extends);
-
-  static bool RaftlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item);
+  
+  static bool RaftlogDecode(BinlogType type, const std::string& raftlog, BinlogItem* raftlog_item);
 
   static std::string ConstructPaddingBinlog(BinlogType type, uint32_t size);
 

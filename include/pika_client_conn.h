@@ -51,6 +51,7 @@ class PikaClientConn : public net::RedisConn {
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
+  static void DoRaftRollBackTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }

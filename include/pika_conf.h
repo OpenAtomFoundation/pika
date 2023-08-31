@@ -46,23 +46,23 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return raft_path_;
   }
-  int asio_thread_pool_size() {
+  int64_t asio_thread_pool_size() {
     std::shared_lock l(rwlock_);
     return asio_thread_pool_size_;
   }
-  int heart_beat_interval() {
+  int64_t heart_beat_interval() {
     std::shared_lock l(rwlock_);
     return heart_beat_interval_;
   }
-  int election_timeout_lower_bound() {
+  int64_t election_timeout_lower_bound() {
     std::shared_lock l(rwlock_);
     return election_timeout_lower_bound_;
   }
-  int election_timeout_upper_bound() {
+  int64_t election_timeout_upper_bound() {
     std::shared_lock l(rwlock_);
     return election_timeout_upper_bound_;
   }
-  int client_req_timeout() {
+  int64_t client_req_timeout() {
     std::shared_lock l(rwlock_);
     return client_req_timeout_;
   }
@@ -70,11 +70,11 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return async_log_append_;
   }
-  int reserved_log_items() {
+  int64_t reserved_log_items() {
     std::shared_lock l(rwlock_);
     return reserved_log_items_;
   }
-  int snapshot_distance() {
+  int64_t snapshot_distance() {
     std::shared_lock l(rwlock_);
     return snapshot_distance_;
   }
@@ -82,11 +82,15 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return auto_forwarding_;
   }
-  int auto_forwarding_max_connections() {
+  bool auto_forwarding_limit_connections() {
+    std::shared_lock l(rwlock_);
+    return auto_forwarding_limit_connections_;
+  }
+  int64_t auto_forwarding_max_connections() {
     std::shared_lock l(rwlock_);
     return auto_forwarding_max_connections_;
   }
-  int auto_forwarding_req_timeout() {
+  int64_t auto_forwarding_req_timeout() {
     std::shared_lock l(rwlock_);
     return auto_forwarding_req_timeout_;
   }
@@ -451,6 +455,10 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     auto_forwarding_ = value;
   }
+  void SetAutoForwardingLimitConnections(const int value) {
+    std::lock_guard l(rwlock_);
+    auto_forwarding_limit_connections_ = value;
+  } 
   void SetAutoForwardingMaxConnections(const int value) {
     std::lock_guard l(rwlock_);
     auto_forwarding_max_connections_ = value;
@@ -786,20 +794,21 @@ class PikaConf : public pstd::BaseConf {
 
   // raft config
   bool is_raft_ = false;
-  int32_t raft_server_id_;
+  int32_t raft_server_id_ = 0;
   std::vector<std::string> raft_cluster_endpoints_;
-  std::string raft_path_;
-  int asio_thread_pool_size_;
-  int heart_beat_interval_;
-  int election_timeout_lower_bound_;
-  int election_timeout_upper_bound_;
-  int client_req_timeout_;
-  bool async_log_append_;
-  int reserved_log_items_;
-  int snapshot_distance_;
-  bool auto_forwarding_;
-  int auto_forwarding_max_connections_;
-  int auto_forwarding_req_timeout_;
+  std::string raft_path_ = "";
+  int64_t asio_thread_pool_size_ = 0;
+  int64_t heart_beat_interval_ = 0;
+  int64_t election_timeout_lower_bound_ = 0;
+  int64_t election_timeout_upper_bound_ = 0;
+  int64_t client_req_timeout_ = 0;
+  bool async_log_append_ = true;
+  int64_t reserved_log_items_ = 0;
+  int64_t snapshot_distance_ = 0;
+  bool auto_forwarding_ = true;
+  bool auto_forwarding_limit_connections_ = false;
+  int64_t auto_forwarding_max_connections_ = 0;
+  int64_t auto_forwarding_req_timeout_ = 0;
 
   std::unique_ptr<PikaMeta> local_meta_;
 

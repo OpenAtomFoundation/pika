@@ -892,7 +892,7 @@ void Cmd::ProcessSingleSlotCmdWithRaft() {
   ProcessCommandWithRaft(slot);
 }
 
-void Cmd::ProcessCommandWithRaft(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
+void Cmd::ProcessCommandWithRaft(const std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   // TODO(lap): other kind of cmd? i.e. conf change
   if (stage_ == kNone) { // read or other cmd
     DoCommand(slot, hint_keys);
@@ -965,13 +965,10 @@ void Cmd::DoRaftlog(const std::shared_ptr<Slot>& slot) {
     if (!s.ok()) {
       if (s.IsIOError()) {
         LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
-                    << " Writing binlog failed, maybe no avaliable leader in cluster or no space left in disk " << s.ToString();
+                    << " Writing raftlog failed " << s.ToString();
       } else if (s.IsIncomplete()) {
         LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
-                    << " Consensus binlog failed " << s.ToString();
-      } else if (s.IsInvalidArgument()) {
-        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
-                    << " Consensus binlog failed, check CALL_TYPE of raft server " << s.ToString();
+                    << " Consensus raftlog failed " << s.ToString();
       }
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -1126,7 +1123,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
                                              content, {});
 }
 
-std::string Cmd::ToRaftlog(uint32_t exec_time, uint32_t filenum, uint64_t offset) {
+std::string Cmd::ToRaftlog(uint32_t exec_time) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, argv_.size(), "*");
@@ -1136,8 +1133,7 @@ std::string Cmd::ToRaftlog(uint32_t exec_time, uint32_t filenum, uint64_t offset
     RedisAppendContent(content, v);
   }
 
-  return PikaBinlogTransverter::RaftlogEncode(BinlogType::TypeFirst, exec_time, filenum, offset,
-                                             content, {});
+  return PikaBinlogTransverter::RaftlogEncode(BinlogType::TypeFirst, exec_time, content, {});
 }
 
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }

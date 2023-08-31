@@ -7,11 +7,108 @@
 
 #include "net/include/net_interfaces.h"
 
-#include "include/pika_consensus.h"
 #include "include/pika_conf.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
+
+
+/* RaftMemLog */
+
+RaftMemLog::RaftMemLog()  = default;
+
+int RaftMemLog::Size() { return static_cast<int>(logs_.size()); }
+
+// purge [begin, offset]
+Status RaftMemLog::PurgeLogs(const uint64_t& log_index, std::vector<LogItem>* logs) {
+  std::lock_guard l_logs(logs_mu_);
+  int index = InternalFindLogByLogIndex(log_index);
+  if (index < 0) {
+    return Status::NotFound("Cant find correct index");
+  }
+	last_commit_index_ = log_index;
+  logs->assign(logs_.begin(), logs_.begin() + index + 1);
+  logs_.erase(logs_.begin(), logs_.begin() + index + 1);
+  return Status::OK();
+}
+
+// remove logitem
+Status RaftMemLog::Remove(const LogItem& item) {
+	std::lock_guard l_logs(logs_mu_);
+  int index = InternalFindLogByLogContent(item);
+  if (index < 0) {
+    return Status::NotFound("Cant find correct index");
+  }
+  logs_.erase(logs_.begin() + index, logs_.begin() + index + 1);
+  return Status::OK();
+}
+
+// keep mem_log [mem_log.begin, offset]
+Status RaftMemLog::TruncateTo(const uint64_t& log_index, std::vector<LogItem>* logs) {
+  std::lock_guard l_logs(logs_mu_);
+  int index = InternalFindLogByLogIndex(log_index);
+  if (index < 0) {
+    return Status::Corruption("Cant find correct index");
+  }
+	logs->assign(logs_.begin() + index + 1, logs_.end());
+  logs_.erase(logs_.begin() + index + 1, logs_.end());
+  return Status::OK();
+}
+
+void RaftMemLog::Reset(const uint64_t& log_index, std::vector<LogItem>* logs) {
+  std::lock_guard l_logs(logs_mu_);
+	logs->assign(logs_.begin(), logs_.end());
+  logs_.erase(logs_.begin(), logs_.end());
+  last_commit_index_ = log_index;
+}
+
+bool RaftMemLog::FindLogItem(const uint64_t& log_index, uint64_t* found_index) {
+  std::lock_guard l_logs(logs_mu_);
+  int index = InternalFindLogByLogIndex(log_index);
+  if (index < 0) {
+    return false;
+  }
+  *found_index = logs_[index].index;
+  return true;
+}
+
+int RaftMemLog::InternalFindLogByLogIndex(const uint64_t& log_index) {
+	if (last_commit_index_ >= log_index) return -1;
+	uint64_t duplicate_log_idx = 0;
+	uint64_t duplicate_count = 0;
+  for (size_t i = 0; i < logs_.size(); ++i) {
+		if (duplicate_log_idx == logs_[i].index) {
+			duplicate_count ++;
+		} else {
+			duplicate_log_idx = logs_[i].index;
+			duplicate_count = 0;
+		}
+		if (duplicate_log_idx + duplicate_count > log_index) {
+      return -1;
+    }
+    if (duplicate_log_idx + duplicate_count == log_index) {
+      return static_cast<int64_t>(i);
+    }
+  }
+  return -1;
+}
+
+int RaftMemLog::InternalFindLogByLogContent(const LogItem& item) {
+	for (size_t i = 0; i < logs_.size(); ++i) {
+		if (logs_[i].index > item.index) {
+      return -1;
+    }
+    if ((logs_[i].index == item.index)
+				&& (logs_[i].cmd_ptr == item.cmd_ptr)
+				&& (logs_[i].conn_ptr == item.conn_ptr)
+				&& (logs_[i].resp_ptr == item.resp_ptr)) {
+      return static_cast<int64_t>(i);
+    }
+  }
+  return -1;
+}
+
+/* PikaRaftServer */
 
 PikaRaftServer::PikaRaftServer()
 		: server_id_(g_pika_conf->raft_server_id())
@@ -22,21 +119,15 @@ PikaRaftServer::PikaRaftServer()
 		, sm_(nullptr)
 		, smgr_(nullptr)
 		, raft_instance_(nullptr)
-		, mem_logger_(std::make_shared<MemLog>())
-		{}
-
-PikaRaftServer::~PikaRaftServer() {
-	LOG(INFO) << "PikaRaftServer exit!!!";
-}
-
-void PikaRaftServer::Start() {
-	// State machine.
+		, mem_logger_(std::make_shared<RaftMemLog>()) {
+	// State manager.
 	{
 		std::lock_guard l(smgr_mutex_);
 		smgr_ = nuraft::cs_new<PikaRaftStateManager>(server_id_
 																								, endpoint_
 																								, g_pika_conf->raft_cluster_endpoints()
 																								, g_pika_conf->raft_path());
+																								
 	}
 
 	// Logger.
@@ -44,7 +135,7 @@ void PikaRaftServer::Start() {
 	nuraft::ptr<PikaRaftLoggerWrapper> log_wrap = nuraft::cs_new<PikaRaftLoggerWrapper>( g_pika_conf->log_path(), 4 );
 	raft_logger_ = log_wrap;
 	
-	// State manager.
+	// State machine.
 	{
 		std::lock_guard l(sm_mutex_);
 		sm_ = nuraft::cs_new<PikaStateMachine>(std::bind(&PikaRaftServer::PrecommitLog, 
@@ -65,52 +156,59 @@ void PikaRaftServer::Start() {
 																										std::placeholders::_2,
 																										std::placeholders::_3,
 																										std::placeholders::_4));
+		// Initialize Raft Memlog
+		mem_logger_->SetLastCommitIndex(sm_->last_commit_index());
 	}
 
 	// ASIO options.
-	nuraft::asio_service::options asio_opt;
-	asio_opt.thread_pool_size_ = g_pika_conf->asio_thread_pool_size();
+	asio_opt_.thread_pool_size_ = g_pika_conf->asio_thread_pool_size();
 
 	// Raft parameters.
-	nuraft::raft_params params;
-	params.heart_beat_interval_ = g_pika_conf->heart_beat_interval();
-	params.election_timeout_lower_bound_ = g_pika_conf->election_timeout_lower_bound();
-	params.election_timeout_upper_bound_ = g_pika_conf->election_timeout_upper_bound();
+	params_.heart_beat_interval_ = g_pika_conf->heart_beat_interval();
+	params_.election_timeout_lower_bound_ = g_pika_conf->election_timeout_lower_bound();
+	params_.election_timeout_upper_bound_ = g_pika_conf->election_timeout_upper_bound();
 	// Upto 5 logs will be preserved ahead the last snapshot.
-	params.reserved_log_items_ = g_pika_conf->reserved_log_items();
+	params_.reserved_log_items_ = g_pika_conf->reserved_log_items();
 	// Snapshot will be created for every 5 log appends.
-	params.snapshot_distance_ = g_pika_conf->snapshot_distance();
+	params_.snapshot_distance_ = g_pika_conf->snapshot_distance();
 	// Client timeout: 3000 ms.
-	params.client_req_timeout_ = g_pika_conf->client_req_timeout();
+	params_.client_req_timeout_ = g_pika_conf->client_req_timeout();
 	// async or not
 	if (g_pika_conf->async_log_append()) {
-		params.return_method_ = nuraft::raft_params::async_handler;
+		params_.return_method_ = nuraft::raft_params::async_handler;
 	} else {
-		params.return_method_ = nuraft::raft_params::blocking;
+		params_.return_method_ = nuraft::raft_params::blocking;
 	}
-	
 
 	// append log on follower re-direct to leader
-	params.auto_forwarding_ = g_pika_conf->auto_forwarding();
+	params_.auto_forwarding_ = g_pika_conf->auto_forwarding();
   // max connection of auto forwarding
-	params.auto_forwarding_max_connections_ = g_pika_conf->auto_forwarding_max_connections();
-	// auto forwarding timeout: 3000 ms.
-	params.auto_forwarding_req_timeout_ = g_pika_conf->auto_forwarding_req_timeout();
+	if (g_pika_conf->auto_forwarding_limit_connections()) {
+		params_.auto_forwarding_max_connections_ = g_pika_conf->auto_forwarding_max_connections();
+	}
+	// auto forwarding timeout.
+	params_.auto_forwarding_req_timeout_ = g_pika_conf->auto_forwarding_req_timeout();
+}
 
-	// Initialize Raft server.
+PikaRaftServer::~PikaRaftServer() {
+	LOG(INFO) << "PikaRaftServer exit!!!";
+}
+
+void PikaRaftServer::Start() {
+	// Launch Raft server.
 	{
 	std::lock_guard l(raft_mutex_);
 	raft_instance_ = launcher_.init(sm_,
 																	smgr_,
 																	raft_logger_,
 																	port_,
-																	asio_opt,
-																	params);
+																	asio_opt_,
+																	params_);
 	}
 
 	std::lock_guard l(raft_mutex_);
 	if (!raft_instance_) {
-		log_wrap.reset();
+		raft_logger_.reset();
 		LOG(FATAL) << "Raft Server Launcher Failed";
 	}
 
@@ -135,10 +233,27 @@ void PikaRaftServer::reset()  {
     }
 }
 
-void PikaRaftServer::HandleRaftLogResult(Status& s, raft_result& result, nuraft::ptr<std::exception>& err) {
+void PikaRaftServer::HandleRaftLogResult(Status& s, RaftMemLog::LogItem& memlog_item, raft_result& result, nuraft::ptr<std::exception>& err) {
+	// Log Store Unaccepted
+	if (!result.get_accepted()) {
+		// Memlog pop only when rollback or apply or here, 
+		// so if it can't find target memlog meaning corruption
+		s = mem_logger_->Remove(memlog_item);
+		if (!s.ok()) {
+			LOG(WARNING) << "MemLog Corrupted!";
+		}
+		s = Status::IOError("Raft Append Log Unaccepted, " + result.get_result_str());
+		auto arg = new PikaClientConn::BgTaskArg();
+		arg->cmd_ptr = memlog_item.cmd_ptr;
+		arg->conn_ptr = memlog_item.conn_ptr;
+		arg->resp_ptr = memlog_item.resp_ptr;
+		arg->cmd_ptr->res().SetRes(CmdRes::kErrOther, s.ToString());
+		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoRaftRollBackTask, arg, memlog_item.cmd_ptr->current_key().front());
+		return;
+	}
+	// Something went wrong.
+	// This means committing this log failed, but the log itself is still in the log store.
 	if (result.get_result_code() != nuraft::cmd_result_code::OK) {
-    // Something went wrong.
-    // This means committing this log failed, but the log itself is still in the log store.
     s = Status::Incomplete("Commit Log Failed");
     return;
   }
@@ -149,19 +264,10 @@ void PikaRaftServer::HandleRaftLogResult(Status& s, raft_result& result, nuraft:
 //TODO(lap): batched append logs
 Status PikaRaftServer::AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                                         std::shared_ptr<std::string> resp_ptr, std::string _db_name, uint32_t _slot_id) {
-	uint32_t filenum;
-	uint64_t offset;
 	Status s;
-	{
-		std::lock_guard ll(sm_mutex_);
-		s = sm_->GetLogStatus(filenum, offset);
-	}
-	if (!s.ok()) {
-		return s;
-	}
-	std::string binlog =
-		cmd_ptr->ToRaftlog(time(nullptr), filenum, offset);
-	size_t content_size = sizeof(uint32_t) + _db_name.size() + binlog.size();
+	std::string raftlog =
+		cmd_ptr->ToRaftlog(time(nullptr));
+	size_t content_size = sizeof(uint32_t) + _db_name.size() + raftlog.size();
 
 	// Create a new log which will contain
 	// 4-byte length(store data size) and sizeof data.
@@ -169,44 +275,35 @@ Status PikaRaftServer::AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::s
 	nuraft::buffer_serializer bs(new_log);
 	bs.put_u32(_slot_id);
 	bs.put_str(_db_name);
-	bs.put_str(binlog);
+	bs.put_str(raftlog);
 
-	// append local raftlog success, add to mem_logger 
-	std::lock_guard l(raft_mutex_);
-	LogOffset log_offset;
-	log_offset.l_offset.term = raft_instance_->get_term();
-  log_offset.l_offset.index = raft_instance_->get_last_log_idx() + 1;
-	mem_logger_->AppendLog(MemLog::LogItem(log_offset, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr)));
+	// append local raftlog success, add to mem_logger
+	uint64_t new_log_index;
+	{
+		std::lock_guard l(raft_mutex_);
+		new_log_index = raft_instance_->get_last_log_idx() + 1;
+	}
+	// notice that last_log_index may be same for last log has not been in consensus
+	// but memlog item with same index still keep order by real log_idx
+	RaftMemLog::LogItem memlog_item(new_log_index, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
+	mem_logger_->AppendLog(memlog_item);
 	
 	nuraft::ptr<raft_result> raft_ret = raft_instance_->append_entries( {new_log} );
 
-	// Log append Failed
-	// TODO(lap): distinguish io error of binlog (i.e. no enough space left)
-	//						from from raft service unavaliable
-	if (!raft_ret->get_accepted()) {
-			s = mem_logger_->TruncateToBefore(log_offset);
-			if (!s.ok()) {
-				LOG(WARNING) << "MemLog Corrupted! at " << log_offset.ToString();
-			}
-			s = Status::IOError("Raft Append Log Unaccepted");
-			return s;
-	}
-
-	// Log append accepted, but that doesn't mean the log is committed.
-  // Commit result can be obtained below.
   if (!g_pika_conf->async_log_append()) {
     // Blocking mode:
     //   "append_entries" returns after getting a consensus, so that "ret" already has the result from state machine.
     nuraft::ptr<std::exception> err(nullptr);
-    HandleRaftLogResult(s, *raft_ret, err);
+    HandleRaftLogResult(s, memlog_item, *raft_ret, err);
   } else {
     // Async mode:
     //   "append_entries" returns immediately. "HandleRaftLogResult" will be invoked asynchronously, after getting a consensus.
-    raft_ret->when_ready(std::bind(&PikaRaftServer::HandleRaftLogResult, 
-																		this,
-																		s,
-																		std::placeholders::_1, 
-																		std::placeholders::_2));
+    raft_ret->when_ready(std::bind(&PikaRaftServer::HandleRaftLogResult
+																	, this
+																	, s
+																	, memlog_item
+																	, std::placeholders::_1 
+																	, std::placeholders::_2));
   }
 
   return s;
@@ -222,74 +319,72 @@ bool PikaRaftServer::IsLeader() {
 	return raft_instance_ && raft_instance_->is_leader();
 }
 
-void PikaRaftServer::PrecommitLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string binlog) {
-	LogOffset offset;
-  BinlogItem item;
-  if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
-    LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Binlog item decode failed";
-  }
-	offset.b_offset = BinlogOffset(item.filenum(), item.offset());
-	offset.l_offset.term = raft_instance_->get_log_term(log_idx);
-	offset.l_offset.index = log_idx;
+void PikaRaftServer::PrecommitLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
+	uint64_t found_index;
+	if(!mem_logger_->FindLogItem(log_idx, &found_index)) {
+		net::RedisParserSettings settings;
+		settings.DealMessage = &(ConsensusCoordinator::InitCmd);
+		net::RedisParser redis_parser;
+		redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
 
-  net::RedisParserSettings settings;
-  settings.DealMessage = &(ConsensusCoordinator::InitCmd);
-  net::RedisParser redis_parser;
-  redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
+		redis_parser.data = static_cast<void*>(&db_name);
+		const char* redis_parser_start = raftlog.data() + RAFTLOG_ENCODE_LEN;
+		int redis_parser_len = static_cast<int>(raftlog.size()) - RAFTLOG_ENCODE_LEN;
+		int processed_len = 0;
+		net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
+		if (ret != net::kRedisParserDone) {
+			LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Redis parser parse failed";
+			return;
+		}
+		auto arg = static_cast<CmdPtrArg*>(redis_parser.data);
+		std::shared_ptr<Cmd> cmd_ptr = arg->cmd_ptr;
+		delete arg;
+		redis_parser.data = nullptr;
 
-  redis_parser.data = static_cast<void*>(&db_name);
-  const char* redis_parser_start = binlog.data() + BINLOG_ENCODE_LEN;
-  int redis_parser_len = static_cast<int>(binlog.size()) - BINLOG_ENCODE_LEN;
-  int processed_len = 0;
-  net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
-  if (ret != net::kRedisParserDone) {
-    LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Redis parser parse failed";
-    return;
-  }
-  auto arg = static_cast<CmdPtrArg*>(redis_parser.data);
-  std::shared_ptr<Cmd> cmd_ptr = arg->cmd_ptr;
-  delete arg;
-  redis_parser.data = nullptr;
-
-	LogOffset found_offset;
-	if(!mem_logger_->FindLogItem(offset, &found_offset)) {
-  	mem_logger_->AppendLog(MemLog::LogItem(offset, cmd_ptr, nullptr, nullptr));
+  	mem_logger_->AppendLog(RaftMemLog::LogItem(log_idx, cmd_ptr, nullptr, nullptr));
 	}
 }
 
-void PikaRaftServer::RollbackLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string binlog) {
-	LogOffset offset;
-  BinlogItem item;
-  if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
-    LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Binlog item decode failed";
-  }
-	offset.b_offset = BinlogOffset(item.filenum(), item.offset());
-	offset.l_offset.term = raft_instance_->get_log_term(log_idx);
-	offset.l_offset.index = log_idx;
-
-	mem_logger_->TruncateToBefore(offset);
-}
-
-void PikaRaftServer::ApplyLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string binlog) {
+void PikaRaftServer::RollbackLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
+	uint64_t last_commit_idx = 0;
+	{
+		std::lock_guard l(raft_mutex_);
+	 	last_commit_idx = raft_instance_->get_committed_log_idx();
+	}
 	
-	BinlogItem item;
-  if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
-    LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Binlog item decode failed";
-  }
+	std::vector<RaftMemLog::LogItem> logs;
+	if (log_idx == last_commit_idx + 1) {
+		mem_logger_->Reset(last_commit_idx, &logs);
+	} else {
+		mem_logger_->TruncateTo(log_idx - 1, &logs);
+	}
 
-	LogOffset offset;
-	offset.b_offset = BinlogOffset(item.filenum(), item.offset());
-	offset.l_offset.term = raft_instance_->get_log_term(log_idx);
-	offset.l_offset.index = log_idx;
-
-	std::vector<MemLog::LogItem> logs;
-	mem_logger_->PurgeLogs(offset, &logs);
 	for (const auto log: logs) {
 		auto arg = new PikaClientConn::BgTaskArg();
 		arg->cmd_ptr = log.cmd_ptr;
 		arg->conn_ptr = log.conn_ptr;
 		arg->resp_ptr = log.resp_ptr;
-		arg->offset = log.offset;
+		arg->cmd_ptr->res().SetRes(CmdRes::kErrOther, "Raft Log Lost Consensus in Majority, RollBack!");
+		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoRaftRollBackTask, arg, log.cmd_ptr->current_key().front());
+  }
+
+}
+
+void PikaRaftServer::ApplyLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
+	
+	BinlogItem item;
+  if (!PikaBinlogTransverter::RaftlogDecode(TypeFirst, raftlog, &item)) {
+    LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Raftlog item decode failed";
+  }
+
+	std::vector<RaftMemLog::LogItem> logs;
+	mem_logger_->PurgeLogs(log_idx, &logs);
+
+	for (const auto log: logs) {
+		auto arg = new PikaClientConn::BgTaskArg();
+		arg->cmd_ptr = log.cmd_ptr;
+		arg->conn_ptr = log.conn_ptr;
+		arg->resp_ptr = log.resp_ptr;
 		arg->db_name = db_name;
 		arg->slot_id = slot_id;
 		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());

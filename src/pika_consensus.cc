@@ -198,18 +198,6 @@ Status MemLog::TruncateTo(const LogOffset& offset) {
   return Status::OK();
 }
 
-// keep mem_log [mem_log.begin, offset)
-Status MemLog::TruncateToBefore(const LogOffset& offset) {
-  std::lock_guard l_logs(logs_mu_);
-  int index = InternalFindLogByBinlogOffset(offset);
-  if (index < 0) {
-    return Status::Corruption("Cant find correct index");
-  }
-  last_offset_ = logs_[index].offset;
-  logs_.erase(logs_.begin() + index, logs_.end());
-  return Status::OK();
-}
-
 void MemLog::Reset(const LogOffset& offset) {
   std::lock_guard l_logs(logs_mu_);
   logs_.erase(logs_.begin(), logs_.end());

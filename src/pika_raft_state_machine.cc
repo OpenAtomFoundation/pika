@@ -8,21 +8,14 @@
 #include "include/pika_consensus.h"
 #include "include/pika_client_conn.h"
 
-// dummy function for deprecated binlog info
-Status PikaStateMachine::GetLogStatus(uint32_t& filenum, uint64_t& offset) {
-  filenum = 0;
-  offset = 0;
-  return Status::OK();
-}
-
 nuraft::ptr<nuraft::buffer> PikaStateMachine::pre_commit(const ulong log_idx, nuraft::buffer& data) {
   // deserialize from nuraft buffer
   nuraft::buffer_serializer bs(data);
   uint32_t slot_id = bs.get_u32();
   std::string db_name = bs.get_str();
-  std::string binlog = bs.get_str();
+  std::string raftlog = bs.get_str();
 
-  on_precommit_(log_idx, slot_id, db_name, binlog);
+  on_precommit_(log_idx, slot_id, db_name, raftlog);
   
   return nullptr;
 }
@@ -33,9 +26,9 @@ nuraft::ptr<nuraft::buffer> PikaStateMachine::commit(const ulong log_idx, nuraft
   nuraft::buffer_serializer bs(data);
   uint32_t slot_id = bs.get_u32();
   std::string db_name = bs.get_str();
-  std::string binlog = bs.get_str();
+  std::string raftlog = bs.get_str();
 
-  on_apply_(log_idx, slot_id, db_name, binlog);
+  on_apply_(log_idx, slot_id, db_name, raftlog);
 
   // Update last committed index number.
   std::lock_guard ll(last_committed_idx_mutex_);
@@ -54,9 +47,9 @@ void PikaStateMachine::rollback(const ulong log_idx, nuraft::buffer& data) {
   nuraft::buffer_serializer bs(data);
   uint32_t slot_id = bs.get_u32();
   std::string db_name = bs.get_str();
-  std::string binlog = bs.get_str();
+  std::string raftlog = bs.get_str();
 
-  on_rollback_(log_idx, slot_id, db_name, binlog);
+  on_rollback_(log_idx, slot_id, db_name, raftlog);
 }
 
 int PikaStateMachine::read_logical_snp_obj(nuraft::snapshot& s,
