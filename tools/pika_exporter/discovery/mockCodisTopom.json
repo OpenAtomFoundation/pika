@@ -1,0 +1,195 @@
+{
+    "version": "unknown version",
+    "compile": "2019-10-08 16:18:19 +0800 by go version go1.7.4 linux/amd64",
+    "config": {
+        "coordinator_name": "zookeeper",
+        "coordinator_addr": "1.1.1.1:2181,1.1.1.2:2181,1.1.1.3:2181",
+        "coordinator_auth": "",
+        "admin_addr": "0.0.0.0:1234",
+        "product_name": "test",
+        "migration_method": "semi-async",
+        "migration_parallel_slots": 100,
+        "migration_async_maxbulks": 200,
+        "migration_async_maxbytes": "32mb",
+        "migration_async_numkeys": 500,
+        "migration_timeout": "30s",
+        "sentinel_client_timeout": "10s",
+        "sentinel_quorum": 2,
+        "sentinel_parallel_syncs": 1,
+        "sentinel_down_after": "30s",
+        "sentinel_failover_timeout": "5m",
+        "sentinel_notification_script": "",
+        "sentinel_client_reconfig_script": ""
+    },
+    "model": {
+        "token": "sdf123sdf112xx4",
+        "start_time": "2021-06-28 11:32:49.497871229 +0800 CST",
+        "admin_addr": "1.1.1.4:12345",
+        "product_name": "test",
+        "pid": 1740,
+        "pwd": "/data/codis",
+        "sys": "Linux localhost.localdomain 3.10.0-693.el7.x86_64 #1 SMP Tue Aug 22 21:09:27 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux"
+    },
+    "stats": {
+        "closed": false,
+        "slots": [
+            {
+                "id": 0,
+                "group_id": 1,
+                "action": {}
+            },
+            {
+                "id": 1,
+                "group_id": 1,
+                "action": {}
+            }
+        ],
+        "group": {
+            "models": [
+                {
+                    "id": 1,
+                    "servers": [
+                        {
+                            "server": "1.1.1.6:1100",
+                            "datacenter": "",
+                            "action": {},
+                            "replica_group": false
+                        },
+                        {
+                            "server": "1.1.1.7:1100",
+                            "datacenter": "",
+                            "action": {
+                                "state": "synced"
+                            },
+                            "replica_group": false
+                        }
+                    ],
+                    "promoting": {},
+                    "out_of_sync": false
+                }
+            ],
+            "stats": {
+                "1.1.1.6:1100": {
+                    "stats": {
+                        "active_defrag_hits": "0"
+                    },
+                    "unixtime": 1693281655
+                },
+                "1.1.1.7:1100": {
+                    "stats": {
+                        "active_defrag_hits": "0"
+                    },
+                    "unixtime": 1693281655
+                },
+                    "unixtime": 1693281655
+                }
+        },
+        "proxy": {
+            "models": [
+                {
+                    "id": 2,
+                    "token": "4337153123141c4df6e363d281",
+                    "start_time": "2021-07-06 10:30:33.588330243 +0800 CST",
+                    "datacenter": ""
+                },
+                {
+                    "id": 3,
+                    "token": "ef7e1ad5422ab8e28241410e856",
+                    "start_time": "2021-07-06 10:34:21.305110128 +0800 CST",
+                    "datacenter": ""
+                }
+            ],
+            "stats": {
+                "4337153c64e1babd3b5c4df6e363d281": {
+                    "stats": {
+                        "online": true,
+                        "closed": false,
+                        "sentinels": {},
+                        "ops": {
+                            "total": 791976,
+                            "fails": 6,
+                            "redis": {
+                                "errors": 1
+                            },
+                            "qps": 11
+                        },
+                        "sessions": {
+                            "total": 528784,
+                            "alive": 34
+                        },
+                        "rusage": {
+                            "now": "2023-08-29 12:00:53.605229492 +0800 CST",
+                            "cpu": 0.009997645624438964,
+                            "mem": 162881512312336,
+                            "raw": {
+                                "utime": 4474490510000000,
+                                "stime": 4125310130000000,
+                                "cutime": 0,
+                                "cstime": 0,
+                                "num_threads": 358,
+                                "vm_size": 29351325696,
+                                "vm_rss": 162881536
+                            }
+                        },
+                        "backend": {
+                            "primary_only": false
+                        }
+                    },
+                    "unixtime": 1693281654
+                },
+                "ef87e1ad5422ab8e2816b6694750e856": {
+                    "stats": {
+                        "online": true,
+                        "closed": false,
+                        "sentinels": {},
+                        "ops": {
+                            "total": 27570566,
+                            "fails": 31,
+                            "redis": {
+                                "errors": 2
+                            },
+                            "qps": 8
+                        },
+                        "sessions": {
+                            "total": 6349,
+                            "alive": 4
+                        },
+                        "rusage": {
+                            "now": "2023-08-29 12:00:54.516379647 +0800 CST",
+                            "cpu": 0,
+                            "mem": 19081124412160,
+                            "raw": {
+                                "utime": 1666690710000000,
+                                "stime": 2573457670000000,
+                                "cutime": 0,
+                                "cstime": 0,
+                                "num_threads": 51,
+                                "vm_size": 8284008448,
+                                "vm_rss": 190812160
+                            }
+                        },
+                        "backend": {
+                            "primary_only": false
+                        }
+                    },
+                    "unixtime": 1693281654
+                }
+            }
+        },
+        "slot_action": {
+            "interval": 0,
+            "disabled": false,
+            "progress": {
+                "status": ""
+            },
+            "executor": 0
+        },
+        "sentinels": {
+            "model": {
+                "out_of_sync": false
+            },
+            "stats": {},
+            "masters": {}
+        }
+    }
+}

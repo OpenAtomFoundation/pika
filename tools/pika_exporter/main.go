@@ -18,6 +18,7 @@ import (
 var (
 	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.")
 	addr               = flag.String("pika.addr", getEnv("PIKA_ADDR", ""), "Address of one or more pika nodes, separated by comma.")
+	codisaddr          = flag.String("codis.addr", getEnv("CODIS_ADDR", "http://localhost:port/topom"), "Address of one or more codis topom urls, separated by comma.")
 	password           = flag.String("pika.password", getEnv("PIKA_PASSWORD", ""), "Password for one or more pika nodes, separated by comma.")
 	alias              = flag.String("pika.alias", getEnv("PIKA_ALIAS", ""), "Pika instance alias for one or more pika nodes, separated by comma.")
 	namespace          = flag.String("namespace", getEnv("PIKA_EXPORTER_NAMESPACE", "pika"), "Namespace for metrics.")
@@ -92,6 +93,8 @@ func main() {
 	var dis discovery.Discovery
 	if *hostFile != "" {
 		dis, err = discovery.NewFileDiscovery(*hostFile)
+	} else if *codisaddr != "" {
+		dis, err = discovery.NewCodisDiscovery(*codisaddr, *password, *alias)
 	} else {
 		dis, err = discovery.NewCmdArgsDiscovery(*addr, *password, *alias)
 	}
