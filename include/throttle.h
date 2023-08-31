@@ -8,6 +8,9 @@
 
 #include <atomic>
 #include "pstd/include/pstd_mutex.h"
+#include "pika_conf.h"
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 namespace rsync {
 class Throttle {
@@ -17,6 +20,10 @@ class Throttle {
     ~Throttle();
     size_t ThrottledByThroughput(size_t bytes);
     void ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t elaspe_time_us);
+    static Throttle& GetInstance() {
+      static Throttle instance(g_pika_conf->throttle_bytes_per_second(), 10);
+      return instance;
+    }
 
  private:
     std::atomic<size_t> throttle_throughput_bytes_ = 100 * 1024 * 1024;

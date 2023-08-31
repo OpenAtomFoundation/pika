@@ -620,6 +620,17 @@ int PikaConf::Load() {
   GetConfInt64("blob-num-shard-bits", &blob_num_shard_bits_);
 
   return ret;
+
+  // throttle-bytes-per-second
+  GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
+  if (throttle_bytes_per_second_ <= 0) {
+    throttle_bytes_per_second_ = 307200000;
+  }
+
+  GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
+  if (max_rsync_parallel_num_ <= 0) {
+    max_rsync_parallel_num_ = 4;
+  }
 }
 
 void PikaConf::TryPushDiffCommands(const std::string& command, const std::string& value) {
@@ -660,6 +671,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("manually-resume-interval", resume_check_interval_);
   SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);
   SetConfInt("slave-priority", slave_priority_);
+  SetConfInt("throttle-bytes-per-second", throttle_bytes_per_second_);
+  SetConfInt("max-rsync-parallel-num", max_rsync_parallel_num_);
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());

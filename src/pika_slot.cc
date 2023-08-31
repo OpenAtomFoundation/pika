@@ -206,14 +206,6 @@ bool Slot::TryUpdateMasterOffset() {
             << ",  master_ip: " << master_ip << ", master_port: " << master_port << ", filenum: " << filenum
             << ", offset: " << offset << ", term: " << term << ", index: " << index;
 
-  // Sanity check
-  if (master_ip != slave_slot->MasterIp() || master_port != slave_slot->MasterPort()) {
-    LOG(WARNING) << "Slot: " << slot_name_ << " Error master node ip port: " << master_ip << ":"
-                 << master_port;
-    slave_slot->SetReplState(ReplState::kError);
-    return false;
-  }
-
   pstd::DeleteFile(info_path);
   if (!ChangeDb(dbsync_path_)) {
     LOG(WARNING) << "Slot: " << slot_name_ << ", Failed to change db";

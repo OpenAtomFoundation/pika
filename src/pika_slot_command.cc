@@ -786,7 +786,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   } else {
     hastag = 1;
   }
-  auto crc = static_cast<int32_t>(CRC32CheckSum(tag, taglen));
+  uint32_t crc = CRC32CheckSum(tag, taglen);
   if (pcrc != nullptr) {
     *pcrc = crc;
   }

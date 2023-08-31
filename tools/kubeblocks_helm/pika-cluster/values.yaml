@@ -7,6 +7,8 @@ fullnameOverride: ""
 
 replicaCount: 2
 
+slaveCount: 1
+
 etcdReplicaCount: 3
 
 codisProxyReplicaCount: 2
@@ -30,16 +32,48 @@ resources:
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  limits:
-    cpu: 500m
-    memory: 3Gi
-  requests:
-    cpu: 500m
-    memory: 1Gi
+  pikaGroup:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  etcd:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisProxy:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisFe:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisDashboard:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
 
 persistence:
   enabled: true
-  data:
+  pikaData:
+    storageClassName:
+    size: 10Gi
+  etcdData:
     storageClassName:
     size: 1Gi
 
