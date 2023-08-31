@@ -72,7 +72,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 				if g.Servers[0].ReCallTimes >= s.Config().SentinelMasterDeadCheckTimes {
 					// Mark enters objective offline state
 					g.Servers[0].State = models.GroupServerStateOffline
-					g.Servers[0].IsOnceGroupMaster = true
+					g.Servers[0].ReplicaGroup = false
 				}
 				// Start the election master node
 				if g.Servers[0].State == models.GroupServerStateOffline {

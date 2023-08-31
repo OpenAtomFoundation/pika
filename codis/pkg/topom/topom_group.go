@@ -442,13 +442,11 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 		log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
 		return err
 	}
+
 	// Set other nodes in the group as slave nodes of the new master node
 	for _, server := range g.Servers {
-		if server.State != models.GroupServerStateNormal || (server.Addr == master && !server.IsOnceGroupMaster) {
+		if server.State != models.GroupServerStateNormal || server.Addr == master {
 			continue
-		}
-		if server.Addr == master && server.IsOnceGroupMaster {
-			server.IsOnceGroupMaster = false
 		}
 		var client2 *redis.Client
 		if client2, err = redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
