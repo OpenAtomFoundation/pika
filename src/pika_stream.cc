@@ -204,6 +204,12 @@ void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
   StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, start_ex_, end_ex_);
 }
 
+void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
+  StreamCmdBase::ScanStreamOptions options(key_, start_sid, end_sid, count_);
+  bool reverse = true;
+  StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, start_ex_, end_ex_, reverse);
+}
+
 void XDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);

@@ -30,7 +30,6 @@ treeID TreeIDGenerator::GetNextTreeID(const std::shared_ptr<Slot> &slot) {
   ++tree_id_;
   std::string tree_id_str = std::to_string(tree_id_);
   rocksdb::Status s = slot->db()->Set(STREAM_TREE_STRING_KEY, tree_id_str);
-  LOG(INFO) << "Set tree id to " << tree_id_str << " tree id: " << tree_id_;
   return tree_id_;
 }
 
@@ -47,7 +46,6 @@ void TreeIDGenerator::TryToFetchLastIdFromStorage(const std::shared_ptr<Slot> &s
   } else {
     // not found, set start tree id and insert to db
     tree_id_ = START_TREE_ID;
-    LOG(INFO) << "Tree id not found, set to start tree id: " << START_TREE_ID;
   }
 }
 
@@ -318,7 +316,7 @@ void StreamCmdBase::StreamParseIntervalIdOrRep(CmdRes &res, const std::string &v
 
 void StreamCmdBase::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
                                     std::vector<storage::FieldValue> &field_values, std::string &next_field,
-                                    const std::shared_ptr<Slot> &slot) {
+                                    const std::shared_ptr<Slot> &slot, const bool is_reverse) {
   auto &skey = option.skey;
   auto &start_sid = option.start_sid;
   auto &end_sid = option.end_sid;
@@ -327,17 +325,28 @@ void StreamCmdBase::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option
   std::string start_field;
   std::string end_field;
   rocksdb::Slice pattern = "*";  // match all the fields from start_field to end_field
-  start_sid.SerializeTo(start_field);
-  if (end_sid == kSTREAMID_MAX) {
-    end_field = "";  // empty for no end_sid
+
+  rocksdb::Status s;
+
+  if (is_reverse) {
+    end_sid.SerializeTo(start_field);
+    if (start_sid == kSTREAMID_MAX) {
+      start_field = "";  // empty for no end_sid
+    } else {
+      start_sid.SerializeTo(start_field);
+    }
+    s = slot->db()->PKHRScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
   } else {
-    end_sid.SerializeTo(end_field);
+    start_sid.SerializeTo(start_field);
+    if (end_sid == kSTREAMID_MAX) {
+      end_field = "";  // empty for no end_sid
+    } else {
+      end_sid.SerializeTo(end_field);
+    }
+    s = slot->db()->PKHScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
   }
 
-  rocksdb::Status s =
-      slot->db()->PKHScanRange(skey, start_field, end_field, pattern, count, &field_values, &next_field);
   if (s.IsNotFound()) {
-    LOG(INFO) << "no message found in XRange";
     return;
   } else if (!s.ok()) {
     LOG(ERROR) << "PKHScanRange failed";
@@ -348,15 +357,16 @@ void StreamCmdBase::ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option
 
 void StreamCmdBase::ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &op,
                                                    const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
-                                                   bool start_ex, bool end_ex) {
+                                                   const bool start_ex, const bool end_ex, const bool is_reverse) {
   std::vector<storage::FieldValue> field_values;
   std::string next_field;
   auto &start_sid = op.start_sid;
   auto &end_sid = op.end_sid;
 
-  if (start_sid <= end_sid) {
-    StreamCmdBase::ScanStreamOrRep(res, op, field_values, next_field, slot);
+  if ((!is_reverse && start_sid <= end_sid) || (is_reverse && end_sid <= start_sid)) {
+    StreamCmdBase::ScanStreamOrRep(res, op, field_values, next_field, slot, is_reverse);
   }
+
   (void)next_field;
   if (res.ret() != CmdRes::kNone) {
     return;
@@ -617,7 +627,6 @@ void StreamCmdBase::DestoryStreamsOrRep(CmdRes &res, std::vector<std::string> &k
     StreamMetaValue stream_meta;
     auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot);
     if (s.IsNotFound()) {
-      LOG(INFO) << "Stream meta not found, skip key: " << key;
       continue;
     } else if (!s.ok()) {
       LOG(ERROR) << "Get stream meta failed";
@@ -625,13 +634,10 @@ void StreamCmdBase::DestoryStreamsOrRep(CmdRes &res, std::vector<std::string> &k
       return;
     }
 
-    LOG(INFO) << "Deleting stream: " << key << " meta: " << stream_meta.ToString();
-
     // 2 destroy all the cgroup
     // 2.1 find all the cgroups' meta
     auto cgroup_tid = stream_meta.groups_id();
     if (cgroup_tid == kINVALID_TREE_ID) {
-      LOG(INFO) << "No cgroup found, skip";
     } else {
       std::vector<storage::FieldValue> field_values;
       s = StreamStorage::GetAllTreeNode(cgroup_tid, field_values, slot);
@@ -861,6 +867,6 @@ void StreamCmdBase::GetOrCreateConsumer(CmdRes &res, treeID consumer_tid, std::s
       return;
     }
   }
-  
+
   res.SetRes(CmdRes::kErrOther, s.ToString());
 }

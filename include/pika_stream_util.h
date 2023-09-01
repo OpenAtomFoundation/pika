@@ -138,16 +138,14 @@ class StreamCmdBase {
 
   static void ScanStreamOrRep(CmdRes &res, const ScanStreamOptions &option,
                               std::vector<storage::FieldValue> &field_values, std::string &next_field,
-                              const std::shared_ptr<Slot> &slot);
-
+                              const std::shared_ptr<Slot> &slot, const bool is_reverse = false);
   // used to support range scan cmd, like xread, xrange, xrevrange
   // do the scan in a stream and append messages to res
   // @skey: the key of the stream
   // @row_ids: if not null, will append the id to it
   static void ScanAndAppendMessageToResOrRep(CmdRes &res, const ScanStreamOptions &option,
                                              const std::shared_ptr<Slot> &slot, std::vector<std::string> *row_ids,
-                                             bool start_ex = false, bool end_ex = false);
-
+                                             const bool start_ex = false, const bool end_ex = false, const bool is_reverse = false);
   //===--------------------------------------------------------------------===//
   // StreamID operator
   //===--------------------------------------------------------------------===//

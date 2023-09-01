@@ -94,6 +94,13 @@ func insertIntoStreamKey(client *redis.Client, key string) error {
 	return err
 }
 
+func ReverseSlice(slice []redis.XMessage) {
+	length := len(slice)
+	for i := 0; i < length/2; i++ {
+		slice[i], slice[length-i-1] = slice[length-i-1], slice[i]
+	}
+}
+
 var _ = Describe("Stream Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
@@ -332,9 +339,9 @@ var _ = Describe("Stream Commands", func() {
 			Expect(len(client.XRangeN(ctx, "mystream", "-", "+", 10).Val())).To(Equal(10))
 		})
 
-		// It("XREVRANGE COUNT works as expected", func() {
-		// 	Expect(len(client.XRevRangeN(ctx, "mystream", "+", "-", 10).Val())).To(Equal(10))
-		// })
+		It("XREVRANGE COUNT works as expected", func() {
+			Expect(len(client.XRevRangeN(ctx, "mystream", "+", "-", 10).Val())).To(Equal(10))
+		})
 
 		It("XRANGE can be used to iterate the whole stream", func() {
 			lastID, c := "-", 0
@@ -352,12 +359,12 @@ var _ = Describe("Stream Commands", func() {
 			Expect(c).To(Equal(1000))
 		})
 
-		// It("XREVRANGE returns the reverse of XRANGE", func() {
-		// 	items := client.XRange(ctx, "mystream", "-", "+").Val()
-		// 	revItems := client.XRevRange(ctx, "mystream", "+", "-").Val()
-		// 	util.ReverseSlice(revItems)
-		// 	Expect(revItems).To(Equal(items))
-		// })
+		It("XREVRANGE returns the reverse of XRANGE", func() {
+			items := client.XRange(ctx, "mystream", "-", "+").Val()
+			revItems := client.XRevRange(ctx, "mystream", "+", "-").Val()
+			ReverseSlice(revItems)
+			Expect(revItems).To(Equal(items))
+		})
 
 		It("XRANGE exclusive ranges", func() {
 			ids := []string{"0-1", "0-18446744073709551615", "1-0", "42-0", "42-42", "18446744073709551615-18446744073709551614", "18446744073709551615-18446744073709551615"}
@@ -484,22 +491,22 @@ var _ = Describe("Stream Commands", func() {
 			}
 		})
 
-		// It("XREVRANGE regression test for (redis issue #5006)", func() {
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891240", Values: []string{"key2", "value2"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891250", Values: []string{"key3", "value3"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891240", Values: []string{"key1", "value2"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891250", Values: []string{"key1", "value3"}}).Err()).NotTo(HaveOccurred())
-		// 	items := client.XRevRange(ctx, "teststream", "1234567891245", "-").Val()
-		// 	Expect(items).To(HaveLen(2))
-		// 	Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key2": "value2"}}))
-		// 	Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
-		// 	items = client.XRevRange(ctx, "teststream2", "1234567891245", "-").Val()
-		// 	Expect(items).To(HaveLen(2))
-		// 	Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key1": "value2"}}))
-		// 	Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
-		// })
+		It("XREVRANGE regression test for (redis issue #5006)", func() {
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891240", Values: []string{"key2", "value2"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream", ID: "1234567891250", Values: []string{"key3", "value3"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891230", Values: []string{"key1", "value1"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891240", Values: []string{"key1", "value2"}}).Err()).NotTo(HaveOccurred())
+			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "teststream2", ID: "1234567891250", Values: []string{"key1", "value3"}}).Err()).NotTo(HaveOccurred())
+			items := client.XRevRange(ctx, "teststream", "1234567891245", "-").Val()
+			Expect(items).To(HaveLen(2))
+			Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key2": "value2"}}))
+			Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
+			items = client.XRevRange(ctx, "teststream2", "1234567891245", "-").Val()
+			Expect(items).To(HaveLen(2))
+			Expect(items[0]).To(Equal(redis.XMessage{ID: "1234567891240-0", Values: map[string]interface{}{"key1": "value2"}}))
+			Expect(items[1]).To(Equal(redis.XMessage{ID: "1234567891230-0", Values: map[string]interface{}{"key1": "value1"}}))
+		})
 
 		It("XREAD streamID edge (no-blocking)", func() {
 			Expect(client.Del(ctx, "x").Err()).NotTo(HaveOccurred())
@@ -596,6 +603,5 @@ var _ = Describe("Stream Commands", func() {
 		// 	Expect(err).NotTo(HaveOccurred())
 		// 	Expect(reply.FirstEntry.ID).To(Equal("4-0"))
 		// })
-
 	})
 })
