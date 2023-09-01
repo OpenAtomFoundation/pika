@@ -29,6 +29,8 @@
 #include "include/throttle.h"
 #include "rsync_service.pb.h"
 
+extern std::unique_ptr<PikaConf> g_pika_conf;
+
 const std::string kDumpMetaFileName = "DUMP_META_DATA";
 const std::string kUuidPrefix = "snapshot-uuid:";
 
@@ -50,6 +52,7 @@ public:
   void* ThreadMain() override;
   void Copy(const std::set<std::string>& file_set, int index);
   bool Init();
+  int GetParallelNum();
   Status Start();
   Status Stop();
   bool IsRunning() {
@@ -93,9 +96,9 @@ private:
   std::condition_variable cond_;
   std::mutex mu_;
 
-  std::unique_ptr<Throttle> throttle_;
   std::string master_ip_;
   int master_port_;
+  int parallel_num_;
 };
 
 class RsyncWriter {
@@ -155,7 +158,7 @@ public:
     pstd::Status s = Status::Timeout("rsync timeout", "timeout");
     {
       std::unique_lock<std::mutex> lock(mu_);
-      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(3), [this] {
+      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
           return resp_ != nullptr;
       });
       if (!cv_s) {

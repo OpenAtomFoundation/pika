@@ -6,6 +6,7 @@ on:
 
 jobs:
   push_pika_to_registry:
+    timeout-minutes: 600
     name: Push Pika Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
