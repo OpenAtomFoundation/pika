@@ -50,11 +50,6 @@ PConfig::PConfig() {
 
   maxclients = 10000;
 
-  // aof
-  appendonly = false;
-  appendfilename = "appendonly.aof";
-  appendfsync = 0;
-
   // slow log
   slowlogtime = 0;
   slowlogmaxlen = 128;
@@ -139,22 +134,6 @@ bool LoadPikiwiDBConfig(const char* cfgFile, PConfig& cfg) {
   cfg.rdbfullname = parser.GetData<PString>("dir", "./") + parser.GetData<PString>("dbfilename", "dump.rdb");
 
   cfg.maxclients = parser.GetData<int>("maxclients", 10000);
-  cfg.appendonly = (parser.GetData<PString>("appendonly", "no") == "yes");
-  cfg.appendfilename = parser.GetData<const char*>("appendfilename", "appendonly.aof");
-  if (cfg.appendfilename.size() <= 2) {
-    return false;
-  }
-
-  if (cfg.appendfilename[0] == '"') { // redis.conf use quote for string, but pikiwidb do not. For compatiable...
-    cfg.appendfilename = cfg.appendfilename.substr(1, cfg.appendfilename.size() - 2);
-  }
-
-  PString tmpfsync = parser.GetData<const char*>("appendfsync", "no");
-  // pikiwidb always use "always", fsync is done in another thread
-  if (tmpfsync == "everysec") {
-  } else if (tmpfsync == "always") {
-  } else {
-  }
 
   cfg.slowlogtime = parser.GetData<int>("slowlog-log-slower-than", 0);
   cfg.slowlogmaxlen = parser.GetData<int>("slowlog-max-len", cfg.slowlogmaxlen);

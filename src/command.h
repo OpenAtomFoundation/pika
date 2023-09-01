@@ -53,7 +53,6 @@ PCommandHandler flushall;
 PCommandHandler client;
 PCommandHandler debug;
 PCommandHandler shutdown;
-PCommandHandler bgrewriteaof;
 PCommandHandler ping;
 PCommandHandler echo;
 PCommandHandler info;

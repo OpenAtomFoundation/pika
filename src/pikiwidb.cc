@@ -21,7 +21,6 @@
 #include "command.h"
 #include "store.h"
 
-#include "aof.h"
 #include "config.h"
 #include "db.h"
 #include "pubsub.h"
@@ -137,24 +136,14 @@ static void PdbCron() {
 static void LoadDBFromDisk() {
   using namespace pikiwidb;
 
-  //  USE AOF RECOVERY FIRST, IF FAIL, THEN RDB
-  PAOFLoader aofLoader;
-  if (aofLoader.Load(g_config.appendfilename.c_str())) {
-    const auto& cmds = aofLoader.GetCmds();
-    for (const auto& cmd : cmds) {
-      const PCommandInfo* info = PCommandTable::GetCommandInfo(cmd[0]);
-      PCommandTable::ExecuteCmd(cmd, info);
-    }
-  } else {
-    PDBLoader loader;
-    loader.Load(g_config.rdbfullname.c_str());
-  }
+  PDBLoader loader;
+  loader.Load(g_config.rdbfullname.c_str());
 }
 
 static void CheckChild() {
   using namespace pikiwidb;
 
-  if (g_qdbPid == -1 && g_rewritePid == -1) {
+  if (g_qdbPid == -1) {
     return;
   }
 
@@ -176,12 +165,9 @@ static void CheckChild() {
       } else {
         PREPL.TryBgsave();
       }
-    } else if (pid == g_rewritePid) {
-      INFO("pid {} rewrite process success done.", pid);
-      PAOFThreadController::RewriteDoneHandler(exit, signal);
     } else {
-      ERROR("{} is not rdb or aof process", pid);
-      assert(!!!"Is there any back process except rdb and aof?");
+      ERROR("{} is not rdb process", pid);
+      assert(!!!"Is there any back process except rdb?");
     }
   }
 }
@@ -236,12 +222,10 @@ bool PikiwiDB::Init() {
   PSTORE.InitDumpBackends();
   PPubsub::Instance().InitPubsubTimer();
 
-  // Only if there is no backend, load aof or rdb
+  // Only if there is no backend, load rdb
   if (g_config.backend == pikiwidb::BackEndNone) {
     LoadDBFromDisk();
   }
-
-  PAOFThreadController::Instance().Start();
 
   PSlowLog::Instance().SetThreshold(g_config.slowlogtime);
   PSlowLog::Instance().SetLogLimit(static_cast<std::size_t>(g_config.slowlogmaxlen));
@@ -274,7 +258,6 @@ void PikiwiDB::Run() {
 
 void PikiwiDB::Recycle() {
   std::cerr << "PikiwiDB::recycle: server is exiting.. BYE BYE\n";
-  pikiwidb::PAOFThreadController::Instance().Stop();
 }
 
 void PikiwiDB::Stop() { event_loop_.Stop(); }

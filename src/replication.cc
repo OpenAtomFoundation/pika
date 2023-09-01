@@ -20,9 +20,9 @@
 #include "net/util.h"
 #include "pikiwidb.h"
 
-#include "aof.h"
-
 namespace pikiwidb {
+
+
 
 PReplication& PReplication::Instance() {
   static PReplication rep;

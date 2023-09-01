@@ -52,7 +52,7 @@ static PError push(const vector<PString>& params, UnboundedBuffer* reply, ListPo
 
   FormatInt(static_cast<long>(list->size()), reply);
   if (mayReady && !list->empty()) {
-    if (reply)  { // Do not propogate if aof reload...
+    if (reply)  {
       // push must before pop(serve)...
       Propagate(params);                    // the push
       PSTORE.ServeClient(params[1], list);  // the pop

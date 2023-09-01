@@ -47,10 +47,6 @@ struct PConfig {
 
   int maxclients;  // 10000
 
-  bool appendonly;         // no
-  PString appendfilename;  // appendonly.aof
-  int appendfsync;         // no, everysec, always
-
   int slowlogtime;    // 1000 microseconds
   int slowlogmaxlen;  // 128
 

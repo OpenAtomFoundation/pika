@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <cassert>
 
-#include "aof.h"
 #include "client.h"
 #include "config.h"
 #include "db.h"
@@ -76,9 +75,9 @@ PError flushall(const std::vector<PString>& params, UnboundedBuffer* reply) {
 }
 
 PError bgsave(const std::vector<PString>& params, UnboundedBuffer* reply) {
-  if (g_qdbPid != -1 || g_rewritePid != -1) {
-    FormatBulk("-ERR Background save or aof already in progress",
-               sizeof "-ERR Background save or aof already in progress" - 1, reply);
+  if (g_qdbPid != -1) {
+    FormatBulk("-ERR Background save already in progress",
+               sizeof "-ERR Background save already in progress" - 1, reply);
 
     return PError_ok;
   }
@@ -101,9 +100,9 @@ PError bgsave(const std::vector<PString>& params, UnboundedBuffer* reply) {
 }
 
 PError save(const std::vector<PString>& params, UnboundedBuffer* reply) {
-  if (g_qdbPid != -1 || g_rewritePid != -1) {
-    FormatBulk("-ERR Background save or aof already in progress",
-               sizeof "-ERR Background save or aof already in progress" - 1, reply);
+  if (g_qdbPid != -1) {
+    FormatBulk("-ERR Background save already in progress",
+               sizeof "-ERR Background save already in progress" - 1, reply);
 
     return PError_ok;
   }
@@ -359,7 +358,6 @@ struct ConfigInfo {
 
 // TODO sanity check: use function setter
 std::map<PString, ConfigInfo> configOptions = {
-    {"appendonly", {Config_bool, true, &g_config.appendonly}},
     {"bind", {Config_string, false, &g_config.ip}},
     {"dbfilename", {Config_string, true, &g_config.rdbfullname}},
     {"databases", {Config_int, false, &g_config.databases}},
