@@ -1324,6 +1324,8 @@ void ConfigCmd::Do(std::shared_ptr<Slot> slot) {
     ConfigRewrite(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "resetstat") == 0) {
     ConfigResetstat(config_ret);
+  } else if (strcasecmp(config_args_v_[0].data(), "rewritereplicateid") == 0) {
+    ConfigRewriteReplicateID(config_ret);
   }
   res_.AppendStringRaw(config_ret);
 }
@@ -1849,6 +1851,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->max_rsync_parallel_num());
   }
 
+  if (pstd::stringmatch(pattern.data(), "replication-id", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "replication-id");
+    EncodeString(&config_body, g_pika_conf->replication_id());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -2183,12 +2191,19 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-rsync-parallel-num") {
-     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
-       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
-       return;
-     }
-     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
-     ret = "+OK\r\n";
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "replication-id") {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'replication-id'\r\n";
+      return;
+    }
+    g_pika_conf->SetReplicationID(std::to_string(ival));
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2196,6 +2211,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
 
 void ConfigCmd::ConfigRewrite(std::string& ret) {
   if (g_pika_conf->ConfigRewrite() != 0) {
+    ret = "+OK\r\n";
+  } else {
+    ret = "-ERR Rewire CONFIG fail\r\n";
+  }
+}
+
+void ConfigCmd::ConfigRewriteReplicateID(std::string &ret) {
+  if (g_pika_conf->ConfigRewriteReplicateId() != 0) {
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Rewire CONFIG fail\r\n";
@@ -2625,6 +2648,19 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
   res_.SetRes(CmdRes::kOk, "The disk error has been recovered");
+}
+
+void ClearReplicateIdCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicateId);
+    return;
+  }
+}
+
+void ClearReplicateIdCmd::Do(std::shared_ptr<Slot> slot) {
+  g_pika_conf->SetReplicationID("");
+  g_pika_conf->ConfigRewriteReplicateId();
+  res_.SetRes(CmdRes::kOk, "ReplicationId is cleared");
 }
 
 #ifdef WITH_COMMAND_DOCS

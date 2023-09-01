@@ -117,6 +117,7 @@ message InnerResponse {
     required bool      classic_mode = 1;
     repeated DBInfo    dbs_info  = 2;
     required string    run_id = 3;
+    required string    replication_id = 6;
   }
 
   // master to slave

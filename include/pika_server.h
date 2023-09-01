@@ -152,6 +152,7 @@ class PikaServer : public pstd::noncopyable {
   time_t start_time_s();
   std::string master_ip();
   std::string master_run_id();
+  std::string replication_id();
   void set_master_run_id(const std::string& master_run_id);
   int master_port();
   int role();
