@@ -5,7 +5,7 @@ set ::valgrind_errors {}
 proc start_server_error {config_file error} {
     set err {}
     append err "Cant' start the Redis server\n"
-    append err "CONFIGURATION:"
+    append err "CONFIGURATION:\n"
     append err [exec cat $config_file]
     append err "\nERROR:"
     append err [string trim $error]
@@ -206,6 +206,9 @@ proc start_server {options {code undefined}} {
             }
         } elseif {$directive == "dump_prefix"} {
             puts $fp "$directive :"
+        } elseif {$directive == "databases"} {
+            puts -nonewline $fp "$directive : "
+            puts $fp [dict get $config $directive]
         } else {
             puts -nonewline $fp "$directive : "
             puts $fp [dict get $config $directive]

@@ -1,8 +1,7 @@
 start_server {
     tags {"scripting"}
     overrides {
-        "databases" :7
-        "set-max-intset-entries" 512
+        "databases" 7
     }
 } {
     test {EVAL - Does Lua interpreter replies to our requests?} {
@@ -312,52 +311,52 @@ start_server {
     # } {102}
 }
 
-# TODO not implement
 # Start a new server since the last test in this stanza will kill the
 # instance at all.
-# start_server {tags {"scripting"}} {
-#     test {Timedout read-only scripts can be killed by SCRIPT KILL} {
-#         set rd [redis_deferring_client]
-#         r config set lua-time-limit 10
-#         $rd eval {while true do end} 0
-#         after 200
-#         catch {r ping} e
-#         assert_match {BUSY*} $e
-#         r script kill
-#         assert_equal [r ping] "PONG"
-#     }
+start_server {tags {"scripting"}} {
+    test {Timedout read-only scripts can be killed by SCRIPT KILL} {
+        set rd [redis_deferring_client]
+        r config set lua-time-limit 10
+        $rd eval {while true do end} 0
+        after 200
+        catch {r ping} e
+        assert_match {BUSY*} $e
+        r script kill
+        assert_equal [r ping] "PONG"
+    }
 
-#     test {Timedout script link is still usable after Lua returns} {
-#         r config set lua-time-limit 10
-#         r eval {for i=1,100000 do redis.call('ping') end return 'ok'} 0
-#         r ping
-#     } {PONG}
+    test {Timedout script link is still usable after Lua returns} {
+        r config set lua-time-limit 10
+        r eval {for i=1,100000 do redis.call('ping') end return 'ok'} 0
+        r ping
+    } {PONG}
 
-#     test {Timedout scripts that modified data can't be killed by SCRIPT KILL} {
-#         set rd [redis_deferring_client]
-#         r config set lua-time-limit 10
-#         $rd eval {redis.call('set','x','y'); while true do end} 0
-#         after 200
-#         catch {r ping} e
-#         assert_match {BUSY*} $e
-#         catch {r script kill} e
-#         assert_match {UNKILLABLE*} $e
-#         catch {r ping} e
-#         assert_match {BUSY*} $e
-#     }
+    test {Timedout scripts that modified data can't be killed by SCRIPT KILL} {
+        set rd [redis_deferring_client]
+        r config set lua-time-limit 10
+        $rd eval {redis.call('set','x','y'); while true do end} 0
+        after 200
+        catch {r ping} e
+        assert_match {BUSY*} $e
+        catch {r script kill} e
+        assert_match {UNKILLABLE*} $e
+        catch {r ping} e
+        assert_match {BUSY*} $e
+    }
 
-#     # Note: keep this test at the end of this server stanza because it
-#     # kills the server.
-#     test {SHUTDOWN NOSAVE can kill a timedout script anyway} {
-#         # The server sould be still unresponding to normal commands.
-#         catch {r ping} e
-#         assert_match {BUSY*} $e
-#         catch {r shutdown nosave}
-#         # Make sure the server was killed
-#         catch {set rd [redis_deferring_client]} e
-#         assert_match {*connection refused*} $e
-#     }
-# }
+    # TODO not implement, for shutdown we must waif for thread pool to exit, but we cannot do that
+    # # Note: keep this test at the end of this server stanza because it
+    # # kills the server.
+    # test {SHUTDOWN NOSAVE can kill a timedout script anyway} {
+    #     # The server sould be still unresponding to normal commands.
+    #     catch {r ping} e
+    #     assert_match {BUSY*} $e
+    #     catch {r shutdown}
+    #     # Make sure the server was killed
+    #     catch {set rd [redis_deferring_client]} e
+    #     assert_match {*connection refused*} $e
+    # }
+}
 
 # start_server {tags {"scripting repl"}} {
 #     start_server {} {
