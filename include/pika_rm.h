@@ -21,6 +21,7 @@
 #include "include/pika_repl_server.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
+#include "include/rsync_client.h"
 
 #define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
@@ -90,7 +91,6 @@ class SyncMasterSlot : public SyncSlot {
   pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status ConsensusSanityCheck();
   pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
-  pstd::Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
   uint32_t ConsensusTerm();
@@ -157,7 +157,14 @@ class SyncSlaveSlot : public SyncSlot {
 
   std::string LocalIp();
 
+  void StopRsync();
+
+  void ActivateRsync();
+
+  bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
+
  private:
+  std::unique_ptr<rsync::RsyncClient> rsync_cli_;
   pstd::Mutex slot_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};

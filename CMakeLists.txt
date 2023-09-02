@@ -59,7 +59,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
    add_definitions(-DOS_MACOSX)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -ldl -pthread")
+     set(CMAKE_EXE_LINKER_FLAGS "-stdlib=libc++ -fuse-ld=lld -lc++ -lc++abi ${CMAKE_EXE_LINKER_FLAGS}")
+     set(CMAKE_CXX_FLAGS "-stdlib=libc++ -pthread ${CMAKE_CXX_FLAGS}")
    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
      set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
      set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
@@ -223,7 +224,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     LOG_INSTALL
     1
     CONFIGURE_COMMAND
-    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no
+    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no --enable-shared=no
     BUILD_IN_SOURCE
     1
     BUILD_COMMAND
@@ -487,6 +488,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
     -DGPERFTOOLS_BUILD_STATIC=ON
     -DEFAULT_BUILD_MINIMAL=ON
+    -Dgperftools_build_benchmark=OFF
     BUILD_COMMAND
     make -j${CPU_CORE}
   )
@@ -619,6 +621,7 @@ ExternalProject_Add(rocksdb
   -DWITH_GFLAGS=ON
   -DFAIL_ON_WARNINGS=OFF
   -DWITH_LIBURING=OFF
+  -DPORTABLE=1
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
@@ -733,7 +736,7 @@ set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
 message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 
-set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto)
+set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto ${CMAKE_CURRENT_SOURCE_DIR}/src/rsync_service.proto)
 custom_protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 message("pika PROTO_SRCS = ${PROTO_SRCS}")
 message("pika PROTO_HDRS = ${PROTO_HDRS}")

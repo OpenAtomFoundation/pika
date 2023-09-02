@@ -46,6 +46,7 @@ int PikaReplServer::Start() {
 int PikaReplServer::Stop() {
   server_tp_->stop_thread_pool();
   pika_repl_server_thread_->StopThread();
+  pika_repl_server_thread_->Cleanup();
   return 0;
 }
 
@@ -104,31 +105,6 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
     BuildBinlogOffset(task.binlog_chip_.offset_, boffset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
-  }
-  if (g_pika_conf->consensus_level() > 0) {
-    SlotInfo p_info;
-    if (!tasks.empty()) {
-      p_info = tasks[0].rm_node_.NodeSlotInfo();
-    } else {
-      LOG(WARNING) << "Task size is zero";
-      return;
-    }
-
-    // write consensus_meta
-    InnerMessage::ConsensusMeta* consensus_meta = response->mutable_consensus_meta();
-    InnerMessage::BinlogOffset* last_log = consensus_meta->mutable_log_offset();
-    BuildBinlogOffset(prev_offset, last_log);
-    // commit
-    LogOffset committed_index;
-    std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(p_info);
-    if (!slot) {
-      LOG(WARNING) << "SyncSlot " << p_info.ToString() << " Not Found.";
-      return;
-    }
-    committed_index = slot->ConsensusCommittedIndex();
-    InnerMessage::BinlogOffset* committed = consensus_meta->mutable_commit();
-    BuildBinlogOffset(committed_index, committed);
-    consensus_meta->set_term(slot->ConsensusTerm());
   }
 }
 

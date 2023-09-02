@@ -52,6 +52,7 @@ class HolyThread : public ServerThread {
   virtual std::shared_ptr<NetConn> get_conn(int fd);
 
   void ProcessNotifyEvents(const net::NetFiredEvent* pfe) override;
+  void Cleanup();
 
  private:
   mutable pstd::RWMutex rwlock_; /* For external statistics */
@@ -72,7 +73,6 @@ class HolyThread : public ServerThread {
   void HandleConnEvent(NetFiredEvent* pfe) override;
 
   void CloseFd(const std::shared_ptr<NetConn>& conn);
-  void Cleanup();
 };  // class HolyThread
 
 }  // namespace net

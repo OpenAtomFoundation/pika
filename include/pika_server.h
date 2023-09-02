@@ -39,6 +39,7 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
+#include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
@@ -158,7 +159,6 @@ class PikaServer : public pstd::noncopyable {
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
-  bool ConsensusCheck(const std::string& db_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -179,7 +179,6 @@ class PikaServer : public pstd::noncopyable {
   bool IsCompacting();
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
-  bool IsCommandSupport(const std::string& command);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
 
@@ -262,6 +261,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DBSync used
    */
+  pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
@@ -535,6 +536,12 @@ class PikaServer : public pstd::noncopyable {
   void ScriptingReset();
   // sol::state& lua();
   PikaClientConn* lua_client();
+ /*
+  * Diskrecovery used
+  */
+  std::map<std::string, std::shared_ptr<DB>> GetDB() {
+    return dbs_;
+  }
 
   friend class Cmd;
   friend class InfoCmd;
@@ -546,6 +553,7 @@ class PikaServer : public pstd::noncopyable {
    * TimingTask use
    */
   void DoTimingTask();
+  void AutoResumeDB();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
@@ -579,6 +587,11 @@ class PikaServer : public pstd::noncopyable {
    */
   bool have_scheduled_crontask_ = false;
   struct timeval last_check_compact_time_;
+
+  /*
+   * ResumeDB used
+   */
+  struct timeval last_check_resume_time_;
 
   /*
    * Communicate with the client used
@@ -633,6 +646,7 @@ class PikaServer : public pstd::noncopyable {
    * Rsync used
    */
   std::unique_ptr<PikaRsyncService> pika_rsync_service_;
+  std::unique_ptr<rsync::RsyncServer> rsync_server_;
 
   /*
    * Pubsub used

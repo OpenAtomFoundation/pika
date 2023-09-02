@@ -34,10 +34,14 @@ class PikaServer;
 /* Port shift */
 const int kPortShiftRSync = 1000;
 const int kPortShiftReplServer = 2000;
-
+//TODO: Temporarily used for rsync server port shift. will be deleted.
+const int kPortShiftRsync2 = 10001;
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
+
+/* Rsync */
+const int kMaxRsyncParallelNum = 4;
 
 struct DBStruct {
   DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)

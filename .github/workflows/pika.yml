@@ -2,9 +2,9 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable" ]
+    branches: [ "unstable", "3.5.0" ]
   pull_request:
-    branches: [ "unstable" ]
+    branches: [ "unstable", "3.5.0" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -12,13 +12,18 @@ env:
 
 jobs:
   build_on_ubuntu:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # The CMake configure and build commands are platform-agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
 
       - name: cache dependencies
         uses: actions/cache@v2
@@ -32,73 +37,73 @@ jobs:
       - name: install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
-          sudo apt install autoconf libprotobuf-dev protobuf-compiler -y
-          sudo apt-get install -y clang-tidy-12
-          sudo apt-get install -y python3-pip
+          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+          sudo apt-get install -y clang-tidy-12 python3-pip
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - name: Build
         # Build your program with the given configuration
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
-        working-directory: ${{github.workspace}}/build
+        working-directory: ${{ github.workspace }}/build
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-        run: ctest -C ${{env.BUILD_TYPE}}
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
-        working-directory: ${{github.workspace}}
-        run: |
-          ./pikatests.sh all
+        working-directory: ${{ github.workspace }}
+        run: ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
-        working-directory: ${{github.workspace}}/build
+        working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
       - name: Run Python E2E Tests
-        working-directory: ${{github.workspace}}/build
+        working-directory: ${{ github.workspace }}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
           python3 ../tests/unit/Blpop_Brpop_test.py
 
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd ../tests/integration/
+          chmod +x integrate_test.sh 
+          sh integrate_test.sh
+
   build_on_centos:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
     container:
       image: centos:7
 
     steps:
       - name: Install deps
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           yum install -y wget git autoconf centos-release-scl
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl unzip which python3
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which python3
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
-          source /opt/rh/devtoolset-10/enable
-          gcc --version
-          make --version
-          python3 --version
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
 
       - name: Install cmake
         run: |
           wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
           bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
-          cmake --version
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -106,47 +111,45 @@ jobs:
           fetch-depth: 0
 
       - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           source /opt/rh/devtoolset-10/enable
-          cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - name: Build
-        # Build your program with the given configuration
         run: |
           source /opt/rh/devtoolset-10/enable
-          cmake --build build --config ${{env.BUILD_TYPE}}
+          cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-        run: |
-          source /opt/rh/devtoolset-10/enable
-          ctest -C ${{env.BUILD_TYPE}}
+        working-directory: ${{ github.workspace }}/build
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
-        run: |
-          chmod +x pikatests.sh
-          sh pikatests.sh all
+        working-directory: ${{ github.workspace }}
+        run: ./pikatests.sh all
 
-        # master on port 9221, slave on port 9231, all with 2 db
       - name: Start pika master and slave
+        working-directory: ${{ github.workspace }}/build
         run: |
-          cd build
           chmod +x ../tests/integration/start_master_and_slave.sh
-          sh ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
 
       - name: Run Python E2E Tests
+        working-directory: ${{ github.workspace }}/build
         run: |
-          python3 tests/integration/pika_replication_test.py
-          python3 tests/unit/Blpop_Brpop_test.py
+          python3 ../tests/integration/pika_replication_test.py
+          python3 ../tests/unit/Blpop_Brpop_test.py
 
   build_on_macos:
     runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
 
       - name: cache dependencies
         uses: actions/cache@v2
@@ -158,44 +161,76 @@ jobs:
           key: ${{ runner.os }}-dependencies
 
       - name: install Deps
+        if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           brew update
-          brew install autoconf protobuf python llvm wget git
+          brew install --overwrite python autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
-          export CXX=/usr/local/opt/gcc@10/bin/g++-10 
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+
+      - name: Configure CMake
+        run: |
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - name: Build
         run: |
-          cd ${{github.workspace}}
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10
-          cmake -B ${{github.workspace}}/build -S . -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+          cmake --build build --config ${{ env.BUILD_TYPE }}
 
-#      - name: Test
-#        working-directory: ${{github.workspace}}/build
-#        run: |
-#          export CC=/usr/local/opt/gcc@10/bin/gcc-10
-#          ctest -C ${{env.BUILD_TYPE}}
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
-        working-directory: ${{github.workspace}}
+        working-directory: ${{ github.workspace }}
         run: |
-          cd ${{github.workspace}} 
           ./pikatests.sh all
 
       - name: Start pika master and slave
-        working-directory: ${{github.workspace}}/build
+        working-directory: ${{ github.workspace }}/build
         run: |
-          cd ${{github.workspace}}/build
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
       - name: Run Python E2E Tests
-        working-directory: ${{github.workspace}}/build
+        working-directory: ${{ github.workspace }}/build
         run: |
           python3 ../tests/integration/pika_replication_test.py
           python3 ../tests/unit/Blpop_Brpop_test.py
+
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd ../tests/integration/
+          chmod +x integrate_test.sh 
+          sh integrate_test.sh
+
+  build_pika_image:
+    name: Build Pika Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: pikadb/pika
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 

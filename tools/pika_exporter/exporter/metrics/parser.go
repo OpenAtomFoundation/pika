@@ -109,7 +109,7 @@ func (p *regexParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 
 	matchMaps := p.regMatchesToMap(s)
 	if len(matchMaps) == 0 {
-		log.Warnf("regexParser::Parse reg find sub match nil. name:%s text:%s", p.name, s)
+		log.Warnf("regexParser::Parse reg find sub match nil. name:%s", p.name)
 	}
 
 	extracts := make(map[string]string)
@@ -133,7 +133,7 @@ func (p *regexParser) regMatchesToMap(s string) []map[string]string {
 
 	multiMatches := p.reg.FindAllStringSubmatch(s, -1)
 	if len(multiMatches) == 0 {
-		log.Errorf("regexParser::regMatchesToMap reg find sub match nil. name:%s text:%s", p.name, s)
+		log.Errorf("regexParser::regMatchesToMap reg find sub match nil. name:%s", p.name)
 		return nil
 	}
 
@@ -261,10 +261,12 @@ func mustNewVersionConstraint(version string) *semver.Constraints {
 	return c
 }
 
+const TimeLayout = "2006-01-02 15:04:05"
+
 func convertTimeToUnix(ts string) (int64, error) {
-	t, err := time.Parse(time.RFC3339, ts)
+	t, err := time.Parse(TimeLayout, ts)
 	if err != nil {
-		log.Warnf("format time failed, ts: %d, err: %v", ts, err)
+		log.Warnf("format time failed, ts: %s, err: %v", ts, err)
 		return 0, nil
 	}
 	return t.Unix(), nil

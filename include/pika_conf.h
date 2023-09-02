@@ -86,6 +86,18 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  int64_t least_resume_free_disk_size() {
+    std::shared_lock l(rwlock_);
+    return least_free_disk_to_resume_;
+  }
+  int64_t resume_interval() {
+    std::shared_lock l(rwlock_);
+    return resume_check_interval_;
+  }
+  double min_check_resume_ratio() {
+    std::shared_lock l(rwlock_);
+    return min_check_resume_ratio_;
+  }
   int64_t write_buffer_size() {
     std::shared_lock l(rwlock_);
     return write_buffer_size_;
@@ -320,6 +332,15 @@ class PikaConf : public pstd::BaseConf {
   int64_t blob_cache() { return blob_cache_; }
   int64_t blob_num_shard_bits() { return blob_num_shard_bits_; }
 
+  // Rsync Rate limiting configuration
+  int throttle_bytes_per_second() {
+    std::shared_lock l(rwlock_);
+    return throttle_bytes_per_second_;
+  }
+  int max_rsync_parallel_num() {
+    std::shared_lock l(rwlock_);
+    return max_rsync_parallel_num_;
+  }
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
@@ -486,6 +507,21 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
+  void SetLeastResumeFreeDiskSize(const int64_t& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
+    least_free_disk_to_resume_ = value;
+  }
+  void SetResumeInterval(const int64_t& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("manually-resume-interval", std::to_string(value));
+    resume_check_interval_ = value;
+  }
+  void SetMinCheckResumeRatio(const double& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("min-check-resume-ratio", std::to_string(value));
+    min_check_resume_ratio_ = value;
+  }
   void SetSyncWindowSize(const int& value) {
     TryPushDiffCommands("sync-window-size", std::to_string(value));
     sync_window_size_.store(value);
@@ -526,6 +562,19 @@ class PikaConf : public pstd::BaseConf {
     log_level_ = value;
   }
 
+  // Rsync Rate limiting configuration
+  void SetThrottleBytesPerSecond(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("throttle-bytes-per-second", std::to_string(value));
+    throttle_bytes_per_second_ = value;
+  }
+
+  void SetMaxRsyncParallelNum(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
+    max_rsync_parallel_num_ = value;
+  }
+
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -555,6 +604,9 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
+  int64_t resume_check_interval_ = 60; // seconds
+  int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
+  double min_check_resume_ratio_ = 0.7;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
   int64_t slotmigrate_thread_num_ = 0;
@@ -646,6 +698,10 @@ class PikaConf : public pstd::BaseConf {
   std::unique_ptr<PikaMeta> local_meta_;
 
   std::shared_mutex rwlock_;
+
+  // Rsync Rate limiting configuration
+  int throttle_bytes_per_second_ = 307200000;
+  int max_rsync_parallel_num_ = 4;
 };
 
 #endif

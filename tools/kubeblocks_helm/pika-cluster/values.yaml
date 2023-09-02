@@ -1,0 +1,95 @@
+# Default values for redis-cluster.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 2
+
+slaveCount: 1
+
+etcdReplicaCount: 3
+
+codisProxyReplicaCount: 2
+
+codisFeReplicaCount: 1
+
+codisDashboardReplicaCount: 1
+
+terminationPolicy: Delete
+
+clusterVersionOverride: ""
+
+monitor:
+  enabled: false
+
+switchPolicy:
+  type: Noop
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  pikaGroup:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  etcd:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisProxy:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisFe:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  codisDashboard:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+persistence:
+  enabled: true
+  pikaData:
+    storageClassName:
+    size: 10Gi
+  etcdData:
+    storageClassName:
+    size: 1Gi
+
+topologyKeys:
+  - kubernetes.io/hostname
+
+## @param tolerations
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: [ ]
+
+#enabledLogs:
+#  - running
+
+# The RBAC permission used by cluster component pod, now include event.create
+serviceAccount:
+  name: ""
+
+etcdAddrs: "etcd-0.etcd-headless.default.svc.cluster.local:2379,etcd-1.etcd-headless.default.svc.cluster.local:2379,etcd-2.etcd-headless.default.svc.cluster.local:2379"

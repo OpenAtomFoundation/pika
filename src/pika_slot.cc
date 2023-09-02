@@ -3,16 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_slot.h"
-
 #include <fstream>
 #include <memory>
 
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 #include "pstd/include/mutex_impl.h"
+#include "pstd/include/pstd_hash.h"
 
 using pstd::Status;
 
@@ -206,14 +206,6 @@ bool Slot::TryUpdateMasterOffset() {
             << ",  master_ip: " << master_ip << ", master_port: " << master_port << ", filenum: " << filenum
             << ", offset: " << offset << ", term: " << term << ", index: " << index;
 
-  // Sanity check
-  if (master_ip != slave_slot->MasterIp() || master_port != slave_slot->MasterPort()) {
-    LOG(WARNING) << "Slot: " << slot_name_ << " Error master node ip port: " << master_ip << ":"
-                 << master_port;
-    slave_slot->SetReplState(ReplState::kError);
-    return false;
-  }
-
   pstd::DeleteFile(info_path);
   if (!ChangeDb(dbsync_path_)) {
     LOG(WARNING) << "Slot: " << slot_name_ << ", Failed to change db";
@@ -228,11 +220,7 @@ bool Slot::TryUpdateMasterOffset() {
     LOG(WARNING) << "Master Slot: " << slot_name_ << " not exist";
     return false;
   }
-  if (g_pika_conf->consensus_level() != 0) {
-    master_slot->ConsensusReset(LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
-  } else {
-    master_slot->Logger()->SetProducerStatus(filenum, offset);
-  }
+  master_slot->Logger()->SetProducerStatus(filenum, offset);
   slave_slot->SetReplState(ReplState::kTryConnect);
   return true;
 }
@@ -296,6 +284,52 @@ BgSaveInfo Slot::bgsave_info() {
   return bgsave_info_;
 }
 
+void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
+  const std::string slotPath = bgsave_info().path;
+
+  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
+  for (const auto& type : types) {
+    std::string typePath = slotPath + ((slotPath.back() != '/') ? "/" : "") + type;
+    if (!pstd::FileExists(typePath)) {
+      continue ;
+    }
+
+    std::vector<std::string> tmpFileNames;
+    int ret = pstd::GetChildren(typePath, tmpFileNames);
+    if (ret) {
+      LOG(WARNING) << slotPath << " read dump meta files failed, path " << typePath;
+      return;
+    }
+
+    for (const std::string fileName : tmpFileNames) {
+      fileNames -> push_back(type + "/" + fileName);
+    }
+  }
+  fileNames->push_back(kBgsaveInfoFile);
+  pstd::Status s = GetBgSaveUUID(snapshot_uuid);
+  if (!s.ok()) {
+      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+      return;
+  }
+}
+
+Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
+  if (snapshot_uuid_.empty()) {
+    std::string info_data;
+    const std::string infoPath = bgsave_info().path + "/info";
+    //TODO: using file read function to replace rocksdb::ReadFileToString
+    rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
+    if (!s.ok()) {
+      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+      return Status::IOError("read dump meta info failed", infoPath);
+    }
+    pstd::MD5 md5 = pstd::MD5(info_data);
+    snapshot_uuid_ = md5.hexdigest();
+  }
+  *snapshot_uuid = snapshot_uuid_;
+  return Status::OK();
+}
+
 void Slot::DoBgSave(void* arg) {
   std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
 
@@ -304,17 +338,17 @@ void Slot::DoBgSave(void* arg) {
 
   // Some output
   BgSaveInfo info = bg_task_arg->slot->bgsave_info();
+  std::stringstream info_content;
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
-    out << (time(nullptr) - info.start_time) << "s\n"
-        << g_pika_server->host() << "\n"
-        << g_pika_server->port() << "\n"
-        << info.offset.b_offset.filenum << "\n"
-        << info.offset.b_offset.offset << "\n";
-    if (g_pika_conf->consensus_level() != 0) {
-      out << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
-    }
+    info_content << (time(nullptr) - info.start_time) << "s\n"
+                 << g_pika_server->host() << "\n"
+                 << g_pika_server->port() << "\n"
+                 << info.offset.b_offset.filenum << "\n"
+                 << info.offset.b_offset.offset << "\n";
+    bg_task_arg->slot->snapshot_uuid_ = md5(info_content.str());
+    out << info_content.rdbuf();
     out.close();
   }
   if (!success) {
@@ -322,7 +356,6 @@ void Slot::DoBgSave(void* arg) {
     pstd::RenameFile(info.path, fail_path);
   }
   bg_task_arg->slot->FinishBgsave();
-
 }
 
 bool Slot::RunBgsaveEngine() {
@@ -391,12 +424,8 @@ bool Slot::InitBgsaveEngine() {
   {
     std::lock_guard lock(db_rwlock_);
     LogOffset bgsave_offset;
-    if (g_pika_conf->consensus_level() != 0) {
-      bgsave_offset = slot->ConsensusAppliedIndex();
-    } else {
-      // term, index are 0
-      slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
-    }
+    // term, index are 0
+    slot->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
     {
       std::lock_guard l(bgsave_protector_);
       bgsave_info_.offset = bgsave_offset;
