@@ -14,9 +14,8 @@
 #include "include/pika_stream_types.h"
 #include "storage/src/coding.h"
 
-static const size_t kDefaultStreamValueLength = sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t);
-
-// used when create a new stream
+static const size_t kDefaultStreamValueLength =
+    sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t);
 class StreamMetaValue {
  public:
   // should provie a string
@@ -142,9 +141,238 @@ class StreamMetaValue {
   streamID first_id_;
   streamID last_id_;
   streamID max_deleted_entry_id_;
-  size_t length_{0}; // number of the messages in the stream
+  size_t length_{0};  // number of the messages in the stream
 
   std::string value_{};
+};
+
+static const size_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(treeID);
+class StreamCGroupMetaValue {
+ public:
+  explicit StreamCGroupMetaValue() = default;
+
+  // tid and consumers should be set at beginning
+  void Init(treeID tid, treeID consumers) {
+    pel_ = tid;
+    consumers_ = consumers;
+    size_t needed = kDefaultStreamCGroupValueLength;
+    assert(value_.size() == 0);
+    if (value_.size() != 0) {
+      LOG(FATAL) << "Init on a existed stream cgroup meta value!";
+      return;
+    }
+    value_.resize(needed);
+
+    auto dst = value_.data();
+
+    memcpy(dst, &last_id_, sizeof(streamID));
+    dst += sizeof(uint64_t);
+    memcpy(dst, &entries_read_, sizeof(uint64_t));
+    dst += sizeof(uint64_t);
+    memcpy(dst, &pel_, sizeof(treeID));
+    dst += sizeof(treeID);
+    memcpy(dst, &consumers_, sizeof(treeID));
+  }
+
+  void ParseFrom(std::string& value) {
+    value_ = std::move(value);
+    assert(value_.size() == kDefaultStreamCGroupValueLength);
+    if (value_.size() != kDefaultStreamCGroupValueLength) {
+      LOG(FATAL) << "Invalid stream cgroup meta value length: ";
+      return;
+    }
+    if (value_.size() == kDefaultStreamCGroupValueLength) {
+      auto pos = value_.data();
+      memcpy(&last_id_, pos, sizeof(streamID));
+      pos += sizeof(streamID);
+      memcpy(&entries_read_, pos, sizeof(uint64_t));
+      pos += sizeof(uint64_t);
+      memcpy(&pel_, pos, sizeof(treeID));
+      pos += sizeof(treeID);
+      memcpy(&consumers_, pos, sizeof(treeID));
+    }
+  }
+
+  streamID last_id() { return last_id_; }
+
+  void set_last_id(streamID last_id) {
+    assert(value_.size() == kDefaultStreamCGroupValueLength);
+    last_id_ = last_id;
+    char* dst = const_cast<char*>(value_.data());
+    memcpy(dst, &last_id_, sizeof(streamID));
+  }
+
+  uint64_t entries_read() { return entries_read_; }
+
+  void set_entries_read(uint64_t entries_read) {
+    assert(value_.size() == kDefaultStreamCGroupValueLength);
+    entries_read_ = entries_read;
+    char* dst = const_cast<char*>(value_.data()) + sizeof(streamID);
+    memcpy(dst, &entries_read_, sizeof(uint64_t));
+  }
+
+  // pel and consumers were set in constructor,  can't be modified
+  treeID pel() { return pel_; }
+
+  treeID consumers() { return consumers_; }
+
+  std::string& value() { return value_; }
+
+ private:
+  std::string value_;
+
+  streamID last_id_;
+  uint64_t entries_read_ = 0;
+  treeID pel_ = 0;
+  treeID consumers_ = 0;
+};
+
+static const size_t kDefaultStreamConsumerValueLength = sizeof(mstime_t) * 2 + sizeof(treeID);
+class StreamConsumerMetaValue {
+ public:
+  // pel must been set at beginning
+  StreamConsumerMetaValue() = default;
+
+  void ParseFrom(std::string& value) {
+    value_ = std::move(value);
+    assert(value_.size() == kDefaultStreamConsumerValueLength);
+    if (value_.size() != kDefaultStreamConsumerValueLength) {
+      LOG(FATAL) << "Invalid stream consumer meta value length: " << value_.size()
+                 << " expected: " << kDefaultStreamConsumerValueLength;
+      return;
+    }
+    if (value_.size() == kDefaultStreamConsumerValueLength) {
+      auto pos = value_.data();
+      memcpy(&seen_time_, pos, sizeof(mstime_t));
+      pos += sizeof(mstime_t);
+      memcpy(&active_time_, pos, sizeof(mstime_t));
+      pos += sizeof(mstime_t);
+      memcpy(&pel_, pos, sizeof(treeID));
+    }
+  }
+
+  void Init(treeID pel) {
+    pel_ = pel;
+    assert(value_.size() == 0);
+    if (value_.size() != 0) {
+      LOG(FATAL) << "Invalid stream consumer meta value length: " << value_.size() << " expected: 0";
+      return;
+    }
+    size_t needed = kDefaultStreamConsumerValueLength;
+    value_.resize(needed);
+    auto dst = value_.data();
+
+    memcpy(dst, &seen_time_, sizeof(mstime_t));
+    dst += sizeof(mstime_t);
+    memcpy(dst, &active_time_, sizeof(mstime_t));
+    dst += sizeof(mstime_t);
+    memcpy(dst, &pel_, sizeof(treeID));
+  }
+
+  mstime_t seen_time() { return seen_time_; }
+
+  void set_seen_time(mstime_t seen_time) {
+    seen_time_ = seen_time;
+    assert(value_.size() == kDefaultStreamConsumerValueLength);
+    char* dst = const_cast<char*>(value_.data());
+    memcpy(dst, &seen_time_, sizeof(mstime_t));
+  }
+
+  mstime_t active_time() { return active_time_; }
+
+  void set_active_time(mstime_t active_time) {
+    active_time_ = active_time;
+    assert(value_.size() == kDefaultStreamConsumerValueLength);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(mstime_t);
+    memcpy(dst, &active_time_, sizeof(mstime_t));
+  }
+
+  // pel was set in constructor,  can't be modified
+  treeID pel_tid() { return pel_; }
+
+  std::string& value() { return value_; }
+
+ private:
+  std::string value_;
+
+  mstime_t seen_time_ = 0;
+  mstime_t active_time_ = 0;
+  treeID pel_ = 0;
+};
+
+static const size_t kDefaultStreamPelMetaValueLength = sizeof(mstime_t) + sizeof(uint64_t) + sizeof(treeID);
+class StreamPelMeta {
+ public:
+  // consumer must been set at beginning
+  StreamPelMeta() = default;
+
+  void Init(std::string consumer, mstime_t delivery_time) {
+    consumer_ = std::move(consumer);
+    delivery_time_ = delivery_time;
+    size_t needed = kDefaultStreamPelMetaValueLength;
+    assert(value_.size() == 0);
+    if (value_.size() != 0) {
+      LOG(ERROR) << "Init on a existed stream pel meta value!";
+      return;
+    }
+    value_.resize(needed);
+    char* dst = value_.data();
+
+    memcpy(dst, &delivery_time_, sizeof(mstime_t));
+    dst += sizeof(mstime_t);
+    memcpy(dst, &delivery_count_, sizeof(uint64_t));
+    dst += sizeof(uint64_t);
+    memcpy(dst, &cname_len_, sizeof(size_t));
+    dst += sizeof(size_t);
+    memcpy(dst, consumer_.data(), cname_len_);
+  }
+
+  void ParseFrom(std::string& value) {
+    value_ = std::move(value);
+    assert(value_.size() == kDefaultStreamPelMetaValueLength);
+    if (value_.size() != kDefaultStreamPelMetaValueLength) {
+      LOG(ERROR) << "Invalid stream pel meta value length: ";
+      return;
+    }
+    auto pos = value_.data();
+    memcpy(&delivery_time_, pos, sizeof(mstime_t));
+    pos += sizeof(mstime_t);
+    memcpy(&delivery_count_, pos, sizeof(uint64_t));
+    pos += sizeof(uint64_t);
+    memcpy(&cname_len_, pos, sizeof(size_t));
+    pos += sizeof(size_t);
+    consumer_.assign(pos, cname_len_);
+  }
+
+  mstime_t delivery_time() { return delivery_time_; }
+
+  void set_delivery_time(mstime_t delivery_time) {
+    assert(value_.size() == kDefaultStreamPelMetaValueLength);
+    delivery_time_ = delivery_time;
+    char* dst = const_cast<char*>(value_.data());
+    memcpy(dst, &delivery_time_, sizeof(mstime_t));
+  }
+
+  uint64_t delivery_count() { return delivery_count_; }
+
+  void set_delivery_count(uint64_t delivery_count) {
+    assert(value_.size() == kDefaultStreamPelMetaValueLength);
+    delivery_count_ = delivery_count;
+    char* dst = const_cast<char*>(value_.data());
+    memcpy(dst + sizeof(mstime_t), &delivery_count_, sizeof(uint64_t));
+  }
+
+  std::string& consumer() { return consumer_; }
+
+  std::string& value() { return value_; }
+
+ private:
+  std::string value_;
+
+  mstime_t delivery_time_ = 0;
+  uint64_t delivery_count_ = 1;
+  size_t cname_len_ = 0;
+  std::string consumer_;
 };
 
 #endif  //  SRC_STREAM_META_VALUE_FORMAT_H_
