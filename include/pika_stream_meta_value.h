@@ -70,19 +70,19 @@ class StreamMetaValue {
     memcpy(&length_, pos, sizeof(size_t));
   }
 
-  const treeID groups_id() const { return groups_id_; }
+  treeID groups_id() const { return groups_id_; }
 
-  const size_t entries_added() { return entries_added_; }
+  size_t entries_added() const { return entries_added_; }
 
   void ModifyEntriesAdded(size_t delta) { set_entries_added(entries_added_ + delta); }
 
-  const streamID first_id() { return first_id_; }
+  streamID first_id() const { return first_id_; }
 
-  const streamID last_id() const { return last_id_; }
+  streamID last_id() const { return last_id_; }
 
-  const streamID max_deleted_entry_id() { return max_deleted_entry_id_; }
+  streamID max_deleted_entry_id() const { return max_deleted_entry_id_; }
 
-  const size_t length() { return length_; }
+  size_t length() const { return length_; }
 
   std::string& value() { return value_; }
 

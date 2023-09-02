@@ -26,8 +26,7 @@
 void XAddCmd::GenerateStreamIDOrRep(const StreamMetaValue &stream_meta) {
   auto &id = args_.id;
   if (args_.id_given && args_.seq_given && id.ms == 0 && id.seq == 0) {
-    LOG(INFO) << "The ID specified in XADD must be greater than 0-0";
-    res_.SetRes(CmdRes::kInvalidParameter);
+    res_.SetRes(CmdRes::kInvalidParameter, "The ID specified in XADD must be greater than 0-0");
     return;
   }
 
@@ -52,11 +51,11 @@ void XAddCmd::GenerateStreamIDOrRep(const StreamMetaValue &stream_meta) {
     auto last_id = stream_meta.last_id();
     if (id.ms < last_id.ms) {
       LOG(ERROR) << "Time backwards detected !";
-      res_.SetRes(CmdRes::kErrOther, "Fatal! Time backwards detected !");
+      res_.SetRes(CmdRes::kErrOther, "The ID specified in XADD is equal or smaller");
       return;
     } else if (id.ms == last_id.ms) {
       if (last_id.seq == UINT64_MAX) {
-        res_.SetRes(CmdRes::kErrOther, "Fatal! Sequence number overflow !");
+        res_.SetRes(CmdRes::kErrOther, "The ID specified in XADD is equal or smaller");
         return;
       }
       id.seq = last_id.seq + 1;
@@ -68,7 +67,6 @@ void XAddCmd::GenerateStreamIDOrRep(const StreamMetaValue &stream_meta) {
     //  Full ID given, check id
     auto last_id = stream_meta.last_id();
     if (id.ms < last_id.ms || (id.ms == last_id.ms && id.seq <= last_id.seq)) {
-      LOG(ERROR) << "INVALID ID: " << id.ms << "-" << id.seq << " < " << last_id.ms << "-" << last_id.seq;
       res_.SetRes(CmdRes::kErrOther, "INVALID ID given");
       return;
     }
@@ -93,7 +91,6 @@ void XAddCmd::DoInitial() {
 
   field_pos_ = idpos + 1;
   if ((argv_.size() - field_pos_) % 2 == 1 || (argv_.size() - field_pos_) < 2) {
-    LOG(INFO) << "Invalid field_values_ size: " << argv_.size() - field_pos_;
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);
     return;
   }
@@ -210,6 +207,46 @@ void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   StreamCmdBase::ScanAndAppendMessageToResOrRep(res_, options, slot, nullptr, start_ex_, end_ex_, reverse);
 }
 
+inline void XDelCmd::SetFirstIDOrRep(StreamMetaValue &stream_meta, const std::shared_ptr<Slot> &slot) {
+  return SetFirstOrLastIDOrRep(stream_meta, slot, true);
+}
+
+inline void XDelCmd::SetLastIDOrRep(StreamMetaValue &stream_meta, const std::shared_ptr<Slot> &slot) {
+  return SetFirstOrLastIDOrRep(stream_meta, slot, false);
+}
+
+inline void XDelCmd::SetFirstOrLastIDOrRep(StreamMetaValue &stream_meta, const std::shared_ptr<Slot> &slot,
+                                           bool is_set_first) {
+  if (stream_meta.length() == 0) {
+    stream_meta.set_first_id(kSTREAMID_MIN);
+    return;
+  }
+
+  std::vector<storage::FieldValue> field_values;
+  std::string next_field;
+
+  if (is_set_first) {
+    StreamCmdBase::ScanStreamOptions option(key_, kSTREAMID_MIN, kSTREAMID_MAX, 1);
+    StreamCmdBase::ScanStreamOrRep(res_, option, field_values, next_field, slot);
+  } else {
+    StreamCmdBase::ScanStreamOptions option(key_, kSTREAMID_MAX, kSTREAMID_MIN, 1);
+    StreamCmdBase::ScanStreamOrRep(res_, option, field_values, next_field, slot, true);
+  }
+
+  if (res_.ret() != CmdRes::kNone) {
+    return;
+  }
+  if (field_values.empty()) {
+    LOG(ERROR) << "Internal error: no messages found but stream length is not 0";
+    res_.SetRes(CmdRes::kErrOther, "Internal error: no messages found but stream length is not 0");
+    return;
+  }
+
+  streamID id;
+  id.DeserializeFrom(field_values[0].field);
+  stream_meta.set_first_id(id);
+}
+
 void XDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);
@@ -253,16 +290,18 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
     if (id > stream_meta.max_deleted_entry_id()) {
       stream_meta.set_max_deleted_entry_id(id);
     }
-
     if (id == stream_meta.first_id()) {
-      // Korpse TODO:
-    }
-
-    if (id == stream_meta.last_id()) {
-      // Korpse TODO:
+      SetFirstIDOrRep(stream_meta, slot);
+    } else if (id == stream_meta.last_id()) {
+      SetLastIDOrRep(stream_meta, slot);
     }
   }
+
   s = StreamStorage::UpdateStreamMeta(key_, stream_meta.value(), slot);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
 
   res_.AppendInteger(count);
 }
@@ -341,17 +380,14 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
     // 2.1 try to parse id
     streamID id;
     if (unparsed_id == "<") {
-      LOG(WARNING) << R"(given "<" in XREAD command)";
       res_.SetRes(CmdRes::kSyntaxErr,
                   "The > ID can be specified only when calling "
                   "XREADGROUP using the GROUP <group> "
                   "<consumer> option.");
       return;
     } else if (unparsed_id == "$") {
-      LOG(INFO) << "given \"$\" in XREAD command";
       id = stream_meta.last_id();
     } else {
-      LOG(INFO) << "given id: " << unparsed_id;
       StreamCmdBase::StreamParseStrictIDOrRep(res_, unparsed_id, id, 0, nullptr);
       if (res_.ret() != CmdRes::kNone) {
         return;
@@ -418,13 +454,13 @@ void XInfoCmd::DoInitial() {
   subcmd_ = argv_[1];
   key_ = argv_[2];
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
-    if (argv_.size() > 3 && argv_[3] == "FULL") {
+    if (argv_.size() > 3 && strcasecmp(subcmd_.c_str(), "FULL") != 0) {
       is_full_ = true;
       if (argv_.size() > 4 && !StreamUtils::string2uint64(argv_[4].c_str(), count_)) {
         res_.SetRes(CmdRes::kInvalidParameter, "invalid count");
         return;
       }
-    } else {
+    } else if (argv_.size() > 3) {
       res_.SetRes(CmdRes::kSyntaxErr);
       return;
     }
@@ -474,7 +510,7 @@ void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
   }
 
   // 2 append the stream info
-  res_.AppendArrayLen(8);
+  res_.AppendArrayLen(10);
   res_.AppendString("length");
   res_.AppendInteger(static_cast<int64_t>(stream_meta.length()));
   res_.AppendString("last-generated-id");
@@ -483,6 +519,8 @@ void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
   res_.AppendString(stream_meta.max_deleted_entry_id().ToString());
   res_.AppendString("entries-added");
   res_.AppendInteger(static_cast<int64_t>(stream_meta.entries_added()));
+  res_.AppendString("recorded-first-entry-id");
+  res_.AppendString(stream_meta.first_id().ToString());
 
   // Korpse TODO: add group info
 }

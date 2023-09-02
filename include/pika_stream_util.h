@@ -57,7 +57,6 @@ class StreamStorage {
   // @return ok only when the stream meta exists
   static rocksdb::Status GetStreamMeta(StreamMetaValue &tream_meta, const std::string &key,
                                        const std::shared_ptr<Slot> &slot);
-
   // will create stream meta hash if it dosent't exist.
   // return !s.ok() only when insert failed
   static rocksdb::Status UpdateStreamMeta(const std::string &key, std::string &meta_value,

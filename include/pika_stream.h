@@ -3,6 +3,7 @@
 #define PIKA_STREAM_H_
 
 #include <bits/stdint-intn.h>
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "include/pika_stream_consumer_meta_value.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
+#include "include/pika_stream_util.h"
 #include "storage/storage.h"
 
 /*
@@ -70,7 +72,9 @@ class XDelCmd : public Cmd {
 
   void DoInitial() override;
   void Clear() override { ids_.clear(); }
-  inline void GenerateStreamIDOrRep(const StreamMetaValue& stream_meta);
+  inline void SetFirstOrLastIDOrRep(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot, bool is_set_first);
+  inline void SetFirstIDOrRep(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot);
+  inline void SetLastIDOrRep(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot);
 };
 
 class XReadCmd : public Cmd {
@@ -199,7 +203,6 @@ class XLenCmd : public Cmd {
 class XAckCmd : public Cmd {
  public:
   XAckCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-  // FIXME: use different lock
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -218,7 +221,6 @@ class XAckCmd : public Cmd {
 class XTrimCmd : public Cmd {
  public:
   XTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-  // FIXME: use different lock
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -235,7 +237,6 @@ class XTrimCmd : public Cmd {
 class XClaimCmd : public Cmd {
  public:
   XClaimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
-  // FIXME: use different lock
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -290,4 +291,4 @@ class XInfoCmd : public Cmd {
   void ConsumersInfo(std::shared_ptr<Slot>& slot);
 };
 
-#endif //  PIKA_STREAM_H_
+#endif  //  PIKA_STREAM_H_
