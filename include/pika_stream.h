@@ -2,7 +2,6 @@
 #ifndef PIKA_STREAM_H_
 #define PIKA_STREAM_H_
 
-#include <bits/stdint-intn.h>
 #include <cassert>
 #include <cstdint>
 #include <string>
