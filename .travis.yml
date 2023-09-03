@@ -12,7 +12,7 @@ env:
 install:
   - wget https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOBUF_VERSION/protobuf-$PROTOBUF_VERSION.tar.bz2
   - tar xvf protobuf-$PROTOBUF_VERSION.tar.bz2
-  - ( cd protobuf-$PROTOBUF_VERSION && ./configure --prefix=/usr && make && sudo make install )
+  - ( cd protobuf-$PROTOBUF_VERSION && ./configure --prefix=/usr && make -j$(nproc) && sudo make install )
 
 addons:
   apt:
@@ -20,7 +20,5 @@ addons:
 
 compiler:
   - gcc
-
-language: cpp
 
 script: make
