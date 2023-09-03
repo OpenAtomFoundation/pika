@@ -1,7 +1,10 @@
+// Copyright (c) 2018-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_stream_base.h"
 
-#include <bits/stdint-intn.h>
 #include <cassert>
 #include <chrono>
 #include <climits>
@@ -11,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include "include/pika_command.h"
@@ -478,7 +480,7 @@ void StreamCmdBase::ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdAr
 StreamCmdBase::TrimRet StreamCmdBase::TrimByMaxlenOrReply(StreamMetaValue &stream_meta, const std::string &key,
                                                           const Slot *slot, CmdRes &res,
                                                           const StreamAddTrimArgs &args) {
-                                                            assert(slot);
+  assert(slot);
   TrimRet trim_ret;
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
@@ -519,7 +521,7 @@ StreamCmdBase::TrimRet StreamCmdBase::TrimByMaxlenOrReply(StreamMetaValue &strea
 inline StreamCmdBase::TrimRet StreamCmdBase::TrimByMinidOrReply(StreamMetaValue &stream_meta, const std::string &key,
                                                                 const Slot *slot, CmdRes &res,
                                                                 const StreamAddTrimArgs &args) {
-                                                                  assert(slot);
+  assert(slot);
   TrimRet trim_ret;
   std::string serialized_min_id;
   stream_meta.first_id().SerializeTo(trim_ret.next_field);
@@ -835,7 +837,7 @@ storage::Status StreamUtils::CreateConsumer(treeID consumer_tid, std::string &co
 
 storage::Status StreamUtils::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername, const Slot *slot,
                                                  StreamConsumerMetaValue &consumer_meta) {
-                                                  assert(slot);
+  assert(slot);
   std::string consumer_meta_value;
   auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.ok()) {
