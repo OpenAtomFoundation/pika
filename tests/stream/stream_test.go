@@ -164,17 +164,15 @@ var _ = Describe("Stream Commands", func() {
 			Expect(streamCompareID(id2, id3)).To(Equal(-1))
 		})
 
-		// FIXME: pika may not support MULTI ?
-		// It("XADD IDs are incremental when ms is the same as well", func() {
-		// 	client.Do(ctx, "MULTI")
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "1", "value", "a"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "2", "value", "b"}}).Err()).NotTo(HaveOccurred())
-		// 	Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "3", "value", "c"}}).Err()).NotTo(HaveOccurred())
-		// 	res := client.Do(ctx, "EXEC").Val().([]interface{})
-		// 	Expect(len(res)).To(Equal(3))
-		// 	Expect(streamCompareID(res[0].(string), res[1].(string))).To(Equal(-1))
-		// 	Expect(streamCompareID(res[1].(string), res[2].(string))).To(Equal(-1))
-		// })
+		It("XADD IDs are incremental when ms is the same as well", func() {
+			last_id, err := client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "1", "value", "a"}}).Result()
+			Expect(err).NotTo(HaveOccurred())
+			for i := 0; i < 100; i++ {
+				cur_id := client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "1", "value", "a"}}).Val()
+				Expect(streamCompareID(last_id, cur_id)).To(Equal(-1))
+				last_id = cur_id
+			}
+		})
 
 		It("XADD IDs correctly report an error when overflowing", func() {
 			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())

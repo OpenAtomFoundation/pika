@@ -168,7 +168,7 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t count = slot->db()->Del(keys_, &type_status);
   
   // but stream's meta value need to be treated specially
-  StreamCmdBase::DestoryStreamsOrReply(res_, keys_, slot);
+  StreamCmdBase::DestoryStreamsOrReply(res_, keys_, slot.get());
   if (res_.ret() != CmdRes::kNone) {
     // error occured
     return;

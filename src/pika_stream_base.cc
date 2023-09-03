@@ -30,7 +30,8 @@
     }                                               \
   } while (0)
 
-storage::Status TreeIDGenerator::GetNextTreeID(const std::shared_ptr<Slot> &slot, treeID &tid) {
+storage::Status TreeIDGenerator::GetNextTreeID(const Slot *slot, treeID &tid) {
+  assert(slot);
   auto expected_id = kINVALID_TREE_ID;
 
   // if tree_id_ is not initialized (equal to kINVALID_TREE_ID), try to fetch it from storage
@@ -141,8 +142,8 @@ void StreamCmdBase::ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType
   }
 }
 
-rocksdb::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key,
-                                             const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key, const Slot *slot) {
+  assert(slot);
   std::string value;
   auto s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
   if (s.ok()) {
@@ -154,8 +155,8 @@ rocksdb::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const
 
 // no need to be thread safe, only xadd will call this function
 // and xadd can be locked by the same key using current_key()
-rocksdb::Status StreamStorage::SetStreamMeta(const std::string &key, std::string &meta_value,
-                                             const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamStorage::SetStreamMeta(const std::string &key, std::string &meta_value, const Slot *slot) {
+  assert(slot);
   rocksdb::Status s;
   int32_t temp{0};
   s = slot->db()->HSet(STREAM_META_HASH_KEY, key, meta_value, &temp);
@@ -163,13 +164,15 @@ rocksdb::Status StreamStorage::SetStreamMeta(const std::string &key, std::string
   return s;
 }
 
-storage::Status StreamStorage::DeleteStreamMeta(const std::string &key, const std::shared_ptr<Slot> &slot) {
+storage::Status StreamStorage::DeleteStreamMeta(const std::string &key, const Slot *slot) {
+  assert(slot);
   int32_t ret;
   return slot->db()->HDel({STREAM_META_HASH_KEY}, {key}, &ret);
 }
 
 rocksdb::Status StreamStorage::InsertStreamMessage(const std::string &key, const streamID &id,
-                                                   const std::string &message, const std::shared_ptr<Slot> &slot) {
+                                                   const std::string &message, const Slot *slot) {
+  assert(slot);
   int32_t temp{0};
   std::string serialized_id;
   id.SerializeTo(serialized_id);
@@ -179,12 +182,14 @@ rocksdb::Status StreamStorage::InsertStreamMessage(const std::string &key, const
 }
 
 rocksdb::Status StreamStorage::GetStreamMessage(const std::string &key, const std::string &sid, std::string &message,
-                                                const std::shared_ptr<Slot> &slot) {
+                                                const Slot *slot) {
+  assert(slot);
   return slot->db()->HGet(key, sid, &message);
 }
 
 rocksdb::Status StreamStorage::DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id,
-                                                   int32_t &ret, const std::shared_ptr<Slot> &slot) {
+                                                   int32_t &ret, const Slot *slot) {
+  assert(slot);
   std::vector<std::string> serialized_ids;
   for (auto &sid : id) {
     std::string serialized_id;
@@ -196,12 +201,14 @@ rocksdb::Status StreamStorage::DeleteStreamMessage(const std::string &key, const
 
 rocksdb::Status StreamStorage::DeleteStreamMessage(const std::string &key,
                                                    const std::vector<std::string> &serialized_ids, int32_t &ret,
-                                                   const std::shared_ptr<Slot> &slot) {
+                                                   const Slot *slot) {
+  assert(slot);
   return slot->db()->HDel(key, {serialized_ids}, &ret);
 }
 
 storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vector<storage::FieldValue> &field_values,
-                                          std::string &next_field, const std::shared_ptr<Slot> &slot) {
+                                          std::string &next_field, const Slot *slot) {
+  assert(slot);
   std::string start_field;
   std::string end_field;
   rocksdb::Slice pattern = "*";  // match all the fields from start_field to end_field
@@ -247,7 +254,8 @@ storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vect
 }
 
 rocksdb::Status StreamStorage::GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
-                                                const std::shared_ptr<Slot> &slot) {
+                                                const Slot *slot) {
+  assert(slot);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
   rocksdb::Status s;
   s = slot->db()->HGet(key, field, &value);
@@ -255,7 +263,8 @@ rocksdb::Status StreamStorage::GetTreeNodeValue(const treeID tid, std::string &f
 }
 
 rocksdb::Status StreamStorage::InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
-                                                   const std::shared_ptr<Slot> &slot) {
+                                                   const Slot *slot) {
+  assert(slot);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
 
   rocksdb::Status s;
@@ -265,8 +274,8 @@ rocksdb::Status StreamStorage::InsertTreeNodeValue(const treeID tid, const std::
   return s;
 }
 
-rocksdb::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::string &field,
-                                              const std::shared_ptr<Slot> &slot) {
+rocksdb::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::string &field, const Slot *slot) {
+  assert(slot);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
 
   rocksdb::Status s;
@@ -277,12 +286,14 @@ rocksdb::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::strin
 }
 
 rocksdb::Status StreamStorage::GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
-                                              const std::shared_ptr<Slot> &slot) {
+                                              const Slot *slot) {
+  assert(slot);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
   return slot->db()->PKHScanRange(key, "", "", "*", INT_MAX, &field_values, nullptr);
 }
 
-bool StreamStorage::DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot) {
+bool StreamStorage::DeleteTree(const treeID tid, const Slot *slot) {
+  assert(slot);
   assert(tid != kINVALID_TREE_ID);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
   std::map<storage::DataType, storage::Status> type_status;
@@ -368,8 +379,8 @@ bool StreamUtils::StreamParseIntervalId(const std::string &var, streamID &id, bo
   }
 }
 
-void StreamCmdBase::AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values,
-                                        const std::shared_ptr<Slot> &slot) {
+void StreamCmdBase::AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values, const Slot *slot) {
+  assert(slot);
   res.AppendArrayLenUint64(field_values.size());
   for (auto &fv : field_values) {
     std::vector<std::string> message;
@@ -465,8 +476,9 @@ void StreamCmdBase::ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdAr
 }
 
 StreamCmdBase::TrimRet StreamCmdBase::TrimByMaxlenOrReply(StreamMetaValue &stream_meta, const std::string &key,
-                                                          const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                          const Slot *slot, CmdRes &res,
                                                           const StreamAddTrimArgs &args) {
+                                                            assert(slot);
   TrimRet trim_ret;
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
@@ -505,8 +517,9 @@ StreamCmdBase::TrimRet StreamCmdBase::TrimByMaxlenOrReply(StreamMetaValue &strea
 }
 
 inline StreamCmdBase::TrimRet StreamCmdBase::TrimByMinidOrReply(StreamMetaValue &stream_meta, const std::string &key,
-                                                                const std::shared_ptr<Slot> &slot, CmdRes &res,
+                                                                const Slot *slot, CmdRes &res,
                                                                 const StreamAddTrimArgs &args) {
+                                                                  assert(slot);
   TrimRet trim_ret;
   std::string serialized_min_id;
   stream_meta.first_id().SerializeTo(trim_ret.next_field);
@@ -557,7 +570,8 @@ inline StreamCmdBase::TrimRet StreamCmdBase::TrimByMinidOrReply(StreamMetaValue 
 }
 
 int32_t StreamCmdBase::TrimStreamOrReply(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
-                                         StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot) {
+                                         StreamAddTrimArgs &args, const Slot *slot) {
+  assert(slot);
   // 1 do the trim
   TrimRet trim_ret;
   if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
@@ -600,8 +614,8 @@ int32_t StreamCmdBase::TrimStreamOrReply(CmdRes &res, StreamMetaValue &stream_me
   return trim_ret.count;
 }
 
-void StreamCmdBase::DestoryStreamsOrReply(CmdRes &res, std::vector<std::string> &keys,
-                                          const std::shared_ptr<Slot> &slot) {
+void StreamCmdBase::DestoryStreamsOrReply(CmdRes &res, std::vector<std::string> &keys, const Slot *slot) {
+  assert(slot);
   for (const auto &key : keys) {
     // 1.try to get the stream meta
     StreamMetaValue stream_meta;
@@ -643,8 +657,8 @@ void StreamCmdBase::DestoryStreamsOrReply(CmdRes &res, std::vector<std::string> 
   }
 }
 
-void StreamCmdBase::DestoryCGroupOrReply(CmdRes &res, treeID cgroup_tid, std::string &cgroupname,
-                                         const std::shared_ptr<Slot> &slot) {
+void StreamCmdBase::DestoryCGroupOrReply(CmdRes &res, treeID cgroup_tid, std::string &cgroupname, const Slot *slot) {
+  assert(slot);
   // 1.get the cgroup meta
   std::string cgroup_meta_value;
   auto s = StreamStorage::GetTreeNodeValue(cgroup_tid, cgroupname, cgroup_meta_value, slot);
@@ -799,8 +813,8 @@ uint64_t StreamUtils::GetCurrentTimeMs() {
       .count();
 }
 
-storage::Status StreamUtils::CreateConsumer(treeID consumer_tid, std::string &consumername,
-                                            const std::shared_ptr<Slot> &slot) {
+storage::Status StreamUtils::CreateConsumer(treeID consumer_tid, std::string &consumername, const Slot *slot) {
+  assert(slot);
   std::string consumer_meta_value;
   auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.IsNotFound()) {
@@ -819,9 +833,9 @@ storage::Status StreamUtils::CreateConsumer(treeID consumer_tid, std::string &co
   return s;
 }
 
-storage::Status StreamUtils::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
-                                                 const std::shared_ptr<Slot> &slot,
+storage::Status StreamUtils::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername, const Slot *slot,
                                                  StreamConsumerMetaValue &consumer_meta) {
+                                                  assert(slot);
   std::string consumer_meta_value;
   auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
   if (s.ok()) {

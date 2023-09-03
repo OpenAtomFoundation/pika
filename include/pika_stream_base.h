@@ -77,34 +77,34 @@ class TreeIDGenerator {
     return instance;
   }
 
-  storage::Status GetNextTreeID(const std::shared_ptr<Slot> &slot, treeID &tid);
+  storage::Status GetNextTreeID(const Slot* slot, treeID &tid);
 
  private:
   static const treeID START_TREE_ID = 0;
   std::atomic<treeID> tree_id_ = kINVALID_TREE_ID;
 };
 
-// implement all the functions that related to blackwidow derctly.
-// if we want to change the storage engine, we only need to rewrite this class.
+// Implement all the functions that related to blackwidow derctly.
+// if we want to change the storage engine, we need to rewrite this class.
 class StreamStorage {
  public:
   // get and parse the stream meta if found
   // @return ok only when the stream meta exists
   static rocksdb::Status GetStreamMeta(StreamMetaValue &tream_meta, const std::string &key,
-                                       const std::shared_ptr<Slot> &slot);
+                                       const Slot* slot);
   // will create stream meta hash if it dosent't exist.
   // return !s.ok() only when insert failed
   static rocksdb::Status SetStreamMeta(const std::string &key, std::string &meta_value,
-                                       const std::shared_ptr<Slot> &slot);
+                                       const Slot* slot);
 
   static rocksdb::Status InsertStreamMessage(const std::string &key, const streamID &id, const std::string &message,
-                                             const std::shared_ptr<Slot> &slot);
+                                             const Slot* slot);
   static rocksdb::Status DeleteStreamMessage(const std::string &key, const std::vector<streamID> &ids, int32_t &ret,
-                                             const std::shared_ptr<Slot> &slot);
+                                             const Slot* slot);
   static rocksdb::Status DeleteStreamMessage(const std::string &key, const std::vector<std::string> &serialized_ids,
-                                             int32_t &ret, const std::shared_ptr<Slot> &slot);
+                                             int32_t &ret, const Slot* slot);
   static rocksdb::Status GetStreamMessage(const std::string &key, const std::string &sid, std::string &message,
-                                          const std::shared_ptr<Slot> &slot);
+                                          const Slot* slot);
 
   struct ScanStreamOptions {
     const std::string &skey;
@@ -126,7 +126,7 @@ class StreamStorage {
   };
 
   static storage::Status ScanStream(const ScanStreamOptions &option, std::vector<storage::FieldValue> &field_values,
-                                    std::string &next_field, const std::shared_ptr<Slot> &slot);
+                                    std::string &next_field, const Slot* slot);
 
   // get the abstracted tree node, e.g. get a message in pel, get a consumer meta or get a cgroup meta.
   // the behavior of abstracted tree is similar to radix-tree in redis;
@@ -134,20 +134,20 @@ class StreamStorage {
   // in consumer tree, field is consumername
   // in pel tree, field is messageID
   static rocksdb::Status GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
-                                          const std::shared_ptr<Slot> &slot);
+                                          const Slot* slot);
   static rocksdb::Status InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
-                                             const std::shared_ptr<Slot> &slot);
-  static rocksdb::Status DeleteTreeNode(const treeID tid, const std::string &field, const std::shared_ptr<Slot> &slot);
+                                             const Slot* slot);
+  static rocksdb::Status DeleteTreeNode(const treeID tid, const std::string &field, const Slot* slot);
   static rocksdb::Status GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
-                                        const std::shared_ptr<Slot> &slot);
+                                        const Slot* slot);
 
   // delete the stream meta
   // @return true if the stream meta exists and deleted
-  static rocksdb::Status DeleteStreamMeta(const std::string &key, const std::shared_ptr<Slot> &slot);
+  static rocksdb::Status DeleteStreamMeta(const std::string &key, const Slot* slot);
 
   // note: the tree must exist
   // @return true if the tree exists and is deleted
-  static bool DeleteTree(const treeID tid, const std::shared_ptr<Slot> &slot);
+  static bool DeleteTree(const treeID tid, const Slot* slot);
 
  private:
   StreamStorage();
@@ -166,20 +166,20 @@ class StreamCmdBase {
                                               bool is_xreadgroup);
                                               
   static int32_t TrimStreamOrReply(CmdRes &res, StreamMetaValue &stream_meta, const std::string &key,
-                                   StreamAddTrimArgs &args, const std::shared_ptr<Slot> &slot);
+                                   StreamAddTrimArgs &args, const Slot* slot);
 
   // delete the pels, consumers, cgroups and stream meta of a stream
   // note: this function do not delete the stream data value
-  static void DestoryStreamsOrReply(CmdRes &res, std::vector<std::string> &keys, const std::shared_ptr<Slot> &slot);
+  static void DestoryStreamsOrReply(CmdRes &res, std::vector<std::string> &keys, const Slot* slot);
 
   static void DestoryCGroupOrReply(CmdRes &res, treeID cgroup_tid, std::string &cgroupname,
-                                   const std::shared_ptr<Slot> &slot);
+                                   const Slot* slot);
 
   // @field_values is the result of ScanStream.
   // field is the serialized message id,
   // value is the serialized message.
   static void AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values,
-                                  const std::shared_ptr<Slot> &slot);
+                                  const Slot* slot);
 
  private:
   StreamCmdBase();
@@ -195,10 +195,10 @@ class StreamCmdBase {
   };
 
   static TrimRet TrimByMaxlenOrReply(StreamMetaValue &stream_meta, const std::string &key,
-                                     const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
+                                     const Slot* slot, CmdRes &res, const StreamAddTrimArgs &args);
 
   static TrimRet TrimByMinidOrReply(StreamMetaValue &stream_meta, const std::string &key,
-                                    const std::shared_ptr<Slot> &slot, CmdRes &res, const StreamAddTrimArgs &args);
+                                    const Slot* slot, CmdRes &res, const StreamAddTrimArgs &args);
 };
 
 class StreamUtils {
@@ -221,7 +221,7 @@ class StreamUtils {
   // deserialize the message from a string with the format of SerializeMessage.
   static bool DeserializeMessage(const std::string &message, std::vector<std::string> &parsed_message);
 
-  // Parse a stream ID in the format given by clients to Redis, that is
+  // Parse a stream ID in the format given by clients to Pika, that is
   // <ms>-<seq>, and converts it into a streamID structure. The ID may be in incomplete
   // form, just stating the milliseconds time part of the stream. In such a case
   // the missing part is set according to the value of 'missing_seq' parameter.
@@ -234,8 +234,6 @@ class StreamUtils {
   // to be autogenerated. When a non-NULL 'seq_given' argument is provided, this
   // form is accepted and the argument is set to 0 unless the sequence part is
   // specified.
-  //
-  // If 'c' is set to NULL, no reply is sent to the client.
   static bool StreamGenericParseID(const std::string &var, streamID &id, uint64_t missing_seq, bool strict,
                                    bool *seq_given);
 
@@ -258,10 +256,10 @@ class StreamUtils {
   // get consumer meta value.
   // if the consumer meta value does not exist, create a new one and return it.
   static storage::Status GetOrCreateConsumer(treeID consumer_tid, std::string &consumername,
-                                             const std::shared_ptr<Slot> &slot, StreamConsumerMetaValue &consumer_meta);
+                                             const Slot* slot, StreamConsumerMetaValue &consumer_meta);
 
   static storage::Status CreateConsumer(treeID consumer_tid, std::string &consumername,
-                                        const std::shared_ptr<Slot> &slot);
+                                        const Slot* slot);
 };
 
 #endif

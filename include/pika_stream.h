@@ -34,26 +34,6 @@ class XAddCmd : public Cmd {
 
   void DoInitial() override;
   inline void GenerateStreamIDOrReply(const StreamMetaValue& stream_meta);
-  inline std::string SerializeMessage(const std::vector<std::string>& field_values, int field_pos) {
-    assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
-
-    std::string message;
-    // count the size of serizlized message
-    size_t size = 0;
-    for (int i = field_pos; i < field_values.size(); i++) {
-      size += field_values[i].size() + sizeof(size_t);
-    }
-    message.reserve(size);
-
-    // serialize message
-    for (int i = field_pos; i < field_values.size(); i++) {
-      size_t len = field_values[i].size();
-      message.append(reinterpret_cast<const char*>(&len), sizeof(len));
-      message.append(field_values[i]);
-    }
-
-    return message;
-  }
 };
 
 class XDelCmd : public Cmd {
@@ -71,10 +51,10 @@ class XDelCmd : public Cmd {
 
   void DoInitial() override;
   void Clear() override { ids_.clear(); }
-  inline void SetFirstOrLastIDOrReply(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot,
+  inline void SetFirstOrLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot,
                                       bool is_set_first);
-  inline void SetFirstIDOrReply(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot);
-  inline void SetLastIDOrReply(StreamMetaValue& stream_meta, const std::shared_ptr<Slot>& slot);
+  inline void SetFirstIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
+  inline void SetLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
 };
 
 class XReadCmd : public Cmd {
@@ -188,7 +168,7 @@ class XReadGroupCmd : public Cmd {
 
   // return ok if consumer meta exists or create a new one
   // @consumer_meta: used to return the consumer meta
-  rocksdb::Status GetOrCreateConsumer(treeID consumer_tid, std::string& consumername, const std::shared_ptr<Slot>& slot,
+  rocksdb::Status GetOrCreateConsumer(treeID consumer_tid, std::string& consumername, const Slot* slot,
                                       StreamConsumerMetaValue& consumer_meta);
   void DoInitial() override;
   void Clear() override {
@@ -208,12 +188,12 @@ class XGroupCmd : public Cmd {
 
  private:
   // create a consumer group, initialize the pel and consumers
-  void Create(const std::shared_ptr<Slot>& slot = nullptr);
-  void CreateConsumer(const std::shared_ptr<Slot>& slot = nullptr);
-  void DeleteConsumer(const std::shared_ptr<Slot>& slot = nullptr);
-  void Destroy(const std::shared_ptr<Slot>& slot = nullptr);
+  void Create(const Slot* slot = nullptr);
+  void CreateConsumer(const Slot* slot = nullptr);
+  void DeleteConsumer(const Slot* slot = nullptr);
+  void Destroy(const Slot* slot = nullptr);
 
-  void Help(const std::shared_ptr<Slot>& slot = nullptr);
+  void Help(const Slot* slot = nullptr);
 
  private:
   // XGROUP common options
