@@ -221,17 +221,10 @@ const std::string kCmdNamePUnSubscribe = "punsubscribe";
 const std::string kCmdNameXAdd = "xadd";
 const std::string kCmdNameXDel = "xdel";
 const std::string kCmdNameXRead = "xread";
-const std::string kCmdNameXReadGroup = "xreadgroup";
-const std::string kCmdNameXGroupCreate = "xgroupcreate";
-const std::string kCmdNameXGroupHelp = "xgrouphelp";
-const std::string kCmdNameXGroup = "xgroup";
 const std::string kCmdNameXLen = "xlen";
 const std::string kCmdNameXRange = "xrange";
 const std::string kCmdNameXRevrange = "xrevrange";
-const std::string kCmdNameXPending = "xpending";
-const std::string kCmdNameXAck = "xack";
 const std::string kCmdNameXTrim = "xtrim";
-const std::string kCmdNameXClaim = "xclaim";
 const std::string kCmdNameXInfo = "xinfo";
 
 

@@ -698,14 +698,6 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> xreadptr =
       std::make_unique<XReadCmd>(kCmdNameXRead, -3, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsStream);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXRead, std::move(xreadptr)));
-  ////XGroup
-  std::unique_ptr<Cmd> xgroupptr =
-      std::make_unique<XGroupCmd>(kCmdNameXGroup, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXGroup, std::move(xgroupptr)));
-  ////XAck
-  std::unique_ptr<Cmd> xackptr =
-      std::make_unique<XAckCmd>(kCmdNameXAck, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXAck, std::move(xackptr)));
   ////XRange
   std::unique_ptr<Cmd> xrangeptr =
       std::make_unique<XRangeCmd>(kCmdNameXRange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream);
@@ -726,11 +718,6 @@ void InitCmdTable(CmdTable* cmd_table) {
     std::unique_ptr<Cmd> xinfoptr =
         std::make_unique<XInfoCmd>(kCmdNameXInfo, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream);
     cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXInfo, std::move(xinfoptr)));
-
-  ////XReadGroup
-  std::unique_ptr<Cmd> xreadgroupptr =
-      std::make_unique<XReadGroupCmd>(kCmdNameXReadGroup, -4, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsStream);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXReadGroup, std::move(xreadgroupptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
