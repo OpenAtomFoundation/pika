@@ -6,23 +6,13 @@
 #ifndef SRC_STREAM_META_VALUE_FORMAT_H_
 #define SRC_STREAM_META_VALUE_FORMAT_H_
 
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "glog/logging.h"
 #include "include/pika_stream_types.h"
-#include "storage/src/coding.h"
 
 static const size_t kDefaultStreamValueLength =
     sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t);
 class StreamMetaValue {
  public:
-  // should provie a string
   explicit StreamMetaValue() = default;
   // used only when create a new stream
   void Init() {

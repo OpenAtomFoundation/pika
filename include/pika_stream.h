@@ -6,11 +6,6 @@
 #ifndef PIKA_STREAM_H_
 #define PIKA_STREAM_H_
 
-#include <cassert>
-#include <cstdint>
-#include <string>
-#include <vector>
-#include "gflags/gflags_declare.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
 #include "include/pika_stream_base.h"
@@ -21,6 +16,18 @@
 /*
  * stream
  */
+
+inline void ParseAddOrTrimArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv, StreamAddTrimArgs& args, int* idpos,
+                                      bool is_xadd);
+
+inline void ParseReadOrReadGroupArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv, StreamReadGroupReadArgs& args,
+                                            bool is_xreadgroup);
+
+// @field_values is the result of ScanStream.
+// field is the serialized message id,
+// value is the serialized message.
+inline void AppendMessagesToRes(CmdRes& res, std::vector<storage::FieldValue>& field_values, const Slot* slot);
+
 class XAddCmd : public Cmd {
  public:
   XAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
@@ -54,8 +61,7 @@ class XDelCmd : public Cmd {
 
   void DoInitial() override;
   void Clear() override { ids_.clear(); }
-  inline void SetFirstOrLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot,
-                                      bool is_set_first);
+  inline void SetFirstOrLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot, bool is_set_first);
   inline void SetFirstIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
   inline void SetLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
 };
