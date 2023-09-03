@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <stdio.h>
+#include <cstdio>
 #include <strings.h>
 #include <algorithm>
 #include <cstddef>
