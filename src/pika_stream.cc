@@ -242,7 +242,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   } else if (s.IsNotFound()) {
     stream_meta.Init();
   } else if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed: " + s.ToString());
     return;
   }
 
@@ -273,8 +273,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
 
   s = StreamStorage::InsertStreamMessage(key_, args_.id, message, slot.get());
   if (!s.ok()) {
-    LOG(ERROR) << "Insert stream message failed";
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "error from XADD, insert stream message failed 1: " + s.ToString());
     return;
   }
 
@@ -296,7 +295,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   // 5 update stream meta
   s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get());
   if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed 2: " + s.ToString());
     return;
   }
 
@@ -550,7 +549,7 @@ void XLenCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
     return;
   }
-  res_.AppendInteger(static_cast<int>(stream_meta.length()));
+  res_.AppendInteger(static_cast<int32_t>(stream_meta.length()));
   return;
 }
 

@@ -35,7 +35,7 @@ static const std::string STREAM_LAST_GENERATED_TREE_ID_FIELD = "STREAM";
 // the max number of each delete operation in XTRIM command，to avoid too much memory usage.
 // eg. if a XTIRM command need to trim 10000 items, the implementation will use rocsDB's delete operation (10000 /
 // kDEFAULT_TRIM_BATCH_SIZE) times
-const static uint64_t kDEFAULT_TRIM_BATCH_SIZE = 1000;
+const static int32_t kDEFAULT_TRIM_BATCH_SIZE = 1000;
 
 struct StreamAddTrimArgs {
   // XADD options

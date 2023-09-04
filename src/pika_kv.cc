@@ -169,7 +169,7 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   // stream's destory need to be treated specially
   auto s = StreamStorage::DestoryStreams(keys_, slot.get());
   if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "stream delete error: " + s.ToString());
     return;
   }
 

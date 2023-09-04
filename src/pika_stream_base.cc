@@ -342,7 +342,7 @@ storage::Status StreamStorage::TrimByMaxlen(TrimRet &trim_ret, StreamMetaValue &
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
     auto cur_batch =
-        static_cast<int32_t>(std::min(stream_meta.length() - trim_ret.count - args.maxlen, kDEFAULT_TRIM_BATCH_SIZE));
+        (std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count - args.maxlen), kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<storage::FieldValue> filed_values;
 
     StreamStorage::ScanStreamOptions options(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, false, false,
@@ -384,7 +384,7 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
 
   // we delete the message in batchs, prevent from using too much memory
   while (trim_ret.next_field < serialized_min_id && stream_meta.length() - trim_ret.count > 0) {
-    auto cur_batch = static_cast<int32_t>(std::min(stream_meta.length() - trim_ret.count, kDEFAULT_TRIM_BATCH_SIZE));
+    auto cur_batch = static_cast<int32_t>(std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count), kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<storage::FieldValue> filed_values;
 
     StreamStorage::ScanStreamOptions options(key, stream_meta.first_id(), args.minid, cur_batch, false, false, false);
@@ -405,6 +405,7 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
       }
     }
 
+    assert(filed_values.size() <= cur_batch);
     trim_ret.count += static_cast<int32_t>(filed_values.size());
 
     // do the delete in batch
