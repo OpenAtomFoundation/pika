@@ -93,15 +93,15 @@ class TreeIDGenerator {
 class StreamStorage {
  public:
   struct ScanStreamOptions {
-    const std::string &key;  // the key of the stream
-    const streamID &start_sid;
-    const streamID &end_sid;
-    const int32_t count;
-    const bool start_ex;    // exclude first message
-    const bool end_ex;      // exclude last message
-    const bool is_reverse;  // scan in reverse order
-    ScanStreamOptions(const std::string &skey, const streamID &start_sid, const streamID &end_sid, const int32_t count,
-                      const bool start_ex = false, const bool end_ex = false, const bool is_reverse = false)
+    std::string key;  // the key of the stream
+    streamID start_sid;
+    streamID end_sid;
+    int32_t count;
+    bool start_ex;    // exclude first message
+    bool end_ex;      // exclude last message
+    bool is_reverse;  // scan in reverse order
+    ScanStreamOptions(std::string skey, streamID start_sid, streamID end_sid, int32_t count,
+                      bool start_ex = false, bool end_ex = false, bool is_reverse = false)
         : key(skey),
           start_sid(start_sid),
           end_sid(end_sid),
