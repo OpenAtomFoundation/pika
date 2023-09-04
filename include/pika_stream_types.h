@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "src/storage/src/coding.h"
 
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
@@ -24,7 +25,7 @@ using streamID = struct streamID {
   // We must store the streamID in memory in big-endian format. This way, our comparison of the serialized streamID byte
   // code will be equivalent to the comparison of the uint64_t numbers.
   inline void EncodeUint64InBigEndian(char* buf, uint64_t value) const {
-    if ((__BYTE_ORDER == __LITTLE_ENDIAN)) {
+    if (storage::kLittleEndian) {
       // little endian, reverse the bytes
       for (int i = 7; i >= 0; --i) {
         buf[i] = static_cast<char>(value & 0xff);
@@ -38,7 +39,7 @@ using streamID = struct streamID {
 
   inline uint64_t DecodeUint64OfBigEndian(const char* ptr) {
     uint64_t value;
-    if ((__BYTE_ORDER == __LITTLE_ENDIAN)) {
+    if (storage::kLittleEndian) {
       // little endian, reverse the bytes
       value = 0;
       for (int i = 0; i < 8; ++i) {
