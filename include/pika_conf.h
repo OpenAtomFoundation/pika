@@ -380,9 +380,9 @@ class PikaConf : public pstd::BaseConf {
     master_run_id_ = value;
   }
   void SetReplicationID(const std::string& value) {
-      std::lock_guard l(rwlock_);
-      TryPushDiffCommands("replication-id", value);
-      replication_id_ = value;
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("replication-id", value);
+    replication_id_ = value;
   }
   void SetSlavePriority(const int value) {
     std::lock_guard l(rwlock_);

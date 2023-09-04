@@ -122,12 +122,12 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     return;
   }
 
-  if (meta_sync.run_id() == "" || g_pika_server->master_run_id() != meta_sync.run_id()) {
-    LOG(INFO) << "Run id is not equal, need to do full sync, remote master run id: " << meta_sync.run_id()
-              << ", local run id: " << g_pika_server->master_run_id();
+  if (meta_sync.replication_id() == "" || g_pika_conf->replication_id() != meta_sync.replication_id()) {
+    LOG(INFO) << "Replication id is not equal, need to do full sync, remote replication id: " << meta_sync.replication_id()
+              << ", local replication id: " << g_pika_conf->replication_id();
     g_pika_server->force_full_sync_ = true;
-    g_pika_server->set_master_run_id(meta_sync.run_id());
-    g_pika_conf->SetMasterRunID(meta_sync.run_id());
+    g_pika_conf->SetReplicationID(meta_sync.replication_id());
+    g_pika_conf->ConfigRewriteReplicateId();
   }
 
   g_pika_conf->SetWriteBinlog("yes");

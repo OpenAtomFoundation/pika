@@ -47,8 +47,14 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       g_pika_server->BecomeMaster();
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
+      if (g_pika_conf->replication_id() == "") {
+        std::string replication_id = pstd::getRandomHexChars(configReplicationIDSize);
+        g_pika_conf->SetReplicationID(replication_id);
+        g_pika_conf->ConfigRewriteReplicateId();
+      }
       meta_sync->set_classic_mode(g_pika_conf->classic_mode());
       meta_sync->set_run_id(g_pika_conf->run_id());
+      meta_sync->set_replication_id(g_pika_conf->replication_id());
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);

@@ -1038,7 +1038,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       info.append("ERR: server role is error\r\n");
       return;
   }
-
+  tmp_stream << "ReplicationID: " << g_pika_conf->replication_id() << "\r\n";
   std::string slaves_list_str;
   switch (host_role) {
     case PIKA_ROLE_SLAVE:
