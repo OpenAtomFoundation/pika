@@ -8,9 +8,12 @@
 #include "log.h"
 
 #include <algorithm>
+#include "base_cmd.h"
 #include "client.h"
+#include "cmd_context.h"
 #include "command.h"
 #include "config.h"
+#include "pikiwidb.h"
 #include "slow_log.h"
 #include "store.h"
 
@@ -184,8 +187,8 @@ int PClient::handlePacket(pikiwidb::TcpObject* obj, const char* start, int bytes
 
   const PCommandInfo* info = PCommandTable::GetCommandInfo(cmd);
 
-  if (!info) {
-    ReplyError(PError_unknowCmd, &reply_);
+  if (!info) {  // 如果这个命令不存在，那么就走新的命令处理流程
+    handlePacketNew(obj, params, cmd);
     return static_cast<int>(ptr - start);
   }
 
@@ -226,6 +229,33 @@ int PClient::handlePacket(pikiwidb::TcpObject* obj, const char* start, int bytes
   }
 
   return static_cast<int>(ptr - start);
+}
+
+// 为了兼容老的命令处理流程，新的命令处理流程在这里
+// 后面可以把client这个类重构，完整的支持新的命令处理流程
+int PClient::handlePacketNew(pikiwidb::TcpObject* obj, const std::vector<std::string>& params, const std::string& cmd) {
+  auto cmdPtr = g_pikiwidb->CmdTableManager()->GetCommand(cmd);
+
+  if (!cmdPtr) {
+    ReplyError(PError_unknowCmd, &reply_);
+    return 0;
+  }
+
+  if (!cmdPtr->CheckArg(params.size())) {
+    ReplyError(PError_param, &reply_);
+    return 0;
+  }
+
+  CmdContext ctx;
+  ctx.client_ = this;
+  // 因为 params 是一个引用，不能直接传给 ctx.argv_，所以需要拷贝一份，后面可以优化
+  std::vector<std::string> argv = params;
+  ctx.argv_ = argv;
+
+  cmdPtr->Execute(ctx);
+
+  reply_.PushData(ctx.message().data(), ctx.message().size());
+  return 0;
 }
 
 PClient* PClient::Current() { return s_current; }

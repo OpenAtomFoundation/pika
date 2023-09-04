@@ -8,10 +8,10 @@
 //
 //  PikiwiDB.cc
 
-#include <signal.h>
+#include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <spawn.h>
+#include <csignal>
 #include <iostream>
 #include <thread>
 
@@ -51,7 +51,7 @@ static void InitSignal() {
 
 const unsigned PikiwiDB::kRunidSize = 40;
 
-PikiwiDB::PikiwiDB() : port_(0), masterPort_(0) {}
+PikiwiDB::PikiwiDB() : port_(0), masterPort_(0) { cmdTableManager_ = std::make_unique<pikiwidb::CmdTableManager>(); }
 
 PikiwiDB::~PikiwiDB() {}
 
@@ -245,6 +245,8 @@ bool PikiwiDB::Init() {
            static_cast<int>(g_config.port));
   std::cout << logo;
 
+  cmdTableManager_->InitCmdTable();
+
   return true;
 }
 
@@ -261,6 +263,8 @@ void PikiwiDB::Recycle() {
 }
 
 void PikiwiDB::Stop() { event_loop_.Stop(); }
+
+std::unique_ptr<pikiwidb::CmdTableManager>& PikiwiDB::CmdTableManager() { return cmdTableManager_; }
 
 static void InitLogs() {
   logger::Init("logs/pikiwidb_server.log");

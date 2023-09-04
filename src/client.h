@@ -97,6 +97,7 @@ class PClient : public std::enable_shared_from_this<PClient> {
 
  private:
   int handlePacket(pikiwidb::TcpObject*, const char*, int);
+  int handlePacketNew(pikiwidb::TcpObject* obj, const std::vector<std::string>& params, const std::string& cmd);
   int processInlineCmd(const char*, size_t, std::vector<PString>&);
   void reset();
   bool isPeerMaster() const;
