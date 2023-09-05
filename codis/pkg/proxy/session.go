@@ -192,6 +192,9 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 		} else {
 			tasks.PushBack(r)
 		}
+		end := time.Now()
+		r.UnixNano = end.UnixNano()
+		if ()
 	}
 	return nil
 }
@@ -227,10 +230,17 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 			return s.incrOpFails(r, err)
 		}
 		fflush := tasks.IsEmpty()
+		// 开始返回给用户的时间
+		r.BegOutUnixNano = time.Now().UnixNano()
 		if err := p.Flush(fflush); err != nil {
 			return s.incrOpFails(r, err)
 		} else {
 			s.incrOpStats(r, resp.Type)
+		}
+		// 结束返回给用户的时间
+		r.EndOutUnixNano = time.Now().UnixNano()
+		if r.BegOutUnixNano-r.EndOutUnixNano > 5000000 {
+			log.Errorf("BegOutUnixNano and EndOutUnixNano is too large")
 		}
 		if fflush {
 			s.flushOpStats(false)
@@ -397,6 +407,7 @@ func (s *Session) handleRequestMGet(r *Request, d *Router) error {
 		return d.dispatch(r)
 	}
 	var sub = r.MakeSubRequest(nkeys)
+
 	for i := range sub {
 		sub[i].Multi = []*redis.Resp{
 			r.Multi[0],

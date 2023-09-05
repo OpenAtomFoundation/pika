@@ -283,6 +283,8 @@ func (bc *BackendConn) loopReader(tasks <-chan *Request, c *redis.Conn, round in
 			bc, bc.addr, bc.database, round)
 	}()
 	for r := range tasks {
+		// pika 返回的时间
+		r.EndPikaUnixNano = time.Now().UnixNano()
 		resp, err := c.Decode()
 		if err != nil {
 			return bc.setResponse(r, nil, fmt.Errorf("backend conn failure, %s", err))
@@ -359,6 +361,8 @@ func (bc *BackendConn) loopWriter(round int) (err error) {
 			return bc.setResponse(r, nil, fmt.Errorf("backend conn failure, %s", err))
 		}
 		if err := p.Flush(len(bc.input) == 0); err != nil {
+			// 开始请求 pika 的时间
+			r.BegPikaUnixNano = time.Now().UnixNano()
 			return bc.setResponse(r, nil, fmt.Errorf("backend conn failure, %s", err))
 		} else {
 			tasks <- r

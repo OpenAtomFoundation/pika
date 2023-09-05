@@ -17,12 +17,25 @@ type Request struct {
 	Group *sync.WaitGroup
 
 	Broken *atomic2.Bool
+	// 请求进入时间
+	UnixNano int64
+
+	// 开始请求 Pika 的时间
+	BegPikaUnixNano int64
+
+	// Pika 返回的时间
+	EndPikaUnixNano int64
+
+	// 开始返回给用户的时间
+	BegOutUnixNano int64
+
+	// 返回用户成功的时间
+	EndOutUnixNano int64
 
 	OpStr string
 	OpFlag
 
 	Database int32
-	UnixNano int64
 
 	*redis.Resp
 	Err error
