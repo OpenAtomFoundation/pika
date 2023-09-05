@@ -16,50 +16,19 @@
 
 using pstd::Status;
 
-class RaftMemLog {
-public:
-  struct LogItem {
-    LogItem(const uint64_t& _index, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr,
-            std::shared_ptr<std::string> _resp_ptr)
-        : index(_index), cmd_ptr(std::move(_cmd_ptr)), conn_ptr(std::move(_conn_ptr)), resp_ptr(std::move(_resp_ptr)) {}
-		uint64_t index;
-    std::shared_ptr<Cmd> cmd_ptr;
-    std::shared_ptr<PikaClientConn> conn_ptr;
-    std::shared_ptr<std::string> resp_ptr;
-  };
-
-  RaftMemLog();
-  int Size();
-  void AppendLog(const LogItem& item) {
-    std::lock_guard lock(logs_mu_);
-    logs_.push_back(item);
-  }
-  pstd::Status PurgeLogs(const uint64_t& log_index, std::vector<LogItem>* logs);
-	pstd::Status Remove(const LogItem& item);
-  pstd::Status TruncateTo(const uint64_t& log_index, std::vector<LogItem>* logs);
-
-  void Reset(const uint64_t& log_index, std::vector<LogItem>* logs);
-
-  void SetLastCommitIndex(const uint64_t& log_index) {
-    std::lock_guard lock(logs_mu_);
-    last_commit_index_ = log_index;
-  }
-  bool FindLogItem(const uint64_t& log_index, uint64_t* found_index);
-
- private:
-  int InternalFindLogByLogIndex(const uint64_t& log_index);
-	int InternalFindLogByLogContent(const LogItem& item);
-  pstd::Mutex logs_mu_;
-  std::vector<LogItem> logs_;
-  uint64_t last_commit_index_;
-};
-
 class PikaRaftServer {
  public:
- 	struct CmdPtrArg {
-    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(ptr)) {}
-    std::shared_ptr<Cmd> cmd_ptr;
-  };
+	struct RaftClientConn {
+		RaftClientConn(std::string _db_name, uint32_t _slot_id
+							, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr
+							, std::shared_ptr<std::string> _resp_ptr)
+					: db_name(_db_name), slot_id(_slot_id), cmd_ptr(std::move(_cmd_ptr)), conn_ptr(std::move(_conn_ptr)), resp_ptr(std::move(_resp_ptr)) {}
+		std::string db_name;
+		uint32_t slot_id;
+		std::shared_ptr<Cmd> cmd_ptr;
+		std::shared_ptr<PikaClientConn> conn_ptr;
+		std::shared_ptr<std::string> resp_ptr;
+	};
 
 	using raft_result = nuraft::cmd_result<nuraft::ptr<nuraft::buffer>>;
 
@@ -68,8 +37,7 @@ class PikaRaftServer {
 	void reset();
 	Status AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
 											 std::shared_ptr<std::string> resp_ptr, std::string _db_name, uint32_t _slot_id);
-	void HandleRaftLogResult(Status& s, RaftMemLog::LogItem& memlog_item, raft_result& result, nuraft::ptr<std::exception>& err);
-	void HandleRaftLogAccept(raft_result& result, RaftMemLog::LogItem& memlog_item);
+	void HandleRaftLogResult(RaftClientConn& cli_conn, raft_result& result, nuraft::ptr<std::exception>& err);
 	void Start();
 	bool HasLeader();
 	bool IsLeader();
@@ -104,9 +72,6 @@ class PikaRaftServer {
 	// Raft server instance.
 	nuraft::ptr<nuraft::raft_server> raft_instance_ = nullptr;
 	std::shared_mutex raft_mutex_;
-
-	std::shared_ptr<RaftMemLog> mem_logger_= nullptr;
-
 };
 
 #endif

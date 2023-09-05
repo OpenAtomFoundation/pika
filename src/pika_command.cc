@@ -962,17 +962,6 @@ void Cmd::DoRaftlog(const std::shared_ptr<Slot>& slot) {
 
     Status s = g_pika_raft_server->AppendRaftlog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr),
                                               resp_ptr, slot->GetDBName(), slot->GetSlotID());
-    if (!s.ok()) {
-      if (s.IsIOError()) {
-        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
-                    << " Writing raftlog failed " << s.ToString();
-      } else if (s.IsIncomplete()) {
-        LOG(WARNING) << "(" + slot->GetDBName() + ":" + std::to_string(slot->GetSlotID()) + ")"
-                    << " Consensus raftlog failed " << s.ToString();
-      }
-      res().SetRes(CmdRes::kErrOther, s.ToString());
-      return;
-    }
   }
 }
 
