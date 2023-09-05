@@ -140,6 +140,10 @@ Status Storage::Setxx(const Slice& key, const Slice& value, int32_t* ret, const 
 
 Status Storage::Get(const Slice& key, std::string* value) { return strings_db_->Get(key, value); }
 
+Status Storage::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
+  return strings_db_->GetWithTTL(key, value, ttl);
+}
+
 Status Storage::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
   return strings_db_->GetSet(key, value, old_value);
 }
@@ -234,6 +238,10 @@ Status Storage::HMGet(const Slice& key, const std::vector<std::string>& fields, 
 
 Status Storage::HGetall(const Slice& key, std::vector<FieldValue>* fvs) { return hashes_db_->HGetall(key, fvs); }
 
+Status Storage::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl) {
+  return hashes_db_->HGetallWithTTL(key, fvs, ttl);
+}
+
 Status Storage::HKeys(const Slice& key, std::vector<std::string>* fields) { return hashes_db_->HKeys(key, fields); }
 
 Status Storage::HVals(const Slice& key, std::vector<std::string>* values) { return hashes_db_->HVals(key, values); }
@@ -313,6 +321,10 @@ Status Storage::SIsmember(const Slice& key, const Slice& member, int32_t* ret) {
 
 Status Storage::SMembers(const Slice& key, std::vector<std::string>* members) {
   return sets_db_->SMembers(key, members);
+}
+
+Status Storage::SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl) {
+  return sets_db_->SMembersWithTTL(key, members, ttl);
 }
 
 Status Storage::SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret) {

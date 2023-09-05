@@ -159,6 +159,10 @@ class Storage {
   // the special value nil is returned
   Status Get(const Slice& key, std::string* value);
 
+  // Get the value and ttl of key. If the key does not exist
+  // the special value nil is returned. If the key has no ttl, ttl is -1
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+
   // Atomically sets key to value and returns the old value stored at key
   // Returns an error when key exists but does not hold a string value.
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
@@ -284,6 +288,8 @@ class Storage {
   // value, every field name is followed by its value, so the length of the
   // reply is twice the size of the hash.
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
+
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
 
   // Returns all field names in the hash stored at key.
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
@@ -416,6 +422,8 @@ class Storage {
   // This has the same effect as running SINTER with one argument key.
   Status SMembers(const Slice& key, std::vector<std::string>* members);
 
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl);
+
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
   // treated as an empty set and this command returns 0.
@@ -486,6 +494,8 @@ class Storage {
   // and stop are zero-based indexes, with 0 being the first element of the list
   // (the head of the list), 1 being the next element and so on.
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
+
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
