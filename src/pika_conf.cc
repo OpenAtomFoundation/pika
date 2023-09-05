@@ -143,7 +143,7 @@ int PikaConf::Load() {
   GetConfBool("is-raft", &is_raft_);
   GetConfInt("raft-server-id", &raft_server_id_);
   GetConfStrVec("raft-cluster-endpoints", &raft_cluster_endpoints_);
-  if (raft_cluster_endpoints_.size() < 3) {
+  if (raft_cluster_endpoints_.size() < 1) {
     is_raft_ = false;
   }
   GetConfStr("raft-path", &raft_path_);

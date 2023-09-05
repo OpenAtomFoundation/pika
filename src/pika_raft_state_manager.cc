@@ -35,7 +35,10 @@ PikaRaftStateManager::PikaRaftStateManager(int32_t _server_id
     LOG(INFO) << "loading cluster member: " << id_str << " : " << member_ip;
     uint32_t member_id = std::stoi(id_str);
     if (member_id == server_id_) {
-      assert(member_endpoint == endpoint_);
+      if (member_endpoint != endpoint_ && member_ip != "127.0.0.1") {
+        LOG(FATAL) << "Raft Configure Error: actual endpoint of raft server " << server_id_ 
+                    << " is " << endpoint_ << ", in config is " << member_endpoint;
+      }
     }
     nuraft::ptr<nuraft::srv_config> new_server = nuraft::cs_new<nuraft::srv_config>(member_id, member_endpoint);
     saved_config_->get_servers().push_back(new_server);

@@ -234,6 +234,7 @@ void PikaRaftServer::reset()  {
 }
 
 void PikaRaftServer::HandleRaftLogResult(Status& s, RaftMemLog::LogItem& memlog_item, raft_result& result, nuraft::ptr<std::exception>& err) {
+	s = Status::OK();
 	// Log Store Unaccepted
 	if (!result.get_accepted()) {
 		// Memlog pop only when rollback or apply or here, 
@@ -243,28 +244,30 @@ void PikaRaftServer::HandleRaftLogResult(Status& s, RaftMemLog::LogItem& memlog_
 			LOG(WARNING) << "MemLog Corrupted!";
 		}
 		s = Status::IOError("Raft Append Log Unaccepted, " + result.get_result_str());
+	} else if (result.get_result_code() != nuraft::cmd_result_code::OK) {
+		 	// Something went wrong.
+			// This means committing this log failed, but the log itself is still in the log store.
+		s = mem_logger_->Remove(memlog_item);
+		if (!s.ok()) {
+			LOG(WARNING) << "MemLog Corrupted!";
+		}
+    s = Status::Incomplete("Commit Log Failed");
+  }
+
+	if (!s.ok()) {
 		auto arg = new PikaClientConn::BgTaskArg();
 		arg->cmd_ptr = memlog_item.cmd_ptr;
 		arg->conn_ptr = memlog_item.conn_ptr;
 		arg->resp_ptr = memlog_item.resp_ptr;
 		arg->cmd_ptr->res().SetRes(CmdRes::kErrOther, s.ToString());
 		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoRaftRollBackTask, arg, memlog_item.cmd_ptr->current_key().front());
-		return;
 	}
-	// Something went wrong.
-	// This means committing this log failed, but the log itself is still in the log store.
-	if (result.get_result_code() != nuraft::cmd_result_code::OK) {
-    s = Status::Incomplete("Commit Log Failed");
-    return;
-  }
-	s = Status::OK();
-	return;
 }
 
 //TODO(lap): batched append logs
 Status PikaRaftServer::AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                                         std::shared_ptr<std::string> resp_ptr, std::string _db_name, uint32_t _slot_id) {
-	Status s;
+	Status s = Status::OK();
 	std::string raftlog =
 		cmd_ptr->ToRaftlog(time(nullptr));
 	size_t content_size = sizeof(uint32_t) + _db_name.size() + raftlog.size();
