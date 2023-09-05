@@ -13,7 +13,6 @@
 
 namespace pikiwidb {
 
-//
 class GetCmd : public BaseCmd {
  public:
   GetCmd(const std::string &name, int arity);
