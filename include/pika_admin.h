@@ -460,16 +460,16 @@ class HelloCmd : public Cmd {
 };
 
 class DiskRecoveryCmd : public Cmd {
-public:
- DiskRecoveryCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
- void Do(std::shared_ptr<Slot> slot = nullptr) override;
- void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
- void Merge() override{};
- Cmd* Clone() override { return new DiskRecoveryCmd(*this); }
+ public:
+  DiskRecoveryCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new DiskRecoveryCmd(*this); }
 
-private:
- void DoInitial() override;
- std::map<std::string, uint64_t> background_errors_;
+ private:
+  void DoInitial() override;
+  std::map<std::string, uint64_t> background_errors_;
 };
 
 #ifdef WITH_COMMAND_DOCS

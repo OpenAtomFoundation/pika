@@ -4,7 +4,8 @@ LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
 
 ENV PIKA=/pika \
     PIKA_BUILD_DIR=/tmp/pika \
-    PATH=${PIKA}:${PIKA}/bin:${PATH}
+    PATH=${PIKA}:${PIKA}/bin:${PATH} \
+    BUILD_TYPE=RelWithDebInfo
 
 ARG ENABLE_PROXY=false
 
@@ -18,15 +19,19 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     cmake \
-    autoconf
+    autoconf \
+    clang-tidy-12
 
 WORKDIR ${PIKA_BUILD_DIR}
 
 COPY . ${PIKA_BUILD_DIR}
 
-RUN ${PIKA_BUILD_DIR}/build.sh
+RUN  cmake -B ${PIKA_BUILD_DIR}/build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_PIKA_TOOLS=OFF
+RUN  cmake --build ${PIKA_BUILD_DIR}/build --config ${BUILD_TYPE}
 
 FROM ubuntu:22.04
+
+LABEL maintainer="SvenDwideit@home.org.au, zhangshaomin_1990@126.com"
 
 ARG ENABLE_PROXY=false
 
@@ -47,7 +52,7 @@ ENV PIKA=/pika \
 
 WORKDIR ${PIKA}
 
-COPY --from=builder ${PIKA_BUILD_DIR}/output/pika ${PIKA}/bin/pika
+COPY --from=builder ${PIKA_BUILD_DIR}/build/pika ${PIKA}/bin/pika
 COPY --from=builder ${PIKA_BUILD_DIR}/entrypoint.sh /entrypoint.sh
 COPY --from=builder ${PIKA_BUILD_DIR}/conf/pika.conf ${PIKA}/conf/pika.conf
 

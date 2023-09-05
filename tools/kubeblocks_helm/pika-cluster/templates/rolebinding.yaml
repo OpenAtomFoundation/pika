@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kb-{{ include "clustername" . }}
+  labels:
+    {{ include "pika-cluster.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kb-{{ include "clustername" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "pika-cluster.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
