@@ -127,7 +127,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
               << ", local replication id: " << g_pika_conf->replication_id();
     g_pika_server->force_full_sync_ = true;
     g_pika_conf->SetReplicationID(meta_sync.replication_id());
-    g_pika_conf->ConfigRewriteReplicateId();
+    g_pika_conf->ConfigRewriteReplicateID();
   }
 
   g_pika_conf->SetWriteBinlog("yes");

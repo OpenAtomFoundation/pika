@@ -2197,13 +2197,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
     ret = "+OK\r\n";
-  } else if (set_item == "replication-id") {
-    if ((pstd::string2int(value.data(), value.size(), &ival) == 0)) {
-      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'replication-id'\r\n";
-      return;
-    }
-    g_pika_conf->SetReplicationID(std::to_string(ival));
-    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2218,10 +2211,10 @@ void ConfigCmd::ConfigRewrite(std::string& ret) {
 }
 
 void ConfigCmd::ConfigRewriteReplicateID(std::string &ret) {
-  if (g_pika_conf->ConfigRewriteReplicateId() != 0) {
+  if (g_pika_conf->ConfigRewriteReplicateID() != 0) {
     ret = "+OK\r\n";
   } else {
-    ret = "-ERR Rewire CONFIG fail\r\n";
+    ret = "-ERR Rewire ReplicationID CONFIG fail\r\n";
   }
 }
 
@@ -2650,17 +2643,17 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk, "The disk error has been recovered");
 }
 
-void ClearReplicateIdCmd::DoInitial() {
+void ClearReplicateIDCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicateId);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicateID);
     return;
   }
 }
 
-void ClearReplicateIdCmd::Do(std::shared_ptr<Slot> slot) {
+void ClearReplicateIDCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_conf->SetReplicationID("");
-  g_pika_conf->ConfigRewriteReplicateId();
-  res_.SetRes(CmdRes::kOk, "ReplicationId is cleared");
+  g_pika_conf->ConfigRewriteReplicateID();
+  res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
 }
 
 #ifdef WITH_COMMAND_DOCS

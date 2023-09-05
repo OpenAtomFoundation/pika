@@ -463,13 +463,13 @@ class DiskRecoveryCmd : public Cmd {
   std::map<std::string, uint64_t> background_errors_;
 };
 
-class ClearReplicateIdCmd : public Cmd {
+class ClearReplicateIDCmd : public Cmd {
  public:
-  ClearReplicateIdCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ClearReplicateIDCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
-  Cmd* Clone() override { return new ClearReplicateIdCmd(*this); }
+  Cmd* Clone() override { return new ClearReplicateIDCmd(*this); }
 
  private:
   void DoInitial() override;

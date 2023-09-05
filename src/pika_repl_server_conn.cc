@@ -50,7 +50,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       if (g_pika_conf->replication_id() == "") {
         std::string replication_id = pstd::getRandomHexChars(configReplicationIDSize);
         g_pika_conf->SetReplicationID(replication_id);
-        g_pika_conf->ConfigRewriteReplicateId();
+        g_pika_conf->ConfigRewriteReplicateID();
       }
       meta_sync->set_classic_mode(g_pika_conf->classic_mode());
       meta_sync->set_run_id(g_pika_conf->run_id());

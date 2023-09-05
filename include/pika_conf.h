@@ -587,7 +587,7 @@ class PikaConf : public pstd::BaseConf {
 
   int Load();
   int ConfigRewrite();
-  int ConfigRewriteReplicateId();
+  int ConfigRewriteReplicateID();
 
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);

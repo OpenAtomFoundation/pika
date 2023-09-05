@@ -242,16 +242,6 @@ void PikaServer::set_master_run_id(const std::string& master_run_id) {
   master_run_id_ = master_run_id;
 }
 
-std::string PikaServer::replication_id() {
-  std::shared_lock l(state_protector_);
-  return replication_id_;
-}
-
-void PikaServer::set_replication_id(const std::string &replication_id) {
-  std::lock_guard l(state_protector_);
-  replication_id_ = replication_id;
-}
-
 int PikaServer::role() {
   std::shared_lock l(state_protector_);
   return role_;
@@ -746,7 +736,6 @@ void PikaServer::RemoveMaster() {
     master_ip_ = "";
     master_port_ = -1;
     master_run_id_ = "";
-    replication_id_ = "";
     DoSameThingEverySlot(TaskType::kResetReplState);
   }
 }
