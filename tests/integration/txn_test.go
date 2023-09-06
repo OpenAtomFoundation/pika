@@ -2,7 +2,6 @@ package pika_integration
 
 import (
 	"context"
-	"fmt"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -154,7 +153,6 @@ var _ = Describe("Text Txn", func() {
 				start := time.Now()
 				res, _ := pipe.Exec(ctx)
 				*txnCost = time.Since(start)
-				//fmt.Println("exec cmd duration:", *txnCost)
 				resultChann <- res
 			}(&txnCost)
 			wg := sync.WaitGroup{}
@@ -164,7 +162,6 @@ var _ = Describe("Text Txn", func() {
 				start := time.Now()
 				cmdClient.Set(ctx, "keyaa", "value", 0)
 				*cmdCost = time.Since(start)
-				//fmt.Println("other cmd duration:", *cmdCost)
 				wg.Done()
 			}(&cmdCost)
 			<-resultChann
@@ -207,19 +204,16 @@ var _ = Describe("Text Txn", func() {
 		It("blpop1", func() {
 			listKey := "key"
 			listValue := "v1"
-			secondListValue := "v2"
 			cmdClient.Del(ctx, listKey)
 			go func() {
 				cmdClient.BLPop(ctx, 0, listKey)
 			}()
 			time.After(time.Duration(1))
 			pipeline := txnClient.TxPipeline()
-			pipeline.LPush(ctx, listKey, listValue, secondListValue)
+			pipeline.LPush(ctx, listKey, listValue)
 			pipeline.LPop(ctx, listKey)
 			result, err := pipeline.Exec(ctx)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
+			Expect(err).NotTo(HaveOccurred())
 			AssertEqualRedisString(listValue, result[1])
 		})
 
@@ -247,7 +241,6 @@ var _ = Describe("Text Txn", func() {
 			cmdClient.Del(ctx, listKey)
 			cmdClient.LPush(ctx, listKey, listValue)
 			popCmd := cmdClient.LPop(ctx, listKey)
-			fmt.Println(popCmd.String())
 			Expect(strings.HasSuffix(popCmd.String(), listValue)).To(BeTrue())
 		})
 	})
