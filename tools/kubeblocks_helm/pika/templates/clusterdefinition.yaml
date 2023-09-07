@@ -71,12 +71,27 @@ spec:
           type: data
       configSpecs:
       podSpec:
+        initContainers:
+          - name: volume-permissions
+            image: busybox:1.28
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/sh
+              - -ec
+              - |
+                chown -R 1001:1001 /bitnami/etcd
+            securityContext:
+              runAsUser: 0
+            volumeMounts:
+              - name: data
+                mountPath: /bitnami/etcd
         containers:
           - name: etcd
             imagePullPolicy: "IfNotPresent"
             securityContext:
-              runAsNonRoot: true
+              runAsNonRoot: false
               runAsUser: 1001
+              allowPrivilegeEscalation: false
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
             volumeMounts:
