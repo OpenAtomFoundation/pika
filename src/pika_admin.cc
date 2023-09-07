@@ -151,6 +151,10 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
+  /* The return value of the slaveof command OK does not really represent whether
+   * the data synchronization was successful, but only changes the status of the
+   * slaveof executor to slave */
+
   bool sm_ret = g_pika_server->SetMaster(master_ip_, static_cast<int32_t>(master_port_));
 
   if (sm_ret) {
@@ -1324,8 +1328,8 @@ void ConfigCmd::Do(std::shared_ptr<Slot> slot) {
     ConfigRewrite(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "resetstat") == 0) {
     ConfigResetstat(config_ret);
-  } else if (strcasecmp(config_args_v_[0].data(), "rewritereplicateid") == 0) {
-    ConfigRewriteReplicateID(config_ret);
+  } else if (strcasecmp(config_args_v_[0].data(), "rewritereplicationid") == 0) {
+    ConfigRewriteReplicationID(config_ret);
   }
   res_.AppendStringRaw(config_ret);
 }
@@ -2210,8 +2214,8 @@ void ConfigCmd::ConfigRewrite(std::string& ret) {
   }
 }
 
-void ConfigCmd::ConfigRewriteReplicateID(std::string &ret) {
-  if (g_pika_conf->ConfigRewriteReplicateID() != 0) {
+void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
+  if (g_pika_conf->ConfigRewriteReplicationID() != 0) {
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Rewire ReplicationID CONFIG fail\r\n";
@@ -2643,16 +2647,16 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk, "The disk error has been recovered");
 }
 
-void ClearReplicateIDCmd::DoInitial() {
+void ClearReplicationIDCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicateID);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicationID);
     return;
   }
 }
 
-void ClearReplicateIDCmd::Do(std::shared_ptr<Slot> slot) {
+void ClearReplicationIDCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_conf->SetReplicationID("");
-  g_pika_conf->ConfigRewriteReplicateID();
+  g_pika_conf->ConfigRewriteReplicationID();
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
 }
 

@@ -122,12 +122,27 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     return;
   }
 
-  if (meta_sync.replication_id() == "" || g_pika_conf->replication_id() != meta_sync.replication_id()) {
-    LOG(INFO) << "Replication id is not equal, need to do full sync, remote replication id: " << meta_sync.replication_id()
+  // The relicationid obtained from the server is null
+  if (meta_sync.replication_id() == "") {
+    LOG(WARNING) << "Meta Sync Failed: the relicationid obtained from the server is null, keep sending MetaSync msg";
+    return;
+  }
+
+  // The Replicationids of both the primary and secondary Replicationid are not empty and are not equal
+  if (g_pika_conf->replication_id() != meta_sync.replication_id() && g_pika_conf->replication_id() != "") {
+    LOG(WARNING) << "Meta Sync Failed: replicationid on both sides of the connection are inconsistent";
+    g_pika_server->SyncError();
+    conn->NotifyClose();
+    return;
+  }
+
+  // First synchronization between the master and slave
+  if (g_pika_conf->replication_id() != meta_sync.replication_id()) {
+    LOG(INFO) << "New node is added to the cluster and requires full replication, remote replication id: " << meta_sync.replication_id()
               << ", local replication id: " << g_pika_conf->replication_id();
     g_pika_server->force_full_sync_ = true;
     g_pika_conf->SetReplicationID(meta_sync.replication_id());
-    g_pika_conf->ConfigRewriteReplicateID();
+    g_pika_conf->ConfigRewriteReplicationID();
   }
 
   g_pika_conf->SetWriteBinlog("yes");

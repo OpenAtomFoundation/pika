@@ -689,8 +689,7 @@ int PikaConf::ConfigRewrite() {
   return static_cast<int>(WriteBack());
 }
 
-int PikaConf::ConfigRewriteReplicateID() {
-  std::string userblacklist = suser_blacklist();
+int PikaConf::ConfigRewriteReplicationID() {
   std::lock_guard l(rwlock_);
   SetConfStr("replication-id", replication_id_);
   if (!diff_commands_.empty()) {
