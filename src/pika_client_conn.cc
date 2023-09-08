@@ -108,6 +108,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   if (g_pika_conf->is_raft() && c_ptr->is_write()) {
+    if (opt == kCmdNameBLPop || opt == kCmdNameBRpop) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Raft Module Not Support BLPOP/BRPOP Yet");
+      return c_ptr;
+    }
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
 
