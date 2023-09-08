@@ -1,6 +1,6 @@
-/*package pika_integration
+package pika_integration
 
-import (
+/*import (
 	"context"
 
 	. "github.com/bsm/ginkgo/v2"
