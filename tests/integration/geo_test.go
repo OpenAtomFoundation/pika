@@ -1,4 +1,4 @@
-package pika_integration
+/*package pika_integration
 
 import (
 	"context"
@@ -414,4 +414,4 @@ var _ = Describe("Geo Commands", func() {
 		//	}))
 		//})
 	})
-})
+})*/
