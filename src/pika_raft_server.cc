@@ -44,19 +44,22 @@ PikaRaftServer::PikaRaftServer()
 																										std::placeholders::_1,
 																										std::placeholders::_2,
 																										std::placeholders::_3,
-																										std::placeholders::_4),
+																										std::placeholders::_4,
+																										std::placeholders::_5),
 																					 std::bind(&PikaRaftServer::RollbackLog, 
 																										this, 
 																										std::placeholders::_1,
 																										std::placeholders::_2,
 																										std::placeholders::_3,
-																										std::placeholders::_4),
+																										std::placeholders::_4,
+																										std::placeholders::_5),
 																					 std::bind(&PikaRaftServer::ApplyLog, 
 																										this, 
 																										std::placeholders::_1,
 																										std::placeholders::_2,
 																										std::placeholders::_3,
-																										std::placeholders::_4));
+																										std::placeholders::_4,
+																										std::placeholders::_5));
 	}
 
 	// ASIO options.
@@ -132,7 +135,9 @@ void PikaRaftServer::reset()  {
     }
 }
 
-void PikaRaftServer::HandleRaftLogResult(RaftClientConn& cli_conn, raft_result& result, nuraft::ptr<std::exception>& err) {
+void PikaRaftServer::HandleRaftLogResult(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr
+																				, std::shared_ptr<std::string> resp_ptr
+																				, raft_result& result, nuraft::ptr<std::exception>& err) {
 	Status s = Status::OK();
 	// Log Store Unaccepted
 	if (!result.get_accepted()) {
@@ -143,44 +148,43 @@ void PikaRaftServer::HandleRaftLogResult(RaftClientConn& cli_conn, raft_result& 
     s = Status::Incomplete("Commit Log Failed");
   }
 
+	// if success, have responsed in ApplyLog
+	// if failed, response here
 	if (!s.ok()) {
+		{
+			std::lock_guard ll(que_mutex_);
+			cli_conn_que_.erase(cli_conn_que_.begin());
+		}
 		auto arg = new PikaClientConn::BgTaskArg();
-		arg->cmd_ptr = cli_conn.cmd_ptr;
-		arg->conn_ptr = cli_conn.conn_ptr;
-		arg->resp_ptr = cli_conn.resp_ptr;
-		arg->db_name = cli_conn.db_name;
-		arg->slot_id = cli_conn.slot_id;
+		arg->cmd_ptr = cmd_ptr;
+		arg->conn_ptr = conn_ptr;
+		arg->resp_ptr = resp_ptr;
 		arg->cmd_ptr->res().SetRes(CmdRes::kErrOther, s.ToString());
-		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoRaftRollBackTask, arg, cli_conn.cmd_ptr->current_key().front());
-	} else {
-		auto arg = new PikaClientConn::BgTaskArg();
-		arg->cmd_ptr = cli_conn.cmd_ptr;
-		arg->conn_ptr = cli_conn.conn_ptr;
-		arg->resp_ptr = cli_conn.resp_ptr;
-		arg->db_name = cli_conn.db_name;
-		arg->slot_id = cli_conn.slot_id;
-		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, arg, cli_conn.cmd_ptr->current_key().front());
-  
+		g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoRaftRollBackTask, arg, cmd_ptr->current_key().front());
 	}
 }
 
 //TODO(lap): batched append logs
-Status PikaRaftServer::AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
+Status PikaRaftServer::AppendRaftlog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                                         std::shared_ptr<std::string> resp_ptr, std::string _db_name, uint32_t _slot_id) {
 	Status s = Status::OK();
 	std::string raftlog =
 		cmd_ptr->ToRaftlog(time(nullptr));
-	size_t content_size = sizeof(uint32_t) + _db_name.size() + raftlog.size();
+	size_t content_size = 2*sizeof(uint32_t) + _db_name.size() + raftlog.size();
 
 	// Create a new log which will contain
 	// 4-byte length(store data size) and sizeof data.
-	nuraft::ptr<nuraft::buffer> new_log = nuraft::buffer::alloc(3*sizeof(int) + content_size);
+	nuraft::ptr<nuraft::buffer> new_log = nuraft::buffer::alloc(4*sizeof(int) + content_size);
 	nuraft::buffer_serializer bs(new_log);
+	bs.put_u32(server_id_);
 	bs.put_u32(_slot_id);
 	bs.put_str(_db_name);
 	bs.put_str(raftlog);
 
-	RaftClientConn cli_conn(_db_name, _slot_id, cmd_ptr, conn_ptr, resp_ptr);
+	{
+		std::lock_guard ll(que_mutex_);
+		cli_conn_que_.push_back(RaftClientConn(_db_name, _slot_id, cmd_ptr, conn_ptr, resp_ptr));
+	}
 	
 	nuraft::ptr<raft_result> raft_ret = raft_instance_->append_entries( {new_log} );
 
@@ -188,13 +192,15 @@ Status PikaRaftServer::AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::s
     // Blocking mode:
     //   "append_entries" returns after getting a consensus, so that "ret" already has the result from state machine.
     nuraft::ptr<std::exception> err(nullptr);
-    HandleRaftLogResult(cli_conn, *raft_ret, err);
+    HandleRaftLogResult(cmd_ptr, conn_ptr, resp_ptr, *raft_ret, err);
   } else {
     // Async mode:
     //   "append_entries" returns immediately. "HandleRaftLogResult" will be invoked asynchronously, after getting a consensus.
     raft_ret->when_ready(std::bind(&PikaRaftServer::HandleRaftLogResult
 																	, this
-																	, cli_conn
+																	, cmd_ptr
+																	, conn_ptr
+																	, resp_ptr
 																	, std::placeholders::_1 
 																	, std::placeholders::_2));
   }
@@ -212,16 +218,58 @@ bool PikaRaftServer::IsLeader() {
 	return raft_instance_ && raft_instance_->is_leader();
 }
 
-void PikaRaftServer::PrecommitLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
+void PikaRaftServer::PrecommitLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog) {
 	// do nothing
 }
 
-void PikaRaftServer::RollbackLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
+void PikaRaftServer::RollbackLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog) {
 	// do nothing
 }
 
-void PikaRaftServer::ApplyLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog) {
-	// do nothing
+void PikaRaftServer::ApplyLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog) {
+	std::shared_ptr<Cmd> cmd_ptr;
+	std::shared_ptr<PikaClientConn> conn_ptr;
+	std::shared_ptr<std::string> resp_ptr;
+	if (req_server_id == server_id_) {
+		{
+			std::lock_guard ll(que_mutex_);
+			// replaying old logs
+			if (cli_conn_que_.empty()) {
+				return;
+			}
+			auto cli_conn = cli_conn_que_.begin();
+			cmd_ptr = (*cli_conn).cmd_ptr;
+			conn_ptr = (*cli_conn).conn_ptr;
+			resp_ptr = (*cli_conn).resp_ptr;
+			cli_conn_que_.erase(cli_conn);
+		}
+	} else {
+		net::RedisParserSettings settings;
+		settings.DealMessage = &(ConsensusCoordinator::InitCmd);
+		net::RedisParser redis_parser;
+		redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
+		redis_parser.data = static_cast<void*>(&db_name);
+		const char* redis_parser_start = raftlog.data() + RAFTLOG_ENCODE_LEN;
+		int redis_parser_len = static_cast<int>(raftlog.size()) - RAFTLOG_ENCODE_LEN;
+		int processed_len = 0;
+		net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
+		if (ret != net::kRedisParserDone) {
+			LOG(FATAL) << SlotInfo(db_name, slot_id).ToString() << "Redis parser parse failed";
+			return;
+		}
+		auto arg = static_cast<ConsensusCoordinator::CmdPtrArg*>(redis_parser.data);
+		cmd_ptr = arg->cmd_ptr;
+		conn_ptr = nullptr;
+		resp_ptr = nullptr;
+		delete arg;
+	}
+	auto bg_task_arg = new PikaClientConn::BgTaskArg();
+	bg_task_arg->cmd_ptr = std::move(cmd_ptr);
+	bg_task_arg->conn_ptr = std::move(conn_ptr);
+	bg_task_arg->resp_ptr = std::move(resp_ptr);
+	bg_task_arg->db_name = db_name;
+	bg_task_arg->slot_id = slot_id;
+	g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, bg_task_arg, bg_task_arg->cmd_ptr->current_key().front());
 }
 
 std::string PikaRaftServer::GetNetIP() {

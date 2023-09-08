@@ -35,15 +35,17 @@ class PikaRaftServer {
 	PikaRaftServer();
 	~PikaRaftServer();
 	void reset();
-	Status AppendRaftlog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
+	Status AppendRaftlog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
 											 std::shared_ptr<std::string> resp_ptr, std::string _db_name, uint32_t _slot_id);
-	void HandleRaftLogResult(RaftClientConn& cli_conn, raft_result& result, nuraft::ptr<std::exception>& err);
+	void HandleRaftLogResult(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr
+													, std::shared_ptr<std::string> resp_ptr
+													, raft_result& result, nuraft::ptr<std::exception>& err);
 	void Start();
 	bool HasLeader();
 	bool IsLeader();
-	void PrecommitLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog);
-	void RollbackLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog);
-	void ApplyLog(ulong log_idx, uint32_t slot_id, std::string db_name, std::string raftlog);
+	void PrecommitLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog);
+	void RollbackLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog);
+	void ApplyLog(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, std::string db_name, std::string raftlog);
 
  private:
  	std::string GetNetIP();
@@ -72,6 +74,9 @@ class PikaRaftServer {
 	// Raft server instance.
 	nuraft::ptr<nuraft::raft_server> raft_instance_ = nullptr;
 	std::shared_mutex raft_mutex_;
+
+	std::vector<RaftClientConn> cli_conn_que_;
+	std::shared_mutex que_mutex_;
 };
 
 #endif

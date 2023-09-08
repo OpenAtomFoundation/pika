@@ -16,11 +16,11 @@ using pstd::Status;
 
 class PikaStateMachine : public nuraft::state_machine {
  public:
-  using OnApply = std::function<void(ulong log_idx, uint32_t slot_id, 
+  using OnApply = std::function<void(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, 
                                     std::string db_name, std::string raftlog)>;
-  using OnRollback = std::function<void(ulong log_idx, uint32_t slot_id, 
+  using OnRollback = std::function<void(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, 
                                     std::string db_name, std::string raftlog)>;
-  using OnPrecommit = std::function<void(ulong log_idx, uint32_t slot_id, 
+  using OnPrecommit = std::function<void(ulong log_idx, uint32_t req_server_id, uint32_t slot_id, 
                                         std::string db_name, std::string raftlog)>;
 
   PikaStateMachine(OnPrecommit _on_precommit, OnRollback _on_rollback, OnApply _on_apply, bool async_snapshot = false)
