@@ -673,6 +673,55 @@ var _ = Describe("Stream Commands", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("The ID specified in XADD is equal or smaller"))
 		})
+
+		It("XADD large data, triggering flushing, XREAD should work", func() {
+			Expect(client.Do(ctx, "DEL", "flush_stream").Err()).NotTo(HaveOccurred())
+			// 使用 xadd 插入两万条数据
+			for i := 0; i < 20000; i++ {
+				Expect(client.XAdd(ctx, &redis.XAddArgs{
+					Stream: "flush_stream",
+					ID:     "*",
+					Values: []string{"item", strconv.Itoa(i)},
+				}).Err()).NotTo(HaveOccurred())
+			}
+
+			lastID := "0-0"
+			readCount := 0
+			for {
+				res, err := client.XRead(ctx, &redis.XReadArgs{
+					Streams: []string{"flush_stream", lastID},
+					Count:   1000,
+				}).Result()
+				Expect(err).NotTo(HaveOccurred())
+				if len(res[0].Messages) == 0 {
+					break
+				}
+				for _, xMessage := range res[0].Messages {
+					readCount++
+					lastID = xMessage.ID
+				}
+			}
+			Expect(readCount).To(Equal(20000))
+		})
+
+		It("XADD large data, XLEN, XRANGE, XTRIM should work", func() {
+			// 使用 xtrim 裁剪成只剩最新的100条数据
+			Expect(client.XTrimMaxLen(ctx, "flush_stream", 100).Err()).NotTo(HaveOccurred())
+
+			// 使用 xlen 检测
+			length, err := client.XLen(ctx, "flush_stream").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(length).To(Equal(int64(100)))
+
+			// 使用 xrange 读取所有数据
+			ranges, err := client.XRange(ctx, "flush_stream", "-", "+").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(ranges)).To(Equal(100))
+			for i, xMessage := range ranges {
+				Expect(xMessage.Values["item"]).To(Equal(strconv.Itoa(19900 + i)))
+			}
+			Expect(client.Do(ctx, "DEL", "flush_stream").Err()).NotTo(HaveOccurred())
+		})
 	})
 
 	Describe("unpassed tests", func() {
