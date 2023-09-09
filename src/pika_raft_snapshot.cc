@@ -79,11 +79,11 @@ bool RaftSnapshotCreater::CreateSnapshotMeta(nuraft::ptr<nuraft::buffer>& snapsh
   nuraft::ptr<nuraft::buffer> buf;
 
   // get meta data information
-  uint32_t meta_size = sizeof(uint32_t);
+  uint32_t meta_size = 2*sizeof(uint32_t);
   for(const auto& db : db_structs_) {
     const std::string& db_name = db.db_name;
     meta_size += sizeof(uint32_t) + db_name.size();
-    meta_size += sizeof(uint32_t) + db.slot_num*sizeof(uint32_t);
+    meta_size += 2*sizeof(uint32_t) + 2*db.slot_num*sizeof(uint32_t);
   }
 
   // put meta data into snapshot
@@ -107,9 +107,9 @@ bool RaftSnapshotCreater::CreateNextSnapshotContent(nuraft::ptr<nuraft::buffer>&
   if (db_it_ == db_structs_.end()) return false;
   const std::string& db_name = db_it_->db_name;
   if (slot_id_it_ == db_it_->slot_ids.end()) return false;
-  std::string snapshot_idx;
+  std::string dummy_snapshot_uuid;
   if (filenames_.empty()) {
-    g_pika_server->GetDumpMeta(db_name, *slot_id_it_, &filenames_, &snapshot_idx);
+    g_pika_server->GetDumpMeta(db_name, *slot_id_it_, &filenames_, &dummy_snapshot_uuid);
     filenames_.push_back(kSnapshotInfoName);
     filename_it_ = filenames_.begin();
   }
@@ -284,7 +284,7 @@ RaftSnapshotManager::RaftSnapshotManager() {
   if (db_structs.size() > 0) {
     // snapshot info in each db same for now
     std::string db_name = db_structs[0].db_name;
-    LoadLocalSnapshotInfo(g_pika_conf->db_path(), last_snapshot_);
+    LoadLocalSnapshotInfo(g_pika_conf->db_path() + "/" + db_name + "/");
   } else {
     last_snapshot_ = nullptr;
   }
@@ -529,13 +529,12 @@ void RaftSnapshotManager::BgsaveSnapshotInfo(const std::string& db_dump_path, nu
   }
 }
 
-Status RaftSnapshotManager::LoadLocalSnapshotInfo(const std::string& db_path, nuraft::ptr<nuraft::snapshot> ss) {
+Status RaftSnapshotManager::LoadLocalSnapshotInfo(const std::string& db_path) {
   std::string snpinfo_file_path = db_path + "/" + kSnapshotInfoName;
   ulong snapshot_idx = 0;
   ulong snapshot_term = 0;
-  nuraft::ptr<nuraft::cluster_config> snapshot_config = nullptr;
   if (!pstd::FileExists(snpinfo_file_path)) {
-    ss = nullptr;
+    last_snapshot_ = nullptr;
     return Status::OK();
   }
 
@@ -590,8 +589,8 @@ Status RaftSnapshotManager::LoadLocalSnapshotInfo(const std::string& db_path, nu
     line_num++;
   }
   fclose(fp);
-  
-  ss = nuraft::cs_new<nuraft::snapshot>(snapshot_idx, snapshot_term, snapshot_config);
+
+  last_snapshot_ = nuraft::cs_new<nuraft::snapshot>(snapshot_idx, snapshot_term, nuraft::cs_new<nuraft::cluster_config>());
 
   return Status::OK();
 }

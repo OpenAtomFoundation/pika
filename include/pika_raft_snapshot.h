@@ -82,7 +82,7 @@ class RaftSnapshotManager {
                 );
   void PrepareInstallSnapshotInternal(std::string db_name, uint32_t slot_id);
   void BgsaveSnapshotInfo(const std::string& db_dump_path, nuraft::ptr<nuraft::snapshot> ss);
-  Status LoadLocalSnapshotInfo(const std::string& db_path, nuraft::ptr<nuraft::snapshot> ss);
+  Status LoadLocalSnapshotInfo(const std::string& db_path);
   std::string DbSyncPath(const std::string& sync_path, const std::string& db_name, const uint32_t slot_id);
 
   std::unique_ptr<RaftSnapshotCreater>        snapshot_creater_;
