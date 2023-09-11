@@ -5,6 +5,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
+#include "cmd_table_manager.h"
 #include "event_loop.h"
 #include "pstring.h"
 #include "tcp_obj.h"
@@ -26,6 +27,8 @@ class PikiwiDB final {
 
   void OnNewConnection(pikiwidb::TcpObject* obj);
 
+  std::unique_ptr<pikiwidb::CmdTableManager>& CmdTableManager();
+
  public:
   pikiwidb::EventLoop event_loop_;
 
@@ -37,6 +40,9 @@ class PikiwiDB final {
   unsigned short masterPort_;
 
   static const unsigned kRunidSize;
+
+ private:
+  std::unique_ptr<pikiwidb::CmdTableManager> cmdTableManager_;
 };
 
 extern std::unique_ptr<PikiwiDB> g_pikiwidb;
