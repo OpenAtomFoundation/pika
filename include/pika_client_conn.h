@@ -25,7 +25,7 @@ class PikaClientConn : public net::RedisConn {
     uint32_t slot_id;
   };
 
-  class TxnStateBitMask {
+  struct TxnStateBitMask {
    public:
     static constexpr uint8_t Start = 0;
     static constexpr uint8_t InitCmdFailed = 1;
