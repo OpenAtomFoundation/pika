@@ -34,6 +34,7 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
+const size_t QUEUE_SIZE_THRESHOLD = 1024;
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -202,6 +203,10 @@ void PikaServer::Start() {
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
+    size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
+    if (cur_size > QUEUE_SIZE_THRESHOLD) {
+      LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
+    }
     DoTimingTask();
     // wake up every 5 seconds
     if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
