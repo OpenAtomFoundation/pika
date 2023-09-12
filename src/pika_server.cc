@@ -34,7 +34,8 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
-const size_t QUEUE_SIZE_THRESHOLD = 1024;
+// QUEUE_SIZE_THRESHOLD_PERCENTAGE is used to represent a percentage value and should be within the range of 0 to 100.
+const size_t QUEUE_SIZE_THRESHOLD_PERCENTAGE = 75;
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -203,8 +204,11 @@ void PikaServer::Start() {
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
+    // Print the current queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
     size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
-    if (cur_size > QUEUE_SIZE_THRESHOLD) {
+    size_t max_size = ClientProcessorThreadPoolMaxQueueSize();
+    size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
+    if (cur_size > thread_hold) {
       LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
     }
     DoTimingTask();
@@ -857,6 +861,13 @@ size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
     return 0;
   }
   return pika_client_processor_->ThreadPoolCurQueueSize();
+}
+
+size_t PikaServer::ClientProcessorThreadPoolMaxQueueSize() {
+  if (!pika_client_processor_) {
+    return 0;
+  }
+  return pika_client_processor_->ThreadPoolMaxQueueSize();
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {

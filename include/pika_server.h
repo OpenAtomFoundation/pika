@@ -240,6 +240,7 @@ class PikaServer : public pstd::noncopyable {
   void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
+  size_t ClientProcessorThreadPoolMaxQueueSize();
 
   /*
    * BGSave used
