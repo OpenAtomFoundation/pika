@@ -25,7 +25,7 @@ class ThreadPool final {
   void operator=(const ThreadPool&) = delete;
 
   template <typename F, typename... Args>
-  auto ExecuteTask(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+  auto ExecuteTask(F&& f, Args&&... args) -> std::future<typename std::invoke_result<F(Args...)>::type>;
 
   void JoinAll();
   void SetMaxIdleThread(unsigned int m);
@@ -52,8 +52,8 @@ class ThreadPool final {
 };
 
 template <typename F, typename... Args>
-auto ThreadPool::ExecuteTask(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
-  using resultType = typename std::result_of<F(Args...)>::type;
+auto ThreadPool::ExecuteTask(F&& f, Args&&... args) -> std::future<typename std::invoke_result<F(Args...)>::type> {
+  using resultType = typename std::invoke_result<F(Args...)>::type;
 
   auto task =
       std::make_shared<std::packaged_task<resultType()> >(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
