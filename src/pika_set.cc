@@ -232,7 +232,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_args.emplace_back(dest_key_);
   del_cmd_->Initial(del_args, db_name_);
   del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_);
+  del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
 
   if(value_to_dest_.size() == 0){
@@ -246,7 +246,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   initial_args.emplace_back(value_to_dest_[0]);
   sadd_cmd_->Initial(initial_args, db_name_);
   sadd_cmd_->SetConn(GetConn());
-  sadd_cmd_->SetResp(resp_);
+  sadd_cmd_->SetResp(resp_.lock());
 
   auto& sadd_argv = sadd_cmd_->argv();
   size_t data_size = value_to_dest_[0].size();
@@ -405,9 +405,9 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   sadd_cmd_->Initial(sadd_args, db_name_);
 
   srem_cmd_->SetConn(GetConn());
-  srem_cmd_->SetResp(resp_);
+  srem_cmd_->SetResp(resp_.lock());
   sadd_cmd_->SetConn(GetConn());
-  sadd_cmd_->SetResp(resp_);
+  sadd_cmd_->SetResp(resp_.lock());
 
   srem_cmd_->DoBinlog(slot);
   sadd_cmd_->DoBinlog(slot);

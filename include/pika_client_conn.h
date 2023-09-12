@@ -110,7 +110,7 @@ class PikaClientConn : public net::RedisConn {
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
-  void ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr);
+  void ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr);
   void TryWriteResp();
 
   AuthStat auth_stat_;

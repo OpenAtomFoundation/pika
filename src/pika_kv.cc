@@ -692,7 +692,7 @@ void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   //used "set" instead of "SET" to distinguish the binlog of Set
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
-  set_cmd_->SetResp(resp_);
+  set_cmd_->SetResp(resp_.lock());
   for(auto& kv: kvs_){
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
@@ -740,7 +740,7 @@ void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   //used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
-  set_cmd_->SetResp(resp_);
+  set_cmd_->SetResp(resp_.lock());
   for(auto& kv: kvs_){
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;

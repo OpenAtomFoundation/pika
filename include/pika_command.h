@@ -531,7 +531,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string db_name_{};
 
   std::weak_ptr<net::NetConn> conn_;
-  std::shared_ptr<std::string> resp_;
+  std::weak_ptr<std::string> resp_;
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
 

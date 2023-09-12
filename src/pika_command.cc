@@ -927,6 +927,6 @@ std::shared_ptr<net::NetConn> Cmd::GetConn() { return conn_.lock(); }
 
 void Cmd::SetResp(const std::shared_ptr<std::string>& resp) { resp_ = resp; }
 
-std::shared_ptr<std::string> Cmd::GetResp() { return resp_; }
+std::shared_ptr<std::string> Cmd::GetResp() { return resp_.lock(); }
 
 void Cmd::SetStage(CmdStage stage) { stage_ = stage; }

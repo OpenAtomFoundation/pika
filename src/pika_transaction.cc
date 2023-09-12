@@ -42,7 +42,13 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
-  std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec](CmdInfo& each_cmd_info) {
+  std::vector<std::shared_ptr<std::string>> resp_strs;
+  for (int i = 0; i < cmds_.size(); ++i) {
+    resp_strs.emplace_back(std::make_shared<std::string>());
+  }
+  auto resp_strs_iter = resp_strs.begin();
+  std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec, &resp_strs_iter](CmdInfo& each_cmd_info) {
+    each_cmd_info.cmd_->SetResp(*resp_strs_iter++);
     auto& cmd = each_cmd_info.cmd_;
     auto& slot = each_cmd_info.slot_;
     auto sync_slot = each_cmd_info.sync_slot_;

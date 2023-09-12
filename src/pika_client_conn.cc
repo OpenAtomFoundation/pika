@@ -280,7 +280,6 @@ void PikaClientConn::TryWriteResp() {
 }
 void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
   txn_cmd_que_.push(cmd);
-  cmd->SetResp(std::make_shared<std::string>());
 }
 
 bool PikaClientConn::IsInTxn() {
@@ -390,7 +389,7 @@ void PikaClientConn::ExitTxn() {
 }
 
 
-void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
+void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr) {
   // get opt
   std::string opt = argv[0];
   pstd::StringToLower(opt);

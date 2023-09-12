@@ -632,9 +632,9 @@ void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   lpush_cmd_->Initial(lpush_args, db_name_);
 
   rpop_cmd_->SetConn(GetConn());
-  rpop_cmd_->SetResp(resp_);
+  rpop_cmd_->SetResp(resp_.lock());
   lpush_cmd_->SetConn(GetConn());
-  lpush_cmd_->SetResp(resp_);
+  lpush_cmd_->SetResp(resp_.lock());
 
   rpop_cmd_->DoBinlog(slot);
   lpush_cmd_->DoBinlog(slot);
