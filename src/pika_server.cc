@@ -204,13 +204,6 @@ void PikaServer::Start() {
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
-    // Print the current queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
-    size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
-    size_t max_size = ClientProcessorThreadPoolMaxQueueSize();
-    size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
-    if (cur_size > thread_hold) {
-      LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
-    }
     DoTimingTask();
     // wake up every 5 seconds
     if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
@@ -1314,6 +1307,8 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
+  // Print the queue status periodically
+  PrintThreadPoolQueueStatus();
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1505,6 +1500,16 @@ void PikaServer::AutoUpdateNetworkMetric() {
                                      factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
                                      current_time, factor);
+}
+
+void PikaServer::PrintThreadPoolQueueStatus() {
+    // Print the current queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
+    size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
+    size_t max_size = ClientProcessorThreadPoolMaxQueueSize();
+    size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
+    if (cur_size > thread_hold) {
+      LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
+    }
 }
 
 void PikaServer::InitStorageOptions() {

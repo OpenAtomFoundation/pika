@@ -519,7 +519,8 @@ class PikaServer : public pstd::noncopyable {
   void AutoDeleteExpiredDump();
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
-
+  void PrintThreadPoolQueueStatus();
+  
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
