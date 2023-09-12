@@ -5,8 +5,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
-#ifndef PIKIWIDB_SRC_CMD_CONTEXT_H
-#define PIKIWIDB_SRC_CMD_CONTEXT_H
+#pragma once
 
 #include <span>
 #include <string>
@@ -132,4 +131,3 @@ struct CmdContext : public CmdRes {
 };
 
 }  // namespace pikiwidb
-#endif  // PIKIWIDB_SRC_CMD_CONTEXT_H
