@@ -128,7 +128,7 @@ const PCommandInfo PCommandTable::s_info[] = {
     {"srandmember", PAttr_read, 2, &srandmember},
     {"sscan", PAttr_read, -3, &sscan},
 
-    //
+    // zset
     {"zadd", PAttr_write, -4, &zadd},
     {"zcard", PAttr_read, 2, &zcard},
     {"zrank", PAttr_read, 3, &zrank},
@@ -191,7 +191,7 @@ const PCommandInfo* PCommandTable::GetCommandInfo(const PString& cmd) {
     return it->second;
   }
 
-  return 0;
+  return nullptr;
 }
 
 bool PCommandTable::AliasCommand(const std::map<PString, PString>& aliases) {

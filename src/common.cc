@@ -161,11 +161,11 @@ bool Strtod(const char* ptr, size_t nBytes, double* outVal) {
 
 const char* Strstr(const char* ptr, size_t nBytes, const char* pattern, size_t nBytes2) {
   if (!pattern || *pattern == 0) {
-    return 0;
+    return nullptr;
   }
 
   const char* ret = std::search(ptr, ptr + nBytes, pattern, pattern + nBytes2);
-  return ret == ptr + nBytes ? 0 : ret;
+  return ret == ptr + nBytes ? nullptr : ret;
 }
 
 const char* SearchCRLF(const char* ptr, size_t nBytes) { return Strstr(ptr, nBytes, CRLF, 2); }
