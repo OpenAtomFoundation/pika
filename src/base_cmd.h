@@ -22,9 +22,9 @@ namespace pikiwidb {
 
 // command definition
 // 目前，为了兼容以前的，所有的命令都加了 `n_`前缀
-const std::string kCmdNameSet = "n_set";
-const std::string kCmdNameGet = "n_get";
-const std::string kCmdNameConfig = "n_config";
+const std::string kCmdNameSet = "set";
+const std::string kCmdNameGet = "get";
+const std::string kCmdNameConfig = "config";
 
 enum CmdFlags {
   CmdFlagsWrite = (1 << 0),             // May modify the dataset

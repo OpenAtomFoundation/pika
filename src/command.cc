@@ -49,17 +49,15 @@ const PCommandInfo PCommandTable::s_info[] = {
     {"monitor", PAttr_read, 1, &monitor},
     {"auth", PAttr_read, 2, &auth},
     {"slowlog", PAttr_read, -2, &slowlog},
-    {"config", PAttr_read, -3, &config},
+    // {"config", PAttr_read, -3, &config},
 
     // string
     {"strlen", PAttr_read, 2, &strlen},
-    {"set", PAttr_write, 3, &set},
     {"mset", PAttr_write, -3, &mset},
     {"msetnx", PAttr_write, -3, &msetnx},
     {"setnx", PAttr_write, 3, &setnx},
     {"setex", PAttr_write, 4, &setex},
     {"psetex", PAttr_write, 4, &psetex},
-    {"get", PAttr_read, 2, &get},
     {"getset", PAttr_write, 3, &getset},
     {"mget", PAttr_read, -2, &mget},
     {"append", PAttr_write, 3, &append},
@@ -128,7 +126,7 @@ const PCommandInfo PCommandTable::s_info[] = {
     {"srandmember", PAttr_read, 2, &srandmember},
     {"sscan", PAttr_read, -3, &sscan},
 
-    //
+    // zset
     {"zadd", PAttr_write, -4, &zadd},
     {"zcard", PAttr_read, 2, &zcard},
     {"zrank", PAttr_read, 3, &zrank},
@@ -191,7 +189,7 @@ const PCommandInfo* PCommandTable::GetCommandInfo(const PString& cmd) {
     return it->second;
   }
 
-  return 0;
+  return nullptr;
 }
 
 bool PCommandTable::AliasCommand(const std::map<PString, PString>& aliases) {

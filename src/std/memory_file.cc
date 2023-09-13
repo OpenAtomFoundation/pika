@@ -66,7 +66,7 @@ void InputMemoryFile::Close() {
 
 const char* InputMemoryFile::Read(std::size_t& len) {
   if (size_ <= offset_) {
-    return 0;
+    return nullptr;
   }
 
   if (offset_ + len > size_) {
