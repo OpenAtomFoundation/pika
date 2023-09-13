@@ -35,7 +35,19 @@ Status RedisStrings::Open(const StorageOptions& storage_options, const std::stri
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
   ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(table_ops));
 
+#ifdef USE_S3
+  // rocksdb-cloud
+  Status s = OpenCloudEnv(storage_options.cloud_fs_options, db_path);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to open cloud environment: " << s.ToString();
+    return s;
+  }
+  assert(cloud_env_);
+  ops.env = cloud_env_.get();
+  return rocksdb::DBCloud::Open(ops, db_path, "", 0, &db_);
+#else
   return rocksdb::DB::Open(ops, db_path, &db_);
+#endif
 }
 
 Status RedisStrings::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end,

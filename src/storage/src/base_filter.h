@@ -128,8 +128,13 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
 
 class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
+#ifdef USE_S3
+  BaseDataFilterFactory(rocksdb::DBCloud** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+#else
   BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+#endif
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
     return std::unique_ptr<rocksdb::CompactionFilter>(new BaseDataFilter(*db_ptr_, cf_handles_ptr_));
@@ -137,7 +142,11 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
   const char* Name() const override { return "BaseDataFilterFactory"; }
 
  private:
+#ifdef USE_S3
+  rocksdb::DBCloud** db_ptr_ = nullptr;
+#else
   rocksdb::DB** db_ptr_ = nullptr;
+#endif
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
 };
 

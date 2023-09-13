@@ -32,7 +32,20 @@ rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
 
   rocksdb::Options ops(storage_options.options);
+
+#ifdef USE_S3
+  Status env_st = OpenCloudEnv(storage_options.cloud_fs_options, db_path);
+  if (!env_st.ok()) {
+    // TODO: add log
+    return env_st;
+  }
+  assert(cloud_env_);
+  ops.env = cloud_env_.get();
+  rocksdb::Status s = rocksdb::DBCloud::Open(ops, db_path, "", 0, &db_);
+#else
   rocksdb::Status s = rocksdb::DB::Open(ops, db_path, &db_);
+#endif
+
   if (s.ok()) {
     // create column family
     rocksdb::ColumnFamilyHandle* cf;
@@ -47,7 +60,7 @@ rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std
   }
 
   // Open
-  rocksdb::DBOptions db_ops(storage_options.options);
+  rocksdb::Options db_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions member_cf_ops(storage_options.options);
   meta_cf_ops.compaction_filter_factory = std::make_shared<SetsMetaFilterFactory>();
@@ -70,7 +83,13 @@ rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std
   column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
   // Member CF
   column_families.emplace_back("member_cf", member_cf_ops);
+  
+#ifdef USE_S3
+  db_ops.env = cloud_env_.get();
+  return rocksdb::DBCloud::Open(db_ops, db_path, column_families, "", 0, &handles_, &db_);
+#else
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
+#endif
 }
 
 rocksdb::Status RedisSets::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end, const ColumnFamilyType& type) {

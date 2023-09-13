@@ -8,8 +8,6 @@
 
 #include <utility>
 
-#include "rocksdb/db.h"
-
 #include "db_checkpoint.h"
 #include "storage.h"
 #include "util.h"

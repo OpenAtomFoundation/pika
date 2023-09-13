@@ -33,7 +33,19 @@ Status RedisZSets::Open(const StorageOptions& storage_options, const std::string
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
 
   rocksdb::Options ops(storage_options.options);
+
+#ifdef USE_S3
+  Status env_st = OpenCloudEnv(storage_options.cloud_fs_options, db_path);
+  if (!env_st.ok()) {
+    // TODO: add log
+    return env_st;
+  }
+  ops.env = cloud_env_.get();
+  Status s = rocksdb::DBCloud::Open(ops, db_path, "", 0, &db_);
+#else
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
+#endif
+
   if (s.ok()) {
     rocksdb::ColumnFamilyHandle *dcf = nullptr;
     rocksdb::ColumnFamilyHandle *scf = nullptr;
@@ -52,7 +64,7 @@ Status RedisZSets::Open(const StorageOptions& storage_options, const std::string
     delete db_;
   }
 
-  rocksdb::DBOptions db_ops(storage_options.options);
+  rocksdb::Options db_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions data_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions score_cf_ops(storage_options.options);
@@ -80,7 +92,13 @@ Status RedisZSets::Open(const StorageOptions& storage_options, const std::string
   column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
   column_families.emplace_back("data_cf", data_cf_ops);
   column_families.emplace_back("score_cf", score_cf_ops);
+
+#ifdef USE_S3
+  db_ops.env = cloud_env_.get();
+  return rocksdb::DBCloud::Open(db_ops, db_path, column_families, "", 0, &handles_, &db_);
+#else
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
+#endif
 }
 
 Status RedisZSets::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end, const ColumnFamilyType& type) {

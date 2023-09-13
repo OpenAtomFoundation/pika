@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "rocksdb/compaction_filter.h"
-#include "rocksdb/db.h"
+
 #include "src/debug.h"
 #include "src/lists_data_key_format.h"
 #include "src/lists_meta_value_format.h"
@@ -129,8 +129,13 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
 
 class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
+#ifdef USE_S3
+  ListsDataFilterFactory(rocksdb::DBCloud** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+#else
   ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+#endif
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
@@ -139,7 +144,11 @@ class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
   const char* Name() const override { return "ListsDataFilterFactory"; }
 
  private:
+#ifdef USE_S3
+  rocksdb::DBCloud** db_ptr_ = nullptr;
+#else
   rocksdb::DB** db_ptr_ = nullptr;
+#endif
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
 };
 
