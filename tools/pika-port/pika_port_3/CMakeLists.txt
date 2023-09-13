@@ -13,6 +13,16 @@ target_include_directories(pika_port PRIVATE ${INSTALL_INCLUDEDIR}
 target_link_libraries(pika_port ${ROCKSDB_LIBRARY} pthread rt net pstd storage ${GLOG_LIBRARY} 
                                 ${GFLAGS_LIBRARY} ${SNAPPY_LIBRARY} ${ZLIB_LIBRARY} ${BZ2_LIBRARY}
                                 ${LZ4_LIBRARY} ${ZSTD_LIBRARY})
+
+if(USE_S3)
+    target_link_libraries(pika_port
+		libaws-cpp-sdk-core.so 
+		libaws-cpp-sdk-transfer.so
+		libaws-cpp-sdk-kinesis.so
+		libaws-cpp-sdk-s3.so
+	)
+endif()
+
 set_target_properties(pika_port PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE

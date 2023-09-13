@@ -15,6 +15,16 @@ target_include_directories(pika_to_txt PRIVATE ${INSTALL_INCLUDEDIR}
 
 target_link_libraries(pika_to_txt storage net pstd ${ROCKSDB_LIBRARY} pthread ${SNAPPY_LIBRARY}
                                   ${ZLIB_LIBRARY} ${BZ2_LIBRARY} ${GLOG_LIBRARY} ${GFLAGS_LIBRARY} rt)
+
+if(USE_S3)
+    target_link_libraries(pika_to_txt
+		libaws-cpp-sdk-core.so 
+		libaws-cpp-sdk-transfer.so
+		libaws-cpp-sdk-kinesis.so
+		libaws-cpp-sdk-s3.so
+	)
+endif()
+
 set_target_properties(pika_to_txt PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
