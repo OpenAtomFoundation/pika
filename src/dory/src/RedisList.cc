@@ -14,7 +14,7 @@ RedisCache::LIndex(std::string &key, long index, std::string *element)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj);
-            return Status::ItemNotExist("index not exist");
+            return Status::NotFound("index not exist");
         } else {
             DecrObjectsRefCount(kobj);
             return Status::Corruption("RsLIndex failed");
@@ -31,7 +31,7 @@ RedisCache::LIndex(std::string &key, long index, std::string *element)
 
 Status
 RedisCache::LInsert(std::string &key,
-                    blackwidow::BeforeOrAfter &before_or_after,
+                    storage::BeforeOrAfter &before_or_after,
                     std::string &pivot,
                     std::string &value)
 {
@@ -39,7 +39,7 @@ RedisCache::LInsert(std::string &key,
         return Status::Corruption("[error] Free memory faild !");
     }
 
-    int where = (before_or_after == blackwidow::Before) ? LIST_HEAD : LIST_TAIL;
+    int where = (before_or_after == storage::Before) ? LIST_HEAD : LIST_TAIL;
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj *pobj = createObject(OBJ_STRING, sdsnewlen(pivot.data(), pivot.size()));
@@ -214,7 +214,7 @@ RedisCache::LSet(std::string &key, long index, std::string &value)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj, vobj);
-            return Status::ItemNotExist("item not exist");
+            return Status::NotFound("item not exist");
         } else {
             DecrObjectsRefCount(kobj, vobj);
             return Status::Corruption("RsLSet failed");

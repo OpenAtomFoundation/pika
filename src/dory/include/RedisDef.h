@@ -1,8 +1,6 @@
 #ifndef __REDIS_DEF_H__
 #define __REDIS_DEF_H__
 
-#include "../../include/pika_define.h"
-
 namespace dory {
 
 /* Redis maxmemory strategies */
@@ -18,6 +16,16 @@ namespace dory {
 #define CACHE_DEFAULT_MAXMEMORY (10 * 1024 * 1024 * 1024LL)     // 10G
 #define CACHE_DEFAULT_MAXMEMORY_SAMPLES 5
 #define CACHE_DEFAULT_LFU_DECAY_TIME 1
+
+/*
+ * cache start pos
+ */
+constexpr int CACHE_START_FROM_BEGIN = 0;
+constexpr int CACHE_START_FROM_END = -1;
+/*
+ * cache items per key
+ */
+#define DEFAULT_CACHE_ITEMS_PER_KEY 512
 
 struct CacheConfig {
     unsigned long long maxmemory;       /* Can used max memory */

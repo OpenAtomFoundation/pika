@@ -1,6 +1,9 @@
 #include "RedisCache.h"
+#include "pstd_status.h"
+#include "redisdb/object.h"
 
 namespace dory {
+using pstd::Status;
 
 Status
 RedisCache::SetBit(std::string &key, size_t offset, long value)

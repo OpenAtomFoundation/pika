@@ -1,5 +1,5 @@
 #include "RedisCache.h"
-#include "slash/include/slash_string.h"
+#include "pstd_string.h"
 
 namespace dory {
 
@@ -322,7 +322,7 @@ RedisCache::ConvertObjectToString(robj *obj, std::string *value)
         value->assign((char*)obj->ptr, sdslen((sds)obj->ptr));
     } else if (obj->encoding == OBJ_ENCODING_INT) {
         char buf[64];
-        int len = slash::ll2string(buf,64,(long)obj->ptr);;
+        int len = pstd::ll2string(buf,64,(long)obj->ptr);;
         value->assign(buf, len);
     }
 }

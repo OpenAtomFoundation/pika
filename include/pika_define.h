@@ -333,19 +333,8 @@ const int PIKA_ROLE_MASTER = 2;
 /*
  * cache model
  */
-#define PIKA_CACHE_NONE  0
-#define PIKA_CACHE_READ  1
-
-/*
- * cache start pos
- */
-#define CACHE_START_FROM_BEGIN 0
-#define CACHE_START_FROM_END -1
-
-/*
- * cache items per key
- */
-#define DEFAULT_CACHE_ITEMS_PER_KEY 512
+constexpr int PIKA_CACHE_NONE = 0;
+constexpr int PIKA_CACHE_READ = 1;
 
 /*
  * cache size

@@ -5,11 +5,12 @@
 #include <sstream>
 #include <vector>
 
+#include "include/pika_server.h"
 #include "pika_define.h"
 #include "pika_zset.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
-#include "redis_layer/dory/include/RedisCache.h"
+#include "dory/include/RedisCache.h"
 #include "storage/storage.h"
 
 using Status = pstd::Status;
@@ -22,8 +23,6 @@ const int PIKA_CACHE_STATUS_OK = 2;
 const int PIKA_CACHE_STATUS_RESET = 3;
 const int PIKA_CACHE_STATUS_DESTROY = 4;
 const int PIKA_CACHE_STATUS_CLEAR = 5;
-const int CACHE_START_FROM_BEGIN = 0;
-const int CACHE_START_FROM_END = -1;
 
 /*
  * key type
@@ -36,7 +35,7 @@ const char PIKA_KEY_TYPE_ZSET = 'z';
 enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
 
 class PikaCacheLoadThread;
-class PikaCache {
+class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCache> {
  public:
   struct CacheInfo {
     int status;
@@ -68,7 +67,7 @@ class PikaCache {
     }
   };
 
-  PikaCache(int cache_start_pos_, int cache_items_per_key);
+  PikaCache(int cache_start_pos_, int cache_items_per_key, std::shared_ptr<Slot> slot);
   ~PikaCache();
 
   Status Init(uint32_t cache_num, dory::CacheConfig *cache_cfg);
@@ -83,9 +82,8 @@ class PikaCache {
   void Info(CacheInfo &info);
   long long DbSize(void);
   bool Exists(std::string &key);
-  void FlushDb(void);
-  double HitRatio(void);
-  void ClearHitRatio(void);
+  void FlushSlot(void);
+  void ActiveExpireCycle();
   Status Del(std::string &key);
   Status Expire(std::string &key, int64_t ttl);
   Status Expireat(std::string &key, int64_t ttl);
@@ -173,9 +171,9 @@ class PikaCache {
   Status ZRangebyscore(std::string &key, std::string &min, std::string &max,
                        std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd);
   Status ZRank(std::string &key, std::string &member, long *rank, const std::shared_ptr<Slot> &slot);
-  Status ZRem(std::string &key, std::vector<std::string> &members);
+  Status ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot = nullptr);
   Status ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted = 0,
-                         const std::shared_ptr<Slot> &slot);
+                         const std::shared_ptr<Slot> &slot = nullptr);
   Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
   Status ZRevrange(std::string &key, long start, long stop, std::vector<storage::ScoreMember> *score_members,
                    const std::shared_ptr<Slot> &slot);
@@ -185,7 +183,7 @@ class PikaCache {
                         const std::shared_ptr<Slot> &slot);
   Status ZRevrank(std::string &key, std::string &member, long *rank, const std::shared_ptr<Slot> &slot);
   Status ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<Slot> &slot);
-  Status ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members);
+  Status ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members, const std::shared_ptr<Slot> &slot);
   Status ZLexcount(std::string &key, std::string &min, std::string &max, unsigned long *len,
                    const std::shared_ptr<Slot> &slot);
   Status ZRemrangebylex(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
@@ -209,6 +207,9 @@ class PikaCache {
   static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
                                        std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
   Status CacheZCard(std::string &key, unsigned long *len);
+  Status Select(int db_id);
+
+  std::shared_ptr<Slot> GetSlot() { return slot_; }
 
  private:
   Status InitWithoutLock(uint32_t cache_num, dory::CacheConfig *cache_cfg);
@@ -225,25 +226,20 @@ class PikaCache {
   bool GetCacheMinMaxSM(dory::RedisCache *cache_obj, std::string &key, storage::ScoreMember &min_m,
                         storage::ScoreMember &max_m);
   bool ReloadCacheKeyIfNeeded(dory::RedisCache *cache_obj, std::string &key, int mem_len = -1, int db_len = -1,
-                              const std::shared_ptr<Slot> &slot);
+                              const std::shared_ptr<Slot> &slot = nullptr);
   Status CleanCacheKeyIfNeeded(dory::RedisCache *cache_obj, std::string &key);
 
-  PikaCache(const PikaCache &);
-  PikaCache &operator=(const PikaCache &);
-
  private:
-  std::vector<dory::RedisCache *> caches_;
-  // std::vector<pstd::Mutex *> cache_mutexs_;
   std::atomic<int> cache_status_;
+  std::unique_ptr<dory::RedisCache> cache_;
   uint32_t cache_num_;
-  // pthread_rwlock_t rwlock_;
 
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;
-  PikaCacheLoadThread *cache_load_thread_;
-  std::mutex rwlock_;
-  std::vector<std::mutex *> cache_mutexs_;
+  std::shared_mutex rwlock_;
+  PikaCacheLoadThread *cache_load_thread_;  // 这个线程保留
+  std::shared_ptr<Slot> slot_;
 };
 
 #endif

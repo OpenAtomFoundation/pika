@@ -101,7 +101,6 @@ RedisCache::SetxxWithoutTTL(std::string &key, std::string &value)
     DecrObjectsRefCount(kobj, vobj);
     return Status::OK();
 }
-
 Status
 RedisCache::Get(std::string &key, std::string* value)
 {

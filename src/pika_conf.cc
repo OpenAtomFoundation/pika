@@ -13,6 +13,7 @@
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 
+#include "dory/include/RedisDef.h"
 #include "include/pika_define.h"
 
 using pstd::Status;
@@ -570,8 +571,8 @@ int PikaConf::Load() {
 
   int cache_start_pos = 0;
   GetConfInt("cache-start-direction", &cache_start_pos);
-  if (cache_start_pos != CACHE_START_FROM_BEGIN && cache_start_pos != CACHE_START_FROM_END) {
-    cache_start_pos = CACHE_START_FROM_BEGIN;
+  if (cache_start_pos != dory::CACHE_START_FROM_BEGIN && cache_start_pos != dory::CACHE_START_FROM_END) {
+    cache_start_pos = dory::CACHE_START_FROM_BEGIN;
   }
   cache_start_pos_ = cache_start_pos;
 
@@ -657,6 +658,34 @@ int PikaConf::Load() {
 void PikaConf::TryPushDiffCommands(const std::string& command, const std::string& value) {
   if (!CheckConfExist(command)) {
     diff_commands_[command] = value;
+  }
+}
+
+void PikaConf::SetCacheType(const std::string &value) {
+  cache_string_ = cache_set_ = cache_zset_ = cache_hash_ = cache_list_ = cache_bit_ = 0;
+  if (value == "") {
+    return;
+  }
+  std::lock_guard l(rwlock_);
+
+  std::string lower_value = value;
+  pstd::StringToLower(lower_value);
+  lower_value.erase(remove_if(lower_value.begin(), lower_value.end(), isspace), lower_value.end());
+  pstd::StringSplit(lower_value, COMMA, cache_type_);
+  for (auto& type : cache_type_) {
+    if (type == "string") {
+      cache_string_ = 1;
+    } else if (type == "set") {
+      cache_set_ = 1;
+    } else if (type == "zset") {
+      cache_zset_ = 1;
+    } else if (type == "hash") {
+      cache_hash_ = 1;
+    } else if (type == "list") {
+      cache_list_ = 1;
+    } else if (type == "bit") {
+      cache_bit_ = 1;
+    }
   }
 }
 

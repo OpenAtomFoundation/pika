@@ -3,7 +3,7 @@
 namespace dory {
 
 Status
-RedisCache::ZAdd(std::string &key, std::vector<blackwidow::ScoreMember> &score_members)
+RedisCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -93,7 +93,7 @@ RedisCache::ZIncrby(std::string &key, std::string &member, double increment)
 Status
 RedisCache::ZRange(std::string &key,
                   long start, long stop,
-                  std::vector<blackwidow::ScoreMember> *score_members)
+                  std::vector<storage::ScoreMember> *score_members)
 {
     zitem *items = NULL;
     unsigned long items_size = 0;
@@ -110,7 +110,7 @@ RedisCache::ZRange(std::string &key,
     }
 
     for (unsigned long i = 0; i < items_size; ++i) {
-        blackwidow::ScoreMember sm;
+        storage::ScoreMember sm;
         sm.score = items[i].score;
         sm.member.assign(items[i].member, sdslen(items[i].member));
         score_members->push_back(sm);
@@ -124,7 +124,7 @@ RedisCache::ZRange(std::string &key,
 Status
 RedisCache::ZRangebyscore(std::string &key,
                           std::string &min, std::string &max,
-                          std::vector<blackwidow::ScoreMember> *score_members,
+                          std::vector<storage::ScoreMember> *score_members,
                           int64_t offset, int64_t count)
 {
     zitem *items = NULL;
@@ -144,7 +144,7 @@ RedisCache::ZRangebyscore(std::string &key,
     }
 
     for (unsigned long i = 0; i < items_size; ++i) {
-        blackwidow::ScoreMember sm;
+        storage::ScoreMember sm;
         sm.score = items[i].score;
         sm.member.assign(items[i].member, sdslen(items[i].member));
         score_members->push_back(sm);
@@ -250,7 +250,7 @@ RedisCache::ZRemrangebyscore(std::string &key, std::string &min, std::string &ma
 Status
 RedisCache::ZRevrange(std::string &key,
                       long start, long stop,
-                      std::vector<blackwidow::ScoreMember> *score_members)
+                      std::vector<storage::ScoreMember> *score_members)
 {
     zitem *items = NULL;
     unsigned long items_size = 0;
@@ -267,7 +267,7 @@ RedisCache::ZRevrange(std::string &key,
     }
 
     for (unsigned long i = 0; i < items_size; ++i) {
-        blackwidow::ScoreMember sm;
+        storage::ScoreMember sm;
         sm.score = items[i].score;
         sm.member.assign(items[i].member, sdslen(items[i].member));
         score_members->push_back(sm);
@@ -281,7 +281,7 @@ RedisCache::ZRevrange(std::string &key,
 Status
 RedisCache::ZRevrangebyscore(std::string &key,
                              std::string &min, std::string &max,
-                             std::vector<blackwidow::ScoreMember> *score_members,
+                             std::vector<storage::ScoreMember> *score_members,
                              int64_t offset, int64_t count)
 {
     zitem *items = NULL;
@@ -301,7 +301,7 @@ RedisCache::ZRevrangebyscore(std::string &key,
     }
 
     for (unsigned long i = 0; i < items_size; ++i) {
-        blackwidow::ScoreMember sm;
+        storage::ScoreMember sm;
         sm.score = items[i].score;
         sm.member.assign(items[i].member, sdslen(items[i].member));
         score_members->push_back(sm);

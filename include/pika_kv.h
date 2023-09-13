@@ -23,6 +23,7 @@ class SetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
+  void Execute() override;
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -53,6 +54,7 @@ class GetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
+  void Execute() override;
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};

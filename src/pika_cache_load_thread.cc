@@ -7,15 +7,14 @@
 #include "include/pika_cache.h"
 
 extern PikaServer *g_pika_server;
-extern PikaCache *g_pika_cache;
 
-PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key)
+PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<PikaCache> cache)
     : should_exit_(false),
-      loadkeys_cond_(&loadkeys_mutex_),
       async_load_keys_num_(0),
       waitting_load_keys_num_(0),
       cache_start_pos_(cache_start_pos),
-      cache_items_per_key_(cache_items_per_key) {
+      cache_items_per_key_(cache_items_per_key),
+      cache_(cache) {
   set_thread_name("PikaCacheLoadThread");
 }
 
@@ -54,19 +53,23 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
 bool PikaCacheLoadThread::LoadKv(std::string &key, const std::shared_ptr<Slot>& slot) {
   std::string value;
   int64_t ttl;
+  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->GetWithTTL(key, &value, &ttl);
+  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load kv failed, key=" << key;
     return false;
   }
 
-  g_pika_cache->WriteKvToCache(key, value, ttl);
+  cache_->WriteKvToCache(key, value, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>& slot) {
   int32_t len = 0;
+  slot->DbRWLockReader();
   slot->db()->HLen(key, &len);
+  slot->DbRWUnLock();
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
@@ -75,19 +78,23 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<storage::FieldValue> fvs;
   int64_t ttl;
+  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->HGetallWithTTL(key, &fvs, &ttl);
+  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load hash failed, key=" << key;
     return false;
   }
 
-  g_pika_cache->WriteHashToCache(key, fvs, ttl);
+  cache_->WriteHashToCache(key, fvs, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>& slot) {
   uint64_t len = 0;
+  slot->DbRWLockReader();
   slot->db()->LLen(key, &len);
+  slot->DbRWLockWriter();
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
@@ -96,19 +103,23 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<std::string> values;
   int64_t ttl;
+  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->LRangeWithTTL(key, 0, -1, &values, &ttl);
+  slot->DbRWLockWriter();
   if (!s.ok()) {
     LOG(WARNING) << "load list failed, key=" << key;
     return false;
   }
 
-  g_pika_cache->WriteListToCache(key, values, ttl);
+  cache_->WriteListToCache(key, values, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>& slot) {
   int32_t len = 0;
+  slot->DbRWLockReader();
   slot->db()->SCard(key, &len);
+  slot->DbRWLockWriter();
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
@@ -117,13 +128,15 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
 
   std::vector<std::string> values;
   int64_t ttl;
-  rocksdb::Status s = g_pika_server->db()->SMembersWithTTL(key, &values, &ttl);
+  slot->DbRWLockReader();
+  rocksdb::Status s = slot->db()->SMembersWithTTL(key, &values, &ttl);
+  slot->DbRWLockWriter();
   if (!s.ok()) {
     LOG(WARNING) << "load set failed, key=" << key;
     return false;
   }
 
-  g_pika_cache->WriteSetToCache(key, values, ttl);
+  cache_->WriteSetToCache(key, values, ttl);
   return true;
 }
 
@@ -131,21 +144,23 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   int32_t len = 0;
   int start_index = 0;
   int stop_index = -1;
+  slot->DbRWLockReader();
   slot->db()->ZCard(key, &len);
+  slot->DbRWUnLock();
   if (0 >= len) {
     return false;
   }
 
   unsigned long cache_len = 0;
-  g_pika_cache->CacheZCard(key, &cache_len);
+  cache_->CacheZCard(key, &cache_len);
   if (cache_len != 0) {
     return true;
   }
-  if (cache_start_pos_ == CACHE_START_FROM_BEGIN) {
+  if (cache_start_pos_ == dory::CACHE_START_FROM_BEGIN) {
     if (cache_items_per_key_ <= len) {
       stop_index = cache_items_per_key_ - 1;
     }
-  } else if (cache_start_pos_ == CACHE_START_FROM_END) {
+  } else if (cache_start_pos_ == dory::CACHE_START_FROM_END) {
     if (cache_items_per_key_ <= len) {
       start_index = len - cache_items_per_key_;
     }
@@ -153,20 +168,21 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<storage::ScoreMember> score_members;
   int64_t ttl;
-  rocksdb::Status s = g_pika_server->db()->ZRangeWithTTL(key, start_index, stop_index, &score_members, &ttl);
+  slot->DbRWLockReader();
+  rocksdb::Status s = slot->db()->ZRangeWithTTL(key, start_index, stop_index, &score_members, &ttl);
+  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load zset failed, key=" << key;
     return false;
   }
 
-  g_pika_cache->WriteZSetToCache(key, score_members, ttl);
+  cache_->WriteZSetToCache(key, score_members, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot>& slot) {
   // 加载缓存时，保证操作rocksdb和cache是原子的
-  pstd::ScopeRecordLock l(g_pika_server->LockMgr(), key);
-  pstd::lock::ScopeRecordLock l(LockMgr, key);
+  pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
 
   switch (key_type) {
     case 'k':
@@ -198,7 +214,7 @@ void *PikaCacheLoadThread::ThreadMain() {
       }
 
       if (should_exit_) {
-        return NULL;
+        return nullptr;
       }
 
       for (int i = 0; i < CACHE_LOAD_NUM_ONE_TIME; ++i) {
@@ -208,9 +224,9 @@ void *PikaCacheLoadThread::ThreadMain() {
         }
       }
     }
-
+    auto slot = cache_->GetSlot();
     for (auto iter = load_keys.begin(); iter != load_keys.end(); ++iter) {
-      if (LoadKey(iter->first, iter->second)) {
+      if (LoadKey(iter->first, iter->second, slot)) {
         ++async_load_keys_num_;
       } else {
         LOG(WARNING) << "PikaCacheLoadThread::ThreadMain LoadKey: " << iter->second << " failed !!!";

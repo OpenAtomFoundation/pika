@@ -9,16 +9,16 @@
 #include <unistd.h>
 
 extern "C" {
-#include "redisdbIF.h"
+#include "redisdb/redisdbIF.h"
 }
 
 #include "RedisDef.h"
-#include "blackwidow/blackwidow.h"
-#include "slash/include/slash_status.h"
+#include "pstd_status.h"
+#include "storage/storage.h"
 
 namespace dory {
 
-using Status = slash::Status;
+using Status = pstd::Status;
 
 class RedisCache
 {
@@ -68,12 +68,12 @@ public:
     Status HDel(std::string& key, std::vector<std::string> &fields);
     Status HSet(std::string &key, std::string &field, std::string &value);
     Status HSetnx(std::string &key, std::string &field, std::string &value);
-    Status HMSet(std::string &key, std::vector<blackwidow::FieldValue> &fvs);
+    Status HMSet(std::string &key, std::vector<storage::FieldValue> &fvs);
     Status HGet(std::string &key, std::string &field, std::string *value);
     Status HMGet(std::string &key,
                  std::vector<std::string> &fields,
-                 std::vector<blackwidow::ValueStatus>* vss);
-    Status HGetall(std::string &key, std::vector<blackwidow::FieldValue> *fvs);
+                 std::vector<storage::ValueStatus>* vss);
+    Status HGetall(std::string &key, std::vector<storage::FieldValue> *fvs);
     Status HKeys(std::string &key, std::vector<std::string> *fields);
     Status HVals(std::string &key, std::vector<std::string> *values);
     Status HExists(std::string &key, std::string &field);
@@ -84,7 +84,7 @@ public:
 
     // List Commands
     Status LIndex(std::string &key, long index, std::string *element);
-    Status LInsert(std::string &key, blackwidow::BeforeOrAfter &before_or_after,
+    Status LInsert(std::string &key, storage::BeforeOrAfter &before_or_after,
                    std::string &pivot, std::string &value);
     Status LLen(std::string &key, unsigned long *len);
     Status LPop(std::string &key, std::string *element);
@@ -107,16 +107,16 @@ public:
     Status SRandmember(std::string &key, long count, std::vector<std::string> *members);
 
     // Zset Commands
-    Status ZAdd(std::string &key, std::vector<blackwidow::ScoreMember> &score_members);
+    Status ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members);
     Status ZCard(std::string &key, unsigned long *len);
     Status ZCount(std::string &key, std::string &min, std::string &max, unsigned long *len);
     Status ZIncrby(std::string &key, std::string &member, double increment);
     Status ZRange(std::string &key,
                   long start, long stop,
-                  std::vector<blackwidow::ScoreMember> *score_members);
+                  std::vector<storage::ScoreMember> *score_members);
     Status ZRangebyscore(std::string &key,
                          std::string &min, std::string &max,
-                         std::vector<blackwidow::ScoreMember> *score_members,
+                         std::vector<storage::ScoreMember> *score_members,
                          int64_t offset = 0, int64_t count = -1);
     Status ZRank(std::string &key, std::string &member, long *rank);
     Status ZRem(std::string &key, std::vector<std::string> &members);
@@ -124,10 +124,10 @@ public:
     Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max);
     Status ZRevrange(std::string &key,
                      long start, long stop,
-                     std::vector<blackwidow::ScoreMember> *score_members);
+                     std::vector<storage::ScoreMember> *score_members);
     Status ZRevrangebyscore(std::string &key,
                             std::string &min, std::string &max,
-                            std::vector<blackwidow::ScoreMember> *score_members,
+                            std::vector<storage::ScoreMember> *score_members,
                             int64_t offset = 0, int64_t count = -1);
     Status ZRevrangebylex(std::string &key,
                           std::string &min, std::string &max,

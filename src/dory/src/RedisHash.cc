@@ -72,7 +72,7 @@ RedisCache::HSetnx(std::string &key, std::string &field, std::string &value)
 }
 
 Status
-RedisCache::HMSet(std::string &key, std::vector<blackwidow::FieldValue> &fvs)
+RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -128,7 +128,7 @@ RedisCache::HGet(std::string &key, std::string &field, std::string *value)
 Status
 RedisCache::HMGet(std::string &key,
                   std::vector<std::string> &fields,
-                  std::vector<blackwidow::ValueStatus>* vss)
+                  std::vector<storage::ValueStatus>* vss)
 {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     hitem *items = (hitem *)zcalloc(sizeof(hitem) * fields.size());
@@ -164,7 +164,7 @@ RedisCache::HMGet(std::string &key,
 }
 
 Status
-RedisCache::HGetall(std::string &key, std::vector<blackwidow::FieldValue> *fvs)
+RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs)
 {
     hitem *items;
     unsigned long items_size;
@@ -181,7 +181,7 @@ RedisCache::HGetall(std::string &key, std::vector<blackwidow::FieldValue> *fvs)
     }
 
     for (unsigned long i = 0; i < items_size; ++i) {
-        blackwidow::FieldValue fv;
+        storage::FieldValue fv;
         fv.field.assign(items[i].field, sdslen(items[i].field));
         fv.value.assign(items[i].value, sdslen(items[i].value));
         fvs->push_back(fv);

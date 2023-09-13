@@ -566,6 +566,8 @@ class PikaConf : public pstd::BaseConf {
     max_rsync_parallel_num_ = value;
   }
 
+  void SetCacheType(const std::string &value);
+
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -673,6 +675,25 @@ class PikaConf : public pstd::BaseConf {
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
   int binlog_file_size_ = 0;
+
+  // cache
+  std::atomic<int> cache_num_;
+  std::atomic<int> cache_model_;
+  std::atomic<bool> tmp_cache_disable_flag_;
+  std::vector<std::string> cache_type_;
+  std::atomic<int> cache_string_;
+  std::atomic<int> cache_set_;
+  std::atomic<int> cache_zset_;
+  std::atomic<int> cache_hash_;
+  std::atomic<int> cache_list_;
+  std::atomic<int> cache_bit_;
+  std::atomic<int> cache_start_pos_;
+  std::atomic<int> cache_items_per_key_;
+  std::atomic<int64_t> cache_maxmemory_;
+  std::atomic<int> cache_maxmemory_policy_;
+  std::atomic<int> cache_maxmemory_samples_;
+  std::atomic<int> cache_lfu_decay_time_;
+
 
   // rocksdb blob
   bool enable_blob_files_ = false;
