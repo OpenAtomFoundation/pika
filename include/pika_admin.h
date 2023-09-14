@@ -158,6 +158,7 @@ class FlushallCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
+  void Execute() override;
 
  private:
   void DoInitial() override;

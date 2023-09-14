@@ -10,6 +10,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
+#include "include/pika_cache_manager.h"
 
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
@@ -18,6 +19,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
 
 std::string SlotPath(const std::string& db_path, uint32_t slot_id) {
   char buf[100];

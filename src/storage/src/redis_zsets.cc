@@ -566,6 +566,66 @@ Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::ve
   return s;
 }
 
+Status RedisZSets::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                 int64_t* ttl) {
+  score_members->clear();
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot = nullptr;
+
+  std::string meta_value;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+
+  Status s = db_->Get(read_options, key, &meta_value);
+  if (s.ok()) {
+    ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
+    if (parsed_zsets_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else if (parsed_zsets_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else {
+      // ttl
+      *ttl = parsed_zsets_meta_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      int32_t count = parsed_zsets_meta_value.count();
+      int32_t version = parsed_zsets_meta_value.version();
+      int32_t start_index = start >= 0 ? start : count + start;
+      int32_t stop_index  = stop  >= 0 ? stop  : count + stop;
+      start_index = start_index <= 0 ? 0 : start_index;
+      stop_index = stop_index >= count ? count - 1 : stop_index;
+      if (start_index > stop_index
+          || start_index >= count
+          || stop_index < 0) {
+        return s;
+      }
+      int32_t cur_index = 0;
+      ScoreMember score_member;
+      ZSetsScoreKey zsets_score_key(key, version,
+                                    std::numeric_limits<double>::lowest(), Slice());
+      rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
+      for (iter->Seek(zsets_score_key.Encode());
+           iter->Valid() && cur_index <= stop_index;
+           iter->Next(), ++cur_index) {
+        if (cur_index >= start_index) {
+          ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+          score_member.score = parsed_zsets_score_key.score();
+          score_member.member = parsed_zsets_score_key.member().ToString();
+          score_members->push_back(score_member);
+        }
+      }
+      delete iter;
+    }
+  }
+  return s;
+}
+
 Status RedisZSets::ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                                  int64_t count, int64_t offset, std::vector<ScoreMember>* score_members) {
   score_members->clear();

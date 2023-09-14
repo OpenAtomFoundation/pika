@@ -452,6 +452,10 @@ void FlushallCmd::DoInitial() {
     return;
   }
 }
+void FlushallCmd::Execute() {
+  Cmd::Execute();
+
+}
 void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {
     LOG(INFO) << "Flushall, but Slot not found";

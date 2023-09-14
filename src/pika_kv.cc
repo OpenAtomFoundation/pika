@@ -12,7 +12,7 @@
 #include "include/pika_slot_command.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
-
+extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -59,6 +59,13 @@ void SetCmd::DoInitial() {
       return;
     }
     index++;
+  }
+}
+void SetCmd::Execute() {
+  Cmd::Execute();
+  auto cache = g_pika_cache_manager->GetCache(db_name_);
+  if (cache != nullptr) {
+    auto s = cache->Set(key_, value_, static_cast<int32_t>(sec_));
   }
 }
 
@@ -136,6 +143,17 @@ void GetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+}
+void GetCmd::Execute() {
+  auto cache = g_pika_cache_manager->GetCache(db_name_);
+  std::string value;
+  auto s = cache->Get(key_, &value);
+  if (s.ok()) {
+    res_.AppendStringLenUint64(value.size());
+    res_.AppendContent(value);
+    return;
+  }
+  Cmd::Execute();
 }
 
 void GetCmd::Do(std::shared_ptr<Slot> slot) {

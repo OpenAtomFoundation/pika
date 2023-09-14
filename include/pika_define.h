@@ -331,6 +331,18 @@ const int PIKA_ROLE_SLAVE = 1;
 const int PIKA_ROLE_MASTER = 2;
 
 /*
+ * cache model
+ */
+constexpr int PIKA_CACHE_NONE = 0;
+constexpr int PIKA_CACHE_READ = 1;
+
+/*
+ * cache size
+ */
+#define PIKA_CACHE_SIZE_MIN       536870912    // 512M
+#define PIKA_CACHE_SIZE_DEFAULT   10737418240  // 10G
+
+/*
  * The size of Binlogfile
  */
 // static uint64_t kBinlogSize = 128;

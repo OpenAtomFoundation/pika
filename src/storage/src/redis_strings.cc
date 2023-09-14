@@ -386,6 +386,34 @@ Status RedisStrings::Get(const Slice& key, std::string* value) {
   return s;
 }
 
+Status RedisStrings::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
+  value->clear();
+  Status s = db_->Get(default_read_options_, key, value);
+  if (s.ok()) {
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      *ttl = -2;
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+      *ttl = parsed_strings_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+    }
+  } else if (s.IsNotFound()) {
+    value->clear();
+    *ttl = -2;
+  }
+
+  return s;
+}
+
 Status RedisStrings::GetBit(const Slice& key, int64_t offset, int32_t* ret) {
   std::string meta_value;
   Status s = db_->Get(default_read_options_, key, &meta_value);
