@@ -511,7 +511,6 @@ Status PikaCache::LPop(std::string &key, std::string *element) {
 
 Status PikaCache::LPush(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LPush(key, values);
@@ -775,7 +774,6 @@ Status PikaCache::ZAddIfKeyExist(std::string &key, std::vector<storage::ScoreMem
     }
     auto cache_min_score = cache_min_sm.score;
     auto cache_max_score = cache_max_sm.score;
-
     if (cache_start_pos_ == dory::CACHE_START_FROM_BEGIN) {
       if (max_score < cache_max_score) {
         cache_obj->ZAdd(key, new_score_members);
@@ -1255,6 +1253,7 @@ Status PikaCache::ZRank(std::string &key, std::string &member, long *rank, const
     }
   }
 }
+
 Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot) {
   std::unique_lock l(rwlock_);
 
@@ -1434,7 +1433,6 @@ Status PikaCache::ZRevrank(std::string &key, std::string &member, long *rank, co
 
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
-
   auto cache_obj = caches_[cache_index];
   unsigned long cache_len = 0;
   cache_obj->ZCard(key, &cache_len);
@@ -1601,6 +1599,19 @@ void PikaCache::DestroyWithoutLock(void) {
 }
 
 // TODO(leehao) 这里貌似应该使用DB来分离，每一个db都对应一个cache，因为cache的设置是一个全局的，所以我觉得这个PikaCache也应该设置成为单例
+
+
+  for (auto iter = caches_.begin(); iter != caches_.end(); ++iter) {
+    delete *iter;
+  }
+  caches_.clear();
+
+  for (auto iter = cache_mutexs_.begin(); iter != cache_mutexs_.end(); ++iter) {
+    delete *iter;
+  }
+  cache_mutexs_.clear();
+}
+
 int PikaCache::CacheIndex(const std::string &key) {
   uint32_t crc = CRC32Update(0, key.data(), (int)key.size());
   return (int)(crc % caches_.size());

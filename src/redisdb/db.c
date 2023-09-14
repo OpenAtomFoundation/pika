@@ -156,6 +156,7 @@ robj *lookupKey(redisDb *db, robj *key, int flags) {
  *
  *  LOOKUP_NONE (or zero): no special flags are passed.  默认的话，就是此key的最后访问时间会被修改
  *  LOOKUP_NOTOUCH: don't alter the last access time of the key. 不修改此key的最后访问时间
+
  *
  * Note: this function also returns NULL is the key is logically expired
  * but still existing, in case this is a slave, since this API is called only

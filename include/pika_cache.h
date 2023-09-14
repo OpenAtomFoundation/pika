@@ -23,7 +23,8 @@ const int PIKA_CACHE_STATUS_OK = 2;
 const int PIKA_CACHE_STATUS_RESET = 3;
 const int PIKA_CACHE_STATUS_DESTROY = 4;
 const int PIKA_CACHE_STATUS_CLEAR = 5;
-
+const int CACHE_START_FROM_BEGIN = 0;
+const int CACHE_START_FROM_END = -1;
 /*
  * key type
  */
@@ -84,6 +85,7 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
+
   Status Del(std::string &key);
   Status Expire(std::string &key, int64_t ttl);
   Status Expireat(std::string &key, int64_t ttl);
@@ -210,7 +212,6 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
   Status Select(int db_id);
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }
-
  private:
   Status InitWithoutLock(uint32_t cache_num, dory::CacheConfig *cache_cfg);
   void DestroyWithoutLock(void);
