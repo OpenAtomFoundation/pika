@@ -433,6 +433,10 @@ Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment,
 Status Storage::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
   return zsets_db_->ZRange(key, start, stop, score_members);
 }
+Status Storage::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                 int64_t *ttl) {
+  return zsets_db_->ZRangeWithTTL(key, start, stop, score_members, ttl);
+}
 
 Status Storage::ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                               std::vector<ScoreMember>* score_members) {

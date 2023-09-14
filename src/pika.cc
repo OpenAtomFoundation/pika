@@ -26,6 +26,7 @@ PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
 
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
@@ -209,6 +210,7 @@ int main(int argc, char* argv[]) {
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
+  g_pika_cache_manager = std::make_shared<PikaCacheManager>(g_pika_conf->db_structs());
 
   if (g_pika_conf->daemonize()) {
     close_std();
@@ -220,6 +222,7 @@ int main(int argc, char* argv[]) {
     g_pika_rm.reset();
     g_pika_cmd_table_manager.reset();
     g_network_statistic.reset();
+    g_pika_cache_manager.reset();
     ::google::ShutdownGoogleLogging();
     g_pika_conf.reset();
   };

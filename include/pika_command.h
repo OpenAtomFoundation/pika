@@ -17,6 +17,8 @@
 
 #include "include/pika_slot.h"
 #include "net/src/dispatch_thread.h"
+#include "include/pika_cache.h"
+#include "include/pika_cache_manager.h"
 
 class SyncMasterSlot;
 class SyncSlaveSlot;

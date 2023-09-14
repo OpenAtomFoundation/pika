@@ -1,7 +1,9 @@
-#ifndef PIKA_PIKA_CACHE_LOAD_THREAD_H
-#define PIKA_PIKA_CACHE_LOAD_THREAD_H
+// Copyright (c) 2023-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
 
-#endif  // PIKA_PIKA_CACHE_LOAD_THREAD_H
+
 #ifndef PIKA_CACHE_LOAD_THREAD_H_
 #define PIKA_CACHE_LOAD_THREAD_H_
 
@@ -21,7 +23,7 @@
 
 class PikaCacheLoadThread : public net::Thread {
  public:
-  PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key);
+  PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<PikaCache> cache);
   ~PikaCacheLoadThread();
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
@@ -51,6 +53,7 @@ class PikaCacheLoadThread : public net::Thread {
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;
+  std::shared_ptr<PikaCache> cache_;
 };
 
-#endif
+#endif  // PIKA_CACHE_LOAD_THREAD_H_

@@ -657,6 +657,9 @@ class Storage {
   // array with (value, score) arrays/tuples).
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
 
+  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                int64_t *ttl);
+
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
   // are considered to be ordered from low to high scores.

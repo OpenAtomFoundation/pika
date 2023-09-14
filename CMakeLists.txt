@@ -697,6 +697,8 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(src/dory)
+add_subdirectory(src/redisdb)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -766,7 +768,9 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  storage
+  dory
+  redisdb)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -775,6 +779,8 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+  redisdb
+  dory
   storage
   net
   pstd

@@ -34,6 +34,7 @@ class RedisStrings : public Redis {
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
