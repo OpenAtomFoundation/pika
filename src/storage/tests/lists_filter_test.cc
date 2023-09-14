@@ -25,9 +25,7 @@ class ListsFilterTest : public ::testing::Test {
     if (access(db_path.c_str(), F_OK) != 0) {
       mkdir(db_path.c_str(), 0755);
     }
-
-		options.create_if_missing = true;
-
+    options.create_if_missing = true;
 #ifdef USE_S3
     // rocksdb-cloud env
     rocksdb::CloudFileSystemOptions cloud_fs_opts;
