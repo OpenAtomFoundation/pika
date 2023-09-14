@@ -80,7 +80,6 @@ PikaServer::PikaServer()
   }
 
   InitStorageOptions();
-  ScriptingInit();
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
@@ -98,6 +97,8 @@ PikaServer::PikaServer()
   for_each(ips.begin(), ips.end(), [](auto& ip) {LOG(WARNING) << ip;});
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
+  // script init before dispatch thread
+  ScriptingInit();
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   //TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
   rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
@@ -1915,8 +1916,9 @@ void PikaServer::ScriptingInit() {
   //   server.lua_client->flags |= REDIS_LUA_CLIENT;
   // }
   if (!lua_client_) {
-    lua_client_ = std::make_shared<PikaClientConn>(-1, "", nullptr, nullptr, net::HandleType::kSynchronous,
+    lua_client_ = std::make_shared<PikaClientConn>(-1, "", pika_dispatch_thread_->thread_rep(), nullptr, net::HandleType::kSynchronous,
                                                    g_pika_conf->max_conn_rbuf_size());
+    // std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_);
     // TODO add client flags?
     // lua_client_->SetFlags(REDIS_LUA_CLIENT);
   }

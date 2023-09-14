@@ -189,6 +189,11 @@ proc start_server {options {code undefined}} {
     set ::port [find_available_port [expr {$::port+1}]]
     dict set config port $::port
 
+    # start every server on a different path
+    dict set config log-path ./log$::port/
+    dict set config db-path ./db$::port/
+    dict set config dump-path ./dump$::port/
+
     # apply overrides from global space and arguments
     foreach {directive arguments} [concat $::global_overrides $overrides] {
         dict set config $directive $arguments
