@@ -206,16 +206,14 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
   Status WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl);
   Status WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
   void PushKeyToAsyncLoadQueue(const char key_type, std::string &key);
-  static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
-                                       std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
+//  static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
+//                                       std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
   Status CacheZCard(std::string &key, unsigned long *len);
-  Status Select(int db_id);
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }
  private:
   Status InitWithoutLock(uint32_t cache_num, dory::CacheConfig *cache_cfg);
   void DestroyWithoutLock(void);
-  int CacheIndex(const std::string &key);
   RangeStatus CheckCacheRange(int32_t cache_len, int32_t db_len, long start, long stop, long &out_start,
                               long &out_stop);
   RangeStatus CheckCacheRevRange(int32_t cache_len, int32_t db_len, long start, long stop, long &out_start,
