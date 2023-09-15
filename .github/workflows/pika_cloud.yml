@@ -45,6 +45,7 @@ jobs:
       
       - name: Set up AWS SDK for C++
         run: |
+          sudo apt-get update --fix-missing
           sudo apt-get install libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev
           git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp
           mkdir sdk_build
