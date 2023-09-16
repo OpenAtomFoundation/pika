@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "include/pika_server.h"
-#include "pika_define.h"
-#include "pika_zset.h"
+#include "include/pika_define.h"
+#include "include/pika_zset.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "dory/include/RedisCache.h"
@@ -36,7 +36,7 @@ const char PIKA_KEY_TYPE_ZSET = 'z';
 enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
 
 class PikaCacheLoadThread;
-class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCache> {
+class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<PikaCache> {
  public:
   struct CacheInfo {
     int status;
@@ -71,8 +71,8 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
   PikaCache(int cache_start_pos_, int cache_items_per_key, std::shared_ptr<Slot> slot);
   ~PikaCache();
 
-  Status Init(uint32_t cache_num, dory::CacheConfig *cache_cfg);
-  Status Reset(uint32_t cache_num, dory::CacheConfig *cache_cfg = NULL);
+  Status Init();
+  Status Reset();
   void ResetConfig(dory::CacheConfig *cache_cfg);
   void Destroy(void);
   void ProcessCronTask(void);
@@ -212,7 +212,7 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }
  private:
-  Status InitWithoutLock(uint32_t cache_num, dory::CacheConfig *cache_cfg);
+  Status InitWithoutLock();
   void DestroyWithoutLock(void);
   RangeStatus CheckCacheRange(int32_t cache_len, int32_t db_len, long start, long stop, long &out_start,
                               long &out_stop);
@@ -231,13 +231,12 @@ class PikaCache : public pstd::noncopyable, std::enable_shared_from_this<PikaCac
  private:
   std::atomic<int> cache_status_;
   std::unique_ptr<dory::RedisCache> cache_;
-  uint32_t cache_num_;
 
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;
   std::shared_mutex rwlock_;
-  PikaCacheLoadThread *cache_load_thread_;  // 这个线程保留
+  std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
   std::shared_ptr<Slot> slot_;
 };
 

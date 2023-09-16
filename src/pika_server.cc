@@ -28,12 +28,14 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/pika_cache_manager.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
+extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -148,9 +150,6 @@ void PikaServer::Start() {
                << ", Listen on this port to receive Master FullSync Data";
   }
   */
-
-  // We Init DB Struct Before Start The following thread
-  InitDBStruct();
 
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
@@ -1298,6 +1297,7 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
+  g_pika_cache_manager->ProcessCronTask();
 }
 
 void PikaServer::AutoCompactRange() {

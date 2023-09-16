@@ -8,12 +8,18 @@
 
 extern PikaServer* g_pika_server;
 
-PikaCacheManager::PikaCacheManager(std::vector<DBStruct> dbs) : cache_status_(PIKA_CACHE_STATUS_NONE) {
+PikaCacheManager::PikaCacheManager() : cache_status_(PIKA_CACHE_STATUS_NONE) {
+  dory::CacheConfig cacge_config{};
+  dory::RedisCache::SetConfig(&cacge_config);
+}
+
+void PikaCacheManager::Init(std::vector<DBStruct> dbs) {
   std::shared_lock lg(mu_);
   for (const auto& db : dbs) {
     for (uint32_t i = 0; i < db.slot_num; ++i) {
       auto key = db.db_name + std::to_string(i);
       caches_.emplace(key, std::make_shared<PikaCache>(0, 0, g_pika_server->GetDBSlotById(db.db_name, i)));
+      caches_[key]->Init();
     }
   }
 }
@@ -42,6 +48,13 @@ void PikaCacheManager::FlushDB(const std::string& db_name) {
     if (cache.first.compare(0, db_name.size(), db_name) == 0) {
       cache.second->FlushSlot();
     }
+  }
+}
+
+void PikaCacheManager::FlushAll() {
+  std::unique_lock lg(mu_);
+  for (auto& cache : caches_) {
+    cache.second->FlushSlot();
   }
 }
 

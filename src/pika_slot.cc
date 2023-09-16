@@ -19,7 +19,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
+extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 std::string SlotPath(const std::string& db_path, uint32_t slot_id) {
   char buf[100];

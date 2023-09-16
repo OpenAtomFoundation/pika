@@ -8,6 +8,7 @@
 #include <glog/logging.h>
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
+#include "include/pika_cache_manager.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
@@ -27,7 +28,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
+extern std::shared_ptr<PikaCacheManager> c;
 
 void InitCmdTable(CmdTable* cmd_table) {
   // Admin

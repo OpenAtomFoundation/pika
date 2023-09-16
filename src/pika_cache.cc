@@ -15,13 +15,10 @@ extern PikaServer *g_pika_server;
 
 PikaCache::PikaCache(int cache_start_pos, int cache_items_per_key, std::shared_ptr<Slot> slot)
     : cache_status_(PIKA_CACHE_STATUS_NONE),
-      cache_num_(0),
       cache_start_pos_(cache_start_pos),
       cache_items_per_key_(EXTEND_CACHE_SIZE(cache_items_per_key)),
       slot_(slot) {
   cache_ = std::make_unique<dory::RedisCache>();
-  cache_load_thread_ = new PikaCacheLoadThread(cache_start_pos_, cache_items_per_key_, shared_from_this());
-  cache_load_thread_->StartThread();
 }
 
 PikaCache::~PikaCache() {
@@ -31,20 +28,15 @@ PikaCache::~PikaCache() {
   }
 }
 
-Status PikaCache::Init(uint32_t cache_num, dory::CacheConfig *cache_cfg) {
+Status PikaCache::Init() {
   std::unique_lock l(rwlock_);
-
-  if (nullptr == cache_cfg) {
-    return Status::Corruption("invalid arguments !!!");
-  }
-  return InitWithoutLock(cache_num, cache_cfg);
+  return InitWithoutLock();
 }
 
-Status PikaCache::Reset(uint32_t cache_num, dory::CacheConfig *cache_cfg) {
+Status PikaCache::Reset() {
   std::unique_lock l(rwlock_);
-
   DestroyWithoutLock();
-  return InitWithoutLock(cache_num, cache_cfg);
+  return InitWithoutLock();
 }
 
 void PikaCache::ResetConfig(dory::CacheConfig *cache_cfg) {
@@ -71,7 +63,6 @@ void PikaCache::Info(CacheInfo &info) {
   info.clear();
   std::unique_lock l(rwlock_);
   info.status = cache_status_;
-  info.cache_num = cache_num_;
   info.used_memory = dory::RedisCache::GetUsedMemory();
   info.async_load_keys_num = cache_load_thread_->AsyncLoadKeysNum();
   info.waitting_load_keys_num = cache_load_thread_->WaittingLoadKeysNum();
@@ -144,17 +135,11 @@ Status PikaCache::Setnx(std::string &key, std::string &value, int64_t ttl) {
 
 Status PikaCache::SetnxWithoutTTL(std::string &key, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->SetnxWithoutTTL(key, value);
 }
 
 Status PikaCache::Setxx(std::string &key, std::string &value, int64_t ttl) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->Setxx(key, value, ttl);
 }
 
@@ -1419,58 +1404,39 @@ Status PikaCache::GetBit(std::string &key, size_t offset, long *value) {
 
 Status PikaCache::BitCount(std::string &key, long start, long end, long *value, bool have_offset) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->BitCount(key, start, end, value, have_offset);
 }
 
 Status PikaCache::BitPos(std::string &key, long bit, long *value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->BitPos(key, bit, value);
 }
 
 Status PikaCache::BitPos(std::string &key, long bit, long start, long *value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->BitPos(key, bit, start, value);
 }
 
 Status PikaCache::BitPos(std::string &key, long bit, long start, long end, long *value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->BitPos(key, bit, start, end, value);
 }
 
-Status PikaCache::InitWithoutLock(uint32_t cache_num, dory::CacheConfig *cache_cfg) {
+Status PikaCache::InitWithoutLock() {
   cache_status_ = PIKA_CACHE_STATUS_INIT;
-
-  cache_num_ = cache_num;
-  if (nullptr != cache_cfg) {
-    dory::RedisCache::SetConfig(cache_cfg);
+  if (cache_ == nullptr) {
+    cache_ = std::make_unique<dory::RedisCache>();
   }
-
-  for (uint32_t i = 0; i < cache_num; ++i) {
-    auto *cache = new dory::RedisCache();
-    Status s = cache->Open();
-    if (!s.ok()) {
-      LOG(ERROR) << "PikaCache::InitWithoutLock Open cache failed";
-      DestroyWithoutLock();
-      cache_status_ = PIKA_CACHE_STATUS_NONE;
-      return Status::Corruption("create redis cache failed");
-    }
-    caches_.push_back(cache);
-    cache_mutexs_.push_back(new std::shared_mutex);
+  Status s = cache_->Open();
+  if (!s.ok()) {
+    LOG(ERROR) << "PikaCache::InitWithoutLock Open cache failed";
+    DestroyWithoutLock();
+    cache_status_ = PIKA_CACHE_STATUS_NONE;
+    return Status::Corruption("create redis cache failed");
   }
+  cache_load_thread_ = std::make_unique<PikaCacheLoadThread>(cache_start_pos_, cache_items_per_key_, shared_from_this());
+  cache_load_thread_->StartThread();
   cache_status_ = PIKA_CACHE_STATUS_OK;
-
   return Status::OK();
 }
 

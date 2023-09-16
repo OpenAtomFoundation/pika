@@ -14,7 +14,6 @@
 #include "storage/storage.h"
 
 #include "include/pika_binlog.h"
-#include "include/pika_cache.h"
 
 class Cmd;
 

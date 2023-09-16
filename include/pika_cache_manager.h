@@ -10,8 +10,6 @@
 #include <memory>
 
 #include "include/pika_cache.h"
-#include "include/pika_define.h"
-#include "dory/include/RedisCache.h"
 
 class PikaCacheManager : public pstd::noncopyable {
  public:
@@ -45,11 +43,13 @@ class PikaCacheManager : public pstd::noncopyable {
     }
   };
 
-  PikaCacheManager(std::vector<DBStruct> dbs);
+  PikaCacheManager();
   ~PikaCacheManager();
   std::shared_ptr<PikaCache> GetCache(const std::string& db_name, int slot_index);
+  void Init(std::vector<DBStruct> dbs);
   void ProcessCronTask();
   void FlushDB(const std::string& db_name);
+  void FlushAll();
   double HitRatio();
   void ClearHitRatio();
  private:

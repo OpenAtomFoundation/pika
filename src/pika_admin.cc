@@ -15,7 +15,7 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_cmd_table_manager.h"
+#include "include/pika_cache_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -26,6 +26,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -454,7 +455,7 @@ void FlushallCmd::DoInitial() {
 }
 void FlushallCmd::Execute() {
   Cmd::Execute();
-
+  g_pika_cache_manager->FlushAll();
 }
 void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {

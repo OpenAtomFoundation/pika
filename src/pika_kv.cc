@@ -8,6 +8,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_binlog_transverter.h"
+#include "include/pika_cache_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
 
@@ -63,9 +64,11 @@ void SetCmd::DoInitial() {
 }
 void SetCmd::Execute() {
   Cmd::Execute();
-  auto cache = g_pika_cache_manager->GetCache(db_name_);
+  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
   if (cache != nullptr) {
-    auto s = cache->Set(key_, value_, static_cast<int32_t>(sec_));
+    if (condition_ == SetCmd::kNONE) {
+      auto s = cache->SetnxWithoutTTL(key_, value_);
+    }
   }
 }
 
@@ -145,7 +148,7 @@ void GetCmd::DoInitial() {
   key_ = argv_[1];
 }
 void GetCmd::Execute() {
-  auto cache = g_pika_cache_manager->GetCache(db_name_);
+  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
   std::string value;
   auto s = cache->Get(key_, &value);
   if (s.ok()) {
