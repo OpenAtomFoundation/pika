@@ -13,45 +13,16 @@
 
 class PikaCacheManager : public pstd::noncopyable {
  public:
-  struct CacheInfo {
-    int status;
-    uint32_t cache_num;
-    long long keys_num;
-    size_t used_memory;
-    long long hits;
-    long long misses;
-    uint64_t async_load_keys_num;
-    uint32_t waitting_load_keys_num;
-    CacheInfo()
-        : status(PIKA_CACHE_STATUS_NONE),
-          cache_num(0),
-          keys_num(0),
-          used_memory(0),
-          hits(0),
-          misses(0),
-          async_load_keys_num(0),
-          waitting_load_keys_num(0) {}
-    void clear() {
-      status = PIKA_CACHE_STATUS_NONE;
-      cache_num = 0;
-      keys_num = 0;
-      used_memory = 0;
-      hits = 0;
-      misses = 0;
-      async_load_keys_num = 0;
-      waitting_load_keys_num = 0;
-    }
-  };
-
   PikaCacheManager();
-  ~PikaCacheManager();
+  ~PikaCacheManager() = default;
   std::shared_ptr<PikaCache> GetCache(const std::string& db_name, int slot_index);
-  void Init(std::vector<DBStruct> dbs);
+  void Init(const std::vector<DBStruct>& dbs);
   void ProcessCronTask();
   void FlushDB(const std::string& db_name);
   void FlushAll();
   double HitRatio();
   void ClearHitRatio();
+  PikaCache::CacheInfo Info();
  private:
   std::shared_mutex mu_;
   std::unordered_map<std::string, std::shared_ptr<PikaCache>> caches_;

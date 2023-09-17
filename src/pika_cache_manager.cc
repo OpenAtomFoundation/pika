@@ -7,13 +7,14 @@
 #include "include/pika_cache_manager.h"
 
 extern PikaServer* g_pika_server;
+using CacheInfo = PikaCache::CacheInfo;
 
 PikaCacheManager::PikaCacheManager() : cache_status_(PIKA_CACHE_STATUS_NONE) {
-  dory::CacheConfig cacge_config{};
-  dory::RedisCache::SetConfig(&cacge_config);
+  dory::CacheConfig cache_config{};
+  dory::RedisCache::SetConfig(&cache_config);
 }
 
-void PikaCacheManager::Init(std::vector<DBStruct> dbs) {
+void PikaCacheManager::Init(const std::vector<DBStruct>& dbs) {
   std::shared_lock lg(mu_);
   for (const auto& db : dbs) {
     for (uint32_t i = 0; i < db.slot_num; ++i) {
@@ -22,9 +23,6 @@ void PikaCacheManager::Init(std::vector<DBStruct> dbs) {
       caches_[key]->Init();
     }
   }
-}
-
-PikaCacheManager::~PikaCacheManager() {
 }
 
 std::shared_ptr<PikaCache> PikaCacheManager::GetCache(const std::string& db_name, int slot_index) {
@@ -73,4 +71,18 @@ double PikaCacheManager::HitRatio(void) {
 void PikaCacheManager::ClearHitRatio(void) {
   std::unique_lock l(mu_);
   dory::RedisCache::ResetHitAndMissNum();
+}
+
+CacheInfo PikaCacheManager::Info() {
+  CacheInfo info;
+  std::unique_lock l(mu_);
+  for (const auto &cache : caches_) {
+    auto each_info = cache.second->Info();
+    info.keys_num += each_info.keys_num;
+    info.async_load_keys_num += each_info.async_load_keys_num;
+  }
+  info.used_memory = dory::RedisCache::GetUsedMemory();
+  info.cache_num = caches_.size();
+  dory::RedisCache::GetHitAndMissNum(&info.hits, &info.misses);
+ return info;
 }

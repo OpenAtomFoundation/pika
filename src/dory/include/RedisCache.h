@@ -39,7 +39,7 @@ public:
     long long DbSize(void);
     void FlushDb(void);
 
-    Status Del(std::string &key);
+    Status Del(const std::string &key);
     Status Expire(std::string &key, int64_t ttl);
     Status Expireat(std::string &key, int64_t ttl);
     Status TTL(std::string &key, int64_t *ttl);

@@ -216,6 +216,11 @@ void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     Cmd::DoBinlog(slot);
   }
 }
+void DelCmd::Execute() {
+  Cmd::Execute();
+  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
+  auto s = cache->Del(keys_);
+}
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -223,6 +228,12 @@ void IncrCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+}
+
+void IncrCmd::Execute() {
+  Cmd::Execute();
+  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
+  auto s = cache->Incrxx(key_);
 }
 
 void IncrCmd::Do(std::shared_ptr<Slot> slot) {
@@ -263,6 +274,11 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+void IncrbyCmd::Execute() {
+  Cmd::Execute();
+  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
+  auto s = cache->IncrByxx(key_, by_);
 }
 
 void IncrbyfloatCmd::DoInitial() {

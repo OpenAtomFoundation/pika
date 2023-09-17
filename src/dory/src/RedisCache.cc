@@ -126,7 +126,7 @@ RedisCache::FlushDb(void)
 }
 
 Status
-RedisCache::Del(std::string &key)
+RedisCache::Del(const std::string &key)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));

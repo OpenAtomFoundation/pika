@@ -80,13 +80,13 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   int CacheStatus(void);
 
   // Normal Commands
-  void Info(CacheInfo &info);
+  CacheInfo Info();
   long long DbSize(void);
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
 
-  Status Del(std::string &key);
+  Status Del(const std::vector<std::string> &keys);
   Status Expire(std::string &key, int64_t ttl);
   Status Expireat(std::string &key, int64_t ttl);
   Status TTL(std::string &key, int64_t *ttl);

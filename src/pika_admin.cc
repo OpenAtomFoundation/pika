@@ -516,6 +516,10 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 }
+void FlushdbCmd::Execute() {
+  Cmd::Execute();
+  g_pika_cache_manager->FlushDB(db_name_);
+}
 
 void ClientCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -649,6 +653,7 @@ const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
+const std::string InfoCmd::kCacheSection = "cache";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -799,6 +804,8 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
     case kInfoCommandStats:
       InfoCommandStats(info);
       break;
+    case kInfoCache:
+
     default:
       // kInfoErr is nothing
       break;
@@ -1281,6 +1288,32 @@ void InfoCmd::InfoCommandStats(std::string& info) {
       }
     }
     info.append(tmp_stream.str());
+}
+// todo(cache): cache info cmd
+void InfoCmd::InfoCache(std::string& info) {
+//    std::stringstream tmp_stream;
+//    tmp_stream << "# Cache" << "\r\n";
+//    if (PIKA_CACHE_NONE == ) {
+//      tmp_stream << "cache_status:Disable" << "\r\n";
+//    } else {
+//      PikaServer::DisplayCacheInfo cache_info;
+//      g_pika_server->GetCacheInfo(cache_info);
+//      tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
+//      tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
+//      tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
+//      tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
+//      tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
+//      tmp_stream << "hits:" << cache_info.hits << "\r\n";
+//      tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
+//      tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
+//      tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
+//      tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" <<"\r\n";
+//      tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" <<"\r\n";
+//      tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
+//      tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
+//    }
+//
+//    info.append(tmp_stream.str());
 }
 
 void ConfigCmd::DoInitial() {

@@ -59,14 +59,12 @@ int PikaCache::CacheStatus(void) { return cache_status_; }
 /*-----------------------------------------------------------------------------
  * Normal Commands
  *----------------------------------------------------------------------------*/
-void PikaCache::Info(CacheInfo &info) {
-  info.clear();
+PikaCache::CacheInfo PikaCache::Info() {
   std::unique_lock l(rwlock_);
+  PikaCache::CacheInfo info;
   info.status = cache_status_;
-  info.used_memory = dory::RedisCache::GetUsedMemory();
   info.async_load_keys_num = cache_load_thread_->AsyncLoadKeysNum();
   info.waitting_load_keys_num = cache_load_thread_->WaittingLoadKeysNum();
-  dory::RedisCache::GetHitAndMissNum(&info.hits, &info.misses);
   info.keys_num = cache_->DbSize();
 }
 
@@ -85,9 +83,12 @@ void PikaCache::ActiveExpireCycle() {
   cache_->ActiveExpireCycle();
 }
 
-Status PikaCache::Del(std::string &key) {
+Status PikaCache::Del(const std::vector<std::string> &keys) {
   std::unique_lock l(rwlock_);
-  return cache_->Del(key);
+  for (const auto &key : keys) {
+    cache_->Del(key);
+  }
+  return Status::OK();
 }
 
 Status PikaCache::Expire(std::string &key, int64_t ttl) {
@@ -1449,7 +1450,7 @@ Status PikaCache::WriteKvToCache(std::string &key, std::string &value, int64_t t
     if (PIKA_TTL_NONE == ttl) {
       return SetnxWithoutTTL(key, value);
     } else {
-      return Del(key);
+      return Del({key});
     }
   } else {
     return Setnx(key, value, ttl);
@@ -1462,7 +1463,7 @@ Status PikaCache::WriteHashToCache(std::string &key, std::vector<storage::FieldV
     if (PIKA_TTL_NONE == ttl) {
       return HMSetnxWithoutTTL(key, fvs);
     } else {
-      return Del(key);
+      return Del({key});
     }
   } else {
     return HMSetnx(key, fvs, ttl);
@@ -1475,7 +1476,7 @@ Status PikaCache::WriteListToCache(std::string &key, std::vector<std::string> &v
     if (PIKA_TTL_NONE == ttl) {
       return RPushnxWithoutTTL(key, values);
     } else {
-      return Del(key);
+      return Del({key});
     }
   } else {
     return RPushnx(key, values, ttl);
@@ -1488,7 +1489,7 @@ Status PikaCache::WriteSetToCache(std::string &key, std::vector<std::string> &me
     if (PIKA_TTL_NONE == ttl) {
       return SAddnxWithoutTTL(key, members);
     } else {
-      return Del(key);
+      return Del({key});
     }
   } else {
     return SAddnx(key, members, ttl);
@@ -1501,7 +1502,7 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
     if (PIKA_TTL_NONE == ttl) {
       return ZAddnxWithoutTTL(key, score_members);
     } else {
-      return Del(key);
+      return Del({key});
     }
   } else {
     return ZAddnx(key, score_members, ttl);
