@@ -22,12 +22,14 @@ namespace pikiwidb {
 /// one thread should at most has one EventLoop object,
 class EventLoop {
  public:
-  EventLoop();
+  EventLoop() = default;
   ~EventLoop() = default;
 
   EventLoop(const EventLoop&) = delete;
   void operator=(const EventLoop&) = delete;
 
+  // Init loop
+  void Init();
   // Run in a specific thread
   void Run();
   // Stop loop

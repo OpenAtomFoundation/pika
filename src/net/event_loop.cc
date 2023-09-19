@@ -16,8 +16,11 @@ static thread_local EventLoop* g_this_loop = nullptr;
 std::atomic<int> EventLoop::obj_id_generator_{0};
 std::atomic<TimerId> EventLoop::timerid_generator_{0};
 
-EventLoop::EventLoop() {
-  assert(!g_this_loop && "There must be only one EventLoop per thread");
+void EventLoop::Init() {
+  if (g_this_loop) {
+    printf("There must be only one EventLoop per thread\n");
+    abort();
+  }
   g_this_loop = this;
 
   reactor_.reset(new internal::LibeventReactor());
@@ -32,7 +35,6 @@ void EventLoop::Run() {
 #endif
 
   Register(notifier_, kEventRead);
-
   while (running_) {
     if (task_mutex_.try_lock()) {
       decltype(tasks_) funcs;

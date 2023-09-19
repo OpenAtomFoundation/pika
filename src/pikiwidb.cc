@@ -15,6 +15,7 @@
 #include <iostream>
 #include <thread>
 
+#include "application.h"
 #include "log.h"
 
 #include "client.h"
@@ -31,27 +32,11 @@
 
 std::unique_ptr<PikiwiDB> g_pikiwidb;
 
-static void SignalHandler(int num) {
-  if (g_pikiwidb) {
-    g_pikiwidb->Stop();
-  }
-}
-
-static void InitSignal() {
-  struct sigaction sig;
-  ::memset(&sig, 0, sizeof(sig));
-
-  sig.sa_handler = SignalHandler;
-  sigaction(SIGINT, &sig, NULL);
-
-  // ignore sigpipe
-  sig.sa_handler = SIG_IGN;
-  sigaction(SIGPIPE, &sig, NULL);
-}
-
 const unsigned PikiwiDB::kRunidSize = 40;
 
-PikiwiDB::PikiwiDB() : port_(0), masterPort_(0) { cmdTableManager_ = std::make_unique<pikiwidb::CmdTableManager>(); }
+PikiwiDB::PikiwiDB() : app_(pikiwidb::Application::Instance()), port_(0), masterPort_(0) {
+  cmdTableManager_ = std::make_unique<pikiwidb::CmdTableManager>();
+}
 
 PikiwiDB::~PikiwiDB() {}
 
@@ -173,7 +158,7 @@ static void CheckChild() {
 }
 
 void PikiwiDB::OnNewConnection(pikiwidb::TcpObject* obj) {
-  INFO("New connection from {}", obj->GetPeerIp());
+  INFO("New connection from {}:{}", obj->GetPeerIp(), obj->GetPeerPort());
 
   auto client = std::make_shared<pikiwidb::PClient>(obj);
   obj->SetContext(client);
@@ -207,11 +192,11 @@ bool PikiwiDB::Init() {
     g_config.masterPort = masterPort_;
   }
 
-  if (!event_loop_.Listen(g_config.ip.c_str(), g_config.port,
-                          std::bind(&PikiwiDB::OnNewConnection, this, std::placeholders::_1))) {
-    ERROR("can not bind socket on port {}", g_config.port);
+  NewTcpConnCallback cb = std::bind(&PikiwiDB::OnNewConnection, this, std::placeholders::_1);
+  if (!app_.Init(g_config.ip.c_str(), g_config.port, cb)) {
     return false;
   }
+  app_.SetWorkerNum((size_t)(g_config.io_threads_num));
 
   PCommandTable::Init();
   PCommandTable::AliasCommand(g_config.aliases);
@@ -230,9 +215,11 @@ bool PikiwiDB::Init() {
   PSlowLog::Instance().SetThreshold(g_config.slowlogtime);
   PSlowLog::Instance().SetLogLimit(static_cast<std::size_t>(g_config.slowlogmaxlen));
 
-  event_loop_.ScheduleRepeatedly(1000 / pikiwidb::g_config.hz, PdbCron);
-  event_loop_.ScheduleRepeatedly(1000, &PReplication::Cron, &PREPL);
-  event_loop_.ScheduleRepeatedly(1, CheckChild);
+  // init base loop
+  auto loop = app_.BaseLoop();
+  loop->ScheduleRepeatedly(1000 / pikiwidb::g_config.hz, PdbCron);
+  loop->ScheduleRepeatedly(1000, &PReplication::Cron, &PREPL);
+  loop->ScheduleRepeatedly(1, CheckChild);
 
   // master ip
   if (!g_config.masterIp.empty()) {
@@ -251,18 +238,12 @@ bool PikiwiDB::Init() {
 }
 
 void PikiwiDB::Run() {
-  event_loop_.SetName("pikiwi-main");
-  event_loop_.Run();
+  app_.SetName("pikiwi-main");
+  app_.Run(0, nullptr);
   INFO("server exit running");
-
-  Recycle();
 }
 
-void PikiwiDB::Recycle() {
-  std::cerr << "PikiwiDB::recycle: server is exiting.. BYE BYE\n";
-}
-
-void PikiwiDB::Stop() { event_loop_.Stop(); }
+void PikiwiDB::Stop() { app_.Exit(); }
 
 std::unique_ptr<pikiwidb::CmdTableManager>& PikiwiDB::CmdTableManager() { return cmdTableManager_; }
 
@@ -279,7 +260,6 @@ static void InitLogs() {
 int main(int ac, char* av[]) {
   g_pikiwidb = std::make_unique<PikiwiDB>();
 
-  InitSignal();
   InitLogs();
   INFO("pikiwidb server start...");
 
