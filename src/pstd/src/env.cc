@@ -188,6 +188,9 @@ bool DeleteDirIfExist(const std::string& path) {
 uint64_t Du(const std::string& path) {
   uint64_t sum = 0;
   try {
+    if (!filesystem::exists(path)) {
+      return 0;
+    }
     if (filesystem::is_symlink(path)) {
       filesystem::path symlink_path = filesystem::read_symlink(path);
       sum = Du(symlink_path);
@@ -205,7 +208,7 @@ uint64_t Du(const std::string& path) {
       sum = filesystem::file_size(path);
     }
   } catch (const filesystem::filesystem_error& ex) {
-    LOG(WARNING) << "Error accessing path: " << ex.what() << std::endl;
+    LOG(WARNING) << "Error accessing path: " << ex.what();
   }
 
   return sum;
