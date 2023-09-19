@@ -284,6 +284,7 @@ func (bc *BackendConn) loopReader(tasks <-chan *Request, c *redis.Conn, round in
 	}()
 	for r := range tasks {
 		resp, err := c.Decode()
+		r.ReceiveFromServerTime = time.Now().UnixNano()
 		if err != nil {
 			return bc.setResponse(r, nil, fmt.Errorf("backend conn failure, %s", err))
 		}
@@ -363,6 +364,7 @@ func (bc *BackendConn) loopWriter(round int) (err error) {
 		} else {
 			tasks <- r
 		}
+		r.SendToServerTime = time.Now().UnixNano()
 	}
 	return nil
 }

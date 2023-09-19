@@ -169,6 +169,7 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 		}
 		s.incrOpTotal()
 
+		tasksLen := tasks.Buffered()
 		if tasks.Buffered() > maxPipelineLen {
 			return s.incrOpFails(nil, ErrTooManyPipelinedRequests)
 		}
@@ -181,7 +182,8 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 		r.Multi = multi
 		r.Batch = &sync.WaitGroup{}
 		r.Database = s.database
-		r.UnixNano = start.UnixNano()
+		r.ReceiveTime = start.UnixNano()
+		r.TasksLen = int64(tasksLen)
 
 		if err := s.handleRequest(r, d); err != nil {
 			r.Resp = redis.NewErrorf("ERR handle request, %s", err)
@@ -235,6 +237,26 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		if fflush {
 			s.flushOpStats(false)
 		}
+		nowTime := time.Now().UnixNano()
+		duration := int64((nowTime - r.ReceiveTime) / 1e3)
+		if duration >= 100000 {
+			//client -> proxy -> server -> porxy -> client
+			//分别记录从客户端接收到发送到后端server等待时间、从发送到后端server到从server接收响应等待时间、
+			//从接收到server响应到发送给客户端等待时间。
+			var d0, d1, d2 int64 = -1, -1, -1
+			if r.SendToServerTime > 0 {
+				d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+			}
+			if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
+				d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+			}
+			if r.ReceiveFromServerTime > 0 {
+				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
+			}
+			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
+				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen)
+		}
+
 		return nil
 	})
 }
@@ -649,7 +671,12 @@ func (s *Session) getOpStats(opstr string) *opStats {
 func (s *Session) incrOpStats(r *Request, t redis.RespType) {
 	e := s.getOpStats(r.OpStr)
 	e.calls.Incr()
-	e.nsecs.Add(time.Now().UnixNano() - r.UnixNano)
+	e.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
+	Receiveduration := time.Now().UnixNano() - r.ReceiveTime
+	if Receiveduration > 100000 {
+		log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d",
+			time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, Receiveduration, r.TasksLen)
+	}
 	switch t {
 	case redis.TypeError:
 		e.redis.errors.Incr()
