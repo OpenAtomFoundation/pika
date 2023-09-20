@@ -20,6 +20,7 @@
 #include "src/redis_sets.h"
 #include "src/redis_strings.h"
 #include "src/redis_zsets.h"
+#include "src/murmurhash.h"
 
 namespace storage {
 
@@ -93,6 +94,11 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   if (!s.ok()) {
     LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
+  strings_db1_ = std::make_unique<RedisStrings>(this, kStrings);
+  s = strings_db1_->Open(storage_options, AppendSubDirectory(db_path, "strings2"));
+
+  strings_db2_ = std::make_unique<RedisStrings>(this, kStrings);
+  s = strings_db2_->Open(storage_options, AppendSubDirectory(db_path, "strings3"));
 
   hashes_db_ = std::make_unique<RedisHashes>(this, kHashes);
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
@@ -132,7 +138,19 @@ Status Storage::StoreCursorStartKey(const DataType& dtype, int64_t cursor, const
 }
 
 // Strings Commands
-Status Storage::Set(const Slice& key, const Slice& value) { return strings_db_->Set(key, value); }
+//Status Storage::Set(const Slice& key, const Slice& value) { return strings_db_->Set(key, value); }
+Status Storage::Set(const Slice& key, const Slice& value) {
+  uint32_t index = MurmurHash(key.data(), static_cast<int>(key.size()), 0) % 3;
+  LOG(WARNING) << "key: " << key.data() << "index: " << index;
+  switch (index) {
+    case 0:
+      return strings_db_->Set(key, value);
+    case 1:
+      return strings_db1_->Set(key, value);
+  }
+  LOG(WARNING) << "strings_db2_:" << (strings_db2_ == nullptr);
+  return strings_db2_->Set(key, value);
+}
 
 Status Storage::Setxx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl) {
   return strings_db_->Setxx(key, value, ret, ttl);

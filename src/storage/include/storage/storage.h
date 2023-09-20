@@ -1026,6 +1026,8 @@ class Storage {
 
  private:
   std::unique_ptr<RedisStrings> strings_db_;
+  std::unique_ptr<RedisStrings> strings_db1_;
+  std::unique_ptr<RedisStrings> strings_db2_;
   std::unique_ptr<RedisHashes> hashes_db_;
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
