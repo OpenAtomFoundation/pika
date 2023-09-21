@@ -170,7 +170,7 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 		s.incrOpTotal()
 
 		tasksLen := tasks.Buffered()
-		if tasks.Buffered() > maxPipelineLen {
+		if tasksLen > maxPipelineLen {
 			return s.incrOpFails(nil, ErrTooManyPipelinedRequests)
 		}
 
