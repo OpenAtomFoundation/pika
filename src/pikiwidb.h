@@ -5,7 +5,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
-#include "application.h"
+#include "conn_pool.h"
 #include "cmd_table_manager.h"
 #include "event_loop.h"
 #include "pstring.h"
@@ -41,7 +41,7 @@ class PikiwiDB final {
   static const unsigned kRunidSize;
 
  private:
-  pikiwidb::Application& app_;
+  pikiwidb::ConnPool& conn_pool_;
   std::unique_ptr<pikiwidb::CmdTableManager> cmdTableManager_;
 };
 

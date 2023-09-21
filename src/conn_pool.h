@@ -11,10 +11,10 @@
 
 namespace pikiwidb {
 
-class Application {
+class ConnPool {
  public:
-  static Application& Instance();
-  ~Application();
+  static ConnPool& Instance();
+  ~ConnPool();
 
   bool Init(const char* ip, int port, NewTcpConnCallback ccb);
   void Run(int argc, char* argv[]);
@@ -49,7 +49,7 @@ class Application {
   void Reset();
 
  private:
-  Application();
+  ConnPool();
   void StartWorkers();
 
   static const size_t kMaxWorkers;
