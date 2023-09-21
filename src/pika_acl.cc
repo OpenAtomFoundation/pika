@@ -80,7 +80,7 @@ void PikaAclCmd::Cat() {
     res().AppendStringVector(Acl::GetAllCategoryName());
     return;
   }
-  auto category = g_pika_server->Acl()->GetCommandCategoryFlagByName(argv_[2]);
+  auto category = Acl::GetCommandCategoryFlagByName(argv_[2]);
   if (category == 0) {
     res().SetRes(CmdRes::kErrOther, fmt::format("Unknown category '{}'", argv_[2]));
     return;
@@ -207,9 +207,9 @@ void PikaAclCmd::WhoAmI() {
   auto name = conn->UserName();
 
   if (name.empty()) {
-    res().AppendString(name);
+    res().AppendString(Acl::DefaultUser);
   } else {
-    res().SetRes(CmdRes::kNone);
+    res().AppendString(name);
   }
 }
 

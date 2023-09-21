@@ -62,7 +62,7 @@ enum AuthResult {
 static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
                                    const std::shared_ptr<net::NetConn>& conn) {
   std::string root_password(g_pika_conf->requirepass());
-  if (root_password.empty()) {
+  if (userName == Acl::DefaultUser && root_password.empty()) {
     return AuthResult::NO_REQUIRE_PASS;
   }
 

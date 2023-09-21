@@ -19,7 +19,7 @@
 #include "pika_command.h"
 #include "pstd_status.h"
 
-#define USER_COMMAND_BITS_COUNT 1024
+static const int USER_COMMAND_BITS_COUNT = 1024;
 
 enum class AclSelectorFlag {
   ROOT = (1 << 0),          // This is the root user permission selector
@@ -119,13 +119,13 @@ class AclSelector {
   void ChangeSelector(const std::shared_ptr<Cmd>& cmd, bool allow);
   pstd::Status ChangeSelector(const std::shared_ptr<Cmd>& cmd, const std::string& subCmd, bool allow);
 
-  void SetSubCommand(const uint32_t cmdId);
-  void SetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+  void SetSubCommand(uint32_t cmdId);
+  void SetSubCommand(uint32_t cmdId, uint32_t subCmdIndex);
   void ResetSubCommand();
-  void ResetSubCommand(const uint32_t cmdId);
-  void ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+  void ResetSubCommand(uint32_t cmdId);
+  void ResetSubCommand(uint32_t cmdId, uint32_t subCmdIndex);
 
-  bool CheckSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex);
+  bool CheckSubCommand(uint32_t cmdId, uint32_t subCmdIndex);
 
   void DescribeSelectorCommandRules(std::string* str);
 
@@ -172,7 +172,7 @@ class AclSelector {
 class User {
  public:
   User() = delete;
-  explicit User(const std::string& name);
+  explicit User(std::string name);
 
   std::string Name() const;
 
@@ -226,17 +226,17 @@ class User {
  private:
   mutable std::shared_mutex mutex_;
 
-  std::string name_;  // The username
+  std::string name_;                                                            // The username
 
   std::atomic<uint32_t> flags_ = static_cast<uint32_t>(AclUserFlag::DISABLED);  // See USER_FLAG_*
 
-  std::set<std::string> passwords_;  // passwords for this user
+  std::set<std::string> passwords_;                                             // passwords for this user
 
   std::list<std::shared_ptr<AclSelector>> selectors_; /* A set of selectors this user validates commands
                         against. This list will always contain at least
                         one selector for backwards compatibility. */
 
-  std::string aclString_; /* cached string represent of ACLs */
+  std::string aclString_;                             /* cached string represent of ACLs */
 };
 
 class Acl {
@@ -300,10 +300,10 @@ class Acl {
   void UpdateDefaultUserPassword(const std::string& pass);
 
   // check the user can be exec the command, after exec command
-  bool CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
+  //  bool CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
 
   // 根据 cmd 分类名 获取分类的值
-  inline static uint32_t GetCommandCategoryFlagByName(const std::string& name);
+  static uint32_t GetCommandCategoryFlagByName(const std::string& name);
 
   // 根据 category获取对应的name
   static std::string GetCommandCategoryFlagByName(const uint32_t category);

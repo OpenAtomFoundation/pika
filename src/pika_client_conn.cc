@@ -60,6 +60,17 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   }
 
+  uint64_t start_us = 0;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = pstd::NowMicros();
+  }
+
+  // Initial
+  c_ptr->Initial(argv, current_db_);
+  if (!c_ptr->res().ok()) {
+    return c_ptr;
+  }
+
   auto checkRes = user_->CheckUserPermission(c_ptr, argv);
   switch (checkRes) {
     case AclDeniedCmd::CMD:
@@ -72,7 +83,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       return c_ptr;
     case AclDeniedCmd::CHANNEL:
       c_ptr->res().SetRes(CmdRes::kErrOther,
-                          "-NOPERM this user has no permissions to access one of the keys used as arguments");
+                          "-NOPERM this user has no permissions to access one of the channel used as arguments");
       return c_ptr;
     default:
       break;

@@ -18,7 +18,7 @@ extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // class User
 
-User::User(const std::string& name) : name_(name) {
+User::User( std::string name) : name_(std::move(name)) {
   selectors_.emplace_back(std::make_shared<AclSelector>(static_cast<uint32_t>(AclSelectorFlag::ROOT)));
 }
 
@@ -157,6 +157,7 @@ pstd::Status User::CreateSelectorFromOpSet(const std::string& opSet) {
     return status;
   }
   AddSelector(selector);
+  return status;
 }
 
 std::shared_ptr<AclSelector> User::GetRootSelector() {
@@ -255,12 +256,8 @@ void User::GetUserDescribe(CmdRes* res) {
 AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) {
   std::shared_lock l(mutex_);
 
-  if (!cmd->CheckArg(argv.size())) {
-    return AclDeniedCmd::NUMBER;
-  }
   std::string subCmd = "";
-  std::vector<std::string> keys;
-
+  auto keys = cmd->current_key();
   AclDeniedCmd res = AclDeniedCmd::OK;
   for (const auto& selector : selectors_) {
     res = selector->CheckCanExecCmd(cmd, subCmd, keys);
@@ -453,7 +450,7 @@ void Acl::UpdateDefaultUserPassword(const std::string& pass) {
   }
 }
 
-bool Acl::CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) { cmd->name(); }
+// bool Acl::CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) { cmd->name(); }
 
 std::shared_ptr<User> Acl::CreateDefaultUser() {
   auto defaultUser = std::make_shared<User>(DefaultUser);
@@ -545,7 +542,7 @@ std::shared_ptr<User> Acl::Auth(const std::string& userName, const std::string& 
   if (!user) {
     return nullptr;
   }
-  if (user->MatchPassword(password)) {
+  if (user->MatchPassword(pstd::sha256(password))) {
     return user;
   }
   return nullptr;
@@ -858,21 +855,17 @@ pstd::Status AclSelector::ChangeSelector(const std::shared_ptr<Cmd>& cmd, const 
   return pstd::Status::OK();
 }
 
-void AclSelector::SetSubCommand(const uint32_t cmdId) { subCommand_[cmdId] = ~0; }
+void AclSelector::SetSubCommand(uint32_t cmdId) { subCommand_[cmdId] = ~0; }
 
-void AclSelector::SetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex) {
-  subCommand_[cmdId] = (1 << subCmdIndex);
-}
+void AclSelector::SetSubCommand(uint32_t cmdId, uint32_t subCmdIndex) { subCommand_[cmdId] = (1 << subCmdIndex); }
 
 void AclSelector::ResetSubCommand() { subCommand_.clear(); }
 
-void AclSelector::ResetSubCommand(const uint32_t cmdId) { subCommand_[cmdId] = 0; }
+void AclSelector::ResetSubCommand(uint32_t cmdId) { subCommand_[cmdId] = 0; }
 
-void AclSelector::ResetSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex) {
-  subCommand_[cmdId] = ~(1 << subCmdIndex);
-}
+void AclSelector::ResetSubCommand(uint32_t cmdId, uint32_t subCmdIndex) { subCommand_[cmdId] = ~(1 << subCmdIndex); }
 
-bool AclSelector::CheckSubCommand(const uint32_t cmdId, const uint32_t subCmdIndex) {
+bool AclSelector::CheckSubCommand(uint32_t cmdId, uint32_t subCmdIndex) {
   if (subCmdIndex < 0) {
     return false;
   }
@@ -1061,7 +1054,7 @@ void AclSelector::RemoveCommonRule(const std::string& rule) {
 
     if (start > 0) {  // the rule not included '-'/'+', but need delete need
       --start;
-      ++delNum;  // star position moved one forward So delNum takes +1
+      ++delNum;       // star position moved one forward So delNum takes +1
     }
 
     commandRules_.erase(start, delNum);
