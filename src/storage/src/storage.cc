@@ -1761,4 +1761,38 @@ void Storage::GetRocksDBInfo(std::string& info) {
   zsets_db_->GetRocksDBInfo(info, "zsets_");
 }
 
+int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_status) {
+  std::string value;
+  int32_t ret = 0;
+  int64_t type_count = 0;
+  Status s = strings_db_->Get(key, &value);
+  (*type_status)[DataType::kStrings] = s;
+  if (s.ok()) {
+    type_count++;
+  }
+  s = hashes_db_->HLen(key, &ret);
+  (*type_status)[DataType::kHashes] = s;
+  if (s.ok()) {
+    type_count++;
+  }
+  s = sets_db_->SCard(key, &ret);
+  (*type_status)[DataType::kSets] = s;
+  if (s.ok()) {
+    type_count++;
+  }
+  uint64_t llen = 0;
+  s = lists_db_->LLen(key, &llen);
+  (*type_status)[DataType::kLists] = s;
+  if (s.ok()) {
+    type_count++;
+  }
+
+  s = zsets_db_->ZCard(key, &ret);
+  (*type_status)[DataType::kZSets] = s;
+  if (s.ok()) {
+    type_count++;
+  }
+  return type_count;
+}
+
 }  //  namespace storage

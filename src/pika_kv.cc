@@ -4,7 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_kv.h"
+#include <memory>
 
+#include "include/pika_client_conn.h"
+#include "include/pika_command.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_binlog_transverter.h"

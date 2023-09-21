@@ -82,6 +82,8 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   // FlushDB & FlushSubDB use
   bool FlushDB();
   bool FlushSubDB(const std::string& db_name);
+  bool FlushDBWithoutLock();
+  bool FlushSubDBWithoutLock(const std::string& db_name);
 
   // key scan info use
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
