@@ -239,7 +239,7 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		}
 		nowTime := time.Now().UnixNano()
 		duration := int64((nowTime - r.ReceiveTime) / 1e3)
-		if duration >= 20000 {
+		if duration >= 50000 {
 			//client -> proxy -> server -> porxy -> client
 			//分别记录从客户端接收到发送到后端server等待时间、从发送到后端server到从server接收响应等待时间、
 			//从接收到server响应到发送给客户端等待时间。
