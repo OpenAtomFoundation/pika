@@ -78,7 +78,8 @@ class LLenCmd : public Cmd {
 
 class BlockingBaseCmd : public Cmd {
  public:
-  BlockingBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  BlockingBaseCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)) {}
 
   //blpop/brpop used start
   struct WriteBinlogOfPopArgs{

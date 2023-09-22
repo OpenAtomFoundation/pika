@@ -248,7 +248,7 @@ enum CmdFlagsMask {
 };
 
 enum CmdFlags {
-  kCmdFlagsRead = 1,  // default rw
+  kCmdFlagsRead = 1,          // default rw
   kCmdFlagsWrite = (1 << 1),
   kCmdFlagsAdmin = (1 << 2),  // default type
   kCmdFlagsKv = (1 << 3),
@@ -260,13 +260,13 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = (1 << 9),
   kCmdFlagsGeo = (1 << 10),
   kCmdFlagsPubSub = (1 << 11),
-  kCmdFlagsNoLocal = 0,  // default nolocal
+  kCmdFlagsNoLocal = 0,           // default nolocal
   kCmdFlagsLocal = (1 << 12),
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
+  kCmdFlagsNoSuspend = 0,         // default nosuspend
   kCmdFlagsSuspend = (1 << 13),
-  kCmdFlagsNoPrior = 0,  // default noprior
+  kCmdFlagsNoPrior = 0,           // default noprior
   kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
+  kCmdFlagsNoAdminRequire = 0,    // default no need admin
   kCmdFlagsAdminRequire = (1 << 14),
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = (1 << 15),
@@ -278,7 +278,7 @@ enum CmdFlags {
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
-   RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
+  RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
 }
 
 const std::string kNewLine = "\r\n";
@@ -456,9 +456,9 @@ class CmdRes {
 struct UnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
-  net::DispatchThread* dispatchThread{ nullptr };
+  net::DispatchThread* dispatchThread{nullptr};
   UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+      : key(std::move(key_)), slot(std::move(slot_)), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -493,8 +493,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   };
   CommandStatistics state;
   Cmd(std::string name, int arity, uint16_t flag, uint32_t aclCategory = 0);
-//  Cmd(std::string name, int arity, uint16_t flag);
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;

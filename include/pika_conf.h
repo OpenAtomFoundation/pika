@@ -175,18 +175,18 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return bgsave_prefix_;
   }
-//  std::string userpass() {
-//    std::shared_lock l(rwlock_);
-//    return userpass_;
-//  }
-//  std::string suser_blacklist() {
-//    std::shared_lock l(rwlock_);
-//    return pstd::StringConcat(user_blacklist_, COMMA);
-//  }
-//  const std::vector<std::string>& vuser_blacklist() {
-//    std::shared_lock l(rwlock_);
-//    return user_blacklist_;
-//  }
+  //  std::string userpass() {
+  //    std::shared_lock l(rwlock_);
+  //    return userpass_;
+  //  }
+  //  std::string suser_blacklist() {
+  //    std::shared_lock l(rwlock_);
+  //    return pstd::StringConcat(user_blacklist_, COMMA);
+  //  }
+  //  const std::vector<std::string>& vuser_blacklist() {
+  //    std::shared_lock l(rwlock_);
+  //    return user_blacklist_;
+  //  }
   bool classic_mode() { return classic_mode_.load(); }
   int databases() {
     std::shared_lock l(rwlock_);
@@ -450,19 +450,19 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
-//  void SetUserPass(const std::string& value) {
-//    std::lock_guard l(rwlock_);
-//    TryPushDiffCommands("userpass", value);
-//    userpass_ = value;
-//  }
-//  void SetUserBlackList(const std::string& value) {
-//    std::lock_guard l(rwlock_);
-//    TryPushDiffCommands("userblacklist", value);
-//    pstd::StringSplit(value, COMMA, user_blacklist_);
-//    for (auto& item : user_blacklist_) {
-//      pstd::StringToLower(item);
-//    }
-//  }
+  //  void SetUserPass(const std::string& value) {
+  //    std::lock_guard l(rwlock_);
+  //    TryPushDiffCommands("userpass", value);
+  //    userpass_ = value;
+  //  }
+  //  void SetUserBlackList(const std::string& value) {
+  //    std::lock_guard l(rwlock_);
+  //    TryPushDiffCommands("userblacklist", value);
+  //    pstd::StringSplit(value, COMMA, user_blacklist_);
+  //    for (auto& item : user_blacklist_) {
+  //      pstd::StringToLower(item);
+  //    }
+  //  }
   void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
@@ -590,9 +590,8 @@ class PikaConf : public pstd::BaseConf {
     max_rsync_parallel_num_ = value;
   }
 
-  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                    bool is_add);
-//  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
+  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
+  //  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
@@ -621,8 +620,8 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
-  int64_t resume_check_interval_ = 60; // seconds
-  int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
+  int64_t resume_check_interval_ = 60;             // seconds
+  int64_t least_free_disk_to_resume_ = 268435456;  // 256 MB
   double min_check_resume_ratio_ = 0.7;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
@@ -639,8 +638,8 @@ class PikaConf : public pstd::BaseConf {
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
-//  std::string userpass_;
-//  std::vector<std::string> user_blacklist_;
+  //  std::string userpass_;
+  //  std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;
