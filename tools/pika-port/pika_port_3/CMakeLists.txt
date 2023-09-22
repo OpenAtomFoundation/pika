@@ -10,7 +10,7 @@ add_executable(pika_port ${BASE_OBJS})
 target_include_directories(pika_port PRIVATE ${INSTALL_INCLUDEDIR}
                                        PRIVATE ${PROJECT_SOURCE_DIR})
 
-target_link_libraries(pika_port ${ROCKSDB_LIBRARY} pthread rt net pstd storage ${GLOG_LIBRARY} 
+target_link_libraries(pika_port ${ROCKSDB_LIBRARY} pthread net pstd storage ${GLOG_LIBRARY} 
                                 ${GFLAGS_LIBRARY} ${SNAPPY_LIBRARY} ${ZLIB_LIBRARY} ${BZ2_LIBRARY}
                                 ${LZ4_LIBRARY} ${ZSTD_LIBRARY})
 set_target_properties(pika_port PROPERTIES

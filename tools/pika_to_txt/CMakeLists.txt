@@ -14,7 +14,7 @@ target_include_directories(pika_to_txt PRIVATE ${INSTALL_INCLUDEDIR}
                                        PRIVATE ${PROJECT_SOURCE_DIR})
 
 target_link_libraries(pika_to_txt storage net pstd ${ROCKSDB_LIBRARY} pthread ${SNAPPY_LIBRARY}
-                                  ${ZLIB_LIBRARY} ${BZ2_LIBRARY} ${GLOG_LIBRARY} ${GFLAGS_LIBRARY} rt)
+                                  ${ZLIB_LIBRARY} ${BZ2_LIBRARY} ${GLOG_LIBRARY} ${GFLAGS_LIBRARY})
 set_target_properties(pika_to_txt PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
