@@ -404,7 +404,7 @@ int PikaConf::Load() {
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
-    rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 200MB
+    rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 2000MB/s
   }
 
   // rate-limiter-refill-period-us
@@ -606,7 +606,7 @@ int PikaConf::Load() {
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
-    throttle_bytes_per_second_ = 307200000;
+    throttle_bytes_per_second_ = 207200000;
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);

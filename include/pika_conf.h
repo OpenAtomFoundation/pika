@@ -702,7 +702,7 @@ class PikaConf : public pstd::BaseConf {
   std::shared_mutex rwlock_;
 
   // Rsync Rate limiting configuration
-  int throttle_bytes_per_second_ = 307200000;
+  int throttle_bytes_per_second_ = 207200000;
   int max_rsync_parallel_num_ = 4;
 };
 
