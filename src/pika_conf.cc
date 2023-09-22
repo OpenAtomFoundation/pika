@@ -202,11 +202,6 @@ int PikaConf::Load() {
   for (auto& item : user_blacklist_) {
     pstd::StringToLower(item);
   }
-  GetConfInt("default-slot-num", &default_slot_num_);
-  if (default_slot_num_ <= 0) {
-    LOG(FATAL) << "config default-slot-num error,"
-               << " it should greater than zero, the actual is: " << default_slot_num_;
-  }
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
@@ -283,6 +278,12 @@ int PikaConf::Load() {
     }
   }
   default_db_ = db_structs_[0].db_name;
+
+  GetConfInt("default-slot-num", &default_slot_num_);
+  if (default_slot_num_ <= 0 && strcasecmp(instance_mode.data(), "classic") != 0) {
+    LOG(FATAL) << "config default-slot-num error,"
+               << " it should greater than zero, the actual is: " << default_slot_num_;
+  }
 
   int tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
