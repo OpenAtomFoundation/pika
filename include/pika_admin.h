@@ -288,6 +288,7 @@ class ConfigCmd : public Cmd {
   void ConfigSet(std::string& ret);
   void ConfigRewrite(std::string& ret);
   void ConfigResetstat(std::string& ret);
+  void ConfigRewriteReplicationID(std::string& ret);
 };
 
 class MonitorCmd : public Cmd {
@@ -460,6 +461,18 @@ class DiskRecoveryCmd : public Cmd {
  private:
   void DoInitial() override;
   std::map<std::string, uint64_t> background_errors_;
+};
+
+class ClearReplicationIDCmd : public Cmd {
+ public:
+  ClearReplicationIDCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new ClearReplicationIDCmd(*this); }
+
+ private:
+  void DoInitial() override;
 };
 
 #ifdef WITH_COMMAND_DOCS

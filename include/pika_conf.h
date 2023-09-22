@@ -22,6 +22,7 @@
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
 const uint32_t configRunIDSize = 40;
+const uint32_t configReplicationIDSize = 50;
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
@@ -213,6 +214,10 @@ class PikaConf : public pstd::BaseConf {
   std::string master_run_id() {
     std::shared_lock l(rwlock_);
     return master_run_id_;
+  }
+  std::string replication_id() {
+    std::shared_lock l(rwlock_);
+    return replication_id_;
   }
   std::string requirepass() {
     std::shared_lock l(rwlock_);
@@ -503,6 +508,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("master-run-id", value);
     master_run_id_ = value;
   }
+  void SetReplicationID(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("replication-id", value);
+    replication_id_ = value;
+  }
   void SetSlavePriority(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slave-priority", std::to_string(value));
@@ -706,6 +716,7 @@ class PikaConf : public pstd::BaseConf {
 
   int Load();
   int ConfigRewrite();
+  int ConfigRewriteReplicationID();
 
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
@@ -739,6 +750,7 @@ class PikaConf : public pstd::BaseConf {
   std::string server_id_;
   std::string run_id_;
   std::string master_run_id_;
+  std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
