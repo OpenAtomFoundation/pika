@@ -57,6 +57,7 @@
 ## Develop
 - [Pika coding style](https://github.com/Qihoo360/pika/wiki/cpp---coding-style)
 - [Pika 代码梳理](https://github.com/OpenAtomFoundation/pika/wiki/Pika%E4%BB%A3%E7%A0%81%E6%A2%B3%E7%90%86)
+- [Pika 使用 CLion 搭建开发调试环境](./ops/clion.md)
 
 ## 博客
 - [陈宗志](http://baotiao.github.io/page2/)
