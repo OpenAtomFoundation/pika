@@ -630,9 +630,9 @@ option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
     URL
-    https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
+    https://github.com/redis/hiredis/archive/refs/tags/v1.2.0.tar.gz
     URL_HASH
-    MD5=e4d4a2928188b11f696d35ca1c52e9a4
+    MD5=119767d178cfa79718a80c83e0d0e849
     DOWNLOAD_NO_PROGRESS
     1
     UPDATE_COMMAND
