@@ -82,7 +82,7 @@ void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd,
 
     // make new conn
     auto loop = acceptor->SelectEventloop();
-    // ConnPool::Instance().Next();
+    // IOThreadPool::Instance().Next();
     auto on_create = acceptor->on_new_conn_;  // cpp11 doesn't support lambda
                                               // capture initializers
     auto create_conn = [loop, on_create, fd, ipstr, port]() {

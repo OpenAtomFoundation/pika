@@ -11,10 +11,10 @@
 
 namespace pikiwidb {
 
-class ConnPool {
+class IOThreadPool {
  public:
-  static ConnPool& Instance();
-  ~ConnPool();
+  static IOThreadPool& Instance();
+  ~IOThreadPool();
 
   bool Init(const char* ip, int port, NewTcpConnCallback ccb);
   void Run(int argc, char* argv[]);
@@ -49,7 +49,7 @@ class ConnPool {
   void Reset();
 
  private:
-  ConnPool();
+  IOThreadPool();
   void StartWorkers();
 
   static const size_t kMaxWorkers;

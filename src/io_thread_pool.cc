@@ -1,4 +1,4 @@
-#include "conn_pool.h"
+#include "io_thread_pool.h"
 
 #include <signal.h>
 
@@ -9,7 +9,7 @@
 #include "log.h"
 #include "util.h"
 
-static void SignalHandler(int) { pikiwidb::ConnPool::Instance().Exit(); }
+static void SignalHandler(int) { pikiwidb::IOThreadPool::Instance().Exit(); }
 
 static void InitSignal() {
   struct sigaction sig;
@@ -25,16 +25,16 @@ static void InitSignal() {
 
 namespace pikiwidb {
 
-const size_t ConnPool::kMaxWorkers = 128;
+const size_t IOThreadPool::kMaxWorkers = 128;
 
-ConnPool::~ConnPool() {}
+IOThreadPool::~IOThreadPool() {}
 
-ConnPool& ConnPool::Instance() {
-  static ConnPool app;
+IOThreadPool& IOThreadPool::Instance() {
+  static IOThreadPool app;
   return app;
 }
 
-bool ConnPool::SetWorkerNum(size_t num) {
+bool IOThreadPool::SetWorkerNum(size_t num) {
   if (num <= 1) {
     return true;
   }
@@ -61,7 +61,7 @@ bool ConnPool::SetWorkerNum(size_t num) {
   return true;
 }
 
-bool ConnPool::Init(const char* ip, int port, NewTcpConnCallback cb) {
+bool IOThreadPool::Init(const char* ip, int port, NewTcpConnCallback cb) {
   base_.Init();
   if (!base_.Listen(ip, port, cb)) {
     ERROR("can not bind socket on addr {}:{}", ip, port);
@@ -71,7 +71,7 @@ bool ConnPool::Init(const char* ip, int port, NewTcpConnCallback cb) {
   return true;
 }
 
-void ConnPool::Run(int ac, char* av[]) {
+void IOThreadPool::Run(int ac, char* av[]) {
   assert(state_ == State::kNone);
   INFO("Process starting...");
 
@@ -87,7 +87,7 @@ void ConnPool::Run(int ac, char* av[]) {
   INFO("Process stopped, goodbye...");
 }
 
-void ConnPool::Exit() {
+void IOThreadPool::Exit() {
   state_ = State::kStopped;
 
   BaseLoop()->Stop();
@@ -97,11 +97,11 @@ void ConnPool::Exit() {
   }
 }
 
-bool ConnPool::IsExit() const { return state_ == State::kStopped; }
+bool IOThreadPool::IsExit() const { return state_ == State::kStopped; }
 
-EventLoop* ConnPool::BaseLoop() { return &base_; }
+EventLoop* IOThreadPool::BaseLoop() { return &base_; }
 
-EventLoop* ConnPool::Next() {
+EventLoop* IOThreadPool::Next() {
   if (loops_.empty()) {
     return BaseLoop();
   }
@@ -110,7 +110,7 @@ EventLoop* ConnPool::Next() {
   return loop.get();
 }
 
-void ConnPool::StartWorkers() {
+void IOThreadPool::StartWorkers() {
   // only called by main thread
   assert(state_ == State::kNone);
 
@@ -136,16 +136,16 @@ void ConnPool::StartWorkers() {
   state_ = State::kStarted;
 }
 
-void ConnPool::SetName(const std::string& name) { name_ = name; }
+void IOThreadPool::SetName(const std::string& name) { name_ = name; }
 
-ConnPool::ConnPool() : state_(State::kNone) { InitSignal(); }
+IOThreadPool::IOThreadPool() : state_(State::kNone) { InitSignal(); }
 
-bool ConnPool::Listen(const char* ip, int port, NewTcpConnCallback ccb) {
+bool IOThreadPool::Listen(const char* ip, int port, NewTcpConnCallback ccb) {
   auto loop = BaseLoop();
   return loop->Execute([loop, ip, port, ccb]() { return loop->Listen(ip, port, std::move(ccb)); }).get();
 }
 
-void ConnPool::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb, EventLoop* loop) {
+void IOThreadPool::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb, EventLoop* loop) {
   if (!loop) {
     loop = Next();
   }
@@ -155,7 +155,7 @@ void ConnPool::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConn
       [loop, ipstr, port, ccb, fcb]() { loop->Connect(ipstr.c_str(), port, std::move(ccb), std::move(fcb)); });
 }
 
-std::shared_ptr<HttpServer> ConnPool::ListenHTTP(const char* ip, int port, HttpServer::OnNewClient cb) {
+std::shared_ptr<HttpServer> IOThreadPool::ListenHTTP(const char* ip, int port, HttpServer::OnNewClient cb) {
   auto server = std::make_shared<HttpServer>();
   server->SetOnNewHttpContext(std::move(cb));
 
@@ -166,7 +166,7 @@ std::shared_ptr<HttpServer> ConnPool::ListenHTTP(const char* ip, int port, HttpS
   return server;
 }
 
-std::shared_ptr<HttpClient> ConnPool::ConnectHTTP(const char* ip, int port, EventLoop* loop) {
+std::shared_ptr<HttpClient> IOThreadPool::ConnectHTTP(const char* ip, int port, EventLoop* loop) {
   auto client = std::make_shared<HttpClient>();
 
   // capture client to make it long live with TcpObject
@@ -182,7 +182,7 @@ std::shared_ptr<HttpClient> ConnPool::ConnectHTTP(const char* ip, int port, Even
   return client;
 }
 
-void ConnPool::Reset() {
+void IOThreadPool::Reset() {
   state_ = State::kNone;
   BaseLoop()->Reset();
 }
