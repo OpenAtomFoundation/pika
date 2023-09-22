@@ -654,7 +654,7 @@ if (USE_PIKA_TOOLS)
     INSTALL_COMMAND
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
-  set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+  set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis.a)
 
   ExternalProject_Add(bz2
     URL
