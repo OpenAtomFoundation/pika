@@ -60,11 +60,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   }
 
-  uint64_t start_us = 0;
-  if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = pstd::NowMicros();
-  }
-
   // Initial
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {

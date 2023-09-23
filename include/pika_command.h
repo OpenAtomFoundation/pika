@@ -509,7 +509,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
-  uint16_t flag() const;
+  uint32_t flag() const;
   bool is_read() const;
   bool is_write() const;
 
@@ -561,7 +561,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   std::string name_;
   int arity_ = -2;
-  uint16_t flag_ = 0;
+  uint32_t flag_ = 0;
 
   std::vector<std::string> subCmdName_;  // sub command name, may be empty
 

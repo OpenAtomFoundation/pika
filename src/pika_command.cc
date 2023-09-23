@@ -913,16 +913,16 @@ int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
   return -1;
 }
 
-uint16_t Cmd::flag() const { return flag_; }
-bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
-bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
-bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
+uint32_t Cmd::flag() const { return flag_; }
+bool Cmd::is_read() const { return ((flag_ & kCmdFlagsRead) == kCmdFlagsRead); }
+bool Cmd::is_write() const { return ((flag_ & kCmdFlagsWrite) == kCmdFlagsWrite); }
+bool Cmd::is_local() const { return ((flag_ & kCmdFlagsLocal) == kCmdFlagsLocal); }
 // Others need to be suspended when a suspend command run
-bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
+bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsSuspend) == kCmdFlagsSuspend); }
 // Must with admin auth
-bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
-bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
-bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
+bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsAdminRequire) == kCmdFlagsAdminRequire); }
+bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsSingleSlot) == kCmdFlagsSingleSlot); }
+bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMultiSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 
