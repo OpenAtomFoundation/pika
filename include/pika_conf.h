@@ -228,6 +228,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_background_compactions_;
   }
+  int max_background_jobs() {
+    std::shared_lock l(rwlock_);
+    return max_background_jobs_;
+  }
   int max_cache_files() {
     std::shared_lock l(rwlock_);
     return max_cache_files_;
@@ -541,6 +545,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-background-compactions", std::to_string(value));
     max_background_compactions_ = value;
   }
+  void SetMaxBackgroudJobs(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-background-jobs", std::to_string(value));
+    max_background_jobs_ = value;
+  }
   void SetWriteBufferSize(const int& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
@@ -653,6 +662,7 @@ class PikaConf : public pstd::BaseConf {
   int small_compaction_threshold_ = 0;
   int max_background_flushes_ = 0;
   int max_background_compactions_ = 0;
+  int max_background_jobs_ = 0;
   int max_cache_files_ = 0;
   int max_bytes_for_level_multiplier_ = 0;
   int64_t block_size_ = 0;
