@@ -9,6 +9,8 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
 
+const static int AclGenPassMaxBit = 4096;  //
+
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 void PikaAclCmd::Do(std::shared_ptr<Slot> slot) {
@@ -145,7 +147,29 @@ void PikaAclCmd::DryRun() {
   }
 }
 
-void PikaAclCmd::GenPass() {}
+void PikaAclCmd::GenPass() {
+  int bits = 256;
+  if (argv_.size() > 2) {
+    try {
+      bits = std::stoi(argv_[2]);
+    } catch (std::exception& e) {
+      res().SetRes(CmdRes::kErrOther, fmt::format("Invalid bits value: {}", argv_[2]));
+      return;
+    }
+  }
+
+  if (bits <= 0 || bits > AclGenPassMaxBit) {
+    res().SetRes(
+        CmdRes::kErrOther,
+        fmt::format(
+            "ACL GENPASS argument must be the number of bits for the output password, a positive number up to 4096 {}",
+            bits));
+    return;
+  }
+
+  std::string pass = pstd::getRandomHexChars((bits + 3) / 4);
+  res().AppendString(pass);
+}
 
 void PikaAclCmd::GetUser() {
   auto user = g_pika_server->Acl()->GetUser(argv_[2]);
@@ -175,7 +199,7 @@ void PikaAclCmd::Load() {
   res().SetRes(CmdRes::kErrOther, status.ToString());
 }
 
-void PikaAclCmd::Log() {}
+void PikaAclCmd::Log() { res().SetRes(CmdRes::kErrOther, "Not implemented"); }
 
 void PikaAclCmd::Save() {
   auto status = g_pika_server->Acl()->SaveToFile();
