@@ -341,11 +341,11 @@ class Acl {
   void ACLMergeSelectorArguments(std::vector<std::string>& argv, std::vector<std::string>* merged);
   mutable std::shared_mutex mutex_;
 
-  static std::map<std::string, uint32_t> CommandCategories;
+  static std::array<std::pair<std::string, uint32_t>, 21> CommandCategories;
 
-  static std::map<std::string, uint32_t> UserFlags;
+  static std::array<std::pair<std::string, uint32_t>,3> UserFlags;
 
-  static std::map<std::string, uint32_t> SelectorFlags;
+  static std::array<std::pair<std::string, uint32_t>,3>SelectorFlags;
 
   std::map<std::string, std::shared_ptr<User>> users_;
 };

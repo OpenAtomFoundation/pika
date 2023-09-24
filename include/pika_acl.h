@@ -14,7 +14,8 @@ extern PikaServer* g_pika_server;
 
 class PikaAclCmd : public Cmd {
  public:
-  PikaAclCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+  PikaAclCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {
     subCmdName_ = {"cat",  "deluser", "dryrun", "genpass", "getuser", "list",
                    "load", "log",     "save",   "setuser", "users",   "whoami"};
   }

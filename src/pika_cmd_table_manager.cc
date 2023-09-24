@@ -37,6 +37,12 @@ void PikaCmdTableManager::InitCmdTable(void) {
     if (cmd.second->flag() & kCmdFlagsPubSub) {
       cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::PUBSUB));
     }
+    if (cmd.second->flag() & kCmdFlagsFast) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::FAST));
+    }
+    if (cmd.second->flag() & kCmdFlagsSlow) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::SLOW));
+    }
   }
 }
 

@@ -260,18 +260,21 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = (1 << 9),
   kCmdFlagsGeo = (1 << 10),
   kCmdFlagsPubSub = (1 << 11),
-  kCmdFlagsNoLocal = 0,           // default nolocal
   kCmdFlagsLocal = (1 << 12),
-  kCmdFlagsNoSuspend = 0,         // default nosuspend
   kCmdFlagsSuspend = (1 << 13),
-  kCmdFlagsNoPrior = 0,           // default noprior
-  kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,    // default no need admin
   kCmdFlagsAdminRequire = (1 << 14),
-  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = (1 << 15),
   kCmdFlagsMultiSlot = (1 << 16),
   kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
+  kCmdFlagsFast = (1 << 18),
+  kCmdFlagsSlow = (1 << 19),
+
+  kCmdFlagsNoLocal = 0,           // default nolocal
+  kCmdFlagsNoSuspend = 0,         // default nosuspend
+  kCmdFlagsNoPrior = 0,           // default noprior
+  kCmdFlagsPrior = 128,
+  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
+  kCmdFlagsNoAdminRequire = 0,    // default no need admin
   kCmdFlagsPreDo = 2048,
 };
 
@@ -492,7 +495,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::atomic<int32_t> cmd_time_consuming = {0};
   };
   CommandStatistics state;
-  Cmd(std::string name, int arity, uint16_t flag, uint32_t aclCategory = 0);
+  Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory = 0);
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;

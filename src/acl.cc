@@ -18,7 +18,7 @@ extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // class User
 
-User::User( std::string name) : name_(std::move(name)) {
+User::User(std::string name) : name_(std::move(name)) {
   selectors_.emplace_back(std::make_shared<AclSelector>(static_cast<uint32_t>(AclSelectorFlag::ROOT)));
 }
 
@@ -491,7 +491,14 @@ pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>&
   return pstd::Status::OK();
 }
 
-uint32_t Acl::GetCommandCategoryFlagByName(const std::string& name) { return CommandCategories[name]; }
+uint32_t Acl::GetCommandCategoryFlagByName(const std::string& name) {
+  for (const auto& item : CommandCategories) {
+    if (item.first == name) {
+      return item.second;
+    }
+  }
+  return 0;
+}
 
 std::string Acl::GetCommandCategoryFlagByName(const uint32_t category) {
   for (const auto& item : CommandCategories) {
@@ -624,7 +631,7 @@ std::set<std::string> Acl::DeleteUser(const std::vector<std::string>& userNames)
   return delUserNames;
 }
 
-std::map<std::string, uint32_t> Acl::CommandCategories = {
+std::array<std::pair<std::string, uint32_t>, 21> Acl::CommandCategories = {{
     {"keyspace", static_cast<uint32_t>(AclCategory::KEYSPACE)},
     {"read", static_cast<uint32_t>(AclCategory::READ)},
     {"write", static_cast<uint32_t>(AclCategory::WRITE)},
@@ -646,19 +653,19 @@ std::map<std::string, uint32_t> Acl::CommandCategories = {
     {"connection", static_cast<uint32_t>(AclCategory::CONNECTION)},
     {"transaction", static_cast<uint32_t>(AclCategory::TRANSACTION)},
     {"scripting", static_cast<uint32_t>(AclCategory::SCRIPTING)},
-};
+}};
 
-std::map<std::string, uint32_t> Acl::UserFlags = {
+std::array<std::pair<std::string, uint32_t>, 3> Acl::UserFlags = {{
     {"on", static_cast<uint32_t>(AclUserFlag::ENABLED)},
     {"off", static_cast<uint32_t>(AclUserFlag::DISABLED)},
     {"nopass", static_cast<uint32_t>(AclUserFlag::NO_PASS)},
-};
+}};
 
-std::map<std::string, uint32_t> Acl::SelectorFlags = {
+std::array<std::pair<std::string, uint32_t>, 3> Acl::SelectorFlags = {{
     {"allkeys", static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS)},
     {"allchannels", static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS)},
     {"allcommands", static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS)},
-};
+}};
 
 const std::string Acl::DefaultUser = "default";
 

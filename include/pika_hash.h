@@ -17,7 +17,7 @@
  */
 class HDelCmd : public Cmd {
  public:
-  HDelCmd(const std::string& name, int arity, uint16_t flag)
+  HDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -37,7 +37,7 @@ class HDelCmd : public Cmd {
 
 class HGetCmd : public Cmd {
  public:
-  HGetCmd(const std::string& name, int arity, uint16_t flag)
+  HGetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -56,7 +56,7 @@ class HGetCmd : public Cmd {
 
 class HGetallCmd : public Cmd {
  public:
-  HGetallCmd(const std::string& name, int arity, uint16_t flag)
+  HGetallCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -75,7 +75,7 @@ class HGetallCmd : public Cmd {
 
 class HSetCmd : public Cmd {
  public:
-  HSetCmd(const std::string& name, int arity, uint16_t flag)
+  HSetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -94,7 +94,7 @@ class HSetCmd : public Cmd {
 
 class HExistsCmd : public Cmd {
  public:
-  HExistsCmd(const std::string& name, int arity, uint16_t flag)
+  HExistsCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -113,7 +113,7 @@ class HExistsCmd : public Cmd {
 
 class HIncrbyCmd : public Cmd {
  public:
-  HIncrbyCmd(const std::string& name, int arity, uint16_t flag)
+  HIncrbyCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -133,7 +133,7 @@ class HIncrbyCmd : public Cmd {
 
 class HIncrbyfloatCmd : public Cmd {
  public:
-  HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag)
+  HIncrbyfloatCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -152,7 +152,7 @@ class HIncrbyfloatCmd : public Cmd {
 
 class HKeysCmd : public Cmd {
  public:
-  HKeysCmd(const std::string& name, int arity, uint16_t flag)
+  HKeysCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -171,7 +171,7 @@ class HKeysCmd : public Cmd {
 
 class HLenCmd : public Cmd {
  public:
-  HLenCmd(const std::string& name, int arity, uint16_t flag)
+  HLenCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -190,7 +190,7 @@ class HLenCmd : public Cmd {
 
 class HMgetCmd : public Cmd {
  public:
-  HMgetCmd(const std::string& name, int arity, uint16_t flag)
+  HMgetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -210,7 +210,7 @@ class HMgetCmd : public Cmd {
 
 class HMsetCmd : public Cmd {
  public:
-  HMsetCmd(const std::string& name, int arity, uint16_t flag)
+  HMsetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -230,7 +230,7 @@ class HMsetCmd : public Cmd {
 
 class HSetnxCmd : public Cmd {
  public:
-  HSetnxCmd(const std::string& name, int arity, uint16_t flag)
+  HSetnxCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -249,7 +249,7 @@ class HSetnxCmd : public Cmd {
 
 class HStrlenCmd : public Cmd {
  public:
-  HStrlenCmd(const std::string& name, int arity, uint16_t flag)
+  HStrlenCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -268,7 +268,7 @@ class HStrlenCmd : public Cmd {
 
 class HValsCmd : public Cmd {
  public:
-  HValsCmd(const std::string& name, int arity, uint16_t flag)
+  HValsCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -287,7 +287,7 @@ class HValsCmd : public Cmd {
 
 class HScanCmd : public Cmd {
  public:
-  HScanCmd(const std::string& name, int arity, uint16_t flag)
+  HScanCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -313,7 +313,7 @@ class HScanCmd : public Cmd {
 
 class HScanxCmd : public Cmd {
  public:
-  HScanxCmd(const std::string& name, int arity, uint16_t flag)
+  HScanxCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -339,7 +339,7 @@ class HScanxCmd : public Cmd {
 
 class PKHScanRangeCmd : public Cmd {
  public:
-  PKHScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+  PKHScanRangeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -366,7 +366,7 @@ class PKHScanRangeCmd : public Cmd {
 
 class PKHRScanRangeCmd : public Cmd {
  public:
-  PKHRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+  PKHRScanRangeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;

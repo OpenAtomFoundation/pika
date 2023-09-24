@@ -51,7 +51,7 @@ struct GeoRange {
 
 class GeoAddCmd : public Cmd {
  public:
-  GeoAddCmd(const std::string& name, int arity, uint16_t flag)
+  GeoAddCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -71,7 +71,7 @@ class GeoAddCmd : public Cmd {
 
 class GeoPosCmd : public Cmd {
  public:
-  GeoPosCmd(const std::string& name, int arity, uint16_t flag)
+  GeoPosCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -91,7 +91,7 @@ class GeoPosCmd : public Cmd {
 
 class GeoDistCmd : public Cmd {
  public:
-  GeoDistCmd(const std::string& name, int arity, uint16_t flag)
+  GeoDistCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -110,7 +110,7 @@ class GeoDistCmd : public Cmd {
 
 class GeoHashCmd : public Cmd {
  public:
-  GeoHashCmd(const std::string& name, int arity, uint16_t flag)
+  GeoHashCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -130,7 +130,7 @@ class GeoHashCmd : public Cmd {
 
 class GeoRadiusCmd : public Cmd {
  public:
-  GeoRadiusCmd(const std::string& name, int arity, uint16_t flag)
+  GeoRadiusCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -156,7 +156,7 @@ class GeoRadiusCmd : public Cmd {
 
 class GeoRadiusByMemberCmd : public Cmd {
  public:
-  GeoRadiusByMemberCmd(const std::string& name, int arity, uint16_t flag)
+  GeoRadiusByMemberCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
