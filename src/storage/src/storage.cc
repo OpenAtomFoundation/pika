@@ -1761,4 +1761,12 @@ void Storage::GetRocksDBInfo(std::string& info) {
   zsets_db_->GetRocksDBInfo(info, "zsets_");
 }
 
+void Storage::DisableWal(const bool is_wal_disable) {
+  strings_db_->SetWriteWalOptions(is_wal_disable);
+  hashes_db_->SetWriteWalOptions(is_wal_disable);
+  lists_db_->SetWriteWalOptions(is_wal_disable);
+  sets_db_->SetWriteWalOptions(is_wal_disable);
+  zsets_db_->SetWriteWalOptions(is_wal_disable);
+}
+
 }  //  namespace storage

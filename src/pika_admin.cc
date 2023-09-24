@@ -2660,6 +2660,28 @@ void ClearReplicationIDCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
 }
 
+void DisableWalCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    return;
+  }
+}
+
+void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string option = argv_[1].data();
+  bool is_wal_disable = false;
+  if (option.compare("true") == 0) {
+    is_wal_disable = true;
+  } else if (option.compare("false") == 0) {
+    is_wal_disable = false;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Invalid parameter");
+    return;
+  }
+  slot->db()->DisableWal(is_wal_disable);
+  res_.SetRes(CmdRes::kOk, "Wal options is changed");
+}
+
 #ifdef WITH_COMMAND_DOCS
 
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
