@@ -549,8 +549,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   uint32_t GetCmdId() const { return cmdId_; };
 
-  bool CheckArg(int num) const;
-
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
