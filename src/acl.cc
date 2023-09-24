@@ -3,11 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/acl.h"
 #include <fmt/format.h>
 #include <cstring>
 #include <shared_mutex>
 
+#include "include/acl.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_server.h"
 #include "pstd_hash.h"

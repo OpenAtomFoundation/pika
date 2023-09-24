@@ -6,6 +6,7 @@
 #ifndef PIKA_ACL_H
 #define PIKA_ACL_H
 
+#include <array>
 #include <atomic>
 #include <bitset>
 #include <list>
@@ -15,6 +16,7 @@
 #include <set>
 #include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 #include "pika_command.h"
 #include "pstd_status.h"
@@ -343,9 +345,9 @@ class Acl {
 
   static std::array<std::pair<std::string, uint32_t>, 21> CommandCategories;
 
-  static std::array<std::pair<std::string, uint32_t>,3> UserFlags;
+  static std::array<std::pair<std::string, uint32_t>, 3> UserFlags;
 
-  static std::array<std::pair<std::string, uint32_t>,3>SelectorFlags;
+  static std::array<std::pair<std::string, uint32_t>, 3> SelectorFlags;
 
   std::map<std::string, std::shared_ptr<User>> users_;
 };
