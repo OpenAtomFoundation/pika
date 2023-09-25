@@ -62,15 +62,6 @@ void SetCmd::DoInitial() {
     index++;
   }
 }
-void SetCmd::Execute() {
-  Cmd::Execute();
-  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
-  if (cache != nullptr) {
-    if (condition_ == SetCmd::kNONE) {
-      auto s = cache->SetnxWithoutTTL(key_, value_);
-    }
-  }
-}
 
 void SetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s;
@@ -106,6 +97,27 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+
+  if (res_.ok() && is_need_update_cache()) {
+    switch (condition_) {
+      case SetCmd::kXX:
+        slot->cache()->Setxx(key_, value_, sec_);
+        break;
+      case SetCmd::kNX:
+        slot->cache()->Setnx(key_, value_, sec_);
+        break;
+      case SetCmd::kVX:
+        // todo(leehao): cache
+//        slot->cache()->Setvx(key_, target_, value_, sec_);
+        break;
+      case SetCmd::kEXORPX:
+//        slot->cache()->Setex(key_, value_, static_cast<int32_t>(sec_));
+        break;
+      default:
+        slot->cache()->SetWithoutTTL(key_, value_);
+        break;
+    }
   }
 }
 
@@ -147,21 +159,17 @@ void GetCmd::DoInitial() {
   }
   key_ = argv_[1];
 }
-void GetCmd::Execute() {
-  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
-  std::string value;
-  auto s = cache->Get(key_, &value);
-  if (s.ok()) {
-    res_.AppendStringLenUint64(value.size());
-    res_.AppendContent(value);
-    return;
-  }
-  Cmd::Execute();
-}
 
 void GetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = slot->db()->Get(key_, &value);
+  auto cache_res = slot->cache()->Get(key_, &value);
+  if (cache_res.ok()) {
+    res_.AppendStringLenUint64(value.size());
+    res_.AppendContent(value);
+    LOG(INFO) << "Hit cache" << std::endl;
+    return;
+  }
+  auto s = slot->db()->GetWithTTL(key_, &value, &sec_);
   if (s.ok()) {
     res_.AppendStringLenUint64(value.size());
     res_.AppendContent(value);
@@ -169,6 +177,9 @@ void GetCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (s.ok() && is_need_update_cache()) {
+    slot->cache()->Set(key_, value, sec_);
   }
 }
 
@@ -193,6 +204,9 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
+  if (count >= 0 && is_need_update_cache()) {
+    slot->cache()->Del(keys_);
+  }
 }
 
 void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
@@ -203,6 +217,7 @@ void DelCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
+  slot->cache()->Del(hint_keys.keys);
 }
 
 void DelCmd::Merge() { res_.AppendInteger(split_res_); }
@@ -216,11 +231,6 @@ void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     Cmd::DoBinlog(slot);
   }
 }
-void DelCmd::Execute() {
-  Cmd::Execute();
-  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
-  auto s = cache->Del(keys_);
-}
 
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -228,12 +238,6 @@ void IncrCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-}
-
-void IncrCmd::Execute() {
-  Cmd::Execute();
-  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
-  auto s = cache->Incrxx(key_);
 }
 
 void IncrCmd::Do(std::shared_ptr<Slot> slot) {
@@ -247,6 +251,9 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kOverFlow);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (s.ok() && is_need_update_cache()) {
+    slot->cache()->IncrByxx(key_, 1);
   }
 }
 
@@ -274,11 +281,9 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-}
-void IncrbyCmd::Execute() {
-  Cmd::Execute();
-  auto cache = g_pika_cache_manager->GetCache(db_name_, 0);
-  auto s = cache->IncrByxx(key_, by_);
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->IncrByxx(key_, by_);
+  }
 }
 
 void IncrbyfloatCmd::DoInitial() {

@@ -23,7 +23,6 @@ class SetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Execute() override;
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -54,7 +53,6 @@ class GetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Execute() override;
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -62,6 +60,7 @@ class GetCmd : public Cmd {
 
  private:
   std::string key_;
+  int64_t sec_ = 0;
   void DoInitial() override;
 };
 
@@ -74,7 +73,6 @@ class DelCmd : public Cmd {
   void Merge() override;
   Cmd* Clone() override { return new DelCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
-  void Execute() override;
 
  private:
   std::vector<std::string> keys_;
@@ -94,7 +92,6 @@ class IncrCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new IncrCmd(*this); }
-  void Execute() override;
 
  private:
   std::string key_;
@@ -114,7 +111,6 @@ class IncrbyCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new IncrbyCmd(*this); }
-  void Execute() override;
 
  private:
   std::string key_;

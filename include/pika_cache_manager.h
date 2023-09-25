@@ -15,11 +15,8 @@ class PikaCacheManager : public pstd::noncopyable {
  public:
   PikaCacheManager();
   ~PikaCacheManager() = default;
-  std::shared_ptr<PikaCache> GetCache(const std::string& db_name, int slot_index);
-  void Init(const std::vector<DBStruct>& dbs);
+  void Init(const std::map<std::string, std::shared_ptr<DB>>& dbs);
   void ProcessCronTask();
-  void FlushDB(const std::string& db_name);
-  void FlushAll();
   double HitRatio();
   void ClearHitRatio();
   PikaCache::CacheInfo Info();

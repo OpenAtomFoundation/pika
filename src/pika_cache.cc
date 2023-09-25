@@ -128,6 +128,10 @@ Status PikaCache::Set(std::string &key, std::string &value, int64_t ttl) {
   std::unique_lock l(rwlock_);
   return cache_->Set(key, value, ttl);
 }
+Status PikaCache::SetWithoutTTL(std::string &key, std::string &value) {
+  std::unique_lock l(rwlock_);
+  return cache_->SetWithoutTTL(key, value);
+}
 
 Status PikaCache::Setnx(std::string &key, std::string &value, int64_t ttl) {
   std::unique_lock l(rwlock_);
@@ -146,14 +150,10 @@ Status PikaCache::Setxx(std::string &key, std::string &value, int64_t ttl) {
 
 Status PikaCache::SetxxWithoutTTL(std::string &key, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->SetxxWithoutTTL(key, value);
 }
 
 Status PikaCache::Get(std::string &key, std::string *value) {
-//  std::unique_lock l(rwlock_);
   std::shared_lock l(rwlock_);
   return cache_->Get(key, value);
 }
@@ -179,9 +179,6 @@ Status PikaCache::Decrxx(std::string &key) {
 
 Status PikaCache::IncrByxx(std::string &key, long long incr) {
   std::unique_lock l(rwlock_);
-
-  
-  
   if (cache_->Exists(key)) {
     return cache_->IncrBy(key, incr);
   }
@@ -413,9 +410,6 @@ Status PikaCache::HLen(std::string &key, unsigned long *len) {
 
 Status PikaCache::HStrlen(std::string &key, std::string &field, unsigned long *len) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->HStrlen(key, field, len);
 }
 
@@ -464,17 +458,11 @@ Status PikaCache::LPush(std::string &key, std::vector<std::string> &values) {
 
 Status PikaCache::LPushx(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LPushx(key, values);
 }
 
 Status PikaCache::LRange(std::string &key, long start, long stop, std::vector<std::string> *values) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LRange(key, start, stop, values);
 }
 

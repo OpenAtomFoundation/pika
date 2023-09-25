@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
   g_pika_server->InitDBStruct();
   g_pika_cache_manager = std::make_unique<PikaCacheManager>();
-  g_pika_cache_manager->Init(g_pika_conf->db_structs());
+  g_pika_cache_manager->Init(g_pika_server->GetDB());
 
   if (g_pika_conf->daemonize()) {
     close_std();

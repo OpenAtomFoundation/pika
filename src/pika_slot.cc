@@ -112,6 +112,12 @@ std::string Slot::GetSlotName() const { return slot_name_; }
 
 std::shared_ptr<storage::Storage> Slot::db() const { return db_; }
 
+std::shared_ptr<PikaCache> Slot::cache() const { return cache_; }
+
+void Slot::Init() {
+  cache_ = std::make_shared<PikaCache>(0, 0, shared_from_this());
+  cache_->Init();
+}
 void Slot::Compact(const storage::DataType& type) {
   if (!opened_) {
     return;

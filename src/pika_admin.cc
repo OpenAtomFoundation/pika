@@ -453,15 +453,14 @@ void FlushallCmd::DoInitial() {
     return;
   }
 }
-void FlushallCmd::Execute() {
-  Cmd::Execute();
-  g_pika_cache_manager->FlushAll();
-}
 void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {
     LOG(INFO) << "Flushall, but Slot not found";
   } else {
-    slot->FlushDB();
+    auto ok = slot->FlushDB();
+    if (ok) {
+      slot->cache()->FlushSlot();
+    }
   }
 }
 
@@ -514,11 +513,9 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
     } else {
       slot->FlushSubDB(db_name_);
     }
+    //todo(leehao): flush specified db name
+    slot->cache()->FlushSlot();
   }
-}
-void FlushdbCmd::Execute() {
-  Cmd::Execute();
-  g_pika_cache_manager->FlushDB(db_name_);
 }
 
 void ClientCmd::DoInitial() {

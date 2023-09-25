@@ -96,6 +96,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
 
   // String Commands
   Status Set(std::string &key, std::string &value, int64_t ttl);
+  Status SetWithoutTTL(std::string &key, std::string &value);
   Status Setnx(std::string &key, std::string &value, int64_t ttl);
   Status SetnxWithoutTTL(std::string &key, std::string &value);
   Status Setxx(std::string &key, std::string &value, int64_t ttl);

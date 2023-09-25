@@ -230,7 +230,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskAdminRequire = 256,
   kCmdFlagsMaskPreDo = 512,
   kCmdFlagsMaskCacheDo = 1024,
-  kCmdFlagsMaskPostDo = 2048,
+  kCmdFlagsMaskUpdateCache = 2048,
   kCmdFlagsMaskSlot = 1536,
 };
 
@@ -258,7 +258,7 @@ enum CmdFlags {
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsPreDo = 2048,
+  kCmdFlagsUpdateCache = 2048,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -466,6 +466,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool is_need_update_cache() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
