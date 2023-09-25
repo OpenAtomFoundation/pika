@@ -673,7 +673,7 @@ class PikaConf : public pstd::BaseConf {
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = false;
-  int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200M
+  int64_t rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 2000M
   int64_t rate_limiter_refill_period_us_ = 100 * 1000;
   int64_t rate_limiter_fairness_ = 10;
   bool rate_limiter_auto_tuned_ = true;
