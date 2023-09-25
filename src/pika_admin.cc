@@ -108,7 +108,7 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  // self is master of A , want to slaveof B
+  // self is master of A , want to slavof B
   if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
     res_.SetRes(CmdRes::kErrOther, "already master of others, invalid usage");
     return;
@@ -122,7 +122,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
-    res_.SetRes(CmdRes::kErrOther, "The ip and port of the connection are themselves");
+    res_.SetRes(CmdRes::kErrOther, "you fucked up");
     return;
   }
 
@@ -148,7 +148,6 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
   if (is_none_) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(std::string());
-    g_pika_conf->ConfigRewrite();
     return;
   }
 
@@ -162,7 +161,6 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
     g_pika_conf->SetMasterRunID("");
-    g_pika_conf->ConfigRewrite();
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
