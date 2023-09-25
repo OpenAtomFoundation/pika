@@ -31,6 +31,7 @@ class Redis {
   rocksdb::DB* GetDB() { return db_; }
 
   Status SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options);
+  void SetWriteWalOptions(const bool is_wal_disable);
 
   // Common Commands
   virtual Status Open(const StorageOptions& storage_options, const std::string& db_path) = 0;

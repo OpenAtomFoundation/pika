@@ -976,6 +976,9 @@ class Storage {
 
   Status Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys);
 
+  // Dynamic switch WAL
+  void DisableWal(const bool is_wal_disable);
+
   // Iterate through all the data in the database.
   void ScanDatabase(const DataType& type);
 
