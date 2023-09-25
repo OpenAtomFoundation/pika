@@ -12,7 +12,7 @@
 
 - flush 线程数和 compaction 线程数动态调整，合二为一 [#2014](flush线程数和compaction线程数动态调整，合二为一) @[Tianpingan](https://github.com/Tianpingan)
 
-- 升级了 RocksDB 版本到 v8.3.3 [#1999](https://github.com/OpenAtomFoundation/pika/issues/1999) [dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+- 升级了 RocksDB 版本到 v8.3.3 [#1999](https://github.com/OpenAtomFoundation/pika/issues/1999) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
 
 - 增加了 Macos 环境下配置 Pika 的使用方法文档 [#2003](https://github.com/OpenAtomFoundation/pika/pull/2003) @[klboke](https://github.com/klboke)
 
@@ -20,7 +20,7 @@
 
 - 新增利用一个 `pika_exporter` 检测整个集群的指标 [#1953](https://github.com/OpenAtomFoundation/pika/pull/1953) @[chenbt-hz](https://github.com/chenbt-hz)
 
-- 实现在 K8s 环境上 Pika 服务的自动注册，在启动时自动注册，从而实现集群的自组织 [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931)
+- 实现在 K8s 环境上 Pika 服务的自动注册，在启动时自动注册，从而实现集群的自组织 [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931) @[machinly](https://github.com/machinly)
 
   ​
 
