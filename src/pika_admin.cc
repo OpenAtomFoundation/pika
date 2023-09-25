@@ -108,7 +108,7 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  // self is master of A , want to slavof B
+  // self is master of A , want to slaveof B
   if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
     res_.SetRes(CmdRes::kErrOther, "already master of others, invalid usage");
     return;
@@ -122,7 +122,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
-    res_.SetRes(CmdRes::kErrOther, "you fucked up");
+    res_.SetRes(CmdRes::kErrOther, "The master ip:port and the slave ip:port are the same");
     return;
   }
 
@@ -1830,13 +1830,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "loglevel");
     EncodeString(&config_body, g_pika_conf->log_level());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "min-blob-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "min-blob-size");
     EncodeNumber(&config_body, g_pika_conf->min_blob_size());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "pin_l0_filter_and_index_blocks_in_cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "pin_l0_filter_and_index_blocks_in_cache");
