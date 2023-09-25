@@ -574,6 +574,145 @@ set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
+# === Disable SSL ===
+if (DISABLE_SSL GREATER 0)
+    add_definitions(-DSSL_LIBRARY_NOT_FOUND=1)
+    message(STATUS "---- DISABLED SSL ----")
+endif ()
+
+# === OpenSSL libraries ===
+if (NOT (DISABLE_SSL GREATER 0))
+    if (OPENSSL_LIBRARY_PATH AND OPENSSL_INCLUDE_PATH)
+        message(STATUS "Pre-defined SSL library path: ${OPENSSL_LIBRARY_PATH}/libssl.a")
+        message(STATUS "Pre-defined SSL include path: ${OPENSSL_INCLUDE_PATH}")
+        include_directories(BEFORE ${OPENSSL_INCLUDE_PATH})
+        set(LIBSSL ${OPENSSL_LIBRARY_PATH}/libssl.a)
+        set(LIBCRYPTO ${OPENSSL_LIBRARY_PATH}/libcrypto.a)
+    else ()
+        set(LIB_PATH_HINT
+            ~/Library/Frameworks
+            /Library/Frameworks
+            $ENV{HOME}/local/lib64
+            $ENV{HOME}/local/lib
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu
+            /usr/lib64
+            /usr/local/lib
+            /usr/local/lib64
+            /opt/local/lib
+            /opt/local/lib64
+            /opt/homebrew/opt/openssl/lib
+            /opt/csw
+            /opt)
+        find_path(OPENSSL_LIBRARY_PATH
+                  NAMES libssl.a
+                  PATHS ${PROJECT_SOURCE_DIR}
+                        ${DEPS_PREFIX}/lib
+                        ${DEPS_PREFIX}/lib64
+                        /usr/local/opt/openssl/lib
+                        ${LIB_PATH_HINT})
+
+        find_path(OPENSSL_INCLUDE_PATH
+                  NAMES openssl/ssl.h
+                  PATHS ${PROJECT_SOURCE_DIR}
+                        ${DEPS_PREFIX}/include
+                        /usr/include
+                        /usr/local/include
+                        /usr/local/opt/openssl/include
+                        /opt/local/include
+                        /opt/homebrew/opt/openssl/include)
+
+        if (NOT OPENSSL_LIBRARY_PATH)
+            message(STATUS "Use system's side OpenSSL library")
+            set(LIBSSL ssl)
+            set(LIBCRYPTO crypto)
+        else ()
+            message(STATUS "Open SSL library path: ${OPENSSL_LIBRARY_PATH}/libssl.a")
+            set(LIBSSL ${OPENSSL_LIBRARY_PATH}/libssl.a)
+            set(LIBCRYPTO ${OPENSSL_LIBRARY_PATH}/libcrypto.a)
+        endif ()
+
+        if (OPENSSL_INCLUDE_PATH)
+            message(STATUS "Open SSL include path: ${OPENSSL_INCLUDE_PATH}")
+            include_directories(BEFORE ${OPENSSL_INCLUDE_PATH})
+        endif ()
+    endif ()
+endif()
+
+
+ExternalProject_Add(nuraft
+  DEPENDS
+  URL
+  https://github.com/eBay/NuRaft/archive/refs/tags/v2.1.0.tar.gz
+  URL_HASH
+  MD5=46a3da6e038e9347cb33f714ac52c541
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+  INSTALL_COMMAND
+  make install
+)
+
+ExternalProject_Add_Step(nuraft clone_asio
+  COMMAND git clone -b asio-1-24-0 git@github.com:chriskohlhoff/asio.git <SOURCE_DIR>/asio
+  DEPENDEES download
+  DEPENDERS configure
+)
+
+set(NURAFT_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(NURAFT_LIBRARY ${INSTALL_LIBDIR}/libnuraft.a)
+
+ExternalProject_Add(leveldb
+  DEPENDS
+  snappy
+  URL
+  https://github.com/google/leveldb/archive/refs/tags/1.22.tar.gz
+  URL_HASH
+  MD5=e1dbde14dcda1b58b49f0c214464fdd9
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CMAKE_ARGS
+  -DBUILD_SHARED_LIBS=OFF
+  -DHAVE_SNAPPY=OFF
+  -DLEVELDB_BUILD_TESTS=OFF
+  -DLEVELDB_BUILD_BENCHMARKS=OFF
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE}
+  INSTALL_COMMAND
+  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
+)
+
+set(LEVELDB_LIBRARY ${INSTALL_LIBDIR}/libleveldb.a)
+set(LEVELDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 ExternalProject_Add(rocksdb
   DEPENDS
   gflags
@@ -766,7 +905,9 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  storage
+  nuraft
+  leveldb)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -788,7 +929,17 @@ target_link_libraries(${PROJECT_NAME}
   liblz4.a
   libz.a
   ${LIBUNWIND_LIBRARY}
-  ${JEMALLOC_LIBRARY})
+  ${JEMALLOC_LIBRARY}
+  libnuraft.a
+
+  ${LEVELDB_LIBRARY}
+
+  ${LIBSSL}
+  ${LIBCRYPTO}
+  ${LIBBOOST_SYSTEM}
+  ${LIBDL}
+  ${LIBZ}
+  )
 
 option(USE_SSL "Enable SSL support" OFF)
 add_custom_target(

@@ -99,6 +99,39 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
   return true;
 }
 
+std::string PikaBinlogTransverter::RaftlogEncode(BinlogType type, uint32_t exec_time,
+                                                const std::string& content, const std::vector<std::string>& extends) {
+  std::string raftlog;
+  pstd::PutFixed16(&raftlog, type);
+  pstd::PutFixed32(&raftlog, exec_time);
+  uint32_t content_length = content.size();
+  pstd::PutFixed32(&raftlog, content_length);
+  raftlog.append(content);
+  return raftlog;
+}
+
+// use BinlogItem to contain raft log with {term_id, logic_id, filenum, offset} keep 0
+bool PikaBinlogTransverter::RaftlogDecode(BinlogType type, const std::string& raftlog, BinlogItem* raftlog_item) {
+  uint16_t raftlog_type = 0;
+  uint32_t content_length = 0;
+  pstd::Slice raftlog_str = raftlog;
+  pstd::GetFixed16(&raftlog_str, &raftlog_type);
+  if (raftlog_type != type) {
+    LOG(ERROR) << "Raftlog Item type error, expect type:" << type << " actualy type: " << raftlog_type;
+    return false;
+  }
+  pstd::GetFixed32(&raftlog_str, &raftlog_item->exec_time_);
+  pstd::GetFixed32(&raftlog_str, &content_length);
+  if (raftlog_str.size() == content_length) {
+    raftlog_item->content_.assign(raftlog_str.data(), content_length);
+  } else {
+    LOG(ERROR) << "Rasftlog Item get content error, expect length:" << content_length
+               << " left length:" << raftlog_str.size();
+    return false;
+  }
+  return true;
+}
+
 /*
 ******************* Type First Binlog Item Format ******************
  * +-----------------------------------------------------------------+

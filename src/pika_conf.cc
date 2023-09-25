@@ -140,6 +140,25 @@ int PikaConf::Load() {
     return ret;
   }
 
+  GetConfBool("is-raft", &is_raft_);
+  GetConfInt("raft-server-id", &raft_server_id_);
+  GetConfStrVec("raft-cluster-endpoints", &raft_cluster_endpoints_);
+  if (raft_cluster_endpoints_.size() < 1) {
+    is_raft_ = false;
+  }
+  GetConfStr("raft-path", &raft_path_);
+  GetConfInt64("asio-thread-pool-size", &asio_thread_pool_size_);
+  GetConfInt64("heart-beat-interval", &heart_beat_interval_);
+  GetConfInt64("election-timeout-lower-bound", &election_timeout_lower_bound_);
+  GetConfInt64("election-timeout-upper-bound", &election_timeout_upper_bound_);
+  GetConfInt64("client-req-timeout", &client_req_timeout_);
+  GetConfBool("async-log-append", &async_log_append_);
+  GetConfInt64("reserved-log-items", &reserved_log_items_);
+  GetConfInt64("snapshot-distance", &snapshot_distance_);
+  GetConfBool("auto-forwarding", &auto_forwarding_);
+  GetConfBool("auto-forwarding-limit-connections", &auto_forwarding_limit_connections_);
+  GetConfInt64("auto-forwarding-max-connections", &auto_forwarding_max_connections_);
+  GetConfInt64("auto-forwarding-req-timeout", &auto_forwarding_req_timeout_);
   GetConfInt("timeout", &timeout_);
   if (timeout_ < 0) {
     timeout_ = 60;  // 60s

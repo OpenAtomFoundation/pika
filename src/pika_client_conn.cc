@@ -16,11 +16,13 @@
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_raft_server.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaRaftServer> g_pika_raft_server;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -103,6 +105,14 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }
+  }
+
+  if (g_pika_conf->is_raft() && c_ptr->is_write()) {
+    if (opt == kCmdNameBLPop || opt == kCmdNameBRpop) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Raft Module Not Support BLPOP/BRPOP Yet");
+      return c_ptr;
+    }
+    c_ptr->SetStage(Cmd::kBinlogStage);
   }
 
   // Process Command
@@ -207,12 +217,14 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!slot) {
-    LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
-    return;
+  if (!g_pika_conf->is_raft()) {
+    std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+    if (!slot) {
+      LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
+      return;
+    }
+    slot->ConsensusUpdateAppliedIndex(offset);
   }
-  slot->ConsensusUpdateAppliedIndex(offset);
 
   if (!conn_ptr || !resp_ptr) {
     return;
@@ -221,6 +233,22 @@ void PikaClientConn::DoExecTask(void* arg) {
   *resp_ptr = std::move(cmd_ptr->res().message());
   // last step to update resp_num, early update may casue another therad may
   // TryWriteResp success with resp_ptr not updated
+  conn_ptr->resp_num--;
+  conn_ptr->TryWriteResp();
+}
+
+void PikaClientConn::DoRaftRollBackTask(void* arg) {
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
+  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
+  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+  bg_arg.reset();
+
+  if (!conn_ptr || !resp_ptr) {
+    return;
+  }
+
+  *resp_ptr = std::move(cmd_ptr->res().message());
   conn_ptr->resp_num--;
   conn_ptr->TryWriteResp();
 }
@@ -262,8 +290,11 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   }
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
-  *resp_ptr = std::move(cmd_ptr->res().message());
-  resp_num--;
+  // [not raft] or [(cmd error) or (is_read) in raft]
+  if (!g_pika_conf->is_raft() || (!cmd_ptr->res().ok() || !cmd_ptr->is_write())) {
+    *resp_ptr = std::move(cmd_ptr->res().message());
+    resp_num--;
+  }
 }
 
 // Initial permission status

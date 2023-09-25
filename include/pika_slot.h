@@ -75,6 +75,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   // BgSave use;
   bool IsBgSaving();
   void BgSaveSlot();
+  pstd::Status RecoverLastBgsaveInfo();
   BgSaveInfo bgsave_info();
   void GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid);
   pstd::Status GetBgSaveUUID(std::string* snapshot_uuid);

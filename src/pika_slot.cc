@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <memory>
+#include <filesystem>
 
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
@@ -284,8 +285,41 @@ BgSaveInfo Slot::bgsave_info() {
   return bgsave_info_;
 }
 
+Status Slot::RecoverLastBgsaveInfo() {
+  std::lock_guard l(bgsave_protector_);
+  std::string bgsave_path = g_pika_conf->bgsave_path();
+  std::time_t latest_time = 0;
+  std::string latest_dir;
+  for (const auto& entry : std::filesystem::directory_iterator(bgsave_path)) {
+    if (entry.is_directory()) {
+      std::string dir_name = entry.path().filename().string().substr(g_pika_conf->bgsave_prefix().size());
+      std::tm tm{};
+      std::istringstream ss(dir_name);
+      ss >> std::get_time(&tm, "%Y%m%d");
+      if (ss.fail()) {
+        continue;
+      }
+      std::time_t time = std::mktime(&tm);
+      if (time > latest_time) {
+        latest_time = time;
+        latest_dir = dir_name;
+      }
+    }
+  }
+  if (!latest_dir.empty()) {
+    bgsave_info_.path = bgsave_path + latest_dir + "/" + bgsave_sub_path_;
+    return Status::OK();
+  } else {
+    return Status::IOError("Empty Bgsave Storage");
+  }
+}
+
 void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
-  const std::string slotPath = bgsave_info().path;
+  std::string slotPath = bgsave_info().path;
+  if (slotPath.empty() && g_pika_conf->is_raft()) {
+    RecoverLastBgsaveInfo();
+    slotPath = bgsave_info().path;
+  }
 
   std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
   for (const auto& type : types) {
@@ -306,10 +340,12 @@ void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* s
     }
   }
   fileNames->push_back(kBgsaveInfoFile);
-  pstd::Status s = GetBgSaveUUID(snapshot_uuid);
-  if (!s.ok()) {
-      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
-      return;
+  if (!g_pika_conf->is_raft()) {
+    pstd::Status s = GetBgSaveUUID(snapshot_uuid);
+    if (!s.ok()) {
+        LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+        return;
+    }
   }
 }
 

@@ -34,6 +34,8 @@ class PikaServer;
 /* Port shift */
 const int kPortShiftRSync = 1000;
 const int kPortShiftReplServer = 2000;
+const int kPortShiftRaftServer = 3000;
+
 //TODO: Temporarily used for rsync server port shift. will be deleted.
 const int kPortShiftRsync2 = 10001;
 const std::string kPikaPidFile = "pika.pid";
@@ -393,4 +395,12 @@ const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
+/*
+ * raft
+ */
+const size_t fileblock_size_ = 4 * 1024 * 1024;
+const std::string kSnapshotInfoName = "SNAPSHOT_INFO";
+const std::string kRaftIdxPrefix = "snapshot-idx:";
+const std::string kRaftTermPrefix = "snapshot-term:";
+
 #endif

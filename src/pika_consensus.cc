@@ -12,6 +12,7 @@
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_raft_server.h"
 
 using pstd::Status;
 
@@ -19,6 +20,7 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaRaftServer> g_pika_raft_server;
 
 /* Context */
 

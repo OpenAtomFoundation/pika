@@ -31,6 +31,70 @@ class PikaConf : public pstd::BaseConf {
   ~PikaConf() override = default;
 
   // Getter
+  bool is_raft() {
+    std::shared_lock l(rwlock_);
+    return is_raft_;
+  }
+  int32_t raft_server_id() {
+    std::shared_lock l(rwlock_);
+    return raft_server_id_;
+  }
+  std::vector<std::string> raft_cluster_endpoints() {
+    std::shared_lock l(rwlock_);
+    return raft_cluster_endpoints_;
+  }
+  std::string raft_path() {
+    std::shared_lock l(rwlock_);
+    return raft_path_;
+  }
+  int64_t asio_thread_pool_size() {
+    std::shared_lock l(rwlock_);
+    return asio_thread_pool_size_;
+  }
+  int64_t heart_beat_interval() {
+    std::shared_lock l(rwlock_);
+    return heart_beat_interval_;
+  }
+  int64_t election_timeout_lower_bound() {
+    std::shared_lock l(rwlock_);
+    return election_timeout_lower_bound_;
+  }
+  int64_t election_timeout_upper_bound() {
+    std::shared_lock l(rwlock_);
+    return election_timeout_upper_bound_;
+  }
+  int64_t client_req_timeout() {
+    std::shared_lock l(rwlock_);
+    return client_req_timeout_;
+  }
+  bool async_log_append() {
+    std::shared_lock l(rwlock_);
+    return async_log_append_;
+  }
+  int64_t reserved_log_items() {
+    std::shared_lock l(rwlock_);
+    return reserved_log_items_;
+  }
+  int64_t snapshot_distance() {
+    std::shared_lock l(rwlock_);
+    return snapshot_distance_;
+  }
+  bool auto_forwarding() {
+    std::shared_lock l(rwlock_);
+    return auto_forwarding_;
+  }
+  bool auto_forwarding_limit_connections() {
+    std::shared_lock l(rwlock_);
+    return auto_forwarding_limit_connections_;
+  }
+  int64_t auto_forwarding_max_connections() {
+    std::shared_lock l(rwlock_);
+    return auto_forwarding_max_connections_;
+  }
+  int64_t auto_forwarding_req_timeout() {
+    std::shared_lock l(rwlock_);
+    return auto_forwarding_req_timeout_;
+  }
   int port() {
     std::shared_lock l(rwlock_);
     return port_;
@@ -352,6 +416,71 @@ class PikaConf : public pstd::BaseConf {
   static rocksdb::CompressionType GetCompression(const std::string& value);
 
   // Setter
+  void SetRaft(const bool value) {
+    std::lock_guard l(rwlock_);
+    is_raft_ = value;
+  }
+  void SetRaftServerId(const int32_t value) {
+    std::lock_guard l(rwlock_);
+    raft_server_id_ = value;
+  }
+  void SetRaftClusterEndpoints(const std::vector<std::string>& value) {
+    std::lock_guard l(rwlock_);
+    raft_cluster_endpoints_ = value;
+  }
+  void SetRaftPath(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("raft-path", value);
+    raft_path_ = value;
+  }
+  void SetAsioThreadPoolSize(const int value) {
+    std::lock_guard l(rwlock_);
+    asio_thread_pool_size_ = value;
+  }
+  void SetHeartBeatInterval(const int value) {
+    std::lock_guard l(rwlock_);
+    heart_beat_interval_ = value;
+  }
+  void SetElectionTimeoutLowerBound(const int value) {
+    std::lock_guard l(rwlock_);
+    election_timeout_lower_bound_ = value;
+  }
+  void SetElectionTimeoutUpperBound(const int value) {
+    std::lock_guard l(rwlock_);
+    election_timeout_upper_bound_ = value;
+  }
+  void SetClientReqTimeout(const int value) {
+    std::lock_guard l(rwlock_);
+    client_req_timeout_ = value;
+  }
+  void SetAsyncLogAppend(const bool value) {
+    std::lock_guard l(rwlock_);
+    async_log_append_ = value;
+  }
+  void SetReservedLogItems(const int value) {
+    std::lock_guard l(rwlock_);
+    reserved_log_items_ = value;
+  }
+  void SetSnapshotDistance(const int value) {
+    std::lock_guard l(rwlock_);
+    snapshot_distance_ = value;
+  }
+  void SetAutoForwarding(const bool value) {
+    std::lock_guard l(rwlock_);
+    auto_forwarding_ = value;
+  }
+  void SetAutoForwardingLimitConnections(const int value) {
+    std::lock_guard l(rwlock_);
+    auto_forwarding_limit_connections_ = value;
+  } 
+  void SetAutoForwardingMaxConnections(const int value) {
+    std::lock_guard l(rwlock_);
+    auto_forwarding_max_connections_ = value;
+  }
+  void SetAutoForwardingReqTimeout(const int value) {
+    std::lock_guard l(rwlock_);
+    auto_forwarding_req_timeout_ = value;
+  }
   void SetPort(const int value) {
     std::lock_guard l(rwlock_);
     port_ = value;
@@ -696,6 +825,24 @@ class PikaConf : public pstd::BaseConf {
   double blob_garbage_collection_force_threshold_ = 1.0;
   int64_t blob_cache_ = 0;
   int64_t blob_num_shard_bits_ = 0;
+
+  // raft config
+  bool is_raft_ = false;
+  int32_t raft_server_id_ = 0;
+  std::vector<std::string> raft_cluster_endpoints_;
+  std::string raft_path_ = "";
+  int64_t asio_thread_pool_size_ = 0;
+  int64_t heart_beat_interval_ = 0;
+  int64_t election_timeout_lower_bound_ = 0;
+  int64_t election_timeout_upper_bound_ = 0;
+  int64_t client_req_timeout_ = 0;
+  bool async_log_append_ = true;
+  int64_t reserved_log_items_ = 0;
+  int64_t snapshot_distance_ = 0;
+  bool auto_forwarding_ = true;
+  bool auto_forwarding_limit_connections_ = false;
+  int64_t auto_forwarding_max_connections_ = 0;
+  int64_t auto_forwarding_req_timeout_ = 0;
 
   std::unique_ptr<PikaMeta> local_meta_;
 
