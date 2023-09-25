@@ -1531,6 +1531,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->max_background_compactions());
   }
 
+  if (pstd::stringmatch(pattern.data(), "max-background-jobs", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-background-jobs");
+    EncodeNumber(&config_body, g_pika_conf->max_background_jobs());
+  }
+
   if (pstd::stringmatch(pattern.data(), "max-cache-files", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-cache-files");
@@ -1899,6 +1905,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     // MutableDBOptions
     EncodeString(&ret, "max-cache-files");
     EncodeString(&ret, "max-background-compactions");
+    EncodeString(&ret, "max-background-jobs");
     // MutableColumnFamilyOptions
     EncodeString(&ret, "write-buffer-size");
     EncodeString(&ret, "max-write-buffer-num");
@@ -2147,6 +2154,19 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "max-background-jobs") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-jobs'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_background_jobs", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-background-jobs wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxBackgroudJobs(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2658,6 +2678,28 @@ void ClearReplicationIDCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_conf->SetReplicationID("");
   g_pika_conf->ConfigRewriteReplicationID();
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
+}
+
+void DisableWalCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    return;
+  }
+}
+
+void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string option = argv_[1].data();
+  bool is_wal_disable = false;
+  if (option.compare("true") == 0) {
+    is_wal_disable = true;
+  } else if (option.compare("false") == 0) {
+    is_wal_disable = false;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Invalid parameter");
+    return;
+  }
+  slot->db()->DisableWal(is_wal_disable);
+  res_.SetRes(CmdRes::kOk, "Wal options is changed");
 }
 
 #ifdef WITH_COMMAND_DOCS

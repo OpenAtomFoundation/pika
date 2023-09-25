@@ -165,4 +165,8 @@ void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     info.append(string_stream.str());
 }
 
+void Redis::SetWriteWalOptions(const bool is_wal_disable) {
+  default_write_options_.disableWAL = is_wal_disable;
+}
+
 }  // namespace storage

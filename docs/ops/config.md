@@ -164,6 +164,10 @@ max-background-flushes : 1
 # 指定后台压缩线程数量, 默认为1, 范围为[1, 4]
 max-background-compactions : 1
 
+# 指定后台线程数量, 默认为1, 范围为[1, 4]
+max-background-jobs : 1
+
+
 # DB可以使用的打开文件的数量, 默认为5000
 max-cache-files : 5000
 

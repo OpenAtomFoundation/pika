@@ -10,6 +10,36 @@
 
 #include "include/pika_command.h"
 
+
+// TODO: stat time costing in write out data to connfd
+struct TimeStat {
+  TimeStat() = default;
+  void Reset() {
+    enqueue_ts_ = dequeue_ts_ = 0;
+    process_done_ts_ = 0;
+  }
+
+  uint64_t start_ts() const {
+    return enqueue_ts_;
+  }
+
+  uint64_t total_time() const {
+    return process_done_ts_ > enqueue_ts_ ? process_done_ts_ - enqueue_ts_ : 0;
+  }
+
+  uint64_t queue_time() const {
+    return dequeue_ts_ > enqueue_ts_ ? dequeue_ts_ - enqueue_ts_ : 0;
+  }
+
+  uint64_t process_time() const {
+    return process_done_ts_ > dequeue_ts_ ? process_done_ts_ - dequeue_ts_ : 0;
+  }
+
+  uint64_t enqueue_ts_;
+  uint64_t dequeue_ts_;
+  uint64_t process_done_ts_;
+};
+
 class PikaClientConn : public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
@@ -65,6 +95,7 @@ class PikaClientConn : public net::RedisConn {
   std::atomic<int> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;
 
+  std::shared_ptr<TimeStat> time_stat_;
  private:
   net::ServerThread* const server_thread_;
   std::string current_db_;
@@ -74,7 +105,7 @@ class PikaClientConn : public net::RedisConn {
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
 
-  void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration);
+  void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
   void ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr);
