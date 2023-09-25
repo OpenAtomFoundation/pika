@@ -1,4 +1,4 @@
-#include "tcp_listener_obj.h"
+#include "tcp_listener.h"
 
 #include <errno.h>
 #include <unistd.h>
@@ -10,16 +10,16 @@
 #include "util.h"
 
 namespace pikiwidb {
-TcpListenerObj::TcpListenerObj(EventLoop* loop) : loop_(loop) {}
+TcpListener::TcpListener(EventLoop* loop) : loop_(loop) {}
 
-TcpListenerObj::~TcpListenerObj() {
+TcpListener::~TcpListener() {
   if (listener_) {
     INFO("close tcp listener fd {}", Fd());
     evconnlistener_free(listener_);
   }
 }
 
-bool TcpListenerObj::Bind(const char* ip, int port) {
+bool TcpListener::Bind(const char* ip, int port) {
   if (listener_) {
     ERROR("repeat bind tcp socket to port {}", port);
     return false;
@@ -28,7 +28,7 @@ bool TcpListenerObj::Bind(const char* ip, int port) {
   sockaddr_in addr = MakeSockaddr(ip, port);
   auto base = reinterpret_cast<struct event_base*>(loop_->GetReactor()->Backend());
   auto listener =
-      evconnlistener_new_bind(base, &TcpListenerObj::OnNewConnection, this,
+      evconnlistener_new_bind(base, &TcpListener::OnNewConnection, this,
                               LEV_OPT_CLOSE_ON_EXEC | LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE | LEV_OPT_DISABLED, -1,
                               (const struct sockaddr*)&addr, int(sizeof(addr)));
   if (!listener) {
@@ -36,7 +36,7 @@ bool TcpListenerObj::Bind(const char* ip, int port) {
     return false;
   }
 
-  evconnlistener_set_error_cb(listener, &TcpListenerObj::OnError);
+  evconnlistener_set_error_cb(listener, &TcpListener::OnError);
   if (!loop_->Register(shared_from_this(), 0)) {
     ERROR("add tcp listener to loop failed, socket {}", Fd());
     evconnlistener_free(listener);
@@ -49,7 +49,7 @@ bool TcpListenerObj::Bind(const char* ip, int port) {
   return true;
 }
 
-int TcpListenerObj::Fd() const {
+int TcpListener::Fd() const {
   if (listener_) {
     return static_cast<int>(evconnlistener_get_fd(listener_));
   }
@@ -57,7 +57,7 @@ int TcpListenerObj::Fd() const {
   return -1;
 }
 
-EventLoop* TcpListenerObj::SelectEventLoop() {
+EventLoop* TcpListener::SelectEventLoop() {
   if (loop_selector_) {
     return loop_selector_();
   }
@@ -65,8 +65,8 @@ EventLoop* TcpListenerObj::SelectEventLoop() {
   return loop_;
 }
 
-void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd, struct sockaddr* peer, int, void* obj) {
-  auto acceptor = reinterpret_cast<TcpListenerObj*>(obj);
+void TcpListener::OnNewConnection(struct evconnlistener*, evutil_socket_t fd, struct sockaddr* peer, int, void* obj) {
+  auto acceptor = reinterpret_cast<TcpListener*>(obj);
   if (acceptor->on_new_conn_) {
     // convert address
     std::string ipstr = GetSockaddrIp(peer);
@@ -98,8 +98,8 @@ void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd,
   }
 }
 
-void TcpListenerObj::OnError(struct evconnlistener* listener, void* obj) {
-  auto acceptor = reinterpret_cast<TcpListenerObj*>(obj);
+void TcpListener::OnError(struct evconnlistener* listener, void* obj) {
+  auto acceptor = reinterpret_cast<TcpListener*>(obj);
   INFO("listener fd {} with errno {}", acceptor->Fd(), errno);
 
   // man 2 accept. TODO alert

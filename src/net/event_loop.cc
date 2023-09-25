@@ -145,7 +145,7 @@ void EventLoop::Unregister(std::shared_ptr<EventObject> obj) {
 }
 
 bool EventLoop::Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLoopSelector selector) {
-  auto s = std::make_shared<TcpListenerObj>(this);
+  auto s = std::make_shared<TcpListener>(this);
   s->SetNewConnCallback(ccb);
   s->SetEventLoopSelector(selector);
 

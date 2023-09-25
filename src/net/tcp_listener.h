@@ -7,10 +7,10 @@
 namespace pikiwidb {
 class EventLoop;
 
-class TcpListenerObj : public EventObject {
+class TcpListener : public EventObject {
  public:
-  explicit TcpListenerObj(EventLoop* loop);
-  ~TcpListenerObj();
+  explicit TcpListener(EventLoop* loop);
+  ~TcpListener();
 
   bool Bind(const char* ip, int port);
   int Fd() const override;
