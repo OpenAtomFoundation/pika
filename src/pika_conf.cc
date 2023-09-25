@@ -472,6 +472,15 @@ int PikaConf::Load() {
     max_background_compactions_ = 8;
   }
 
+  max_background_jobs_ = (1 + 2);
+  GetConfInt("max-background-jobs", &max_background_jobs_);
+  if (max_background_jobs_ <= 0) {
+    max_background_jobs_ = (1 + 2);
+  }
+  if (max_background_jobs_ >= (8 + 4)) {
+    max_background_jobs_ = (8 + 4);
+  }
+
   max_cache_files_ = 5000;
   GetConfInt("max-cache-files", &max_cache_files_);
   if (max_cache_files_ < -1) {
@@ -662,6 +671,7 @@ int PikaConf::ConfigRewrite() {
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("max-background-jobs", max_background_jobs_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);

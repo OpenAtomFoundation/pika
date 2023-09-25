@@ -141,6 +141,8 @@ data:
     max-background-flushes : 1
     # max-background-compactions: default is 2, limited in [1, 8]
     max-background-compactions : 2
+    # max-background-jobs: default is 3, limited in [2, 12]
+    max-background-jobs : 3
     # maximum value of Rocksdb cached open file descriptors
     max-cache-files : 5000
     # max_bytes_for_level_multiplier: default is 10, you can change it to 5
