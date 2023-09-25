@@ -61,13 +61,13 @@ class EventLoop {
   Reactor* GetReactor() const { return reactor_.get(); }
 
   // TCP server
-  bool Listen(const char* ip, int port, NewTcpConnCallback ccb);
+  bool Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLoopSelector selector);
 
   // TCP client
   std::shared_ptr<TcpObject> Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb);
 
   // HTTP server
-  std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port,
+  std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port, EventLoopSelector selector,
                                          HttpServer::OnNewClient cb = HttpServer::OnNewClient());
 
   // HTTP client

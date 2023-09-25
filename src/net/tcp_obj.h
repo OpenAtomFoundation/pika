@@ -22,8 +22,6 @@ using TcpMessageCallback = std::function<int(TcpObject*, const char* data, int l
 using TcpConnFailCallback = std::function<void(EventLoop*, const char* peer_ip, int port)>;
 // called when a connection being reset
 using TcpDisconnectCallback = std::function<void(TcpObject*)>;
-// choose a loop for load balance
-using EventLoopSelector = std::function<EventLoop*()>;
 
 class TcpObject : public EventObject {
  public:

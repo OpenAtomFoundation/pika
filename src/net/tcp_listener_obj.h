@@ -16,8 +16,7 @@ class TcpListenerObj : public EventObject {
   int Fd() const override;
 
   void SetNewConnCallback(NewTcpConnCallback cb) { on_new_conn_ = std::move(cb); }
-  void SetEventloopSelector(EventLoopSelector cb) { loop_selector_ = std::move(cb); }
-  EventLoop* SelectEventloop();
+  EventLoop* SelectEventLoop();
 
  private:
   static void OnNewConnection(struct evconnlistener*, evutil_socket_t, struct sockaddr*, int, void*);
@@ -27,8 +26,6 @@ class TcpListenerObj : public EventObject {
   struct evconnlistener* listener_{nullptr};
 
   NewTcpConnCallback on_new_conn_;
-
-  EventLoopSelector loop_selector_;
 };
 
 }  // namespace pikiwidb

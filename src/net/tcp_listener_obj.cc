@@ -57,7 +57,7 @@ int TcpListenerObj::Fd() const {
   return -1;
 }
 
-EventLoop* TcpListenerObj::SelectEventloop() {
+EventLoop* TcpListenerObj::SelectEventLoop() {
   if (loop_selector_) {
     return loop_selector_();
   }
@@ -65,8 +65,7 @@ EventLoop* TcpListenerObj::SelectEventloop() {
   return loop_;
 }
 
-void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd, struct sockaddr* peer, int,
-                                     void* obj) {
+void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd, struct sockaddr* peer, int, void* obj) {
   auto acceptor = reinterpret_cast<TcpListenerObj*>(obj);
   if (acceptor->on_new_conn_) {
     // convert address
@@ -81,10 +80,9 @@ void TcpListenerObj::OnNewConnection(struct evconnlistener*, evutil_socket_t fd,
     INFO("new conn fd {} from {}", fd, ipstr);
 
     // make new conn
-    auto loop = acceptor->SelectEventloop();
+    auto loop = acceptor->SelectEventLoop();
     // IOThreadPool::Instance().Next();
-    auto on_create = acceptor->on_new_conn_;  // cpp11 doesn't support lambda
-                                              // capture initializers
+    auto on_create = acceptor->on_new_conn_;  // cpp11 doesn't support lambda capture initializers
     auto create_conn = [loop, on_create, fd, ipstr, port]() {
       auto conn(std::make_shared<TcpObject>(loop));
       conn->SetNewConnCallback(on_create);

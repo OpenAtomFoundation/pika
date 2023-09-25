@@ -144,15 +144,15 @@ void EventLoop::Unregister(std::shared_ptr<EventObject> obj) {
   objects_.erase(id);
 }
 
-bool EventLoop::Listen(const char* ip, int port, NewTcpConnCallback ccb) {
+bool EventLoop::Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLoopSelector selector) {
   auto s = std::make_shared<TcpListenerObj>(this);
   s->SetNewConnCallback(ccb);
+  s->SetEventLoopSelector(selector);
 
   return s->Bind(ip, port);
 }
 
-std::shared_ptr<TcpObject> EventLoop::Connect(const char* ip, int port, NewTcpConnCallback ccb,
-                                              TcpConnFailCallback fcb) {
+std::shared_ptr<TcpObject> EventLoop::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb) {
   auto c = std::make_shared<TcpObject>(this);
   c->SetNewConnCallback(ccb);
   c->SetFailCallback(fcb);
@@ -164,13 +164,15 @@ std::shared_ptr<TcpObject> EventLoop::Connect(const char* ip, int port, NewTcpCo
   return c;
 }
 
-std::shared_ptr<HttpServer> EventLoop::ListenHTTP(const char* ip, int port, HttpServer::OnNewClient cb) {
+std::shared_ptr<HttpServer> EventLoop::ListenHTTP(const char* ip, int port, EventLoopSelector selector, HttpServer::OnNewClient cb) {
   auto server = std::make_shared<HttpServer>();
   server->SetOnNewHttpContext(std::move(cb));
 
   // capture server to make it long live with TcpListener
-  auto ncb = [server](TcpObject* conn) { server->OnNewConnection(conn); };
-  Listen(ip, port, ncb);
+  auto ncb = [server](TcpObject* conn) {
+    server->OnNewConnection(conn);
+  };
+  Listen(ip, port, ncb, selector);
 
   return server;
 }
