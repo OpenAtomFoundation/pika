@@ -12,7 +12,7 @@
 
 - The number of threads flushed and the number of threads compaction dynamically adjust into one [#2014](flush线程数和compaction线程数动态调整，合二为一) @[Tianpingan](https://github.com/Tianpingan)
 
-- The RocksDB version was upgraded to v8.3.3 [#1999](https://github.com/OpenAtomFoundation/pika/issues/1999) [dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+- The RocksDB version was upgraded to v8.3.3 [#1999](https://github.com/OpenAtomFoundation/pika/issues/1999) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
 
 - Added documentation for configuring Pika in Macos environment [#2003](https://github.com/OpenAtomFoundation/pika/pull/2003) @[klboke](https://github.com/klboke)
 
@@ -20,7 +20,7 @@
 
 - Added an indicator to detect the entire cluster using a `pika_exporter` [#1953](https://github.com/OpenAtomFoundation/pika/pull/1953) @[chenbt-hz](https://github.com/chenbt-hz)
 
-- Realize automatic registration of Pika service on K8s environment, and automatically register at startup, so as to realize self-organization of cluster [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931)
+- Realize automatic registration of Pika service on K8s environment, and automatically register at startup, so as to realize self-organization of cluster [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931) @[machinly](https://github.com/machinly)
 
 
 ## bugfix
