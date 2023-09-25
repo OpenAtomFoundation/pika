@@ -41,7 +41,7 @@ If you see some message like the following, it means that the pika-operator is r
 ```sh
 ************  TEST PIKA ************
 kubectl run pika-minikub-test ...
-pika_version:3.5.0
+pika_version:3.5.1
 pika_git_sha:bd30511bf82038c2c6531b3d84872c9825fe836a
 pika_build_compile_date: Dec  1 2020
 ````

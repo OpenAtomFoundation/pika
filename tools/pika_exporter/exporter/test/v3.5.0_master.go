@@ -1,7 +1,7 @@
 package test
 
 var V350MasterInfo = `# Server
-pika_version:3.5.0
+pika_version:3.5.1
 pika_git_sha:bd30511bf82038c2c6531b3d84872c9825fe836a
 pika_build_compile_date: Sep  8 2021
 os:Linux 3.10.0-693.el7.x86_64 x86_64

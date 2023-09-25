@@ -1,7 +1,7 @@
 package test
 
 var V350PikaInfo = `# Server
-pika_version:3.5.0
+pika_version:3.5.1
 pika_git_sha:da5edc98afaf53973c847460a42d7f0604add8cb
 pika_build_compile_date: pika_build_date:2023-05-23 03:48:51
 os:Darwin 22.1.0 arm64
