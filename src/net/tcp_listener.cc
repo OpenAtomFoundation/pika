@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2023-present, Qihoo, Inc.  All rights reserved.
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
+
 #include "tcp_listener.h"
 
 #include <errno.h>
@@ -77,7 +84,7 @@ void TcpListener::OnNewConnection(struct evconnlistener*, evutil_socket_t fd, st
       return;
     }
 
-    INFO("new conn fd {} from {}", fd, ipstr);
+    INFO("new conn fd {} from {}:{}", fd, ipstr, port);
 
     // make new conn
     auto loop = acceptor->SelectEventLoop();
