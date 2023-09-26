@@ -54,3 +54,11 @@ size_t PikaClientProcessor::ThreadPoolCurQueueSize() {
   }
   return cur_size;
 }
+
+size_t PikaClientProcessor::ThreadPoolMaxQueueSize() {
+  size_t cur_size = 0;
+  if (pool_) {
+    cur_size = pool_->max_queue_size();
+  }
+  return cur_size;
+}
