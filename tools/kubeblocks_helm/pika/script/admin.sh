@@ -51,10 +51,14 @@ reload_until_success() {
 
 register_server() {
   reload_until_success
-  if [ ${POD_ID} -gt 0 ]; then wait_master_registered; fi
+  if [ ${POD_ID} -gt 0 ]; then
+    wait_master_registered;
+    $CODIS_ADMIN --group-add --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221 1>/dev/null 2>&1
+    $CODIS_ADMIN --sync-action --create --addr=${KB_POD_FQDN}:9221
+    return
+  fi
   $CODIS_ADMIN --create-group --gid=${GROUP_ID} 1>/dev/null 2>&1
   $CODIS_ADMIN --group-add --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
-  $CODIS_ADMIN --sync-action --create --addr=${KB_POD_FQDN}:9221 1>/dev/null 2>&1
 }
 
 remove_server() {
