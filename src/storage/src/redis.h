@@ -10,7 +10,11 @@
 #include <string>
 #include <vector>
 
+#ifdef USE_S3
+#include "rocksdb/cloud/db_cloud.h"
+#else
 #include "rocksdb/db.h"
+#endif
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 
@@ -28,7 +32,11 @@ class Redis {
   Redis(Storage* storage, const DataType& type);
   virtual ~Redis();
 
+#ifdef USE_S3
+  rocksdb::DBCloud* GetDB() { return db_; }
+#else
   rocksdb::DB* GetDB() { return db_; }
+#endif
 
   Status SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options);
 
@@ -60,7 +68,12 @@ class Redis {
   Storage* const storage_;
   DataType type_;
   std::shared_ptr<LockMgr> lock_mgr_;
+
+#ifdef USE_S3
+  rocksdb::DBCloud* db_ = nullptr;
+#else
   rocksdb::DB* db_ = nullptr;
+#endif
 
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
   rocksdb::WriteOptions default_write_options_;
@@ -79,6 +92,12 @@ class Redis {
 
   Status UpdateSpecificKeyStatistics(const std::string& key, size_t count);
   Status AddCompactKeyTaskIfNeeded(const std::string& key, size_t total);
+
+#ifdef USE_S3
+  // rocksdb-cloud
+  Status OpenCloudEnv(rocksdb::CloudFileSystemOptions opts, const std::string& db_path);
+  std::unique_ptr<rocksdb::Env> cloud_env_;
+#endif
 };
 
 }  //  namespace storage

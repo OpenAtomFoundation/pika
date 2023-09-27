@@ -26,7 +26,34 @@ class ListsFilterTest : public ::testing::Test {
       mkdir(db_path.c_str(), 0755);
     }
     options.create_if_missing = true;
+#ifdef USE_S3
+    // rocksdb-cloud env
+    rocksdb::CloudFileSystemOptions cloud_fs_opts;
+    cloud_fs_opts.endpoint_override = "http://127.0.0.1:9000";
+    cloud_fs_opts.credentials.InitializeSimple("minioadmin", "minioadmin");
+    assert(cloud_fs_opts.credentials.HasValid().ok());
+    std::string s3_path = db_path[0] == '.' ? db_path.substr(1) : db_path;
+    cloud_fs_opts.src_bucket.SetBucketName("database.unit.test", "pika.");
+    cloud_fs_opts.src_bucket.SetObjectPath(s3_path);
+    cloud_fs_opts.dest_bucket.SetBucketName("database.unit.test", "pika.");
+    cloud_fs_opts.dest_bucket.SetObjectPath(s3_path);
+    rocksdb::CloudFileSystem* cfs = nullptr;
+    Status s = rocksdb::CloudFileSystem::NewAwsFileSystem(
+      rocksdb::FileSystem::Default(), 
+      cloud_fs_opts, 
+      nullptr, 
+      &cfs
+    );
+    assert(s.ok());
+    std::shared_ptr<rocksdb::CloudFileSystem> cloud_fs(cfs);
+    cloud_env = NewCompositeEnv(cloud_fs);
+    assert(cloud_env);
+    options.env = cloud_env.get();
+    s = rocksdb::DBCloud::Open(options, db_path, "", 0, &meta_db);
+#else
     s = rocksdb::DB::Open(options, db_path, &meta_db);
+#endif
+
     if (s.ok()) {
       // create column family
       rocksdb::ColumnFamilyHandle* cf;
@@ -43,7 +70,12 @@ class ListsFilterTest : public ::testing::Test {
     // Data CF
     column_families.emplace_back("data_cf", data_cf_ops);
 
+#ifdef USE_S3
+    s = rocksdb::DBCloud::Open(options, db_path, column_families, "", 0, &handles, &meta_db);
+#else
     s = rocksdb::DB::Open(options, db_path, column_families, &handles, &meta_db);
+#endif
+		assert(s.ok());
   }
   ~ListsFilterTest() override = default;
 
@@ -56,8 +88,13 @@ class ListsFilterTest : public ::testing::Test {
   }
 
   storage::Options options;
-  rocksdb::DB* meta_db;
   storage::Status s;
+#ifdef USE_S3
+  rocksdb::DBCloud* meta_db;
+  std::unique_ptr<rocksdb::Env> cloud_env;
+#else
+  rocksdb::DB* meta_db;
+#endif
 
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
   std::vector<rocksdb::ColumnFamilyHandle*> handles;
