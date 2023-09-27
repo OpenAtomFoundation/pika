@@ -89,7 +89,7 @@ void HttpContext::SendResponse(const HttpResponse& rsp) {
   }
 
   std::string rsp_data = rsp.Encode();
-  auto loop = conn->GetLoop();
+  auto loop = conn->GetEventLoop();
   if (loop->InThisLoop()) {
     conn->SendPacket(rsp_data.data(), rsp_data.size());
   } else {

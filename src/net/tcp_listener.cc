@@ -39,7 +39,7 @@ bool TcpListener::Bind(const char* ip, int port) {
                               LEV_OPT_CLOSE_ON_EXEC | LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE | LEV_OPT_DISABLED, -1,
                               (const struct sockaddr*)&addr, int(sizeof(addr)));
   if (!listener) {
-    ERROR("failed listen tcp port {}", port);
+    ERROR("failed listen tcp port {}:{}", ip, port);
     return false;
   }
 
@@ -50,7 +50,7 @@ bool TcpListener::Bind(const char* ip, int port) {
     return false;
   }
 
-  INFO("tcp listen on port {}", port);
+  INFO("tcp listen on port {}:{}", ip, port);
   listener_ = listener;
   evconnlistener_enable(listener_);
   return true;

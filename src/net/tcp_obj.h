@@ -23,6 +23,8 @@ using TcpConnFailCallback = std::function<void(EventLoop*, const char* peer_ip, 
 // called when a connection being reset
 using TcpDisconnectCallback = std::function<void(TcpObject*)>;
 
+// After client connects the server or the server accepts a new client,
+// the pikiwidb will create a TcpObject to handle the connection.
 class TcpObject : public EventObject {
  public:
   explicit TcpObject(EventLoop* loop);
@@ -48,7 +50,7 @@ class TcpObject : public EventObject {
   std::shared_ptr<T> GetContext() const;
   void SetContext(std::shared_ptr<void> ctx);
 
-  EventLoop* GetLoop() const { return loop_; }
+  EventLoop* GetEventLoop() const { return loop_; }
   const std::string& GetPeerIp() const { return peer_ip_; }
   int GetPeerPort() const { return peer_port_; }
   const sockaddr_in& PeerAddr() const { return peer_addr_; }

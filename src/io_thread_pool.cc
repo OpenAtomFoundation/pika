@@ -72,6 +72,7 @@ bool IOThreadPool::Init(const char* ip, int port, NewTcpConnCallback cb) {
   auto f = std::bind(&IOThreadPool::Next, this);
 
   base_.Init();
+  printf("base loop %s %p, g_baseLoop %p\n", base_.GetName().c_str(), &base_, base_.Self());
   if (!base_.Listen(ip, port, cb, f)) {
     ERROR("can not bind socket on addr {}:{}", ip, port);
     return false;
@@ -128,6 +129,7 @@ void IOThreadPool::StartWorkers() {
     std::unique_ptr<EventLoop> loop(new EventLoop);
     if (!name_.empty()) {
       loop->SetName(name_ + "_" + std::to_string(index++));
+      printf("loop %p, name %s\n", loop.get(), loop->GetName().c_str());
     }
     loops_.push_back(std::move(loop));
   }
@@ -136,9 +138,9 @@ void IOThreadPool::StartWorkers() {
     EventLoop* loop = loops_[index].get();
     std::thread t([loop]() {
       loop->Init();
-
       loop->Run();
     });
+    printf("thread %lu, thread loop %p, loop name %s \n", index, loop, loop->GetName().c_str());
     workers_.push_back(std::move(t));
   }
 

@@ -33,8 +33,8 @@ std::unique_ptr<PikiwiDB> g_pikiwidb;
 
 const unsigned PikiwiDB::kRunidSize = 40;
 
-PikiwiDB::PikiwiDB() : io_threads_(pikiwidb::IOThreadPool::Instance()), port_(0), masterPort_(0) {
-  cmdTableManager_ = std::make_unique<pikiwidb::CmdTableManager>();
+PikiwiDB::PikiwiDB() : io_threads_(pikiwidb::IOThreadPool::Instance()), port_(0), master_port_(0) {
+  cmd_table_manager_ = std::make_unique<pikiwidb::CmdTableManager>();
 }
 
 PikiwiDB::~PikiwiDB() {}
@@ -53,8 +53,8 @@ Examples:\n\
 
 bool PikiwiDB::ParseArgs(int ac, char* av[]) {
   for (int i = 0; i < ac; i++) {
-    if (cfgFile_.empty() && ::access(av[i], R_OK) == 0) {
-      cfgFile_ = av[i];
+    if (cfg_file_.empty() && ::access(av[i], R_OK) == 0) {
+      cfg_file_ = av[i];
       continue;
     } else if (strncasecmp(av[i], "-v", 2) == 0 || strncasecmp(av[i], "--version", 9) == 0) {
       std::cerr << "PikiwiDB Server v=" << PIKIWIDB_VERSION << " bits=" << (sizeof(void*) == 8 ? 64 : 32) << std::endl;
@@ -74,14 +74,14 @@ bool PikiwiDB::ParseArgs(int ac, char* av[]) {
       if (++i == ac) {
         return false;
       }
-      logLevel_ = std::string(av[i]);
+      log_level_ = std::string(av[i]);
     } else if (strncasecmp(av[i], "--slaveof", 9) == 0) {
       if (i + 2 >= ac) {
         return false;
       }
 
       master_ = std::string(av[++i]);
-      masterPort_ = static_cast<unsigned short>(std::atoi(av[++i]));
+      master_port_ = static_cast<unsigned short>(std::atoi(av[++i]));
     } else {
       std::cerr << "Unknow option " << av[i] << std::endl;
       return false;
@@ -183,13 +183,13 @@ bool PikiwiDB::Init() {
     g_config.port = port_;
   }
 
-  if (!logLevel_.empty()) {
-    g_config.loglevel = logLevel_;
+  if (!log_level_.empty()) {
+    g_config.loglevel = log_level_;
   }
 
   if (!master_.empty()) {
     g_config.masterIp = master_;
-    g_config.masterPort = masterPort_;
+    g_config.masterPort = master_port_;
   }
 
   NewTcpConnCallback cb = std::bind(&PikiwiDB::OnNewConnection, this, std::placeholders::_1);
@@ -232,7 +232,7 @@ bool PikiwiDB::Init() {
            static_cast<int>(g_config.port));
   std::cout << logo;
 
-  cmdTableManager_->InitCmdTable();
+  cmd_table_manager_->InitCmdTable();
 
   return true;
 }
@@ -245,7 +245,7 @@ void PikiwiDB::Run() {
 
 void PikiwiDB::Stop() { io_threads_.Exit(); }
 
-std::unique_ptr<pikiwidb::CmdTableManager>& PikiwiDB::CmdTableManager() { return cmdTableManager_; }
+std::unique_ptr<pikiwidb::CmdTableManager>& PikiwiDB::CmdTableManager() { return cmd_table_manager_; }
 
 static void InitLogs() {
   logger::Init("logs/pikiwidb_server.log");

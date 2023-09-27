@@ -8,7 +8,7 @@ namespace pikiwidb {
 HttpClient::HttpClient() : parser_(HTTP_RESPONSE) {}
 
 void HttpClient::OnConnect(TcpObject* conn) {
-  assert(loop_ == conn->GetLoop());
+  assert(loop_ == conn->GetEventLoop());
 
   INFO("HttpClient::OnConnect to {}:{} in loop {}", conn->GetPeerIp(), conn->GetPeerPort(), loop_->GetName());
   never_connected_ = false;

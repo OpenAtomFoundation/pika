@@ -20,7 +20,7 @@
 namespace pikiwidb {
 PClient* PClient::s_current = 0;
 
-std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > PClient::s_monitors;
+std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > PClient::s_monitors_;
 
 int PClient::processInlineCmd(const char* buf, size_t bytes, std::vector<PString>& params) {
   if (bytes < 2) {
@@ -201,7 +201,7 @@ int PClient::handlePacket(pikiwidb::TcpObject* obj, const char* start, int bytes
         FlagExecWrong();
       } else {
         if (!IsFlagOn(ClientFlag_wrongExec)) {
-          queueCmds_.push_back(params);
+          queue_cmds_.push_back(params);
         }
 
         reply_.PushData("+QUEUED\r\n", 9);
@@ -328,7 +328,7 @@ bool PClient::isPeerMaster() const {
 
 bool PClient::Watch(int dbno, const PString& key) {
   DEBUG("Client {} watch {}, db {}", name_, key, dbno);
-  return watchKeys_[dbno].insert(key).second;
+  return watch_keys_[dbno].insert(key).second;
 }
 
 bool PClient::NotifyDirty(int dbno, const PString& key) {
@@ -337,7 +337,7 @@ bool PClient::NotifyDirty(int dbno, const PString& key) {
     return true;
   }
 
-  if (watchKeys_[dbno].count(key)) {
+  if (watch_keys_[dbno].count(key)) {
     INFO("{} client become dirty because key {} in db {}", tcp_obj_->GetUniqueId(), key, dbno);
     SetFlag(ClientFlag_dirty);
     return true;
@@ -363,8 +363,8 @@ bool PClient::Exec() {
     return true;
   }
 
-  PreFormatMultiBulk(queueCmds_.size(), &reply_);
-  for (const auto& cmd : queueCmds_) {
+  PreFormatMultiBulk(queue_cmds_.size(), &reply_);
+  for (const auto& cmd : queue_cmds_) {
     DEBUG("EXEC {}, for client {}", cmd[0], tcp_obj_->GetUniqueId());
     const PCommandInfo* info = PCommandTable::GetCommandInfo(cmd[0]);
     PError err = PCommandTable::ExecuteCmd(cmd, info, &reply_);
@@ -379,23 +379,23 @@ bool PClient::Exec() {
 }
 
 void PClient::ClearMulti() {
-  queueCmds_.clear();
+  queue_cmds_.clear();
   ClearFlag(ClientFlag_multi);
   ClearFlag(ClientFlag_wrongExec);
 }
 
 void PClient::ClearWatch() {
-  watchKeys_.clear();
+  watch_keys_.clear();
   ClearFlag(ClientFlag_dirty);
 }
 
 bool PClient::WaitFor(const PString& key, const PString* target) {
-  bool succ = waitingKeys_.insert(key).second;
+  bool succ = waiting_keys_.insert(key).second;
 
   if (succ && target) {
     if (!target_.empty()) {
       ERROR("Wait failed for key {}, because old target {}", key, target_);
-      waitingKeys_.erase(key);
+      waiting_keys_.erase(key);
       return false;
     }
 
@@ -405,16 +405,16 @@ bool PClient::WaitFor(const PString& key, const PString* target) {
   return succ;
 }
 
-void PClient::SetSlaveInfo() { slaveInfo_.reset(new PSlaveInfo()); }
+void PClient::SetSlaveInfo() { slave_info_.reset(new PSlaveInfo()); }
 
 void PClient::AddCurrentToMonitor() {
-  s_monitors.insert(std::static_pointer_cast<PClient>(s_current->shared_from_this()));
+  s_monitors_.insert(std::static_pointer_cast<PClient>(s_current->shared_from_this()));
 }
 
 void PClient::FeedMonitors(const std::vector<PString>& params) {
   assert(!params.empty());
 
-  if (s_monitors.empty()) {
+  if (s_monitors_.empty()) {
     return;
   }
 
@@ -434,7 +434,7 @@ void PClient::FeedMonitors(const std::vector<PString>& params) {
 
   --n;  // no space follow last param
 
-  for (auto it(s_monitors.begin()); it != s_monitors.end();) {
+  for (auto it(s_monitors_.begin()); it != s_monitors_.end();) {
     auto m = it->lock();
     if (m) {
       m->tcp_obj_->SendPacket(buf, n);
@@ -442,7 +442,7 @@ void PClient::FeedMonitors(const std::vector<PString>& params) {
 
       ++it;
     } else {
-      s_monitors.erase(it++);
+      s_monitors_.erase(it++);
     }
   }
 }

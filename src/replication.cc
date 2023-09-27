@@ -75,9 +75,24 @@ void PReplication::OnRdbSaveDone() {
       char tmp[32];
       int n = snprintf(tmp, sizeof tmp - 1, "$%ld\r\n", (long)size);
 
-      cli->SendPacket(tmp, n);
-      cli->SendPacket(data, size);
-      cli->SendPacket(buffer_);
+      EventLoop* loop = cli->GetEventLoop();
+      if (loop->InThisLoop()) {
+        cli->SendPacket(tmp, n);
+        cli->SendPacket(data, size);
+        cli->SendPacket(buffer_);
+      } else {
+        std::string buf1(tmp, n);
+        std::string buf2(data, size);
+        std::string buf3(buffer_.ReadAddr(), buffer_.ReadableSize());
+        loop->Execute([cli, buf1, buf2, buf3]() {
+          evbuffer_iovec iovecs[] = {
+            {const_cast<char*>(buf1.data()), buf1.size()},
+            {const_cast<char*>(buf2.data()), buf2.size()},
+            {const_cast<char*>(buf3.data()), buf3.size()},
+          };
+          cli->SendPacket(iovecs, sizeof(iovecs) / sizeof(iovecs[0]));
+        });
+      }
 
       INFO("Send to slave rdb {}, buffer {}", size, buffer_.ReadableSize());
     }

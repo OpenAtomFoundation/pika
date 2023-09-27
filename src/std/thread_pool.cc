@@ -7,7 +7,7 @@
 
 #include "thread_pool.h"
 
-__thread bool ThreadPool::working_ = true;
+thread_local bool ThreadPool::working_ = true;
 
 ThreadPool::ThreadPool() : waiters_(0), shutdown_(false) {
   monitor_ = std::thread([this]() { this->_MonitorRoutine(); });
