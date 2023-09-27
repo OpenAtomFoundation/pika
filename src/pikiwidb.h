@@ -9,7 +9,7 @@
 #include "cmd_table_manager.h"
 #include "event_loop.h"
 #include "pstring.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 #define PIKIWIDB_VERSION "4.0.0"
 
@@ -26,7 +26,7 @@ class PikiwiDB final {
   void Recycle();
   void Stop();
 
-  void OnNewConnection(pikiwidb::TcpObject* obj);
+  void OnNewConnection(pikiwidb::TcpConnection* obj);
 
   std::unique_ptr<pikiwidb::CmdTableManager>& CmdTableManager();
 

@@ -74,25 +74,12 @@ void PReplication::OnRdbSaveDone() {
       // $file_len + filedata
       char tmp[32];
       int n = snprintf(tmp, sizeof tmp - 1, "$%ld\r\n", (long)size);
-
-      EventLoop* loop = cli->GetEventLoop();
-      if (loop->InThisLoop()) {
-        cli->SendPacket(tmp, n);
-        cli->SendPacket(data, size);
-        cli->SendPacket(buffer_);
-      } else {
-        std::string buf1(tmp, n);
-        std::string buf2(data, size);
-        std::string buf3(buffer_.ReadAddr(), buffer_.ReadableSize());
-        loop->Execute([cli, buf1, buf2, buf3]() {
-          evbuffer_iovec iovecs[] = {
-            {const_cast<char*>(buf1.data()), buf1.size()},
-            {const_cast<char*>(buf2.data()), buf2.size()},
-            {const_cast<char*>(buf3.data()), buf3.size()},
-          };
-          cli->SendPacket(iovecs, sizeof(iovecs) / sizeof(iovecs[0]));
-        });
-      }
+      evbuffer_iovec iovecs[] = {
+          {tmp, (size_t)(n)},
+          {const_cast<char*>(data), size},
+          {buffer_.ReadAddr(), buffer_.ReadableSize()}
+      };
+      cli->GetTcpConnection()->SendPacketSafely(iovecs, sizeof(iovecs) / sizeof(iovecs[0]));
 
       INFO("Send to slave rdb {}, buffer {}", size, buffer_.ReadableSize());
     }
@@ -168,7 +155,7 @@ void PReplication::SendToSlaves(const std::vector<PString>& params) {
       SaveCommand(params, ub);
     }
 
-    cli->SendPacket(ub);
+    cli->GetTcpConnection()->SendPacketSafely(ub);
   }
 }
 
@@ -184,7 +171,7 @@ void PReplication::Cron() {
         ++it;
 
         if (cli->GetSlaveInfo()->state == PSlaveState_online) {
-          cli->SendPacket("PING\r\n", 6);
+          cli->GetTcpConnection()->SendPacketSafely("PING\r\n", 6);
         }
       }
     }
@@ -205,7 +192,7 @@ void PReplication::Cron() {
 
         INFO("Try connect to master {}", AddrToString(&masterInfo_.addr.GetAddr()));
 
-        auto on_new_conn = [](TcpObject* obj) {
+        auto on_new_conn = [](TcpConnection* obj) {
           if (g_pikiwidb) {
             g_pikiwidb->OnNewConnection(obj);
           }
@@ -232,7 +219,7 @@ void PReplication::Cron() {
             req.PushData("auth ", 5);
             req.PushData(g_config.masterauth.data(), g_config.masterauth.size());
             req.PushData("\r\n", 2);
-            master->SendPacket(req);
+            master->GetTcpConnection()->SendPacketSafely(req);
             INFO("send auth with password {}", g_config.masterauth);
 
             masterInfo_.state = PReplState_wait_auth;
@@ -251,7 +238,7 @@ void PReplication::Cron() {
           // send replconf
           char req[128];
           auto len = snprintf(req, sizeof req - 1, "replconf listening-port %hu\r\n", g_config.port);
-          master->SendPacket(req, len);
+          master->GetTcpConnection()->SendPacketSafely(req, len);
           masterInfo_.state = PReplState_wait_replconf;
 
           INFO("Send replconf listening-port {}", g_config.port);
@@ -268,14 +255,13 @@ void PReplication::Cron() {
           WARN("Master is down from wait_replconf to none");
         } else {
           // request sync rdb file
-          master->SendPacket("SYNC\r\n", 6);
+          master->GetTcpConnection()->SendPacketSafely("SYNC\r\n", 6);
           INFO("Request SYNC");
 
           rdb_.Open(slaveRdbFile, false);
           masterInfo_.rdbRecved = 0;
           masterInfo_.rdbSize = std::size_t(-1);
           masterInfo_.state = PReplState_wait_rdb;
-          ;
         }
       } break;
 

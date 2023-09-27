@@ -5,12 +5,11 @@
 * of patent rights can be found in the PATENTS file in the same directory.
 */
 
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 #include <netinet/tcp.h>
 
 #include <cassert>
-#include <cstdlib>
 #include <memory>
 
 #include "event2/event.h"
@@ -20,12 +19,12 @@
 #include "util.h"
 
 namespace pikiwidb {
-TcpObject::TcpObject(EventLoop* loop) : loop_(loop) {
+TcpConnection::TcpConnection(EventLoop* loop) : loop_(loop) {
   memset(&peer_addr_, 0, sizeof peer_addr_);
   last_active_ = std::chrono::steady_clock::now();
 }
 
-TcpObject::~TcpObject() {
+TcpConnection::~TcpConnection() {
   if (idle_timer_ != -1) {
     loop_->Cancel(idle_timer_);
   }
@@ -37,7 +36,7 @@ TcpObject::~TcpObject() {
   }
 }
 
-void TcpObject::OnAccept(int fd, const std::string& peer_ip, int peer_port) {
+void TcpConnection::OnAccept(int fd, const std::string& peer_ip, int peer_port) {
   assert(loop_->InThisLoop());
 
   peer_ip_ = peer_ip;
@@ -54,7 +53,7 @@ void TcpObject::OnAccept(int fd, const std::string& peer_ip, int peer_port) {
   HandleConnect();
 }
 
-bool TcpObject::Connect(const char* ip, int port) {
+bool TcpConnection::Connect(const char* ip, int port) {
   assert(loop_->InThisLoop());
 
   if (state_ != State::kNone) {
@@ -69,7 +68,7 @@ bool TcpObject::Connect(const char* ip, int port) {
     ERROR("can't new bufferevent");
     return false;
   }
-  bufferevent_setcb(bev, nullptr, nullptr, &TcpObject::OnEvent, this);
+  bufferevent_setcb(bev, nullptr, nullptr, &TcpConnection::OnEvent, this);
 
   sockaddr_in addr = MakeSockaddr(ip, port);
   int err = bufferevent_socket_connect(bev, (struct sockaddr*)&addr, int(sizeof addr));
@@ -97,7 +96,7 @@ bool TcpObject::Connect(const char* ip, int port) {
   return true;
 }
 
-int TcpObject::Fd() const {
+int TcpConnection::Fd() const {
   if (bev_) {
     return bufferevent_getfd(bev_);
   }
@@ -105,9 +104,9 @@ int TcpObject::Fd() const {
   return -1;
 }
 
-bool TcpObject::SendPacket(const std::string& data) { return this->SendPacket(data.data(), data.size()); }
+bool TcpConnection::SendPacket(const std::string& data) { return this->SendPacket(data.data(), data.size()); }
 
-bool TcpObject::SendPacket(const void* data, size_t size) {
+bool TcpConnection::SendPacket(const void* data, size_t size) {
   if (state_ != State::kConnected) {
     ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
     return false;
@@ -123,13 +122,82 @@ bool TcpObject::SendPacket(const void* data, size_t size) {
   return true;
 }
 
-void TcpObject::HandleConnect() {
+bool TcpConnection::SendPacketSafely(const void* data, size_t size) {
+  if (state_ != State::kConnected) {
+    ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
+    return false;
+  }
+
+  if (!data || size == 0) {
+    return true;
+  }
+
+  if (loop_->InThisLoop()) {
+    auto output = bufferevent_get_output(bev_);
+    evbuffer_add(output, data, size);
+  } else {
+    auto w_obj(weak_from_this());
+    loop_->Execute([w_obj, data, size]() {
+      auto c = w_obj.lock();
+      if (!c) {
+        return;  // connection already lost
+      }
+
+      auto tcp_conn = std::static_pointer_cast<TcpConnection>(c);
+      auto output = bufferevent_get_output(tcp_conn->bev_);
+      evbuffer_add(output, data, size);
+    });
+  }
+  return true;
+}
+
+bool TcpConnection::SendPacketSafely(const evbuffer_iovec* iovecs, size_t nvecs) {
+  if (state_ != State::kConnected) {
+    ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
+    return false;
+  }
+
+  if (!iovecs || nvecs <= 0) {
+    return true;
+  }
+
+  if (loop_->InThisLoop()) {
+      auto output = bufferevent_get_output(bev_);
+      evbuffer_add_iovec(output, const_cast<evbuffer_iovec*>(iovecs), nvecs);
+  } else {
+    std::vector<std::string> buffers;
+    for (int i = 0; i < nvecs; ++i) {
+      buffers.emplace_back(static_cast<char*>(iovecs[i].iov_base), iovecs[i].iov_len);
+    }
+
+    auto w_obj(weak_from_this());
+    loop_->Execute([w_obj, buffers = std::move(buffers)]() {
+      std::vector<evbuffer_iovec> buffersSlices;
+      for (auto& buffer : buffers) {
+        buffersSlices.emplace_back(evbuffer_iovec{const_cast<char*>(buffer.data()), buffer.size()});
+      }
+
+      auto c = w_obj.lock();
+      if (!c) {
+        return;  // connection already lost
+      }
+
+      auto tcp_conn = std::static_pointer_cast<TcpConnection>(c);
+      auto output = bufferevent_get_output(tcp_conn->bev_);
+      evbuffer_add_iovec(output, const_cast<evbuffer_iovec*>(buffersSlices.data()), buffersSlices.size());
+    });
+  }
+
+  return true;
+}
+
+void TcpConnection::HandleConnect() {
   assert(loop_->InThisLoop());
   assert(state_ == State::kNone || state_ == State::kConnecting);
   INFO("HandleConnect success with {}:{}", peer_ip_, peer_port_);
 
   state_ = State::kConnected;
-  bufferevent_setcb(bev_, &TcpObject::OnRecvData, nullptr, &TcpObject::OnEvent, this);
+  bufferevent_setcb(bev_, &TcpConnection::OnRecvData, nullptr, &TcpConnection::OnEvent, this);
   bufferevent_enable(bev_, EV_READ);
 
   if (on_new_conn_) {
@@ -137,7 +205,7 @@ void TcpObject::HandleConnect() {
   }
 }
 
-bool TcpObject::SendPacket(const evbuffer_iovec* iovecs, int nvecs) {
+bool TcpConnection::SendPacket(const evbuffer_iovec* iovecs, int nvecs) {
   if (state_ != State::kConnected) {
     ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
     return false;
@@ -153,7 +221,7 @@ bool TcpObject::SendPacket(const evbuffer_iovec* iovecs, int nvecs) {
   return true;
 }
 
-void TcpObject::HandleConnectFailed() {
+void TcpConnection::HandleConnectFailed() {
   assert(loop_->InThisLoop());
   assert(state_ == State::kConnecting);
   ERROR("HandleConnectFailed to {}:{}", peer_ip_, peer_port_);
@@ -166,7 +234,7 @@ void TcpObject::HandleConnectFailed() {
   loop_->Unregister(shared_from_this());
 }
 
-void TcpObject::HandleDisconnect() {
+void TcpConnection::HandleDisconnect() {
   assert(loop_->InThisLoop());
   assert(state_ == State::kConnected);
 
@@ -178,7 +246,7 @@ void TcpObject::HandleDisconnect() {
   loop_->Unregister(shared_from_this());
 }
 
-void TcpObject::SetIdleTimeout(int timeout_ms) {
+void TcpConnection::SetIdleTimeout(int timeout_ms) {
   if (timeout_ms <= 0) {
     return;
   }
@@ -196,7 +264,7 @@ void TcpObject::SetIdleTimeout(int timeout_ms) {
       return;  // connection already lost
     }
 
-    auto tcp_conn = std::static_pointer_cast<TcpObject>(c);
+    auto tcp_conn = std::static_pointer_cast<TcpConnection>(c);
     bool timeout = tcp_conn->CheckIdleTimeout();
     if (timeout) {
       tcp_conn->ActiveClose(false);
@@ -204,7 +272,7 @@ void TcpObject::SetIdleTimeout(int timeout_ms) {
   });
 }
 
-void TcpObject::SetNodelay(bool enable) {
+void TcpConnection::SetNodelay(bool enable) {
   if (bev_) {
     int fd = bufferevent_getfd(bev_);
     int nodelay = enable ? 1 : 0;
@@ -212,12 +280,12 @@ void TcpObject::SetNodelay(bool enable) {
   }
 }
 
-bool TcpObject::CheckIdleTimeout() const {
+bool TcpConnection::CheckIdleTimeout() const {
   using namespace std::chrono;
 
   int elapsed = static_cast<int>(duration_cast<milliseconds>(steady_clock::now() - last_active_).count());
   if (elapsed > idle_timeout_ms_) {
-    WARN("TcpObject::Timeout: elapsed {}, idle timeout {}, peer {}:{}", elapsed, idle_timeout_ms_, peer_ip_,
+    WARN("TcpConnection::Timeout: elapsed {}, idle timeout {}, peer {}:{}", elapsed, idle_timeout_ms_, peer_ip_,
          peer_port_);
     return true;
   }
@@ -225,8 +293,8 @@ bool TcpObject::CheckIdleTimeout() const {
   return false;
 }
 
-void TcpObject::OnRecvData(struct bufferevent* bev, void* obj) {
-  auto me = std::static_pointer_cast<TcpObject>(reinterpret_cast<TcpObject*>(obj)->shared_from_this());
+void TcpConnection::OnRecvData(struct bufferevent* bev, void* obj) {
+  auto me = std::static_pointer_cast<TcpConnection>(reinterpret_cast<TcpConnection*>(obj)->shared_from_this());
 
   assert(me->loop_->InThisLoop());
   assert(me->bev_ == bev);
@@ -270,12 +338,12 @@ void TcpObject::OnRecvData(struct bufferevent* bev, void* obj) {
   }
 }
 
-void TcpObject::OnEvent(struct bufferevent* bev, short events, void* obj) {
-  auto me = std::static_pointer_cast<TcpObject>(reinterpret_cast<TcpObject*>(obj)->shared_from_this());
+void TcpConnection::OnEvent(struct bufferevent* bev, short events, void* obj) {
+  auto me = std::static_pointer_cast<TcpConnection>(reinterpret_cast<TcpConnection*>(obj)->shared_from_this());
 
   assert(me->loop_->InThisLoop());
 
-  INFO("TcpObject::OnEvent {:x}, state {}, obj {}", events, static_cast<int>(me->state_), obj);
+  INFO("TcpConnection::OnEvent {:x}, state {}, obj {}", events, static_cast<int>(me->state_), obj);
 
   switch (me->state_) {
     case State::kConnecting:
@@ -293,16 +361,16 @@ void TcpObject::OnEvent(struct bufferevent* bev, short events, void* obj) {
       return;
 
     default:
-      ERROR("TcpObject::OnEvent wrong state {}", static_cast<int>(me->state_));
+      ERROR("TcpConnection::OnEvent wrong state {}", static_cast<int>(me->state_));
       return;
   }
 }
 
-void TcpObject::SetContext(std::shared_ptr<void> ctx) { context_ = std::move(ctx); }
+void TcpConnection::SetContext(std::shared_ptr<void> ctx) { context_ = std::move(ctx); }
 
-void TcpObject::ActiveClose(bool sync) {
+void TcpConnection::ActiveClose(bool sync) {
   // weak: don't prolong life of this
-  std::weak_ptr<TcpObject> me = std::static_pointer_cast<TcpObject>(shared_from_this());
+  std::weak_ptr<TcpConnection> me = std::static_pointer_cast<TcpConnection>(shared_from_this());
   auto destroy = [me]() {
     auto conn = me.lock();
     if (conn && conn->state_ == State::kConnected) {
@@ -320,6 +388,6 @@ void TcpObject::ActiveClose(bool sync) {
   }
 }
 
-bool TcpObject::Connected() const { return state_ == State::kConnected; }
+bool TcpConnection::Connected() const { return state_ == State::kConnected; }
 
 }  // namespace pikiwidb

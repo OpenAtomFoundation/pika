@@ -9,26 +9,27 @@
 #include "event2/bufferevent.h"
 #include "event_obj.h"
 #include "reactor.h"
+#include "unbounded_buffer.h"
 
 namespace pikiwidb {
 class EventLoop;
-class TcpObject;
+class TcpConnection;
 
-// init a new tcp conn which from ::accept or ::connect
-using NewTcpConnCallback = std::function<void(TcpObject*)>;
+// init a new tcp connection which from ::accept or ::connect
+using NewTcpConnectionCallback = std::function<void(TcpConnection*)>;
 // called when got incoming data, return bytes of consumed, -1 means fatal
-using TcpMessageCallback = std::function<int(TcpObject*, const char* data, int len)>;
+using TcpMessageCallback = std::function<int(TcpConnection*, const char* data, int len)>;
 // called when connect failed, usually retry or report error
-using TcpConnFailCallback = std::function<void(EventLoop*, const char* peer_ip, int port)>;
+using TcpConnectionFailCallback = std::function<void(EventLoop*, const char* peer_ip, int port)>;
 // called when a connection being reset
-using TcpDisconnectCallback = std::function<void(TcpObject*)>;
+using TcpDisconnectCallback = std::function<void(TcpConnection*)>;
 
 // After client connects the server or the server accepts a new client,
-// the pikiwidb will create a TcpObject to handle the connection.
-class TcpObject : public EventObject {
+// the pikiwidb will create a TcpConnection to handle the connection.
+class TcpConnection : public EventObject {
  public:
-  explicit TcpObject(EventLoop* loop);
-  ~TcpObject();
+  explicit TcpConnection(EventLoop* loop);
+  ~TcpConnection();
 
   // init tcp object by result of ::accept
   void OnAccept(int fd, const std::string& peer_ip, int peer_port);
@@ -36,14 +37,21 @@ class TcpObject : public EventObject {
   bool Connect(const char* ip, int port);
 
   int Fd() const override;
+
   bool SendPacket(const std::string&);
   bool SendPacket(const void*, size_t);
+  bool SendPacket(UnboundedBuffer& data) { return SendPacket(data.ReadAddr(), data.ReadableSize()); }
   bool SendPacket(const evbuffer_iovec* iovecs, int nvecs);
 
-  void SetNewConnCallback(NewTcpConnCallback cb) { on_new_conn_ = std::move(cb); }
+  bool SendPacketSafely(const std::string& buf) { return SendPacketSafely(buf.data(), buf.size()); }
+  bool SendPacketSafely(const void*, size_t);
+  bool SendPacketSafely(UnboundedBuffer& data) { return SendPacketSafely(data.ReadAddr(), data.ReadableSize()); }
+  bool SendPacketSafely(const evbuffer_iovec* iovecs, size_t nvecs);
+
+  void SetNewConnCallback(NewTcpConnectionCallback cb) { on_new_conn_ = std::move(cb); }
   void SetOnDisconnect(TcpDisconnectCallback cb) { on_disconnect_ = std::move(cb); }
   void SetMessageCallback(TcpMessageCallback cb) { on_message_ = std::move(cb); }
-  void SetFailCallback(TcpConnFailCallback cb) { on_fail_ = std::move(cb); }
+  void SetFailCallback(TcpConnectionFailCallback cb) { on_fail_ = std::move(cb); }
 
   // connection context
   template <typename T>
@@ -96,8 +104,8 @@ class TcpObject : public EventObject {
 
   TcpMessageCallback on_message_;
   TcpDisconnectCallback on_disconnect_;
-  TcpConnFailCallback on_fail_;
-  NewTcpConnCallback on_new_conn_;
+  TcpConnectionFailCallback on_fail_;
+  NewTcpConnectionCallback on_new_conn_;
 
   TimerId idle_timer_ = -1;
   int idle_timeout_ms_ = 0;
@@ -107,7 +115,7 @@ class TcpObject : public EventObject {
 };
 
 template <typename T>
-inline std::shared_ptr<T> TcpObject::GetContext() const {
+inline std::shared_ptr<T> TcpConnection::GetContext() const {
   return std::static_pointer_cast<T>(context_);
 }
 

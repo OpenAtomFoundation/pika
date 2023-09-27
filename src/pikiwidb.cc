@@ -156,7 +156,7 @@ static void CheckChild() {
   }
 }
 
-void PikiwiDB::OnNewConnection(pikiwidb::TcpObject* obj) {
+void PikiwiDB::OnNewConnection(pikiwidb::TcpConnection* obj) {
   INFO("New connection from {}:{}", obj->GetPeerIp(), obj->GetPeerPort());
 
   auto client = std::make_shared<pikiwidb::PClient>(obj);
@@ -167,7 +167,7 @@ void PikiwiDB::OnNewConnection(pikiwidb::TcpObject* obj) {
   auto msg_cb = std::bind(&pikiwidb::PClient::HandlePackets, client.get(),
                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
   obj->SetMessageCallback(msg_cb);
-  obj->SetOnDisconnect([](pikiwidb::TcpObject* obj) { INFO("disconnect from {}", obj->GetPeerIp()); });
+  obj->SetOnDisconnect([](pikiwidb::TcpConnection* obj) { INFO("disconnect from {}", obj->GetPeerIp()); });
   obj->SetNodelay(true);
   obj->SetEventLoopSelector([]() { return pikiwidb::IOThreadPool::Instance().Next(); });
 }
@@ -192,7 +192,7 @@ bool PikiwiDB::Init() {
     g_config.masterPort = master_port_;
   }
 
-  NewTcpConnCallback cb = std::bind(&PikiwiDB::OnNewConnection, this, std::placeholders::_1);
+  NewTcpConnectionCallback cb = std::bind(&PikiwiDB::OnNewConnection, this, std::placeholders::_1);
   if (!io_threads_.Init(g_config.ip.c_str(), g_config.port, cb)) {
     return false;
   }

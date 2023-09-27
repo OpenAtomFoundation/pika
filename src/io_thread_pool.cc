@@ -68,7 +68,7 @@ bool IOThreadPool::SetWorkerNum(size_t num) {
   return true;
 }
 
-bool IOThreadPool::Init(const char* ip, int port, NewTcpConnCallback cb) {
+bool IOThreadPool::Init(const char* ip, int port, NewTcpConnectionCallback cb) {
   auto f = std::bind(&IOThreadPool::Next, this);
 
   base_.Init();
@@ -151,13 +151,13 @@ void IOThreadPool::SetName(const std::string& name) { name_ = name; }
 
 IOThreadPool::IOThreadPool() : state_(State::kNone) { InitSignal(); }
 
-bool IOThreadPool::Listen(const char* ip, int port, NewTcpConnCallback ccb) {
+bool IOThreadPool::Listen(const char* ip, int port, NewTcpConnectionCallback ccb) {
   auto f = std::bind(&IOThreadPool::Next, this);
   auto loop = BaseLoop();
   return loop->Execute([loop, ip, port, ccb, f]() { return loop->Listen(ip, port, std::move(ccb), f); }).get();
 }
 
-void IOThreadPool::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb, EventLoop* loop) {
+void IOThreadPool::Connect(const char* ip, int port, NewTcpConnectionCallback ccb, TcpConnectionFailCallback fcb, EventLoop* loop) {
   if (!loop) {
     loop = Next();
   }
@@ -172,7 +172,7 @@ std::shared_ptr<HttpServer> IOThreadPool::ListenHTTP(const char* ip, int port, H
   server->SetOnNewHttpContext(std::move(cb));
 
   // capture server to make it long live with TcpListener
-  auto ncb = [server](TcpObject* conn) { server->OnNewConnection(conn); };
+  auto ncb = [server](TcpConnection* conn) { server->OnNewConnection(conn); };
   Listen(ip, port, ncb);
 
   return server;
@@ -181,8 +181,8 @@ std::shared_ptr<HttpServer> IOThreadPool::ListenHTTP(const char* ip, int port, H
 std::shared_ptr<HttpClient> IOThreadPool::ConnectHTTP(const char* ip, int port, EventLoop* loop) {
   auto client = std::make_shared<HttpClient>();
 
-  // capture client to make it long live with TcpObject
-  auto ncb = [client](TcpObject* conn) { client->OnConnect(conn); };
+  // capture client to make it long live with TcpConnection
+  auto ncb = [client](TcpConnection* conn) { client->OnConnect(conn); };
   auto fcb = [client](EventLoop*, const char* ip, int port) { client->OnConnectFail(ip, port); };
 
   if (!loop) {

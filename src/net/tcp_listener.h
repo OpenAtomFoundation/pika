@@ -2,7 +2,7 @@
 
 #include "event2/listener.h"
 #include "event_obj.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 namespace pikiwidb {
 class EventLoop;
@@ -15,7 +15,7 @@ class TcpListener : public EventObject {
   bool Bind(const char* ip, int port);
   int Fd() const override;
 
-  void SetNewConnCallback(NewTcpConnCallback cb) { on_new_conn_ = std::move(cb); }
+  void SetNewConnCallback(NewTcpConnectionCallback cb) { on_new_conn_ = std::move(cb); }
   EventLoop* SelectEventLoop();
 
  private:
@@ -25,7 +25,7 @@ class TcpListener : public EventObject {
   EventLoop* const loop_;
   struct evconnlistener* listener_{nullptr};
 
-  NewTcpConnCallback on_new_conn_;
+  NewTcpConnectionCallback on_new_conn_;
 };
 
 }  // namespace pikiwidb

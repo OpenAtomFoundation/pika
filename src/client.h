@@ -8,7 +8,7 @@
 #pragma once
 
 #include "common.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 #include <set>
 #include <unordered_map>
@@ -31,21 +31,17 @@ struct PSlaveInfo;
 class PClient : public std::enable_shared_from_this<PClient> {
  public:
   PClient() = delete;
-  explicit PClient(TcpObject* obj);
+  explicit PClient(TcpConnection* obj);
 
-  int HandlePackets(pikiwidb::TcpObject*, const char*, int);
+  int HandlePackets(pikiwidb::TcpConnection*, const char*, int);
 
   void OnConnect();
 
-  EventLoop* GetEventLoop(void) const { return tcp_obj_->GetEventLoop(); }
+  EventLoop* GetEventLoop(void) const { return tcp_connection_->GetEventLoop(); }
+  TcpConnection* GetTcpConnection(void) const { return tcp_connection_; }
 
-  const std::string& PeerIP() const { return tcp_obj_->GetPeerIp(); }
-  int PeerPort() const { return tcp_obj_->GetPeerPort(); }
-
-  bool SendPacket(UnboundedBuffer& data) { return tcp_obj_->SendPacket(data.ReadAddr(), data.ReadableSize()); }
-  bool SendPacket(const void* data, int size) { return tcp_obj_->SendPacket(data, size); }
-  bool SendPacket(const std::string& buffer) const { return tcp_obj_->SendPacket(buffer.data(), buffer.size()); }
-  bool SendPacket(const evbuffer_iovec* iovecs, int nvecs) { return tcp_obj_->SendPacket(iovecs, nvecs); }
+  const std::string& PeerIP() const { return tcp_connection_->GetPeerIp(); }
+  int PeerPort() const { return tcp_connection_->GetPeerPort(); }
 
   void Close();
 
@@ -102,13 +98,13 @@ class PClient : public std::enable_shared_from_this<PClient> {
   void RewriteCmd(std::vector<PString>& params) { parser_.SetParams(params); }
 
  private:
-  int handlePacket(pikiwidb::TcpObject*, const char*, int);
-  int handlePacketNew(pikiwidb::TcpObject* obj, const std::vector<std::string>& params, const std::string& cmd);
+  int handlePacket(pikiwidb::TcpConnection*, const char*, int);
+  int handlePacketNew(pikiwidb::TcpConnection* obj, const std::vector<std::string>& params, const std::string& cmd);
   int processInlineCmd(const char*, size_t, std::vector<PString>&);
   void reset();
   bool isPeerMaster() const;
 
-  TcpObject* const tcp_obj_;
+  TcpConnection* const tcp_connection_;
 
   PProtoParser parser_;
   UnboundedBuffer reply_;
@@ -134,7 +130,7 @@ class PClient : public std::enable_shared_from_this<PClient> {
 
   // auth
   bool auth_ = false;
-  time_t lastauth_ = 0;
+  time_t last_auth_ = 0;
 
   static PClient* s_current;
   static std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > s_monitors_;

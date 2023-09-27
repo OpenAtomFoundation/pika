@@ -93,7 +93,7 @@ std::future<bool> EventLoop::Cancel(TimerId id) {
 }
 
 bool EventLoop::InThisLoop() const {
-  printf("EventLoop::InThisLoop this %p, g_this_loop %p\n", this, g_this_loop);
+//  printf("EventLoop::InThisLoop this %p, g_this_loop %p\n", this, g_this_loop);
   return this == g_this_loop;
 }
 
@@ -155,7 +155,7 @@ void EventLoop::Unregister(std::shared_ptr<EventObject> obj) {
   objects_.erase(id);
 }
 
-bool EventLoop::Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLoopSelector selector) {
+bool EventLoop::Listen(const char* ip, int port, NewTcpConnectionCallback ccb, EventLoopSelector selector) {
   auto s = std::make_shared<TcpListener>(this);
   s->SetNewConnCallback(ccb);
   s->SetEventLoopSelector(selector);
@@ -163,8 +163,8 @@ bool EventLoop::Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLo
   return s->Bind(ip, port);
 }
 
-std::shared_ptr<TcpObject> EventLoop::Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb) {
-  auto c = std::make_shared<TcpObject>(this);
+std::shared_ptr<TcpConnection> EventLoop::Connect(const char* ip, int port, NewTcpConnectionCallback ccb, TcpConnectionFailCallback fcb) {
+  auto c = std::make_shared<TcpConnection>(this);
   c->SetNewConnCallback(ccb);
   c->SetFailCallback(fcb);
 
@@ -180,7 +180,7 @@ std::shared_ptr<HttpServer> EventLoop::ListenHTTP(const char* ip, int port, Even
   server->SetOnNewHttpContext(std::move(cb));
 
   // capture server to make it long live with TcpListener
-  auto ncb = [server](TcpObject* conn) {
+  auto ncb = [server](TcpConnection* conn) {
     server->OnNewConnection(conn);
   };
   Listen(ip, port, ncb, selector);
@@ -191,8 +191,8 @@ std::shared_ptr<HttpServer> EventLoop::ListenHTTP(const char* ip, int port, Even
 std::shared_ptr<HttpClient> EventLoop::ConnectHTTP(const char* ip, int port) {
   auto client = std::make_shared<HttpClient>();
 
-  // capture client to make it long live with TcpObject
-  auto ncb = [client](TcpObject* conn) { client->OnConnect(conn); };
+  // capture client to make it long live with TcpConnection
+  auto ncb = [client](TcpConnection* conn) { client->OnConnect(conn); };
   auto fcb = [client](EventLoop*, const char* ip, int port) { client->OnConnectFail(ip, port); };
 
   client->SetLoop(this);

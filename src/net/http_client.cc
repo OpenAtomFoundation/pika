@@ -2,18 +2,18 @@
 
 #include "event_loop.h"
 #include "log.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 namespace pikiwidb {
 HttpClient::HttpClient() : parser_(HTTP_RESPONSE) {}
 
-void HttpClient::OnConnect(TcpObject* conn) {
+void HttpClient::OnConnect(TcpConnection* conn) {
   assert(loop_ == conn->GetEventLoop());
 
   INFO("HttpClient::OnConnect to {}:{} in loop {}", conn->GetPeerIp(), conn->GetPeerPort(), loop_->GetName());
   never_connected_ = false;
 
-  conn_ = std::static_pointer_cast<TcpObject>(conn->shared_from_this());
+  conn_ = std::static_pointer_cast<TcpConnection>(conn->shared_from_this());
   parser_.SetResponseHandler(std::bind(&HttpClient::HandleResponse, this, std::placeholders::_1));
 
   conn->SetContext(shared_from_this());
@@ -53,7 +53,7 @@ bool HttpClient::SendRequest(const HttpRequest& req, HttpResponseHandler handle,
 
 void HttpClient::SetLoop(EventLoop* loop) { loop_ = loop; }
 
-int HttpClient::Parse(TcpObject*, const char* data, int len) {
+int HttpClient::Parse(TcpConnection*, const char* data, int len) {
   bool ok = parser_.Execute(data, len);
   if (!ok) {
     ERROR("failed parse http rsp: {}", data);
@@ -158,7 +158,7 @@ void HttpClient::MaySetTimeout(const std::shared_ptr<RequestContext>& ctx) {
   });
 }
 
-void HttpClient::OnDisconnect(TcpObject*) {
+void HttpClient::OnDisconnect(TcpConnection*) {
   if (pending_request_) {
     auto req = std::move(pending_request_);
     if (req->error_handle) {

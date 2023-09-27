@@ -15,7 +15,7 @@
 #include "pipe_obj.h"
 #include "reactor.h"
 #include "tcp_listener.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 namespace pikiwidb {
 /// EventLoop is a wrapper for reactor and running its loop,
@@ -61,10 +61,10 @@ class EventLoop {
   Reactor* GetReactor() const { return reactor_.get(); }
 
   // TCP server
-  bool Listen(const char* ip, int port, NewTcpConnCallback ccb, EventLoopSelector selector);
+  bool Listen(const char* ip, int port, NewTcpConnectionCallback ccb, EventLoopSelector selector);
 
   // TCP client
-  std::shared_ptr<TcpObject> Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb);
+  std::shared_ptr<TcpConnection> Connect(const char* ip, int port, NewTcpConnectionCallback ccb, TcpConnectionFailCallback fcb);
 
   // HTTP server
   std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port, EventLoopSelector selector,

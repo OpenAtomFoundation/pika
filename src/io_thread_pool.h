@@ -23,7 +23,7 @@ class IOThreadPool {
   static IOThreadPool& Instance();
   ~IOThreadPool();
 
-  bool Init(const char* ip, int port, NewTcpConnCallback ccb);
+  bool Init(const char* ip, int port, NewTcpConnectionCallback ccb);
   void Run(int argc, char* argv[]);
   void Exit();
   bool IsExit() const;
@@ -39,10 +39,10 @@ class IOThreadPool {
   void SetName(const std::string& name);
 
   // TCP server
-  bool Listen(const char* ip, int port, NewTcpConnCallback ccb);
+  bool Listen(const char* ip, int port, NewTcpConnectionCallback ccb);
 
   // TCP client
-  void Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb = TcpConnFailCallback(),
+  void Connect(const char* ip, int port, NewTcpConnectionCallback ccb, TcpConnectionFailCallback fcb = TcpConnectionFailCallback(),
                EventLoop* loop = nullptr);
 
   // HTTP server
@@ -64,7 +64,7 @@ class IOThreadPool {
   std::string name_;
   std::string listen_ip_;
   int listen_port_;
-  NewTcpConnCallback new_conn_cb_;
+  NewTcpConnectionCallback new_conn_cb_;
 
   EventLoop base_;
 
