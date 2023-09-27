@@ -1,30 +1,30 @@
-## Pika 开发调试环境搭建
-本篇面向开发者，介绍如何使用 CLion 搭建 Pika 的开发调试环境。
+## How to setting up a development and debugging environment.
+This article is aimed at developers and it introduces how to set up a development and debugging environment for Pika using CLion.
 
-### 1. 下载安装 CLion
+### 1. Download and install CLion.
 
-CLion 是 JetBrains 推出的 C/C++ IDE，支持 Linux、Windows、macOS 等多个平台，支持多种编译器，包括 GCC、Clang 等。
-- 下载地址：[https://www.jetbrains.com/clion/download/](https://www.jetbrains.com/clion/download/)
+CLion is a C/C++ IDE developed by JetBrains. It supports multiple platforms such as Linux, Windows, and macOS, and it also supports various compilers including GCC and Clang.
+- Download link：[https://www.jetbrains.com/clion/download/](https://www.jetbrains.com/clion/download/)
 
-### 2. clone Pika 源码
+### 2. Clone the Pika source code
 
 ```bash
 $ git clone https://github.com/OpenAtomFoundation/pika.git
 ```
 
-### 3. 打开 Pika 项目
+### 3. Open the Pika
 
-选择 Open，打开 Pika 并选择 CMake 项目。
+Choose Open and select CMake project.
 ![](../images/clion-open-project.png)
 
-### 4. 配置 CLion 
+### 4. Configure CLion
 
-CLion 默认会使用 Ninja 作为构建工具，但 Pika 使用的是 Makefile，所以需要修改 CLion 的配置。
+CLion by default uses Ninja as the build tool, but Pika uses Makefile. Therefore, the CLion configuration needs to be modified.
 ![](../images/clion-cmake-settings.png)
 
-### 5. 编译 Pika
+### 5. Compile Pika
 
-在 Run/Debug Configuration -> Cmake Application 里选中 Pika， 点击 Debug 按钮，开始编译 Pika。编译完成后，看到如下输出，说明编译成功。
+In the Run/Debug Configuration -> Cmake Application, select Pika, click the Debug button to start compiling Pika. After the compilation is completed, if you see the following output, it means the compilation is successful.
 ```
 Pika module 3.5.0
 usage: pika [-hv] [-c conf/file]
@@ -36,13 +36,13 @@ example: ./output/bin/pika -c ./conf/pika.conf
 
 ![](../images/clion-build.png)
 
-### 6. 运行并调试 Pika
+### 6. Run and debug Pika
 
-运行 Pika 时，需要设置 Pika 的配置文件。在 Run/Debug Configuration -> Cmake Application -> Pika 里配置 Pika 的配置文件 `-c ../conf/pika.conf`，如下图所示。
+When running Pika, it is necessary to configure its configuration file. This can be done by configuring Pika's configuration file in Run/Debug Configuration -> Cmake Application -> Pika. `-c ../conf/pika.conf`，As shown in the following picture.
 
 ![](../images/clion-run-config.png)
 
-配置好后点击 Debug 按钮，开始运行 Pika。运行成功后，可以在 CLion 的控制台看到 Pika 的输出。
+After configuring, click the Debug button to start running Pika. Once it runs successfully, you can see the "PIKA" in CLion's console.
 
 ```log
 .............          ....     .....       .....           .....         
@@ -78,9 +78,9 @@ I20230921 17:13:44.302228 20438988 pika_server.cc:204] Pika Server going to star
 I20230921 17:13:44.302265 20438988 rsync_server.cc:48] start RsyncServer ...
 ```
 
-此时，Pika 已经在 CLion 中运行，可以使用 redis-cli 连接 Pika，默认端口 9221，进行调试。
+At this point, Pika is already running in CLion, and you can use redis-cli to connect to Pika for debugging purposes. The default port is 9221.
 
 ![](../images/clion-debug.png)
 
-进入断点后，说明 Pika 调试模式运行成功。
+Entering the breakpoint indicates that Pika debugging mode is running successfully.
 
