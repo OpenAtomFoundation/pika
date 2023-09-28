@@ -1,7 +1,8 @@
-## How to setting up a development and debugging environment.
+## How to setting up a development and debugging environment
+
 This article is aimed at developers and it introduces how to set up a development and debugging environment for Pika using CLion.
 
-### 1. Download and install CLion.
+### 1. Download and install CLion
 
 CLion is a C/C++ IDE developed by JetBrains. It supports multiple platforms such as Linux, Windows, and macOS, and it also supports various compilers including GCC and Clang.
 - Download link：[https://www.jetbrains.com/clion/download/](https://www.jetbrains.com/clion/download/)
