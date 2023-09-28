@@ -355,7 +355,7 @@ void TcpConnection::OnEvent(struct bufferevent* bev, short events, void* obj) {
       return;
 
     case State::kConnected:
-      if (events & BEV_EVENT_EOF) {
+      if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
         me->HandleDisconnect();
       }
       return;
