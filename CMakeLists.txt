@@ -654,9 +654,11 @@ ExternalProject_Add(sol
   CONFIGURE_COMMAND
   ""
   BUILD_COMMAND
-  python single/single.py
+  ""
+  # python single/single.py
   INSTALL_COMMAND
-  cp -r single/include/sol ${INSTALL_INCLUDEDIR}
+  # cp -r single/include/sol ${INSTALL_INCLUDEDIR}
+  cp -r include/sol ${INSTALL_INCLUDEDIR}
 )
 set(SOL_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
