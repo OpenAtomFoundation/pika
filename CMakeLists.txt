@@ -632,33 +632,33 @@ if(NOT USEJIT)
 endif()
 MESSAGE(STATUS "USEJIT: ${USEJIT}")
 
-# ExternalProject_Add(sol
-#   URL
-#   https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz
-#   URL_HASH
-#   MD5=05021725f7a3e0b91e19250d001deb8e
-#   DOWNLOAD_NO_PROGRESS
-#   1
-#   UPDATE_COMMAND
-#   ""
-#   LOG_BUILD
-#   1
-#   LOG_INSTALL
-#   1
-#   BUILD_IN_SOURCE
-#   1
-#   SOURCE_SUBDIR
-#   ""
-#   BUILD_ALWAYS
-#   1
-#   CONFIGURE_COMMAND
-#   ""
-#   BUILD_COMMAND
-#   ""
-#   INSTALL_COMMAND
-#   cp -r single/include/sol ${INSTALL_INCLUDEDIR}
-# )
-# set(SOL_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+ExternalProject_Add(sol
+  URL
+  https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz
+  URL_HASH
+  MD5=05021725f7a3e0b91e19250d001deb8e
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  BUILD_IN_SOURCE
+  1
+  SOURCE_SUBDIR
+  ""
+  BUILD_ALWAYS
+  1
+  CONFIGURE_COMMAND
+  ""
+  BUILD_COMMAND
+  python single/single.py
+  INSTALL_COMMAND
+  cp -r single/include/sol ${INSTALL_INCLUDEDIR}
+)
+set(SOL_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 if (NOT USEJIT)
   MESSAGE(STATUS "Use Lua")
@@ -870,7 +870,8 @@ add_dependencies(${PROJECT_NAME}
   pstd
   net
   storage
-  lua)
+  lua
+  sol)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
