@@ -2,7 +2,7 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable", "3.5.0", "lua_workflow"]
+    branches: [ "unstable", "3.5.0" ]
   pull_request:
     branches: [ "unstable", "3.5.0" ]
 
