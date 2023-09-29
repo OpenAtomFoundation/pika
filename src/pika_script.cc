@@ -455,7 +455,7 @@ void EvalCmd::LuaReplyToRedisReply(sol::state &lua, sol::object lua_ret) {
         while (1) {
           val = tb[j++];
           t = val.get_type();
-          if (t == sol::type::nil) {
+          if (t == sol::type::lua_nil) {
             break;
           }
           LuaReplyToRedisReply(lua, val);
