@@ -2,7 +2,7 @@
 #define PIKA_SCRIPT_H
 
 #include <cstdint>
-#include "script/sol/sol.hpp"
+#include "sol/sol.hpp"
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"

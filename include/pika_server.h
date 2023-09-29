@@ -23,7 +23,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
-#include "script/sol/sol.hpp"
+#include "sol/sol.hpp"
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
