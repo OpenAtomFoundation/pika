@@ -39,6 +39,7 @@ jobs:
         run: |
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
           sudo apt-get install -y clang-tidy-12 python3-pip
+          sudo apt-get -y install libreadline-dev
           python3 -m pip install --upgrade pip
           python3 -m pip install redis
 
