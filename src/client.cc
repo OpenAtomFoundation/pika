@@ -278,7 +278,7 @@ int PClient::HandlePackets(pikiwidb::TcpConnection* obj, const char* start, int 
     total += processed;
   }
 
-  obj->SendPacketSafely(reply_.ReadAddr(), reply_.ReadableSize());
+  obj->SendPacket(reply_.ReadAddr(), reply_.ReadableSize());
   reply_.Clear();
   return total;
 }
@@ -437,8 +437,8 @@ void PClient::FeedMonitors(const std::vector<PString>& params) {
   for (auto it(s_monitors_.begin()); it != s_monitors_.end();) {
     auto m = it->lock();
     if (m) {
-      m->tcp_connection_->SendPacketSafely(buf, n);
-      m->tcp_connection_->SendPacketSafely("\"" CRLF, 3);
+      m->tcp_connection_->SendPacket(buf, n);
+      m->tcp_connection_->SendPacket("\"" CRLF, 3);
 
       ++it;
     } else {

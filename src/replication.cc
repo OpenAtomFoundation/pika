@@ -79,7 +79,7 @@ void PReplication::OnRdbSaveDone() {
           {const_cast<char*>(data), size},
           {buffer_.ReadAddr(), buffer_.ReadableSize()}
       };
-      cli->GetTcpConnection()->SendPacketSafely(iovecs, sizeof(iovecs) / sizeof(iovecs[0]));
+      cli->GetTcpConnection()->SendPacket(iovecs, sizeof(iovecs) / sizeof(iovecs[0]));
 
       INFO("Send to slave rdb {}, buffer {}", size, buffer_.ReadableSize());
     }
@@ -155,7 +155,7 @@ void PReplication::SendToSlaves(const std::vector<PString>& params) {
       SaveCommand(params, ub);
     }
 
-    cli->GetTcpConnection()->SendPacketSafely(ub);
+    cli->GetTcpConnection()->SendPacket(ub);
   }
 }
 
@@ -171,7 +171,7 @@ void PReplication::Cron() {
         ++it;
 
         if (cli->GetSlaveInfo()->state == PSlaveState_online) {
-          cli->GetTcpConnection()->SendPacketSafely("PING\r\n", 6);
+          cli->GetTcpConnection()->SendPacket("PING\r\n", 6);
         }
       }
     }
@@ -219,7 +219,7 @@ void PReplication::Cron() {
             req.PushData("auth ", 5);
             req.PushData(g_config.masterauth.data(), g_config.masterauth.size());
             req.PushData("\r\n", 2);
-            master->GetTcpConnection()->SendPacketSafely(req);
+            master->GetTcpConnection()->SendPacket(req);
             INFO("send auth with password {}", g_config.masterauth);
 
             masterInfo_.state = PReplState_wait_auth;
@@ -238,7 +238,7 @@ void PReplication::Cron() {
           // send replconf
           char req[128];
           auto len = snprintf(req, sizeof req - 1, "replconf listening-port %hu\r\n", g_config.port);
-          master->GetTcpConnection()->SendPacketSafely(req, len);
+          master->GetTcpConnection()->SendPacket(req, len);
           masterInfo_.state = PReplState_wait_replconf;
 
           INFO("Send replconf listening-port {}", g_config.port);
@@ -255,7 +255,7 @@ void PReplication::Cron() {
           WARN("Master is down from wait_replconf to none");
         } else {
           // request sync rdb file
-          master->GetTcpConnection()->SendPacketSafely("SYNC\r\n", 6);
+          master->GetTcpConnection()->SendPacket("SYNC\r\n", 6);
           INFO("Request SYNC");
 
           rdb_.Open(slaveRdbFile, false);

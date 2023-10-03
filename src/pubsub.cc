@@ -137,7 +137,7 @@ std::size_t PPubsub::PublishMsg(const PString& channel, const PString& msg) {
         FormatBulk("message", 7, &reply);
         FormatBulk(channel, &reply);
         FormatBulk(msg, &reply);
-        cli->GetTcpConnection()->SendPacketSafely(reply);
+        cli->GetTcpConnection()->SendPacket(reply);
 
         ++itCli;
         ++n;
@@ -163,7 +163,7 @@ std::size_t PPubsub::PublishMsg(const PString& channel, const PString& msg) {
           FormatBulk(pattern.first, &reply);
           FormatBulk(channel, &reply);
           FormatBulk(msg, &reply);
-          cli->GetTcpConnection()->SendPacketSafely(reply);
+          cli->GetTcpConnection()->SendPacket(reply);
 
           ++itCli;
           ++n;

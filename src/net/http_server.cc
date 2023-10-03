@@ -89,12 +89,7 @@ void HttpContext::SendResponse(const HttpResponse& rsp) {
   }
 
   std::string rsp_data = rsp.Encode();
-  auto loop = conn->GetEventLoop();
-  if (loop->InThisLoop()) {
-    conn->SendPacketSafely(rsp_data.data(), rsp_data.size());
-  } else {
-    loop->Execute([conn, rsp_data]() { conn->SendPacketSafely(rsp_data.data(), rsp_data.size()); });
-  }
+  conn->SendPacket(rsp_data.data(), rsp_data.size());
 }
 
 }  // namespace pikiwidb

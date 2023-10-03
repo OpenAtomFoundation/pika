@@ -104,7 +104,7 @@ int TcpConnection::Fd() const {
   return -1;
 }
 
-bool TcpConnection::SendPacketSafely(const void* data, size_t size) {
+bool TcpConnection::SendPacket(const void* data, size_t size) {
   if (state_ != State::kConnected) {
     ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
     return false;
@@ -133,7 +133,7 @@ bool TcpConnection::SendPacketSafely(const void* data, size_t size) {
   return true;
 }
 
-bool TcpConnection::SendPacketSafely(const evbuffer_iovec* iovecs, size_t nvecs) {
+bool TcpConnection::SendPacket(const evbuffer_iovec* iovecs, size_t nvecs) {
   if (state_ != State::kConnected) {
     ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
     return false;

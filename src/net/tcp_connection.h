@@ -38,10 +38,10 @@ class TcpConnection : public EventObject {
 
   int Fd() const override;
 
-  bool SendPacketSafely(const std::string& buf) { return SendPacketSafely(buf.data(), buf.size()); }
-  bool SendPacketSafely(const void*, size_t);
-  bool SendPacketSafely(UnboundedBuffer& data) { return SendPacketSafely(data.ReadAddr(), data.ReadableSize()); }
-  bool SendPacketSafely(const evbuffer_iovec* iovecs, size_t nvecs);
+  bool SendPacket(const std::string& buf) { return SendPacket(buf.data(), buf.size()); }
+  bool SendPacket(const void*, size_t);
+  bool SendPacket(UnboundedBuffer& data) { return SendPacket(data.ReadAddr(), data.ReadableSize()); }
+  bool SendPacket(const evbuffer_iovec* iovecs, size_t nvecs);
 
   void SetNewConnCallback(NewTcpConnectionCallback cb) { on_new_conn_ = std::move(cb); }
   void SetOnDisconnect(TcpDisconnectCallback cb) { on_disconnect_ = std::move(cb); }

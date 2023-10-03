@@ -37,7 +37,7 @@ class EventObject : public std::enable_shared_from_this<EventObject> {
   virtual void HandleErrorEvent() {}
 
   // set event loop selector
-  virtual void SetEventLoopSelector(EventLoopSelector cb) { loop_selector_ = std::move(cb); }
+  virtual void SetEventLoopSelector(EventLoopSelector cb) final { loop_selector_ = std::move(cb); }
 
   // The unique id, it'll not repeat in one thread.
   int GetUniqueId() const { return unique_id_; }

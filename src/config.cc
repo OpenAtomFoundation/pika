@@ -159,7 +159,7 @@ bool LoadPikiwiDBConfig(const char* cfgFile, PConfig& cfg) {
   cfg.noeviction = (parser.GetData<PString>("maxmemory-policy", "noeviction") == "noeviction");
 
   // io threads
-  cfg.io_threads_num = parser.GetData("io-threads", 1);
+  cfg.io_threads_num = parser.GetData<int>("io-threads", 1);
 
   // backend
   cfg.backend = parser.GetData<int>("backend", BackEndNone);
