@@ -104,24 +104,6 @@ int TcpConnection::Fd() const {
   return -1;
 }
 
-bool TcpConnection::SendPacket(const std::string& data) { return this->SendPacket(data.data(), data.size()); }
-
-bool TcpConnection::SendPacket(const void* data, size_t size) {
-  if (state_ != State::kConnected) {
-    ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
-    return false;
-  }
-
-  if (!data || size == 0) {
-    return true;
-  }
-
-  assert(loop_->InThisLoop());
-  auto output = bufferevent_get_output(bev_);
-  evbuffer_add(output, data, size);
-  return true;
-}
-
 bool TcpConnection::SendPacketSafely(const void* data, size_t size) {
   if (state_ != State::kConnected) {
     ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
@@ -203,22 +185,6 @@ void TcpConnection::HandleConnect() {
   if (on_new_conn_) {
     on_new_conn_(this);
   }
-}
-
-bool TcpConnection::SendPacket(const evbuffer_iovec* iovecs, int nvecs) {
-  if (state_ != State::kConnected) {
-    ERROR("send tcp data in wrong state {}", static_cast<int>(state_));
-    return false;
-  }
-
-  if (!iovecs || nvecs <= 0) {
-    return true;
-  }
-
-  assert(loop_->InThisLoop());
-  auto output = bufferevent_get_output(bev_);
-  evbuffer_add_iovec(output, const_cast<evbuffer_iovec*>(iovecs), nvecs);
-  return true;
 }
 
 void TcpConnection::HandleConnectFailed() {

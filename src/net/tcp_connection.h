@@ -38,11 +38,6 @@ class TcpConnection : public EventObject {
 
   int Fd() const override;
 
-  bool SendPacket(const std::string&);
-  bool SendPacket(const void*, size_t);
-  bool SendPacket(UnboundedBuffer& data) { return SendPacket(data.ReadAddr(), data.ReadableSize()); }
-  bool SendPacket(const evbuffer_iovec* iovecs, int nvecs);
-
   bool SendPacketSafely(const std::string& buf) { return SendPacketSafely(buf.data(), buf.size()); }
   bool SendPacketSafely(const void*, size_t);
   bool SendPacketSafely(UnboundedBuffer& data) { return SendPacketSafely(data.ReadAddr(), data.ReadableSize()); }

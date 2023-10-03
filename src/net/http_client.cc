@@ -116,7 +116,7 @@ bool HttpClient::DirectSendRequest(const HttpRequest& req, HttpResponseHandler h
   }
 
   auto req_bytes = req.Encode();
-  if (!conn->SendPacket(req_bytes.data(), req_bytes.size())) {
+  if (!conn->SendPacketSafely(req_bytes.data(), req_bytes.size())) {
     if (err_handle) {
       err_handle(req, ErrorCode::kConnectionReset);
     }
