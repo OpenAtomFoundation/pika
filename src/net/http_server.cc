@@ -2,7 +2,7 @@
 
 #include "event_loop.h"
 #include "log.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 namespace pikiwidb {
 
@@ -28,8 +28,8 @@ void HttpServer::HandleFunc(const std::string& url, Handler handle) { handlers_[
 
 void HttpServer::SetOnNewHttpContext(OnNewClient on_new_http) { on_new_http_ctx_ = std::move(on_new_http); }
 
-void HttpServer::OnNewConnection(TcpObject* conn) {
-  auto _ = std::static_pointer_cast<TcpObject>(conn->shared_from_this());
+void HttpServer::OnNewConnection(TcpConnection* conn) {
+  auto _ = std::static_pointer_cast<TcpConnection>(conn->shared_from_this());
   auto ctx = std::make_shared<HttpContext>(HTTP_REQUEST, _, this);
 
   conn->SetContext(ctx);
@@ -46,7 +46,7 @@ void HttpServer::OnNewConnection(TcpObject* conn) {
   }
 }
 
-void HttpServer::OnDisconnect(TcpObject* conn) {
+void HttpServer::OnDisconnect(TcpConnection* conn) {
   INFO("disconnect http fd : {}", conn->Fd());
   auto it = contexts_.find(conn->GetUniqueId());
   if (it != contexts_.end()) {
@@ -54,12 +54,12 @@ void HttpServer::OnDisconnect(TcpObject* conn) {
   }
 }
 
-HttpContext::HttpContext(llhttp_type type, std::shared_ptr<TcpObject> c, HttpServer* server)
+HttpContext::HttpContext(llhttp_type type, std::shared_ptr<TcpConnection> c, HttpServer* server)
     : parser_(type), conn_(c), server_(server) {
   parser_.SetRequestHandler(std::bind(&HttpContext::HandleRequest, this, std::placeholders::_1));
 }
 
-int HttpContext::Parse(TcpObject*, const char* data, int len) {
+int HttpContext::Parse(TcpConnection*, const char* data, int len) {
   bool ok = parser_.Execute(data, len);
   if (!ok) {
     ERROR("failed parse http req: {}, reason {}", data, parser_.ErrorReason());
@@ -89,12 +89,7 @@ void HttpContext::SendResponse(const HttpResponse& rsp) {
   }
 
   std::string rsp_data = rsp.Encode();
-  auto loop = conn->GetLoop();
-  if (loop->InThisLoop()) {
-    conn->SendPacket(rsp_data.data(), rsp_data.size());
-  } else {
-    loop->Execute([conn, rsp_data]() { conn->SendPacket(rsp_data.data(), rsp_data.size()); });
-  }
+  conn->SendPacket(rsp_data.data(), rsp_data.size());
 }
 
 }  // namespace pikiwidb

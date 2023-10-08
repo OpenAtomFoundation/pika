@@ -253,7 +253,7 @@ size_t PStore::BlockedClients::ServeClient(const PString& key, const PLIST& list
           if (err != PError_notExist) {
             UnboundedBuffer reply;
             ReplyError(err, &reply);
-            cli->SendPacket(reply);
+            cli->GetTcpConnection()->SendPacket(reply);
             errorTarget = true;
           } else {
             dst = PSTORE.SetValue(target, PObject::CreateList());
@@ -292,7 +292,7 @@ size_t PStore::BlockedClients::ServeClient(const PString& key, const PLIST& list
           Propagate(params);
         }
 
-        cli->SendPacket(reply);
+        cli->GetTcpConnection()->SendPacket(reply);
         INFO("Serve client {} list key : {}", cli->GetName(), key);
       }
 
@@ -321,7 +321,7 @@ int PStore::BlockedClients::LoopCheck(uint64_t now) {
           INFO("{} is timeout for waiting key {}", scli->GetName(), key);
           UnboundedBuffer reply;
           FormatNull(&reply);
-          scli->SendPacket(reply);
+          scli->GetTcpConnection()->SendPacket(reply);
           scli->ClearWaitingKeys();
         }
 

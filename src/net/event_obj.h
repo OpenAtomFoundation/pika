@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <functional>
 #include <memory>
 
 namespace pikiwidb {
@@ -10,6 +11,10 @@ enum EventType {
   kEventWrite = 0x1 << 1,
   kEventError = 0x1 << 2,
 };
+
+class EventLoop;
+// choose a loop for load balance
+using EventLoopSelector = std::function<EventLoop*()>;
 
 /// Event object base class.
 class EventObject : public std::enable_shared_from_this<EventObject> {
@@ -31,10 +36,16 @@ class EventObject : public std::enable_shared_from_this<EventObject> {
   // When error event occurs
   virtual void HandleErrorEvent() {}
 
+  // set event loop selector
+  virtual void SetEventLoopSelector(EventLoopSelector cb) final { loop_selector_ = std::move(cb); }
+
   // The unique id, it'll not repeat in one thread.
   int GetUniqueId() const { return unique_id_; }
   // Set the unique id, it's called by library.
   void SetUniqueId(int id) { unique_id_ = id; }
+
+ protected:
+  EventLoopSelector loop_selector_;
 
  private:
   int unique_id_ = -1;  // set by eventloop

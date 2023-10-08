@@ -5,10 +5,11 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
+#include "io_thread_pool.h"
 #include "cmd_table_manager.h"
 #include "event_loop.h"
 #include "pstring.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 #define PIKIWIDB_VERSION "4.0.0"
 
@@ -18,31 +19,30 @@ class PikiwiDB final {
   ~PikiwiDB();
 
   bool ParseArgs(int ac, char* av[]);
-  const pikiwidb::PString& GetConfigName() const { return cfgFile_; }
+  const pikiwidb::PString& GetConfigName() const { return cfg_file_; }
 
   bool Init();
   void Run();
   void Recycle();
   void Stop();
 
-  void OnNewConnection(pikiwidb::TcpObject* obj);
+  void OnNewConnection(pikiwidb::TcpConnection* obj);
 
   std::unique_ptr<pikiwidb::CmdTableManager>& CmdTableManager();
 
  public:
-  pikiwidb::EventLoop event_loop_;
-
-  pikiwidb::PString cfgFile_;
+  pikiwidb::PString cfg_file_;
   unsigned short port_;
-  pikiwidb::PString logLevel_;
+  pikiwidb::PString log_level_;
 
   pikiwidb::PString master_;
-  unsigned short masterPort_;
+  unsigned short master_port_;
 
   static const unsigned kRunidSize;
 
  private:
-  std::unique_ptr<pikiwidb::CmdTableManager> cmdTableManager_;
+  pikiwidb::IOThreadPool& io_threads_;
+  std::unique_ptr<pikiwidb::CmdTableManager> cmd_table_manager_;
 };
 
 extern std::unique_ptr<PikiwiDB> g_pikiwidb;

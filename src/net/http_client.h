@@ -5,7 +5,7 @@
 #include "http_parser.h"
 
 namespace pikiwidb {
-class TcpObject;
+class TcpConnection;
 class EventLoop;
 
 class HttpClient : public std::enable_shared_from_this<HttpClient> {
@@ -26,7 +26,7 @@ class HttpClient : public std::enable_shared_from_this<HttpClient> {
   void operator=(const HttpClient&) = delete;
 
   // callback by framework
-  void OnConnect(TcpObject* conn);
+  void OnConnect(TcpConnection* conn);
   // callback by framework
   void OnConnectFail(const char* peer_ip, int port);
   // set timeout for this client
@@ -45,10 +45,10 @@ class HttpClient : public std::enable_shared_from_this<HttpClient> {
     ErrorHandler error_handle;
   };
 
-  int Parse(TcpObject*, const char* data, int len);
+  int Parse(TcpConnection*, const char* data, int len);
   void HandleResponse(const HttpResponse& rsp);
   bool DirectSendRequest(const HttpRequest& req, HttpResponseHandler handle, ErrorHandler err_handle);
-  void OnDisconnect(TcpObject*);
+  void OnDisconnect(TcpConnection*);
   void FlushBufferedRequest();
   void MaySetTimeout(const std::shared_ptr<RequestContext>&);
 
@@ -63,7 +63,7 @@ class HttpClient : public std::enable_shared_from_this<HttpClient> {
   int idle_timeout_ms_ = -1;
 
   HttpParser parser_;
-  std::weak_ptr<TcpObject> conn_;
+  std::weak_ptr<TcpConnection> conn_;
 
   EventLoop* loop_ = nullptr;
 };

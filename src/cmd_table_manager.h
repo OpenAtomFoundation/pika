@@ -16,6 +16,7 @@
 
 #include "base_cmd.h"
 
+
 namespace pikiwidb {
 
 using CmdTable = std::unordered_map<std::string, std::unique_ptr<BaseCmd>>;

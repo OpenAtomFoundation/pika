@@ -14,20 +14,22 @@
 #include "http_server.h"
 #include "pipe_obj.h"
 #include "reactor.h"
-#include "tcp_listener_obj.h"
-#include "tcp_obj.h"
+#include "tcp_listener.h"
+#include "tcp_connection.h"
 
 namespace pikiwidb {
 /// EventLoop is a wrapper for reactor and running its loop,
 /// one thread should at most has one EventLoop object,
 class EventLoop {
  public:
-  EventLoop();
+  EventLoop() = default;
   ~EventLoop() = default;
 
   EventLoop(const EventLoop&) = delete;
   void operator=(const EventLoop&) = delete;
 
+  // Init loop
+  void Init();
   // Run in a specific thread
   void Run();
   // Stop loop
@@ -59,13 +61,13 @@ class EventLoop {
   Reactor* GetReactor() const { return reactor_.get(); }
 
   // TCP server
-  bool Listen(const char* ip, int port, NewTcpConnCallback ccb);
+  bool Listen(const char* ip, int port, NewTcpConnectionCallback ccb, EventLoopSelector selector);
 
   // TCP client
-  std::shared_ptr<TcpObject> Connect(const char* ip, int port, NewTcpConnCallback ccb, TcpConnFailCallback fcb);
+  std::shared_ptr<TcpConnection> Connect(const char* ip, int port, NewTcpConnectionCallback ccb, TcpConnectionFailCallback fcb);
 
   // HTTP server
-  std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port,
+  std::shared_ptr<HttpServer> ListenHTTP(const char* ip, int port, EventLoopSelector selector,
                                          HttpServer::OnNewClient cb = HttpServer::OnNewClient());
 
   // HTTP client

@@ -8,7 +8,7 @@
 #include "http_parser.h"
 
 namespace pikiwidb {
-class TcpObject;
+class TcpConnection;
 class HttpContext;
 
 class HttpServer {
@@ -21,13 +21,13 @@ class HttpServer {
   void HandleFunc(const std::string& url, Handler handle);
   void SetOnNewHttpContext(OnNewClient on_new_http);
 
-  void OnNewConnection(TcpObject* conn);
+  void OnNewConnection(TcpConnection* conn);
 
   // set idle timeout for this client
   void SetIdleTimeout(int timeout_ms) { idle_timeout_ms_ = timeout_ms; }
 
  private:
-  void OnDisconnect(TcpObject* conn);
+  void OnDisconnect(TcpConnection* conn);
 
   std::unordered_map<int, std::shared_ptr<HttpContext>> contexts_;
   HandlerMap handlers_;
@@ -39,9 +39,9 @@ class HttpServer {
 
 class HttpContext : public std::enable_shared_from_this<HttpContext> {
  public:
-  HttpContext(llhttp_type type, std::shared_ptr<TcpObject> c, HttpServer* server);
+  HttpContext(llhttp_type type, std::shared_ptr<TcpConnection> c, HttpServer* server);
 
-  int Parse(TcpObject*, const char* data, int len);
+  int Parse(TcpConnection*, const char* data, int len);
 
   void SendResponse(const HttpResponse& rsp);
 
@@ -50,7 +50,7 @@ class HttpContext : public std::enable_shared_from_this<HttpContext> {
   void HandleRequest(const HttpRequest& req);
 
   HttpParser parser_;
-  std::weak_ptr<TcpObject> conn_;  // users may prolong life of ctx
+  std::weak_ptr<TcpConnection> conn_;  // users may prolong life of ctx
   HttpServer* server_ = nullptr;
 };
 

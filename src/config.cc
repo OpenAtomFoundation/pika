@@ -158,6 +158,10 @@ bool LoadPikiwiDBConfig(const char* cfgFile, PConfig& cfg) {
   cfg.maxmemorySamples = parser.GetData<int>("maxmemory-samples", 5);
   cfg.noeviction = (parser.GetData<PString>("maxmemory-policy", "noeviction") == "noeviction");
 
+  // io threads
+  cfg.io_threads_num = parser.GetData<int>("io-threads", 1);
+
+  // backend
   cfg.backend = parser.GetData<int>("backend", BackEndNone);
   cfg.backendPath = parser.GetData<PString>("backendpath", cfg.backendPath);
   EraseQuotes(cfg.backendPath);
@@ -179,6 +183,7 @@ bool PConfig::CheckArgs() const {
   RETURN_IF_FAIL(hz > 0 && hz < 500);
   RETURN_IF_FAIL(maxmemory >= 512 * 1024 * 1024UL);
   RETURN_IF_FAIL(maxmemorySamples > 0 && maxmemorySamples < 10);
+  RETURN_IF_FAIL(io_threads_num > 0 && io_threads_num < 129); // as redis
   RETURN_IF_FAIL(backend >= BackEndNone && backend < BackEndMax);
   RETURN_IF_FAIL(backendHz >= 1 && backendHz <= 50);
 

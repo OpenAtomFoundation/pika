@@ -8,7 +8,7 @@
 #pragma once
 
 #include "common.h"
-#include "tcp_obj.h"
+#include "tcp_connection.h"
 
 #include <set>
 #include <unordered_map>
@@ -31,16 +31,18 @@ struct PSlaveInfo;
 class PClient : public std::enable_shared_from_this<PClient> {
  public:
   PClient() = delete;
-  explicit PClient(TcpObject* obj);
+  explicit PClient(TcpConnection* obj);
 
-  int HandlePackets(pikiwidb::TcpObject*, const char*, int);
+  int HandlePackets(pikiwidb::TcpConnection*, const char*, int);
 
   void OnConnect();
 
-  const std::string& PeerIP() const { return tcp_obj_->GetPeerIp(); }
-  int PeerPort() const { return tcp_obj_->GetPeerPort(); }
-  int SendPacket(UnboundedBuffer& data) { return tcp_obj_->SendPacket(data.ReadAddr(), data.ReadableSize()); }
-  int SendPacket(const void* data, int size) { return tcp_obj_->SendPacket(data, size); }
+  EventLoop* GetEventLoop(void) const { return tcp_connection_->GetEventLoop(); }
+  TcpConnection* GetTcpConnection(void) const { return tcp_connection_; }
+
+  const std::string& PeerIP() const { return tcp_connection_->GetPeerIp(); }
+  int PeerPort() const { return tcp_connection_->GetPeerPort(); }
+
   void Close();
 
   bool SelectDB(int db);
@@ -67,26 +69,26 @@ class PClient : public std::enable_shared_from_this<PClient> {
 
   std::size_t UnSubscribe(const PString& channel) { return channels_.erase(channel); }
 
-  std::size_t PSubscribe(const PString& channel) { return patternChannels_.insert(channel).second ? 1 : 0; }
+  std::size_t PSubscribe(const PString& channel) { return pattern_channels_.insert(channel).second ? 1 : 0; }
 
-  std::size_t PUnSubscribe(const PString& channel) { return patternChannels_.erase(channel); }
+  std::size_t PUnSubscribe(const PString& channel) { return pattern_channels_.erase(channel); }
 
   const std::unordered_set<PString>& GetChannels() const { return channels_; }
-  const std::unordered_set<PString>& GetPatternChannels() const { return patternChannels_; }
+  const std::unordered_set<PString>& GetPatternChannels() const { return pattern_channels_; }
   std::size_t ChannelCount() const { return channels_.size(); }
-  std::size_t PatternChannelCount() const { return patternChannels_.size(); }
+  std::size_t PatternChannelCount() const { return pattern_channels_.size(); }
 
   bool WaitFor(const PString& key, const PString* target = nullptr);
 
-  const std::unordered_set<PString> WaitingKeys() const { return waitingKeys_; }
-  void ClearWaitingKeys() { waitingKeys_.clear(), target_.clear(); }
+  const std::unordered_set<PString> WaitingKeys() const { return waiting_keys_; }
+  void ClearWaitingKeys() { waiting_keys_.clear(), target_.clear(); }
   const PString& GetTarget() const { return target_; }
 
   void SetName(const PString& name) { name_ = name; }
   const PString& GetName() const { return name_; }
 
   void SetSlaveInfo();
-  PSlaveInfo* GetSlaveInfo() const { return slaveInfo_.get(); }
+  PSlaveInfo* GetSlaveInfo() const { return slave_info_.get(); }
 
   static void AddCurrentToMonitor();
   static void FeedMonitors(const std::vector<PString>& params);
@@ -96,13 +98,13 @@ class PClient : public std::enable_shared_from_this<PClient> {
   void RewriteCmd(std::vector<PString>& params) { parser_.SetParams(params); }
 
  private:
-  int handlePacket(pikiwidb::TcpObject*, const char*, int);
-  int handlePacketNew(pikiwidb::TcpObject* obj, const std::vector<std::string>& params, const std::string& cmd);
+  int handlePacket(pikiwidb::TcpConnection*, const char*, int);
+  int handlePacketNew(pikiwidb::TcpConnection* obj, const std::vector<std::string>& params, const std::string& cmd);
   int processInlineCmd(const char*, size_t, std::vector<PString>&);
   void reset();
   bool isPeerMaster() const;
 
-  TcpObject* const tcp_obj_;
+  TcpConnection* const tcp_connection_;
 
   PProtoParser parser_;
   UnboundedBuffer reply_;
@@ -110,28 +112,28 @@ class PClient : public std::enable_shared_from_this<PClient> {
   int db_ = -1;
 
   std::unordered_set<PString> channels_;
-  std::unordered_set<PString> patternChannels_;
+  std::unordered_set<PString> pattern_channels_;
 
   unsigned flag_;
-  std::unordered_map<int, std::unordered_set<PString> > watchKeys_;
-  std::vector<std::vector<PString> > queueCmds_;
+  std::unordered_map<int, std::unordered_set<PString> > watch_keys_;
+  std::vector<std::vector<PString> > queue_cmds_;
 
   // blocked list
-  std::unordered_set<PString> waitingKeys_;
+  std::unordered_set<PString> waiting_keys_;
   PString target_;
 
   // slave info from master view
-  std::unique_ptr<PSlaveInfo> slaveInfo_;
+  std::unique_ptr<PSlaveInfo> slave_info_;
 
   // name
   std::string name_;
 
   // auth
   bool auth_ = false;
-  time_t lastauth_ = 0;
+  time_t last_auth_ = 0;
 
   static PClient* s_current;
-  static std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > s_monitors;
+  static std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > s_monitors_;
 };
 
 }  // namespace pikiwidb
