@@ -53,6 +53,7 @@ class TcpConnection : public EventObject {
   std::shared_ptr<T> GetContext() const;
   void SetContext(std::shared_ptr<void> ctx);
 
+  EventLoop* SelectSlaveEventLoop();
   EventLoop* GetEventLoop() const { return loop_; }
   const std::string& GetPeerIp() const { return peer_ip_; }
   int GetPeerPort() const { return peer_port_; }

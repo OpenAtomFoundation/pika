@@ -334,6 +334,14 @@ void TcpConnection::OnEvent(struct bufferevent* bev, short events, void* obj) {
 
 void TcpConnection::SetContext(std::shared_ptr<void> ctx) { context_ = std::move(ctx); }
 
+EventLoop* TcpConnection::SelectSlaveEventLoop(){
+  if (slave_loop_selector_){
+    return slave_loop_selector_();
+  }
+
+  return loop_;
+}
+
 void TcpConnection::ActiveClose(bool sync) {
   // weak: don't prolong life of this
   std::weak_ptr<TcpConnection> me = std::static_pointer_cast<TcpConnection>(shared_from_this());

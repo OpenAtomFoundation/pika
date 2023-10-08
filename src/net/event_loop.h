@@ -85,6 +85,8 @@ class EventLoop {
   // for unittest only
   void Reset();
 
+  std::shared_ptr<EventObject> GetEventObject(int id){return objects_[id];};
+
  private:
   std::unique_ptr<Reactor> reactor_;
   std::unordered_map<int, std::shared_ptr<EventObject>> objects_;

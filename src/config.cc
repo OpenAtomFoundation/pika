@@ -161,6 +161,9 @@ bool LoadPikiwiDBConfig(const char* cfgFile, PConfig& cfg) {
   // io threads
   cfg.io_threads_num = parser.GetData<int>("io-threads", 1);
 
+  // slave threads
+  cfg.slave_threads_num = parser.GetData<int>("slave-threads", 1);
+
   // backend
   cfg.backend = parser.GetData<int>("backend", BackEndNone);
   cfg.backendPath = parser.GetData<PString>("backendpath", cfg.backendPath);

@@ -170,6 +170,7 @@ void PikiwiDB::OnNewConnection(pikiwidb::TcpConnection* obj) {
   obj->SetOnDisconnect([](pikiwidb::TcpConnection* obj) { INFO("disconnect from {}", obj->GetPeerIp()); });
   obj->SetNodelay(true);
   obj->SetEventLoopSelector([]() { return pikiwidb::IOThreadPool::Instance().Next(); });
+  obj->SetSlaveEventLoopSelector([](){ return pikiwidb::IOThreadPool::Instance().SlaveNext(); });
 }
 
 bool PikiwiDB::Init() {
@@ -197,6 +198,7 @@ bool PikiwiDB::Init() {
     return false;
   }
   io_threads_.SetWorkerNum((size_t)(g_config.io_threads_num));
+  io_threads_.SetSlaveNum((size_t)(g_config.slave_threads_num));
 
   PCommandTable::Init();
   PCommandTable::AliasCommand(g_config.aliases);

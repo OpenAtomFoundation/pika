@@ -68,6 +68,33 @@ bool IOThreadPool::SetWorkerNum(size_t num) {
   return true;
 }
 
+bool IOThreadPool::SetSlaveNum(size_t num){
+  if (num <= 1){
+    return true;
+  }
+
+  if (state_ != State::kNone){
+    ERROR("can only called before application run");
+    return false;
+  }
+
+  if (!slave_loops_.empty()){
+    ERROR("can only called once, not empty slave loops size: {}", slave_loops_.size());
+    return false;
+  }
+
+  if (num > kMaxWorkers){
+    ERROR("number of threads can't exceeds {}, now is {}",kMaxWorkers, num);
+    return false;
+  }
+
+  slave_num_.store(num);
+  slave_workers_.reserve(num);
+  slave_loops_.reserve(num);
+
+  return true;
+}
+
 bool IOThreadPool::Init(const char* ip, int port, NewTcpConnectionCallback cb) {
   auto f = std::bind(&IOThreadPool::Next, this);
 
@@ -87,12 +114,21 @@ void IOThreadPool::Run(int ac, char* av[]) {
 
   // start loops in thread pool
   StartWorkers();
+  StartSlaves();
+  state_ = State::kStarted;
+
   base_.Run();
 
   for (auto& w : workers_) {
     w.join();
   }
+  
+  for (auto& slave_worker : slave_workers_ ){
+    slave_worker.join();
+  }
+
   workers_.clear();
+  slave_workers_.clear();
 
   INFO("Process stopped, goodbye...");
 }
@@ -101,9 +137,15 @@ void IOThreadPool::Exit() {
   state_ = State::kStopped;
 
   BaseLoop()->Stop();
+
   for (size_t index = 0; index < loops_.size(); ++index) {
     EventLoop* loop = loops_[index].get();
     loop->Stop();
+  }
+
+  for (size_t index = 0; index < slave_loops_.size(); ++index){
+    EventLoop* slave_loop = slave_loops_[index].get();
+    slave_loop->Stop();
   }
 }
 
@@ -118,6 +160,15 @@ EventLoop* IOThreadPool::Next() {
 
   auto& loop = loops_[current_loop_++ % loops_.size()];
   return loop.get();
+}
+
+EventLoop* IOThreadPool::SlaveNext(){
+  if (slave_loops_.empty()){
+    return BaseLoop();
+  }
+
+  auto& slave_loop = slave_loops_[current_slave_loop_++ % slave_loops_.size()];
+  return slave_loop.get();
 }
 
 void IOThreadPool::StartWorkers() {
@@ -144,7 +195,32 @@ void IOThreadPool::StartWorkers() {
     workers_.push_back(std::move(t));
   }
 
-  state_ = State::kStarted;
+  // state_ = State::kStarted;
+}
+
+void IOThreadPool::StartSlaves(){
+  // only called by main thread
+  assert(state_ == State::kNone);
+
+  size_t index = 1;
+  while(slave_loops_.size() < slave_num_){
+    std::unique_ptr<EventLoop> slave_loop(new EventLoop);
+    if (!name_.empty()) {
+      slave_loop->SetName(name_ + "-slave_" + std::to_string(index++));
+      printf("loop %p, name %s\n", slave_loop.get(), slave_loop->GetName().c_str());
+    }
+    slave_loops_.push_back(std::move(slave_loop));
+  }
+
+  for (index = 0; index < slave_loops_.size(); ++index){
+    EventLoop* slave_loop = slave_loops_[index].get();
+    std::thread t([slave_loop]() {
+      slave_loop->Init();
+      slave_loop->Run();
+    });
+    printf("thread %lu, thread loop %p, loop name %s \n", index, slave_loop, slave_loop->GetName().c_str());
+    slave_workers_.push_back(std::move(t));
+  }
 }
 
 void IOThreadPool::SetName(const std::string& name) { name_ = name; }
