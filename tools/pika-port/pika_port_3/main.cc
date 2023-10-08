@@ -31,7 +31,11 @@ static int lockFile(int fd) {
 }
 
 static void createPidFile(const char* file) {
-  int fd = open(file, O_RDWR | O_CREAT | O_DIRECT, S_IRUSR | S_IWUSR);
+  int flags = O_RDWR | O_CREAT;
+#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
+    flags |= O_DIRECT;
+#endif
+  int fd = open(file, flags, S_IRUSR | S_IWUSR);
   if (-1 == fd) {
     LOG(FATAL) << "open(" << file << ") = " << fd;
   }

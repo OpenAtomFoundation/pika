@@ -12,3 +12,4 @@ set_target_properties(redisConn PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
     COMPILE_FLAGS ${CXXFLAGS})
+add_dependencies(redisConn hiredis)

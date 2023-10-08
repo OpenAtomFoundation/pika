@@ -404,7 +404,7 @@ int PikaConf::Load() {
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
-    rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200MB
+    rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 2000MB/s
   }
 
   // rate-limiter-refill-period-us
@@ -470,6 +470,15 @@ int PikaConf::Load() {
   }
   if (max_background_compactions_ >= 8) {
     max_background_compactions_ = 8;
+  }
+
+  max_background_jobs_ = (1 + 2);
+  GetConfInt("max-background-jobs", &max_background_jobs_);
+  if (max_background_jobs_ <= 0) {
+    max_background_jobs_ = (1 + 2);
+  }
+  if (max_background_jobs_ >= (8 + 4)) {
+    max_background_jobs_ = (8 + 4);
   }
 
   max_cache_files_ = 5000;
@@ -606,7 +615,7 @@ int PikaConf::Load() {
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
-    throttle_bytes_per_second_ = 307200000;
+    throttle_bytes_per_second_ = 207200000;
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
@@ -662,6 +671,7 @@ int PikaConf::ConfigRewrite() {
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("max-background-jobs", max_background_jobs_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);

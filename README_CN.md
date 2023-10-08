@@ -126,6 +126,10 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
   2. 执行 rm -fr output 重新生成cmkae（一般用于彻底重新编译）
 ```
 
+## pika 开发调试
+
+- [Pika 使用 CLion 搭建开发调试环境](./docs/ops/SetUpDevEnvironment.md)
+
 ## 容器化
 
 ### 使用docker运行
