@@ -194,8 +194,6 @@ void IOThreadPool::StartWorkers() {
     printf("thread %lu, thread loop %p, loop name %s \n", index, loop, loop->GetName().c_str());
     workers_.push_back(std::move(t));
   }
-
-  // state_ = State::kStarted;
 }
 
 void IOThreadPool::StartSlaves(){

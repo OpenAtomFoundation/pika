@@ -1,0 +1,70 @@
+[2023-10-09 15:58:37.508 #13293 pikiwidb.cc:266 info] pikiwidb server start...
+[2023-10-09 15:58:37.509 #13293 tcp_listener.cc:53 info] tcp listen on port 127.0.0.1:9221
+[2023-10-09 15:58:37.509 #13293 db.cc:401 debug] encounter Select DB 0
+[2023-10-09 15:58:37.509 #13293 db.cc:373 debug] encounter EOF
+[2023-10-09 15:58:37.509 #13293 io_thread_pool.cc:113 info] Process starting...
+[2023-10-09 15:58:50.540 #13293 tcp_listener.cc:87 info] new conn fd 30 from 127.0.0.1:50502
+[2023-10-09 15:58:50.541 #13294 tcp_connection.cc:179 info] HandleConnect success with 127.0.0.1:50502
+[2023-10-09 15:58:50.541 #13294 pikiwidb.cc:160 info] New connection from 127.0.0.1:50502
+[2023-10-09 15:58:50.541 #13294 client.cc:183 debug] client 7, cmd command
+[2023-10-09 15:58:55.402 #13294 client.cc:183 debug] client 7, cmd get
+[2023-10-09 15:59:13.038 #13293 tcp_listener.cc:87 info] new conn fd 31 from 127.0.0.1:34672
+[2023-10-09 15:59:13.039 #13295 tcp_connection.cc:179 info] HandleConnect success with 127.0.0.1:34672
+[2023-10-09 15:59:13.039 #13295 pikiwidb.cc:160 info] New connection from 127.0.0.1:34672
+[2023-10-09 15:59:14.035 #13295 client.cc:183 debug] client 8, cmd replconf
+[2023-10-09 15:59:15.038 #13295 client.cc:183 debug] client 9, cmd sync
+[2023-10-09 15:59:15.039 #13295 replication.cc:112 info] PReplication save rdb START
+[2023-10-09 15:59:15.039 #13295 replication.cc:131 info] onStartBgsave set cli wait bgsave end clientxxx
+[2023-10-09 15:59:15.042 #13293 db.cc:332 info] save rdb success
+[2023-10-09 15:59:15.042 #13293 replication.cc:84 info] Send to slave rdb 30, buffer 0
+[2023-10-09 15:59:25.106 #13294 client.cc:183 debug] client 7, cmd sync
+[2023-10-09 15:59:25.106 #13294 replication.cc:112 info] PReplication save rdb START
+[2023-10-09 15:59:25.107 #13294 replication.cc:131 info] onStartBgsave set cli wait bgsave end clientxxx
+[2023-10-09 15:59:25.110 #13293 db.cc:332 info] save rdb success
+[2023-10-09 15:59:25.111 #13293 replication.cc:84 info] Send to slave rdb 30, buffer 0
+[2023-10-09 15:59:25.111 #13294 client.cc:183 debug] client 7, cmd sync
+[2023-10-09 15:59:25.111 #13294 replication.cc:461 warning] clientxxx state is 3, ignore this sync request
+[2023-10-09 15:59:28.512 #13294 tcp_connection.cc:312 info] TcpConnection::OnEvent 11, state 2, obj 0x7fb9ec001510
+[2023-10-09 15:59:28.513 #13294 pikiwidb.cc:170 info] disconnect from 127.0.0.1
+[2023-10-09 15:59:28.513 #13294 tcp_connection.cc:33 info] close tcp fd 30
+[2023-10-09 16:17:51.857 #13293 tcp_listener.cc:24 info] close tcp listener fd 9
+[2023-10-09 16:17:51.857 #13296 tcp_connection.cc:33 info] close tcp fd 31
+[2023-10-09 16:17:51.857 #13293 io_thread_pool.cc:133 info] Process stopped, goodbye...
+[2023-10-09 16:17:51.857 #13293 pikiwidb.cc:245 info] server exit running
+[2023-10-09 16:22:46.642 #16043 pikiwidb.cc:266 info] pikiwidb server start...
+[2023-10-09 16:22:46.642 #16043 tcp_listener.cc:53 info] tcp listen on port 127.0.0.1:9221
+[2023-10-09 16:22:46.642 #16043 db.cc:401 debug] encounter Select DB 0
+[2023-10-09 16:22:46.642 #16043 db.cc:373 debug] encounter EOF
+[2023-10-09 16:22:46.642 #16043 io_thread_pool.cc:113 info] Process starting...
+[2023-10-09 16:23:06.011 #16043 tcp_listener.cc:87 info] new conn fd 30 from 127.0.0.1:33066
+[2023-10-09 16:23:06.011 #16044 tcp_connection.cc:179 info] HandleConnect success with 127.0.0.1:33066
+[2023-10-09 16:23:06.011 #16044 pikiwidb.cc:160 info] New connection from 127.0.0.1:33066
+[2023-10-09 16:23:06.011 #16044 client.cc:183 debug] client 7, cmd command
+[2023-10-09 16:23:08.711 #16044 client.cc:183 debug] client 7, cmd get
+[2023-10-09 16:23:27.654 #16043 tcp_listener.cc:87 info] new conn fd 31 from 127.0.0.1:40196
+[2023-10-09 16:23:27.655 #16045 tcp_connection.cc:179 info] HandleConnect success with 127.0.0.1:40196
+[2023-10-09 16:23:27.655 #16045 pikiwidb.cc:160 info] New connection from 127.0.0.1:40196
+[2023-10-09 16:23:28.654 #16045 client.cc:183 debug] client 8, cmd replconf
+[2023-10-09 16:23:29.654 #16045 client.cc:183 debug] client 9, cmd sync
+[2023-10-09 16:23:29.655 #16045 replication.cc:112 info] PReplication save rdb START
+[2023-10-09 16:23:29.655 #16045 replication.cc:131 info] onStartBgsave set cli wait bgsave end clientxxx
+[2023-10-09 16:23:29.658 #16043 db.cc:332 info] save rdb success
+[2023-10-09 16:23:29.659 #16043 replication.cc:84 info] Send to slave rdb 30, buffer 0
+[2023-10-09 16:23:58.255 #16044 client.cc:183 debug] client 7, cmd get
+[2023-10-09 16:24:01.351 #16044 client.cc:183 debug] client 7, cmd get
+[2023-10-09 16:24:04.743 #16044 client.cc:183 debug] client 7, cmd set
+[2023-10-09 16:24:07.111 #16044 client.cc:183 debug] client 7, cmd get
+[2023-10-09 16:24:20.063 #16044 client.cc:183 debug] client 7, cmd sync
+[2023-10-09 16:24:20.064 #16044 replication.cc:112 info] PReplication save rdb START
+[2023-10-09 16:24:20.064 #16044 replication.cc:131 info] onStartBgsave set cli wait bgsave end clientxxx
+[2023-10-09 16:24:20.065 #16043 db.cc:332 info] save rdb success
+[2023-10-09 16:24:20.065 #16043 replication.cc:84 info] Send to slave rdb 35, buffer 0
+[2023-10-09 16:24:20.066 #16044 client.cc:183 debug] client 7, cmd sync
+[2023-10-09 16:24:20.066 #16044 replication.cc:461 warning] clientxxx state is 3, ignore this sync request
+[2023-10-09 16:24:27.643 #16044 tcp_connection.cc:312 info] TcpConnection::OnEvent 11, state 2, obj 0x7fa230001510
+[2023-10-09 16:24:27.644 #16044 pikiwidb.cc:170 info] disconnect from 127.0.0.1
+[2023-10-09 16:24:27.644 #16044 tcp_connection.cc:33 info] close tcp fd 30
+[2023-10-09 16:52:44.421 #16046 tcp_connection.cc:33 info] close tcp fd 31
+[2023-10-09 16:52:44.421 #16043 tcp_listener.cc:24 info] close tcp listener fd 9
+[2023-10-09 16:52:44.421 #16043 io_thread_pool.cc:133 info] Process stopped, goodbye...
+[2023-10-09 16:52:44.421 #16043 pikiwidb.cc:245 info] server exit running

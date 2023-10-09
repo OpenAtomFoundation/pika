@@ -102,11 +102,8 @@ EventLoop* EventLoop::Self() { return g_this_loop; }
 bool EventLoop::Register(std::shared_ptr<EventObject> obj, int events) {
   if (!obj) return false;
 
-  // @todo
   // assert(InThisLoop());
-  // InThisLoop();
-  // assert(obj->GetUniqueId() == -1);
-  // printf("EventLoop::InThisLoop uid:%d\n",obj->GetUniqueId());
+  assert(obj->GetUniqueId() == -1);
 
   if (!reactor_) {
     return false;

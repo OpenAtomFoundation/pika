@@ -85,7 +85,8 @@ class EventLoop {
   // for unittest only
   void Reset();
 
-  std::shared_ptr<EventObject> GetEventObject(int id){return objects_[id];};
+  std::shared_ptr<EventObject> GetEventObject(int id){ return objects_[id]; }
+  bool IsSlaveEventLoop(){ return name_.find("slave") != std::string::npos; }
 
  private:
   std::unique_ptr<Reactor> reactor_;

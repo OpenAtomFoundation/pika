@@ -229,16 +229,17 @@ int PClient::handlePacket(pikiwidb::TcpConnection* obj, const char* start, int b
   }
 
   // transfer to slave
-  // if(cmd == "sync"){
-  //   auto loop = obj->GetEventLoop();
-  //   auto slave_loop = obj->SelectSlaveEventLoop();
-  //   if (loop != slave_loop){
-  //     auto id = obj->GetUniqueId();
-  //     auto event_object = loop->GetEventObject(id);
-  //     loop->Unregister(event_object);
-  //     slave_loop->Register(event_object,0);
-  //   }
-  // }
+  if(cmd == "replconf"){
+    auto loop = obj->GetEventLoop();    
+    if (!loop->IsSlaveEventLoop()){
+      auto slave_loop = obj->SelectSlaveEventLoop();
+      auto id = obj->GetUniqueId();
+      auto event_object = loop->GetEventObject(id);
+      loop->Unregister(event_object);
+      event_object->SetUniqueId(-1);
+      slave_loop->Register(event_object,0);
+    }
+  }
 
   return static_cast<int>(ptr - start);
 }
