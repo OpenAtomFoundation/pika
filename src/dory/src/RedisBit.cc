@@ -3,7 +3,7 @@
 #include "redisdb/object.h"
 
 namespace dory {
-using pstd::Status;
+using rocksdb::Status;
 
 Status
 RedisCache::SetBit(std::string &key, size_t offset, long value)

@@ -120,7 +120,7 @@ RedisCache::SetxxWithoutTTL(std::string &key, std::string &value)
     return Status::OK();
 }
 Status
-RedisCache::Get(std::string &key, std::string* value)
+RedisCache::Get(const std::string &key, std::string* value)
 {
     robj *val;
     int ret;

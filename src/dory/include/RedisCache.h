@@ -18,7 +18,7 @@ extern "C" {
 
 namespace dory {
 
-using Status = pstd::Status;
+using Status = rocksdb::Status;
 
 class RedisCache
 {
@@ -54,7 +54,7 @@ public:
     Status SetnxWithoutTTL(std::string &key, std::string &value);
     Status Setxx(std::string &key, std::string &value, int64_t ttl);
     Status SetxxWithoutTTL(std::string &key, std::string &value);
-    Status Get(std::string &key, std::string *value);
+    Status Get(const std::string &key, std::string *value);
     Status Incr(std::string &key);
     Status Decr(std::string &key);
     Status IncrBy(std::string &key, long long incr);

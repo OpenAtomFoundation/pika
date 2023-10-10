@@ -22,6 +22,7 @@
 #include "include/pika_set.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
+#include "pstd_defer.h"
 
 using pstd::Status;
 
@@ -826,11 +827,21 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
   if (!is_suspend()) {
     slot->DbRWLockReader();
   }
+  DEFER {
+    if (!is_suspend()) {
+      slot->DbRWUnLock();
+    }
+  };
 
+  DoFromCache(slot);
+  if (is_only_from_cache() && res_.ok()) {
+    return;
+  }
+  res_.clear();
   Do(slot);
-
-  if (!is_suspend()) {
-    slot->DbRWUnLock();
+  //TODO(pia_cache): should write a new function for determine whether the cache needs to be updated
+  if (res_.ok()) {
+    DoUpdateCache(slot);
   }
 }
 
@@ -931,6 +942,7 @@ bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire)
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::is_need_update_cache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
+bool Cmd::is_only_from_cache() const { return ((flag_ & kCmdFlagsMaskOnlyDoCache) == kCmdFlagsOnlyDoCache); }
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 

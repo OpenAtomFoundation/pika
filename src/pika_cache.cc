@@ -1,5 +1,4 @@
 #include <glog/logging.h>
-#include <ctime>
 #include <unordered_set>
 #include <thread>
 
@@ -12,6 +11,8 @@
 
 extern PikaServer *g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
+
+using Status = rocksdb::Status;
 
 PikaCache::PikaCache(int cache_start_pos, int cache_items_per_key, std::shared_ptr<Slot> slot)
     : cache_status_(PIKA_CACHE_STATUS_NONE),
@@ -152,10 +153,32 @@ Status PikaCache::SetxxWithoutTTL(std::string &key, std::string &value) {
   std::unique_lock l(rwlock_);
   return cache_->SetxxWithoutTTL(key, value);
 }
+Status PikaCache::MSet(const std::vector<storage::KeyValue> &kvs) {
+  std::unique_lock l(rwlock_);
+  for (const auto &item : kvs) {
+    auto [key, value] = item;
+    cache_->SetWithoutTTL(key, value);
+  }
+  return Status::OK();
+}
 
 Status PikaCache::Get(std::string &key, std::string *value) {
   std::shared_lock l(rwlock_);
   return cache_->Get(key, value);
+}
+
+Status PikaCache::MGet(const std::vector<std::string> &keys, std::vector<storage::ValueStatus> *vss) {
+  std::shared_lock l(rwlock_);
+  vss->resize(keys.size());
+  auto ret = Status::OK();
+  for (int i = 0; i < keys.size(); ++i) {
+    auto s = cache_->Get(keys[i], &(*vss)[i].value);
+    (*vss)[i].status = s;
+    if (!s.ok()) {
+      ret = s;
+    }
+  }
+  return ret;
 }
 
 Status PikaCache::Incrxx(std::string &key) {
@@ -209,9 +232,6 @@ Status PikaCache::Incrbyfloatxx(std::string &key, long double incr) {
 
 Status PikaCache::Appendxx(std::string &key, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   if (cache_->Exists(key)) {
     return cache_->Append(key, value);
   }

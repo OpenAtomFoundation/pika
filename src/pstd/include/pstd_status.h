@@ -3,6 +3,7 @@
 
 #include <string>
 #include "pstd/include/pstd_slice.h"
+#include "rocksdb/status.h"
 
 namespace pstd {
 
@@ -39,8 +40,7 @@ class Status {
 
   static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
-  // TODO(leeHao) : mock for add cache from xcache
-  static Status ItemNotExist(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIncomplete, msg, msg2); }
+  static Status ItemNotExist(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kItemNotExist, msg, msg2); }
 
   // Returns true if the status indicates success.
   bool ok() const { return !state_; }
@@ -102,7 +102,8 @@ class Status {
     kComplete = 8,
     kTimeout = 9,
     kAuthFailed = 10,
-    kBusy = 11
+    kBusy = 11,
+    kItemNotExist = 12
   };
 
   Code code() const { return !state_ ? kOk : static_cast<Code>(state_[4]); }

@@ -98,26 +98,26 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
 
-  if (res_.ok() && is_need_update_cache()) {
-    switch (condition_) {
-      case SetCmd::kXX:
-        slot->cache()->Setxx(key_, value_, sec_);
-        break;
-      case SetCmd::kNX:
-        slot->cache()->Setnx(key_, value_, sec_);
-        break;
-      case SetCmd::kVX:
-        // todo(leehao): cache
-//        slot->cache()->Setvx(key_, target_, value_, sec_);
-        break;
-      case SetCmd::kEXORPX:
-//        slot->cache()->Setex(key_, value_, static_cast<int32_t>(sec_));
-        break;
-      default:
-        slot->cache()->SetWithoutTTL(key_, value_);
-        break;
-    }
+void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  switch (condition_) {
+    case SetCmd::kXX:
+      slot->cache()->Setxx(key_, value_, sec_);
+      break;
+    case SetCmd::kNX:
+      slot->cache()->Setnx(key_, value_, sec_);
+      break;
+    case SetCmd::kVX:
+      // todo(leehao): cache
+      //        slot->cache()->Setvx(key_, target_, value_, sec_);
+      break;
+    case SetCmd::kEXORPX:
+      //        slot->cache()->Setex(key_, value_, static_cast<int32_t>(sec_));
+      break;
+    default:
+      slot->cache()->SetWithoutTTL(key_, value_);
+      break;
   }
 }
 
@@ -160,27 +160,30 @@ void GetCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void GetCmd::Do(std::shared_ptr<Slot> slot) {
-  std::string value;
-  auto cache_res = slot->cache()->Get(key_, &value);
-  if (cache_res.ok()) {
-    res_.AppendStringLenUint64(value.size());
-    res_.AppendContent(value);
-    LOG(INFO) << "Hit cache" << std::endl;
+void GetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  auto s = slot->cache()->Get(key_, &value_);
+  if (s.ok()) {
+    res_.AppendStringLenUint64(value_.size());
+    res_.AppendContent(value_);
     return;
   }
-  auto s = slot->db()->GetWithTTL(key_, &value, &sec_);
+  res_.AppendInteger(-1);
+}
+
+void GetCmd::Do(std::shared_ptr<Slot> slot) {
+  auto s = slot->db()->GetWithTTL(key_, &value_, &sec_);
   if (s.ok()) {
-    res_.AppendStringLenUint64(value.size());
-    res_.AppendContent(value);
+    res_.AppendStringLenUint64(value_.size());
+    res_.AppendContent(value_);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  if (s.ok() && is_need_update_cache()) {
-    slot->cache()->Set(key_, value, sec_);
-  }
+}
+
+void GetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  slot->cache()->Set(key_, value_, sec_);
 }
 
 void DelCmd::DoInitial() {
@@ -252,9 +255,10 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  if (s.ok() && is_need_update_cache()) {
-    slot->cache()->IncrByxx(key_, 1);
-  }
+}
+
+void IncrCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  slot->cache()->IncrByxx(key_, 1);
 }
 
 void IncrbyCmd::DoInitial() {
@@ -358,6 +362,9 @@ void DecrbyCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->DecrByxx(key_, by_);
+  }
 }
 
 void GetsetCmd::DoInitial() {
@@ -383,6 +390,9 @@ void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->SetWithoutTTL(key_, new_value_);
+  }
 }
 
 void AppendCmd::DoInitial() {
@@ -403,6 +413,9 @@ void AppendCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->Appendxx(key_, value_);
+  }
 }
 
 void MgetCmd::DoInitial() {
@@ -414,11 +427,28 @@ void MgetCmd::DoInitial() {
   keys_.erase(keys_.begin());
   split_res_.resize(keys_.size());
 }
+void MgetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  std::vector<storage::ValueStatus> vss;
+  auto status = slot->cache()->MGet(keys_, &vss);
+  if (!status.ok()) {
+    res_.SetRes(CmdRes::kNotFound);
+    return;
+  }
+  res_.AppendArrayLenUint64(vss.size());
+  for (const auto& vs : vss) {
+    if (vs.status.ok()) {
+      res_.AppendStringLenUint64(vs.value.size());
+      res_.AppendContent(vs.value);
+    } else {
+      res_.AppendContent("$-1");
+    }
+  }
+}
 
 void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
-  rocksdb::Status s = slot->db()->MGet(keys_, &vss);
-  if (s.ok()) {
+  auto status = slot->db()->MGet(keys_, &vss);
+  if (status.ok()) {
     res_.AppendArrayLenUint64(vss.size());
     for (const auto& vs : vss) {
       if (vs.status.ok()) {
@@ -429,8 +459,11 @@ void MgetCmd::Do(std::shared_ptr<Slot> slot) {
       }
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, status.ToString());
   }
+}
+
+void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 }
 
 void MgetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
@@ -530,6 +563,9 @@ void SetnxCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->SetnxWithoutTTL(key_, value_);
+  }
 }
 
 std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
@@ -574,6 +610,9 @@ void SetexCmd::Do(std::shared_ptr<Slot> slot) {
     AddSlotKey("k", key_, slot);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->Set(key_, value_, sec_);
   }
 }
 
@@ -623,6 +662,9 @@ void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->Set(key_, value_, usec_ / 1000);
   }
 }
 
@@ -697,6 +739,9 @@ void MsetCmd::Do(std::shared_ptr<Slot> slot) {
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  if (res_.ok() && is_need_update_cache()) {
+    slot->cache()->MSet(kvs_);
   }
 }
 
