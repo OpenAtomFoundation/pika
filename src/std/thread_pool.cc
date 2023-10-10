@@ -24,7 +24,7 @@ void ThreadPool::SetMaxIdleThread(unsigned int m) {
 }
 
 void ThreadPool::JoinAll() {
-  decltype(workers_) tmp;
+  decltype(worker_threads_) tmp;
 
   {
     std::unique_lock<std::mutex> guard(mutex_);
@@ -35,8 +35,8 @@ void ThreadPool::JoinAll() {
     shutdown_ = true;
     cond_.notify_all();
 
-    tmp.swap(workers_);
-    workers_.clear();
+    tmp.swap(worker_threads_);
+    worker_threads_.clear();
   }
 
   for (auto& t : tmp) {
@@ -52,7 +52,7 @@ void ThreadPool::JoinAll() {
 
 void ThreadPool::_CreateWorker() {
   std::thread t([this]() { this->_WorkerRoutine(); });
-  workers_.push_back(std::move(t));
+  worker_threads_.push_back(std::move(t));
 }
 
 void ThreadPool::_WorkerRoutine() {

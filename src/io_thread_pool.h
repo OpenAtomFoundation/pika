@@ -30,10 +30,16 @@ class IOThreadPool {
   EventLoop* BaseLoop();
 
   // choose a loop
-  EventLoop* Next();
+  EventLoop* ChooseNextWorkerEventLoop();
+
+  // choose a slave loop
+  EventLoop* ChooseNextSlaveEventLoop();
 
   // set worker threads, each thread has a EventLoop object
   bool SetWorkerNum(size_t n);
+
+  // set slave threads, each thread has a EventLoop object
+  bool SetSlaveNum(size_t n);
 
   // app name, for top command
   void SetName(const std::string& name);
@@ -57,7 +63,8 @@ class IOThreadPool {
 
  private:
   IOThreadPool();
-  void StartWorkers();
+  void StartWorkers(); // io-threads
+  void StartSlaves(); // slave-threads
 
   static const size_t kMaxWorkers;
 
@@ -68,10 +75,17 @@ class IOThreadPool {
 
   EventLoop base_;
 
+  // io-threads
   std::atomic<size_t> worker_num_{0};
-  std::vector<std::thread> workers_;
-  std::vector<std::unique_ptr<EventLoop>> loops_;
-  mutable std::atomic<size_t> current_loop_{0};
+  std::vector<std::thread> worker_threads_;
+  std::vector<std::unique_ptr<EventLoop>> worker_loops_;
+  mutable std::atomic<size_t> current_worker_loop_{0};
+
+  // slave-threads
+  std::atomic<size_t> slave_num_{0};
+  std::vector<std::thread> slave_threads_;
+  std::vector<std::unique_ptr<EventLoop>> slave_loops_;
+  mutable std::atomic<size_t> current_slave_loop_{0};  
 
   enum class State {
     kNone,

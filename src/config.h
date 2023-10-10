@@ -70,6 +70,9 @@ struct PConfig {
   // THREADED I/O
   int io_threads_num;
 
+  // THREADED SLAVE
+  int slave_threads_num;
+
   int backend;  // enum BackEndType
   PString backendPath;
   int backendHz;  // the frequency of dump to backend

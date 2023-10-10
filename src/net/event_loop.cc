@@ -93,7 +93,7 @@ std::future<bool> EventLoop::Cancel(TimerId id) {
 }
 
 bool EventLoop::InThisLoop() const {
-//  printf("EventLoop::InThisLoop this %p, g_this_loop %p\n", this, g_this_loop);
+  // printf("EventLoop::InThisLoop this %p, g_this_loop %p\n", this, g_this_loop);
   return this == g_this_loop;
 }
 
@@ -102,7 +102,7 @@ EventLoop* EventLoop::Self() { return g_this_loop; }
 bool EventLoop::Register(std::shared_ptr<EventObject> obj, int events) {
   if (!obj) return false;
 
-  assert(InThisLoop());
+  // assert(InThisLoop());
   assert(obj->GetUniqueId() == -1);
 
   if (!reactor_) {
@@ -144,7 +144,7 @@ void EventLoop::Unregister(std::shared_ptr<EventObject> obj) {
   if (!obj) return;
 
   int id = obj->GetUniqueId();
-  assert(InThisLoop());
+  // assert(InThisLoop());
   assert(id >= 0);
   assert(objects_.count(id) == 1);
 

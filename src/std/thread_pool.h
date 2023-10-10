@@ -40,7 +40,7 @@ class ThreadPool final {
   std::atomic<unsigned> pendingStopSignal_;
 
   static thread_local bool working_;
-  std::deque<std::thread> workers_;
+  std::deque<std::thread> worker_threads_;
 
   std::mutex mutex_;
   std::condition_variable cond_;
