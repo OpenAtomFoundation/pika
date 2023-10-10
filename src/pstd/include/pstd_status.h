@@ -3,7 +3,6 @@
 
 #include <string>
 #include "pstd/include/pstd_slice.h"
-#include "rocksdb/status.h"
 
 namespace pstd {
 
