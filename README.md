@@ -139,6 +139,10 @@ By default the compilation process is in 'release' mode. If you wanna debug this
   2. exec `rm -fr output` rebuild cmake (for complete recompilation)
 ```
 
+## Developing and Debugging with Pika
+
+- [Setting up the Development and Debugging Environment for Pika using CLion](./docs/ops/SetUpDevEnvironment_en.md)
+
 ## Dockerization
 
 ### Run with docker

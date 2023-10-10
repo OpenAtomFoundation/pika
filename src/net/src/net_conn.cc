@@ -20,7 +20,6 @@ namespace net {
 NetConn::NetConn(const int fd, std::string  ip_port, Thread* thread, NetMultiplexer* net_mpx)
     : fd_(fd),
       ip_port_(std::move(ip_port)),
-      
 #ifdef __ENABLE_SSL
       ssl_(nullptr),
 #endif

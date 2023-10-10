@@ -1,15 +1,15 @@
 pika:
-  version: v3.5.0-alpha
+  version: v3.5.1
 image:
   pika:
     registry: docker.io
-    repository: machinly/pika
-    tag: v3.5.0-alpha
+    repository: pikadb/pika
+    tag: v3.5.1
     pullPolicy: IfNotPresent
   codis:
     registry: docker.io
-    repository: machinly/codis
-    tag: v3.5.0-alpha
+    repository: pikadb/codis
+    tag: v3.5.1
     pullPolicy: IfNotPresent
   etcd:
     registry: docker.io
@@ -39,7 +39,7 @@ roleProbe:
     periodSeconds: 1
     timeoutSeconds: 1
 
-clusterVersionOverride: 3.5.0-alpha
+clusterVersionOverride: 3.5.1
 nameOverride: ""
 fullnameOverride: ""
 

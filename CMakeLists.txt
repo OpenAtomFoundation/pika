@@ -585,9 +585,9 @@ ExternalProject_Add(rocksdb
   ${LIBGPERF_NAME}
   ${LIBJEMALLOC_NAME}
   URL
-  https://github.com/facebook/rocksdb/archive/refs/tags/v8.1.1.tar.gz
+  https://github.com/facebook/rocksdb/archive/refs/tags/v8.3.3.tar.gz
   URL_HASH
-  MD5=3b4c97ee45df9c8a5517308d31ab008b
+  MD5=2815555a2ee2d12a7081a91fb988bf24
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -630,9 +630,9 @@ option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
     URL
-    https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
+    https://github.com/redis/hiredis/archive/refs/tags/v1.2.0.tar.gz
     URL_HASH
-    MD5=e4d4a2928188b11f696d35ca1c52e9a4
+    MD5=119767d178cfa79718a80c83e0d0e849
     DOWNLOAD_NO_PROGRESS
     1
     UPDATE_COMMAND
@@ -654,7 +654,7 @@ if (USE_PIKA_TOOLS)
     INSTALL_COMMAND
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
-  set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+  set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis.a)
 
   ExternalProject_Add(bz2
     URL
