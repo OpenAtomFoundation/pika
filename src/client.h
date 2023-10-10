@@ -132,8 +132,7 @@ class PClient : public std::enable_shared_from_this<PClient> {
   bool auth_ = false;
   time_t last_auth_ = 0;
 
-  static PClient* s_current;
-  static std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > s_monitors_;
+  static thread_local PClient* s_current;
 };
 
 }  // namespace pikiwidb
