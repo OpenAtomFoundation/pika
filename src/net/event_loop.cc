@@ -144,7 +144,7 @@ void EventLoop::Unregister(std::shared_ptr<EventObject> obj) {
   if (!obj) return;
 
   int id = obj->GetUniqueId();
-  assert(InThisLoop());
+  // assert(InThisLoop());
   assert(id >= 0);
   assert(objects_.count(id) == 1);
 

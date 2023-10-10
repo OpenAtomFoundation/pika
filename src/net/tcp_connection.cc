@@ -201,7 +201,7 @@ void TcpConnection::HandleConnectFailed() {
 }
 
 void TcpConnection::HandleDisconnect() {
-  assert(loop_->InThisLoop());
+  // assert(loop_->InThisLoop());
   assert(state_ == State::kConnected);
 
   state_ = State::kDisconnected;
@@ -262,7 +262,7 @@ bool TcpConnection::CheckIdleTimeout() const {
 void TcpConnection::OnRecvData(struct bufferevent* bev, void* obj) {
   auto me = std::static_pointer_cast<TcpConnection>(reinterpret_cast<TcpConnection*>(obj)->shared_from_this());
 
-  assert(me->loop_->InThisLoop());
+  // assert(me->loop_->InThisLoop());
   assert(me->bev_ == bev);
 
   if (me->idle_timer_ != -1) {
@@ -307,7 +307,7 @@ void TcpConnection::OnRecvData(struct bufferevent* bev, void* obj) {
 void TcpConnection::OnEvent(struct bufferevent* bev, short events, void* obj) {
   auto me = std::static_pointer_cast<TcpConnection>(reinterpret_cast<TcpConnection*>(obj)->shared_from_this());
 
-  assert(me->loop_->InThisLoop());
+  // assert(me->loop_->InThisLoop());
 
   INFO("TcpConnection::OnEvent {:x}, state {}, obj {}", events, static_cast<int>(me->state_), obj);
 

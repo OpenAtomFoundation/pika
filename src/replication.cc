@@ -35,6 +35,9 @@ bool PReplication::IsBgsaving() const { return bgsaving_; }
 
 void PReplication::AddSlave(pikiwidb::PClient* cli) {
   slaves_.push_back(std::static_pointer_cast<PClient>(cli->shared_from_this()));
+
+  // transfer to slave
+  cli->TransferToSlaveThreads();
 }
 
 bool PReplication::HasAnyWaitingBgsave() const {

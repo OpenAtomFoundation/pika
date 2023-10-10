@@ -89,6 +89,7 @@ class PClient : public std::enable_shared_from_this<PClient> {
 
   void SetSlaveInfo();
   PSlaveInfo* GetSlaveInfo() const { return slave_info_.get(); }
+  void TransferToSlaveThreads();
 
   static void AddCurrentToMonitor();
   static void FeedMonitors(const std::vector<PString>& params);
