@@ -18,9 +18,11 @@
 #include "store.h"
 
 namespace pikiwidb {
-PClient* PClient::s_current = 0;
 
-std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > PClient::s_monitors_;
+thread_local PClient* PClient::s_current = 0;
+
+std::mutex monitors_mutex;
+std::set<std::weak_ptr<PClient>, std::owner_less<std::weak_ptr<PClient> > > monitors;
 
 int PClient::processInlineCmd(const char* buf, size_t bytes, std::vector<PString>& params) {
   if (bytes < 2) {
@@ -408,14 +410,18 @@ bool PClient::WaitFor(const PString& key, const PString* target) {
 void PClient::SetSlaveInfo() { slave_info_.reset(new PSlaveInfo()); }
 
 void PClient::AddCurrentToMonitor() {
-  s_monitors_.insert(std::static_pointer_cast<PClient>(s_current->shared_from_this()));
+  std::unique_lock<std::mutex> guard(monitors_mutex);
+  monitors.insert(std::static_pointer_cast<PClient>(s_current->shared_from_this()));
 }
 
 void PClient::FeedMonitors(const std::vector<PString>& params) {
   assert(!params.empty());
 
-  if (s_monitors_.empty()) {
-    return;
+  {
+    std::unique_lock<std::mutex> guard(monitors_mutex);
+    if (monitors.empty()) {
+      return;
+    }
   }
 
   char buf[512];
@@ -434,15 +440,19 @@ void PClient::FeedMonitors(const std::vector<PString>& params) {
 
   --n;  // no space follow last param
 
-  for (auto it(s_monitors_.begin()); it != s_monitors_.end();) {
-    auto m = it->lock();
-    if (m) {
-      m->tcp_connection_->SendPacket(buf, n);
-      m->tcp_connection_->SendPacket("\"" CRLF, 3);
+  {
+    std::unique_lock<std::mutex> guard(monitors_mutex);
 
-      ++it;
-    } else {
-      s_monitors_.erase(it++);
+    for (auto it(monitors.begin()); it != monitors.end();) {
+      auto m = it->lock();
+      if (m) {
+        m->tcp_connection_->SendPacket(buf, n);
+        m->tcp_connection_->SendPacket("\"" CRLF, 3);
+
+        ++it;
+      } else {
+        monitors.erase(it++);
+      }
     }
   }
 }

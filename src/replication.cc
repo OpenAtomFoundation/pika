@@ -348,11 +348,12 @@ PError replconf(const std::vector<PString>& params, UnboundedBuffer* reply) {
         return PError_param;
       }
 
-      auto info = PClient::Current()->GetSlaveInfo();
+      auto client = PClient::Current();
+      auto info = client->GetSlaveInfo();
       if (!info) {
-        PClient::Current()->SetSlaveInfo();
-        info = PClient::Current()->GetSlaveInfo();
-        PREPL.AddSlave(PClient::Current());
+        client->SetSlaveInfo();
+        info = client->GetSlaveInfo();
+        PREPL.AddSlave(client);
       }
       info->listenPort = static_cast<unsigned short>(port);
     } else {
