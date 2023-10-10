@@ -29,7 +29,6 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-extern std::shared_ptr<PikaCacheManager> c;
 
 void InitCmdTable(CmdTable* cmd_table) {
   // Admin
