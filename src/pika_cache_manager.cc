@@ -7,42 +7,29 @@
 #include "include/pika_cache_manager.h"
 
 extern PikaServer* g_pika_server;
+using CacheInfo = PikaCache::CacheInfo;
 
-PikaCacheManager::PikaCacheManager(std::vector<DBStruct> dbs) : cache_status_(PIKA_CACHE_STATUS_NONE) {
+PikaCacheManager::PikaCacheManager() : cache_status_(PIKA_CACHE_STATUS_NONE) {
+  dory::CacheConfig cache_config{};
+  dory::RedisCache::SetConfig(&cache_config);
+}
+
+void PikaCacheManager::Init(const std::map<std::string, std::shared_ptr<DB>>& dbs) {
   std::shared_lock lg(mu_);
-  for (const auto& db : dbs) {
-    for (uint32_t i = 0; i < db.slot_num; ++i) {
-      auto key = db.db_name + std::to_string(i);
-      caches_.emplace(key, std::make_shared<PikaCache>(0, 0, g_pika_server->GetDBSlotById(db.db_name, i)));
+  for (const auto& kv : dbs) {
+    auto db = kv.second;
+    for (uint32_t i = 0; i < db->SlotNum(); ++i) {
+      auto key = db->GetDBName() + std::to_string(i);
+      caches_[key] = db->GetSlotById(i)->cache();
     }
   }
-}
-
-PikaCacheManager::~PikaCacheManager() {
-}
-
-std::shared_ptr<PikaCache> PikaCacheManager::GetCache(const std::string& db_name, int slot_index) {
-  std::shared_lock lg(mu_);
-  auto key = db_name + std::to_string(slot_index);
-  if (caches_.count(key) == 0) {
-    return nullptr;
-  }
-  return caches_[key];
 }
 
 void PikaCacheManager::ProcessCronTask() {
-  std::unique_lock lg(mu_);
   for (auto& cache : caches_) {
     cache.second->ActiveExpireCycle();
   }
-}
-void PikaCacheManager::FlushDB(const std::string& db_name) {
-  std::unique_lock lg(mu_);
-  for (auto& cache : caches_) {
-    if (cache.first.compare(0, db_name.size(), db_name) == 0) {
-      cache.second->FlushSlot();
-    }
-  }
+  LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
 }
 
 double PikaCacheManager::HitRatio(void) {
@@ -60,4 +47,18 @@ double PikaCacheManager::HitRatio(void) {
 void PikaCacheManager::ClearHitRatio(void) {
   std::unique_lock l(mu_);
   dory::RedisCache::ResetHitAndMissNum();
+}
+
+CacheInfo PikaCacheManager::Info() {
+  CacheInfo info;
+  std::unique_lock l(mu_);
+  for (const auto &cache : caches_) {
+    auto each_info = cache.second->Info();
+    info.keys_num += each_info.keys_num;
+    info.async_load_keys_num += each_info.async_load_keys_num;
+  }
+  info.used_memory = dory::RedisCache::GetUsedMemory();
+  info.cache_num = caches_.size();
+  dory::RedisCache::GetHitAndMissNum(&info.hits, &info.misses);
+ return info;
 }

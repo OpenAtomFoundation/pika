@@ -167,7 +167,7 @@ RedisCache::ZRank(std::string &key, std::string &member, long *rank)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj, mobj);
-            return Status::ItemNotExist("member not exist");
+            return Status::NotFound("member not exist");
         } else {
             DecrObjectsRefCount(kobj, mobj);
             return Status::Corruption("RsZRank failed");
@@ -355,7 +355,7 @@ RedisCache::ZRevrank(std::string &key, std::string &member, long *rank)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj, mobj);
-            return Status::ItemNotExist("member not exist");
+            return Status::NotFound("member not exist");
         } else {
             DecrObjectsRefCount(kobj, mobj);
             return Status::Corruption("RsZRevrank failed");
@@ -378,7 +378,7 @@ RedisCache::ZScore(std::string &key, std::string &member, double *score)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj, mobj);
-            return Status::ItemNotExist("member not exist");
+            return Status::NotFound("member not exist");
         } else {
             DecrObjectsRefCount(kobj, mobj);
             return Status::Corruption("RsZScore failed");

@@ -373,6 +373,10 @@ Status Storage::LRange(const Slice& key, int64_t start, int64_t stop, std::vecto
   return lists_db_->LRange(key, start, stop, ret);
 }
 
+Status Storage::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl) {
+  return lists_db_->LRangeWithTTL(key, start, stop, ret, ttl);
+}
+
 Status Storage::LTrim(const Slice& key, int64_t start, int64_t stop) { return lists_db_->LTrim(key, start, stop); }
 
 Status Storage::LLen(const Slice& key, uint64_t* len) { return lists_db_->LLen(key, len); }

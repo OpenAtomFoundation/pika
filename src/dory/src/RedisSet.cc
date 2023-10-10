@@ -62,7 +62,7 @@ RedisCache::SIsmember(std::string &key, std::string &member)
     }
 
     DecrObjectsRefCount(kobj, mobj);
-    return is_member ? Status::OK() : Status::ItemNotExist("member not exist");
+    return is_member ? Status::OK() : Status::NotFound("member not exist");
 }
 
 Status 

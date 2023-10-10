@@ -110,7 +110,8 @@ RedisCache::HGet(std::string &key, std::string &field, std::string *value)
             return Status::NotFound("key not in cache");
         } else if (REDIS_ITEM_NOT_EXIST == ret) {
             DecrObjectsRefCount(kobj, fobj);
-            return Status::ItemNotExist("field not exist");
+            // todo(leehao): its better to let pstd::Status to inherit rocksdb::Status
+            return Status::NotFound("field not exist");
         } else {
             DecrObjectsRefCount(kobj, fobj);
             return Status::Corruption("RsHGet failed");
@@ -261,7 +262,7 @@ RedisCache::HExists(std::string &key, std::string &field)
     }
 
     DecrObjectsRefCount(kobj, fobj);
-    return is_exist ? Status::OK() : Status::ItemNotExist("field not exist");
+    return is_exist ? Status::OK() : Status::NotFound("field not exist");
 }
 
 Status

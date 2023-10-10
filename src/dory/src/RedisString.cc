@@ -23,6 +23,24 @@ RedisCache::Set(std::string &key, std::string &value, int64_t ttl)
     DecrObjectsRefCount(kobj, vobj, tobj);
     return Status::OK();
 }
+Status
+RedisCache::SetWithoutTTL(std::string &key, std::string &value)
+{
+    if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+        return Status::Corruption("[error] Free memory faild !");
+    }
+
+    robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+    robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
+
+    if (C_OK != RsSet(m_RedisDB, kobj, vobj, NULL)) {
+        DecrObjectsRefCount(kobj, vobj);
+        return Status::Corruption("RsSetnx failed, key exists!");
+    }
+
+    DecrObjectsRefCount(kobj, vobj);
+    return Status::OK();
+}
 
 Status
 RedisCache::Setnx(std::string &key, std::string &value, int64_t ttl)
@@ -102,7 +120,7 @@ RedisCache::SetxxWithoutTTL(std::string &key, std::string &value)
     return Status::OK();
 }
 Status
-RedisCache::Get(std::string &key, std::string* value)
+RedisCache::Get(const std::string &key, std::string* value)
 {
     robj *val;
     int ret;

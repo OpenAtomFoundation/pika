@@ -8,6 +8,7 @@
 #include <glog/logging.h>
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
+#include "include/pika_cache_manager.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
@@ -21,13 +22,14 @@
 #include "include/pika_set.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
+#include "pstd_defer.h"
 
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
+extern std::shared_ptr<PikaCacheManager> c;
 
 void InitCmdTable(CmdTable* cmd_table) {
   // Admin
@@ -54,10 +56,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> selectptr = std::make_unique<SelectCmd>(kCmdNameSelect, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSelect, std::move(selectptr)));
   std::unique_ptr<Cmd> flushallptr =
-      std::make_unique<FlushallCmd>(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
+      std::make_unique<FlushallCmd>(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushall, std::move(flushallptr)));
   std::unique_ptr<Cmd> flushdbptr =
-      std::make_unique<FlushdbCmd>(kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
+      std::make_unique<FlushdbCmd>(kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushdb, std::move(flushdbptr)));
   std::unique_ptr<Cmd> clientptr = std::make_unique<ClientCmd>(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameClient, std::move(clientptr)));
@@ -165,38 +167,38 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Kv
   ////SetCmd
   std::unique_ptr<Cmd> setptr =
-      std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSet, std::move(setptr)));
   ////GetCmd
   std::unique_ptr<Cmd> getptr =
-      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
-      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDel, std::move(delptr)));
   std::unique_ptr<Cmd> Unlinkptr =
-      std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+      std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnlink, std::move(Unlinkptr)));
   ////IncrCmd
   std::unique_ptr<Cmd> incrptr =
-      std::make_unique<IncrCmd>(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<IncrCmd>(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncr, std::move(incrptr)));
   ////IncrbyCmd
   std::unique_ptr<Cmd> incrbyptr =
-      std::make_unique<IncrbyCmd>(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<IncrbyCmd>(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrby, std::move(incrbyptr)));
   ////IncrbyfloatCmd
   std::unique_ptr<Cmd> incrbyfloatptr =
-      std::make_unique<IncrbyfloatCmd>(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<IncrbyfloatCmd>(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrbyfloat, std::move(incrbyfloatptr)));
   ////DecrCmd
   std::unique_ptr<Cmd> decrptr =
-      std::make_unique<DecrCmd>(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<DecrCmd>(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecr, std::move(decrptr)));
   ////DecrbyCmd
   std::unique_ptr<Cmd> decrbyptr =
-      std::make_unique<DecrbyCmd>(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<DecrbyCmd>(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecrby, std::move(decrbyptr)));
   ////GetsetCmd
   std::unique_ptr<Cmd> getsetptr =
@@ -801,7 +803,7 @@ void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_pt
 void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                                  const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
-  if (is_write()) {
+  if (is_write() || is_need_update_cache()) {
     record_lock.Lock(current_key());
   }
 
@@ -816,7 +818,7 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
 
   DoBinlog(sync_slot);
 
-  if (is_write()) {
+  if (is_write() || is_need_update_cache()) {
     record_lock.Unlock(current_key());
   }
 }
@@ -825,11 +827,21 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
   if (!is_suspend()) {
     slot->DbRWLockReader();
   }
+  DEFER {
+    if (!is_suspend()) {
+      slot->DbRWUnLock();
+    }
+  };
 
+  DoFromCache(slot);
+  if (is_only_from_cache() && res_.ok()) {
+    return;
+  }
+  res_.clear();
   Do(slot);
-
-  if (!is_suspend()) {
-    slot->DbRWUnLock();
+  //TODO(pia_cache): should write a new function for determine whether the cache needs to be updated
+  if (res_.ok()) {
+    DoUpdateCache(slot);
   }
 }
 
@@ -929,6 +941,8 @@ bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFla
 bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
+bool Cmd::is_need_update_cache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
+bool Cmd::is_only_from_cache() const { return ((flag_ & kCmdFlagsMaskOnlyDoCache) == kCmdFlagsOnlyDoCache); }
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 

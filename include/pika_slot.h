@@ -14,9 +14,9 @@
 #include "storage/storage.h"
 
 #include "include/pika_binlog.h"
-#include "include/pika_cache.h"
 
 class Cmd;
+class PikaCache;
 
 /*
  *Keyscan used
@@ -56,6 +56,9 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   uint32_t GetSlotID() const;
   std::string GetSlotName() const;
   std::shared_ptr<storage::Storage> db() const;
+  std::shared_ptr<PikaCache> cache() const;
+
+  void Init();
 
   void Compact(const storage::DataType& type);
 
@@ -109,7 +112,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   // class may be shared, using shared_ptr would be a better choice
   std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> db_;
-//  std::shared_ptr<PikaCache> cache_;
+  std::shared_ptr<PikaCache> cache_;
 
   bool full_sync_ = false;
 

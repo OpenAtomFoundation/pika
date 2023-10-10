@@ -10,48 +10,16 @@
 #include <memory>
 
 #include "include/pika_cache.h"
-#include "include/pika_define.h"
-#include "dory/include/RedisCache.h"
 
 class PikaCacheManager : public pstd::noncopyable {
  public:
-  struct CacheInfo {
-    int status;
-    uint32_t cache_num;
-    long long keys_num;
-    size_t used_memory;
-    long long hits;
-    long long misses;
-    uint64_t async_load_keys_num;
-    uint32_t waitting_load_keys_num;
-    CacheInfo()
-        : status(PIKA_CACHE_STATUS_NONE),
-          cache_num(0),
-          keys_num(0),
-          used_memory(0),
-          hits(0),
-          misses(0),
-          async_load_keys_num(0),
-          waitting_load_keys_num(0) {}
-    void clear() {
-      status = PIKA_CACHE_STATUS_NONE;
-      cache_num = 0;
-      keys_num = 0;
-      used_memory = 0;
-      hits = 0;
-      misses = 0;
-      async_load_keys_num = 0;
-      waitting_load_keys_num = 0;
-    }
-  };
-
-  PikaCacheManager(std::vector<DBStruct> dbs);
-  ~PikaCacheManager();
-  std::shared_ptr<PikaCache> GetCache(const std::string& db_name, int slot_index);
+  PikaCacheManager();
+  ~PikaCacheManager() = default;
+  void Init(const std::map<std::string, std::shared_ptr<DB>>& dbs);
   void ProcessCronTask();
-  void FlushDB(const std::string& db_name);
   double HitRatio();
   void ClearHitRatio();
+  PikaCache::CacheInfo Info();
  private:
   std::shared_mutex mu_;
   std::unordered_map<std::string, std::shared_ptr<PikaCache>> caches_;

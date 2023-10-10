@@ -12,9 +12,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "include/pika_cache.h"
+#include "include/pika_slot.h"
 #include "include/pika_define.h"
 #include "net/include/net_thread.h"
-#include "pika_slot.h"
 #include "storage/storage.h"
 
 #define CACHE_LOAD_QUEUE_MAX_SIZE 2048
