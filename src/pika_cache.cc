@@ -210,8 +210,6 @@ Status PikaCache::IncrByxx(std::string &key, long long incr) {
 
 Status PikaCache::DecrByxx(std::string &key, long long incr) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->DecrBy(key, incr);
@@ -221,8 +219,6 @@ Status PikaCache::DecrByxx(std::string &key, long long incr) {
 
 Status PikaCache::Incrbyfloatxx(std::string &key, long double incr) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->Incrbyfloat(key, incr);
@@ -240,16 +236,12 @@ Status PikaCache::Appendxx(std::string &key, std::string &value) {
 
 Status PikaCache::GetRange(std::string &key, int64_t start, int64_t end, std::string *value) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->GetRange(key, start, end, value);
 }
 
 Status PikaCache::SetRangexx(std::string &key, int64_t start, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->SetRange(key, start, value);
@@ -259,8 +251,6 @@ Status PikaCache::SetRangexx(std::string &key, int64_t start, std::string &value
 
 Status PikaCache::Strlen(std::string &key, int32_t *len) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->Strlen(key, len);
 }
@@ -271,24 +261,18 @@ Status PikaCache::Strlen(std::string &key, int32_t *len) {
 Status PikaCache::HDel(std::string &key, std::vector<std::string> &fields) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HDel(key, fields);
 }
 
 Status PikaCache::HSet(std::string &key, std::string &field, std::string &value) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HSet(key, field, value);
 }
 
 Status PikaCache::HSetIfKeyExist(std::string &key, std::string &field, std::string &value) {
   std::unique_lock l(rwlock_);
 
-  
-  
   if (cache_->Exists(key)) {
     return cache_->HSet(key, field, value);
   }
@@ -298,8 +282,6 @@ Status PikaCache::HSetIfKeyExist(std::string &key, std::string &field, std::stri
 Status PikaCache::HSetIfKeyExistAndFieldNotExist(std::string &key, std::string &field, std::string &value) {
   std::unique_lock l(rwlock_);
 
-  
-  
   if (cache_->Exists(key)) {
     return cache_->HSetnx(key, field, value);
   }

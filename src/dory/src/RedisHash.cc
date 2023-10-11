@@ -1,12 +1,11 @@
 #include <cstdlib>
 #include <cstring>
+#include "dory/include/RedisCache.h"
 
-#include "RedisCache.h"
 
 namespace dory {
 
-Status
-RedisCache::HDel(std::string &key, std::vector<std::string> &fields)
+Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields)
 {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj **fields_obj = (robj **)zcalloc(sizeof(robj*) * fields.size());
@@ -33,8 +32,7 @@ RedisCache::HDel(std::string &key, std::vector<std::string> &fields)
     return Status::OK();
 }
 
-Status
-RedisCache::HSet(std::string &key, std::string &field, std::string &value)
+Status RedisCache::HSet(std::string &key, std::string &field, std::string &value)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -52,8 +50,7 @@ RedisCache::HSet(std::string &key, std::string &field, std::string &value)
     return Status::OK();
 }
 
-Status
-RedisCache::HSetnx(std::string &key, std::string &field, std::string &value)
+Status RedisCache::HSetnx(std::string &key, std::string &field, std::string &value)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -71,8 +68,7 @@ RedisCache::HSetnx(std::string &key, std::string &field, std::string &value)
     return Status::OK();
 }
 
-Status
-RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs)
+Status RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -97,8 +93,7 @@ RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs)
     return Status::OK();
 }
 
-Status
-RedisCache::HGet(std::string &key, std::string &field, std::string *value)
+Status RedisCache::HGet(std::string &key, std::string &field, std::string *value)
 {
     int ret;
     sds val;
@@ -126,8 +121,7 @@ RedisCache::HGet(std::string &key, std::string &field, std::string *value)
     return Status::OK();
 }
 
-Status
-RedisCache::HMGet(std::string &key,
+Status RedisCache::HMGet(std::string &key,
                   std::vector<std::string> &fields,
                   std::vector<storage::ValueStatus>* vss)
 {
@@ -164,8 +158,7 @@ RedisCache::HMGet(std::string &key,
     return Status::OK();
 }
 
-Status
-RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs)
+Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs)
 {
     hitem *items;
     unsigned long items_size;
@@ -193,8 +186,7 @@ RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs)
     return Status::OK();
 }
 
-Status
-RedisCache::HKeys(std::string &key, std::vector<std::string> *fields)
+Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields)
 {
     hitem *items;
     unsigned long items_size;
@@ -219,8 +211,7 @@ RedisCache::HKeys(std::string &key, std::vector<std::string> *fields)
     return Status::OK();
 }
 
-Status
-RedisCache::HVals(std::string &key, std::vector<std::string> *values)
+Status RedisCache::HVals(std::string &key, std::vector<std::string> *values)
 {
     hitem *items;
     unsigned long items_size;
@@ -245,8 +236,7 @@ RedisCache::HVals(std::string &key, std::vector<std::string> *values)
     return Status::OK();
 }
 
-Status
-RedisCache::HExists(std::string &key, std::string &field)
+Status RedisCache::HExists(std::string &key, std::string &field)
 {
     int ret, is_exist;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -265,8 +255,7 @@ RedisCache::HExists(std::string &key, std::string &field)
     return is_exist ? Status::OK() : Status::NotFound("field not exist");
 }
 
-Status
-RedisCache::HIncrby(std::string &key, std::string &field, int64_t value)
+Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value)
 {
     int ret;
     long long result;
@@ -286,8 +275,7 @@ RedisCache::HIncrby(std::string &key, std::string &field, int64_t value)
     return Status::OK();
 }
 
-Status
-RedisCache::HIncrbyfloat(std::string &key, std::string &field, long double value)
+Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, long double value)
 {
     int ret;
     long double result;
@@ -307,8 +295,7 @@ RedisCache::HIncrbyfloat(std::string &key, std::string &field, long double value
     return Status::OK();
 }
 
-Status
-RedisCache::HLen(std::string &key, unsigned long *len)
+Status RedisCache::HLen(std::string &key, unsigned long *len)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -326,8 +313,7 @@ RedisCache::HLen(std::string &key, unsigned long *len)
     return Status::OK();
 }
 
-Status
-RedisCache::HStrlen(std::string &key, std::string &field, unsigned long *len)
+Status RedisCache::HStrlen(std::string &key, std::string &field, unsigned long *len)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));

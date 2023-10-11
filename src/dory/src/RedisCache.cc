@@ -1,5 +1,7 @@
-#include "RedisCache.h"
-#include "pstd_string.h"
+#include <cstdlib>
+#include <cstring>
+#include "dory/include/RedisCache.h"
+#include "pstd/include/pstd_string.h"
 
 namespace dory {
 
@@ -144,8 +146,7 @@ RedisCache::Del(const std::string &key)
     return Status::OK();
 }
 
-Status
-RedisCache::Expire(std::string &key, int64_t ttl)
+Status RedisCache::Expire(std::string &key, int64_t ttl)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -164,8 +165,7 @@ RedisCache::Expire(std::string &key, int64_t ttl)
     return Status::OK();
 }
 
-Status
-RedisCache::Expireat(std::string &key, int64_t ttl)
+Status RedisCache::Expireat(std::string &key, int64_t ttl)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -184,8 +184,7 @@ RedisCache::Expireat(std::string &key, int64_t ttl)
     return Status::OK();
 }
 
-Status
-RedisCache::TTL(std::string &key, int64_t *ttl)
+Status RedisCache::TTL(std::string &key, int64_t *ttl)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -203,8 +202,7 @@ RedisCache::TTL(std::string &key, int64_t *ttl)
     return Status::OK();
 }
 
-Status
-RedisCache::Persist(std::string &key)
+Status RedisCache::Persist(std::string &key)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -222,8 +220,7 @@ RedisCache::Persist(std::string &key)
     return Status::OK();
 }
 
-Status
-RedisCache::Type(std::string &key, std::string *value)
+Status RedisCache::Type(std::string &key, std::string *value)
 {
     sds val;
     int ret;
@@ -246,8 +243,7 @@ RedisCache::Type(std::string &key, std::string *value)
     return Status::OK();
 }
 
-Status
-RedisCache::RandomKey(std::string *key)
+Status RedisCache::RandomKey(std::string *key)
 {
     sds val;
     int ret;
@@ -266,16 +262,14 @@ RedisCache::RandomKey(std::string *key)
     return Status::OK();
 }
 
-void
-RedisCache::DecrObjectsRefCount(robj *argv1, robj *argv2, robj *argv3)
+void RedisCache::DecrObjectsRefCount(robj *argv1, robj *argv2, robj *argv3)
 {
     if (NULL != argv1) decrRefCount(argv1);
     if (NULL != argv2) decrRefCount(argv2);
     if (NULL != argv3) decrRefCount(argv3);
 }
 
-void
-RedisCache::FreeSdsList(sds *items, unsigned int size)
+void RedisCache::FreeSdsList(sds *items, unsigned int size)
 {
     unsigned int i;
     for (i = 0; i < size; ++i) {
@@ -284,8 +278,7 @@ RedisCache::FreeSdsList(sds *items, unsigned int size)
     zfree(items);
 }
 
-void
-RedisCache::FreeObjectList(robj **items, unsigned int size)
+void RedisCache::FreeObjectList(robj **items, unsigned int size)
 {
     unsigned int i;
     for (i = 0; i < size; ++i) {
@@ -294,8 +287,7 @@ RedisCache::FreeObjectList(robj **items, unsigned int size)
     zfree(items);
 }
 
-void
-RedisCache::FreeHitemList(hitem *items, unsigned int size)
+void RedisCache::FreeHitemList(hitem *items, unsigned int size)
 {
     unsigned int i;
     for (i = 0; i < size; ++i) {
@@ -305,8 +297,7 @@ RedisCache::FreeHitemList(hitem *items, unsigned int size)
     zfree(items);
 }
 
-void
-RedisCache::FreeZitemList(zitem *items, unsigned int size)
+void RedisCache::FreeZitemList(zitem *items, unsigned int size)
 {
     unsigned int i;
     for (i = 0; i < size; ++i) {
@@ -315,8 +306,7 @@ RedisCache::FreeZitemList(zitem *items, unsigned int size)
     zfree(items);
 }
 
-void
-RedisCache::ConvertObjectToString(robj *obj, std::string *value)
+void RedisCache::ConvertObjectToString(robj *obj, std::string *value)
 {
     if (sdsEncodedObject(obj)) {
         value->assign((char*)obj->ptr, sdslen((sds)obj->ptr));
