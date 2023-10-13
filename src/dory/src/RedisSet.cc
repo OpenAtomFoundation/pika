@@ -1,9 +1,8 @@
-#include "RedisCache.h"
+#include "dory/include/RedisCache.h"
 
 namespace dory {
 
-Status
-RedisCache::SAdd(std::string &key, std::vector<std::string> &members)
+Status RedisCache::SAdd(std::string &key, std::vector<std::string> &members)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -26,8 +25,7 @@ RedisCache::SAdd(std::string &key, std::vector<std::string> &members)
     return Status::OK();
 }
 
-Status
-RedisCache::SCard(std::string &key, unsigned long *len)
+Status RedisCache::SCard(std::string &key, unsigned long *len)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -45,8 +43,7 @@ RedisCache::SCard(std::string &key, unsigned long *len)
     return Status::OK();
 }
 
-Status
-RedisCache::SIsmember(std::string &key, std::string &member)
+Status RedisCache::SIsmember(std::string &key, std::string &member)
 {
     int ret, is_member;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -65,8 +62,7 @@ RedisCache::SIsmember(std::string &key, std::string &member)
     return is_member ? Status::OK() : Status::NotFound("member not exist");
 }
 
-Status 
-RedisCache::SMembers(std::string &key, std::vector<std::string> *members)
+Status RedisCache::SMembers(std::string &key, std::vector<std::string> *members)
 {
     sds *vals = NULL;
     unsigned long vals_size;
@@ -91,8 +87,7 @@ RedisCache::SMembers(std::string &key, std::vector<std::string> *members)
     return Status::OK();
 }
 
-Status 
-RedisCache::SRem(std::string &key, std::vector<std::string> &members)
+Status RedisCache::SRem(std::string &key, std::vector<std::string> &members)
 {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj **vals = (robj **)zcalloc(sizeof(robj*) * members.size());
@@ -118,8 +113,7 @@ RedisCache::SRem(std::string &key, std::vector<std::string> &members)
     return Status::OK();
 }
 
-Status 
-RedisCache::SRandmember(std::string &key, long count, std::vector<std::string> *members)
+Status RedisCache::SRandmember(std::string &key, long count, std::vector<std::string> *members)
 {
     sds *vals = NULL;
     unsigned long vals_size = 0;

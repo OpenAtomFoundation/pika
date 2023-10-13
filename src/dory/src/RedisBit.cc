@@ -1,12 +1,8 @@
-#include "RedisCache.h"
-#include "pstd_status.h"
-#include "redisdb/object.h"
+#include "dory/include/RedisCache.h"
 
 namespace dory {
-using rocksdb::Status;
 
-Status
-RedisCache::SetBit(std::string &key, size_t offset, long value)
+Status RedisCache::SetBit(std::string &key, size_t offset, long value)
 {
     if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
         return Status::Corruption("[error] Free memory faild !");
@@ -22,8 +18,7 @@ RedisCache::SetBit(std::string &key, size_t offset, long value)
     return Status::OK();
 }
 
-Status
-RedisCache::GetBit(std::string &key, size_t offset, long *value)
+Status RedisCache::GetBit(std::string &key, size_t offset, long *value)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -41,8 +36,7 @@ RedisCache::GetBit(std::string &key, size_t offset, long *value)
     return Status::OK();
 }
 
-Status
-RedisCache::BitCount(std::string &key, long start, long end, long *value, bool have_offset)
+Status RedisCache::BitCount(std::string &key, long start, long end, long *value, bool have_offset)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -60,8 +54,7 @@ RedisCache::BitCount(std::string &key, long start, long end, long *value, bool h
     return Status::OK();
 }
 
-Status
-RedisCache::BitPos(std::string &key, long bit, long *value)
+Status RedisCache::BitPos(std::string &key, long bit, long *value)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -79,8 +72,7 @@ RedisCache::BitPos(std::string &key, long bit, long *value)
     return Status::OK();
 }
 
-Status
-RedisCache::BitPos(std::string &key, long bit, long start, long *value)
+Status RedisCache::BitPos(std::string &key, long bit, long start, long *value)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -98,8 +90,7 @@ RedisCache::BitPos(std::string &key, long bit, long start, long *value)
     return Status::OK();
 }
 
-Status
-RedisCache::BitPos(std::string &key, long bit, long start, long end, long *value)
+Status RedisCache::BitPos(std::string &key, long bit, long start, long end, long *value)
 {
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
