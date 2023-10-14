@@ -19,7 +19,7 @@ require (
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 	github.com/spinlock/jemalloc-go v0.0.0-20201010032256-e81523fb8524
 	go.etcd.io/etcd/client/v2 v2.305.7
-	golang.org/x/net v0.7.0
+	golang.org/x/net v0.17.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
 
