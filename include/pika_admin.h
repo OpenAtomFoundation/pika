@@ -177,6 +177,8 @@ class FlushdbCmd : public Cmd {
  public:
   FlushdbCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
+  // The flush command belongs to the write categories, so the key cannot be empty
+  std::vector<std::string> current_key() const override { return {""}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

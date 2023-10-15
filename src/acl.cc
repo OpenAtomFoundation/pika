@@ -969,7 +969,8 @@ AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, const std::
   // key match
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS)) && !keys.empty()) {
     for (const auto& key : keys) {
-      if (!CheckKey(key, cmd->flag())) {
+      // if the key is empty, skip, because some command keys for write categories are empty
+      if (!key.empty() && !CheckKey(key, cmd->flag())) {
         return AclDeniedCmd::KEY;
       }
     }
