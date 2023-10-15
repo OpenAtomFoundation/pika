@@ -811,7 +811,6 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
 
 std::vector<std::string> Cmd::current_key() const {
   std::vector<std::string> res;
-  res.emplace_back("");
   return res;
 }
 

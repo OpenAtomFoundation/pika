@@ -214,7 +214,7 @@ bool User::MatchPassword(const std::string& password) {
 void User::GetUserDescribe(CmdRes* res) {
   std::shared_lock l(mutex_);
 
-  res->AppendArrayLen(6);
+  res->AppendArrayLen(12);
 
   res->AppendString("flags");
   std::vector<std::string> vector;
@@ -235,17 +235,21 @@ void User::GetUserDescribe(CmdRes* res) {
   size_t i = 0;
   for (const auto& selector : selectors_) {
     vector.clear();
-    if (i == 0) {
+    if (i == 0) {  // root selector
       selector->ACLDescribeSelector(vector);
-      res->AppendStringVector(vector);
+      for (const auto& item : vector) {
+        res->AppendString(item);
+      }
+
+      res->AppendString("selectors");
       if (selectors_.size() == 1) {
-        res->AppendArrayLen(-1);
+        res->AppendArrayLen(0);
       }
       ++i;
       continue;
     }
     if (i == 1) {
-      res->AppendArrayLen(selectors_.size() - 1);
+      res->AppendArrayLen(static_cast<int64_t>(selectors_.size()) - 1);
     }
     selector->ACLDescribeSelector(vector);
     res->AppendStringVector(vector);
@@ -382,7 +386,7 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
   std::shared_ptr<User> defaultUser;
 
   while (sequentialFile->ReadLine(line, lineLength) != nullptr) {
-    int lineLen = strlen(line);
+    size_t lineLen = strlen(line);
     if (lineLen == 0) {
       continue;
     }
@@ -465,10 +469,6 @@ std::shared_ptr<User> Acl::CreateDefaultUser() {
 std::shared_ptr<User> Acl::CreatedUser(const std::string& name) { return std::make_shared<User>(name); }
 
 pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>& op) {
-  if (op.empty()) {
-    return pstd::Status::OK();
-  }
-
   auto user = GetUser(userName, true);
 
   bool add = false;
@@ -549,6 +549,14 @@ std::shared_ptr<User> Acl::Auth(const std::string& userName, const std::string& 
   if (!user) {
     return nullptr;
   }
+  if (user->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
+    return nullptr;
+  }
+
+  if (user->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {
+    return user;
+  }
+
   if (user->MatchPassword(pstd::sha256(password))) {
     return user;
   }
@@ -912,7 +920,7 @@ void AclSelector::ACLDescribeSelector(std::vector<std::string>& vector) {
   if (HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS))) {
     vector.emplace_back("+@all");
   } else {
-    vector.emplace_back(commandRules_);
+    vector.emplace_back(commandRules_ == "" ? "-@all" : commandRules_);
   }
 
   vector.emplace_back("key");

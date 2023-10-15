@@ -5,9 +5,9 @@
 
 #include "include/pika_admin.h"
 
+#include <sys/statvfs.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
-#include <sys/statvfs.h>
 
 #include <algorithm>
 #include <unordered_map>
@@ -60,10 +60,12 @@ enum AuthResult {
 };
 
 static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
-                                   const std::shared_ptr<net::NetConn>& conn) {
-  std::string root_password(g_pika_conf->requirepass());
-  if (userName == Acl::DefaultUser && root_password.empty()) {
-    return AuthResult::NO_REQUIRE_PASS;
+                                   const std::shared_ptr<net::NetConn>& conn, bool defaultAuth) {
+  if (defaultAuth) {
+    auto defaultUser = g_pika_server->Acl()->GetUser(Acl::DefaultUser, true);
+    if (defaultUser->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {
+      return AuthResult::NO_REQUIRE_PASS;
+    }
   }
 
   auto user = g_pika_server->Acl()->Auth(userName, pwd);
@@ -261,22 +263,24 @@ void AuthCmd::Do(std::shared_ptr<Slot> slot) {
 
   std::string userName = "";
   std::string pwd = "";
+  bool defaultAuth = false;
   if (argv_.size() == 2) {
     userName = Acl::DefaultUser;
     pwd = argv_[1];
+    defaultAuth = true;
   } else {
     userName = argv_[1];
     pwd = argv_[2];
   }
 
-  auto authResult = AuthenticateUser(userName, pwd, conn);
+  auto authResult = AuthenticateUser(userName, pwd, conn, defaultAuth);
 
   switch (authResult) {
     case AuthResult::INVALID_CONN:
       res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
       return;
     case AuthResult::INVALID_PASSWORD:
-      res_.SetRes(CmdRes::kInvalidPwd);
+      res_.SetRes(CmdRes::kErrOther, "WRONGPASS invalid username-password pair or user is disabled");
       return;
     case AuthResult::NO_REQUIRE_PASS:
       res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
@@ -946,8 +950,10 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
 
   // Network stats
-  tmp_stream << "total_net_input_bytes:" << g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes() << "\r\n";
-  tmp_stream << "total_net_output_bytes:" << g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes() << "\r\n";
+  tmp_stream << "total_net_input_bytes:" << g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes()
+             << "\r\n";
+  tmp_stream << "total_net_output_bytes:" << g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes()
+             << "\r\n";
   tmp_stream << "total_net_repl_input_bytes:" << g_pika_server->NetReplInputBytes() << "\r\n";
   tmp_stream << "total_net_repl_output_bytes:" << g_pika_server->NetReplOutputBytes() << "\r\n";
   tmp_stream << "instantaneous_input_kbps:" << g_pika_server->InstantaneousInputKbps() << "\r\n";
@@ -1351,25 +1357,24 @@ void InfoCmd::InfoDebug(std::string& info) {
 }
 
 void InfoCmd::InfoCommandStats(std::string& info) {
-    std::stringstream tmp_stream;
-    tmp_stream.precision(2);
-    tmp_stream.setf(std::ios::fixed);
-    tmp_stream << "# Commandstats" << "\r\n";
-    for (auto iter : *g_pika_server->GetCommandStatMap()) {
-      if (iter.second.cmd_count != 0) {
-        tmp_stream << iter.first << ":"
-                   << "calls=" << iter.second.cmd_count << ", usec="
-                   << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
-                   << ", usec_per_call=";
-        if (!iter.second.cmd_time_consuming) {
-          tmp_stream << 0 << "\r\n";
-        } else {
-          tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
-                     << "\r\n";
-        }
+  std::stringstream tmp_stream;
+  tmp_stream.precision(2);
+  tmp_stream.setf(std::ios::fixed);
+  tmp_stream << "# Commandstats"
+             << "\r\n";
+  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+    if (iter.second.cmd_count != 0) {
+      tmp_stream << iter.first << ":"
+                 << "calls=" << iter.second.cmd_count
+                 << ", usec=" << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming) << ", usec_per_call=";
+      if (!iter.second.cmd_time_consuming) {
+        tmp_stream << 0 << "\r\n";
+      } else {
+        tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count) << "\r\n";
       }
     }
-    info.append(tmp_stream.str());
+  }
+  info.append(tmp_stream.str());
 }
 
 void InfoCmd::Execute() {
@@ -1438,7 +1443,7 @@ static void EncodeString(std::string* dst, const std::string& value) {
   dst->append(kNewLine);
 }
 
-template<class T>
+template <class T>
 static void EncodeNumber(std::string* dst, const T v) {
   std::string vstr = std::to_string(v);
   dst->append("$");
@@ -2330,7 +2335,7 @@ void ConfigCmd::ConfigRewrite(std::string& ret) {
   }
 }
 
-void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
+void ConfigCmd::ConfigRewriteReplicationID(std::string& ret) {
   if (g_pika_conf->ConfigRewriteReplicationID() != 0) {
     ret = "+OK\r\n";
   } else {
@@ -2660,13 +2665,13 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
     const std::string opt = argv_[next_arg];
     if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args != 0U)) {
       const std::string pwd = argv_[next_arg + 1];
-      auto authResult = AuthenticateUser(Acl::DefaultUser, pwd, conn);
+      auto authResult = AuthenticateUser(Acl::DefaultUser, pwd, conn, true);
       switch (authResult) {
         case AuthResult::INVALID_CONN:
           res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
           return;
         case AuthResult::INVALID_PASSWORD:
-          res_.SetRes(CmdRes::kInvalidPwd);
+          res_.SetRes(CmdRes::kErrOther, "WRONGPASS invalid username-password pair or user is disabled");
           return;
         case AuthResult::NO_REQUIRE_PASS:
           res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
@@ -2758,12 +2763,12 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
     db_item.second->SetBinlogIoErrorrelieve();
     std::shared_lock slot_rwl(slots_rw);
     // loop every slot
-    for (const auto &slot_item: db_item.second->GetSlots()) {
+    for (const auto& slot_item : db_item.second->GetSlots()) {
       background_errors_.clear();
       slot_item.second->DbRWLockReader();
       slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
       slot_item.second->DbRWUnLock();
-      for (const auto &item: background_errors_) {
+      for (const auto& item : background_errors_) {
         if (item.second != 0) {
           rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
           if (!s.ok()) {

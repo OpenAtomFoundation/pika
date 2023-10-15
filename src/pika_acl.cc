@@ -94,7 +94,7 @@ void PikaAclCmd::Cat() {
 void PikaAclCmd::DelUser() {
   std::vector<std::string> userNames(argv_.begin() + 2, argv_.end());
   auto delUserNames = g_pika_server->Acl()->DeleteUser(userNames);
-  res().AppendInteger(delUserNames.size());
+  res().AppendInteger(static_cast<int64_t>(delUserNames.size()));
 
   g_pika_server->AllClientUnAuth(delUserNames);
 }
@@ -215,6 +215,11 @@ void PikaAclCmd::SetUser() {
   std::vector<std::string> rule;
   if (argv_.size() > 3) {
     rule = std::vector<std::string>(argv_.begin() + 3, argv_.end());
+  }
+
+  if (pstd::isspace(argv_[2])){
+    res().SetRes(CmdRes::kErrOther, "Usernames can't contain spaces or null characters");
+    return;
   }
   auto status = g_pika_server->Acl()->SetUser(argv_[2], rule);
   if (status.ok()) {
