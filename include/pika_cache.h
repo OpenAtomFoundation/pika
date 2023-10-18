@@ -82,7 +82,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
-
+  double HitRatio(void);
+  void ClearHitRatio(void);
   rocksdb::Status Del(const std::vector<std::string> &keys);
   rocksdb::Status Expire(std::string &key, int64_t ttl);
   rocksdb::Status Expireat(std::string &key, int64_t ttl);
@@ -230,8 +231,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
 
  private:
   std::atomic<int> cache_status_;
-  std::unique_ptr<dory::RedisCache> cache_;
-
+  std::vector<dory::RedisCache*> caches_;
+  std::vector<pstd::Mutex*> cache_mutexs_;
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;

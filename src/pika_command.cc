@@ -8,7 +8,6 @@
 #include <glog/logging.h>
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cache_manager.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
@@ -84,6 +83,8 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScandb, std::move(scandbptr)));
   std::unique_ptr<Cmd> slowlogptr = std::make_unique<SlowlogCmd>(kCmdNameSlowlog, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlowlog, std::move(slowlogptr)));
+  std::unique_ptr<Cmd> cacheptr = std::make_unique<CacheCmd>(kCmdNameCache, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCache, std::move(cacheptr)));
   std::unique_ptr<Cmd> paddingptr = std::make_unique<PaddingCmd>(kCmdNamePadding, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePadding, std::move(paddingptr)));
   std::unique_ptr<Cmd> pkpatternmatchdelptr =

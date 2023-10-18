@@ -6,6 +6,8 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/mman.h>
 #include <cassert>
 
 #include <cstdio>
@@ -24,6 +26,7 @@ namespace filesystem = std::experimental::filesystem;
 #endif
 
 #include <glog/logging.h>
+#include <sys/sysinfo.h>
 
 namespace pstd {
 
@@ -677,5 +680,26 @@ Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& 
   }
   return s;
 }
+
+int ClearSystemCachedMemory() {
+   int ret = system("echo 1 > /proc/sys/vm/drop_caches");
+   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
+       return 0;
+   }
+   LOG(WARNING) << "Clear system cached memory failed : %d!" << ret;
+   return ret;
+}
+
+int SystemFreeMemory(unsigned long *free_mem) {
+    struct sysinfo info;
+    int ret = sysinfo(&info);
+    if (ret == 0) {
+      *free_mem = info.freeram;
+      return 0;
+      }
+      LOG(WARNING) << "Get system free memory failed : %d!" << ret;
+      return ret;
+    }
+
 
 }  // namespace pstd

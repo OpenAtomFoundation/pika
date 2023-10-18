@@ -76,6 +76,12 @@ Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile
 
 Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result);
 
+// Clear system cached memory
+int ClearSystemCachedMemory();
+
+// Get system-free memory, on success, zero is returned. On error, -1 is returned.
+int SystemFreeMemory(unsigned long *free_mem);
+
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
 // at a time to the file.

@@ -16,7 +16,7 @@ class PikaCacheManager : public pstd::noncopyable {
   PikaCacheManager();
   ~PikaCacheManager() = default;
   void Init(const std::map<std::string, std::shared_ptr<DB>>& dbs);
-  void ProcessCronTask();
+  void ProcessCronTask(void);
   double HitRatio();
   void ClearHitRatio();
   PikaCache::CacheInfo Info();

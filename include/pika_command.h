@@ -53,6 +53,7 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
+const std::string kCmdNameCache = "cache";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
@@ -300,6 +301,7 @@ class CmdRes {
     kInconsistentHashTag,
     kErrOther,
     KIncrByOverFlow,
+    kCacheMiss,
   };
 
   CmdRes() = default;
@@ -375,6 +377,11 @@ class CmdRes {
         result = "-ERR ";
         result.append(message_);
         result.append(kNewLine);
+        break;
+      case kCacheMiss:
+        return "-ERR cache miss\r\n";
+        result.append(message_);
+        result.append("'\r\n");
         break;
       case KIncrByOverFlow:
         result = "-ERR increment would produce NaN or Infinity";
@@ -457,6 +464,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual void DoFromCache(std::shared_ptr<Slot> slot = nullptr) {}
   virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void PreDo(std::shared_ptr<Slot> slot = nullptr) {}
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
