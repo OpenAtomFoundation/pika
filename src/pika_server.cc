@@ -38,6 +38,7 @@ extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 // QUEUE_SIZE_THRESHOLD_PERCENTAGE is used to represent a percentage value and should be within the range of 0 to 100.
 const size_t QUEUE_SIZE_THRESHOLD_PERCENTAGE = 75;
+#define run_with_period(ms) if (((ms) < (BASE_CRON_TIME_MS)) || !(cron_loops %  ((ms) / (BASE_CRON_TIME_MS))))
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -204,6 +205,19 @@ void PikaServer::Start() {
   rsync_server_->Start();
   while (!exit_) {
     DoTimingTask();
+      // cache cron task, 100ms
+      g_pika_cache_manager->ProcessCronTask();
+
+      // cache info cron task, 1s
+      run_with_period(1000) {
+          UpdateCacheInfo();
+      }
+
+      // clear system cached memory, default 60s
+      run_with_period(60000) {
+          DoClearSysCachedMemory();
+      }
+
     // wake up every 5 seconds
     if (!exit_ && exit_mutex_.try_lock_for(std::chrono::seconds(5))) {
       exit_mutex_.unlock();
@@ -1594,6 +1608,25 @@ void PikaServer::InitStorageOptions() {
   }
 }
 
+void PikaServer::CacheConfigInit(dory::CacheConfig &cache_cfg) {
+    cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+    cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+    cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+    cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
+}
+
+void PikaServer::CreateCache() {
+    // Create cache
+    dory::CacheConfig cache_cfg;
+    CacheConfigInit(cache_cfg);
+
+    cache_ = new PikaCache(g_pika_conf->cache_start_pos(), g_pika_conf->cache_items_per_key());
+    Status ret = cache_->Init(g_pika_conf->cache_num(), &cache_cfg);
+    assert(cache_);
+    assert(ret.ok());
+    LOG(INFO) << "Cache Success";
+}
+
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
                                                   const std::unordered_map<std::string, std::string>& options_map) {
   storage::Status s;
@@ -1789,4 +1822,219 @@ void DoBgslotscleanup(void* arg) {
   std::string slotsStr;
   slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
+}
+
+
+void PikaServer::ResetCacheAsync(uint32_t cache_num, dory::CacheConfig *cache_cfg)
+{
+    if (PIKA_CACHE_STATUS_OK == cache_->CacheStatus()
+        || PIKA_CACHE_STATUS_NONE == cache_->CacheStatus()) {
+
+        common_bg_thread_.StartThread();
+        BGCacheTaskArg *arg = new BGCacheTaskArg();
+        arg->p = this;
+        arg->cache_num = cache_num;
+        if (NULL == cache_cfg) {
+            arg->task_type = CACHE_BGTASK_RESET_NUM;
+        } else {
+            arg->task_type = CACHE_BGTASK_RESET_CFG;
+            arg->cache_cfg = *cache_cfg;
+        }
+        common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+    } else {
+        LOG(WARNING) << "can not reset cache in status: " << cache_->CacheStatus();
+    }
+}
+
+void PikaServer::UpdateCacheInfo(void)
+{
+    if (PIKA_CACHE_STATUS_OK != cache_->CacheStatus()) {
+        return;
+    }
+
+    // get cache info from redis cache
+    PikaCache::CacheInfo cache_info;
+    cache_->Info();
+    std::unique_lock l(cache_info_rwlock_);
+    cache_info_.status = cache_info.status;
+    cache_info_.cache_num = cache_info.cache_num;
+    cache_info_.keys_num = cache_info.keys_num;
+    cache_info_.used_memory = cache_info.used_memory;
+    cache_info_.waitting_load_keys_num = cache_info.waitting_load_keys_num;
+    cache_usage_ = cache_info.used_memory;
+
+    uint64_t all_cmds = cache_info.hits + cache_info.misses;
+    cache_info_.hitratio_all = (0 >= all_cmds) ? 0.0 : (cache_info.hits * 100.0) / all_cmds;
+
+    uint64_t cur_time_us = pstd::NowMicros();
+    uint64_t delta_time = cur_time_us - cache_info_.last_time_us + 1;
+    uint64_t delta_hits = cache_info.hits - cache_info_.hits;
+    cache_info_.hits_per_sec = delta_hits * 1000000 / delta_time;
+
+    uint64_t delta_all_cmds = all_cmds - (cache_info_.hits + cache_info_.misses);
+    cache_info_.read_cmd_per_sec = delta_all_cmds * 1000000 / delta_time;
+
+    cache_info_.hitratio_per_sec = (0 >= delta_all_cmds) ? 0.0 : (delta_hits * 100.0) / delta_all_cmds;
+
+    uint64_t delta_load_keys = cache_info.async_load_keys_num - cache_info_.last_load_keys_num;
+    cache_info_.load_keys_per_sec = delta_load_keys * 1000000 / delta_time;
+
+    cache_info_.hits = cache_info.hits;
+    cache_info_.misses = cache_info.misses;
+    cache_info_.last_time_us = cur_time_us;
+    cache_info_.last_load_keys_num = cache_info.async_load_keys_num;
+}
+
+void PikaServer::GetCacheInfo(DisplayCacheInfo &cache_info)
+{
+    std::unique_lock l(cache_info_rwlock_);
+    cache_info = cache_info_;
+}
+
+void PikaServer::ResetDisplayCacheInfo(int status)
+{
+    std::unique_lock l(rwlock_);
+    cache_info_.status = status;
+    cache_info_.cache_num = 0;
+    cache_info_.keys_num = 0;
+    cache_info_.used_memory = 0;
+    cache_info_.hits = 0;
+    cache_info_.misses = 0;
+    cache_info_.hits_per_sec = 0;
+    cache_info_.read_cmd_per_sec = 0;
+    cache_info_.hitratio_per_sec = 0.0;
+    cache_info_.hitratio_all = 0.0;
+    cache_info_.load_keys_per_sec = 0;
+    cache_info_.waitting_load_keys_num = 0;
+    cache_usage_ = 0;
+}
+
+void PikaServer::ClearCacheDbSync(void)
+{
+    if (PIKA_CACHE_STATUS_OK != cache_->CacheStatus()) {
+        LOG(WARNING) << "can not clear cache in status: " << cache_->CacheStatus();
+        return;
+    }
+
+    LOG(INFO) << "clear cache start...";
+    cache_->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
+    ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR);
+    cache_->FlushSlot();
+    LOG(INFO) << "clear cache finish";
+    cache_->SetCacheStatus(PIKA_CACHE_STATUS_OK);
+}
+
+void PikaServer::OnCacheStartPosChanged(int cache_start_pos) {
+    // disable cache temporarily, and restore it after cache cleared
+    g_pika_conf->SetCacheDisableFlag();
+    ResetCacheConfig();
+    ClearCacheDbAsyncV2();
+}
+
+void PikaServer::ClearCacheDbAsyncV2(void)
+{
+    if (PIKA_CACHE_STATUS_OK != cache_->CacheStatus()) {
+        LOG(WARNING) << "can not clear cache in status: " << cache_->CacheStatus();
+        return;
+    }
+
+    common_bg_thread_.StartThread();
+    BGCacheTaskArg *arg = new BGCacheTaskArg();
+    arg->p = this;
+    arg->task_type = CACHE_BGTASK_CLEAR;
+    arg->c = g_pika_conf;
+    arg->reenable_cache = true;
+    common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::ClearCacheDbAsync(void)
+{
+    if (PIKA_CACHE_STATUS_OK != cache_->CacheStatus()) {
+        LOG(WARNING) << "can not clear cache in status: " << cache_->CacheStatus();
+        return;
+    }
+
+    common_bg_thread_.StartThread();
+    BGCacheTaskArg *arg = new BGCacheTaskArg();
+    arg->p = this;
+    arg->task_type = CACHE_BGTASK_CLEAR;
+    common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::ClearHitRatio(void)
+{
+    cache_->ClearHitRatio();
+}
+
+void PikaServer::ResetCacheConfig(void)
+{
+    dory::CacheConfig cache_cfg;
+    cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+    cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+    cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+    cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
+    cache_cfg.cache_start_pos = g_pika_conf->cache_start_pos();
+    cache_cfg.cache_items_per_key = g_pika_conf->cache_items_per_key();
+    cache_->ResetConfig(&cache_cfg);
+}
+
+int PikaServer::CacheStatus(void)
+{
+    return cache_->CacheStatus();
+}
+
+void PikaServer::DoCacheBGTask(void* arg)
+{
+    BGCacheTaskArg *pCacheTaskArg = static_cast<BGCacheTaskArg*>(arg);
+    PikaServer* p = pCacheTaskArg->p;
+
+    switch (pCacheTaskArg->task_type) {
+        case CACHE_BGTASK_CLEAR:
+            LOG(INFO) << "clear cache start...";
+            p->cache_->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
+            p->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR);
+            p->cache_->FlushSlot();
+            LOG(INFO) << "clear cache finish";
+            break;
+        case CACHE_BGTASK_RESET_NUM:
+            LOG(INFO) << "reset cache num start...";
+            p->cache_->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+            p->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+            p->cache_->Reset();
+            LOG(INFO) << "reset cache num finish";
+            break;
+        case CACHE_BGTASK_RESET_CFG:
+            LOG(INFO) << "reset cache config start...";
+            p->cache_->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+            p->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+            p->cache_->Reset();
+            LOG(INFO) << "reset cache config finish";
+            break;
+        default:
+            LOG(WARNING) << "invalid cache task type: " << pCacheTaskArg->task_type;
+            break;
+    }
+    p->cache_->SetCacheStatus(PIKA_CACHE_STATUS_OK);
+    if (pCacheTaskArg->reenable_cache && pCacheTaskArg->c) {
+        pCacheTaskArg->c->UnsetCacheDisableFlag();
+    }
+
+    delete (BGCacheTaskArg*)arg;
+}
+
+void PikaServer::DoClearSysCachedMemory() {
+    if (0 == g_pika_conf->min_system_free_mem()) {
+        return;
+    }
+
+    unsigned long free_mem = 0;
+    int ret = pstd::SystemFreeMemory(&free_mem);
+    if (ret != 0) {
+        LOG(ERROR) << "get system free memroy failed, errno:" << ret;
+        return;
+    }
+
+    if (static_cast<int64_t>(free_mem) < g_pika_conf->min_system_free_mem()) {
+        pstd::ClearSystemCachedMemory();
+    }
 }

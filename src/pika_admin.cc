@@ -163,6 +163,7 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
     g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
+    g_pika_server->ClearCacheDbAsync();
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
   }
@@ -655,6 +656,7 @@ const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
 const std::string InfoCmd::kCacheSection = "cache";
+const std::string InfoCmd::KPcache = "pcache";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -725,7 +727,9 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoDebug;
   } else if (strcasecmp(argv_[1].data(), kCommandStatsSection.data()) == 0) {
     info_section_ = kInfoCommandStats;
-  } else {
+  }else if (!strcasecmp(argv_[1].data(), KPcache.data())) {
+      info_section_ = kInfoCache;
+  }else {
     info_section_ = kInfoErr;
   }
   if (argc != 2) {
@@ -1290,31 +1294,51 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     }
     info.append(tmp_stream.str());
 }
-// todo(cache): cache info cmd
+
+std::string InfoCmd::CacheStatusToString(int status)
+{
+    switch (status) {
+        case PIKA_CACHE_STATUS_NONE:
+            return std::string("None");
+        case PIKA_CACHE_STATUS_OK:
+            return std::string("Ok");
+        case PIKA_CACHE_STATUS_INIT:
+            return std::string("Init");
+        case PIKA_CACHE_STATUS_RESET:
+            return std::string("Reset");
+        case PIKA_CACHE_STATUS_DESTROY:
+            return std::string("Destroy");
+        case PIKA_CACHE_STATUS_CLEAR:
+            return std::string("Clear");
+        default:
+            return std::string("Unknown");
+    }
+}
+
 void InfoCmd::InfoCache(std::string& info) {
-//    std::stringstream tmp_stream;
-//    tmp_stream << "# Cache" << "\r\n";
-//    if (PIKA_CACHE_NONE == ) {
-//      tmp_stream << "cache_status:Disable" << "\r\n";
-//    } else {
-//      PikaServer::DisplayCacheInfo cache_info;
-//      g_pika_server->GetCacheInfo(cache_info);
-//      tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
-//      tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
-//      tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
-//      tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
-//      tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
-//      tmp_stream << "hits:" << cache_info.hits << "\r\n";
-//      tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
-//      tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
-//      tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
-//      tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" <<"\r\n";
-//      tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" <<"\r\n";
-//      tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
-//      tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
-//    }
-//
-//    info.append(tmp_stream.str());
+     std::stringstream tmp_stream;
+     tmp_stream << "# Cache" << "\r\n";
+     if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
+      tmp_stream << "cache_status:Disable" << "\r\n";
+    } else {
+      PikaServer::DisplayCacheInfo cache_info;
+      g_pika_server->GetCacheInfo(cache_info);
+      tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
+      tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
+      tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
+      tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
+      tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
+      tmp_stream << "hits:" << cache_info.hits << "\r\n";
+      tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
+      tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
+      tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
+      tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" <<"\r\n";
+      tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" <<"\r\n";
+      tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
+      tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
+    }
+
+    info.append(tmp_stream.str());
 }
 
 void ConfigCmd::DoInitial() {
@@ -2483,6 +2507,67 @@ void SlowlogCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 }
+
+void CacheCmd::DoInitial() {
+    if (!CheckArg(argv_.size())) {
+        res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
+        return;
+    }
+
+    if (!strcasecmp(argv_[1].data(), "clear")) {
+        if (!strcasecmp(argv_[2].data(), "db")) {
+            condition_ = kCLEAR_DB;
+        } else if (!strcasecmp(argv_[2].data(), "hitratio")) {
+            condition_ = kCLEAR_HITRATIO;
+        } else {
+            res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
+        }
+    } else if (!strcasecmp(argv_[1].data(), "del")) {
+        condition_ = kDEL_KEYS;
+        std::vector<std::string>::iterator iter = argv_.begin();
+        keys_.assign(iter + 2, argv_.end());
+    } else if (!strcasecmp(argv_[1].data(), "randomkey")) {
+        condition_ = kRANDOM_KEY;
+    } else {
+        res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
+    }
+    return;
+}
+
+void CacheCmd::Do(std::shared_ptr<Slot> slot) {
+    pstd::Status s;
+    std::string key;
+    switch (condition_) {
+        case kCLEAR_DB:
+            g_pika_server->ClearCacheDbAsync();
+            res_.SetRes(CmdRes::kOk);
+            break;
+        case kCLEAR_HITRATIO:
+            g_pika_server->ClearHitRatio();
+            res_.SetRes(CmdRes::kOk);
+            break;
+        case kDEL_KEYS:
+            for (auto& key : keys_) {
+                g_pika_server->cache_->Del(key);
+            }
+            res_.SetRes(CmdRes::kOk);
+            break;
+        case kRANDOM_KEY:
+            s = g_pika_server->cache_->RandomKey(&key);
+            if (!s.ok()) {
+                res_.AppendStringLen(-1);
+            } else {
+                res_.AppendStringLen(key.size());
+                res_.AppendContent(key);
+            }
+            break;
+        default:
+            res_.SetRes(CmdRes::kErrOther, "Unknown cmd");
+            break;
+    }
+    return;
+}
+
 
 void PaddingCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

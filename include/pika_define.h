@@ -29,6 +29,13 @@
 #define PIKA_MAX_CONN_RBUF_HB (1 << 29)  // 512MB
 #define PIKA_SERVER_ID_MAX 65535
 
+/*
+ * cache task type
+ */
+#define CACHE_BGTASK_CLEAR      0
+#define CACHE_BGTASK_RESET_NUM  1
+#define CACHE_BGTASK_RESET_CFG  2
+
 class PikaServer;
 
 /* Port shift */

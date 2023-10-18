@@ -262,6 +262,10 @@ class InfoCmd : public Cmd {
   void InfoDebug(std::string& info);
   void InfoCommandStats(std::string& info);
   void InfoCache(std::string& info);
+
+  std::string CacheStatusToString(int status);
+
+  static const std::string KPcache;
 };
 
 class ShutdownCmd : public Cmd {
@@ -367,6 +371,23 @@ class ScandbCmd : public Cmd {
   storage::DataType type_ = storage::kAll;
   void DoInitial() override;
   void Clear() override { type_ = storage::kAll; }
+};
+
+class CacheCmd : public Cmd {
+public:
+    CacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+    void Do(std::shared_ptr<Slot> slot = nullptr) override;
+    void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+    void Merge() override{};
+    Cmd* Clone() override { return new CacheCmd(*this); }
+private:
+    enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
+    CacheCondition condition_;
+    std::vector<std::string> keys_;
+    void DoInitial() override;
+    virtual void Clear() override {
+        keys_.clear();
+    }
 };
 
 class SlowlogCmd : public Cmd {

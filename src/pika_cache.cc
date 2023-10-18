@@ -84,6 +84,12 @@ void PikaCache::ActiveExpireCycle() {
   cache_->ActiveExpireCycle();
 }
 
+void PikaCache::ClearHitRatio(void)
+{
+    std::unique_lock l(rwlock_);
+    dory::RedisCache::ResetHitAndMissNum();
+}
+
 Status PikaCache::Del(const std::vector<std::string> &keys) {
   std::unique_lock l(rwlock_);
   for (const auto &key : keys) {
@@ -191,8 +197,6 @@ Status PikaCache::Incrxx(std::string &key) {
 
 Status PikaCache::Decrxx(std::string &key) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->Decr(key);
@@ -291,16 +295,12 @@ Status PikaCache::HSetIfKeyExistAndFieldNotExist(std::string &key, std::string &
 Status PikaCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HMSet(key, fvs);
 }
 
 Status PikaCache::HMSetnx(std::string &key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
   std::unique_lock l(rwlock_);
 
-  
-  
   if (!cache_->Exists(key)) {
     cache_->HMSet(key, fvs);
     cache_->Expire(key, ttl);
@@ -313,8 +313,6 @@ Status PikaCache::HMSetnx(std::string &key, std::vector<storage::FieldValue> &fv
 Status PikaCache::HMSetnxWithoutTTL(std::string &key, std::vector<storage::FieldValue> &fvs) {
   std::unique_lock l(rwlock_);
 
-  
-  
   if (!cache_->Exists(key)) {
     cache_->HMSet(key, fvs);
     return Status::OK();
@@ -325,8 +323,6 @@ Status PikaCache::HMSetnxWithoutTTL(std::string &key, std::vector<storage::Field
 
 Status PikaCache::HMSetxx(std::string &key, std::vector<storage::FieldValue> &fvs) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->HMSet(key, fvs);
@@ -338,8 +334,6 @@ Status PikaCache::HMSetxx(std::string &key, std::vector<storage::FieldValue> &fv
 Status PikaCache::HGet(std::string &key, std::string &field, std::string *value) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HGet(key, field, value);
 }
 
@@ -351,15 +345,11 @@ Status PikaCache::HMGet(std::string &key, std::vector<std::string> &fields, std:
 Status PikaCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HGetall(key, fvs);
 }
 
 Status PikaCache::HKeys(std::string &key, std::vector<std::string> *fields) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->HKeys(key, fields);
 }
@@ -367,23 +357,17 @@ Status PikaCache::HKeys(std::string &key, std::vector<std::string> *fields) {
 Status PikaCache::HVals(std::string &key, std::vector<std::string> *values) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HVals(key, values);
 }
 
 Status PikaCache::HExists(std::string &key, std::string &field) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HExists(key, field);
 }
 
 Status PikaCache::HIncrbyxx(std::string &key, std::string &field, int64_t value) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->HIncrby(key, field, value);
@@ -393,8 +377,6 @@ Status PikaCache::HIncrbyxx(std::string &key, std::string &field, int64_t value)
 
 Status PikaCache::HIncrbyfloatxx(std::string &key, std::string &field, long double value) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (cache_->Exists(key)) {
     return cache_->HIncrbyfloat(key, field, value);
@@ -405,8 +387,6 @@ Status PikaCache::HIncrbyfloatxx(std::string &key, std::string &field, long doub
 Status PikaCache::HLen(std::string &key, unsigned long *len) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->HLen(key, len);
 }
 
@@ -420,8 +400,6 @@ Status PikaCache::HStrlen(std::string &key, std::string &field, unsigned long *l
  *----------------------------------------------------------------------------*/
 Status PikaCache::LIndex(std::string &key, long index, std::string *element) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->LIndex(key, index, element);
 }
@@ -429,32 +407,21 @@ Status PikaCache::LIndex(std::string &key, long index, std::string *element) {
 Status PikaCache::LInsert(std::string &key, storage::BeforeOrAfter &before_or_after, std::string &pivot,
                           std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LInsert(key, before_or_after, pivot, value);
 }
 
 Status PikaCache::LLen(std::string &key, unsigned long *len) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LLen(key, len);
 }
 
 Status PikaCache::LPop(std::string &key, std::string *element) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LPop(key, element);
 }
 
 Status PikaCache::LPush(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-  
-  
   return cache_->LPush(key, values);
 }
 
@@ -470,56 +437,41 @@ Status PikaCache::LRange(std::string &key, long start, long stop, std::vector<st
 
 Status PikaCache::LRem(std::string &key, long count, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
-  
   return cache_->LRem(key, count, value);
 }
 
 Status PikaCache::LSet(std::string &key, long index, std::string &value) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->LSet(key, index, value);
 }
 
 Status PikaCache::LTrim(std::string &key, long start, long stop) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->LTrim(key, start, stop);
 }
 
 Status PikaCache::RPop(std::string &key, std::string *element) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->RPop(key, element);
 }
 
 Status PikaCache::RPush(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->RPush(key, values);
 }
 
 Status PikaCache::RPushx(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->RPushx(key, values);
 }
 
 Status PikaCache::RPushnx(std::string &key, std::vector<std::string> &values, int64_t ttl) {
   std::unique_lock l(rwlock_);
-
-  
   if (!cache_->Exists(key)) {
     cache_->RPush(key, values);
     cache_->Expire(key, ttl);
@@ -531,8 +483,6 @@ Status PikaCache::RPushnx(std::string &key, std::vector<std::string> &values, in
 
 Status PikaCache::RPushnxWithoutTTL(std::string &key, std::vector<std::string> &values) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (!cache_->Exists(key)) {
     cache_->RPush(key, values);
@@ -561,8 +511,6 @@ Status PikaCache::SAddIfKeyExist(std::string &key, std::vector<std::string> &mem
 
 Status PikaCache::SAddnx(std::string &key, std::vector<std::string> &members, int64_t ttl) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (!cache_->Exists(key)) {
     cache_->SAdd(key, members);
@@ -613,8 +561,6 @@ Status PikaCache::SRandmember(std::string &key, long count, std::vector<std::str
  *----------------------------------------------------------------------------*/
 Status PikaCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members) {
   std::unique_lock l(rwlock_);
-
-  
   
   return cache_->ZAdd(key, score_members);
 }
@@ -776,8 +722,6 @@ Status PikaCache::CleanCacheKeyIfNeeded(dory::RedisCache *cache_obj, std::string
 
 Status PikaCache::ZAddnx(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
   std::unique_lock l(rwlock_);
-
-  
   
   if (!cache_->Exists(key)) {
     cache_->ZAdd(key, score_members);
@@ -1369,8 +1313,6 @@ Status PikaCache::ZRemrangebylex(std::string &key, std::string &min, std::string
 Status PikaCache::SetBit(std::string &key, size_t offset, long value) {
   std::unique_lock l(rwlock_);
 
-  
-  
   return cache_->SetBit(key, offset, value);
 }
 
@@ -1502,4 +1444,12 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
 
 void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key) {
   cache_load_thread_->Push(key_type, key);
+}
+
+void PikaCache::ProcessCronTask(void) {
+    std::unique_lock l(rwlock_);
+    for (uint32_t i = 0; i < caches_.size(); ++i) {
+        std::unique_lock lm(*cache_mutexs_[i]);
+        caches_[i]->ActiveExpireCycle();
+    }
 }

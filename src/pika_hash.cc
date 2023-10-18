@@ -9,8 +9,10 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_server.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaServer> g_pika_server;
 
 void HDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -55,6 +57,10 @@ void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void HSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+    Do();
+}
+
 void HGetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHGet);
@@ -75,6 +81,18 @@ void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void HGetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+    res_.clear();
+    Do();
+}
+
+void HGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+    rocksdb::Status s;
+    if (s.ok()) {
+        g_pika_server->cache_->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    }
 }
 
 void HGetallCmd::DoInitial() {
@@ -125,6 +143,18 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void HGetallCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+    res_.clear();
+    Do();
+}
+
+void HGetallCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+    rocksdb::Status s;
+    if (s.ok()) {
+        g_pika_server->cache_->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    }
+}
+
 void HExistsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHExists);
@@ -143,6 +173,19 @@ void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void HExistsCmd::PreDo(std::shared_ptr<Slot> slot) {
+    rocksdb::Status s = g_pika_server->cache_->HExists(key_, field_);
+    if (s.ok()) {
+        res_.AppendContent(":1");
+    } else if (s.IsItemNotExist()) {
+        res_.AppendContent(":0");
+    } else if (s.IsNotFound()) {
+        res_.SetRes(CmdRes::kCacheMiss);
+    } else {
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+    }
 }
 
 void HIncrbyCmd::DoInitial() {

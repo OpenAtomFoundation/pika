@@ -109,11 +109,10 @@ void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
       slot->cache()->Setnx(key_, value_, sec_);
       break;
     case SetCmd::kVX:
-      // todo(leehao): cache
-      //        slot->cache()->Setvx(key_, target_, value_, sec_);
+      slot->cache()->Setvx(key_, target_, value_, sec_);
       break;
     case SetCmd::kEXORPX:
-      //        slot->cache()->Setex(key_, value_, static_cast<int32_t>(sec_));
+      slot->cache()->Setex(key_, value_, static_cast<int32_t>(sec_));
       break;
     default:
       slot->cache()->SetWithoutTTL(key_, value_);
@@ -1220,6 +1219,21 @@ void TypeCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void TypeCmd::PreDo() {
+    std::string type;
+    pstd::Status s = slot->Cache()->Type(key_, &type);
+    if (s.ok()) {
+        res_.AppendContent("+" + type);
+    } else {
+        res_.SetRes(CmdRes::kCacheMiss);
+    }
+}
+
+void TypeCmd::CacheDo() {
+    res_.clear();
+    Do();
 }
 
 void PTypeCmd::DoInitial() {

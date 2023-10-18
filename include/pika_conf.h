@@ -346,6 +346,65 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_rsync_parallel_num_;
   }
+  int cache_num(){
+    std::shared_lock l(rwlock_);
+    return cache_num_;
+  }
+  int cache_model(){
+    std::shared_lock l(rwlock_);
+    return cache_model_;
+  }
+  int cache_string() {
+    std::shared_lock l(rwlock_);
+    return cache_string_;
+  }
+   int cache_set() {
+    std::shared_lock l(rwlock_);
+    return cache_set_;
+  }
+  int cache_zset() {
+    std::shared_lock l(rwlock_);
+    return cache_zset_;
+  }
+  int cache_hash() {
+    std::shared_lock l(rwlock_);
+    return cache_hash_;
+  }
+  int cache_list() {
+    std::shared_lock l(rwlock_);
+    return cache_list_;
+  }
+  int cache_bit() {
+    std::shared_lock l(rwlock_);
+    return cache_bit_;
+  }
+  int cache_start_pos() {
+    std::shared_lock l(rwlock_);
+    return cache_start_pos_;
+  }
+  int cache_items_per_key() {
+    std::shared_lock l(rwlock_);
+    return cache_items_per_key_;
+  }
+  int64_t cache_maxmemory() {
+    std::shared_lock l(rwlock_);
+    return cache_maxmemory_;
+  }
+  int cache_maxmemory_policy() {
+    std::shared_lock l(rwlock_);
+    return cache_maxmemory_policy_;
+  }
+  int cache_maxmemory_samples() {
+    std::shared_lock l(rwlock_);
+    return cache_maxmemory_samples_;
+  }
+  int cache_lfu_decay_time() {
+    std::shared_lock l(rwlock_);
+    return cache_lfu_decay_time_;
+  }
+
+  int64_t min_system_free_mem()
+  { return min_system_free_mem_; }
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
@@ -584,8 +643,54 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
     max_rsync_parallel_num_ = value;
   }
-
+  void SetCacheNum(const int value){
+      std::lock_guard l(rwlock_);
+      TryPushDiffCommands("cache-num", std::to_string(value));
+      cache_num_ = value;
+  }
+  void SetCacheModel(const int value){
+      std::lock_guard l(rwlock_);
+      TryPushDiffCommands("cache-model", std::to_string(value));
+      cache_model_ = value;
+  }
+  void SetCacheDisableFlag(){
+      std::lock_guard l(rwlock_);
+      tmp_cache_disable_flag_ = true;
+  }
+  void UnsetCacheDisableFlag(){
+      std::lock_guard l(rwlock_);
+      tmp_cache_disable_flag_ = false;
+  }
+  bool IsCacheDisabledTemporarily(){
+      std::lock_guard l(rwlock_);
+      return tmp_cache_disable_flag_;
+  }
   void SetCacheType(const std::string &value);
+  void SetCacheStartPos(const int value){
+      std::lock_guard l(rwlock_);
+      cache_start_pos_ = value;
+  }
+  void SetCacheItemsPerKey(const int value){
+      std::lock_guard l(rwlock_);
+      cache_items_per_key_ = value;
+  }
+  void SetCacheMaxmemory(const int64_t value){
+      std::lock_guard l(rwlock_);
+      cache_maxmemory_ = value;
+  }
+  void SetCacheMaxmemoryPolicy(const int value){
+      std::lock_guard l(rwlock_);
+      cache_maxmemory_policy_ = value;
+  }
+  void SetCacheMaxmemorySamples(const int value){
+      std::lock_guard l(rwlock_);
+      cache_maxmemory_samples_ = value;
+  }
+  void SetCacheLFUDecayTime(const int value){
+      std::lock_guard l(rwlock_);
+      TryPushDiffCommands("cache-lfu-", std::to_string(value));
+      cache_lfu_decay_time_ = value;
+  }
 
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
@@ -715,6 +820,7 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<int> cache_maxmemory_policy_;
   std::atomic<int> cache_maxmemory_samples_;
   std::atomic<int> cache_lfu_decay_time_;
+  std::atomic<int64_t> min_system_free_mem_;
 
 
   // rocksdb blob
