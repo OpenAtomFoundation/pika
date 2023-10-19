@@ -1,4 +1,0 @@
-#include "build_version.h"
-const char* dory_build_git_sha = "dory_build_git_sha:@@GIT_SHA@@";
-const char* dory_build_git_date = "dory_build_git_date:@@GIT_DATE_TIME@@";
-const char* dory_build_compile_date = __DATE__;

@@ -628,9 +628,9 @@ ExternalProject_Add(rocksdb
 
 ExternalProject_Add(rediscache
   URL
-  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.1.tar.gz
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.2.tar.gz
   URL_HASH
-  MD5=da2c7e3b5bce1713d1987339cc937d31
+  MD5=0d72a2d4832500773bd47d3efb23bca8
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -726,7 +726,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
-add_subdirectory(src/dory)
+add_subdirectory(src/cache)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -798,7 +798,7 @@ add_dependencies(${PROJECT_NAME}
   net
   rediscache
   storage
-  dory
+  cache
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -808,7 +808,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-  dory
+  cache
   storage
   net
   pstd
