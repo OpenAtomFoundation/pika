@@ -1,9 +1,11 @@
-#ifndef __REDIS_CACHE_H__
-#define __REDIS_CACHE_H__
 //  Copyright (c) 2023-present The dory Authors.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
+
+#ifndef __REDIS_CACHE_H__
+#define __REDIS_CACHE_H__
+
 #include <unistd.h>
 #include <string>
 #include <map>
