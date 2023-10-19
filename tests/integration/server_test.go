@@ -13,7 +13,6 @@ var _ = Describe("Server", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
@@ -561,4 +560,5 @@ var _ = Describe("Server", func() {
 
 		})
 	})
+
 })
