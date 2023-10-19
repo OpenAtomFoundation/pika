@@ -16,6 +16,7 @@ var _ = Describe("Zset Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		time.Sleep(1 * time.Second)
 	})
 
 	AfterEach(func() {
