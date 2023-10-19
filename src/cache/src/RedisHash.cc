@@ -323,6 +323,6 @@ Status RedisCache::HStrlen(std::string &key, std::string &field, unsigned long *
     return Status::OK();
 }
 
-} // namespace dory
+} // namespace cache
 
 /* EOF */

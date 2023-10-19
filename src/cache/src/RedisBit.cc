@@ -106,6 +106,6 @@ Status RedisCache::BitPos(std::string &key, long bit, long start, long end, long
     return Status::OK();
 }
 
-} // namespace dory
+} // namespace cache
 
 /* EOF */

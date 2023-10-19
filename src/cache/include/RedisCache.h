@@ -169,7 +169,7 @@ private:
     redisDbIF *m_RedisDB;
 };
 
-} // namespace dory 
+} // namespace cache
 
 #endif
 

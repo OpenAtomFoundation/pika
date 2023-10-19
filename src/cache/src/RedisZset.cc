@@ -430,6 +430,5 @@ Status RedisCache::ZRemrangebylex(std::string &key, std::string &min, std::strin
     return Status::OK();
 }
 
-} // namespace dory
-
+} // namespace cache
 /* EOF */

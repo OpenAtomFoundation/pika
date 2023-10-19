@@ -284,6 +284,6 @@ void RedisCache::ConvertObjectToString(robj *obj, std::string *value) {
     }
 }
 
-} // namespace dory
+} // namespace cache
 
 /* EOF */

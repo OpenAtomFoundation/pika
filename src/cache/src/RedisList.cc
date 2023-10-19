@@ -302,6 +302,6 @@ Status RedisCache::RPushx(std::string &key, std::vector<std::string> &values) {
     return Status::OK();
 }
 
-} // namespace dory
+} // namespace cache
 
 /* EOF */

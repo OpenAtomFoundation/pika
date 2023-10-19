@@ -263,6 +263,6 @@ Status RedisCache::Strlen(std::string &key, int32_t *len) {
     return Status::OK();
 }
 
-} // namespace dory
+} // namespace cache
 
 /* EOF */
