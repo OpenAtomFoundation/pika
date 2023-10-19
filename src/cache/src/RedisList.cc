@@ -150,7 +150,7 @@ Status RedisCache::LPushx(std::string &key, std::vector<std::string> &values) {
 }
 
 Status RedisCache::LRange(std::string &key, long start, long stop, std::vector<std::string> *values) {
-    sds *vals = NULL;
+    sds *vals = nullptr;
     unsigned long vals_size;
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));

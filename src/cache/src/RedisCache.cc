@@ -236,9 +236,9 @@ Status RedisCache::RandomKey(std::string *key) {
 }
 
 void RedisCache::DecrObjectsRefCount(robj *argv1, robj *argv2, robj *argv3) {
-    if (NULL != argv1) decrRefCount(argv1);
-    if (NULL != argv2) decrRefCount(argv2);
-    if (NULL != argv3) decrRefCount(argv3);
+    if (nullptr != argv1) decrRefCount(argv1);
+    if (nullptr != argv2) decrRefCount(argv2);
+    if (nullptr != argv3) decrRefCount(argv3);
 }
 
 void RedisCache::FreeSdsList(sds *items, unsigned int size) {

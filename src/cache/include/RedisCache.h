@@ -154,7 +154,7 @@ public:
     Status BitPos(std::string &key, long bit, long start, long end, long *value);
 
 protected:
-    void DecrObjectsRefCount(robj *argv1, robj *argv2 = NULL, robj *argv3 = NULL);
+    void DecrObjectsRefCount(robj *argv1, robj *argv2 = nullptr, robj *argv3 = nullptr);
     void FreeSdsList(sds *items, unsigned int size);
     void FreeObjectList(robj **items, unsigned int size);
     void FreeHitemList(hitem *items, unsigned int size);

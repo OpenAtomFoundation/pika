@@ -65,7 +65,7 @@ Status RedisCache::SIsmember(std::string &key, std::string &member) {
 }
 
 Status RedisCache::SMembers(std::string &key, std::vector<std::string> *members) {
-    sds *vals = NULL;
+    sds *vals = nullptr;
     unsigned long vals_size;
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
@@ -114,7 +114,7 @@ Status RedisCache::SRem(std::string &key, std::vector<std::string> &members) {
 }
 
 Status RedisCache::SRandmember(std::string &key, long count, std::vector<std::string> *members) {
-    sds *vals = NULL;
+    sds *vals = nullptr;
     unsigned long vals_size = 0;
     int ret;
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));

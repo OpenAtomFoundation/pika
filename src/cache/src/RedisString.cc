@@ -35,7 +35,7 @@ Status RedisCache::SetWithoutTTL(std::string &key, std::string &value) {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
 
-    if (C_OK != RsSet(m_RedisDB, kobj, vobj, NULL)) {
+    if (C_OK != RsSet(m_RedisDB, kobj, vobj, nullptr)) {
         DecrObjectsRefCount(kobj, vobj);
         return Status::Corruption("RsSetnx failed, key exists!");
     }
@@ -70,7 +70,7 @@ Status RedisCache::SetnxWithoutTTL(std::string &key, std::string &value) {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
 
-    if (C_OK != RsSetnx(m_RedisDB, kobj, vobj, NULL)) {
+    if (C_OK != RsSetnx(m_RedisDB, kobj, vobj, nullptr)) {
         DecrObjectsRefCount(kobj, vobj);
         return Status::Corruption("RsSetnx failed, key exists!");
     }
@@ -105,7 +105,7 @@ Status RedisCache::SetxxWithoutTTL(std::string &key, std::string &value) {
     robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
     robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
 
-    if (C_OK != RsSetxx(m_RedisDB, kobj, vobj, NULL)) {
+    if (C_OK != RsSetxx(m_RedisDB, kobj, vobj, nullptr)) {
         DecrObjectsRefCount(kobj, vobj);
         return Status::Corruption("RsSetxx failed, key not exists!");
     }
