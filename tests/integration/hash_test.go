@@ -228,14 +228,14 @@ var _ = Describe("List Commands", func() {
 
 			// set struct
 			// MSet struct
-			type set struct {
-				Set1 string                 `redis:"set1"`
-				Set2 int16                  `redis:"set2"`
-				Set3 time.Duration          `redis:"set3"`
-				Set4 interface{}            `redis:"set4"`
-				Set5 map[string]interface{} `redis:"-"`
-				Set6 string                 `redis:"set6,omitempty"`
-			}
+			//type set struct {
+			//	Set1 string                 `redis:"set1"`
+			//	Set2 int16                  `redis:"set2"`
+			//	Set3 time.Duration          `redis:"set3"`
+			//	Set4 interface{}            `redis:"set4"`
+			//	Set5 map[string]interface{} `redis:"-"`
+			//	Set6 string                 `redis:"set6,omitempty"`
+			//}
 
 			// 命令格式不对：hset hash set1 val1 set2 1024 set3 2000000 set4
 			//hSet = client.HSet(ctx, "hash", &set{
@@ -307,26 +307,26 @@ var _ = Describe("List Commands", func() {
 			Expect(slice).To(Equal([]string{"hello1", "hello2"}))
 		})
 
-		//It("should HRandField", func() {
-		//	err := client.HSet(ctx, "hash", "key1", "hello1").Err()
-		//	Expect(err).NotTo(HaveOccurred())
-		//	err = client.HSet(ctx, "hash", "key2", "hello2").Err()
-		//	Expect(err).NotTo(HaveOccurred())
-		//
-		//	//v := client.HRandField(ctx, "hash", 1)
-		//	//Expect(v.Err()).NotTo(HaveOccurred())
-		//	//Expect(v.Val()).To(Or(Equal([]string{"key1"}), Equal([]string{"key2"})))
-		//
-		//	v := client.HRandField(ctx, "hash", 0)
-		//	Expect(v.Err()).NotTo(HaveOccurred())
-		//	Expect(v.Val()).To(HaveLen(0))
-		//
-		//	kv, err := client.HRandFieldWithValues(ctx, "hash", 1).Result()
-		//	Expect(err).NotTo(HaveOccurred())
-		//	Expect(kv).To(Or(
-		//		Equal([]redis.KeyValue{{Key: "key1", Value: "hello1"}}),
-		//		Equal([]redis.KeyValue{{Key: "key2", Value: "hello2"}}),
-		//	))
-		//})
+		PIt("should HRandField", func() {
+			err := client.HSet(ctx, "hash", "key1", "hello1").Err()
+			Expect(err).NotTo(HaveOccurred())
+			err = client.HSet(ctx, "hash", "key2", "hello2").Err()
+			Expect(err).NotTo(HaveOccurred())
+
+			//v := client.HRandField(ctx, "hash", 1)
+			//Expect(v.Err()).NotTo(HaveOccurred())
+			//Expect(v.Val()).To(Or(Equal([]string{"key1"}), Equal([]string{"key2"})))
+
+			v := client.HRandField(ctx, "hash", 0)
+			Expect(v.Err()).NotTo(HaveOccurred())
+			Expect(v.Val()).To(HaveLen(0))
+
+			kv, err := client.HRandFieldWithValues(ctx, "hash", 1).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(kv).To(Or(
+				Equal([]redis.KeyValue{{Key: "key1", Value: "hello1"}}),
+				Equal([]redis.KeyValue{{Key: "key2", Value: "hello2"}}),
+			))
+		})
 	})
 })

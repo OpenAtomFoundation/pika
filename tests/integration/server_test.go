@@ -13,6 +13,7 @@ var _ = Describe("Server", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
+	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
@@ -218,15 +219,17 @@ var _ = Describe("Server", func() {
 		It("should DBSize", func() {
 			Expect(client.Set(ctx, "key", "value", 0).Val()).To(Equal("OK"))
 			Expect(client.Do(ctx, "info", "keyspace", "1").Err()).NotTo(HaveOccurred())
-
+			time.Sleep(1 * time.Second)
 			size, err := client.DBSize(ctx).Result()
+			time.Sleep(500 * time.Millisecond)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(size).To(Equal(int64(1)))
 
 			Expect(client.Del(ctx, "key").Val()).To(Equal(int64(1)))
 			Expect(client.Do(ctx, "info", "keyspace", "1").Err()).NotTo(HaveOccurred())
-
+			time.Sleep(1 * time.Second)
 			size, err = client.DBSize(ctx).Result()
+			time.Sleep(500 * time.Millisecond)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(size).To(Equal(int64(0)))
 		})
