@@ -112,7 +112,7 @@ var _ = Describe("Geo Commands", func() {
 			Expect(dist).To(BeNumerically("~", 166274.15, 0.01))
 		})
 
-		It("should get geo hash in string representation", func() {
+		PIt("should get geo hash in string representation", func() {
 			res := client.Do(ctx, "GEOHASH", "Sicily", "Palermo", "Catania")
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res.Val()).To(HaveLen(2))

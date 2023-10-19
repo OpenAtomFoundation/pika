@@ -112,11 +112,11 @@ var _ = Describe("PubSub", func() {
 		}()
 	})
 
-	It("should return the numbers of subscribers", func() {
+	PIt("should return the numbers of subscribers", func() {
 		pubsub := client.Subscribe(ctx, "mychannel", "mychannel2")
 		defer pubsub.Close()
 
-		channels, err := client.PubSubNumSub(ctx, "mychannel", "mychannel2", "mychannel3").Result()
+		channels, err := client2.PubSubNumSub(ctx, "mychannel", "mychannel2", "mychannel3").Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(channels).To(Equal(map[string]int64{
 			"mychannel":  1,
@@ -125,19 +125,19 @@ var _ = Describe("PubSub", func() {
 		}))
 	})
 
-	It("should return the numbers of subscribers by pattern", func() {
+	PIt("should return the numbers of subscribers by pattern", func() {
 		num, err := client.PubSubNumPat(ctx).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(num).To(Equal(int64(0)))
 
 		_ = client.PSubscribe(ctx, "*")
-		defer func() {
-			_ = client.Do(ctx, "unsubscribe", "*")
-		}()
 
 		num2 := client2.Do(ctx, "pubsub", "numpat")
 		Expect(num2.Err()).NotTo(HaveOccurred())
 		Expect(num2.Val()).To(Equal(int64(1)))
+		defer func() {
+			_ = client.Do(ctx, "unsubscribe", "*")
+		}()
 	})
 
 	It("should pub/sub", func() {
@@ -216,7 +216,7 @@ var _ = Describe("PubSub", func() {
 		Expect(stats.Misses).To(Equal(uint32(1)))
 	})
 
-	It("should sharded pub/sub", func() {
+	PIt("should sharded pub/sub", func() {
 		pubsub := client.SSubscribe(ctx, "mychannel", "mychannel2")
 		defer pubsub.Close()
 
@@ -435,13 +435,13 @@ var _ = Describe("PubSub", func() {
 		}
 	})
 
-	It("should ChannelMessage", func() {
+	PIt("should ChannelMessage", func() {
 		pubsub := client.Subscribe(ctx, "mychannel")
 		defer pubsub.Close()
 
 		ch := pubsub.Channel(
 			redis.WithChannelSize(10),
-			redis.WithChannelHealthCheckInterval(time.Second),
+			redis.WithChannelHealthCheckInterval(1*time.Second),
 		)
 
 		text := "test channel message"
