@@ -5,9 +5,9 @@ name: Operator
 
 on:
   push:
-    branches: [ "unstable", "3.5.1" ]
+    branches: [ "unstable", "3.5.1", "*" ]
   pull_request:
-    branches: [ "unstable", "3.5.1" ]
+    branches: [ "unstable", "3.5.1", "*" ]
 
 jobs:
 
