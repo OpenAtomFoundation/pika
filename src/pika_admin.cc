@@ -1423,6 +1423,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->timeout());
   }
 
+  if (pstd::stringmatch(pattern.data(), "lua-time-limit", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "lua-time-limit");
+    EncodeNumber(&config_body, g_pika_conf->lua_time_limit());
+  }
+
   if (pstd::stringmatch(pattern.data(), "requirepass", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "requirepass");
@@ -1872,6 +1878,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   if (set_item == "*") {
     ret = "*28\r\n";
     EncodeString(&ret, "timeout");
+    EncodeString(&ret, "lua-time-limit");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
     EncodeString(&ret, "slotmigrate");
@@ -1915,6 +1922,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetTimeout(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "lua-time-limit") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'lua-time-limit'\r\n";
+      return;
+    }
+    g_pika_conf->SetLuaTimeLimit(ival);
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);

@@ -5,7 +5,7 @@ set ::valgrind_errors {}
 proc start_server_error {config_file error} {
     set err {}
     append err "Cant' start the Redis server\n"
-    append err "CONFIGURATION:"
+    append err "CONFIGURATION:\n"
     append err [exec cat $config_file]
     append err "\nERROR:"
     append err [string trim $error]
@@ -189,6 +189,11 @@ proc start_server {options {code undefined}} {
     set ::port [find_available_port [expr {$::port+1}]]
     dict set config port $::port
 
+    # start every server on a different path
+    dict set config log-path ./log$::port/
+    dict set config db-path ./db$::port/
+    dict set config dump-path ./dump$::port/
+
     # apply overrides from global space and arguments
     foreach {directive arguments} [concat $::global_overrides $overrides] {
         dict set config $directive $arguments
@@ -206,6 +211,9 @@ proc start_server {options {code undefined}} {
             }
         } elseif {$directive == "dump_prefix"} {
             puts $fp "$directive :"
+        } elseif {$directive == "databases"} {
+            puts -nonewline $fp "$directive : "
+            puts $fp [dict get $config $directive]
         } else {
             puts -nonewline $fp "$directive : "
             puts $fp [dict get $config $directive]

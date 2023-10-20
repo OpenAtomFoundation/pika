@@ -626,6 +626,110 @@ ExternalProject_Add(rocksdb
   make -j${CPU_CORE}
 )
 
+# if define USEJIT, we use LuaJIT, otherwise we use Lua
+if(NOT USEJIT)
+  set(USEJIT OFF)
+endif()
+MESSAGE(STATUS "USEJIT: ${USEJIT}")
+
+ExternalProject_Add(sol
+  URL
+  https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz
+  URL_HASH
+  MD5=05021725f7a3e0b91e19250d001deb8e
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  BUILD_IN_SOURCE
+  1
+  SOURCE_SUBDIR
+  ""
+  BUILD_ALWAYS
+  1
+  CONFIGURE_COMMAND
+  ""
+  BUILD_COMMAND
+  ""
+  # python single/single.py
+  INSTALL_COMMAND
+  # cp -r single/include/sol ${INSTALL_INCLUDEDIR}
+  cp -r include/sol ${INSTALL_INCLUDEDIR}
+)
+set(SOL_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
+if (NOT USEJIT)
+  MESSAGE(STATUS "Use Lua")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(PLAT linux)
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(PLAT macosx)
+  endif()
+  ExternalProject_Add(lua
+    URL
+    https://www.lua.org/ftp/lua-5.1.5.tar.gz
+    URL_HASH
+    MD5=2e115fe26e435e33b0d5c022e4490567
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    BUILD_IN_SOURCE
+    1
+    SOURCE_SUBDIR
+    ""
+    BUILD_ALWAYS
+    1
+    CONFIGURE_COMMAND
+    ""
+    BUILD_COMMAND
+    make PLAT=${PLAT} INSTALL_TOP=${STAGED_INSTALL_PREFIX} all
+    INSTALL_COMMAND
+    make PLAT=${PLAT} INSTALL_TOP=${STAGED_INSTALL_PREFIX} install
+  )
+  set(LUA_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+  set(LUA_LIBRARY ${INSTALL_LIBDIR}/liblua.a)
+else ()
+  MESSAGE(STATUS "Use LuaJIT")
+  ExternalProject_Add(lua
+    URL
+    https://github.com/LuaJIT/LuaJIT/archive/refs/tags/v2.0.5.tar.gz
+    URL_HASH
+    MD5=06de37f3a49c78019262bce6fc935ded
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    BUILD_IN_SOURCE
+    1
+    SOURCE_SUBDIR
+    ""
+    BUILD_ALWAYS
+    1
+    CONFIGURE_COMMAND
+    ""
+    BUILD_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} all
+    INSTALL_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} install
+  )
+  set(LUA_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+  set(LUA_LIBRARY ${INSTALL_LIBDIR}/libluajit-5.1.a)
+endif()
+
+
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
@@ -697,6 +801,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(src/script)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -766,12 +871,16 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  storage
+  lua
+  sol)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   PUBLIC ${PROJECT_SOURCE_DIR}
   ${INSTALL_INCLUDEDIR}
+  ${LUA_INCLUDE_DIR}
+  ${SOL_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -788,7 +897,11 @@ target_link_libraries(${PROJECT_NAME}
   liblz4.a
   libz.a
   ${LIBUNWIND_LIBRARY}
-  ${JEMALLOC_LIBRARY})
+  ${JEMALLOC_LIBRARY}
+  ${LUA_LIBRARY}
+  lua-cjson
+  lua-struct
+  lua-cmsgpack)
 
 option(USE_SSL "Enable SSL support" OFF)
 add_custom_target(

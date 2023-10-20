@@ -51,11 +51,12 @@ class PikaClientConn : public net::RedisConn {
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
+  void ExecRedisCmdInLua(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr, bool& need_sort);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentTable(const std::string& db_name) { current_db_ = db_name; }
-  const std::string& GetCurrentTable() override{ return current_db_; }
+  const std::string& GetCurrentTable() const { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   net::ServerThread* server_thread() { return server_thread_; }
@@ -73,6 +74,8 @@ class PikaClientConn : public net::RedisConn {
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
+  std::shared_ptr<Cmd> DoCmdInLua(const PikaCmdArgsType& argv, const std::string& opt,
+                             const std::shared_ptr<std::string>& resp_ptr); 
 
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);

@@ -1,0 +1,6 @@
+add_library(lua-cjson STATIC lua_cjson.c strbuf.c fpconv.c)
+target_link_libraries(lua-cjson ${LUA_LIBRARY})
+target_include_directories(lua-cjson PRIVATE ${LUA_INCLUDE_DIR})
+message(STATUS "lua-cjson LUA_INCLUDE_DIR: ${LUA_INCLUDE_DIR}")
+add_dependencies(lua-cjson lua)
+add_definitions(-DENABLE_CJSON_GLOBAL)

@@ -13,6 +13,7 @@
 #else
 #  include <sys/statfs.h>
 #endif
+#include <chrono>
 #include <memory>
 #include <set>
 
@@ -22,11 +23,13 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
+#include "sol/sol.hpp"
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
+#include "include/pika_client_conn.h"
 #include "include/pika_client_processor.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
@@ -41,8 +44,6 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_cmd_table_manager.h"
-
-
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -496,6 +497,41 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unique_ptr<Instant> instant_;
 
+  /*
+   * lua script use
+   */
+  pstd::Mutex lua_mutex_;                                /* Protect the Lua state */
+  // lua_mutex_保护
+  std::unique_ptr<sol::state> lua_;                      /* The Lua interpreter. We use just one for all clients */
+  std::shared_ptr<PikaClientConn> lua_client_;           /* The "fake client" to query Redis from Lua */
+  std::unordered_map<std::string, std::string> lua_scripts_; /* The dict map sha1 to lua script */
+
+  std::atomic<int> lua_time_limit_{0};             /* Script timeout in seconds */
+
+  // 在eval的线程里使用
+  std::chrono::system_clock::time_point lua_time_start_; /* Start time of script */
+
+  std::atomic<bool> lua_write_dirty_;                                 /* True if a write command was called during the
+                                                          execution of the current script. */
+  // 在eval的线程里使用
+  std::atomic<bool> lua_random_dirty_;                                /* True if a random command was called during the
+                                                          execution of the current script. */
+  // 在eval的线程和ClientConn里使用
+  std::atomic<bool> lua_timedout_{false};                                    /* True if we reached the time limit for script
+                                                          execution. */
+  pstd::Mutex lua_kill_mutex_;                           /* Protect the lua_kill_ */
+  std::atomic<bool> lua_kill_{false};                    /* Kill the script if true. */
+  std::atomic<bool> lua_calling_{false};                 /* Call the script if true. */
+
+  void luaLoadLib(const char* libname, lua_CFunction luafunc);
+  void luaLoadLibraries();
+  void luaRemoveUnsupportedFunctions();
+  void scriptingEnableGlobalsProtection();
+  void ScriptingInit();
+  void ScriptingRelease();
+  void ScriptingReset();
+  // sol::state& lua();
+  PikaClientConn* lua_client();
  /*
   * Diskrecovery used
   */
@@ -530,13 +566,17 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
-  std::timed_mutex  exit_mutex_;
+  std::timed_mutex exit_mutex_;
 
   /*
    * Table used
    */
   std::atomic<SlotState> slot_state_;
+
+ public:
   std::shared_mutex dbs_rw_;
+
+ private:
   std::map<std::string, std::shared_ptr<DB>> dbs_;
 
   /*

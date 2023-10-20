@@ -15,6 +15,7 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
+#include "include/pika_script.h"
 #include "include/pika_server.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
@@ -30,6 +31,106 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
   auth_stat_.Init();
 }
 
+// 主从redis.call的命令都从这里执行， 特别注意从的eval命令会调用redis.call
+std::shared_ptr<Cmd> PikaClientConn::DoCmdInLua(const PikaCmdArgsType& argv, const std::string& opt,
+                                           const std::shared_ptr<std::string>& resp_ptr) {
+  // TODO return err in lua script context
+  // Get command info
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+  if (!c_ptr) {
+    std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
+    tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
+    return tmp_ptr;
+  }
+  c_ptr->SetConn(shared_from_this());
+  c_ptr->SetResp(resp_ptr);
+
+
+  // Check authed lua里不执行
+  uint64_t start_us = 0;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = pstd::NowMicros();
+  }
+
+  // only do monitor if we are in master? 需要验证
+  if (g_pika_server->role() == PIKA_ROLE_MASTER) {
+    bool is_monitoring = g_pika_server->HasMonitorClients();
+    // TODO monitor lua格式添加
+    if (is_monitoring) {
+      ProcessMonitor(argv);
+    }
+  }
+
+  // Initial
+  c_ptr->Initial(argv, current_db_);
+  if (!c_ptr->res().ok()) {
+    return c_ptr;
+  }
+
+  // TODO 只有master才Update这个？感觉不是
+  if (g_pika_server->role() == PIKA_ROLE_MASTER) {
+    g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
+  }
+
+  // PubSub connection， 这是fake client绝对不是pubsub连接
+  
+  // sharding模式的直接删除
+
+  // reject all the request before new master sync finished， 不需要这个， 在eval的时候就去掉了
+
+  if (!g_pika_server->IsDBExist(current_db_)) {
+    c_ptr->res().SetRes(CmdRes::kErrOther, "DB not found");
+    return c_ptr;
+  }
+
+  // check for cmd support in lua
+  if (!c_ptr->is_script()) {
+    c_ptr->res().SetRes(CmdRes::kErrOther, "This Redis command is not allowed from scripts");
+    return c_ptr;
+  }
+
+  if (c_ptr->is_write()) {
+    // lua 命令不做binlog直接删除
+    std::vector<std::string> cur_key = c_ptr->current_key();
+    if (cur_key.empty()) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
+      return c_ptr;
+    }
+    // 防止lua脚本在read only slave执行
+    if (g_pika_server->readonly(current_db_, cur_key.front())) {
+      LOG(INFO) << "Server in read-only defense";
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
+      return c_ptr;
+    }
+    // write command is not allowed after random command, it will be inconsistent in slave execution
+    if (g_pika_server->lua_random_dirty_) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Write commands not allowed after non deterministic commands");
+      return c_ptr;
+    }
+  }
+  // TODO redis bg save error and not accept write command
+  // 这里tm难道一个cmd不能同时trigger下面这两条？
+  if (c_ptr->is_random()) {
+    g_pika_server->lua_random_dirty_ = true;    
+  }
+  if (c_ptr->is_write()) {
+    g_pika_server->lua_write_dirty_ = true;
+  }
+
+  // Process Command
+  c_ptr->Execute();
+  int64_t duration = pstd::NowMicros() - start_us;
+  auto cmdstat_map = g_pika_server->GetCommandStatMap();
+  (*cmdstat_map)[opt].cmd_count.fetch_add(1);
+  (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
+
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
+  }
+  return c_ptr;
+}
+
+// TODO 与eval线程进行同步阻塞， 超时后返回指示让script kill
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
   // Get command info
@@ -74,6 +175,21 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
         opt != kCmdNamePUnSubscribe) {
       c_ptr->res().SetRes(CmdRes::kErrOther,
                           "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
+      return c_ptr;
+    }
+  }
+  
+  if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
+    c_ptr->SetStage(Cmd::kBinlogStage);
+  }
+
+  // TODO 这里会有一个间隙， 就是还没超时， 但是把命令放过去了， 我们加一个lua_calling_的check
+  // 这样就没有这个间隙， 但是在lua执行拒绝接受其他命令
+  if (g_pika_server->lua_timedout_) {
+    bool is_kill = (c_ptr->name() == kCmdNameScript && argv.size() == 2 && argv[1] == "kill");
+    bool is_shutdown = (c_ptr->name() == kCmdNameShutdown);
+    if (!is_kill && !is_shutdown) {
+      c_ptr->res().SetRes(CmdRes::kSlowScript);
       return c_ptr;
     }
   }
@@ -247,6 +363,29 @@ void PikaClientConn::TryWriteResp() {
     }
     resp_array.clear();
     NotifyEpoll(true);
+  }
+}
+
+void PikaClientConn::ExecRedisCmdInLua(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr, bool& need_sort) {
+  // get opt
+  std::string opt = argv[0];
+  pstd::StringToLower(opt);
+  if (opt == kClusterPrefix) {
+    if (argv.size() >= 2) {
+      opt += argv[1];
+      pstd::StringToLower(opt);
+    }
+  }
+
+  std::shared_ptr<Cmd> cmd_ptr = DoCmdInLua(argv, opt, resp_ptr);
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  if (!cmd_ptr->res().ok()) {
+    // push error to lua
+    // TODO use message() will add -ERR in front of error message, we can remove it by slicing the string
+    LuaPushError(*g_pika_server->lua_, cmd_ptr->res().message().data());
+  }  
+  if (cmd_ptr->is_sort_for_script()) {
+    need_sort = true;
   }
 }
 

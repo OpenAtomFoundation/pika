@@ -212,8 +212,9 @@ enum CmdFlagsMask {
   kCmdFlagsMaskAdminRequire = 256
 };
 
+// TODO add lua flags
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
+  kCmdFlagsRead = 0,   // default rw
   kCmdFlagsWrite = 1,
   kCmdFlagsAdmin = 0,  // default type
   kCmdFlagsKv = 2,
@@ -225,11 +226,11 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = 14,
   kCmdFlagsGeo = 16,
   kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
+  kCmdFlagsNoLocal = 0,         // default nolocal
   kCmdFlagsLocal = 32,
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
+  kCmdFlagsNoSuspend = 0,       // default nosuspend
   kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
+  kCmdFlagsNoPrior = 0,         // default noprior
   kCmdFlagsPrior = 128,
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256

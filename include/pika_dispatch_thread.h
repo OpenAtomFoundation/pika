@@ -22,6 +22,8 @@ class PikaDispatchThread {
 
   void SetQueueLimit(int queue_limit) { thread_rep_->SetQueueLimit(queue_limit); }
 
+  net::ServerThread* thread_rep() const { return thread_rep_; }
+
  private:
   class ClientConnFactory : public net::ConnFactory {
    public:

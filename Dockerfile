@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y \
     git \
     cmake \
     autoconf \
-    clang-tidy-12
+    clang-tidy-12 \
+    libreadline-dev
 
 WORKDIR ${PIKA_BUILD_DIR}
 

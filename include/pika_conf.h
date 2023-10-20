@@ -131,6 +131,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return timeout_;
   }
+  int lua_time_limit() {
+    std::shared_lock l(rwlock_);
+    return lua_time_limit_;
+  }
   int binlog_writer_num() {
     std::shared_lock l(rwlock_);
     return binlog_writer_num_;
@@ -364,6 +368,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("timeout", std::to_string(value));
     timeout_ = value;
+  }
+  void SetLuaTimeLimit(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("lua-time-limit", std::to_string(value));
+    lua_time_limit_ = value;
   }
   void SetThreadPoolSize(const int value) {
     std::lock_guard l(rwlock_);
@@ -618,6 +627,7 @@ class PikaConf : public pstd::BaseConf {
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
   int timeout_ = 0;
+  int lua_time_limit_ = 0;
   std::string server_id_;
   std::string run_id_;
   std::string master_run_id_;

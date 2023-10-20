@@ -144,6 +144,10 @@ int PikaConf::Load() {
   if (timeout_ < 0) {
     timeout_ = 60;  // 60s
   }
+  GetConfInt("lua-time-limit", &lua_time_limit_);
+  if (lua_time_limit_ < 0) {
+    lua_time_limit_ = 0;  // 5s
+  }
   GetConfStr("server-id", &server_id_);
   if (server_id_.empty()) {
     server_id_ = "1";
@@ -627,6 +631,7 @@ int PikaConf::ConfigRewrite() {
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
+  SetConfInt("lua-time-limit", lua_time_limit_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
