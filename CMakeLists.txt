@@ -626,6 +626,35 @@ ExternalProject_Add(rocksdb
   make -j${CPU_CORE}
 )
 
+ExternalProject_Add(rediscache
+  URL
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.2.tar.gz
+  URL_HASH
+  MD5=0d72a2d4832500773bd47d3efb23bca8
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_BUILD
+  1
+  BUILD_IN_SOURCE
+  1
+  SOURCE_SUBDIR
+  ""
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_INSTALL_INCLUDEDIR=${INSTALL_INCLUDEDIR}
+  -DCMAKE_INSTALL_LIBDIR=${INSTALL_LIBDIR}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+set(REDISCACHE_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(REDISCACHE_LIBRARY ${INSTALL_LIBDIR}/librediscache.a)
+
+
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis
@@ -697,6 +726,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(src/cache)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -766,7 +796,10 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  rediscache
+  storage
+  cache
+)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -775,6 +808,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+  cache
   storage
   net
   pstd
@@ -787,6 +821,7 @@ target_link_libraries(${PROJECT_NAME}
   libzstd.a
   liblz4.a
   libz.a
+  librediscache.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
 
