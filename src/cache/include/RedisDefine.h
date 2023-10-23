@@ -6,6 +6,8 @@
 #ifndef __REDIS_DEFINE_H__
 #define __REDIS_DEFINE_H__
 
+#include "rediscache/commondef.h"
+
 namespace cache {
 
 /* Redis maxmemory strategies */
@@ -18,7 +20,7 @@ namespace cache {
 #define CACHE_VOLATILE_TTL      6
 #define CACHE_NO_EVICTION       7
 
-#define CACHE_DEFAULT_MAXMEMORY (10 * 1024 * 1024 * 1024LL)     // 10G
+#define CACHE_DEFAULT_MAXMEMORY CONFIG_DEFAULT_MAXMEMORY     // 10G
 #define CACHE_DEFAULT_MAXMEMORY_SAMPLES 5
 #define CACHE_DEFAULT_LFU_DECAY_TIME 1
 
