@@ -131,13 +131,13 @@ var _ = Describe("PubSub", func() {
 		Expect(num).To(Equal(int64(0)))
 
 		_ = client.PSubscribe(ctx, "*")
+		defer func() {
+			_ = client.Do(ctx, "unsubscribe", "*")
+		}()
 
 		num2 := client2.Do(ctx, "pubsub", "numpat")
 		Expect(num2.Err()).NotTo(HaveOccurred())
 		Expect(num2.Val()).To(Equal(int64(1)))
-		defer func() {
-			_ = client.Do(ctx, "unsubscribe", "*")
-		}()
 	})
 
 	It("should pub/sub", func() {

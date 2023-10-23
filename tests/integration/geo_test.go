@@ -118,6 +118,12 @@ var _ = Describe("Geo Commands", func() {
 			Expect(res.Val()).To(HaveLen(2))
 		})
 
+		PIt("should get geo hash in string representation", func() {
+			hashes, err := client.GeoHash(ctx, "Sicily", "Palermo", "Catania").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(hashes).To(ConsistOf([]string{"sqc8b49rny0", "sqdtr74hyu0"}))
+		})
+
 		It("should return geo position", func() {
 			pos, err := client.GeoPos(ctx, "Sicily", "Palermo", "Catania", "NonExisting").Result()
 			Expect(err).NotTo(HaveOccurred())
