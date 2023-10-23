@@ -8,14 +8,14 @@
 namespace cache {
 
 Status RedisCache::SetBit(std::string &key, size_t offset, long value) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != RsSetBit(m_RedisDB, kobj, offset, value)) {
+  if (C_OK != RcSetBit(cache_, kobj, offset, value)) {
     DecrObjectsRefCount(kobj);
-    return Status::Corruption("RsSetBit failed");
+    return Status::Corruption("RcSetBit failed");
   }
 
   DecrObjectsRefCount(kobj);
@@ -25,13 +25,13 @@ Status RedisCache::SetBit(std::string &key, size_t offset, long value) {
 Status RedisCache::GetBit(std::string &key, size_t offset, long *value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsGetBit(m_RedisDB, kobj, offset, value))) {
+  if (C_OK != (ret = RcGetBit(cache_, kobj, offset, value))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsGetBit failed");
+      return Status::Corruption("RcGetBit failed");
     }
   }
   DecrObjectsRefCount(kobj);
@@ -41,13 +41,13 @@ Status RedisCache::GetBit(std::string &key, size_t offset, long *value) {
 Status RedisCache::BitCount(std::string &key, long start, long end, long *value, bool have_offset) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsBitCount(m_RedisDB, kobj, start, end, value, have_offset))) {
+  if (C_OK != (ret = RcBitCount(cache_, kobj, start, end, value, have_offset))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsBitCount failed");
+      return Status::Corruption("RcBitCount failed");
     }
   }
 
@@ -58,13 +58,13 @@ Status RedisCache::BitCount(std::string &key, long start, long end, long *value,
 Status RedisCache::BitPos(std::string &key, long bit, long *value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsBitPos(m_RedisDB, kobj, bit, -1, -1, value, BIT_POS_NO_OFFSET))) {
+  if (C_OK != (ret = RcBitPos(cache_, kobj, bit, -1, -1, value, BIT_POS_NO_OFFSET))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsBitPos failed");
+      return Status::Corruption("RcBitPos failed");
     }
   }
 
@@ -75,13 +75,13 @@ Status RedisCache::BitPos(std::string &key, long bit, long *value) {
 Status RedisCache::BitPos(std::string &key, long bit, long start, long *value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsBitPos(m_RedisDB, kobj, bit, start, -1, value, BIT_POS_START_OFFSET))) {
+  if (C_OK != (ret = RcBitPos(cache_, kobj, bit, start, -1, value, BIT_POS_START_OFFSET))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsBitPos failed");
+      return Status::Corruption("RcBitPos failed");
     }
   }
 
@@ -92,13 +92,13 @@ Status RedisCache::BitPos(std::string &key, long bit, long start, long *value) {
 Status RedisCache::BitPos(std::string &key, long bit, long start, long end, long *value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsBitPos(m_RedisDB, kobj, bit, start, end, value, BIT_POS_START_END_OFFSET))) {
+  if (C_OK != (ret = RcBitPos(cache_, kobj, bit, start, end, value, BIT_POS_START_END_OFFSET))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsBitPos failed");
+      return Status::Corruption("RcBitPos failed");
     }
   }
 

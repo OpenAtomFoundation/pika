@@ -8,7 +8,7 @@
 namespace cache {
 
 Status RedisCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -21,10 +21,10 @@ Status RedisCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &sco
         createObject(OBJ_STRING, sdsnewlen(score_members[i].member.data(), score_members[i].member.size()));
   }
 
-  if (C_OK != RsZAdd(m_RedisDB, kobj, items, items_size)) {
+  if (C_OK != RcZAdd(cache_, kobj, items, items_size)) {
     FreeObjectList(items, items_size);
     DecrObjectsRefCount(kobj);
-    return Status::Corruption("RsZAdd failed");
+    return Status::Corruption("RcZAdd failed");
   }
 
   FreeObjectList(items, items_size);
@@ -35,13 +35,13 @@ Status RedisCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &sco
 Status RedisCache::ZCard(std::string &key, unsigned long *len) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsZCard(m_RedisDB, kobj, len))) {
+  if (C_OK != (ret = RcZCard(cache_, kobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsZCard failed");
+      return Status::Corruption("RcZCard failed");
     }
   }
 
@@ -54,13 +54,13 @@ Status RedisCache::ZCount(std::string &key, std::string &min, std::string &max, 
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZCount(m_RedisDB, kobj, minobj, maxobj, len))) {
+  if (C_OK != (ret = RcZCount(cache_, kobj, minobj, maxobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZCount failed");
+      return Status::Corruption("RcZCount failed");
     }
   }
 
@@ -69,7 +69,7 @@ Status RedisCache::ZCount(std::string &key, std::string &min, std::string &max, 
 }
 
 Status RedisCache::ZIncrby(std::string &key, std::string &member, double increment) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -77,10 +77,10 @@ Status RedisCache::ZIncrby(std::string &key, std::string &member, double increme
   robj **items = (robj **)zcallocate(sizeof(robj *) * 2);
   items[0] = createStringObjectFromLongDouble(increment, 0);
   items[1] = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
-  if (C_OK != RsZIncrby(m_RedisDB, kobj, items, 2)) {
+  if (C_OK != RcZIncrby(cache_, kobj, items, 2)) {
     FreeObjectList(items, 2);
     DecrObjectsRefCount(kobj);
-    return Status::Corruption("RsZIncrby failed");
+    return Status::Corruption("RcZIncrby failed");
   }
 
   FreeObjectList(items, 2);
@@ -93,13 +93,13 @@ Status RedisCache::ZRange(std::string &key, long start, long stop, std::vector<s
   unsigned long items_size = 0;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsZrange(m_RedisDB, kobj, start, stop, &items, &items_size))) {
+  if (C_OK != (ret = RcZrange(cache_, kobj, start, stop, &items, &items_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsZrange failed");
+      return Status::Corruption("RcZrange failed");
     }
   }
 
@@ -123,13 +123,13 @@ Status RedisCache::ZRangebyscore(std::string &key, std::string &min, std::string
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRangebyscore(m_RedisDB, kobj, minobj, maxobj, &items, &items_size, offset, count))) {
+  if (C_OK != (ret = RcZRangebyscore(cache_, kobj, minobj, maxobj, &items, &items_size, offset, count))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRangebyscore failed");
+      return Status::Corruption("RcZRangebyscore failed");
     }
   }
 
@@ -149,7 +149,7 @@ Status RedisCache::ZRank(std::string &key, std::string &member, long *rank) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
-  if (C_OK != (ret = RsZRank(m_RedisDB, kobj, mobj, rank))) {
+  if (C_OK != (ret = RcZRank(cache_, kobj, mobj, rank))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, mobj);
       return Status::NotFound("key not in cache");
@@ -158,7 +158,7 @@ Status RedisCache::ZRank(std::string &key, std::string &member, long *rank) {
       return Status::NotFound("member not exist");
     } else {
       DecrObjectsRefCount(kobj, mobj);
-      return Status::Corruption("RsZRank failed");
+      return Status::Corruption("RcZRank failed");
     }
   }
 
@@ -174,7 +174,7 @@ Status RedisCache::ZRem(std::string &key, std::vector<std::string> &members) {
   }
 
   int ret;
-  if (C_OK != (ret = RsZRem(m_RedisDB, kobj, members_obj, members.size()))) {
+  if (C_OK != (ret = RcZRem(cache_, kobj, members_obj, members.size()))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       FreeObjectList(members_obj, members.size());
       DecrObjectsRefCount(kobj);
@@ -182,7 +182,7 @@ Status RedisCache::ZRem(std::string &key, std::vector<std::string> &members) {
     } else {
       FreeObjectList(members_obj, members.size());
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsZRem failed");
+      return Status::Corruption("RcZRem failed");
     }
   }
 
@@ -196,13 +196,13 @@ Status RedisCache::ZRemrangebyrank(std::string &key, std::string &min, std::stri
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRemrangebyrank(m_RedisDB, kobj, minobj, maxobj))) {
+  if (C_OK != (ret = RcZRemrangebyrank(cache_, kobj, minobj, maxobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRemrangebyrank failed");
+      return Status::Corruption("RcZRemrangebyrank failed");
     }
   }
 
@@ -215,13 +215,13 @@ Status RedisCache::ZRemrangebyscore(std::string &key, std::string &min, std::str
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRemrangebyscore(m_RedisDB, kobj, minobj, maxobj))) {
+  if (C_OK != (ret = RcZRemrangebyscore(cache_, kobj, minobj, maxobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRemrangebyscore failed");
+      return Status::Corruption("RcZRemrangebyscore failed");
     }
   }
 
@@ -235,13 +235,13 @@ Status RedisCache::ZRevrange(std::string &key, long start, long stop,
   unsigned long items_size = 0;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsZRevrange(m_RedisDB, kobj, start, stop, &items, &items_size))) {
+  if (C_OK != (ret = RcZRevrange(cache_, kobj, start, stop, &items, &items_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsZRevrange failed");
+      return Status::Corruption("RcZRevrange failed");
     }
   }
 
@@ -265,13 +265,13 @@ Status RedisCache::ZRevrangebyscore(std::string &key, std::string &min, std::str
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRevrangebyscore(m_RedisDB, kobj, minobj, maxobj, &items, &items_size, offset, count))) {
+  if (C_OK != (ret = RcZRevrangebyscore(cache_, kobj, minobj, maxobj, &items, &items_size, offset, count))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRevrangebyscore failed");
+      return Status::Corruption("RcZRevrangebyscore failed");
     }
   }
 
@@ -295,13 +295,13 @@ Status RedisCache::ZRevrangebylex(std::string &key, std::string &min, std::strin
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRevrangebylex(m_RedisDB, kobj, minobj, maxobj, &vals, &vals_size))) {
+  if (C_OK != (ret = RcZRevrangebylex(cache_, kobj, minobj, maxobj, &vals, &vals_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRevrangebylex failed");
+      return Status::Corruption("RcZRevrangebylex failed");
     }
   }
 
@@ -318,7 +318,7 @@ Status RedisCache::ZRevrank(std::string &key, std::string &member, long *rank) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
-  if (C_OK != (ret = RsZRevrank(m_RedisDB, kobj, mobj, rank))) {
+  if (C_OK != (ret = RcZRevrank(cache_, kobj, mobj, rank))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, mobj);
       return Status::NotFound("key not in cache");
@@ -327,7 +327,7 @@ Status RedisCache::ZRevrank(std::string &key, std::string &member, long *rank) {
       return Status::NotFound("member not exist");
     } else {
       DecrObjectsRefCount(kobj, mobj);
-      return Status::Corruption("RsZRevrank failed");
+      return Status::Corruption("RcZRevrank failed");
     }
   }
 
@@ -339,7 +339,7 @@ Status RedisCache::ZScore(std::string &key, std::string &member, double *score) 
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
-  if (C_OK != (ret = RsZScore(m_RedisDB, kobj, mobj, score))) {
+  if (C_OK != (ret = RcZScore(cache_, kobj, mobj, score))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, mobj);
       return Status::NotFound("key not in cache");
@@ -348,7 +348,7 @@ Status RedisCache::ZScore(std::string &key, std::string &member, double *score) 
       return Status::NotFound("member not exist");
     } else {
       DecrObjectsRefCount(kobj, mobj);
-      return Status::Corruption("RsZScore failed");
+      return Status::Corruption("RcZScore failed");
     }
   }
 
@@ -364,13 +364,13 @@ Status RedisCache::ZRangebylex(std::string &key, std::string &min, std::string &
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRangebylex(m_RedisDB, kobj, minobj, maxobj, &vals, &vals_size))) {
+  if (C_OK != (ret = RcZRangebylex(cache_, kobj, minobj, maxobj, &vals, &vals_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRangebylex failed");
+      return Status::Corruption("RcZRangebylex failed");
     }
   }
 
@@ -388,13 +388,13 @@ Status RedisCache::ZLexcount(std::string &key, std::string &min, std::string &ma
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZLexcount(m_RedisDB, kobj, minobj, maxobj, len))) {
+  if (C_OK != (ret = RcZLexcount(cache_, kobj, minobj, maxobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZLexcount failed");
+      return Status::Corruption("RcZLexcount failed");
     }
   }
 
@@ -407,13 +407,13 @@ Status RedisCache::ZRemrangebylex(std::string &key, std::string &min, std::strin
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *minobj = createObject(OBJ_STRING, sdsnewlen(min.data(), min.size()));
   robj *maxobj = createObject(OBJ_STRING, sdsnewlen(max.data(), max.size()));
-  if (C_OK != (ret = RsZRemrangebylex(m_RedisDB, kobj, minobj, maxobj))) {
+  if (C_OK != (ret = RcZRemrangebylex(cache_, kobj, minobj, maxobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, minobj, maxobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, minobj, maxobj);
-      return Status::Corruption("RsZRemrangebylex failed");
+      return Status::Corruption("RcZRemrangebylex failed");
     }
   }
 

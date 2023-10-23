@@ -14,7 +14,7 @@
 #include <vector>
 
 extern "C" {
-  #include "rediscache/redisdbIF.h"
+  #include "rediscache/redis.h"
 }
 
 #include "RedisDefine.h"
@@ -166,7 +166,7 @@ private:
   RedisCache& operator=(const RedisCache&);
 
 private:
-  redisDbIF *m_RedisDB;
+  redisCache cache_;
 };
 
 } // namespace cache

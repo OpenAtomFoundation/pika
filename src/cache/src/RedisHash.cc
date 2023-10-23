@@ -18,7 +18,7 @@ Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields) {
 
   int ret;
   unsigned long deleted;
-  if (C_OK != (ret = RsHDel(m_RedisDB, kobj, fields_obj, fields.size(), &deleted))) {
+  if (C_OK != (ret = RcHDel(cache_, kobj, fields_obj, fields.size(), &deleted))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       FreeObjectList(fields_obj, fields.size());
@@ -26,7 +26,7 @@ Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields) {
     } else {
       DecrObjectsRefCount(kobj);
       FreeObjectList(fields_obj, fields.size());
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -36,16 +36,16 @@ Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields) {
 }
 
 Status RedisCache::HSet(std::string &key, std::string &field, std::string &value) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  if (C_OK != RsHSet(m_RedisDB, kobj, fobj, vobj)) {
+  if (C_OK != RcHSet(cache_, kobj, fobj, vobj)) {
     DecrObjectsRefCount(kobj, fobj, vobj);
-    return Status::Corruption("RsHSet failed");
+    return Status::Corruption("RcHSet failed");
   }
 
   DecrObjectsRefCount(kobj, fobj, vobj);
@@ -53,16 +53,16 @@ Status RedisCache::HSet(std::string &key, std::string &field, std::string &value
 }
 
 Status RedisCache::HSetnx(std::string &key, std::string &field, std::string &value) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  if (C_OK != RsHSetnx(m_RedisDB, kobj, fobj, vobj)) {
+  if (C_OK != RcHSetnx(cache_, kobj, fobj, vobj)) {
     DecrObjectsRefCount(kobj, fobj, vobj);
-    return Status::Corruption("RsHSetnx failed");
+    return Status::Corruption("RcHSetnx failed");
   }
 
   DecrObjectsRefCount(kobj, fobj, vobj);
@@ -70,7 +70,7 @@ Status RedisCache::HSetnx(std::string &key, std::string &field, std::string &val
 }
 
 Status RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -82,10 +82,10 @@ Status RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs
     items[i * 2 + 1] = createObject(OBJ_STRING, sdsnewlen(fvs[i].value.data(), fvs[i].value.size()));
   }
 
-  if (C_OK != RsHMSet(m_RedisDB, kobj, items, items_size)) {
+  if (C_OK != RcHMSet(cache_, kobj, items, items_size)) {
     FreeObjectList(items, items_size);
     DecrObjectsRefCount(kobj);
-    return Status::Corruption("RsHMSet failed");
+    return Status::Corruption("RcHMSet failed");
   }
   FreeObjectList(items, items_size);
   DecrObjectsRefCount(kobj);
@@ -97,7 +97,7 @@ Status RedisCache::HGet(std::string &key, std::string &field, std::string *value
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  if (C_OK != (ret = RsHGet(m_RedisDB, kobj, fobj, &val))) {
+  if (C_OK != (ret = RcHGet(cache_, kobj, fobj, &val))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, fobj);
       return Status::NotFound("key not in cache");
@@ -107,7 +107,7 @@ Status RedisCache::HGet(std::string &key, std::string &field, std::string *value
       return Status::NotFound("field not exist");
     } else {
       DecrObjectsRefCount(kobj, fobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -127,7 +127,7 @@ Status RedisCache::HMGet(std::string &key, std::vector<std::string> &fields, std
   }
 
   int ret;
-  if (C_OK != (ret = RsHMGet(m_RedisDB, kobj, items, fields.size()))) {
+  if (C_OK != (ret = RcHMGet(cache_, kobj, items, fields.size()))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       FreeHitemList(items, fields.size());
       DecrObjectsRefCount(kobj);
@@ -135,7 +135,7 @@ Status RedisCache::HMGet(std::string &key, std::vector<std::string> &fields, std
     } else {
       FreeHitemList(items, fields.size());
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -158,13 +158,13 @@ Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *f
   unsigned long items_size;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsHGetAll(m_RedisDB, kobj, &items, &items_size))) {
+  if (C_OK != (ret = RcHGetAll(cache_, kobj, &items, &items_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -185,13 +185,13 @@ Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
   unsigned long items_size;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsHKeys(m_RedisDB, kobj, &items, &items_size))) {
+  if (C_OK != (ret = RcHKeys(cache_, kobj, &items, &items_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -209,13 +209,13 @@ Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
   unsigned long items_size;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsHVals(m_RedisDB, kobj, &items, &items_size))) {
+  if (C_OK != (ret = RcHVals(cache_, kobj, &items, &items_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -232,13 +232,13 @@ Status RedisCache::HExists(std::string &key, std::string &field) {
   int ret, is_exist;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  if (C_OK != (ret = RsHExists(m_RedisDB, kobj, fobj, &is_exist))) {
+  if (C_OK != (ret = RcHExists(cache_, kobj, fobj, &is_exist))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, fobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, fobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -251,13 +251,13 @@ Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) 
   long long result;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  if (C_OK != (ret = RsHIncrby(m_RedisDB, kobj, fobj, value, &result))) {
+  if (C_OK != (ret = RcHIncrby(cache_, kobj, fobj, value, &result))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, fobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, fobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -270,13 +270,13 @@ Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, long doubl
   long double result;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  if (C_OK != (ret = RsHIncrbyfloat(m_RedisDB, kobj, fobj, value, &result))) {
+  if (C_OK != (ret = RcHIncrbyfloat(cache_, kobj, fobj, value, &result))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, fobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, fobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -287,13 +287,13 @@ Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, long doubl
 Status RedisCache::HLen(std::string &key, unsigned long *len) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsHlen(m_RedisDB, kobj, len))) {
+  if (C_OK != (ret = RcHlen(cache_, kobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 
@@ -305,13 +305,13 @@ Status RedisCache::HStrlen(std::string &key, std::string &field, unsigned long *
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  if (C_OK != (ret = RsHStrlen(m_RedisDB, kobj, fobj, len))) {
+  if (C_OK != (ret = RcHStrlen(cache_, kobj, fobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, fobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj, fobj);
-      return Status::Corruption("RsHGet failed");
+      return Status::Corruption("RcHGet failed");
     }
   }
 

@@ -8,7 +8,7 @@
 namespace cache {
 
 Status RedisCache::SAdd(std::string &key, std::vector<std::string> &members) {
-  if (C_OK != RsFreeMemoryIfNeeded(m_RedisDB)) {
+  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -18,10 +18,10 @@ Status RedisCache::SAdd(std::string &key, std::vector<std::string> &members) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(members[i].data(), members[i].size()));
   }
 
-  if (C_OK != RsSAdd(m_RedisDB, kobj, vals, members.size())) {
+  if (C_OK != RcSAdd(cache_, kobj, vals, members.size())) {
     FreeObjectList(vals, members.size());
     DecrObjectsRefCount(kobj);
-    return Status::Corruption("RsSAdd failed");
+    return Status::Corruption("RcSAdd failed");
   }
 
   FreeObjectList(vals, members.size());
@@ -32,13 +32,13 @@ Status RedisCache::SAdd(std::string &key, std::vector<std::string> &members) {
 Status RedisCache::SCard(std::string &key, unsigned long *len) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsSCard(m_RedisDB, kobj, len))) {
+  if (C_OK != (ret = RcSCard(cache_, kobj, len))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsSCard failed");
+      return Status::Corruption("RcSCard failed");
     }
   }
 
@@ -50,7 +50,7 @@ Status RedisCache::SIsmember(std::string &key, std::string &member) {
   int ret, is_member;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
-  if (C_OK != (ret = RsSIsmember(m_RedisDB, kobj, mobj, &is_member))) {
+  if (C_OK != (ret = RcSIsmember(cache_, kobj, mobj, &is_member))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj, mobj);
       return Status::NotFound("key not in cache");
@@ -69,13 +69,13 @@ Status RedisCache::SMembers(std::string &key, std::vector<std::string> *members)
   unsigned long vals_size;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsSMembers(m_RedisDB, kobj, &vals, &vals_size))) {
+  if (C_OK != (ret = RcSMembers(cache_, kobj, &vals, &vals_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsSMembers failed");
+      return Status::Corruption("RcSMembers failed");
     }
   }
 
@@ -96,7 +96,7 @@ Status RedisCache::SRem(std::string &key, std::vector<std::string> &members) {
   }
 
   int ret;
-  if (C_OK != (ret = RsSRem(m_RedisDB, kobj, vals, members.size()))) {
+  if (C_OK != (ret = RcSRem(cache_, kobj, vals, members.size()))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       FreeObjectList(vals, members.size());
       DecrObjectsRefCount(kobj);
@@ -104,7 +104,7 @@ Status RedisCache::SRem(std::string &key, std::vector<std::string> &members) {
     } else {
       FreeObjectList(vals, members.size());
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsSRem failed");
+      return Status::Corruption("RcSRem failed");
     }
   }
 
@@ -118,13 +118,13 @@ Status RedisCache::SRandmember(std::string &key, long count, std::vector<std::st
   unsigned long vals_size = 0;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RsSRandmember(m_RedisDB, kobj, count, &vals, &vals_size))) {
+  if (C_OK != (ret = RcSRandmember(cache_, kobj, count, &vals, &vals_size))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
       DecrObjectsRefCount(kobj);
-      return Status::Corruption("RsSRandmember failed");
+      return Status::Corruption("RcSRandmember failed");
     }
   }
 
