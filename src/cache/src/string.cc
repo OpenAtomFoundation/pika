@@ -5,7 +5,7 @@
 
 #include <cstdlib>
 
-#include "cache/include/RedisCache.h"
+#include "cache/include/cache.h"
 
 namespace cache {
 

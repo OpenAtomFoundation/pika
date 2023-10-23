@@ -3,8 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef __REDIS_DEFINE_H__
-#define __REDIS_DEFINE_H__
+#ifndef __REDIS_CONFIG_H__
+#define __REDIS_CONFIG_H__
+
+#include <cstdint>
 
 #include "rediscache/commondef.h"
 
@@ -20,9 +22,9 @@ namespace cache {
 #define CACHE_VOLATILE_TTL      6
 #define CACHE_NO_EVICTION       7
 
-#define CACHE_DEFAULT_MAXMEMORY CONFIG_DEFAULT_MAXMEMORY     // 10G
-#define CACHE_DEFAULT_MAXMEMORY_SAMPLES 5
-#define CACHE_DEFAULT_LFU_DECAY_TIME 1
+#define CACHE_DEFAULT_MAXMEMORY         CONFIG_DEFAULT_MAXMEMORY     // 10G
+#define CACHE_DEFAULT_MAXMEMORY_SAMPLES CONFIG_DEFAULT_MAXMEMORY_SAMPLES
+#define CACHE_DEFAULT_LFU_DECAY_TIME    CONFIG_DEFAULT_LFU_DECAY_TIME
 
 /*
  * cache start pos
@@ -35,12 +37,12 @@ constexpr int CACHE_START_FROM_END = -1;
 #define DEFAULT_CACHE_ITEMS_PER_KEY 512
 
 struct CacheConfig {
-  unsigned long long maxmemory;       /* Can used max memory */
-  int maxmemory_policy;               /* Policy for key eviction */
-  int maxmemory_samples;              /* Pricision of random sampling */
-  int lfu_decay_time;                 /* LFU counter decay factor. */
-  int cache_start_pos;
-  int cache_items_per_key;
+  uint64_t maxmemory;                      /* Can used max memory */
+  int32_t  maxmemory_policy;               /* Policy for key eviction */
+  int32_t  maxmemory_samples;              /* Precision of random sampling */
+  int32_t  lfu_decay_time;                 /* LFU counter decay factor. */
+  int32_t  cache_start_pos;
+  int32_t  cache_items_per_key;
 
   CacheConfig()
     : maxmemory(CACHE_DEFAULT_MAXMEMORY)

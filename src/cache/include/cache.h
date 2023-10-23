@@ -17,7 +17,7 @@ extern "C" {
   #include "rediscache/redis.h"
 }
 
-#include "RedisDefine.h"
+#include "config.h"
 #include "pstd_status.h"
 #include "storage/storage.h"
 

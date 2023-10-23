@@ -3,9 +3,7 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "cache/include/RedisCache.h"
-#include <cstdlib>
-#include <cstring>
+#include "cache/include/cache.h"
 #include "pstd/include/pstd_string.h"
 
 namespace cache {
