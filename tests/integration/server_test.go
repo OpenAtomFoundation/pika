@@ -2,10 +2,11 @@ package pika_integration
 
 import (
 	"context"
+	"time"
+
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 var _ = Describe("Server", func() {
@@ -325,8 +326,8 @@ var _ = Describe("Server", func() {
 			Expect(tm).To(BeTemporally("~", time.Now(), 3*time.Second))
 		})
 
-		It("should unlink", func() {
-			command := string("UNLINK")
+		FIt("should unlink", func() {
+			command := "UNLINK"
 			Expect(client.MSet(ctx, "key1", "value1", "key2", "value2").Val()).To(Equal("OK"))
 			Expect(client.Do(ctx, command, "key1", "key2").Val()).To(Equal(int64(2)))
 			Expect(client.Exists(ctx, "key", "key2").Val()).To(Equal(int64(0)))

@@ -2,13 +2,12 @@ package pika_integration
 
 import (
 	"context"
-	"github.com/redis/go-redis/v9"
 	"testing"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
-
 	. "github.com/bsm/gomega"
+	"github.com/redis/go-redis/v9"
 )
 
 func TestPika(t *testing.T) {

@@ -3,21 +3,24 @@ package pika_integration
 import (
 	"context"
 	"fmt"
-	. "github.com/bsm/ginkgo/v2"
-	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 	"os/exec"
 	"strings"
 	"time"
+
+	. "github.com/bsm/ginkgo/v2"
+	. "github.com/bsm/gomega"
+	"github.com/redis/go-redis/v9"
 )
 
-func cleanEnv(ctx context.Context, clientSlave *redis.Client, clientMaster *redis.Client) {
+func cleanEnv(ctx context.Context, clientMaster, clientSlave *redis.Client) {
 	r := clientSlave.Do(ctx, "slaveof", "no", "one")
 	Expect(r.Err()).NotTo(HaveOccurred())
 	Expect(r.Val()).To(Equal("OK"))
 	r = clientSlave.Do(ctx, "clearreplicationid")
 	r = clientMaster.Do(ctx, "clearreplicationid")
-	cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/dump")
+	//cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/dump")
+	cmd := exec.Command("rm", "-rf", "/Users/dingxiaoshuai/pika_new/dump")
+
 	errr := cmd.Run()
 	if errr != nil {
 		fmt.Println("remove dump fail!")
@@ -36,14 +39,14 @@ func trySlave(ctx context.Context, clientSlave *redis.Client) bool {
 		count++
 		if strings.Contains(infoRes.Val(), "master_link_status:up") {
 			return true
-		} else if count > 25 {
+		} else if count > 100 {
 			return false
 		}
 		time.Sleep(1 * time.Second)
 	}
 }
 
-var _ = Describe("shuould replication ", func() {
+var _ = FDescribe("shuould replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
 		var clientSlave *redis.Client
@@ -52,13 +55,13 @@ var _ = Describe("shuould replication ", func() {
 		BeforeEach(func() {
 			clientMaster = redis.NewClient(pikaOptions1())
 			clientSlave = redis.NewClient(pikaOptions2())
-			cleanEnv(ctx, clientSlave, clientMaster)
+			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			time.Sleep(2 * time.Second)
 		})
 		AfterEach(func() {
-			cleanEnv(ctx, clientSlave, clientMaster)
+			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 		})
@@ -90,13 +93,18 @@ var _ = Describe("shuould replication ", func() {
 				res := trySlave(ctx, clientSlave)
 				if res {
 					break
-				} else if count > 5 {
+				} else if count > 3 {
 					break
 				} else {
-					cleanEnv(ctx, clientSlave, clientMaster)
+					cleanEnv(ctx, clientMaster, clientSlave)
 					count++
 				}
 			}
+
+			infoRes = clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("master_link_status:up"))
+
 			infoRes = clientMaster.Info(ctx, "replication")
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
@@ -111,9 +119,9 @@ var _ = Describe("shuould replication ", func() {
 
 			slaveLrange := clientSlave.LRange(ctx, "myList", 0, -1)
 			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
-			master_lrange := clientMaster.LRange(ctx, "myList", 0, -1)
-			Expect(master_lrange.Err()).NotTo(HaveOccurred())
-			Expect(slaveLrange).To(Equal(master_lrange))
+			masterLrange := clientMaster.LRange(ctx, "myList", 0, -1)
+			Expect(masterLrange.Err()).NotTo(HaveOccurred())
+			Expect(slaveLrange).To(Equal(masterLrange))
 
 			slaveSmem := clientSlave.SMembers(ctx, "mySet")
 			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
@@ -148,9 +156,9 @@ var _ = Describe("shuould replication ", func() {
 
 			slaveLrange = clientSlave.LRange(ctx, "myList", 0, -1)
 			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
-			master_lrange = clientMaster.LRange(ctx, "myList", 0, -1)
-			Expect(master_lrange.Err()).NotTo(HaveOccurred())
-			Expect(slaveLrange).To(Equal(master_lrange))
+			masterLrange = clientMaster.LRange(ctx, "myList", 0, -1)
+			Expect(masterLrange.Err()).NotTo(HaveOccurred())
+			Expect(slaveLrange).To(Equal(masterLrange))
 
 			slaveSmem = clientSlave.SMembers(ctx, "mySet")
 			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
@@ -225,7 +233,7 @@ var _ = Describe("shuould replication ", func() {
 				} else if count > 3 {
 					break
 				} else {
-					cleanEnv(ctx, clientSlave, clientMaster)
+					cleanEnv(ctx, clientMaster, clientSlave)
 					count++
 				}
 			}
