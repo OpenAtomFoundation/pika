@@ -17,6 +17,7 @@
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
+#include "pstd/include/pika_codis_slot.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
@@ -90,7 +91,7 @@ PikaServer::PikaServer()
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
-  
+
   // init role
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
@@ -103,7 +104,7 @@ PikaServer::PikaServer()
       SetMaster(master_ip, master_port);
     }
   }
-        
+
   acl_ = std::make_unique<::Acl>();
 }
 
@@ -1507,7 +1508,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
     db_item.second->DbRWLockWriter();
-    s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
+    s = db_item.second->storage()->SetOptions(option_type, options_map);
     db_item.second->DbRWUnLock();
     if (!s.ok()) {
       return s;

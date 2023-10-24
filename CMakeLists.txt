@@ -52,7 +52,6 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RELEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -DNDEBUG")
-
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -589,9 +588,10 @@ ExternalProject_Add(rocksdb
   ${LIBGPERF_NAME}
   ${LIBJEMALLOC_NAME}
   URL
-  https://github.com/facebook/rocksdb/archive/refs/tags/v8.7.3.tar.gz
+  # use temp url
+  https://github.com/pikiwidb/rocksdb/archive/refs/heads/feature/optimize_blob.zip
   URL_HASH
-  MD5=d57bc74c955c6271cfd9459e44c177b1
+  MD5=5ba2e0649e81c15dd38e0bec680047b8
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -732,7 +732,7 @@ add_subdirectory(src/net)
 add_subdirectory(src/storage)
 add_subdirectory(src/cache)
 if (USE_PIKA_TOOLS)
-  add_subdirectory(tools)
+  #add_subdirectory(tools)
 endif()
 aux_source_directory(src DIR_SRCS)
 

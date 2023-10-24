@@ -4,8 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_slave_node.h"
-
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 
 using pstd::Status;
 

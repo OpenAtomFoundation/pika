@@ -3,15 +3,10 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_conf.h"
-
-#include <glog/logging.h>
-
 #include <strings.h>
 #include <algorithm>
 
-#include "pstd/include/env.h"
-#include "pstd/include/pstd_string.h"
+#include <glog/logging.h>
 
 #include "cache/include/config.h"
 #include "include/acl.h"
@@ -20,7 +15,7 @@
 using pstd::Status;
 
 PikaConf::PikaConf(const std::string& path)
-    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
+    : pstd::BaseConf(path), conf_path_(path) {}
 
 int PikaConf::Load() {
   int ret = LoadConf();
@@ -122,11 +117,17 @@ int PikaConf::Load() {
   }
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
+  GetConfInt("db-instance-num", &db_instance_num_);
+  int64_t t_val = 0;
+  GetConfInt64("rocksdb-ttl-second", &t_val);
+  rocksdb_ttl_second_.store(uint64_t(t_val));
+  t_val = 0;
+  GetConfInt64("rocksdb-periodic-second", &t_val);
+  rocksdb_periodic_second_.store(uint64_t(t_val));
   db_path_ = db_path_.empty() ? "./db/" : db_path_;
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
-  local_meta_->SetPath(db_path_);
 
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -171,7 +172,7 @@ int PikaConf::Load() {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
-      db_structs_.push_back({"db" + std::to_string(idx)});
+      db_structs_.push_back({"db" + std::to_string(idx), db_instance_num_});
     }
   }
   default_db_ = db_structs_[0].db_name;
@@ -339,7 +340,7 @@ int PikaConf::Load() {
   if (max_cache_statistic_keys_ <= 0) {
     max_cache_statistic_keys_ = 0;
   }
-  
+
   // disable_auto_compactions
   GetConfBool("disable_auto_compactions", &disable_auto_compactions_);
 
@@ -482,7 +483,7 @@ int PikaConf::Load() {
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
-  
+
   int cache_num = 16;
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;

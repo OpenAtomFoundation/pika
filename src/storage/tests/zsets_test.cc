@@ -7,8 +7,15 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pika_conf.h"
 #include "storage/storage.h"
 #include "storage/util.h"
+
+std::unique_ptr<PikaConf> g_pika_conf;
 
 // using namespace storage;
 using storage::Status;
@@ -24,9 +31,8 @@ class ZSetsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/zsets";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
     if (!s.ok()) {
@@ -103,6 +109,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
   if (s.IsNotFound() && (expect_size == 0)) {
     return true;
   }
+  LOG(WARNING) << "size_match ? size: " << size << " expect_size: " << expect_size;
   return size == expect_size;
 }
 
@@ -5233,6 +5240,26 @@ TEST_F(ZSetsTest, ZScanTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  std::string pika_conf_path = "./pika.conf";
+#ifdef PIKA_ROOT_DIR
+  pika_conf_path = PIKA_ROOT_DIR;
+  pika_conf_path += "/tests/conf/pika.conf";
+#endif
+  LOG(WARNING) << "pika_conf_path: " << pika_conf_path;
+  g_pika_conf = std::make_unique<PikaConf>(pika_conf_path);
+  if (g_pika_conf->Load()) {
+    printf("pika load conf error\n");
+    return 0;
+  }
+  if (!pstd::FileExists(g_pika_conf->log_path())) {
+    pstd::CreatePath(g_pika_conf->log_path());
+  }
+  FLAGS_log_dir = g_pika_conf->log_path(); 
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  InitCRC32Table();
+  ::google::InitGoogleLogging("zsets_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

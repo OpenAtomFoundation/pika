@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 #include "include/pika_server.h"
 #include "net/src/dispatch_thread.h"
 #include "pstd/include/testutil.h"

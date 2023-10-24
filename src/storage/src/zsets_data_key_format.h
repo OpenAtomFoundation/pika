@@ -6,16 +6,21 @@
 #ifndef SRC_ZSETS_DATA_KEY_FORMAT_H_
 #define SRC_ZSETS_DATA_KEY_FORMAT_H_
 
+#include "pstd/include/pstd_coding.h"
+#include "storage/storage_define.h"
+
 namespace storage {
 
-/*
- * |  <Key Size>  |      <Key>      | <Version> |  <Score>  |      <Member>      |
- *      4 Bytes      key size Bytes    4 Bytes     8 Bytes    member size Bytes
+/* zset score to member data key format:
+* | reserve1 | key | version | score | member |  reserve2 |
+* |    8B    |     |    8B   |  8B   |        |    16B    |
  */
 class ZSetsScoreKey {
  public:
-  ZSetsScoreKey(const Slice& key, int32_t version, double score, const Slice& member)
-      :  key_(key), version_(version), score_(score), member_(member) {}
+  ZSetsScoreKey(const Slice& key, uint64_t version,
+                double score, const Slice& member)
+      : key_(key), version_(version),
+        score_(score), member_(member) {}
 
   ~ZSetsScoreKey() {
     if (start_ != space_) {
@@ -24,7 +29,10 @@ class ZSetsScoreKey {
   }
 
   Slice Encode() {
-    size_t needed = key_.size() + member_.size() + sizeof(int32_t) * 2 + sizeof(uint64_t);
+    size_t meta_size = sizeof(reserve1_) + sizeof(version_) + sizeof(score_) + sizeof(reserve2_);
+    size_t usize = key_.size() + member_.size() + kEncodedKeyDelimSize;
+    usize += std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t needed = meta_size + usize;
     char* dst = nullptr;
     if (needed <= sizeof(space_)) {
       dst = space_;
@@ -36,71 +44,80 @@ class ZSetsScoreKey {
         delete[] start_;
       }
     }
+
     start_ = dst;
-    EncodeFixed32(dst, key_.size());
-    dst += sizeof(int32_t);
-    memcpy(dst, key_.data(), key_.size());
-    dst += key_.size();
-    EncodeFixed32(dst, version_);
-    dst += sizeof(int32_t);
+    // reserve1: 8 byte
+    memcpy(dst, reserve1_, sizeof(reserve1_));
+    dst += sizeof(reserve1_);
+    // key
+    dst = EncodeUserKey(key_, dst);
+    // version 8 byte
+    pstd::EncodeFixed64(dst, version_);
+    dst += sizeof(version_);
+    // score
     const void* addr_score = reinterpret_cast<const void*>(&score_);
-    EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
+    pstd::EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
     dst += sizeof(uint64_t);
+    // member
     memcpy(dst, member_.data(), member_.size());
+    dst += member_.size();
+    // reserve2 16 byte
+    memcpy(dst, reserve2_, sizeof(reserve2_));
     return Slice(start_, needed);
   }
 
  private:
-  char space_[200];
   char* start_ = nullptr;
+  char space_[200];
+  char reserve1_[8] = {0};
   Slice key_;
-  int32_t version_ = 0;
+  uint64_t version_ = uint64_t(-1);
   double score_ = 0.0;
   Slice member_;
+  char reserve2_[16] = {0};
 };
 
 class ParsedZSetsScoreKey {
  public:
   explicit ParsedZSetsScoreKey(const std::string* key) {
     const char* ptr = key->data();
-    int32_t key_len = DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    key_ = Slice(ptr, key_len);
-    ptr += key_len;
-    version_ = DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-
-    uint64_t tmp = DecodeFixed64(ptr);
-    const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
-    score_ = *reinterpret_cast<const double*>(ptr_tmp);
-    ptr += sizeof(uint64_t);
-    member_ = Slice(ptr, key->size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
+    const char* end_ptr = key->data() + key->size();
+    decode(ptr, end_ptr);
   }
 
   explicit ParsedZSetsScoreKey(const Slice& key) {
     const char* ptr = key.data();
-    int32_t key_len = DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    key_ = Slice(ptr, key_len);
-    ptr += key_len;
-    version_ = DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
+    const char* end_ptr = key.data() + key.size();
+    decode(ptr, end_ptr);
+  }
 
-    uint64_t tmp = DecodeFixed64(ptr);
+  void decode(const char* ptr, const char* end_ptr) {
+    const char* start = ptr;
+    // skip head reserve1_
+    ptr += sizeof(reserve1_);
+    // skip tail reserve2_
+    end_ptr -= sizeof(reserve2_);
+    // user key
+    ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
+    version_ = pstd::DecodeFixed64(ptr);
+    ptr += sizeof(version_);
+    uint64_t tmp = pstd::DecodeFixed64(ptr);
     const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
     score_ = *reinterpret_cast<const double*>(ptr_tmp);
     ptr += sizeof(uint64_t);
-    member_ = Slice(ptr, key.size() - key_len - 2 * sizeof(int32_t) - sizeof(uint64_t));
+    member_ = Slice(ptr, std::distance(ptr, end_ptr));
   }
 
-  Slice key() { return key_; }
-  int32_t version() const { return version_; }
+  Slice key() { return Slice(key_str_); }
+  uint64_t Version() const { return version_; }
   double score() const { return score_; }
   Slice member() { return member_; }
 
  private:
-  Slice key_;
-  int32_t version_ = 0;
+  std::string key_str_;
+  char reserve1_[8] = {0};
+  uint64_t version_ = uint64_t(-1);
+  char reserve2_[16] = {0};
   double score_ = 0.0;
   Slice member_;
 };

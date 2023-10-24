@@ -6,7 +6,10 @@
 #include <dirent.h>
 #include <utility>
 
+#include "pstd/include/pika_conf.h"
 #include "storage/backupable.h"
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 namespace storage {
 
@@ -16,13 +19,13 @@ BackupEngine::~BackupEngine() {
   WaitBackupPthread();
 }
 
-Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type) {
+Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, int index) {
   rocksdb::DBCheckpoint* checkpoint;
   Status s = rocksdb::DBCheckpoint::Create(rocksdb_db, &checkpoint);
   if (!s.ok()) {
     return s;
   }
-  engines_.insert(std::make_pair(type, std::unique_ptr<rocksdb::DBCheckpoint>(checkpoint)));
+  engines_.insert(std::make_pair(index, std::unique_ptr<rocksdb::DBCheckpoint>(checkpoint)));
   return s;
 }
 
@@ -33,17 +36,17 @@ Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngin
     return Status::Corruption("New BackupEngine failed!");
   }
 
-  // Create BackupEngine for each db type
+  // Create BackupEngine for each rocksdb instance 
   rocksdb::Status s;
   rocksdb::DB* rocksdb_db;
-  std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
-  for (const auto& type : types) {
-    if (!(rocksdb_db = storage->GetDBByType(type))) {
-      s = Status::Corruption("Error db type");
+  int inst_count = g_pika_conf->db_instance_num();
+  for (int index = 0; index < inst_count; index++) {
+    if (!(rocksdb_db = storage->GetDBByIndex(index))) {
+      s = Status::Corruption("Invalid db index");
     }
 
     if (s.ok()) {
-      s = backup_engine_ret->NewCheckpoint(rocksdb_db, type);
+      s = backup_engine_ret->NewCheckpoint(rocksdb_db, index);
     }
 
     if (!s.ok()) {
@@ -69,10 +72,10 @@ Status BackupEngine::SetBackupContent() {
   return s;
 }
 
-Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const std::string& type) {
-  auto it_engine = engines_.find(type);
-  auto it_content = backup_content_.find(type);
-  std::string dir = GetSaveDirByType(backup_dir, type);
+Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, int index) {
+  auto it_engine = engines_.find(index);
+  auto it_content = backup_content_.find(index);
+  std::string dir = GetSaveDirByIndex(backup_dir, index);
   delete_dir(dir.c_str());
 
   if (it_content != backup_content_.end() && it_engine != engines_.end()) {
@@ -85,7 +88,7 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
     }
 
   } else {
-    return Status::Corruption("invalid db type");
+    return Status::Corruption("Invalid db index");
   }
   return Status::OK();
 }
@@ -93,7 +96,7 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
 void* ThreadFuncSaveSpecify(void* arg) {
   auto arg_ptr = static_cast<BackupSaveArgs*>(arg);
   auto p = static_cast<BackupEngine*>(arg_ptr->p_engine);
-  arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->key_type);
+  arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->index_);
   pthread_exit(&(arg_ptr->res));
 }
 

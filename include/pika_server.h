@@ -16,7 +16,7 @@
 #include <memory>
 #include <set>
 
-#include "src/cache/include/config.h"
+#include "pstd/include/cache/config.h"
 #include "net/include/bg_thread.h"
 #include "net/include/net_pubsub.h"
 #include "net/include/thread_pool.h"
@@ -35,7 +35,7 @@
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
-#include "include/pika_define.h"
+#include "pstd/include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_instant.h"
 #include "include/pika_migrate_thread.h"
