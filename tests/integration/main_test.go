@@ -19,7 +19,7 @@ var _ = BeforeSuite(func() {
 	ctx := context.TODO()
 	clientMaster := redis.NewClient(pikaOptions1())
 	clientSlave := redis.NewClient(pikaOptions2())
-	cleanEnv(ctx, clientSlave, clientMaster)
+	cleanEnv(ctx, clientMaster, clientSlave)
 	Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	time.Sleep(5 * time.Second)
