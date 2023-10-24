@@ -113,9 +113,9 @@ var _ = Describe("Geo Commands", func() {
 		})
 
 		//It("should get geo hash in string representation", func() {
-		//	res := client.Do(ctx, "GEOHASH", "Sicily", "Palermo", "Catania")
-		//	Expect(res.Err()).NotTo(HaveOccurred())
-		//	Expect(res.Val()).To(HaveLen(2))
+		//	hashes, err := client.GeoHash(ctx, "Sicily", "Palermo", "Catania").Result()
+		//	Expect(err).NotTo(HaveOccurred())
+		//	Expect(hashes).To(ConsistOf([]string{"sqc8b49rny0", "sqdtr74hyu0"}))
 		//})
 
 		It("should return geo position", func() {
