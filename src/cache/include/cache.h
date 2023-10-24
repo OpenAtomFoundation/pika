@@ -3,10 +3,12 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef __REDIS_CACHE_H__
-#define __REDIS_CACHE_H__
+#ifndef __CACHE_H__
+#define __CACHE_H__
 
 #include <unistd.h>
+
+#include <cstdint>
 #include <string>
 #include <map>
 #include <list>
@@ -14,10 +16,10 @@
 #include <vector>
 
 extern "C" {
-  #include "rediscache/redisdbIF.h"
+  #include "rediscache/redis.h"
 }
 
-#include "RedisDefine.h"
+#include "config.h"
 #include "pstd_status.h"
 #include "storage/storage.h"
 
@@ -33,14 +35,14 @@ public:
   // Server APIs
   static void SetConfig(CacheConfig *cfg);
   static uint64_t GetUsedMemory(void);
-  static void GetHitAndMissNum(long long *hits, long long *misses);
+  static void GetHitAndMissNum(int64_t *hits, int64_t *misses);
   static void ResetHitAndMissNum(void);
   Status Open(void);
-  int ActiveExpireCycle(void);
+  int32_t ActiveExpireCycle(void);
     
   // Normal Commands
   bool Exists(std::string &key);
-  long long DbSize(void);
+  int64_t DbSize(void);
   void FlushDb(void);
 
   Status Del(const std::string &key);
@@ -61,9 +63,9 @@ public:
   Status Get(const std::string &key, std::string *value);
   Status Incr(std::string &key);
   Status Decr(std::string &key);
-  Status IncrBy(std::string &key, long long incr);
-  Status DecrBy(std::string &key, long long incr);
-  Status Incrbyfloat(std::string &key, long double incr);
+  Status IncrBy(std::string &key, int64_t incr);
+  Status DecrBy(std::string &key, int64_t incr);
+  Status Incrbyfloat(std::string &key, double incr);
   Status Append(std::string &key, std::string &value);
   Status GetRange(std::string &key, int64_t start, int64_t end, std::string *value);
   Status SetRange(std::string &key, int64_t start, std::string &value);
@@ -83,52 +85,52 @@ public:
   Status HVals(std::string &key, std::vector<std::string> *values);
   Status HExists(std::string &key, std::string &field);
   Status HIncrby(std::string &key, std::string &field, int64_t value);
-  Status HIncrbyfloat(std::string &key, std::string &field, long double value);
-  Status HLen(std::string &key, unsigned long *len);
-  Status HStrlen(std::string &key, std::string &field, unsigned long *len);
+  Status HIncrbyfloat(std::string &key, std::string &field, double value);
+  Status HLen(std::string &key, uint64_t *len);
+  Status HStrlen(std::string &key, std::string &field, uint64_t *len);
 
   // List Commands
-  Status LIndex(std::string &key, long index, std::string *element);
+  Status LIndex(std::string &key, int64_t index, std::string *element);
   Status LInsert(std::string &key, storage::BeforeOrAfter &before_or_after,
                  std::string &pivot, std::string &value);
-  Status LLen(std::string &key, unsigned long *len);
+  Status LLen(std::string &key, uint64_t *len);
   Status LPop(std::string &key, std::string *element);
   Status LPush(std::string &key, std::vector<std::string> &values);
   Status LPushx(std::string &key, std::vector<std::string> &values);
-  Status LRange(std::string &key, long start, long stop, std::vector<std::string> *values);
-  Status LRem(std::string &key, long count, std::string &value);
-  Status LSet(std::string &key, long index, std::string &value);
-  Status LTrim(std::string &key, long start, long stop);
+  Status LRange(std::string &key, int64_t start, int64_t stop, std::vector<std::string> *values);
+  Status LRem(std::string &key, int64_t count, std::string &value);
+  Status LSet(std::string &key, int64_t index, std::string &value);
+  Status LTrim(std::string &key, int64_t start, int64_t stop);
   Status RPop(std::string &key, std::string *element);
   Status RPush(std::string &key, std::vector<std::string> &values);
   Status RPushx(std::string &key, std::vector<std::string> &values);
 
   // Set Commands
   Status SAdd(std::string &key, std::vector<std::string> &members);
-  Status SCard(std::string &key, unsigned long *len);
+  Status SCard(std::string &key, uint64_t *len);
   Status SIsmember(std::string &key, std::string &member);
   Status SMembers(std::string &key, std::vector<std::string> *members);
   Status SRem(std::string &key, std::vector<std::string> &members);
-  Status SRandmember(std::string &key, long count, std::vector<std::string> *members);
+  Status SRandmember(std::string &key, int64_t count, std::vector<std::string> *members);
 
   // Zset Commands
   Status ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members);
-  Status ZCard(std::string &key, unsigned long *len);
-  Status ZCount(std::string &key, std::string &min, std::string &max, unsigned long *len);
+  Status ZCard(std::string &key, uint64_t *len);
+  Status ZCount(std::string &key, std::string &min, std::string &max, uint64_t *len);
   Status ZIncrby(std::string &key, std::string &member, double increment);
   Status ZRange(std::string &key,
-                long start, long stop,
+                int64_t start, int64_t stop,
                 std::vector<storage::ScoreMember> *score_members);
   Status ZRangebyscore(std::string &key,
                        std::string &min, std::string &max,
                        std::vector<storage::ScoreMember> *score_members,
                        int64_t offset = 0, int64_t count = -1);
-  Status ZRank(std::string &key, std::string &member, long *rank);
+  Status ZRank(std::string &key, std::string &member, int64_t *rank);
   Status ZRem(std::string &key, std::vector<std::string> &members);
   Status ZRemrangebyrank(std::string &key, std::string &min, std::string &max);
   Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max);
   Status ZRevrange(std::string &key,
-                   long start, long stop,
+                   int64_t start, int64_t stop,
                    std::vector<storage::ScoreMember> *score_members);
   Status ZRevrangebyscore(std::string &key,
                           std::string &min, std::string &max,
@@ -137,28 +139,28 @@ public:
   Status ZRevrangebylex(std::string &key,
                         std::string &min, std::string &max,
                         std::vector<std::string> *members);
-  Status ZRevrank(std::string &key, std::string &member, long *rank);
+  Status ZRevrank(std::string &key, std::string &member, int64_t *rank);
   Status ZScore(std::string &key, std::string &member, double *score);
   Status ZRangebylex(std::string &key,
                      std::string &min, std::string &max,
                      std::vector<std::string> *members);
-  Status ZLexcount(std::string &key, std::string &min, std::string &max, unsigned long *len);
+  Status ZLexcount(std::string &key, std::string &min, std::string &max, uint64_t *len);
   Status ZRemrangebylex(std::string &key, std::string &min, std::string &max);
 
   // Bit Commands
-  Status SetBit(std::string &key, size_t offset, long value);
-  Status GetBit(std::string &key, size_t offset, long *value);
-  Status BitCount(std::string &key, long start, long end, long *value, bool have_offset);
-  Status BitPos(std::string &key, long bit, long *value);
-  Status BitPos(std::string &key, long bit, long start, long *value);
-  Status BitPos(std::string &key, long bit, long start, long end, long *value);
+  Status SetBit(std::string &key, size_t offset, int64_t value);
+  Status GetBit(std::string &key, size_t offset, int64_t *value);
+  Status BitCount(std::string &key, int64_t start, int64_t end, int64_t *value, bool have_offset);
+  Status BitPos(std::string &key, int64_t bit, int64_t *value);
+  Status BitPos(std::string &key, int64_t bit, int64_t start, int64_t *value);
+  Status BitPos(std::string &key, int64_t bit, int64_t start, int64_t end, int64_t *value);
 
 protected:
   void DecrObjectsRefCount(robj *argv1, robj *argv2 = nullptr, robj *argv3 = nullptr);
-  void FreeSdsList(sds *items, unsigned int size);
-  void FreeObjectList(robj **items, unsigned int size);
-  void FreeHitemList(hitem *items, unsigned int size);
-  void FreeZitemList(zitem *items, unsigned int size);
+  void FreeSdsList(sds *items, uint32_t size);
+  void FreeObjectList(robj **items, uint32_t size);
+  void FreeHitemList(hitem *items, uint32_t size);
+  void FreeZitemList(zitem *items, uint32_t size);
   void ConvertObjectToString(robj *obj, std::string *value);
     
 private:
@@ -166,7 +168,7 @@ private:
   RedisCache& operator=(const RedisCache&);
 
 private:
-  redisDbIF *m_RedisDB;
+  redisCache cache_;
 };
 
 } // namespace cache
