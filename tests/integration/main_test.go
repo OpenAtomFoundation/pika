@@ -1,7 +1,10 @@
 package pika_integration
 
 import (
+	"context"
+	"github.com/redis/go-redis/v9"
 	"testing"
+	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 
@@ -12,3 +15,13 @@ func TestPika(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pika integration test")
 }
+
+var _ = BeforeSuite(func() {
+	ctx := context.TODO()
+	clientMaster := redis.NewClient(pikaOptions1())
+	clientSlave := redis.NewClient(pikaOptions2())
+	cleanEnv(ctx, clientSlave, clientMaster)
+	Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+	Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+	time.Sleep(5 * time.Second)
+})
