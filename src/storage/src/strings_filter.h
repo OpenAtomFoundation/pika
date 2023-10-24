@@ -22,19 +22,30 @@ class StringsFilter : public rocksdb::CompactionFilter {
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    auto cur_time = static_cast<int32_t>(unix_time);
+    auto cur_time = static_cast<uint64_t>(unix_time);
     ParsedStringsValue parsed_strings_value(value);
     TRACE("==========================START==========================");
     TRACE("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
           parsed_strings_value.value().ToString().c_str(), parsed_strings_value.timestamp(), cur_time);
 
-    if (parsed_strings_value.timestamp() != 0 && parsed_strings_value.timestamp() < cur_time) {
+    if (parsed_strings_value.Etime() != 0 && parsed_strings_value.Etime() < cur_time) {
       TRACE("Drop[Stale]");
       return true;
     } else {
       TRACE("Reserve");
       return false;
     }
+  }
+
+  virtual rocksdb::CompactionFilter::Decision FilterBlobByKey(int level, const Slice& key,
+      uint64_t expire_time, std::string* new_value, std::string* skip_until) const override {
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    auto cur_time = static_cast<uint64_t>(unix_time);
+    if (expire_time !=0 && expire_time < cur_time) {
+      return CompactionFilter::Decision::kRemove;
+    } 
+    return CompactionFilter::Decision::kKeep;
   }
 
   const char* Name() const override { return "StringsFilter"; }

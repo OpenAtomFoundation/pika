@@ -59,6 +59,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);
         db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
+        db_info->set_db_instance_num(db_struct.db_instance_num);
       }
     }
   }

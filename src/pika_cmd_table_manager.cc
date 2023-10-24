@@ -8,7 +8,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;

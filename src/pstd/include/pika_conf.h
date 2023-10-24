@@ -11,13 +11,13 @@
 #include <set>
 #include <unordered_set>
 
+#include "rocksdb/compression_type.h"
+
 #include "pstd/include/base_conf.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
-
-#include "include/pika_define.h"
-#include "include/pika_meta.h"
-#include "rocksdb/compression_type.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pika_define.h"
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
@@ -70,6 +70,15 @@ class PikaConf : public pstd::BaseConf {
   std::string db_path() {
     std::shared_lock l(rwlock_);
     return db_path_;
+  }
+  int db_instance_num() {
+    return db_instance_num_;
+  }
+  uint64_t rocksdb_ttl_second() {
+    return rocksdb_ttl_second_.load();
+  }
+  uint64_t rocksdb_periodic_compaction_second() {
+    return rocksdb_periodic_second_.load();
   }
   std::string db_sync_path() {
     std::shared_lock l(rwlock_);
@@ -371,7 +380,6 @@ class PikaConf : public pstd::BaseConf {
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
   int binlog_file_size() { return binlog_file_size_; }
-  PikaMeta* local_meta() { return local_meta_.get(); }
   std::vector<rocksdb::CompressionType> compression_per_level();
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
@@ -398,6 +406,13 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
+  }
+  void SetRocksdbTTLSecond(uint64_t ttl) {
+    rocksdb_ttl_second_.store(ttl);
+  }
+
+  void SetRocksdbPeriodicSecond(uint64_t value) {
+    rocksdb_periodic_second_.store(value);
   }
   void SetMasterRunID(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -643,6 +658,7 @@ class PikaConf : public pstd::BaseConf {
   std::string log_path_;
   std::string log_level_;
   std::string db_path_;
+  int db_instance_num_ = 0;
   std::string db_sync_path_;
   int expire_dump_days_ = 3;
   int db_sync_speed_ = 0;
@@ -698,6 +714,8 @@ class PikaConf : public pstd::BaseConf {
   int max_background_compactions_ = 0;
   int max_background_jobs_ = 0;
   int max_cache_files_ = 0;
+  std::atomic<uint64_t> rocksdb_ttl_second_ = 0;
+  std::atomic<uint64_t> rocksdb_periodic_second_ = 0;
   int max_bytes_for_level_multiplier_ = 0;
   int64_t block_size_ = 0;
   int64_t block_cache_ = 0;
@@ -759,8 +777,6 @@ class PikaConf : public pstd::BaseConf {
   double blob_garbage_collection_force_threshold_ = 1.0;
   int64_t blob_cache_ = 0;
   int64_t blob_num_shard_bits_ = 0;
-
-  std::unique_ptr<PikaMeta> local_meta_;
 
   std::shared_mutex rwlock_;
 

@@ -44,15 +44,16 @@ const std::string kDefaultRsyncAuth = "default";
 const int kMaxRsyncParallelNum = 4;
 
 struct DBStruct {
-  DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)
-      : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
+  DBStruct(std::string tn, const uint32_t pn, int32_t inst_num, std::set<uint32_t> pi)
+      : db_name(std::move(tn)), slot_num(pn), db_instance_num(inst_num), slot_ids(std::move(pi)) {}
 
   bool operator==(const DBStruct& db_struct) const {
     return db_name == db_struct.db_name && slot_num == db_struct.slot_num &&
-           slot_ids == db_struct.slot_ids;
+           slot_ids == db_struct.slot_ids && db_instance_num == db_struct.db_instance_num;
   }
   std::string db_name;
   uint32_t slot_num = 0;
+  int32_t db_instance_num = 0;
   std::set<uint32_t> slot_ids;
 };
 

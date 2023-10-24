@@ -6,7 +6,7 @@
 #include <fstream>
 #include <memory>
 
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
@@ -139,11 +139,10 @@ std::shared_ptr<pstd::lock::LockMgr> Slot::LockMgr() { return lock_mgr_; }
 
 void Slot::PrepareRsync() {
   pstd::DeleteDirIfExist(dbsync_path_);
-  pstd::CreatePath(dbsync_path_ + "strings");
-  pstd::CreatePath(dbsync_path_ + "hashes");
-  pstd::CreatePath(dbsync_path_ + "lists");
-  pstd::CreatePath(dbsync_path_ + "sets");
-  pstd::CreatePath(dbsync_path_ + "zsets");
+  int db_instance_num = g_pika_conf->db_instance_num();
+  for (int index = 0; index < db_instance_num; index++) {
+    pstd::CreatePath(dbsync_path_ + std::to_string(index));
+  }
 }
 
 // Try to update master offset
@@ -299,22 +298,22 @@ BgSaveInfo Slot::bgsave_info() {
 void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
   const std::string slotPath = bgsave_info().path;
 
-  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
-  for (const auto& type : types) {
-    std::string typePath = slotPath + ((slotPath.back() != '/') ? "/" : "") + type;
-    if (!pstd::FileExists(typePath)) {
+  int db_instance_num = g_pika_conf->db_instance_num();
+  for (int index = 0; index < db_instance_num; index++) {
+    std::string instPath = slotPath + ((slotPath.back() != '/') ? "/" : "") + std::to_string(index);
+    if (!pstd::FileExists(instPath)) {
       continue ;
     }
 
     std::vector<std::string> tmpFileNames;
-    int ret = pstd::GetChildren(typePath, tmpFileNames);
+    int ret = pstd::GetChildren(instPath, tmpFileNames);
     if (ret) {
-      LOG(WARNING) << slotPath << " read dump meta files failed, path " << typePath;
+      LOG(WARNING) << slotPath << " read dump meta files failed, path " << instPath;
       return;
     }
 
     for (const std::string fileName : tmpFileNames) {
-      fileNames -> push_back(type + "/" + fileName);
+      fileNames -> push_back(std::to_string(index) + "/" + fileName);
     }
   }
   fileNames->push_back(kBgsaveInfoFile);

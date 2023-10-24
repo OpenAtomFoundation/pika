@@ -14,4 +14,19 @@
 #  define DEBUG(M, ...) {}
 #endif  // NDEBUG
 
+static std::string get_printable_key(const std::string& key) {
+  std::string res;
+  for (int i = 0; i < key.size(); i++) {
+    if (std::isprint(key[i])) {
+      res.append(1, key[i]);
+    } else {
+      char tmp[3];
+      sprintf(tmp, "%02x", key[i] & 0xFF);
+      res.append(tmp, 2);
+    }
+  }
+  return res;
+}
+
+
 #endif  // SRC_DEBUG_H_

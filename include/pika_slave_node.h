@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "include/pika_binlog_reader.h"
-#include "include/pika_define.h"
+#include "pstd/include/pika_define.h"
 
 struct SyncWinItem {
   LogOffset offset_;

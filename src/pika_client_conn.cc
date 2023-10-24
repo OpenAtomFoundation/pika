@@ -3,18 +3,17 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_client_conn.h"
-
 #include <algorithm>
 #include <utility>
 #include <vector>
 
 #include <glog/logging.h>
 
+#include "include/pika_client_conn.h"
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "net/src/dispatch_thread.h"

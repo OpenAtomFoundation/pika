@@ -11,7 +11,7 @@
 #include <memory>
 #include <utility>
 
-#include "include/pika_conf.h"
+#include "pstd/include/pika_conf.h"
 #include "pika_inner_message.pb.h"
 
 class SyncMasterSlot;

@@ -3,23 +3,21 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_conf.h"
-
-#include <glog/logging.h>
-
 #include <strings.h>
 #include <algorithm>
 
-#include "pstd/include/env.h"
-#include "pstd/include/pstd_string.h"
+#include <glog/logging.h>
 
-#include "cache/include/config.h"
-#include "include/pika_define.h"
+#include "pstd/include/cache/config.h"
+#include "pstd/include/pika_define.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/pika_conf.h"
+#include "pstd/include/env.h"
 
 using pstd::Status;
 
 PikaConf::PikaConf(const std::string& path)
-    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
+    : pstd::BaseConf(path), conf_path_(path) {}
 
 Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
   int32_t db_index = -1;
@@ -69,7 +67,6 @@ Status PikaConf::AddDBSlots(const std::string& db_name, const std::set<uint32_t>
     for (const auto& id : slot_ids) {
       db_structs_[index].slot_ids.insert(id);
     }
-    s = local_meta_->StableSave(db_structs_);
   }
   return s;
 }
@@ -87,7 +84,6 @@ Status PikaConf::RemoveDBSlots(const std::string& db_name, const std::set<uint32
     for (const auto& id : slot_ids) {
       db_structs_[index].slot_ids.erase(id);
     }
-    s = local_meta_->StableSave(db_structs_);
   }
   return s;
 }
@@ -98,8 +94,7 @@ Status PikaConf::AddDB(const std::string& db_name, const uint32_t slot_num) {
     return s;
   }
   std::lock_guard l(rwlock_);
-  db_structs_.push_back({db_name, slot_num, {}});
-  s = local_meta_->StableSave(db_structs_);
+  db_structs_.push_back({db_name, slot_num, db_instance_num_, {}});
   return s;
 }
 
@@ -115,7 +110,7 @@ Status PikaConf::DelDB(const std::string& db_name) {
       break;
     }
   }
-  return local_meta_->StableSave(db_structs_);
+  return s;
 }
 
 Status PikaConf::AddDBSanityCheck(const std::string& db_name) {
@@ -243,11 +238,17 @@ int PikaConf::Load() {
   }
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
+  GetConfInt("db-instance-num", &db_instance_num_);
+  int64_t t_val = 0;
+  GetConfInt64("rocksdb-ttl-second", &t_val);
+  rocksdb_ttl_second_.store(uint64_t(t_val));
+  t_val = 0;
+  GetConfInt64("rocksdb-periodic-second", &t_val);
+  rocksdb_periodic_second_.store(uint64_t(t_val));
   db_path_ = db_path_.empty() ? "./db/" : db_path_;
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
-  local_meta_->SetPath(db_path_);
 
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -279,7 +280,7 @@ int PikaConf::Load() {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
-      db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+      db_structs_.push_back({"db" + std::to_string(idx), 1, db_instance_num_, {0}});
     }
   }
   default_db_ = db_structs_[0].db_name;
