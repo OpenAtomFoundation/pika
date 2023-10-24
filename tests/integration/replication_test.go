@@ -11,9 +11,40 @@ import (
 	"time"
 )
 
+func cleanEnv(ctx context.Context, clientSlave *redis.Client, clientMaster *redis.Client) {
+	r := clientSlave.Do(ctx, "slaveof", "no", "one")
+	Expect(r.Err()).NotTo(HaveOccurred())
+	Expect(r.Val()).To(Equal("OK"))
+	r = clientSlave.Do(ctx, "clearreplicationid")
+	r = clientMaster.Do(ctx, "clearreplicationid")
+	cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/tests/integration/dump")
+	errr := cmd.Run()
+	if errr != nil {
+		fmt.Println("remove dump fail!")
+	}
+}
+
+func trySlave(ctx context.Context, clientSlave *redis.Client) bool {
+	Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9221").Val()).To(Equal("OK"))
+	infoRes := clientSlave.Info(ctx, "replication")
+	Expect(infoRes.Err()).NotTo(HaveOccurred())
+	Expect(infoRes.Val()).To(ContainSubstring("role:slave"))
+	var count = 0
+	for {
+		infoRes = clientSlave.Info(ctx, "replication")
+		Expect(infoRes.Err()).NotTo(HaveOccurred())
+		count++
+		if strings.Contains(infoRes.Val(), "master_link_status:up") {
+			return true
+		} else if count > 25 {
+			return false
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 var _ = FDescribe("shuould replication ", func() {
 	Describe("all replication test", func() {
-		//  在这里定义两个连接
 		ctx := context.TODO()
 		var clientSlave *redis.Client
 		var clientMaster *redis.Client
@@ -21,36 +52,24 @@ var _ = FDescribe("shuould replication ", func() {
 		BeforeEach(func() {
 			clientMaster = redis.NewClient(pikaOptions1())
 			clientSlave = redis.NewClient(pikaOptions2())
-			r := clientSlave.Do(ctx, "slaveof", "no", "one")
-			Expect(r.Err()).NotTo(HaveOccurred())
-			Expect(r.Val()).To(Equal("OK"))
-			r = clientSlave.Do(ctx, "clearreplicationid")
-			r = clientMaster.Do(ctx, "clearreplicationid")
-			cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/tests/integration/dump")
-			errr := cmd.Run()
-			if errr != nil {
-				fmt.Println("删除dump文件失败")
-			}
+			cleanEnv(ctx, clientSlave, clientMaster)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			fmt.Println("检查flushdb是否干净")
 			time.Sleep(2 * time.Second)
 		})
 		AfterEach(func() {
+			cleanEnv(ctx, clientSlave, clientMaster)
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 		})
 		It("Let The slave become a replica of The master ", func() {
-			//  检查没有进行主从前的信息是否正确
-			info_res := clientSlave.Info(ctx, "replication")
-			Expect(info_res.Err()).NotTo(HaveOccurred())
-			Expect(info_res.Val()).To(ContainSubstring("role:master"))
-			info_res = clientMaster.Info(ctx, "replication")
-			Expect(info_res.Err()).NotTo(HaveOccurred())
-			Expect(info_res.Val()).To(ContainSubstring("role:master"))
-			Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9231").Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+			infoRes := clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
 
-			//  向主节点插入数据
 			res := clientMaster.Set(ctx, "key", "value", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res.Val()).To(Equal("OK"))
@@ -66,26 +85,22 @@ var _ = FDescribe("shuould replication ", func() {
 			Hres := clientMaster.HSet(ctx, "myHash", "key", "value")
 			Expect(Hres.Err()).NotTo(HaveOccurred())
 			Expect(Hres.Val()).To(Equal(int64(1)))
-
-			// 主从
-			Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9221").Val()).To(Equal("OK"))
-			info_res = clientSlave.Info(ctx, "replication")
-			Expect(info_res.Err()).NotTo(HaveOccurred())
-			Expect(info_res.Val()).To(ContainSubstring("role:slave"))
 			var count = 0
 			for {
-				info_res = clientSlave.Info(ctx, "replication")
-				count++
-				if strings.Contains(info_res.Val(), "master_link_status:up") || count == 100 {
+				res := trySlave(ctx, clientSlave)
+				if res {
 					break
+				} else if count > 5 {
+					break
+				} else {
+					cleanEnv(ctx, clientSlave, clientMaster)
+					count++
 				}
-				time.Sleep(1 * time.Second)
 			}
-			//  主节点会有connected_slaves:1
-			info_res = clientMaster.Info(ctx, "replication")
-			Expect(info_res.Val()).To(ContainSubstring("connected_slaves:1"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 
-			//  检查全量同步是否完成
 			kget := clientSlave.Get(ctx, "key")
 			Expect(kget.Err()).NotTo(HaveOccurred())
 			Expect(kget.Val()).To(Equal("value"))
@@ -94,26 +109,25 @@ var _ = FDescribe("shuould replication ", func() {
 			Expect(kget.Err()).NotTo(HaveOccurred())
 			Expect(kget.Val()).To(Equal("hello"))
 
-			slave_lrange := clientSlave.LRange(ctx, "myList", 0, -1)
-			Expect(slave_lrange.Err()).NotTo(HaveOccurred())
+			slaveLrange := clientSlave.LRange(ctx, "myList", 0, -1)
+			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
 			master_lrange := clientMaster.LRange(ctx, "myList", 0, -1)
 			Expect(master_lrange.Err()).NotTo(HaveOccurred())
-			Expect(slave_lrange).To(Equal(master_lrange))
+			Expect(slaveLrange).To(Equal(master_lrange))
 
-			slave_smem := clientSlave.SMembers(ctx, "mySet")
-			Expect(slave_smem.Err()).NotTo(HaveOccurred())
-			master_smem := clientMaster.SMembers(ctx, "mySet")
-			Expect(master_smem.Err()).NotTo(HaveOccurred())
-			Expect(slave_smem.Val()).To(Equal(master_smem.Val()))
+			slaveSmem := clientSlave.SMembers(ctx, "mySet")
+			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
+			masterSmem := clientMaster.SMembers(ctx, "mySet")
+			Expect(masterSmem.Err()).NotTo(HaveOccurred())
+			Expect(slaveSmem.Val()).To(Equal(masterSmem.Val()))
 
-			slave_hget := clientSlave.HGet(ctx, "myHash", "key")
-			Expect(slave_hget.Err()).NotTo(HaveOccurred())
-			Expect(slave_hget.Val()).To(Equal("value"))
+			slaveHget := clientSlave.HGet(ctx, "myHash", "key")
+			Expect(slaveHget.Err()).NotTo(HaveOccurred())
+			Expect(slaveHget.Val()).To(Equal("value"))
 
-			slave_write := clientSlave.Set(ctx, "foo", "bar", 0)
-			Expect(slave_write.Err()).To(MatchError("ERR Server in read-only"))
+			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
+			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
 
-			//  测试增量同步, 在主节点中继续增加数据
 			res = clientMaster.Set(ctx, "Newstring", "NewHello", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res.Val()).To(Equal("OK"))
@@ -132,35 +146,34 @@ var _ = FDescribe("shuould replication ", func() {
 			Expect(kget.Err()).NotTo(HaveOccurred())
 			Expect(kget.Val()).To(Equal("NewHello"))
 
-			slave_lrange = clientSlave.LRange(ctx, "myList", 0, -1)
-			Expect(slave_lrange.Err()).NotTo(HaveOccurred())
+			slaveLrange = clientSlave.LRange(ctx, "myList", 0, -1)
+			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
 			master_lrange = clientMaster.LRange(ctx, "myList", 0, -1)
 			Expect(master_lrange.Err()).NotTo(HaveOccurred())
-			Expect(slave_lrange).To(Equal(master_lrange))
+			Expect(slaveLrange).To(Equal(master_lrange))
 
-			slave_smem = clientSlave.SMembers(ctx, "mySet")
-			Expect(slave_smem.Err()).NotTo(HaveOccurred())
-			master_smem = clientMaster.SMembers(ctx, "mySet")
-			Expect(master_smem.Err()).NotTo(HaveOccurred())
-			Expect(slave_smem.Val()).To(Equal(master_smem.Val()))
+			slaveSmem = clientSlave.SMembers(ctx, "mySet")
+			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
+			masterSmem = clientMaster.SMembers(ctx, "mySet")
+			Expect(masterSmem.Err()).NotTo(HaveOccurred())
+			Expect(slaveSmem.Val()).To(Equal(masterSmem.Val()))
 
-			slave_hget = clientSlave.HGet(ctx, "myHash", "key2")
-			Expect(slave_hget.Err()).NotTo(HaveOccurred())
-			Expect(slave_hget.Val()).To(Equal("value2"))
+			slaveHget = clientSlave.HGet(ctx, "myHash", "key2")
+			Expect(slaveHget.Err()).NotTo(HaveOccurred())
+			Expect(slaveHget.Val()).To(Equal("value2"))
 
-			//  测试slavoof no one 是否正常
-			no_one_res := clientSlave.Do(ctx, "slaveof", "no", "one")
-			Expect(no_one_res.Err()).NotTo(HaveOccurred())
-			Expect(no_one_res.Val()).To(Equal("OK"))
+			noOneRes := clientSlave.Do(ctx, "slaveof", "no", "one")
+			Expect(noOneRes.Err()).NotTo(HaveOccurred())
+			Expect(noOneRes.Val()).To(Equal("OK"))
 			Expect(clientSlave.Do(ctx, "clearreplicationid").Err()).NotTo(HaveOccurred())
 
-			info_res = clientSlave.Info(ctx, "replication")
-			Expect(info_res.Err()).NotTo(HaveOccurred())
-			Expect(info_res.Val()).To(ContainSubstring("role:master"))
+			infoRes = clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
 
-			info_res = clientMaster.Info(ctx, "replication")
-			Expect(info_res.Err()).NotTo(HaveOccurred())
-			Expect(info_res.Val()).To(ContainSubstring("role:master"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
 
 			res = clientMaster.Set(ctx, "c_key", "c_value", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
@@ -181,6 +194,48 @@ var _ = FDescribe("shuould replication ", func() {
 			Expect(dres.Err()).NotTo(HaveOccurred())
 			Expect(dres.Val()).To(Equal(int64(1)))
 
+		})
+
+		It("slaveof itself should return err", func() {
+			infoRes := clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9231").Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+		})
+
+		It("test slaveof with localhost&port", func() {
+			infoRes := clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			Expect(clientSlave.Do(ctx, "slaveof", "localhost", "9221").Val()).To(Equal("OK"))
+			infoRes = clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("role:slave"))
+			var count = 0
+			for {
+				res := trySlave(ctx, clientSlave)
+				if res {
+					break
+				} else if count > 3 {
+					break
+				} else {
+					cleanEnv(ctx, clientSlave, clientMaster)
+					count++
+				}
+			}
+
+			infoRes = clientSlave.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("master_link_status:up"))
+			infoRes = clientMaster.Info(ctx, "replication")
+			Expect(infoRes.Err()).NotTo(HaveOccurred())
+			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 		})
 
 	})
