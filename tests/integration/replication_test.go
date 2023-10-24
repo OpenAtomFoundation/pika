@@ -18,11 +18,10 @@ func cleanEnv(ctx context.Context, clientMaster, clientSlave *redis.Client) {
 	Expect(r.Val()).To(Equal("OK"))
 	r = clientSlave.Do(ctx, "clearreplicationid")
 	r = clientMaster.Do(ctx, "clearreplicationid")
-	//cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/dump")
-	cmd := exec.Command("rm", "-rf", "/Users/dingxiaoshuai/pika_new/dump")
+	cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/dump")
 
-	errr := cmd.Run()
-	if errr != nil {
+	err := cmd.Run()
+	if err != nil {
 		fmt.Println("remove dump fail!")
 	}
 }
@@ -46,7 +45,7 @@ func trySlave(ctx context.Context, clientSlave *redis.Client) bool {
 	}
 }
 
-var _ = FDescribe("shuould replication ", func() {
+var _ = Describe("shuould replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
 		var clientSlave *redis.Client

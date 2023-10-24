@@ -326,7 +326,7 @@ var _ = Describe("Server", func() {
 			Expect(tm).To(BeTemporally("~", time.Now(), 3*time.Second))
 		})
 
-		FIt("should unlink", func() {
+		It("should unlink", func() {
 			command := "UNLINK"
 			Expect(client.MSet(ctx, "key1", "value1", "key2", "value2").Val()).To(Equal("OK"))
 			Expect(client.Do(ctx, command, "key1", "key2").Val()).To(Equal(int64(2)))
