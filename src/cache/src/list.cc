@@ -4,31 +4,30 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include "cache/include/cache.h"
+#include "pstd_defer.h"
 
 namespace cache {
 
-Status RedisCache::LIndex(std::string &key, long index, std::string *element) {
+Status RedisCache::LIndex(std::string &key, int64_t index, std::string *element) {
   sds val;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcLIndex(cache_, kobj, index, &val))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else if (REDIS_ITEM_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("index not exist");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcLIndex failed");
     }
+    return Status::Corruption("RcLIndex failed");
   }
 
   element->clear();
   element->assign(val, sdslen(val));
   sdsfree(val);
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -43,34 +42,32 @@ Status RedisCache::LInsert(std::string &key, storage::BeforeOrAfter &before_or_a
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *pobj = createObject(OBJ_STRING, sdsnewlen(pivot.data(), pivot.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj, pobj, vobj);
+  };
   if (C_OK != (ret = RcLInsert(cache_, kobj, where, pobj, vobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, pobj, vobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj, pobj, vobj);
-      return Status::Corruption("RcLInsert failed");
     }
+    return Status::Corruption("RcLInsert failed");
   }
 
-  DecrObjectsRefCount(kobj, pobj, vobj);
   return Status::OK();
 }
 
-Status RedisCache::LLen(std::string &key, unsigned long *len) {
+Status RedisCache::LLen(std::string &key, uint64_t *len) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RcLLen(cache_, kobj, len))) {
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
+  if (C_OK != (ret = RcLLen(cache_, kobj, reinterpret_cast<unsigned long *>(len)))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcLLen failed");
     }
+    return Status::Corruption("RcLLen failed");
   }
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -78,21 +75,20 @@ Status RedisCache::LPop(std::string &key, std::string *element) {
   sds val;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+        DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcLPop(cache_, kobj, &val))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcLPop failed");
     }
+    return Status::Corruption("RcLPop failed");
   }
 
   element->clear();
   element->assign(val, sdslen(val));
   sdsfree(val);
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -106,15 +102,14 @@ Status RedisCache::LPush(std::string &key, std::vector<std::string> &values) {
   for (unsigned int i = 0; i < values.size(); ++i) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(values[i].data(), values[i].size()));
   }
-
-  if (C_OK != RcLPush(cache_, kobj, vals, values.size())) {
+  DEFER {
     FreeObjectList(vals, values.size());
     DecrObjectsRefCount(kobj);
+  };
+  if (C_OK != RcLPush(cache_, kobj, vals, values.size())) {
     return Status::Corruption("RcLPush failed");
   }
 
-  FreeObjectList(vals, values.size());
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -128,102 +123,94 @@ Status RedisCache::LPushx(std::string &key, std::vector<std::string> &values) {
   for (unsigned int i = 0; i < values.size(); ++i) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(values[i].data(), values[i].size()));
   }
-
+  DEFER {
+    FreeObjectList(vals, values.size());
+    DecrObjectsRefCount(kobj);
+  };
   int ret;
   if (C_OK != (ret = RcLPushx(cache_, kobj, vals, values.size()))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      FreeObjectList(vals, values.size());
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      FreeObjectList(vals, values.size());
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcLPushx failed");
     }
+    return Status::Corruption("RcLPushx failed");
   }
 
-  FreeObjectList(vals, values.size());
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
-Status RedisCache::LRange(std::string &key, long start, long stop, std::vector<std::string> *values) {
+Status RedisCache::LRange(std::string &key, int64_t start, int64_t stop, std::vector<std::string> *values) {
   sds *vals = nullptr;
-  unsigned long vals_size;
+  uint64_t vals_size;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  if (C_OK != (ret = RcLRange(cache_, kobj, start, stop, &vals, &vals_size))) {
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
+  if (C_OK != (ret = RcLRange(cache_, kobj, start, stop, &vals, reinterpret_cast<unsigned long *>(&vals_size)))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcLRange failed");
     }
+    return Status::Corruption("RcLRange failed");
   }
 
-  for (unsigned long i = 0; i < vals_size; ++i) {
+  for (uint64_t i = 0; i < vals_size; ++i) {
     values->push_back(std::string(vals[i], sdslen(vals[i])));
   }
 
   FreeSdsList(vals, vals_size);
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
-Status RedisCache::LRem(std::string &key, long count, std::string &value) {
+Status RedisCache::LRem(std::string &key, int64_t count, std::string &value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj, vobj);
+  };
   if (C_OK != (ret = RcLRem(cache_, kobj, count, vobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, vobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj, vobj);
-      return Status::Corruption("RcLRem failed");
     }
+    return Status::Corruption("RcLRem failed");
   }
 
-  DecrObjectsRefCount(kobj, vobj);
   return Status::OK();
 }
 
-Status RedisCache::LSet(std::string &key, long index, std::string &value) {
+Status RedisCache::LSet(std::string &key, int64_t index, std::string &value) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj, vobj);
+  };
   if (C_OK != (ret = RcLSet(cache_, kobj, index, vobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, vobj);
       return Status::NotFound("key not in cache");
     } else if (REDIS_ITEM_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, vobj);
       return Status::NotFound("item not exist");
-    } else {
-      DecrObjectsRefCount(kobj, vobj);
-      return Status::Corruption("RcLSet failed");
     }
+    return Status::Corruption("RcLSet failed");
   }
 
-  DecrObjectsRefCount(kobj, vobj);
   return Status::OK();
 }
 
-Status RedisCache::LTrim(std::string &key, long start, long stop) {
+Status RedisCache::LTrim(std::string &key, int64_t start, int64_t stop) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcLTrim(cache_, kobj, start, stop))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
-      DecrObjectsRefCount(kobj);
       return Status::Corruption("RcLTrim failed");
     }
   }
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -231,21 +218,20 @@ Status RedisCache::RPop(std::string &key, std::string *element) {
   sds val;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcRPop(cache_, kobj, &val))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcRPop failed");
     }
+    return Status::Corruption("RcRPop failed");
   }
 
   element->clear();
   element->assign(val, sdslen(val));
   sdsfree(val);
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -259,15 +245,15 @@ Status RedisCache::RPush(std::string &key, std::vector<std::string> &values) {
   for (unsigned int i = 0; i < values.size(); ++i) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(values[i].data(), values[i].size()));
   }
-
-  if (C_OK != RcRPush(cache_, kobj, vals, values.size())) {
+  DEFER {
     FreeObjectList(vals, values.size());
     DecrObjectsRefCount(kobj);
+  };
+
+  if (C_OK != RcRPush(cache_, kobj, vals, values.size())) {
     return Status::Corruption("RcRPush failed");
   }
 
-  FreeObjectList(vals, values.size());
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -281,22 +267,18 @@ Status RedisCache::RPushx(std::string &key, std::vector<std::string> &values) {
   for (unsigned int i = 0; i < values.size(); ++i) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(values[i].data(), values[i].size()));
   }
-
+  DEFER {
+    FreeObjectList(vals, values.size());
+    DecrObjectsRefCount(kobj);
+  };
   int ret;
   if (C_OK != (ret = RcRPushx(cache_, kobj, vals, values.size()))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      FreeObjectList(vals, values.size());
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      FreeObjectList(vals, values.size());
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcRPushx failed");
     }
+    return Status::Corruption("RcRPushx failed");
   }
 
-  FreeObjectList(vals, values.size());
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 

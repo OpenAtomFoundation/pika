@@ -3,8 +3,8 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef __REDIS_CONFIG_H__
-#define __REDIS_CONFIG_H__
+#ifndef __CACHE_CONFIG_H__
+#define __CACHE_CONFIG_H__
 
 #include <cstdint>
 
@@ -13,14 +13,16 @@
 namespace cache {
 
 /* Redis maxmemory strategies */
-#define CACHE_VOLATILE_LRU      0
-#define CACHE_ALLKEYS_LRU       1
-#define CACHE_VOLATILE_LFU      2
-#define CACHE_ALLKEYS_LFU       3
-#define CACHE_VOLATILE_RANDOM   4
-#define CACHE_ALLKEYS_RANDOM    5
-#define CACHE_VOLATILE_TTL      6
-#define CACHE_NO_EVICTION       7
+enum RedisMaxmemoryPolicy {
+  CACHE_VOLATILE_LRU      = 0,
+  CACHE_ALLKEYS_LRU       = 1,
+  CACHE_VOLATILE_LFU      = 2,
+  CACHE_ALLKEYS_LFU       = 3,
+  CACHE_VOLATILE_RANDOM   = 4,
+  CACHE_ALLKEYS_RANDOM    = 5,
+  CACHE_VOLATILE_TTL      = 6,
+  CACHE_NO_EVICTION       = 7
+};
 
 #define CACHE_DEFAULT_MAXMEMORY         CONFIG_DEFAULT_MAXMEMORY     // 10G
 #define CACHE_DEFAULT_MAXMEMORY_SAMPLES CONFIG_DEFAULT_MAXMEMORY_SAMPLES

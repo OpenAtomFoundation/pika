@@ -5,10 +5,11 @@
 
 #include "cache/include/cache.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd_defer.h"
 
 namespace cache {
 
-static int GetRedisLRUPolicy(int cache_lru_policy) {
+static int32_t GetRedisLRUPolicy(int32_t cache_lru_policy) {
   switch (cache_lru_policy) {
     case CACHE_VOLATILE_LRU:
       return MAXMEMORY_VOLATILE_LRU;
@@ -62,7 +63,7 @@ void RedisCache::SetConfig(CacheConfig *cfg) {
 
 uint64_t RedisCache::GetUsedMemory(void) { return RcGetUsedMemory(); }
 
-void RedisCache::GetHitAndMissNum(long long *hits, long long *misses) { RcGetHitAndMissNum(hits, misses); }
+void RedisCache::GetHitAndMissNum(int64_t *hits, int64_t *misses) { RcGetHitAndMissNum(hits, misses); }
 
 void RedisCache::ResetHitAndMissNum(void) { RcResetHitAndMissNum(); }
 
@@ -75,21 +76,23 @@ Status RedisCache::Open(void) {
   return Status::OK();
 }
 
-int RedisCache::ActiveExpireCycle(void) { return RcActiveExpireCycle(cache_); }
+int32_t RedisCache::ActiveExpireCycle(void) { return RcActiveExpireCycle(cache_); }
 
 /*-----------------------------------------------------------------------------
  * Normal Commands
  *----------------------------------------------------------------------------*/
 bool RedisCache::Exists(std::string &key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    decrRefCount(kobj);
+  };
   bool is_exist = RcExists(cache_, kobj);
 
-  decrRefCount(kobj);
   return is_exist;
 }
 
-long long RedisCache::DbSize(void) {
-  long long dbsize = 0;
+int64_t RedisCache::DbSize(void) {
+  int64_t dbsize = 0;
   RcCacheSize(cache_, &dbsize);
   return dbsize;
 }
@@ -99,17 +102,17 @@ void RedisCache::FlushDb(void) { RcFlushCache(cache_); }
 Status RedisCache::Del(const std::string &key) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    decrRefCount(kobj);
+  };
   if (C_OK != (ret = RcDel(cache_, kobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
     } else {
-      DecrObjectsRefCount(kobj);
       return Status::Corruption("RcDel failed");
     }
   }
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -117,17 +120,17 @@ Status RedisCache::Expire(std::string &key, int64_t ttl) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
+  DEFER {
+    DecrObjectsRefCount(kobj, tobj);
+  };
   if (C_OK != (ret = RcExpire(cache_, kobj, tobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, tobj);
       return Status::NotFound("key not in cache");
     } else {
-      DecrObjectsRefCount(kobj, tobj);
       return Status::Corruption("RcExpire failed");
     }
   }
 
-  DecrObjectsRefCount(kobj, tobj);
   return Status::OK();
 }
 
@@ -135,51 +138,48 @@ Status RedisCache::Expireat(std::string &key, int64_t ttl) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
+  DEFER {
+    DecrObjectsRefCount(kobj, tobj);
+  };
   if (C_OK != (ret = RcExpireat(cache_, kobj, tobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj, tobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj, tobj);
-      return Status::Corruption("RcExpireat failed");
     }
+    return Status::Corruption("RcExpireat failed");
   }
 
-  DecrObjectsRefCount(kobj, tobj);
   return Status::OK();
 }
 
 Status RedisCache::TTL(std::string &key, int64_t *ttl) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcTTL(cache_, kobj, ttl))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcTTL failed");
     }
+    return Status::Corruption("RcTTL failed");
   }
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
 Status RedisCache::Persist(std::string &key) {
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcPersist(cache_, kobj))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcPersist failed");
     }
+    return Status::Corruption("RcPersist failed");
   }
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -187,21 +187,20 @@ Status RedisCache::Type(std::string &key, std::string *value) {
   sds val;
   int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
   if (C_OK != (ret = RcType(cache_, kobj, &val))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
-      DecrObjectsRefCount(kobj);
       return Status::NotFound("key not in cache");
-    } else {
-      DecrObjectsRefCount(kobj);
-      return Status::Corruption("RcType failed");
     }
+    return Status::Corruption("RcType failed");
   }
 
   value->clear();
   value->assign(val, sdslen(val));
   sdsfree(val);
 
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
@@ -211,9 +210,8 @@ Status RedisCache::RandomKey(std::string *key) {
   if (C_OK != (ret = RcRandomkey(cache_, &val))) {
     if (REDIS_NO_KEYS == ret) {
       return Status::NotFound("no keys in cache");
-    } else {
-      return Status::Corruption("RcRandomkey failed");
     }
+    return Status::Corruption("RcRandomkey failed");
   }
 
   key->clear();
@@ -229,31 +227,30 @@ void RedisCache::DecrObjectsRefCount(robj *argv1, robj *argv2, robj *argv3) {
   if (nullptr != argv3) decrRefCount(argv3);
 }
 
-void RedisCache::FreeSdsList(sds *items, unsigned int size) {
-  unsigned int i;
-  for (i = 0; i < size; ++i) {
+void RedisCache::FreeSdsList(sds *items, uint32_t size) {
+  for (uint32_t i = 0; i < size; ++i) {
     sdsfree(items[i]);
   }
   zfree(items);
 }
 
-void RedisCache::FreeObjectList(robj **items, unsigned int size) {
-  for (unsigned int i; i < size; ++i) {
+void RedisCache::FreeObjectList(robj **items, uint32_t size) {
+  for (uint32_t i = 0; i < size; ++i) {
     decrRefCount(items[i]);
   }
   zfree(items);
 }
 
-void RedisCache::FreeHitemList(hitem *items, unsigned int size) {
-  for (unsigned int i; i < size; ++i) {
+void RedisCache::FreeHitemList(hitem *items, uint32_t size) {
+  for (uint32_t i = 0; i < size; ++i) {
     sdsfree(items[i].field);
     sdsfree(items[i].value);
   }
   zfree(items);
 }
 
-void RedisCache::FreeZitemList(zitem *items, unsigned int size) {
-  for (unsigned int i; i < size; ++i) {
+void RedisCache::FreeZitemList(zitem *items, uint32_t size) {
+  for (uint32_t i = 0; i < size; ++i) {
     sdsfree(items[i].member);
   }
   zfree(items);
@@ -265,7 +262,6 @@ void RedisCache::ConvertObjectToString(robj *obj, std::string *value) {
   } else if (obj->encoding == OBJ_ENCODING_INT) {
     char buf[64];
     int len = pstd::ll2string(buf, 64, (long)obj->ptr);
-    ;
     value->assign(buf, len);
   }
 }
