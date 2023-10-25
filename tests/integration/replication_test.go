@@ -3,6 +3,7 @@ package pika_integration
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,15 +20,25 @@ func cleanEnv(ctx context.Context, clientMaster, clientSlave *redis.Client) {
 	r = clientSlave.Do(ctx, "clearreplicationid")
 	r = clientMaster.Do(ctx, "clearreplicationid")
 	cmd := exec.Command("rm", "-rf", "/home/runner/work/pika/pika/dump")
-
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("remove dump fail!")
 	}
+	cmd = exec.Command("rm", "-rf", "/Users/runner/work/pika/pika/dump")
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("remove dump fail!")
+	}
+	cmd = exec.Command("rm", "-rf", "/__w/pika/pika/dump")
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("remove dump fail!")
+	}
+
 }
 
-func trySlave(ctx context.Context, clientSlave *redis.Client) bool {
-	Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9221").Val()).To(Equal("OK"))
+func trySlave(ctx context.Context, clientSlave *redis.Client, ip string, port string) bool {
+	Expect(clientSlave.Do(ctx, "slaveof", ip, port).Val()).To(Equal("OK"))
 	infoRes := clientSlave.Info(ctx, "replication")
 	Expect(infoRes.Err()).NotTo(HaveOccurred())
 	Expect(infoRes.Val()).To(ContainSubstring("role:slave"))
@@ -38,12 +49,256 @@ func trySlave(ctx context.Context, clientSlave *redis.Client) bool {
 		count++
 		if strings.Contains(infoRes.Val(), "master_link_status:up") {
 			return true
-		} else if count > 100 {
+		} else if count > 200 {
 			return false
 		}
 		time.Sleep(1 * time.Second)
 	}
 }
+
+func randomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, length)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)[:length]
+}
+
+func randomInt(max int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(max)
+}
+
+func rpoplpushThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 10; i++ {
+		letters1 := randomString(5)
+		letters2 := randomString(5)
+		letters3 := randomString(5)
+
+		clientMaster.LPush(*ctx, "blist0", letters1)
+		clientMaster.RPopLPush(*ctx, "blist0", "blist")
+		clientMaster.LPush(*ctx, "blist", letters1, letters2, letters3)
+
+		clientMaster.LPop(*ctx, "blist")
+		clientMaster.RPop(*ctx, "blist")
+		clientMaster.LPush(*ctx, "blist0", letters3)
+		clientMaster.RPopLPush(*ctx, "blist0", "blist")
+		clientMaster.RPush(*ctx, "blist", letters3, letters2, letters1)
+		clientMaster.LPop(*ctx, "blist")
+		clientMaster.LPush(*ctx, "blist0", letters2)
+		clientMaster.RPopLPush(*ctx, "blist0", "blist")
+		clientMaster.RPop(*ctx, "blist")
+	}
+}
+
+func randomBitopThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 20; i++ {
+		offset1 := randomInt(100)
+		offset2 := randomInt(100)
+		value1 := randomInt(1)
+		value2 := randomInt(1)
+
+		clientMaster.SetBit(*ctx, "bitkey1", int64(offset1), value1)
+		clientMaster.SetBit(*ctx, "bitkey2", int64(offset1), value1)
+		clientMaster.BitOpAnd(*ctx, "bitkey_out", "bitkey1", "bitkey2")
+		clientMaster.SetBit(*ctx, "bitkey1", int64(offset1+offset2), value2)
+		clientMaster.SetBit(*ctx, "bitkey2", int64(offset2), value2)
+		clientMaster.BitOpOr(*ctx, "bitkey_out2", "bitkey1", "bitkey2")
+	}
+}
+
+func randomSmoveThread(ctx *context.Context, clientMaster *redis.Client) {
+	member := randomString(5)
+	clientMaster.SAdd(*ctx, "sourceSet", member)
+	clientMaster.SAdd(*ctx, "sourceSet", member)
+	clientMaster.SAdd(*ctx, "sourceSet", member)
+	clientMaster.SRem(*ctx, "destSet", member)
+	clientMaster.SRem(*ctx, "destSet", member)
+	clientMaster.SMove(*ctx, "sourceSet", "destSet", member)
+}
+
+func randomSdiffstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 5; i++ {
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "dest_set", randomString(5))
+		clientMaster.SDiffStore(*ctx, "dest_set", "set1", "set2")
+	}
+}
+
+func randomSinterstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 5; i++ {
+		member := randomString(5)
+		member2 := randomString(5)
+		member3 := randomString(5)
+		member4 := randomString(5)
+		member5 := randomString(5)
+		member6 := randomString(5)
+		clientMaster.SAdd(*ctx, "set1", member)
+		clientMaster.SAdd(*ctx, "set2", member)
+		clientMaster.SAdd(*ctx, "set1", member2)
+		clientMaster.SAdd(*ctx, "set2", member2)
+		clientMaster.SAdd(*ctx, "set1", member3)
+		clientMaster.SAdd(*ctx, "set2", member3)
+		clientMaster.SAdd(*ctx, "set1", member4)
+		clientMaster.SAdd(*ctx, "set2", member4)
+		clientMaster.SAdd(*ctx, "set1", member5)
+		clientMaster.SAdd(*ctx, "set2", member5)
+		clientMaster.SAdd(*ctx, "set1", member6)
+		clientMaster.SAdd(*ctx, "set2", member6)
+		clientMaster.SInterStore(*ctx, "dest_set", "set1", "set2")
+		clientMaster.SAdd(*ctx, "dest_set", randomString(5))
+	}
+}
+
+func test_del_replication(ctx *context.Context, clientMaster, clientSlave *redis.Client) {
+	clientMaster.Del(*ctx, "blist0", "blist1", "blist2", "blist3")
+	clientMaster.Del(*ctx, "blist100", "blist101", "blist102", "blist103")
+	clientMaster.Del(*ctx, "blist0", "blist1", "blist2", "blist3")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.RPush(*ctx, "blist2", "v2")
+	clientMaster.RPop(*ctx, "blist2")
+	clientMaster.LPop(*ctx, "blist3")
+
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.RPop(*ctx, "blist3")
+
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+
+	clientMaster.RPop(*ctx, "blist3")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+
+	clientMaster.RPop(*ctx, "blist3")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+
+	clientMaster.RPop(*ctx, "blist3")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.LPush(*ctx, "blist2", "v2")
+
+	clientMaster.LPush(*ctx, "blist2", "v2")
+	clientMaster.RPush(*ctx, "blist3", "v2")
+	clientMaster.Del(*ctx, "blist1", "large", "blist2")
+
+	clientMaster.RPush(*ctx, "blist1", "a", "latge", "c")
+	clientMaster.RPush(*ctx, "blist2", "d", "latge", "f")
+
+	clientMaster.LPop(*ctx, "blist1")
+	clientMaster.RPop(*ctx, "blist1")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.RPop(*ctx, "blist2")
+
+	clientMaster.Del(*ctx, "blist3")
+	clientMaster.LPop(*ctx, "blist2")
+	clientMaster.RPop(*ctx, "blist1")
+	time.Sleep(25 * time.Second)
+
+	for i := int64(0); i < clientMaster.LLen(*ctx, "blist1").Val(); i++ {
+		Expect(clientMaster.LIndex(*ctx, "blist", i)).To(Equal(clientSlave.LIndex(*ctx, "blist", i)))
+	}
+	for i := int64(0); i < clientMaster.LLen(*ctx, "blist2").Val(); i++ {
+		Expect(clientMaster.LIndex(*ctx, "blist2", i)).To(Equal(clientSlave.LIndex(*ctx, "blist2", i)))
+	}
+	for i := int64(0); i < clientMaster.LLen(*ctx, "blist3").Val(); i++ {
+		Expect(clientMaster.LIndex(*ctx, "blist3", i)).To(Equal(clientSlave.LIndex(*ctx, "blist3", i)))
+	}
+
+}
+
+func randomZunionstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 5; i++ {
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
+		clientMaster.ZUnionStore(*ctx, "zset_out", &redis.ZStore{Keys: []string{"zset1", "zset2"}, Weights: []float64{1, 1}})
+		clientMaster.Do(*ctx, "zadd", "zset_out", randomInt(10), randomString(5))
+	}
+}
+
+func randomZinterstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 5; i++ {
+		member := randomString(5)
+		member2 := randomString(5)
+		member3 := randomString(5)
+		member4 := randomString(5)
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(5), member)
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(5), member)
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(5), member2)
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(5), member2)
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(5), member3)
+		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(5), member3)
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(5), member4)
+		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(5), member4)
+		clientMaster.ZInterStore(*ctx, "zset_out", &redis.ZStore{Keys: []string{"zset1", "zset2"}, Weights: []float64{1, 1}})
+	}
+}
+
+func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client) {
+	for i := 0; i < 5; i++ {
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SUnionStore(*ctx, "set_out", "set1", "set2")
+
+	}
+}
+
+//func randomPfmergeThread(ctx *context.Context, clientMaster *redis.Client) {
+//	clientMaster.PFAdd(*ctx, "hll1", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll2", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll2", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll1", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll2", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll1", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll2", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll1", randomString(5))
+//	clientMaster.PFAdd(*ctx, "hll_out", randomString(5))
+//	clientMaster.PFMerge(*ctx, "hll_out", "hll1", "hll2")
+//	clientMaster.PFAdd(*ctx, "hll_out", randomString(5))
+//}
 
 var _ = Describe("shuould replication ", func() {
 	Describe("all replication test", func() {
@@ -72,27 +327,12 @@ var _ = Describe("shuould replication ", func() {
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
 
-			res := clientMaster.Set(ctx, "key", "value", 0)
-			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(res.Val()).To(Equal("OK"))
-			res = clientMaster.Set(ctx, "string", "hello", 0)
-			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(res.Val()).To(Equal("OK"))
-			Lres := clientMaster.LPush(ctx, "myList", "one", "two", "three")
-			Expect(Lres.Err()).NotTo(HaveOccurred())
-			Expect(Lres.Val()).To(Equal(int64(3)))
-			Sres := clientMaster.SAdd(ctx, "mySet", "one", "two", "three")
-			Expect(Sres.Err()).NotTo(HaveOccurred())
-			Expect(Sres.Val()).To(Equal(int64(3)))
-			Hres := clientMaster.HSet(ctx, "myHash", "key", "value")
-			Expect(Hres.Err()).NotTo(HaveOccurred())
-			Expect(Hres.Val()).To(Equal(int64(1)))
 			var count = 0
 			for {
-				res := trySlave(ctx, clientSlave)
+				res := trySlave(ctx, clientSlave, "127.0.0.1", "9221")
 				if res {
 					break
-				} else if count > 3 {
+				} else if count > 4 {
 					break
 				} else {
 					cleanEnv(ctx, clientMaster, clientSlave)
@@ -108,99 +348,138 @@ var _ = Describe("shuould replication ", func() {
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 
-			kget := clientSlave.Get(ctx, "key")
-			Expect(kget.Err()).NotTo(HaveOccurred())
-			Expect(kget.Val()).To(Equal("value"))
-
-			kget = clientSlave.Get(ctx, "string")
-			Expect(kget.Err()).NotTo(HaveOccurred())
-			Expect(kget.Val()).To(Equal("hello"))
-
-			slaveLrange := clientSlave.LRange(ctx, "myList", 0, -1)
-			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
-			masterLrange := clientMaster.LRange(ctx, "myList", 0, -1)
-			Expect(masterLrange.Err()).NotTo(HaveOccurred())
-			Expect(slaveLrange).To(Equal(masterLrange))
-
-			slaveSmem := clientSlave.SMembers(ctx, "mySet")
-			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
-			masterSmem := clientMaster.SMembers(ctx, "mySet")
-			Expect(masterSmem.Err()).NotTo(HaveOccurred())
-			Expect(slaveSmem.Val()).To(Equal(masterSmem.Val()))
-
-			slaveHget := clientSlave.HGet(ctx, "myHash", "key")
-			Expect(slaveHget.Err()).NotTo(HaveOccurred())
-			Expect(slaveHget.Val()).To(Equal("value"))
-
 			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
 			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
 
-			res = clientMaster.Set(ctx, "Newstring", "NewHello", 0)
-			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(res.Val()).To(Equal("OK"))
-			Lres = clientMaster.LPush(ctx, "myList", "Hello")
-			Expect(Lres.Err()).NotTo(HaveOccurred())
-			Expect(Lres.Val()).To(Equal(int64(4)))
-			Sres = clientMaster.SAdd(ctx, "mySet", "Hello")
-			Expect(Sres.Err()).NotTo(HaveOccurred())
-			Expect(Sres.Val()).To(Equal(int64(1)))
-			Hres = clientMaster.HSet(ctx, "myHash", "key2", "value2")
-			Expect(Hres.Err()).NotTo(HaveOccurred())
-			Expect(Hres.Val()).To(Equal(int64(1)))
-			time.Sleep(10 * time.Second)
+			clientMaster.Del(ctx, "blist0", "blist1", "blist")
+			go rpoplpushThread(&ctx, clientMaster)
+			go rpoplpushThread(&ctx, clientMaster)
+			go rpoplpushThread(&ctx, clientMaster)
+			go rpoplpushThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			for i := int64(0); i < clientMaster.LLen(ctx, "blist").Val(); i++ {
+				Expect(clientMaster.LIndex(ctx, "blist", i)).To(Equal(clientSlave.LIndex(ctx, "blist", i)))
+			}
 
-			kget = clientSlave.Get(ctx, "Newstring")
-			Expect(kget.Err()).NotTo(HaveOccurred())
-			Expect(kget.Val()).To(Equal("NewHello"))
+			Expect(clientMaster.Del(ctx, "bitkey1", "bitkey2", "bitkey_out1", "bitkey_out2").Err()).NotTo(HaveOccurred())
+			go randomBitopThread(&ctx, clientMaster)
+			go randomBitopThread(&ctx, clientMaster)
+			go randomBitopThread(&ctx, clientMaster)
+			go randomBitopThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_key_out_count1 := clientMaster.Do(ctx, "bitcount", "bitkey_out1", 0, -1)
+			slave_key_out_count1 := clientSlave.Do(ctx, "bitcount", "bitkey_out1", 0, -1)
+			Expect(master_key_out_count1.Val()).To(Equal(slave_key_out_count1.Val()))
 
-			slaveLrange = clientSlave.LRange(ctx, "myList", 0, -1)
-			Expect(slaveLrange.Err()).NotTo(HaveOccurred())
-			masterLrange = clientMaster.LRange(ctx, "myList", 0, -1)
-			Expect(masterLrange.Err()).NotTo(HaveOccurred())
-			Expect(slaveLrange).To(Equal(masterLrange))
+			master_key_out_count2 := clientMaster.Do(ctx, "bitcount", "bitkey_out2", 0, -1)
+			slave_key_out_count2 := clientSlave.Do(ctx, "bitcount", "bitkey_out2", 0, -1)
+			Expect(master_key_out_count2.Val()).To(Equal(slave_key_out_count2.Val()))
 
-			slaveSmem = clientSlave.SMembers(ctx, "mySet")
-			Expect(slaveSmem.Err()).NotTo(HaveOccurred())
-			masterSmem = clientMaster.SMembers(ctx, "mySet")
-			Expect(masterSmem.Err()).NotTo(HaveOccurred())
-			Expect(slaveSmem.Val()).To(Equal(masterSmem.Val()))
+			clientMaster.Del(ctx, "source_set", "dest_set")
+			go randomSmoveThread(&ctx, clientMaster)
+			go randomSmoveThread(&ctx, clientMaster)
+			go randomSmoveThread(&ctx, clientMaster)
+			go randomSmoveThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_source_set := clientMaster.SMembers(ctx, "sourceSet")
+			Expect(master_source_set.Err()).NotTo(HaveOccurred())
+			slave_source_set := clientSlave.SMembers(ctx, "sourceSet")
+			Expect(slave_source_set.Err()).NotTo(HaveOccurred())
+			Expect(master_source_set.Val()).To(Equal(slave_source_set.Val()))
 
-			slaveHget = clientSlave.HGet(ctx, "myHash", "key2")
-			Expect(slaveHget.Err()).NotTo(HaveOccurred())
-			Expect(slaveHget.Val()).To(Equal("value2"))
+			master_dest_set := clientMaster.SMembers(ctx, "destSet")
+			Expect(master_dest_set.Err()).NotTo(HaveOccurred())
+			slave_dest_set := clientSlave.SMembers(ctx, "destSet")
+			Expect(slave_dest_set.Err()).NotTo(HaveOccurred())
+			Expect(master_dest_set.Val()).To(Equal(slave_dest_set.Val()))
 
-			noOneRes := clientSlave.Do(ctx, "slaveof", "no", "one")
-			Expect(noOneRes.Err()).NotTo(HaveOccurred())
-			Expect(noOneRes.Val()).To(Equal("OK"))
-			Expect(clientSlave.Do(ctx, "clearreplicationid").Err()).NotTo(HaveOccurred())
+			test_del_replication(&ctx, clientMaster, clientSlave)
 
-			infoRes = clientSlave.Info(ctx, "replication")
-			Expect(infoRes.Err()).NotTo(HaveOccurred())
-			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			clientMaster.Del(ctx, "set1", "set2", "dest_set")
+			go randomSdiffstoreThread(&ctx, clientMaster)
+			go randomSdiffstoreThread(&ctx, clientMaster)
+			go randomSdiffstoreThread(&ctx, clientMaster)
+			go randomSdiffstoreThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
 
-			infoRes = clientMaster.Info(ctx, "replication")
-			Expect(infoRes.Err()).NotTo(HaveOccurred())
-			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
+			master_set1 := clientMaster.SMembers(ctx, "set1")
+			Expect(master_set1.Err()).NotTo(HaveOccurred())
+			slave_set1 := clientSlave.SMembers(ctx, "set1")
+			Expect(slave_set1.Err()).NotTo(HaveOccurred())
+			Expect(master_set1.Val()).To(Equal(slave_set1.Val()))
 
-			res = clientMaster.Set(ctx, "c_key", "c_value", 0)
-			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(res.Val()).To(Equal("OK"))
-			res = clientMaster.Set(ctx, "c_key1", "c_value1", 0)
-			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(res.Val()).To(Equal("OK"))
+			master_set2 := clientMaster.SMembers(ctx, "set2")
+			Expect(master_set2.Err()).NotTo(HaveOccurred())
+			slave_set2 := clientSlave.SMembers(ctx, "set2")
+			Expect(slave_set2.Err()).NotTo(HaveOccurred())
+			Expect(master_set2.Val()).To(Equal(slave_set2.Val()))
 
-			kget = clientMaster.Get(ctx, "c_key")
-			Expect(kget.Err()).NotTo(HaveOccurred())
-			Expect(kget.Val()).To(Equal("c_value"))
+			master_dest_store_set := clientMaster.SMembers(ctx, "dest_set")
+			Expect(master_dest_store_set.Err()).NotTo(HaveOccurred())
+			slave_dest_store_set := clientSlave.SMembers(ctx, "dest_set")
+			Expect(slave_dest_store_set.Err()).NotTo(HaveOccurred())
+			Expect(master_dest_store_set.Val()).To(Equal(slave_dest_store_set.Val()))
 
-			kget = clientMaster.Get(ctx, "c_key1")
-			Expect(kget.Err()).NotTo(HaveOccurred())
-			Expect(kget.Val()).To(Equal("c_value1"))
+			clientMaster.Del(ctx, "set1", "set2", "dest_set")
+			go randomSinterstoreThread(&ctx, clientMaster)
+			go randomSinterstoreThread(&ctx, clientMaster)
+			go randomSinterstoreThread(&ctx, clientMaster)
+			go randomSinterstoreThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_dest_interstore_set := clientMaster.SMembers(ctx, "dest_set")
+			Expect(master_dest_interstore_set.Err()).NotTo(HaveOccurred())
+			slave_dest_interstore_set := clientSlave.SMembers(ctx, "dest_set")
+			Expect(slave_dest_interstore_set.Err()).NotTo(HaveOccurred())
+			Expect(master_dest_interstore_set.Val()).To(Equal(slave_dest_interstore_set.Val()))
 
-			dres := clientMaster.Del(ctx, "c_key1")
-			Expect(dres.Err()).NotTo(HaveOccurred())
-			Expect(dres.Val()).To(Equal(int64(1)))
+			//clientMaster.FlushAll(ctx)
+			//time.Sleep(3 * time.Second)
+			//go randomPfmergeThread(&ctx, clientMaster)
+			//go randomPfmergeThread(&ctx, clientMaster)
+			//go randomPfmergeThread(&ctx, clientMaster)
+			//go randomPfmergeThread(&ctx, clientMaster)
+			//time.Sleep(10 * time.Second)
+			//master_hll_out := clientMaster.PFCount(ctx, "hll_out")
+			//Expect(master_hll_out.Err()).NotTo(HaveOccurred())
+			//slave_hll_out := clientSlave.PFCount(ctx, "hll_out")
+			//Expect(slave_hll_out.Err()).NotTo(HaveOccurred())
+			//Expect(master_hll_out.Val()).To(Equal(slave_hll_out.Val()))
 
+			clientMaster.Del(ctx, "zset1", "zset2", "zset_out")
+			go randomZunionstoreThread(&ctx, clientMaster)
+			go randomZunionstoreThread(&ctx, clientMaster)
+			go randomZunionstoreThread(&ctx, clientMaster)
+			go randomZunionstoreThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_zset_out := clientMaster.ZRange(ctx, "zset_out", 0, -1)
+			Expect(master_zset_out.Err()).NotTo(HaveOccurred())
+			slave_zset_out := clientSlave.ZRange(ctx, "zset_out", 0, -1)
+			Expect(slave_zset_out.Err()).NotTo(HaveOccurred())
+			Expect(master_zset_out.Val()).To(Equal(slave_zset_out.Val()))
+
+			clientMaster.Del(ctx, "zset1", "zset2", "zset_out")
+			go randomZinterstoreThread(&ctx, clientMaster)
+			go randomZinterstoreThread(&ctx, clientMaster)
+			go randomZinterstoreThread(&ctx, clientMaster)
+			go randomZinterstoreThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_dest_interstore_set = clientMaster.SMembers(ctx, "dest_set")
+			Expect(master_dest_interstore_set.Err()).NotTo(HaveOccurred())
+			slave_dest_interstore_set = clientSlave.SMembers(ctx, "dest_set")
+			Expect(slave_dest_interstore_set.Err()).NotTo(HaveOccurred())
+			Expect(master_dest_interstore_set.Val()).To(Equal(slave_dest_interstore_set.Val()))
+
+			clientMaster.Del(ctx, "set1", "set2", "set_out")
+			go randomSunionstroeThread(&ctx, clientMaster)
+			go randomSunionstroeThread(&ctx, clientMaster)
+			go randomSunionstroeThread(&ctx, clientMaster)
+			go randomSunionstroeThread(&ctx, clientMaster)
+			time.Sleep(25 * time.Second)
+			master_unionstore_set := clientMaster.SMembers(ctx, "set_out")
+			Expect(master_unionstore_set.Err()).NotTo(HaveOccurred())
+			slave_unionstore_set := clientSlave.SMembers(ctx, "set_out")
+			Expect(slave_unionstore_set.Err()).NotTo(HaveOccurred())
+			Expect(master_unionstore_set.Val()).To(Equal(slave_unionstore_set.Val()))
 		})
 
 		It("slaveof itself should return err", func() {
@@ -220,23 +499,19 @@ var _ = Describe("shuould replication ", func() {
 			infoRes = clientMaster.Info(ctx, "replication")
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
-			Expect(clientSlave.Do(ctx, "slaveof", "localhost", "9221").Val()).To(Equal("OK"))
-			infoRes = clientSlave.Info(ctx, "replication")
-			Expect(infoRes.Err()).NotTo(HaveOccurred())
-			Expect(infoRes.Val()).To(ContainSubstring("role:slave"))
+
 			var count = 0
 			for {
-				res := trySlave(ctx, clientSlave)
+				res := trySlave(ctx, clientSlave, "localhost", "9221")
 				if res {
 					break
-				} else if count > 3 {
+				} else if count > 4 {
 					break
 				} else {
 					cleanEnv(ctx, clientMaster, clientSlave)
 					count++
 				}
 			}
-
 			infoRes = clientSlave.Info(ctx, "replication")
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("master_link_status:up"))

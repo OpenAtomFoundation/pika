@@ -109,6 +109,10 @@ var _ = Describe("Server", func() {
 
 			Expect(sel.Err()).NotTo(HaveOccurred())
 			Expect(sel.Val()).To(Equal("OK"))
+
+			sel = pipe.Select(ctx, 4)
+			_, err = pipe.Exec(ctx)
+			Expect(err).To(MatchError("ERR invalid DB index for 'select DB index is out of range'"))
 		})
 
 		It("should BgRewriteAOF", func() {
@@ -121,11 +125,11 @@ var _ = Describe("Server", func() {
 
 		// Test scenario: Execute the del command, after executing bgsave, the get data will be wrong
 		It("should BgSave", func() {
-			res := client.Set(ctx, "bgsava_key", "bgsava_value", 0)
+			res := client.Set(ctx, "bgsave_key", "bgsave_value", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
-			_ = client.Set(ctx, "bgsava_key2", "bgsava_value3", 0)
+			_ = client.Set(ctx, "bgsave_key2", "bgsave_value3", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
-			_ = client.HSet(ctx, "bgsava_key3", "bgsava_value", 0)
+			_ = client.HSet(ctx, "bgsave_key3", "bgsave_value", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
 
 			res2, err2 := client.BgSave(ctx).Result()
@@ -133,16 +137,16 @@ var _ = Describe("Server", func() {
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res2).To(ContainSubstring("Background saving started"))
 
-			res = client.Set(ctx, "bgsava_key", "bgsava_value", 0)
+			res = client.Set(ctx, "bgsave_key", "bgsave_value", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
-			res = client.Set(ctx, "bgsava_key2", "bgsava_value2", 0)
+			res = client.Set(ctx, "bgsave_key2", "bgsave_value2", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
-			res = client.Set(ctx, "bgsava_key3", "bgsava_value3", 0)
+			res = client.Set(ctx, "bgsave_key3", "bgsave_value3", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
-			hSet := client.HSet(ctx, "bgsava_key4", "bgsava_value4", 0)
+			hSet := client.HSet(ctx, "bgsave_key4", "bgsave_value4", 0)
 			Expect(hSet.Err()).NotTo(HaveOccurred())
 
-			_, err := client.Del(ctx, "bgsava_key").Result()
+			_, err := client.Del(ctx, "bgsave_key").Result()
 			Expect(err).NotTo(HaveOccurred())
 
 			res2, err2 = client.BgSave(ctx).Result()
@@ -150,16 +154,16 @@ var _ = Describe("Server", func() {
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res2).To(ContainSubstring("Background saving started"))
 
-			val, err := client.Get(ctx, "bgsava_key2").Result()
+			val, err := client.Get(ctx, "bgsave_key2").Result()
 			Expect(res.Err()).NotTo(HaveOccurred())
-			Expect(val).To(ContainSubstring("bgsava_value2"))
+			Expect(val).To(ContainSubstring("bgsave_value2"))
 
-			_, err = client.Del(ctx, "bgsava_key4").Result()
+			_, err = client.Del(ctx, "bgsave_key4").Result()
 			Expect(err).NotTo(HaveOccurred())
 
-			get := client.Get(ctx, "bgsava_key3")
+			get := client.Get(ctx, "bgsave_key3")
 			Expect(get.Err()).NotTo(HaveOccurred())
-			Expect(get.Val()).To(Equal("bgsava_value3"))
+			Expect(get.Val()).To(Equal("bgsave_value3"))
 		})
 
 		It("should ClientKill", func() {
