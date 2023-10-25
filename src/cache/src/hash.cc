@@ -242,7 +242,7 @@ Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) 
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHIncrby(cache_, kobj, fobj, value, &result))) {
+  if (C_OK != (ret = RcHIncrby(cache_, kobj, fobj, value, (long long int*)&result))) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }

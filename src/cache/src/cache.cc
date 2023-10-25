@@ -63,7 +63,7 @@ void RedisCache::SetConfig(CacheConfig *cfg) {
 
 uint64_t RedisCache::GetUsedMemory(void) { return RcGetUsedMemory(); }
 
-void RedisCache::GetHitAndMissNum(int64_t *hits, int64_t *misses) { RcGetHitAndMissNum(hits, misses); }
+void RedisCache::GetHitAndMissNum(int64_t *hits, int64_t *misses) { RcGetHitAndMissNum((long long int*)hits, (long long int*)misses); }
 
 void RedisCache::ResetHitAndMissNum(void) { RcResetHitAndMissNum(); }
 
@@ -93,7 +93,7 @@ bool RedisCache::Exists(std::string &key) {
 
 int64_t RedisCache::DbSize(void) {
   int64_t dbsize = 0;
-  RcCacheSize(cache_, &dbsize);
+  RcCacheSize(cache_, (long long int*)&dbsize);
   return dbsize;
 }
 

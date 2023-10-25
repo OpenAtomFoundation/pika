@@ -143,11 +143,11 @@ Status RedisCache::Get(const std::string &key, std::string *value) {
 }
 
 Status RedisCache::Incr(std::string &key) {
-  int64_t ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
+  long long int ret;
   if (C_OK != RcIncr(cache_, kobj, &ret)) {
     return Status::Corruption("RcIncr failed");
   }
@@ -156,11 +156,11 @@ Status RedisCache::Incr(std::string &key) {
 }
 
 Status RedisCache::Decr(std::string &key) {
-  int64_t ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
+  long long int ret;
   if (C_OK != RcDecr(cache_, kobj, &ret)) {
     return Status::Corruption("RcDecr failed!");
   }
@@ -169,11 +169,11 @@ Status RedisCache::Decr(std::string &key) {
 }
 
 Status RedisCache::IncrBy(std::string &key, int64_t incr) {
-  int64_t ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
+  long long int ret;
   if (C_OK != RcIncrBy(cache_, kobj, incr, &ret)) {
     return Status::Corruption("RcIncrBy failed!");
   }
@@ -182,11 +182,11 @@ Status RedisCache::IncrBy(std::string &key, int64_t incr) {
 }
 
 Status RedisCache::DecrBy(std::string &key, int64_t incr) {
-  int64_t ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
+  long long int ret;
   if (C_OK != RcDecrBy(cache_, kobj, incr, &ret)) {
     return Status::Corruption("RcDecrBy failed!");
   }
