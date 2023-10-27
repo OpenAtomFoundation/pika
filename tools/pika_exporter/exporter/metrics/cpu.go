@@ -1,6 +1,6 @@
 package metrics
 
-func init() {
+func RegisterCPU() {
 	Register(collectCPUMetrics)
 }
 
