@@ -45,15 +45,11 @@ var _ = Describe("Geo Commands", func() {
 			Expect(geoAdd.Val()).To(Equal(int64(0)))
 		})
 
-		//It("should search geo radius", func() {
-		//	res, err := client.GeoRadius(ctx, "Sicily", 15, 37, &redis.GeoRadiusQuery{
-		//		Radius: 200,
-		//	}).Result()
-		//	Expect(err).NotTo(HaveOccurred())
-		//	Expect(res).To(HaveLen(2))
-		//	Expect(res[0].Name).To(Equal("Palermo"))
-		//	Expect(res[1].Name).To(Equal("Catania"))
-		//})
+		It("should search geo radius", func() {
+			res := client.Do(ctx, "GEORADIUS", "Sicily", 15, 37, 200, "km", "WITHDIST", "WITHCOORD")
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res.Val()).To(HaveLen(2))
+		})
 
 		It("should geo radius and store the result", func() {
 			n, err := client.GeoRadiusStore(ctx, "Sicily", 15, 37, &redis.GeoRadiusQuery{
