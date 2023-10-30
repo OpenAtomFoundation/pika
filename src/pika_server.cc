@@ -28,12 +28,14 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/pika_cache_manager.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
+extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 // QUEUE_SIZE_THRESHOLD_PERCENTAGE is used to represent a percentage value and should be within the range of 0 to 100.
 const size_t QUEUE_SIZE_THRESHOLD_PERCENTAGE = 75;
 
@@ -150,9 +152,6 @@ void PikaServer::Start() {
                << ", Listen on this port to receive Master FullSync Data";
   }
   */
-
-  // We Init DB Struct Before Start The following thread
-  InitDBStruct();
 
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
@@ -1307,8 +1306,10 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
+  g_pika_cache_manager->ProcessCronTask();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
+
 }
 
 void PikaServer::AutoCompactRange() {

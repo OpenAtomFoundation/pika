@@ -87,10 +87,12 @@ class ZIncrbyCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
+  double Score() { return score_; }
 
  private:
   std::string key_, member_;
   double by_ = 0;
+  double score_{};
   void DoInitial() override;
 };
 
@@ -144,6 +146,12 @@ class ZsetRangebyscoreParentCmd : public Cmd {
  public:
   ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
 
+  double MinScore() { return min_score_; }
+  double MaxScore() { return max_score_; }
+  bool LeftClose() { return left_close_; }
+  bool RightClose() { return right_close_; }
+  int64_t Offset() { return offset_; }
+  int64_t Count() { return count_; }
  protected:
   std::string key_;
   double min_score_ = 0, max_score_ = 0;
@@ -205,6 +213,10 @@ class ZCountCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZCountCmd(*this); }
+  double MinScore() { return min_score_; }
+  double MaxScore() { return max_score_; }
+  bool LeftClose() { return left_close_; }
+  bool RightClose() { return right_close_; }
 
  private:
   std::string key_;

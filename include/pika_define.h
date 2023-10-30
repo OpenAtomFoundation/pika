@@ -331,6 +331,18 @@ const int PIKA_ROLE_SLAVE = 1;
 const int PIKA_ROLE_MASTER = 2;
 
 /*
+ * cache model
+ */
+constexpr int PIKA_CACHE_NONE = 0;
+constexpr int PIKA_CACHE_READ = 1;
+
+/*
+ * cache size
+ */
+#define PIKA_CACHE_SIZE_MIN       536870912    // 512M
+#define PIKA_CACHE_SIZE_DEFAULT   10737418240  // 10G
+
+/*
  * The size of Binlogfile
  */
 // static uint64_t kBinlogSize = 128;
@@ -393,4 +405,11 @@ const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
+
+const std::string PCacheKeyPrefixK = "_#$%^&*K:";
+const std::string PCacheKeyPrefixH = "_#$%^&*H:";
+const std::string PCacheKeyPrefixS = "_#$%^&*S:";
+const std::string PCacheKeyPrefixZ = "_#$%^&*Z:";
+const std::string PCacheKeyPrefixL = "_#$%^&*L:";
+
 #endif

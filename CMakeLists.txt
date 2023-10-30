@@ -630,9 +630,9 @@ ExternalProject_Add(rocksdb
 
 ExternalProject_Add(rediscache
   URL
-  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.3.tar.gz
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.5.tar.gz
   URL_HASH
-  MD5=fb8e2bf915748a287c7cf3239bb4fe86
+  MD5=99e4d0bde20811a6058a6aa482c18711
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -763,7 +763,9 @@ message("pika GIT_DATE = ${PIKA_GIT_DATE}")
 message("pika GIT_TAG = ${PIKA_GIT_TAG}")
 message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
-set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
+set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc
+        src/pika_cache_load_thread.cc
+        src/pika_cache_manager.cc)
 message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 

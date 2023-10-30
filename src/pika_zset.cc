@@ -141,6 +141,7 @@ void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   double score = 0;
   rocksdb::Status s = slot->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
+    score_ = score;
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);

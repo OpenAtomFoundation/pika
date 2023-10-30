@@ -478,7 +478,9 @@ class PikaServer : public pstd::noncopyable {
     std::vector<int> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
-
+  PikaCache* Cache() {
+    return cache_;
+  }
 
   /*
    * StorageOptions used
@@ -636,6 +638,8 @@ class PikaServer : public pstd::noncopyable {
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
+
+  PikaCache *cache_;
 };
 
 #endif
