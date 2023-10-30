@@ -259,9 +259,18 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (!c_ptr->is_suspend()) {
     slot->DbRWLockReader();
   }
-
-  c_ptr->Do(slot);
-
+  if (c_ptr->need_cache_do()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+   // && PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()) {
+    if (c_ptr->is_write()) {
+      c_ptr->DoFromCache(slot);
+      if (c_ptr->is_need_update_cache()) {
+        c_ptr->DoUpdateCache(slot);
+      }
+    }
+  } else {
+    c_ptr->Do(slot);
+  }
   if (!c_ptr->is_suspend()) {
     slot->DbRWUnLock();
   }

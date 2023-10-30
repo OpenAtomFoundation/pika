@@ -193,7 +193,7 @@ void GetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void GetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   if (s_.ok()) {
-    slot->cache()->Set(CachePrefixKeyk, value_, sec_);
+    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, sec_);
   }
 }
 

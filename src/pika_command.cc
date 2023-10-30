@@ -832,8 +832,8 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
     slot->DbRWLockReader();
   }
   if (need_cache_do()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()){
-      //&& PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+   // && PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()) {
     if (is_need_read_cache()) {
       PreDo(slot);
     }
@@ -844,7 +844,7 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
       }
     } else if (is_write()) {
       DoFromCache(slot);
-      if ( is_need_update_cache()) {
+      if (is_need_update_cache()) {
         DoUpdateCache(slot);
       }
     }
