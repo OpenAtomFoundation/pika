@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-func init() {
+func RegisterRocksDB() {
 	Register(collectRocksDBMetrics)
 }
 
@@ -144,7 +144,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 	},
 	"size_all_mem_tables": {
 		Parser: &regexParser{
-			name:   "size_all_mem_tables",
+			name: "size_all_mem_tables",
 			// TODO: need fix size_all_mem_tables contains wrong data type starting with cur
 			// issue: https://github.com/OpenAtomFoundation/pika/issues/1752
 			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?size_all_mem_tables:(?P<size_all_mem_tables>\d+)`),
@@ -191,21 +191,21 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 		},
 	},
 
-    // pending compaction bytes
-    "estimate_pending_compaction_bytes": {
-        Parser: &regexParser{
-            name:   "estimate_pending_compaction_bytes",
-            reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?estimate_pending_compaction_bytes:(?P<estimate_pending_compaction_bytes>\d+)`),
-            Parser: &normalParser{},
-        },
-        MetricMeta: &MetaData{
-            Name:      "estimate_pending_compaction_bytes",
-            Help:      "Estimated total number of bytes that compression needs to rewrite to bring all levels down below the target size. Has no effect on compression other than level-based compression.",
-            Type:      metricTypeGauge,
-            Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
-            ValueName: "estimate_pending_compaction_bytes",
-        },
-    },
+	// pending compaction bytes
+	"estimate_pending_compaction_bytes": {
+		Parser: &regexParser{
+			name:   "estimate_pending_compaction_bytes",
+			reg:    regexp.MustCompile(`(?P<data_type>\w+)_.*?estimate_pending_compaction_bytes:(?P<estimate_pending_compaction_bytes>\d+)`),
+			Parser: &normalParser{},
+		},
+		MetricMeta: &MetaData{
+			Name:      "estimate_pending_compaction_bytes",
+			Help:      "Estimated total number of bytes that compression needs to rewrite to bring all levels down below the target size. Has no effect on compression other than level-based compression.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type"},
+			ValueName: "estimate_pending_compaction_bytes",
+		},
+	},
 
 	// snapshots
 	"num_snapshots": {
@@ -439,7 +439,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 			Name:      "compaction",
 			Help:      "\r#The all metrics of compaction_L<N>:\r#compaction.L<N>.AvgSec	Average time spent per Compact.\r#compaction.L<N>.CompCount	The number of times Compact has been accumulated.\r#compaction.L<N>.CompMergeCPU	CPU time used in compression, in seconds.\r#compaction.L<N>.CompSec	Compact cumulative time, in seconds.\r#compaction.L<N>.CompactedFiles	Number of files that have completed compact.\r#compaction.L<N>.KeyDrop	Number of keys deleted in compact.\r#compaction.L<N>.KeyIn	Number of records compared during the compaction process.\r#compaction.L<N>.MovedGB	During the compaction process, the number of bytes moved to level n+1.\r#compaction.L<N>.NumFiles	Total number of sst files.\r#compaction.L<N>.RblobGB	The size of data read from the blob file by the compaction, in GB.\r#compaction.L<N>.ReadGB	Read size in GB.\r#compaction.L<N>.ReadMBps	Read rate in MBps.\r#compaction.L<N>.RnGB	When performing compact, read the size of the current layer file in GB.\r#compaction.L<N>.Rnp1GB	When performing compact, read the size of the next level file in GB.\r#compaction.L<N>.Score	Score, the higher the score, the higher the priority.\r#compaction.L<N>.SizeBytes	Total size of SST in bytes.\r#compaction.L<N>.WblobGB	The size of the blob file written during compaction, in GB.\r#compaction.L<N>.WnewGB	WNP1- Rnp1.\r#compaction.L<N>.WriteAmp	Total bytes written to level<N+1>/(total bytes read from level<N>).\r#compaction.L<N>.WriteGB	The size of the table file written during the compaction period, in GB.\r#compaction.L<N>.WriteMBps	Data write rate in compaction.",
 			Type:      metricTypeGauge,
-			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type","compaction_level"},
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type", "info_type", "compaction_level"},
 			ValueName: "compaction",
 		},
 	},
@@ -453,7 +453,7 @@ var collectRocksDBMetrics = map[string]MetricConfig{
 			Name:      "compaction_Sum",
 			Help:      "The all metrics of compaction_Sum.",
 			Type:      metricTypeGauge,
-			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type","info_type"},
+			Labels:    []string{LabelNameAddr, LabelNameAlias, "data_type", "info_type"},
 			ValueName: "compaction_Sum",
 		},
 	},

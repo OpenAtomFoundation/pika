@@ -2,7 +2,7 @@ package metrics
 
 import "regexp"
 
-func init() {
+func RegisterKeyspace() {
 	Register(collectKeySpaceMetrics)
 }
 
