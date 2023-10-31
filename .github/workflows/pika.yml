@@ -38,9 +38,7 @@ jobs:
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12 python3-pip
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
+          sudo apt-get install -y clang-tidy-12
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -68,12 +66,6 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -89,11 +81,9 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          yum install -y wget git autoconf centos-release-scl
+          yum install -y wget git autoconf centos-release-scl gcc
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which python3
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which 
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -134,11 +124,13 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
+      - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
+          cd ../tests/integration/
+          chmod +x integrate_test.sh 
+          sh integrate_test.sh
+  
 
   build_on_macos:
     runs-on: macos-latest
@@ -166,8 +158,6 @@ jobs:
           brew update
           brew install --overwrite python autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
 
       - name: Configure CMake
         run: |
@@ -193,12 +183,6 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -218,13 +202,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: pikadb/pika
-      
+
       - name: Build Docker image
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
         with:
