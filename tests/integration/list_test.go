@@ -374,22 +374,22 @@ var _ = Describe("List Commands", func() {
 		})
 
 		// todo fix: https://github.com/OpenAtomFoundation/pika/issues/1791
-		//It("should LPop", func() {
-		//	rPush := client.RPush(ctx, "list", "one")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//	rPush = client.RPush(ctx, "list", "two")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//	rPush = client.RPush(ctx, "list", "three")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//
-		//	lPop := client.LPop(ctx, "list")
-		//	Expect(lPop.Err()).NotTo(HaveOccurred())
-		//	Expect(lPop.Val()).To(Equal("one"))
-		//
-		//	lRange := client.LRange(ctx, "list", 0, -1)
-		//	Expect(lRange.Err()).NotTo(HaveOccurred())
-		//	Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
-		//})
+		It("should LPop", func() {
+			rPush := client.RPush(ctx, "list", "one")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list", "two")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list", "three")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+
+			lPop := client.LPop(ctx, "list")
+			Expect(lPop.Err()).NotTo(HaveOccurred())
+			Expect(lPop.Val()).To(Equal("one"))
+
+			lRange := client.LRange(ctx, "list", 0, -1)
+			Expect(lRange.Err()).NotTo(HaveOccurred())
+			Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
+		})
 
 		It("should LPopCount", func() {
 			rPush := client.RPush(ctx, "list11", "one")
@@ -593,22 +593,22 @@ var _ = Describe("List Commands", func() {
 		})
 
 		// todo fix: https://github.com/OpenAtomFoundation/pika/issues/1791
-		//It("should RPop", func() {
-		//	rPush := client.RPush(ctx, "list", "one")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//	rPush = client.RPush(ctx, "list", "two")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//	rPush = client.RPush(ctx, "list", "three")
-		//	Expect(rPush.Err()).NotTo(HaveOccurred())
-		//
-		//	rPop := client.RPop(ctx, "list")
-		//	Expect(rPop.Err()).NotTo(HaveOccurred())
-		//	Expect(rPop.Val()).To(Equal("three"))
-		//
-		//	lRange := client.LRange(ctx, "list", 0, -1)
-		//	Expect(lRange.Err()).NotTo(HaveOccurred())
-		//	Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
-		//})
+		It("should RPop", func() {
+			rPush := client.RPush(ctx, "list", "one")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list", "two")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list", "three")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+
+			rPop := client.RPop(ctx, "list")
+			Expect(rPop.Err()).NotTo(HaveOccurred())
+			Expect(rPop.Val()).To(Equal("three"))
+
+			lRange := client.LRange(ctx, "list", 0, -1)
+			Expect(lRange.Err()).NotTo(HaveOccurred())
+			Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
+		})
 
 		It("should RPopCount", func() {
 			rPush := client.RPush(ctx, "list", "one", "two", "three", "four")
