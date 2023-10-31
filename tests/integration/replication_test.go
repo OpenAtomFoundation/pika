@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
@@ -12,13 +13,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type command_func func(*context.Context, *redis.Client, *sync.WaitGroup)
+
 func cleanEnv(ctx context.Context, clientMaster, clientSlave *redis.Client) {
 	r := clientSlave.Do(ctx, "slaveof", "no", "one")
 	Expect(r.Err()).NotTo(HaveOccurred())
 	Expect(r.Val()).To(Equal("OK"))
 	r = clientSlave.Do(ctx, "clearreplicationid")
 	r = clientMaster.Do(ctx, "clearreplicationid")
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 }
 
 func trySlave(ctx context.Context, clientSlave *redis.Client, ip string, port string) bool {
@@ -36,7 +39,7 @@ func trySlave(ctx context.Context, clientSlave *redis.Client, ip string, port st
 		} else if count > 200 {
 			return false
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -52,7 +55,8 @@ func randomInt(max int) int {
 	return rand.Intn(max)
 }
 
-func rpoplpushThread(ctx *context.Context, clientMaster *redis.Client) {
+func rpoplpushThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		letters1 := randomString(5)
 		letters2 := randomString(5)
@@ -71,11 +75,12 @@ func rpoplpushThread(ctx *context.Context, clientMaster *redis.Client) {
 		clientMaster.LPush(*ctx, "blist0", letters2)
 		clientMaster.RPopLPush(*ctx, "blist0", "blist")
 		clientMaster.RPop(*ctx, "blist")
-		time.Sleep(1 * time.Second)
 	}
+
 }
 
-func randomBitopThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomBitopThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 10; i++ {
 		offset1 := randomInt(50)
 		offset2 := randomInt(50)
@@ -89,9 +94,11 @@ func randomBitopThread(ctx *context.Context, clientMaster *redis.Client) {
 		clientMaster.SetBit(*ctx, "bitkey2", int64(offset2), value2)
 		clientMaster.BitOpOr(*ctx, "bitkey_out2", "bitkey1", "bitkey2")
 	}
+
 }
 
-func randomSmoveThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomSmoveThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	member := randomString(5)
 	clientMaster.SAdd(*ctx, "sourceSet", member)
 	clientMaster.SAdd(*ctx, "sourceSet", member)
@@ -101,7 +108,8 @@ func randomSmoveThread(ctx *context.Context, clientMaster *redis.Client) {
 	clientMaster.SMove(*ctx, "sourceSet", "destSet", member)
 }
 
-func randomSdiffstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomSdiffstoreThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		clientMaster.SAdd(*ctx, "set1", randomString(5))
 		clientMaster.SAdd(*ctx, "set2", randomString(5))
@@ -120,7 +128,8 @@ func randomSdiffstoreThread(ctx *context.Context, clientMaster *redis.Client) {
 	}
 }
 
-func randomSinterstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomSinterstoreThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		member := randomString(5)
 		member2 := randomString(5)
@@ -198,7 +207,7 @@ func test_del_replication(ctx *context.Context, clientMaster, clientSlave *redis
 	clientMaster.Del(*ctx, "blist3")
 	clientMaster.LPop(*ctx, "blist2")
 	clientMaster.RPop(*ctx, "blist1")
-	time.Sleep(25 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	for i := int64(0); i < clientMaster.LLen(*ctx, "blist1").Val(); i++ {
 		Expect(clientMaster.LIndex(*ctx, "blist", i)).To(Equal(clientSlave.LIndex(*ctx, "blist", i)))
@@ -212,7 +221,8 @@ func test_del_replication(ctx *context.Context, clientMaster, clientSlave *redis
 
 }
 
-func randomZunionstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomZunionstoreThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		clientMaster.Do(*ctx, "zadd", "zset1", randomInt(10), randomString(5))
 		clientMaster.Do(*ctx, "zadd", "zset2", randomInt(10), randomString(5))
@@ -231,7 +241,8 @@ func randomZunionstoreThread(ctx *context.Context, clientMaster *redis.Client) {
 	}
 }
 
-func randomZinterstoreThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomZinterstoreThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		member := randomString(5)
 		member2 := randomString(5)
@@ -249,7 +260,8 @@ func randomZinterstoreThread(ctx *context.Context, clientMaster *redis.Client) {
 	}
 }
 
-func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client) {
+func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 5; i++ {
 		clientMaster.SAdd(*ctx, "set1", randomString(5))
 		clientMaster.SAdd(*ctx, "set2", randomString(5))
@@ -266,8 +278,17 @@ func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client) {
 		clientMaster.SAdd(*ctx, "set1", randomString(5))
 		clientMaster.SAdd(*ctx, "set2", randomString(5))
 		clientMaster.SUnionStore(*ctx, "set_out", "set1", "set2")
-
 	}
+}
+
+func execute(ctx *context.Context, clientMaster *redis.Client, num_thread int, f command_func) {
+	var wg sync.WaitGroup
+	wg.Add(num_thread)
+	for i := 1; i <= num_thread; i++ {
+		go f(ctx, clientMaster, &wg)
+	}
+	wg.Wait()
+	time.Sleep(10 * time.Second)
 }
 
 //func randomPfmergeThread(ctx *context.Context, clientMaster *redis.Client) {
@@ -296,13 +317,13 @@ var _ = Describe("shuould replication ", func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			time.Sleep(2 * time.Second)
+			time.Sleep(1 * time.Second)
 		})
 		AfterEach(func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			time.Sleep(10 * time.Second)
+			time.Sleep(1 * time.Second)
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 		})
@@ -340,21 +361,13 @@ var _ = Describe("shuould replication ", func() {
 			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
 
 			clientMaster.Del(ctx, "blist0", "blist1", "blist")
-			go rpoplpushThread(&ctx, clientMaster)
-			go rpoplpushThread(&ctx, clientMaster)
-			go rpoplpushThread(&ctx, clientMaster)
-			go rpoplpushThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, rpoplpushThread)
 			for i := int64(0); i < clientMaster.LLen(ctx, "blist").Val(); i++ {
 				Expect(clientMaster.LIndex(ctx, "blist", i)).To(Equal(clientSlave.LIndex(ctx, "blist", i)))
 			}
 
 			Expect(clientMaster.Del(ctx, "bitkey1", "bitkey2", "bitkey_out1", "bitkey_out2").Err()).NotTo(HaveOccurred())
-			go randomBitopThread(&ctx, clientMaster)
-			go randomBitopThread(&ctx, clientMaster)
-			go randomBitopThread(&ctx, clientMaster)
-			go randomBitopThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomBitopThread)
 			master_key_out_count1 := clientMaster.Do(ctx, "bitcount", "bitkey_out1", 0, -1)
 			slave_key_out_count1 := clientSlave.Do(ctx, "bitcount", "bitkey_out1", 0, -1)
 			Expect(master_key_out_count1.Val()).To(Equal(slave_key_out_count1.Val()))
@@ -364,11 +377,7 @@ var _ = Describe("shuould replication ", func() {
 			Expect(master_key_out_count2.Val()).To(Equal(slave_key_out_count2.Val()))
 
 			clientMaster.Del(ctx, "source_set", "dest_set")
-			go randomSmoveThread(&ctx, clientMaster)
-			go randomSmoveThread(&ctx, clientMaster)
-			go randomSmoveThread(&ctx, clientMaster)
-			go randomSmoveThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomSmoveThread)
 			master_source_set := clientMaster.SMembers(ctx, "sourceSet")
 			Expect(master_source_set.Err()).NotTo(HaveOccurred())
 			slave_source_set := clientSlave.SMembers(ctx, "sourceSet")
@@ -384,12 +393,7 @@ var _ = Describe("shuould replication ", func() {
 			test_del_replication(&ctx, clientMaster, clientSlave)
 
 			clientMaster.Del(ctx, "set1", "set2", "dest_set")
-			go randomSdiffstoreThread(&ctx, clientMaster)
-			go randomSdiffstoreThread(&ctx, clientMaster)
-			go randomSdiffstoreThread(&ctx, clientMaster)
-			go randomSdiffstoreThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
-
+			execute(&ctx, clientMaster, 4, randomSdiffstoreThread)
 			master_set1 := clientMaster.SMembers(ctx, "set1")
 			Expect(master_set1.Err()).NotTo(HaveOccurred())
 			slave_set1 := clientSlave.SMembers(ctx, "set1")
@@ -409,11 +413,7 @@ var _ = Describe("shuould replication ", func() {
 			Expect(master_dest_store_set.Val()).To(Equal(slave_dest_store_set.Val()))
 
 			clientMaster.Del(ctx, "set1", "set2", "dest_set")
-			go randomSinterstoreThread(&ctx, clientMaster)
-			go randomSinterstoreThread(&ctx, clientMaster)
-			go randomSinterstoreThread(&ctx, clientMaster)
-			go randomSinterstoreThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomSinterstoreThread)
 			master_dest_interstore_set := clientMaster.SMembers(ctx, "dest_set")
 			Expect(master_dest_interstore_set.Err()).NotTo(HaveOccurred())
 			slave_dest_interstore_set := clientSlave.SMembers(ctx, "dest_set")
@@ -434,11 +434,7 @@ var _ = Describe("shuould replication ", func() {
 			//Expect(master_hll_out.Val()).To(Equal(slave_hll_out.Val()))
 
 			clientMaster.Del(ctx, "zset1", "zset2", "zset_out")
-			go randomZunionstoreThread(&ctx, clientMaster)
-			go randomZunionstoreThread(&ctx, clientMaster)
-			go randomZunionstoreThread(&ctx, clientMaster)
-			go randomZunionstoreThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomZunionstoreThread)
 			master_zset_out := clientMaster.ZRange(ctx, "zset_out", 0, -1)
 			Expect(master_zset_out.Err()).NotTo(HaveOccurred())
 			slave_zset_out := clientSlave.ZRange(ctx, "zset_out", 0, -1)
@@ -446,11 +442,7 @@ var _ = Describe("shuould replication ", func() {
 			Expect(master_zset_out.Val()).To(Equal(slave_zset_out.Val()))
 
 			clientMaster.Del(ctx, "zset1", "zset2", "zset_out")
-			go randomZinterstoreThread(&ctx, clientMaster)
-			go randomZinterstoreThread(&ctx, clientMaster)
-			go randomZinterstoreThread(&ctx, clientMaster)
-			go randomZinterstoreThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomZinterstoreThread)
 			master_dest_interstore_set = clientMaster.SMembers(ctx, "dest_set")
 			Expect(master_dest_interstore_set.Err()).NotTo(HaveOccurred())
 			slave_dest_interstore_set = clientSlave.SMembers(ctx, "dest_set")
@@ -458,11 +450,7 @@ var _ = Describe("shuould replication ", func() {
 			Expect(master_dest_interstore_set.Val()).To(Equal(slave_dest_interstore_set.Val()))
 
 			clientMaster.Del(ctx, "set1", "set2", "set_out")
-			go randomSunionstroeThread(&ctx, clientMaster)
-			go randomSunionstroeThread(&ctx, clientMaster)
-			go randomSunionstroeThread(&ctx, clientMaster)
-			go randomSunionstroeThread(&ctx, clientMaster)
-			time.Sleep(25 * time.Second)
+			execute(&ctx, clientMaster, 4, randomSunionstroeThread)
 			master_unionstore_set := clientMaster.SMembers(ctx, "set_out")
 			Expect(master_unionstore_set.Err()).NotTo(HaveOccurred())
 			slave_unionstore_set := clientSlave.SMembers(ctx, "set_out")
