@@ -89,14 +89,7 @@ void PikaReplServer::BuildBinlogOffset(const LogOffset& offset, InnerMessage::Bi
 void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* response) {
   response->set_code(InnerMessage::kOk);
   response->set_type(InnerMessage::Type::kBinlogSync);
-  LogOffset prev_offset;
-  bool founded = false;
   for (const auto& task : tasks) {
-    if (!task.binlog_chip_.binlog_.empty() && !founded) {
-      // find the first not keepalive prev_offset
-      prev_offset = task.prev_offset_;
-      founded = true;
-    }
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
     InnerMessage::Slot* slot = binlog_sync->mutable_slot();
