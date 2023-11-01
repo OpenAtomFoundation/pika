@@ -212,6 +212,9 @@ class Storage {
   // determined by the offsets start and end (both are inclusive)
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
 
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                           std::string* ret, std::string* value, int64_t* ttl);
+
   // If key already exists and is a string, this command appends the value at
   // the end of the string
   // return the length of the string after the append operation

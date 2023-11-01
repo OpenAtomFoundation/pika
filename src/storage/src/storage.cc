@@ -182,6 +182,11 @@ Status Storage::Getrange(const Slice& key, int64_t start_offset, int64_t end_off
   return strings_db_->Getrange(key, start_offset, end_offset, ret);
 }
 
+Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                                     std::string* ret, std::string* value, int64_t* ttl) {
+  return strings_db_->GetrangeWithValue(key, start_offset, end_offset, ret, value, ttl);
+}
+
 Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret) {
   return strings_db_->Append(key, value, ret);
 }

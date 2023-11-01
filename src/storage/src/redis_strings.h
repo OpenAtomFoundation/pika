@@ -37,6 +37,7 @@ class RedisStrings : public Redis {
   Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret, std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
   Status Incrby(const Slice& key, int64_t value, int64_t* ret);
   Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);

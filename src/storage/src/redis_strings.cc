@@ -474,6 +474,56 @@ Status RedisStrings::Getrange(const Slice& key, int64_t start_offset, int64_t en
   }
 }
 
+Status RedisStrings::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                                       std::string* ret, std::string* value, int64_t* ttl) {
+  *ret = "";
+  Status s = db_->Get(default_read_options_, key, value);
+  if (s.ok()) {
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      *ttl = -2;
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+      // get ttl
+      *ttl = parsed_strings_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      int64_t size = value->size();
+      int64_t start_t = start_offset >= 0 ? start_offset : size + start_offset;
+      int64_t end_t = end_offset >= 0 ? end_offset : size + end_offset;
+      if (start_t > size - 1 ||
+          (start_t != 0 && start_t > end_t) ||
+          (start_t != 0 && end_t < 0)
+      ) {
+        return Status::OK();
+      }
+      if (start_t < 0) {
+        start_t  = 0;
+      }
+      if (end_t >= size) {
+        end_t = size - 1;
+      }
+      if (start_t == 0 && end_t < 0) {
+        end_t = 0;
+      }
+      *ret = value->substr(start_t, end_t-start_t+1);
+      return Status::OK();
+    }
+  } else if (s.IsNotFound()) {
+    value->clear();
+    *ttl = -2;
+  }
+  return s;
+}
+
 Status RedisStrings::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, key, old_value);
