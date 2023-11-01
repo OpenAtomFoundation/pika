@@ -25,7 +25,7 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: cache dependencies
+      - name: Cache dependencies
         uses: actions/cache@v2
         id: cache
         with:
@@ -34,7 +34,7 @@ jobs:
             ~/.cache/pip
           key: ${{ runner.os }}-dependencies
 
-      - name: install Deps
+      - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
@@ -45,7 +45,17 @@ jobs:
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-ubuntu
+        with:
+          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
+          path: ${{ github.workspace }}
+          restore-keys: |
+            ${{ runner.os }}-build-ubuntu-
+
       - name: Build
+        if: ${{ steps.cache-ubuntu.outputs.cache-hit != 'true' }}
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
@@ -105,7 +115,17 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-centos
+        with:
+          key: ${{ runner.os }}-build-centos-${{ hashFiles('**/CMakeLists.txt') }}
+          path: ${{ github.workspace }}
+          restore-keys: |
+            ${{ runner.os }}-build-centos-
+
       - name: Build
+        if: ${{ steps.cache-centos.outputs.cache-hit != 'true' }}
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
@@ -143,17 +163,7 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: cache dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: |
-            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-            ~/.cache/pip
-          key: ${{ runner.os }}-dependencies
-
-      - name: install Deps
-        if: ${{ steps.cache.output.cache-hit != 'true' }}
+      - name: Install Deps
         run: |
           brew update
           brew install --overwrite python autoconf protobuf llvm wget git
@@ -164,13 +174,23 @@ jobs:
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
           cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-macos
+        with:
+          key: ${{ runner.os }}-build-macos-${{ hashFiles('**/CMakeLists.txt') }}
+          path: ${{ github.workspace }}
+          restore-keys: |
+            ${{ runner.os }}-build-macos-
+
       - name: Build
+        if: ${{ steps.cache-macos.outputs.cache-hit != 'true' }}
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }}
+        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
