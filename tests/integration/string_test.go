@@ -182,23 +182,38 @@ var _ = Describe("String Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		// fix: https://github.com/OpenAtomFoundation/pika/issues/2061
 		It("should Decr", func() {
-			set := client.Set(ctx, "key", "10", 0)
-			Expect(set.Err()).NotTo(HaveOccurred())
-			Expect(set.Val()).To(Equal("OK"))
+			basicSet := client.Set(ctx, "mykey", "10", 0)
+			Expect(basicSet.Err()).NotTo(HaveOccurred())
+			Expect(basicSet.Val()).To(Equal("OK"))
+			basicDecr := client.Decr(ctx, "mykey")
+			Expect(basicDecr.Err()).NotTo(HaveOccurred())
+			Expect(basicDecr.Val()).To(Equal(int64(9)))
+			basicDecr = client.Decr(ctx, "mykey")
+			Expect(basicDecr.Err()).NotTo(HaveOccurred())
+			Expect(basicDecr.Val()).To(Equal(int64(8)))
 
-			decr := client.Decr(ctx, "key")
-			Expect(decr.Err()).NotTo(HaveOccurred())
-			Expect(decr.Val()).To(Equal(int64(9)))
+			for i := 0; i < 5; i++ {
+				set := client.Set(ctx, "key", "234293482390480948029348230948", 0)
+				Expect(set.Err()).NotTo(HaveOccurred())
+				Expect(set.Val()).To(Equal("OK"))
+				decr := client.Decr(ctx, "key")
+				Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
 
-			set = client.Set(ctx, "key", "234293482390480948029348230948", 0)
-			Expect(set.Err()).NotTo(HaveOccurred())
-			Expect(set.Val()).To(Equal("OK"))
+				set = client.Set(ctx, "key", "-9223372036854775809", 0)
+				Expect(set.Err()).NotTo(HaveOccurred())
+				Expect(set.Val()).To(Equal("OK"))
+				decr = client.Decr(ctx, "key")
+				Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
 
-			//decr = client.Decr(ctx, "key")
-			//Expect(set.Err()).NotTo(HaveOccurred())
-			//Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
-			//Expect(decr.Val()).To(Equal(int64(-1)))
+				inter := randomInt(500)
+				set = client.Set(ctx, "key", inter, 0)
+				for j := 0; j < 200; j++ {
+					res := client.Decr(ctx, "key")
+					Expect(res.Err()).NotTo(HaveOccurred())
+				}
+			}
 		})
 
 		It("should DecrBy", func() {
