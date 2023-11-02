@@ -348,8 +348,9 @@ Status RedisStrings::Decrby(const Slice& key, int64_t value, int64_t* ret) {
       int32_t timestamp = parsed_strings_value.timestamp();
       std::string old_user_value = parsed_strings_value.value().ToString();
       char* end = nullptr;
+      errno = 0;
       int64_t ival = strtoll(old_user_value.c_str(), &end, 10);
-      if (*end != 0) {
+      if (errno == ERANGE || *end != 0) {
         return Status::Corruption("Value is not a integer");
       }
       if ((value >= 0 && LLONG_MIN + value > ival) || (value < 0 && LLONG_MAX + value < ival)) {
