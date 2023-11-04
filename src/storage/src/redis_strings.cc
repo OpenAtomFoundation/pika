@@ -658,10 +658,12 @@ Status RedisStrings::SetBit(const Slice& key, int64_t offset, int32_t on, int32_
   Status s = db_->Get(default_read_options_, key, &meta_value);
   if (s.ok() || s.IsNotFound()) {
     std::string data_value;
+    int32_t timestamp = 0;
     if (s.ok()) {
       ParsedStringsValue parsed_strings_value(&meta_value);
       if (!parsed_strings_value.IsStale()) {
         data_value = parsed_strings_value.value().ToString();
+        timestamp = parsed_strings_value.timestamp();
       }
     }
     size_t byte = offset >> 3;
@@ -687,6 +689,7 @@ Status RedisStrings::SetBit(const Slice& key, int64_t offset, int32_t on, int32_
       data_value.append(1, byte_val);
     }
     StringsValue strings_value(data_value);
+    strings_value.set_timestamp(timestamp);
     return db_->Put(rocksdb::WriteOptions(), key, strings_value.Encode());
   } else {
     return s;
@@ -803,6 +806,7 @@ Status RedisStrings::Setrange(const Slice& key, int64_t start_offset, const Slic
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, key, &old_value);
   if (s.ok()) {
+    int32_t timestamp = 0;
     ParsedStringsValue parsed_strings_value(&old_value);
     parsed_strings_value.StripSuffix();
     if (parsed_strings_value.IsStale()) {
@@ -810,6 +814,7 @@ Status RedisStrings::Setrange(const Slice& key, int64_t start_offset, const Slic
       new_value = tmp.append(value.data());
       *ret = static_cast<int32_t>(new_value.length());
     } else {
+      timestamp = parsed_strings_value.timestamp();
       if (static_cast<size_t>(start_offset) > old_value.length()) {
         old_value.resize(start_offset);
         new_value = old_value.append(value.data());
@@ -824,6 +829,7 @@ Status RedisStrings::Setrange(const Slice& key, int64_t start_offset, const Slic
     }
     *ret = static_cast<int32_t>(new_value.length());
     StringsValue strings_value(new_value);
+    strings_value.set_timestamp(timestamp);
     return db_->Put(default_write_options_, key, strings_value.Encode());
   } else if (s.IsNotFound()) {
     std::string tmp(start_offset, '\0');

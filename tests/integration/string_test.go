@@ -240,6 +240,23 @@ var _ = Describe("String Commands", func() {
 			Expect(get.Val()).To(Equal("hello"))
 		})
 
+		It("should SetBit", func() {
+			setBit := client.SetBit(ctx, "key_3s", 7, 1)
+			Expect(setBit.Err()).NotTo(HaveOccurred())
+			Expect(setBit.Val()).To(Equal(int64(0)))
+
+			Expect(client.Expire(ctx, "key_3s", 3*time.Second).Val()).To(Equal(true))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			setBit = client.SetBit(ctx, "key_3s", 69, 1)
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+			Expect(setBit.Err()).NotTo(HaveOccurred())
+			Expect(setBit.Val()).To(Equal(int64(0)))
+
+			time.Sleep(4 * time.Second)
+			Expect(client.TTL(ctx, "key_3s").Val()).To(Equal(time.Duration(-2)))
+		})
+
 		It("should GetBit", func() {
 			setBit := client.SetBit(ctx, "key", 7, 1)
 			Expect(setBit.Err()).NotTo(HaveOccurred())
@@ -882,17 +899,24 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should SetRange", func() {
-			set := client.Set(ctx, "key", "Hello World", 0)
+			set := client.Set(ctx, "key_3s", "Hello World", 0)
 			Expect(set.Err()).NotTo(HaveOccurred())
 			Expect(set.Val()).To(Equal("OK"))
 
-			range_ := client.SetRange(ctx, "key", 6, "Redis")
+			Expect(client.Expire(ctx, "key_3s", 3*time.Second).Val()).To(Equal(true))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			range_ := client.SetRange(ctx, "key_3s", 6, "Redis")
 			Expect(range_.Err()).NotTo(HaveOccurred())
 			Expect(range_.Val()).To(Equal(int64(11)))
 
-			get := client.Get(ctx, "key")
+			get := client.Get(ctx, "key_3s")
 			Expect(get.Err()).NotTo(HaveOccurred())
 			Expect(get.Val()).To(Equal("Hello Redis"))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			time.Sleep(4 * time.Second)
+			Expect(client.TTL(ctx, "key_3s").Val()).To(Equal(time.Duration(-2)))
 		})
 
 		It("should StrLen", func() {
