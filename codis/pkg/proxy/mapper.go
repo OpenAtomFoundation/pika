@@ -6,6 +6,7 @@ package proxy
 import (
 	"bytes"
 	"hash/crc32"
+	"strconv"
 	"strings"
 
 	"pika/codis/v2/pkg/proxy/redis"
@@ -72,6 +73,7 @@ func init() {
 		{"BLPOP", FlagWrite | FlagNotAllow},
 		{"BRPOP", FlagWrite | FlagNotAllow},
 		{"BRPOPLPUSH", FlagWrite | FlagNotAllow},
+		{"CCONFIG", FlagWrite},
 		{"CLIENT", FlagNotAllow},
 		{"CLUSTER", FlagNotAllow},
 		{"COMMAND", 0},
@@ -214,7 +216,7 @@ func init() {
 		{"SLOTSRESTORE-ASYNC-AUTH", FlagWrite | FlagNotAllow},
 		{"SLOTSRESTORE-ASYNC-ACK", FlagWrite | FlagNotAllow},
 		{"SLOTSSCAN", FlagMasterOnly},
-		{"SLOWLOG", FlagNotAllow},
+		{"SLOWLOG", 0},
 		{"SMEMBERS", 0},
 		{"SMOVE", FlagWrite},
 		{"SORT", FlagWrite},
@@ -317,4 +319,31 @@ func getHashKey(multi []*redis.Resp, opstr string) []byte {
 		return multi[index].Value
 	}
 	return nil
+}
+
+func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
+	var index = 0
+	var bytes = 0
+
+	for i := 0; i < len(multi); i++ {
+		if index < len(cmd) {
+			index += copy(cmd[index:], multi[i].Value)
+			if i < len(multi)-i {
+				index += copy(cmd[index:], []byte(" "))
+			}
+		}
+		bytes += len(multi[i].Value)
+
+		//  如果cmd已经满了，那么最后腾出来一个more长度的位置添加more信息
+		if i == len(multi)-1 && index == len(cmd) {
+			more := []byte("... " + strconv.Itoa(len(multi)) + " elements " + strconv.Itoa(bytes) + " bytes.")
+			index = len(cmd) - len(more)
+			if index < 0 {
+				index = 0
+			}
+			index += copy(cmd[index:], more)
+			break
+		}
+	}
+	return index
 }

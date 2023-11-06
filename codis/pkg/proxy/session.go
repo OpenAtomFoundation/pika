@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +45,7 @@ type Session struct {
 
 	broken atomic2.Bool
 	config *Config
+	proxy  *Proxy
 
 	authorized bool
 }
@@ -62,7 +64,7 @@ func (s *Session) String() string {
 	return string(b)
 }
 
-func NewSession(sock net.Conn, config *Config) *Session {
+func NewSession(sock net.Conn, config *Config, proxy *Proxy) *Session {
 	c := redis.NewConn(sock,
 		config.SessionRecvBufsize.AsInt(),
 		config.SessionSendBufsize.AsInt(),
@@ -72,7 +74,7 @@ func NewSession(sock net.Conn, config *Config) *Session {
 	c.SetKeepAlivePeriod(config.SessionKeepAlivePeriod.Duration())
 
 	s := &Session{
-		Conn: c, config: config,
+		Conn: c, config: config, proxy: proxy,
 		CreateUnix: time.Now().Unix(),
 	}
 	s.stats.opmap = make(map[string]*opStats, 16)
@@ -207,6 +209,7 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		s.flushOpStats(true)
 	}()
 
+	//var cmd = make([]byte, 128)
 	var (
 		breakOnFailure = s.config.SessionBreakOnFailure
 		maxPipelineLen = s.config.SessionMaxPipeline
@@ -237,26 +240,29 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		if fflush {
 			s.flushOpStats(false)
 		}
-		nowTime := time.Now().UnixNano()
-		duration := int64((nowTime - r.ReceiveTime) / 1e3)
-		if duration >= 50000 {
-			//client -> proxy -> server -> porxy -> client
-			//Record the waiting time from receiving the request from the client to sending it to the backend server
-			//the waiting time from sending the request to the backend server to receiving the response from the server
-			//the waiting time from receiving the server response to sending it to the client
-			var d0, d1, d2 int64 = -1, -1, -1
-			if r.SendToServerTime > 0 {
-				d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
-			}
-			if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
-				d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
-			}
-			if r.ReceiveFromServerTime > 0 {
-				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
-			}
-			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d",
-				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen)
-		}
+		//if s.config.SlowlogLogSlowerThan > 0 {
+		//	nowTime := time.Now().UnixNano()
+		//	duration := int64((nowTime - r.ReceiveTime) / 1e3)
+		//	if duration >= s.config.SlowlogLogSlowerThan {
+		//		var d0, d1, d2 int64 = -1, -1, -1
+		//		if r.SendToServerTime > 0 {
+		//			d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+		//		}
+		//		if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
+		//			d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+		//		}
+		//		if r.ReceiveFromServerTime > 0 {
+		//			d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
+		//		}
+		//		index := getWholeCmd(r.Multi, cmd)
+		//		cmdLog := fmt.Sprintf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
+		//			time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
+		//		log.Warnf("%s", cmdLog)
+		//		if s.config.SlowlogMaxLen > 0 {
+		//			SlowLogPush(&SlowLogEntry{SlowLogGetCurLogId(), r.ReceiveTime / 1e3, duration, cmdLog})
+		//		}
+		//	}
+		//}
 		return nil
 	})
 }
@@ -319,6 +325,10 @@ func (s *Session) handleRequest(r *Request, d *Router) error {
 		return s.handleRequestDel(r, d)
 	case "EXISTS":
 		return s.handleRequestExists(r, d)
+	case "CCONFIG":
+		return s.handleCConfig(r)
+	case "SLOWLOG":
+		return s.handleSlowLog(r, d)
 	case "SLOTSINFO":
 		return s.handleRequestSlotsInfo(r, d)
 	case "SLOTSSCAN":
@@ -713,4 +723,97 @@ func (s *Session) flushOpStats(force bool) {
 	if (s.stats.flush.n % 16384) == 0 {
 		s.stats.opmap = make(map[string]*opStats, 32)
 	}
+}
+
+func (s *Session) handleSlowLog(r *Request, d *Router) error {
+	if len(r.Multi) < 2 || len(r.Multi) > 4 {
+		r.Resp = redis.NewErrorf("ERR slowLog parameters")
+		return nil
+	}
+
+	var subCmd = strings.ToUpper(string(r.Multi[1].Value))
+	switch subCmd {
+	case "GET":
+		if len(r.Multi) == 3 {
+			num, err := strconv.ParseInt(string(r.Multi[2].Value), 10, 64)
+			if err != nil {
+				r.Resp = redis.NewErrorf("ERR invalid slowLog number")
+				break
+			}
+
+			r.Resp = SlowLogGetByNum(num)
+		} else if len(r.Multi) == 4 {
+			var id int64
+			var num int64
+			var err error
+			id, err = strconv.ParseInt(string(r.Multi[2].Value), 10, 64)
+			if err != nil {
+				r.Resp = redis.NewErrorf("ERR invalid slowLog start logId")
+				break
+			}
+			num, err = strconv.ParseInt(string(r.Multi[3].Value), 10, 64)
+			if err != nil {
+				r.Resp = redis.NewErrorf("ERR invalid slowLog number")
+				break
+			}
+
+			r.Resp = SlowLogGetByIdAndNUm(id, num)
+		} else {
+			r.Resp = SlowLogGetByNum(10)
+		}
+	case "LEN":
+		if len(r.Multi) == 2 {
+			r.Resp = SlowLogGetLen()
+		} else {
+			r.Resp = redis.NewErrorf("ERR slowLog parameters")
+		}
+	case "RESET":
+		if len(r.Multi) == 2 {
+			r.Resp = SlowLogReset()
+		} else {
+			r.Resp = redis.NewErrorf("ERR slowLog parameters")
+		}
+	default:
+		r.Resp = redis.NewErrorf("ERR Unknown SLOWLOG subcommand or wrong args. Try GET, RESET, LEN.")
+	}
+	return nil
+}
+
+func (s *Session) handleCConfig(r *Request) error {
+	if len(r.Multi) < 2 || len(r.Multi) > 4 {
+		r.Resp = redis.NewErrorf("ERR config parameters")
+		return nil
+	}
+
+	var subCmd = strings.ToUpper(string(r.Multi[1].Value))
+	switch subCmd {
+	case "GET":
+		if len(r.Multi) == 3 {
+			key := strings.ToLower(string(r.Multi[2].Value))
+			r.Resp = s.proxy.ConfigGet(key)
+		} else {
+			r.Resp = redis.NewErrorf("ERR config get parameters.")
+		}
+	case "SET":
+		if len(r.Multi) == 3 {
+			key := strings.ToLower(string(r.Multi[2].Value))
+			value := ""
+			r.Resp = s.proxy.ConfigSet(key, value)
+		} else if len(r.Multi) == 4 {
+			key := strings.ToLower(string(r.Multi[2].Value))
+			value := string(r.Multi[3].Value)
+			r.Resp = s.proxy.ConfigSet(key, value)
+		} else {
+			r.Resp = redis.NewErrorf("ERR config set parameters.")
+		}
+	case "REWRITE":
+		if len(r.Multi) == 2 {
+			r.Resp = s.proxy.ConfigRewrite()
+		} else {
+			r.Resp = redis.NewErrorf("ERR config rewrite parameters")
+		}
+	default:
+		r.Resp = redis.NewErrorf("ERR Unknown CONFIG subcommand or wrong args. Try GET, SET, REWRITE.")
+	}
+	return nil
 }

@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"pika/codis/v2/pkg/proxy/redis"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -205,7 +207,48 @@ func (s *Proxy) Model() *models.Proxy {
 }
 
 func (s *Proxy) Config() *Config {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.config
+}
+
+func (s *Proxy) ConfigGet(key string) *redis.Resp {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch key {
+	case "proxy_max_clients":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(s.config.ProxyMaxClients)))
+	default:
+		return redis.NewErrorf("unsurport key[%s].", key)
+	}
+}
+
+func (s *Proxy) ConfigSet(key, value string) *redis.Resp {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch key {
+	case "proxy_max_clients":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+
+		if n <= 0 {
+			return redis.NewErrorf("invalid proxy_max_clients")
+		} else {
+			s.config.ProxyMaxClients = n
+			return redis.NewString([]byte("OK"))
+		}
+	default:
+		return redis.NewErrorf("unsurport key.")
+	}
+}
+
+func (s *Proxy) ConfigRewrite() *redis.Resp {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	utils.RewriteConfig(*(s.config), s.config.ConfigFileName, "=", true)
+	return redis.NewString([]byte("OK"))
 }
 
 func (s *Proxy) IsOnline() bool {
@@ -320,7 +363,7 @@ func (s *Proxy) serveProxy() {
 			if err != nil {
 				return err
 			}
-			NewSession(c, s.config).Start(s.router)
+			NewSession(c, s.config, s).Start(s.router)
 		}
 	}(s.lproxy)
 

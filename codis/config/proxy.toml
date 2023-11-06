@@ -45,7 +45,7 @@ proxy_datacenter = ""
 proxy_max_clients = 1000
 
 # Set max offheap memory size. (0 to disable)
-proxy_max_offheap_size = "1024mb"
+proxy_max_offheap_size = "1gb"
 
 # Set heap placeholder to reduce GC frequency.
 proxy_heap_placeholder = "256mb"
@@ -115,3 +115,6 @@ metrics_report_statsd_server = ""
 metrics_report_statsd_period = "1s"
 metrics_report_statsd_prefix = ""
 
+ncpu = 0
+slowlog_log_slower_than = 0
+slowlog_max_len = 0
