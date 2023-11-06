@@ -57,8 +57,8 @@ func streamRandomID(minID, maxID string) string {
 	minMs, _ := strconv.Atoi(minParts[0])
 	maxMs, _ := strconv.Atoi(maxParts[0])
 	delta := maxMs - minMs + 1
-	ms := minMs + randomInt(delta)
-	seq := randomInt(1000)
+	ms := minMs + randomInt4Stream(delta)
+	seq := randomInt4Stream(1000)
 	return fmt.Sprintf("%d-%d", ms, seq)
 }
 
@@ -73,7 +73,7 @@ func streamSimulateXRANGE(items []redis.XMessage, start, end string) []redis.XMe
 }
 
 // Helper function for generating random integers
-func randomInt(n int) int {
+func randomInt4Stream(n int) int {
 	return rand.Intn(n)
 }
 
