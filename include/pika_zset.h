@@ -249,7 +249,7 @@ class ZCountCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string min_ , max;
+  std::string min_ , max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
