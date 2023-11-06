@@ -319,59 +319,59 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Hash
   ////HDelCmd
   std::unique_ptr<Cmd> hdelptr =
-      std::make_unique<HDelCmd>(kCmdNameHDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HDelCmd>(kCmdNameHDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHDel, std::move(hdelptr)));
   ////HSetCmd
   std::unique_ptr<Cmd> hsetptr =
-      std::make_unique<HSetCmd>(kCmdNameHSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HSetCmd>(kCmdNameHSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSet, std::move(hsetptr)));
   ////HGetCmd
   std::unique_ptr<Cmd> hgetptr =
-      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGet, std::move(hgetptr)));
   ////HGetallCmd
   std::unique_ptr<Cmd> hgetallptr =
-      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGetall, std::move(hgetallptr)));
   ////HExistsCmd
   std::unique_ptr<Cmd> hexistsptr =
-      std::make_unique<HExistsCmd>(kCmdNameHExists, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HExistsCmd>(kCmdNameHExists, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHExists, std::move(hexistsptr)));
   ////HIncrbyCmd
   std::unique_ptr<Cmd> hincrbyptr =
-      std::make_unique<HIncrbyCmd>(kCmdNameHIncrby, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HIncrbyCmd>(kCmdNameHIncrby, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHIncrby, std::move(hincrbyptr)));
   ////HIncrbyfloatCmd
   std::unique_ptr<Cmd> hincrbyfloatptr =
-      std::make_unique<HIncrbyfloatCmd>(kCmdNameHIncrbyfloat, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HIncrbyfloatCmd>(kCmdNameHIncrbyfloat, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHIncrbyfloat, std::move(hincrbyfloatptr)));
   ////HKeysCmd
   std::unique_ptr<Cmd> hkeysptr =
-      std::make_unique<HKeysCmd>(kCmdNameHKeys, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HKeysCmd>(kCmdNameHKeys, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHKeys, std::move(hkeysptr)));
   ////HLenCmd
   std::unique_ptr<Cmd> hlenptr =
-      std::make_unique<HLenCmd>(kCmdNameHLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HLenCmd>(kCmdNameHLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHLen, std::move(hlenptr)));
   ////HMgetCmd
   std::unique_ptr<Cmd> hmgetptr =
-      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMget, std::move(hmgetptr)));
   ////HMsetCmd
   std::unique_ptr<Cmd> hmsetptr =
-      std::make_unique<HMsetCmd>(kCmdNameHMset, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HMsetCmd>(kCmdNameHMset, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMset, std::move(hmsetptr)));
   ////HSetnxCmd
   std::unique_ptr<Cmd> hsetnxptr =
-      std::make_unique<HSetnxCmd>(kCmdNameHSetnx, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HSetnxCmd>(kCmdNameHSetnx, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSetnx, std::move(hsetnxptr)));
   ////HStrlenCmd
   std::unique_ptr<Cmd> hstrlenptr =
-      std::make_unique<HStrlenCmd>(kCmdNameHStrlen, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HStrlenCmd>(kCmdNameHStrlen, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHStrlen, std::move(hstrlenptr)));
   ////HValsCmd
   std::unique_ptr<Cmd> hvalsptr =
-      std::make_unique<HValsCmd>(kCmdNameHVals, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash);
+      std::make_unique<HValsCmd>(kCmdNameHVals, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHVals, std::move(hvalsptr)));
   ////HScanCmd
   std::unique_ptr<Cmd> hscanptr =
