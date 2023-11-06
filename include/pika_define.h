@@ -406,10 +406,11 @@ const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
 
-const std::string PCacheKeyPrefixK = "_#$%^&*K:";
-const std::string PCacheKeyPrefixH = "_#$%^&*H:";
-const std::string PCacheKeyPrefixS = "_#$%^&*S:";
-const std::string PCacheKeyPrefixZ = "_#$%^&*Z:";
-const std::string PCacheKeyPrefixL = "_#$%^&*L:";
+const std::string PCacheKeyPrefixK = "K";
+const std::string PCacheKeyPrefixH = "H";
+const std::string PCacheKeyPrefixS = "S";
+const std::string PCacheKeyPrefixZ = "Z";
+const std::string PCacheKeyPrefixL = "L";
+const std::string PCacheKeyPrefixB = "B";
 
 #endif
