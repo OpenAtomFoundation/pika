@@ -29,6 +29,7 @@ const int CACHE_START_FROM_END = -1;
  */
 const char PIKA_KEY_TYPE_KV = 'k';
 const char PIKA_KEY_TYPE_HASH = 'h';
+const char PIKA_KEY_TYPE_LIST = 'l';
 const char PIKA_KEY_TYPE_SET = 's';
 const char PIKA_KEY_TYPE_ZSET = 'z';
 
