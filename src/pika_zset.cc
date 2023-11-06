@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "pstd/include/pstd_string.h"
+#include "include/pika_cache.h"
 
 void ZAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -35,12 +36,23 @@ void ZAddCmd::DoInitial() {
 
 void ZAddCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZAdd(key_, score_members, &count);
-  if (s.ok()) {
+  s_ = slot->db()->ZAdd(key_, score_members, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
     AddSlotKey("z", key_, slot);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->ZAddIfKeyExist(key_, score_members);
   }
 }
 
@@ -54,12 +66,25 @@ void ZCardCmd::DoInitial() {
 
 void ZCardCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t card = 0;
-  rocksdb::Status s = slot->db()->ZCard(key_, &card);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->ZCard(key_, &card);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
     res_.SetRes(CmdRes::kErrOther, "zcard error");
   }
+}
+
+void ZCardCmd::PreDo(std::shared_ptr<Slot> slot){
+  res_.SetRes(CmdRes::kCacheMiss);
+}
+
+void ZCardCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZCardCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  return;
 }
 
 void ZScanCmd::DoInitial() {
@@ -152,6 +177,17 @@ void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void ZIncrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this);
+  }
+}
+
 void ZsetRangeParentCmd::DoInitial() {
   if (argv_.size() == 5 && (strcasecmp(argv_[4].data(), "withscores") == 0)) {
     is_ws_ = true;
@@ -180,8 +216,8 @@ void ZRangeCmd::DoInitial() {
 
 void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
@@ -201,7 +237,50 @@ void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
       }
     }
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZRangeCmd::PreDo(std::shared_ptr<Slot> slot) {
+  std::vector<storage::ScoreMember> score_members;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot ->cache()->ZRange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
+  if (s.ok()) {
+    if (is_ws_) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(score_members.size() * 2);
+      for (const auto& sm : score_members) {
+        res_.AppendStringLen(sm.member.size());
+        res_.AppendContent(sm.member);
+        len = pstd::d2string(buf, sizeof(buf), sm.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+    } else {
+      res_.AppendArrayLen(score_members.size());
+      for (const auto& sm : score_members) {
+        res_.AppendStringLen(sm.member.size());
+        res_.AppendContent(sm.member);
+      }
+    }
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
+
+void ZRangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
   }
 }
 
@@ -215,8 +294,8 @@ void ZRevrangeCmd::DoInitial() {
 
 void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
@@ -236,7 +315,51 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
       }
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZRevrangeCmd::PreDo(std::shared_ptr<Slot> slot) {
+  std::vector<storage::ScoreMember> score_members;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  s_ = slot->cache()->ZRevrange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
+
+  if (s_.ok()) {
+    if (is_ws_) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(score_members.size() * 2);
+      for (const auto& sm : score_members) {
+        res_.AppendStringLen(sm.member.size());
+        res_.AppendContent(sm.member);
+        len = pstd::d2string(buf, sizeof(buf), sm.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+    } else {
+      res_.AppendArrayLen(score_members.size());
+      for (const auto& sm : score_members) {
+        res_.AppendStringLen(sm.member.size());
+        res_.AppendContent(sm.member);
+      }
+    }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+  return;
+}
+
+void ZRevrangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRevrangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
   }
 }
 
@@ -326,10 +449,9 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   FitLimit(count_, offset_, static_cast<int64_t>(score_members.size()));
@@ -352,6 +474,54 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendStringLenUint64(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
     }
+  }
+}
+
+void ZRangebyscoreCmd::PreDo(std::shared_ptr<Slot> slot) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+    res_.AppendContent("*0");
+    return;
+  }
+
+  std::vector<storage::ScoreMember> score_members;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  s_ = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
+  if (s_.ok()) {
+    auto sm_count = score_members.size();
+    if (with_scores_) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(sm_count * 2);
+      for (auto& item : score_members) {
+        res_.AppendStringLen(item.member.size());
+        res_.AppendContent(item.member);
+        len = pstd::d2string(buf, sizeof(buf), item.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+    } else {
+      res_.AppendArrayLen(sm_count);
+      for (auto& item : score_members) {
+        res_.AppendStringLen(item.member.size());
+        res_.AppendContent(item.member);
+      }
+    }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZRangebyscoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do();
+}
+
+void ZRangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
   }
 }
 
@@ -378,10 +548,9 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s =
-      slot->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   FitLimit(count_, offset_, static_cast<int64_t>(score_members.size()));
@@ -407,6 +576,54 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void ZRevrangebyscoreCmd::PreDo(std::shared_ptr<Slot> slot){
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN
+      || max_score_ < min_score_) {
+    res_.AppendContent("*0");
+    return;
+  }
+  std::vector<storage::ScoreMember> score_members;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZRevrangebyscore(CachePrefixKeyZ, min_, max_, &score_members, this);
+  if (s.ok()) {
+    auto sm_count = score_members.size();
+    if (with_scores_) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(sm_count * 2);
+      for (auto& item : score_members) {
+        res_.AppendStringLen(item.member.size());
+        res_.AppendContent(item.member);
+        len = pstd::d2string(buf, sizeof(buf), item.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+    } else {
+      res_.AppendArrayLen(sm_count);
+      for (auto& item : score_members) {
+        res_.AppendStringLen(item.member.size());
+        res_.AppendContent(item.member);
+      }
+    }
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRevrangebyscoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRevrangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
+  }
+}
+
 void ZCountCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZCount);
@@ -427,11 +644,40 @@ void ZCountCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZCountCmd::PreDo(std::shared_ptr<Slot> slot) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
+    res_.AppendContent("*0");
+    return;
+  }
+  uint64_t count = 0;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZCount(CachePrefixKeyZ, min_, max_, &count, this);
+  if (s.ok()) {
+    res_.AppendInteger(count);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZCountCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZCountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
   }
 }
 
@@ -453,6 +699,17 @@ void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRemCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok() && 0 < deleted_) {
+    slot->cache()->ZRem(CachePrefixKeyZ, members_);
   }
 }
 
@@ -524,12 +781,27 @@ void ZUnionstoreCmd::DoInitial() {
 
 void ZUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
-  if (s.ok()) {
+  s_ = slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
     AddSlotKey("z", dest_key_, slot);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZUnionstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::vector<std::string> CachePrefixKeyZ;
+  for(auto key:dest_key_){
+    std::string newkey = PCacheKeyPrefixZ + dest_key_;
+    CachePrefixKeyZ.push_back(newkey);
+  }
+  if (s_.ok()) {
+    slot->cache()->Del(CachePrefixKeyZ);
   }
 }
 
@@ -590,11 +862,26 @@ void ZInterstoreCmd::DoInitial() {
 
 void ZInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
-  if (s.ok()) {
+  s_ = slot->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZInterstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do();
+}
+
+void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::vector<std::string> CachePrefixKeyZ;
+  for(auto key:dest_key_){
+    std::string newkey = PCacheKeyPrefixZ + dest_key_;
+    CachePrefixKeyZ.push_back(newkey);
+  }
+  if (s_.ok()) {
+    slot->cache()->Del(CachePrefixKeyZ);
   }
 }
 
@@ -658,13 +945,13 @@ void ZRankCmd::DoInitial() {
 
 void ZRankCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t rank = 0;
-  rocksdb::Status s = slot->db()->ZRank(key_, member_, &rank);
-  if (s.ok()) {
+  s_ = slot->db()->ZRank(key_, member_, &rank);
+  if (s_.ok()) {
     res_.AppendInteger(rank);
-  } else if (s.IsNotFound()) {
+  } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -676,15 +963,65 @@ void ZRevrankCmd::DoInitial() {
   ZsetRankParentCmd::DoInitial();
 }
 
+void ZRankCmd::PreDo(std::shared_ptr<Slot> slot) {
+  int64_t rank = 0;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZRank(CachePrefixKeyZ, member_, &rank, slot);
+  if (s.ok()) {
+    res_.AppendInteger(rank);
+  } else if (s.IsNotFound()){
+    res_.SetRes(CmdRes::kCacheMiss);
+  }  else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRankCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
+  }
+}
+
 void ZRevrankCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t revrank = 0;
-  rocksdb::Status s = slot->db()->ZRevrank(key_, member_, &revrank);
-  if (s.ok()) {
+  s_ = slot->db()->ZRevrank(key_, member_, &revrank);
+  if (s_.ok()) {
     res_.AppendInteger(revrank);
-  } else if (s.IsNotFound()) {
+  } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZRevrankCmd::PreDo(std::shared_ptr<Slot> slot) {
+  int64_t revrank = 0;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZRevrank(CachePrefixKeyZ, member_, &revrank, slot);
+  if (s.ok()) {
+    res_.AppendInteger(revrank);
+  } else if (s.IsNotFound()){
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRevrankCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do();
+}
+
+void ZRevrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
   }
 }
 
@@ -699,17 +1036,42 @@ void ZScoreCmd::DoInitial() {
 
 void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
   double score = 0;
-  rocksdb::Status s = slot->db()->ZScore(key_, member_, &score);
+  s_ = slot->db()->ZScore(key_, member_, &score);
+  if (s_.ok()) {
+    char buf[32];
+    int64_t len = pstd::d2string(buf, sizeof(buf), score);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
+  } else if (s_.IsNotFound()) {
+    res_.AppendContent("$-1");
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void ZScoreCmd::PreDo(std::shared_ptr<Slot> slot) {
+  double score = 0;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZScore(CachePrefixKeyZ, member_, &score, slot);
   if (s.ok()) {
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
   } else if (s.IsNotFound()) {
-    res_.AppendContent("$-1");
+    res_.SetRes(CmdRes::kCacheMiss);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void ZScoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZScoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  return;
 }
 
 static int32_t DoMemberRange(const std::string& raw_min_member, const std::string& raw_max_member, bool* left_close,
@@ -784,9 +1146,9 @@ void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   FitLimit(count_, offset_, static_cast<int32_t>(members.size()));
@@ -799,6 +1161,44 @@ void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendContent(members[index]);
   }
 }
+
+void ZRangebylexCmd::PreDo(std::shared_ptr<Slot> slot) {
+  if (min_member_ == "+" || max_member_ == "-") {
+    res_.AppendContent("*0");
+    return;
+  }
+  std::vector<std::string> members;
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  rocksdb::Status s = slot->cache()->ZRangebylex(CachePrefixKeyZ, min_, max_, &members, slot);
+  if (s.ok()) {
+    FitLimit(count_, offset_, members.size());
+
+    res_.AppendArrayLen(count_);
+    size_t index = offset_;
+    size_t end = offset_ + count_;
+    for (; index < end; index++) {
+      res_.AppendStringLen(members[index].size());
+      res_.AppendContent(members[index]);
+    }
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRangebylexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
+  }
+}
+
 
 void ZRevrangebylexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -840,6 +1240,41 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void ZRevrangebylexCmd::PreDo(std::shared_ptr<Slot> slot) {
+  if (min_member_ == "+" || max_member_ == "-") {
+    res_.AppendContent("*0");
+    return;
+  }
+  std::vector<std::string> members;
+  rocksdb::Status s = slot->cache()->ZRevrangebylex(key_, min_, max_, &members, slot);
+  if (s.ok()) {
+    FitLimit(count_, offset_, members.size());
+
+    res_.AppendArrayLen(count_);
+    int64_t index = members.size() - 1 - offset_, end = index - count_;
+    for (; index > end; index--) {
+      res_.AppendStringLen(members[index].size());
+      res_.AppendContent(members[index]);
+    }
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZRevrangebylexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZRevrangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
+  }
+}
+
 void ZLexcountCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZLexcount);
@@ -859,12 +1294,40 @@ void ZLexcountCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   res_.AppendInteger(count);
+}
+
+void ZLexcountCmd::PreDo(std::shared_ptr<Slot> slot) {
+  if (min_member_ == "+" || max_member_ == "-") {
+    res_.AppendContent(":0");
+    return;
+  }
+  uint64_t count = 0;
+  rocksdb::Status s = slot->cache()->ZLexcount(key_, min_, max_, &count, slot);
+  if (s.ok()) {
+    res_.AppendInteger(count);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void ZLexcountCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void ZLexcountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, CachePrefixKeyZ);
+  }
 }
 
 void ZRemrangebyrankCmd::DoInitial() {
@@ -885,13 +1348,25 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
+
+void ZRemrangebyrankCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZRemrangebyrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
+  }
+}
+
 
 void ZRemrangebyscoreCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -912,13 +1387,23 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s =
-      slot->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   res_.AppendInteger(count);
+}
+
+void ZRemrangebyscoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZRemrangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->ZRemrangebyscore(CachePrefixKeyZ, min_, max_, slot);
+  }
 }
 
 void ZRemrangebylexCmd::DoInitial() {
@@ -940,14 +1425,26 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s =
-      slot->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+
+  s_ = slot->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   res_.AppendInteger(count);
 }
+
+void ZRemrangebylexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void ZRemrangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
+  if (s_.ok()) {
+    slot->cache()->ZRemrangebylex(CachePrefixKeyZ, min_, max_, slot);
+  }
+}
+
 
 void ZPopmaxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

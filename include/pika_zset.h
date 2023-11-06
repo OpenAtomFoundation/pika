@@ -24,6 +24,8 @@ class ZAddCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZAddCmd(*this); }
@@ -31,6 +33,7 @@ class ZAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<storage::ScoreMember> score_members;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -43,6 +46,9 @@ class ZCardCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZCardCmd(*this); }
@@ -84,6 +90,8 @@ class ZIncrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
@@ -102,7 +110,8 @@ class ZsetRangeParentCmd : public Cmd {
 
  protected:
   std::string key_;
-  int64_t start_ = 0, stop_ = -1;
+  int64_t start_ = 0;
+  int64_t stop_ = -1;
   bool is_ws_ = false;
   void DoInitial() override;
   void Clear() override { is_ws_ = false; }
@@ -117,11 +126,15 @@ class ZRangeCmd : public ZsetRangeParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangeCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -134,11 +147,15 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangeCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -154,6 +171,7 @@ class ZsetRangebyscoreParentCmd : public Cmd {
   int64_t Count() { return count_; }
  protected:
   std::string key_;
+  std::string min_, max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true, with_scores_ = false;
   int64_t offset_ = 0, count_ = -1;
@@ -175,11 +193,15 @@ class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangebyscoreCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -193,11 +215,15 @@ class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangebyscoreCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -210,6 +236,9 @@ class ZCountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZCountCmd(*this); }
@@ -220,8 +249,10 @@ class ZCountCmd : public Cmd {
 
  private:
   std::string key_;
+  std::string min_ , max;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     left_close_ = true;
@@ -238,6 +269,8 @@ class ZRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemCmd(*this); }
@@ -245,6 +278,7 @@ class ZRemCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
+  int32_t deleted_ = 0;
   void DoInitial() override;
 };
 
@@ -286,6 +320,8 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZUnionstoreCmd(*this); }
@@ -294,6 +330,7 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
   void DoInitial() override;
   //used for write binlog
   std::map<std::string, double> value_to_dest_;
+  rocksdb::Status s_;
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 };
 
@@ -301,6 +338,8 @@ class ZInterstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZInterstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZInterstoreCmd(*this); }
@@ -308,6 +347,7 @@ class ZInterstoreCmd : public ZsetUIstoreParentCmd {
 
  private:
   void DoInitial() override;
+  rocksdb::Status s_;
   //used for write binlog
   std::vector<storage::ScoreMember> value_to_dest_;
 };
@@ -330,11 +370,15 @@ class ZRankCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRankCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -347,11 +391,15 @@ class ZRevrankCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrankCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -364,12 +412,16 @@ class ZScoreCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZScoreCmd(*this); }
 
  private:
   std::string key_, member_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -379,6 +431,7 @@ class ZsetRangebylexParentCmd : public Cmd {
 
  protected:
   std::string key_, min_member_, max_member_;
+  std::string min_, max_;
   bool left_close_ = true, right_close_ = true;
   int64_t offset_ = 0, count_ = -1;
   void DoInitial() override;
@@ -398,11 +451,15 @@ class ZRangebylexCmd : public ZsetRangebylexParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangebylexCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -415,6 +472,9 @@ class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangebylexCmd(*this); }
@@ -432,13 +492,18 @@ class ZLexcountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZLexcountCmd(*this); }
 
  private:
   std::string key_, min_member_, max_member_;
+  std::string min_, max_;
   bool left_close_ = true, right_close_ = true;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -452,13 +517,17 @@ class ZRemrangebyrankCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
 
  private:
-  std::string key_;
+  std::string key_, min_, max_;
   int64_t start_rank_ = 0, stop_rank_ = -1;
+  int32_t ele_deleted_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -471,14 +540,17 @@ class ZRemrangebyscoreCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
 
  private:
-  std::string key_;
+  std::string key_, min_, max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -492,14 +564,17 @@ class ZRemrangebylexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
 
  private:
-  std::string key_;
+  std::string key_, min_, max_;
   std::string min_member_, max_member_;
   bool left_close_ = true, right_close_ = true;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
