@@ -45,13 +45,19 @@ bool PikaDispatchThread::ClientKill(const std::string& ip_port) { return thread_
 
 void PikaDispatchThread::ClientKillAll() { thread_rep_->KillAllConns(); }
 
-void PikaDispatchThread::UnAuthUser(const std::set<std::string>& users, const std::shared_ptr<User>& defaultUser) {
+void PikaDispatchThread::UnAuthUserAndKillClient(const std::set<std::string>& users,
+                                                 const std::shared_ptr<User>& defaultUser) {
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(thread_rep_);
   dispatchThread->AllConn([&](const std::shared_ptr<net::NetConn>& conn) {
     auto pikaClientConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+    bool doClose = false;
+    if (users.count(pikaClientConn->UserName())) {
+      doClose = true;
+    }
     if (pikaClientConn) {
       pikaClientConn->UnAuth(defaultUser);
     }
+    if (doClose) conn->SetClose(true);
   });
 }
 

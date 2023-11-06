@@ -16,8 +16,8 @@ class PikaAclCmd : public Cmd {
  public:
   PikaAclCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {
-    subCmdName_ = {"cat",  "deluser", "dryrun", "genpass", "getuser", "list",
-                   "load", "log",     "save",   "setuser", "users",   "whoami"};
+    subCmdName_ = {"cat", "deluser", "dryrun",  "genpass", "getuser", "list", "load",
+                   "log", "save",    "setuser", "users",   "whoami",  "help"};
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};

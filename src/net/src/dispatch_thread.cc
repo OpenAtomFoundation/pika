@@ -17,7 +17,7 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
     : ServerThread::ServerThread(port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit){
+      queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -64,9 +64,8 @@ int DispatchThread::StartThread() {
   }
 
   // Adding timer tasks and run timertaskThread
-  timerTaskThread_.AddTimerTask(
-      "blrpop_blocking_info_scan", 250, true, [this] { this->ScanExpiredBlockedConnsOfBlrpop();});
-
+  timerTaskThread_.AddTimerTask("blrpop_blocking_info_scan", 250, true,
+                                [this] { this->ScanExpiredBlockedConnsOfBlrpop(); });
 
   timerTaskThread_.StartThread();
   return ServerThread::StartThread();
@@ -260,12 +259,12 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
 void DispatchThread::AllConn(const std::function<void(const std::shared_ptr<NetConn>&)>& func) {
+  std::unique_lock l(block_mtx_);
   for (const auto& item : worker_thread_) {
-    item->rwlock_.lock_shared();
+
     for (const auto& conn : item->conns_) {
       func(conn.second);
     }
-    item->rwlock_.unlock_shared();
   }
 }
 

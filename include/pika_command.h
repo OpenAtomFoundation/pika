@@ -513,6 +513,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   uint32_t flag() const;
+  bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
 
@@ -523,6 +524,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_multi_slot() const;
   bool HasSubCommand() const;                   // The command is there a sub command
   std::vector<std::string> SubCommand() const;  // Get command is there a sub command
+//  virtual std::string CurrentSubCommand() const;  // Get command is there a sub command
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   uint32_t AclCategory() const;

@@ -196,7 +196,9 @@ class FlushdbCmd : public Cmd {
 
 class ClientCmd : public Cmd {
  public:
-  ClientCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  ClientCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
+    subCmdName_ = {"getname", "setname", "list", "addr", "kill"};
+  }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;

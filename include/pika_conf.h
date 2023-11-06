@@ -15,6 +15,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
 
+#include "acl.h"
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
 #include "rocksdb/compression_type.h"
@@ -588,6 +589,15 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
     max_rsync_parallel_num_ = value;
+  }
+  void SetAclPubsubDefault(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("acl-pubsub-default", value);
+    if (value == "resetchannels") {
+      acl_pubsub_default_ = 0;
+    } else {
+      acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+    }
   }
 
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);

@@ -62,7 +62,7 @@ enum AuthResult {
 static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
                                    const std::shared_ptr<net::NetConn>& conn, bool defaultAuth) {
   if (defaultAuth) {
-    auto defaultUser = g_pika_server->Acl()->GetUser(Acl::DefaultUser, true);
+    auto defaultUser = g_pika_server->Acl()->GetUser(Acl::DefaultUser, false);
     if (defaultUser->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {
       return AuthResult::NO_REQUIRE_PASS;
     }
@@ -1968,6 +1968,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->replication_id());
   }
 
+  if (pstd::stringmatch(pattern.data(), "acl-pubsub-default", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "acl-pubsub-default");
+    g_pika_conf->acl_pubsub_default() ? EncodeString(&config_body, "allchannels")
+                                      : EncodeString(&config_body, "resetchannels");
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -2322,6 +2329,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "acl-pubsub-default") {
+    std::string v(value);
+    pstd::StringToLower(v);
+    if (v != "allchannels" && v != "resetchannels") {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'acl-pubsub-default'\r\n";
+      return;
+    }
+    g_pika_conf->SetAclPubsubDefault(v);
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2660,28 +2676,36 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  for (; next_arg < argv_.size(); ++next_arg) {
+  for (; next_arg < argv_.size(); next_arg++) {
     size_t more_args = argv_.size() - next_arg - 1;
     const std::string opt = argv_[next_arg];
-    if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args != 0U)) {
-      const std::string pwd = argv_[next_arg + 1];
-      auto authResult = AuthenticateUser(Acl::DefaultUser, pwd, conn, true);
+    if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args >= 2)) {
+      const std::string userName = argv_[next_arg + 1];
+      const std::string pwd = argv_[next_arg + 2];
+      bool defaultAuth = false;
+      if (userName == Acl::DefaultUser) {
+        defaultAuth = true;
+      }
+      auto authResult = AuthenticateUser(userName, pwd, conn, defaultAuth);
       switch (authResult) {
         case AuthResult::INVALID_CONN:
           res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
           return;
         case AuthResult::INVALID_PASSWORD:
-          res_.SetRes(CmdRes::kErrOther, "WRONGPASS invalid username-password pair or user is disabled");
+          res_.AppendContent("-WRONGPASS invalid username-password pair or user is disabled.");
           return;
         case AuthResult::NO_REQUIRE_PASS:
           res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
-          return;
-        case AuthResult::OK:
+        default:
           break;
       }
-      next_arg++;
+      next_arg += 2;
     } else if ((strcasecmp(opt.data(), "SETNAME") == 0) && (more_args != 0U)) {
       const std::string name = argv_[next_arg + 1];
+      if (pstd::isspace(name)) {
+        res_.SetRes(CmdRes::kErrOther, "Client names cannot contain spaces, newlines or special characters.");
+        return;
+      }
       conn->set_name(name);
       next_arg++;
     } else {

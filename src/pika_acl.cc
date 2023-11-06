@@ -9,7 +9,7 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
 
-const static int AclGenPassMaxBit = 4096;  //
+const static int AclGenPassMaxBit = 4096;
 
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
@@ -79,6 +79,10 @@ void PikaAclCmd::DoInitial() {
 }
 
 void PikaAclCmd::Cat() {
+  if (argv_.size() > 3) {
+    res().SetRes(CmdRes::kErrOther, "unknown subcommand or wrong number of arguments for 'CAT'");
+    return;
+  }
   if (argv_.size() == 2) {
     res().AppendStringVector(Acl::GetAllCategoryName());
     return;
@@ -92,6 +96,13 @@ void PikaAclCmd::Cat() {
 }
 
 void PikaAclCmd::DelUser() {
+  for (auto it = argv_.begin() + 2; it != argv_.end(); ++it) {
+    if (it->data() == Acl::DefaultUser) {
+      res().SetRes(CmdRes::kErrOther, "The 'default' user cannot be removed");
+      return;
+    }
+  }
+
   std::vector<std::string> userNames(argv_.begin() + 2, argv_.end());
   auto delUserNames = g_pika_server->Acl()->DeleteUser(userNames);
   res().AppendInteger(static_cast<int64_t>(delUserNames.size()));
@@ -117,7 +128,9 @@ void PikaAclCmd::DryRun() {
   if (argv_.size() > 4) {
     args = PikaCmdArgsType(argv_.begin() + 3, argv_.end());
   }
-  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args);
+
+  int8_t subCmdIndex = -1;
+  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex);
 
   switch (checkRes) {
     case AclDeniedCmd::OK:
@@ -143,6 +156,8 @@ void PikaAclCmd::DryRun() {
       break;
     case AclDeniedCmd::NUMBER:
       res().SetRes(CmdRes::kErrOther, fmt::format("wrong number of arguments for '{}' command", argv_[3]));
+      break;
+    default:
       break;
   }
 }
@@ -190,9 +205,11 @@ void PikaAclCmd::List() {
 }
 
 void PikaAclCmd::Load() {
-  auto status = g_pika_server->Acl()->LoadUserFromFile();
+  std::set<std::string> toUnAuthUsers;
+  auto status = g_pika_server->Acl()->LoadUserFromFile(&toUnAuthUsers);
   if (status.ok()) {
     res().SetRes(CmdRes::kOk);
+    g_pika_server->AllClientUnAuth(toUnAuthUsers);
     return;
   }
 
@@ -217,7 +234,7 @@ void PikaAclCmd::SetUser() {
     rule = std::vector<std::string>(argv_.begin() + 3, argv_.end());
   }
 
-  if (pstd::isspace(argv_[2])){
+  if (pstd::isspace(argv_[2])) {
     res().SetRes(CmdRes::kErrOther, "Usernames can't contain spaces or null characters");
     return;
   }
@@ -226,8 +243,8 @@ void PikaAclCmd::SetUser() {
     res().SetRes(CmdRes::kOk);
     return;
   }
-  LOG(ERROR) << "Error in ACL SETUSER modifier " + status.ToString();
-  res().SetRes(CmdRes::kErrOther, "Error in ACL SETUSER modifier " + status.ToString());
+  LOG(ERROR) << "ACL SETUSER modifier " + status.ToString();
+  res().SetRes(CmdRes::kErrOther, "ACL SETUSER modifier " + status.ToString());
 }
 
 void PikaAclCmd::Users() { res().AppendStringVector(g_pika_server->Acl()->Users()); }
@@ -244,6 +261,10 @@ void PikaAclCmd::WhoAmI() {
 }
 
 void PikaAclCmd::Help() {
+  if (argv_.size() > 2) {
+    res().SetRes(CmdRes::kWrongNum, "acl|help");
+    return;
+  }
   const std::vector<std::string> info = {
       "CAT [<category>]",
       "    List all commands that belong to <category>, or all command categories",

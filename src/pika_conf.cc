@@ -564,7 +564,7 @@ int PikaConf::Load() {
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
-    acl_pubsub_default_ &= static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+    acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
   }
 
   // slaveof

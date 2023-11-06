@@ -66,19 +66,31 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
-  auto checkRes = user_->CheckUserPermission(c_ptr, argv);
+  int8_t subCmdIndex = -1;
+  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex);
+  std::string cmdName = c_ptr->name();
+  if (subCmdIndex >= 0 && checkRes == AclDeniedCmd::CMD) {
+    cmdName += "|" + argv[1];
+  }
+
   switch (checkRes) {
     case AclDeniedCmd::CMD:
-      c_ptr->res().SetRes(CmdRes::kErrOther,
-                          fmt::format("-NOPERM this user has no permissions to run the '{}' command", c_ptr->name()));
+      c_ptr->res().SetRes(CmdRes::kNone, fmt::format("-NOPERM this user has no permissions to run the '{}' command\r\n",
+                                                     pstd::StringToLower(cmdName)));
       return c_ptr;
     case AclDeniedCmd::KEY:
-      c_ptr->res().SetRes(CmdRes::kErrOther,
-                          "-NOPERM this user has no permissions to access one of the keys used as arguments");
+      c_ptr->res().SetRes(CmdRes::kNone,
+                          "-NOPERM this user has no permissions to access one of the keys used as arguments\r\n");
       return c_ptr;
     case AclDeniedCmd::CHANNEL:
-      c_ptr->res().SetRes(CmdRes::kErrOther,
-                          "-NOPERM this user has no permissions to access one of the channel used as arguments");
+      c_ptr->res().SetRes(CmdRes::kNone,
+                          "-NOPERM this user has no permissions to access one of the channel used as arguments\r\n");
+      return c_ptr;
+    case AclDeniedCmd::NO_SUB_CMD:
+      c_ptr->res().SetRes(CmdRes::kErrOther, fmt::format("unknown subcommand '{}' subcommand", argv[1]));
+      return c_ptr;
+    case AclDeniedCmd::NO_AUTH:
+      c_ptr->res().AppendContent("-NOAUTH Authentication required.");
       return c_ptr;
     default:
       break;
@@ -203,7 +215,8 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_dur
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string db_name = current_db_.substr(2);
-  monitor_message = std::to_string(1.0 * static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
+  monitor_message = std::to_string(1.0 * static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name + " " +
+                    this->ip_port() + "]";
   for (const auto& iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }

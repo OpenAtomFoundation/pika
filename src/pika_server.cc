@@ -1748,7 +1748,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
 }
 
 void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {
-  pika_dispatch_thread_->UnAuthUser(users, acl_->GetUser(Acl::DefaultUser, true));
+  pika_dispatch_thread_->UnAuthUserAndKillClient(users, acl_->GetUser(Acl::DefaultUser, true));
 }
 
 void DoBgslotscleanup(void* arg) {

@@ -809,10 +809,7 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
   DoInitial();
 };
 
-std::vector<std::string> Cmd::current_key() const {
-  std::vector<std::string> res;
-  return res;
-}
+std::vector<std::string> Cmd::current_key() const { return {}; }
 
 void Cmd::Execute() {
   ProcessSingleSlotCmd();
@@ -975,8 +972,8 @@ int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
   if (subCmdName_.empty()) {
     return -1;
   }
-  for (int i = 0; i < subCmdName_.size(); i++) {
-    if (subCmdName_[i] == cmdName) {
+  for (size_t i = 0; i < subCmdName_.size(); ++i) {
+    if (!strcasecmp(subCmdName_[i].data(), cmdName.data())) {
       return i;
     }
   }
@@ -984,6 +981,7 @@ int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
 }
 
 uint32_t Cmd::flag() const { return flag_; }
+bool Cmd::hasFlag(uint32_t flag) const { return ((flag_ & flag) == flag); }
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsRead) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsWrite) == kCmdFlagsWrite); }
 bool Cmd::is_local() const { return ((flag_ & kCmdFlagsLocal) == kCmdFlagsLocal); }
@@ -995,7 +993,7 @@ bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsSingleSlot) == kCmd
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMultiSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
-
+// std::string Cmd::CurrentSubCommand() const { return ""; };
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 
 std::string Cmd::name() const { return name_; }

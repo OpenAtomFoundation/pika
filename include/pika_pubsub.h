@@ -20,6 +20,7 @@ class PublishCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PublishCmd(*this); }
+  std::vector<std::string> current_key() const override { return {channel_}; }
 
  private:
   std::string channel_;
@@ -35,8 +36,10 @@ class SubscribeCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SubscribeCmd(*this); }
+  std::vector<std::string> current_key() const override { return channels_; }
 
  private:
+  std::vector<std::string> channels_;
   void DoInitial() override;
 };
 
@@ -48,8 +51,10 @@ class UnSubscribeCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new UnSubscribeCmd(*this); }
+  std::vector<std::string> current_key() const override { return channels_; }
 
  private:
+  std::vector<std::string> channels_;
   void DoInitial() override;
 };
 
@@ -61,8 +66,10 @@ class PUnSubscribeCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PUnSubscribeCmd(*this); }
+  std::vector<std::string> current_key() const override { return {channels_}; }
 
  private:
+  std::vector<std::string> channels_;
   void DoInitial() override;
 };
 
@@ -74,7 +81,9 @@ class PSubscribeCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PSubscribeCmd(*this); }
+  std::vector<std::string> current_key() const override { return {channels_}; }
 
+  std::vector<std::string> channels_;
  private:
   void DoInitial() override;
 };

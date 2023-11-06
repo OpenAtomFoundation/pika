@@ -62,7 +62,7 @@ enum class AclUserFlag {
                          connection is immediately authenticated. */
 };
 
-enum class AclDeniedCmd { OK, CMD, KEY, CHANNEL, NUMBER };
+enum class AclDeniedCmd { OK, CMD, KEY, CHANNEL, NUMBER, NO_SUB_CMD, NO_AUTH };
 
 // ACL key permission types
 enum class AclPermission {
@@ -90,7 +90,7 @@ struct AclKeyPattern {
 class AclSelector {
  public:
   explicit AclSelector() : AclSelector(0){};
-  explicit AclSelector(uint32_t flag) : flags_(flag){};
+  explicit AclSelector(uint32_t flag);
   explicit AclSelector(const AclSelector& selector);
   ~AclSelector() = default;
 
@@ -107,11 +107,12 @@ class AclSelector {
 
   void ACLDescribeSelector(std::vector<std::string>& vector);
 
-  AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, const std::string& subCmd,
-                               const std::vector<std::string>& keys);
+  AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex, const std::vector<std::string>& keys);
 
  private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
+  void SetAllCommandSelector();
+  void RestAllCommandSelector();
 
   void InsertKeyPattern(const std::string& str, uint32_t flags);
 
@@ -153,7 +154,7 @@ class AclSelector {
    * execute this command.*/
   std::bitset<USER_COMMAND_BITS_COUNT> allowedCommands_;
 
-  // 记录子命令，map的key=>commandId，value subCommand index bit
+  // record subcommands，key is commandId，value subCommand bit index
   std::map<uint32_t, uint32_t> subCommand_;
 
   /* A list of allowed key patterns. If this field is empty the user cannot mention any key in a command,
@@ -178,14 +179,12 @@ class User {
 
   std::string Name() const;
 
-  inline uint32_t Flags() const { return flags_; };
+  //  inline uint32_t Flags() const { return flags_; };
   inline bool HasFlags(uint32_t flag) const { return flags_ & flag; };
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
 
   void CleanAclString();
-
-  void OverWrite(const User& user);
 
   /**
    * store a password
@@ -223,7 +222,7 @@ class User {
   void GetUserDescribe(CmdRes* res);
 
   // check the user can exec the cmd
-  AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
+  AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex);
 
  private:
   mutable std::shared_mutex mutex_;
@@ -297,17 +296,17 @@ class Acl {
   std::set<std::string> DeleteUser(const std::vector<std::string>& userNames);
 
   // reload User from acl file, whe exec acl|load command
-  pstd::Status LoadUserFromFile();
+  pstd::Status LoadUserFromFile(std::set<std::string>* toUnAuthUsers);
 
   void UpdateDefaultUserPassword(const std::string& pass);
 
   // check the user can be exec the command, after exec command
   //  bool CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);
 
-  // 根据 cmd 分类名 获取分类的值
+  // Gets the value of the classification based on the cmd classification name
   static uint32_t GetCommandCategoryFlagByName(const std::string& name);
 
-  // 根据 category获取对应的name
+  // Obtain the corresponding name based on category
   static std::string GetCommandCategoryFlagByName(const uint32_t category);
 
   static std::vector<std::string> GetAllCategoryName();

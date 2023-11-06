@@ -77,7 +77,7 @@ std::string Status::ToString() const {
         type = "Busy:";
         break;
       case kError:
-        type = "Error:";
+        type = "";
         break;
       default:
         snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int>(code()));
