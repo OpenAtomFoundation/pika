@@ -108,7 +108,7 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  // self is master of A , want to slavof B
+  // self is master of A , want to slaveof B
   if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
     res_.SetRes(CmdRes::kErrOther, "already master of others, invalid usage");
     return;
@@ -122,7 +122,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
-    res_.SetRes(CmdRes::kErrOther, "you fucked up");
+    res_.SetRes(CmdRes::kErrOther, "The master ip:port and the slave ip:port are the same");
     return;
   }
 
@@ -150,6 +150,10 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     g_pika_conf->SetSlaveof(std::string());
     return;
   }
+
+  /* The return value of the slaveof command OK does not really represent whether
+   * the data synchronization was successful, but only changes the status of the
+   * slaveof executor to slave */
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, static_cast<int32_t>(master_port_));
 
@@ -1038,7 +1042,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       info.append("ERR: server role is error\r\n");
       return;
   }
-
+  tmp_stream << "ReplicationID: " << g_pika_conf->replication_id() << "\r\n";
   std::string slaves_list_str;
   switch (host_role) {
     case PIKA_ROLE_SLAVE:
@@ -1324,6 +1328,8 @@ void ConfigCmd::Do(std::shared_ptr<Slot> slot) {
     ConfigRewrite(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "resetstat") == 0) {
     ConfigResetstat(config_ret);
+  } else if (strcasecmp(config_args_v_[0].data(), "rewritereplicationid") == 0) {
+    ConfigRewriteReplicationID(config_ret);
   }
   res_.AppendStringRaw(config_ret);
 }
@@ -1523,6 +1529,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "max-background-compactions");
     EncodeNumber(&config_body, g_pika_conf->max_background_compactions());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "max-background-jobs", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-background-jobs");
+    EncodeNumber(&config_body, g_pika_conf->max_background_jobs());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-cache-files", 1) != 0) {
@@ -1818,13 +1830,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "loglevel");
     EncodeString(&config_body, g_pika_conf->log_level());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "min-blob-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "min-blob-size");
     EncodeNumber(&config_body, g_pika_conf->min_blob_size());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "pin_l0_filter_and_index_blocks_in_cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "pin_l0_filter_and_index_blocks_in_cache");
@@ -1847,6 +1859,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "max-rsync-parallel-num");
     EncodeNumber(&config_body, g_pika_conf->max_rsync_parallel_num());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "replication-id", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "replication-id");
+    EncodeString(&config_body, g_pika_conf->replication_id());
   }
 
   std::stringstream resp;
@@ -1887,6 +1905,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     // MutableDBOptions
     EncodeString(&ret, "max-cache-files");
     EncodeString(&ret, "max-background-compactions");
+    EncodeString(&ret, "max-background-jobs");
     // MutableColumnFamilyOptions
     EncodeString(&ret, "write-buffer-size");
     EncodeString(&ret, "max-write-buffer-num");
@@ -2136,6 +2155,19 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "max-background-jobs") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-jobs'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_background_jobs", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-background-jobs wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxBackgroudJobs(static_cast<int>(ival));
+    ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'write-buffer-size'\r\n";
@@ -2183,12 +2215,12 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-rsync-parallel-num") {
-     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
-       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
-       return;
-     }
-     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
-     ret = "+OK\r\n";
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2199,6 +2231,14 @@ void ConfigCmd::ConfigRewrite(std::string& ret) {
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Rewire CONFIG fail\r\n";
+  }
+}
+
+void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
+  if (g_pika_conf->ConfigRewriteReplicationID() != 0) {
+    ret = "+OK\r\n";
+  } else {
+    ret = "-ERR Rewire ReplicationID CONFIG fail\r\n";
   }
 }
 
@@ -2625,6 +2665,41 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
   res_.SetRes(CmdRes::kOk, "The disk error has been recovered");
+}
+
+void ClearReplicationIDCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearReplicationID);
+    return;
+  }
+}
+
+void ClearReplicationIDCmd::Do(std::shared_ptr<Slot> slot) {
+  g_pika_conf->SetReplicationID("");
+  g_pika_conf->ConfigRewriteReplicationID();
+  res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
+}
+
+void DisableWalCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    return;
+  }
+}
+
+void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string option = argv_[1].data();
+  bool is_wal_disable = false;
+  if (option.compare("true") == 0) {
+    is_wal_disable = true;
+  } else if (option.compare("false") == 0) {
+    is_wal_disable = false;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Invalid parameter");
+    return;
+  }
+  slot->db()->DisableWal(is_wal_disable);
+  res_.SetRes(CmdRes::kOk, "Wal options is changed");
 }
 
 #ifdef WITH_COMMAND_DOCS

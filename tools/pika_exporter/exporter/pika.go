@@ -56,6 +56,7 @@ func NewPikaExporter(dis discovery.Discovery, namespace string,
 	}
 	e.scanCount = scanCount
 
+	e.registerMetrics()
 	e.initMetrics()
 	e.wg.Add(1)
 	go e.statsKeySpace(statsClockHour)
@@ -293,6 +294,41 @@ func (e *exporter) collectKeys(c *client) error {
 	}
 
 	return nil
+}
+
+func (e *exporter) registerMetrics() {
+	config := InfoConf
+	if config.Server {
+		metrics.RegisterServer()
+	}
+	if config.Data {
+		metrics.RegisterData()
+	}
+	if config.Clients {
+		metrics.RegisterClients()
+	}
+	if config.Stats {
+		metrics.RegisterStats()
+	}
+	if config.CPU {
+		metrics.RegisterCPU()
+	}
+	if config.Replication {
+		metrics.RegisterReplication()
+	}
+	if config.Keyspace {
+		metrics.RegisterKeyspace()
+	}
+	if config.Execcount {
+		metrics.RegisterCommandExecCount()
+	}
+	if config.Commandstats {
+		metrics.RegisterCommandstats()
+	}
+	if config.Rocksdb {
+		metrics.RegisterRocksDB()
+	}
+	metrics.RegisterBinlog()
 }
 
 func getKeysFromPatterns(c *client, keyPatterns []dbKeyPair, scanCount int) ([]dbKeyPair, error) {

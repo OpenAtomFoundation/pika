@@ -21,8 +21,11 @@ type Request struct {
 	OpStr string
 	OpFlag
 
-	Database int32
-	UnixNano int64
+	Database              int32
+	ReceiveTime           int64
+	SendToServerTime      int64
+	ReceiveFromServerTime int64
+	TasksLen              int64
 
 	*redis.Resp
 	Err error
@@ -43,7 +46,7 @@ func (r *Request) MakeSubRequest(n int) []Request {
 		x.OpFlag = r.OpFlag
 		x.Broken = r.Broken
 		x.Database = r.Database
-		x.UnixNano = r.UnixNano
+		x.ReceiveTime = r.ReceiveTime
 	}
 	return sub
 }
@@ -51,7 +54,7 @@ func (r *Request) MakeSubRequest(n int) []Request {
 const GOLDEN_RATIO_PRIME_32 = 0x9e370001
 
 func (r *Request) Seed16() uint {
-	h32 := uint32(r.UnixNano) + uint32(uintptr(unsafe.Pointer(r)))
+	h32 := uint32(r.ReceiveTime) + uint32(uintptr(unsafe.Pointer(r)))
 	h32 *= GOLDEN_RATIO_PRIME_32
 	return uint(h32 >> 16)
 }

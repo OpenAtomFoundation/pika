@@ -126,3 +126,26 @@ slaveof命令允许通过指定write2file(binlog)的文件名称及同步位置�
 
 ### diskrecovery 
 Pika 原创命令，功能为当磁盘意外写满后，RocksDB 会进入写保护状态，当我们将空间调整为充足空间时，这个命令可以将 RocksDB 的写保护状态解除，变为可以继续写的状态, 避免了 Pika 因为磁盘写满后需要重启才能恢复写的情况，执行成功时返回 OK，如果当前磁盘空间依然不足，执行这个命令返回`"The available disk capacity is insufficient`，该命令执行时不需要额外参数，只需要执行 diskrecovery 即可。
+```bash
+> diskrecovery 
+> OK
+```
+### clearreplicationid
+Pika 原创命令，功能是清空 Pika 实例的 replicationid 的值并持久化到配置文件中
+```bash
+> clearreplicationid
+> OK
+```
+
+### DisableWal
+我们可以根据 disablewal (true/false) 接受两个参数来决定 WAL 选项的开关，true 表示写 WAL 功能关闭，false 表示写 WAL 功能开启，需要注意的是写 WAL 默认是开启的 
+```bash
+> disablewal true  // 写 WAL 关闭
+> OK
+> disablewal false  // 写 WAL 开启
+> OK
+> disablewal asdfs // 识别到异常参数
+> (error) ERR Invalid parameter
+> disable false dasfasd // 参数数目异常
+> (error) ERR wrong number of arguments for 'disablewal' command
+```

@@ -18,6 +18,7 @@ import (
 var (
 	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.")
 	addr               = flag.String("pika.addr", getEnv("PIKA_ADDR", ""), "Address of one or more pika nodes, separated by comma.")
+	codisaddr          = flag.String("codis.addr", getEnv("CODIS_ADDR", "http://localhost:port/topom"), "Address of one or more codis topom urls, separated by comma.")
 	password           = flag.String("pika.password", getEnv("PIKA_PASSWORD", ""), "Password for one or more pika nodes, separated by comma.")
 	alias              = flag.String("pika.alias", getEnv("PIKA_ALIAS", ""), "Pika instance alias for one or more pika nodes, separated by comma.")
 	namespace          = flag.String("namespace", getEnv("PIKA_EXPORTER_NAMESPACE", "pika"), "Namespace for metrics.")
@@ -92,6 +93,8 @@ func main() {
 	var dis discovery.Discovery
 	if *hostFile != "" {
 		dis, err = discovery.NewFileDiscovery(*hostFile)
+	} else if *codisaddr != "" {
+		dis, err = discovery.NewCodisDiscovery(*codisaddr, *password, *alias)
 	} else {
 		dis, err = discovery.NewCmdArgsDiscovery(*addr, *password, *alias)
 	}
@@ -112,23 +115,117 @@ func main() {
 	buildInfo.WithLabelValues(BuildVersion, BuildCommitSha, BuildDate, GoVersion).Set(1)
 
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(e)
-	registry.MustRegister(buildInfo)
+	updatechan := make(chan int)
+	defer close(updatechan)
 
-	http.Handle(*metricPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	var exptr_regis ExporterInterface = NewExporterRegistry(dis, e, buildInfo, registry, updatechan)
+	exptr_regis.Start()
+	defer exptr_regis.Stop()
+
+	http.Handle(*metricPath, promhttp.HandlerFor(exptr_regis.Getregis(), promhttp.HandlerOpts{}))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-<head><title>Pika Exporter v` + BuildVersion + `</title></head>
-<body>
-<h1>Pika Exporter ` + BuildVersion + `</h1>
-<p><a href='` + *metricPath + `'>Metrics</a></p>
-</body>
-</html>`))
+	<head><title>Pika Exporter v` + BuildVersion + `</title></head>
+	<body>
+	<h1>Pika Exporter ` + BuildVersion + `</h1>
+	<p><a href='` + *metricPath + `'>Metrics</a></p>
+	</body>
+	</html>`))
 	})
 
 	log.Printf("Providing metrics on %s%s", *listenAddress, *metricPath)
 	for _, instance := range dis.GetInstances() {
 		log.Println("Connecting to Pika:", instance.Addr, "Alias:", instance.Alias)
 	}
+	if *codisaddr != "" {
+		go func() {
+			exptr_regis.LoopCheckUpdate(updatechan, *codisaddr)
+		}()
+		go func() {
+			for {
+				select {
+				case updatesignal := <-updatechan:
+					log.Warningln("Get signal from updatechan.")
+					if updatesignal == 1 {
+						exptr_regis.Update()
+					}
+				default:
+					time.Sleep(5 * time.Second)
+				}
+			}
+		}()
+	}
+
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+}
+
+type ExporterInterface interface {
+	Start()
+	Stop()
+	Update()
+	LoopCheckUpdate(updatechan chan int, codisaddr string)
+	Getregis() *prometheus.Registry
+}
+
+type ExporterRegistry struct {
+	dis        discovery.Discovery
+	expt       prometheus.Collector
+	regis      *prometheus.Registry
+	bif        prometheus.Collector
+	updatechan chan int
+}
+
+func NewExporterRegistry(dis discovery.Discovery, e, buildInfo prometheus.Collector, registry *prometheus.Registry, updatechan chan int) *ExporterRegistry {
+	return &ExporterRegistry{
+		dis:        dis,
+		expt:       e,
+		regis:      registry,
+		bif:        buildInfo,
+		updatechan: updatechan,
+	}
+}
+
+func (exptr_regis *ExporterRegistry) Getregis() *prometheus.Registry {
+	return exptr_regis.regis
+}
+
+func (exptr_regis *ExporterRegistry) Start() {
+	exptr_regis.regis.MustRegister(exptr_regis.expt)
+	exptr_regis.regis.MustRegister(exptr_regis.bif)
+}
+
+func (exptr_regis *ExporterRegistry) Stop() {
+	exptr_regis.regis.Unregister(exptr_regis.expt)
+	exptr_regis.regis.Unregister(exptr_regis.bif)
+}
+
+func (exptr_regis *ExporterRegistry) Update() {
+	if *codisaddr != "" {
+		newdis, err := discovery.NewCodisDiscovery(*codisaddr, *password, *alias)
+		if err != nil {
+			log.Fatalln("exporter get NewCodisDiscovery failed. err:", err)
+		}
+
+		exptr_regis.regis.Unregister(exptr_regis.expt)
+		exptr_regis.Stop()
+
+		new_e, err := exporter.NewPikaExporter(newdis, *namespace, *checkKeyPatterns, *checkKeys, *checkScanCount, *keySpaceStatsClock)
+		if err != nil {
+			log.Fatalln("exporter init failed. err:", err)
+		} else {
+			exptr_regis.dis = newdis
+			exptr_regis.expt = new_e
+		}
+		exptr_regis.Start()
+		for _, instance := range exptr_regis.dis.GetInstances() {
+			log.Println("Reconnecting to Pika:", instance.Addr, "Alias:", instance.Alias)
+		}
+	}
+}
+
+func (exptr_regis *ExporterRegistry) LoopCheckUpdate(updatechan chan int, codisaddr string) {
+	for {
+		time.Sleep(30 * time.Second)
+		exptr_regis.dis.CheckUpdate(updatechan, codisaddr)
+	}
 }

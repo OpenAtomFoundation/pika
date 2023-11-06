@@ -10,7 +10,7 @@
 #include <random>
 #include <vector>
 
-#include "hiredis-vip/hiredis.h"
+#include "hiredis/hiredis.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
 

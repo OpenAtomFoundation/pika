@@ -2,13 +2,14 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable", "3.5.0" ]
+    branches: [ "unstable", "3.5.1" ]
   pull_request:
-    branches: [ "unstable", "3.5.0" ]
+    branches: [ "unstable", "3.5.1" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo
+  ARTIFACT_PIKA_NAME: artifact-pika
 
 jobs:
   build_on_ubuntu:
@@ -25,7 +26,7 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: cache dependencies
+      - name: Cache dependencies
         uses: actions/cache@v2
         id: cache
         with:
@@ -34,22 +35,36 @@ jobs:
             ~/.cache/pip
           key: ${{ runner.os }}-dependencies
 
-      - name: install Deps
+      - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12 python3-pip
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
+          sudo apt-get install -y clang-tidy-12
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-ubuntu
+        with:
+          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
+          path: |
+            ${{ github.workspace }}/build
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
+
       - name: Build
+        if: ${{ steps.cache-ubuntu.outputs.cache-hit != 'true' }}
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_PIKA_NAME }}
+          path: ${{ github.workspace }}/build/pika
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
@@ -68,12 +83,6 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -89,11 +98,9 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          yum install -y wget git autoconf centos-release-scl
+          yum install -y wget git autoconf centos-release-scl gcc
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which python3
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which 
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -115,7 +122,18 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-centos
+        with:
+          key: ${{ runner.os }}-build-centos-${{ hashFiles('**/CMakeLists.txt') }}
+          path: |
+            ${{ github.workspace }}/build
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
+
       - name: Build
+        if: ${{ steps.cache-centos.outputs.cache-hit != 'true' }}
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
@@ -134,11 +152,12 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
+      - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
+          cd ../tests/integration/
+          chmod +x integrate_test.sh 
+          sh integrate_test.sh
 
   build_on_macos:
     runs-on: macos-latest
@@ -151,36 +170,35 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: cache dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: |
-            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-            ~/.cache/pip
-          key: ${{ runner.os }}-dependencies
-
-      - name: install Deps
-        if: ${{ steps.cache.output.cache-hit != 'true' }}
+      - name: Install Deps
         run: |
           brew update
           brew install --overwrite python autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
-          python3 -m pip install --upgrade pip
-          python3 -m pip install redis
 
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-macos
+        with:
+          key: ${{ runner.os }}-build-macos-${{ hashFiles('**/CMakeLists.txt') }}
+          path: |
+            ${{ github.workspace }}/build
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
 
       - name: Build
+        if: ${{ steps.cache-macos.outputs.cache-hit != 'true' }}
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }}
+        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
@@ -193,12 +211,6 @@ jobs:
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
 
-      - name: Run Python E2E Tests
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          python3 ../tests/integration/pika_replication_test.py
-          python3 ../tests/unit/Blpop_Brpop_test.py
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -209,6 +221,7 @@ jobs:
   build_pika_image:
     name: Build Pika Docker image
     runs-on: ubuntu-latest
+    needs: build_on_ubuntu
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -218,18 +231,23 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: pikadb/pika
-      
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_PIKA_NAME }}
+          path: artifact/
+
       - name: Build Docker image
-        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./ci/Dockerfile
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
