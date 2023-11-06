@@ -22,6 +22,8 @@ class SAddCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SAddCmd(*this); }
@@ -29,6 +31,7 @@ class SAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -41,13 +44,17 @@ class SPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SPopCmd(*this); }
 
  private:
   std::string key_;
-  int64_t count_;
+  std::string member_;
+  int64_t count_ = 1;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -60,12 +67,16 @@ class SCardCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SCardCmd(*this); }
 
  private:
   std::string key_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -78,12 +89,16 @@ class SMembersCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SMembersCmd(*this); }
 
  private:
   std::string key_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -104,6 +119,7 @@ class SScanCmd : public Cmd {
   std::string key_, pattern_ = "*";
   int64_t cursor_ = 0;
   int64_t count_ = 10;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";
@@ -120,6 +136,8 @@ class SRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SRemCmd(*this); }
@@ -127,6 +145,8 @@ class SRemCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
+  rocksdb::Status s_;
+  int32_t deleted_ = 0;
   void DoInitial() override;
 };
 
@@ -175,12 +195,15 @@ class SUnionstoreCmd : public SetOperationCmd {
   SUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
   // current_key() is override in base class : SetOperationCmd
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SUnionstoreCmd(*this); }
 
  private:
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class SInterCmd : public Cmd {
@@ -200,6 +223,8 @@ class SInterstoreCmd : public SetOperationCmd {
  public:
   SInterstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SInterstoreCmd(*this); }
@@ -217,12 +242,17 @@ class SIsmemberCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SIsmemberCmd(*this); }
 
  private:
-  std::string key_, member_;
+   std::string key_;
+   std::string member_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -243,11 +273,14 @@ class SDiffstoreCmd : public SetOperationCmd {
  public:
   SDiffstoreCmd(const std::string& name, int arity, uint16_t flag) : SetOperationCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SDiffstoreCmd(*this); }
 
  private:
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -270,6 +303,8 @@ class SMoveCmd : public Cmd {
     return {src_key_, dest_key_};
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SMoveCmd(*this); }
@@ -293,6 +328,9 @@ class SRandmemberCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SRandmemberCmd(*this); }
