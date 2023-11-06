@@ -171,7 +171,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Kv
   ////SetCmd
   std::unique_ptr<Cmd> setptr =
-      std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache );
+      std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSet, std::move(setptr)));
   ////GetCmd
   std::unique_ptr<Cmd> getptr =
@@ -179,38 +179,38 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
-      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache );
+      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDel, std::move(delptr)));
   std::unique_ptr<Cmd> Unlinkptr =
-      std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv );
+      std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnlink, std::move(Unlinkptr)));
   ////IncrCmd
   std::unique_ptr<Cmd> incrptr =
-      std::make_unique<IncrCmd>(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
+      std::make_unique<IncrCmd>(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncr, std::move(incrptr)));
   ////IncrbyCmd
   std::unique_ptr<Cmd> incrbyptr =
-      std::make_unique<IncrbyCmd>(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
+      std::make_unique<IncrbyCmd>(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrby, std::move(incrbyptr)));
   ////IncrbyfloatCmd
   std::unique_ptr<Cmd> incrbyfloatptr =
-      std::make_unique<IncrbyfloatCmd>(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
+      std::make_unique<IncrbyfloatCmd>(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrbyfloat, std::move(incrbyfloatptr)));
   ////DecrCmd
   std::unique_ptr<Cmd> decrptr =
-      std::make_unique<DecrCmd>(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
+      std::make_unique<DecrCmd>(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecr, std::move(decrptr)));
   ////DecrbyCmd
   std::unique_ptr<Cmd> decrbyptr =
-      std::make_unique<DecrbyCmd>(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsUpdateCache);
+      std::make_unique<DecrbyCmd>(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecrby, std::move(decrbyptr)));
   ////GetsetCmd
   std::unique_ptr<Cmd> getsetptr =
-      std::make_unique<GetsetCmd>(kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<GetsetCmd>(kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGetset, std::move(getsetptr)));
   ////AppendCmd
   std::unique_ptr<Cmd> appendptr =
-      std::make_unique<AppendCmd>(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<AppendCmd>(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameAppend, std::move(appendptr)));
   ////MgetCmd
   std::unique_ptr<Cmd> mgetptr =
@@ -226,7 +226,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetnx, std::move(setnxptr)));
   ////SetexCmd
   std::unique_ptr<Cmd> setexptr =
-      std::make_unique<SetexCmd>(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<SetexCmd>(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetex, std::move(setexptr)));
   ////PsetexCmd
   std::unique_ptr<Cmd> psetexptr =
@@ -242,31 +242,31 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMset, std::move(msetptr)));
   ////MSetnxCmd
   std::unique_ptr<Cmd> msetnxptr =
-      std::make_unique<MsetnxCmd>(kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+      std::make_unique<MsetnxCmd>(kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMsetnx, std::move(msetnxptr)));
   ////GetrangeCmd
   std::unique_ptr<Cmd> getrangeptr =
-      std::make_unique<GetrangeCmd>(kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<GetrangeCmd>(kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGetrange, std::move(getrangeptr)));
   ////SetrangeCmd
   std::unique_ptr<Cmd> setrangeptr =
-      std::make_unique<SetrangeCmd>(kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<SetrangeCmd>(kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetrange, std::move(setrangeptr)));
   ////StrlenCmd
   std::unique_ptr<Cmd> strlenptr =
-      std::make_unique<StrlenCmd>(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<StrlenCmd>(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameStrlen, std::move(strlenptr)));
   ////ExistsCmd
   std::unique_ptr<Cmd> existsptr =
-      std::make_unique<ExistsCmd>(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsKv);
+      std::make_unique<ExistsCmd>(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExists, std::move(existsptr)));
   ////ExpireCmd
   std::unique_ptr<Cmd> expireptr =
-      std::make_unique<ExpireCmd>(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<ExpireCmd>(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExpire, std::move(expireptr)));
   ////PexpireCmd
   std::unique_ptr<Cmd> pexpireptr =
-      std::make_unique<PexpireCmd>(kCmdNamePexpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<PexpireCmd>(kCmdNamePexpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpire, std::move(pexpireptr)));
   ////ExpireatCmd
   std::unique_ptr<Cmd> expireatptr =
@@ -274,23 +274,23 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExpireat, std::move(expireatptr)));
   ////PexpireatCmd
   std::unique_ptr<Cmd> pexpireatptr =
-      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpireat, std::move(pexpireatptr)));
   ////TtlCmd
   std::unique_ptr<Cmd> ttlptr =
-      std::make_unique<TtlCmd>(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<TtlCmd>(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameTtl, std::move(ttlptr)));
   ////PttlCmd
   std::unique_ptr<Cmd> pttlptr =
-      std::make_unique<PttlCmd>(kCmdNamePttl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<PttlCmd>(kCmdNamePttl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePttl, std::move(pttlptr)));
   ////PersistCmd
   std::unique_ptr<Cmd> persistptr =
-      std::make_unique<PersistCmd>(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<PersistCmd>(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePersist, std::move(persistptr)));
   ////TypeCmd
   std::unique_ptr<Cmd> typeptr =
-      std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoFromCache | kCmdFlagsPreDo);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
   ////PTypeCmd
   std::unique_ptr<Cmd> pTypeptr = std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv);
