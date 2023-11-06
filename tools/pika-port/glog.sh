@@ -3,7 +3,7 @@
 # DESC    : glog build script
 # AUTHOR  : Alex Stocks
 # VERSION : 1.0
-# LICENCE : Apache License 2.0
+# LICENCE : BSD-3-Clause License
 # EMAIL   : alexstocks@foxmail.com
 # MOD     : 2019-01-22 19:54
 # FILE    : build.sh
