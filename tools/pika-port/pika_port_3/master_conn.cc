@@ -275,10 +275,21 @@ bool MasterConn::ProcessBinlogData(const net::RedisCmdArgsType& argv, const Port
   if (1 < argv.size()) {
     key = argv[1];
   }
-  int ret = g_pika_port->SendRedisCommand(binlog_item.content(), key);
+
+  int ret = 0;
+  std::string command;
+  if (argv[0] == "pksetexat"){
+    command = binlog_item.content();
+    command.erase(0, 4);
+    command.replace(0, 13, "*4\r\n$5\r\nsetex");
+  } else {
+    command = binlog_item.content();
+  }
+  ret = g_pika_port->SendRedisCommand(command, key);
   if (ret != 0) {
-    LOG(WARNING) << "send redis command:" << binlog_item.ToString() << ", ret:" << ret;
+    LOG(WARNING) << "send redis command:" << command << ", ret:" << ret;
   }
 
   return true;
 }
+
