@@ -12,14 +12,13 @@
 
 extern PikaServer *g_pika_server;
 
-PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<Slot> slot)
-    : should_exit_(false)
-      , loadkeys_cond_()
-      , async_load_keys_num_(0)
-      , waitting_load_keys_num_(0)
-      , cache_start_pos_(cache_start_pos)
-      , cache_items_per_key_(cache_items_per_key)
-{
+PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<PikaCache> cache)
+    : should_exit_(false),
+      async_load_keys_num_(0),
+      waitting_load_keys_num_(0),
+      cache_start_pos_(cache_start_pos),
+      cache_items_per_key_(cache_items_per_key),
+      cache_(cache) {
   set_thread_name("PikaCacheLoadThread");
 }
 
@@ -38,7 +37,7 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
   std::lock_guard lm(loadkeys_map_mutex_);
 
   if (CACHE_LOAD_QUEUE_MAX_SIZE < loadkeys_queue_.size()) {
-    // print log for second 5
+    // 5s打印一次日志
     static uint64_t last_log_time_us = 0;
     if (pstd::NowMicros() - last_log_time_us > 5000000) {
       LOG(WARNING) << "PikaCacheLoadThread::Push waiting...";

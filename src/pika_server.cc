@@ -1841,14 +1841,14 @@ void PikaServer::DoCacheBGTask(void* arg) {
       LOG(INFO) << "reset cache num start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
       g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
-      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      slot->cache()->Reset();
       LOG(INFO) << "reset cache num finish";
       break;
     case CACHE_BGTASK_RESET_CFG:
       LOG(INFO) << "reset cache config start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
       g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
-      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      slot->cache()->Reset();
       LOG(INFO) << "reset cache config finish";
       break;
     default:
@@ -1873,7 +1873,7 @@ void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
 }
 
 void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
-  g_pika_cache_manager->ClearHitRatio();
+  slot->cache()->ClearHitRatio();
 }
 
 void PikaServer::OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot) {

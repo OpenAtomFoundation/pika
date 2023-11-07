@@ -116,10 +116,7 @@ std::shared_ptr<PikaCache> Slot::cache() const { return cache_; }
 
 void Slot::Init() {
   cache_ = std::make_shared<PikaCache>(0, 0, shared_from_this());
-  // Create cache
-  cache::CacheConfig cache_cfg;
-  g_pika_cache_manager->CacheConfigInit(cache_cfg);
-  cache_->Init(g_pika_conf->cache_num(), &cache_cfg);
+  cache_->Init();
 }
 
 void Slot::Compact(const storage::DataType& type) {
