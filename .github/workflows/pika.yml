@@ -52,12 +52,10 @@ jobs:
         with:
           key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
           path: |
-            ${{ github.workspace }}/build
             ${{ github.workspace }}/buildtrees
             ${{ github.workspace }}/deps
 
       - name: Build
-        if: ${{ steps.cache-ubuntu.outputs.cache-hit != 'true' }}
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
@@ -128,7 +126,6 @@ jobs:
         with:
           key: ${{ runner.os }}-build-centos-${{ hashFiles('**/CMakeLists.txt') }}
           path: |
-            ${{ github.workspace }}/build
             ${{ github.workspace }}/buildtrees
             ${{ github.workspace }}/deps
 
@@ -187,7 +184,6 @@ jobs:
         with:
           key: ${{ runner.os }}-build-macos-${{ hashFiles('**/CMakeLists.txt') }}
           path: |
-            ${{ github.workspace }}/build
             ${{ github.workspace }}/buildtrees
             ${{ github.workspace }}/deps
 
