@@ -40,7 +40,12 @@ func (c *DeployConfig) Init(path string, sep string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.WarnErrorf(err, "Close %s failed.\n", path)
+		}
+	}(f)
 
 	r := bufio.NewReader(f)
 	for {
@@ -52,23 +57,19 @@ func (c *DeployConfig) Init(path string, sep string) error {
 			return err
 		}
 
-		// 拿到一行并去除两边空白字符
 		line := strings.TrimSpace(string(b))
 
 		item := &ConfItem{}
-		//第一个字符为“#”或者空行都认为是注释
 		if strings.Index(line, "#") == 0 || len(line) == 0 {
 			item.confType = TypeComment
 			item.name = line
 			c.items = append(c.items, item)
 			continue
 		}
-		//找不到 = ，说明这行配置有问题
 		index := strings.Index(line, sep)
 		if index <= 0 {
 			continue
 		}
-		//key不可以为空，value可以为空
 		key := strings.TrimSpace(line[:index])
 		value := strings.TrimSpace(line[index+1:])
 		if len(key) == 0 {
@@ -88,7 +89,6 @@ func (c *DeployConfig) Reset(conf interface{}, isWrap bool) {
 	for i := 0; i < obj.NumField(); i++ {
 		fieldInfo := obj.Type().Field(i)
 		name := fieldInfo.Tag.Get("toml")
-		//  检查字段的toml tag是否合法
 		if name == "" || name == "-" {
 			continue
 		}
@@ -100,32 +100,56 @@ func (c *DeployConfig) Reset(conf interface{}, isWrap bool) {
 				continue
 			}
 			if isWrap {
-				c.Set(name, "\""+value+"\"")
+				err := c.Set(name, "\""+value+"\"")
+				if err != nil {
+					log.WarnErrorf(err, "Set string with wrap failed!")
+				}
 			} else {
-				c.Set(name, value)
+				err := c.Set(name, value)
+				if err != nil {
+					log.WarnErrorf(err, "Set string without wrap failed!")
+				}
 			}
 		case int:
 			value = strconv.Itoa(v)
-			c.Set(name, value)
+			err := c.Set(name, value)
+			if err != nil {
+				log.WarnErrorf(err, "Set int failed!")
+			}
 		case int32:
 			value = strconv.FormatInt(int64(v), 10)
-			c.Set(name, value)
+			err := c.Set(name, value)
+			if err != nil {
+				log.WarnErrorf(err, "Set int32 failed!")
+			}
 
 		case int64:
 			value = strconv.FormatInt(v, 10)
-			c.Set(name, value)
+			err := c.Set(name, value)
+			if err != nil {
+				log.WarnErrorf(err, "Set int64 failed!")
+			}
 		case bool:
 			if v {
-				c.Set(name, "true")
+				err := c.Set(name, "true")
+				if err != nil {
+					log.WarnErrorf(err, "Set bool value failed!")
+				}
 			} else {
-				c.Set(name, "false")
+				err := c.Set(name, "false")
+				if err != nil {
+					log.WarnErrorf(err, "Set bool value failed!")
+				}
 			}
 		case timesize.Duration:
 			if ret, err := v.MarshalText(); err != nil {
 				log.WarnErrorf(err, "config set %s failed.\n", name)
 			} else {
 				value = string(ret[:])
-				c.Set(name, "\""+value+"\"")
+				err := c.Set(name, "\""+value+"\"")
+				if err != nil {
+					log.WarnErrorf(err, "Set timesize failed!")
+				}
 			}
 
 		case bytesize.Int64:
@@ -133,7 +157,10 @@ func (c *DeployConfig) Reset(conf interface{}, isWrap bool) {
 				log.WarnErrorf(err, "config set %s failed.\n", name)
 			} else {
 				value = string(ret[:])
-				c.Set(name, "\""+value+"\"")
+				err := c.Set(name, "\""+value+"\"")
+				if err != nil {
+					log.WarnErrorf(err, "Set bytesize failed!")
+				}
 			}
 
 		default:
@@ -180,10 +207,10 @@ func (c *DeployConfig) Show() {
 	log.Infof("Show config, len = %d\n", len(c.items))
 	for index, item := range c.items {
 		if item.confType == TypeComment {
-			//  注释的格式:  id: context
+			//  Comment format:  id: context
 			log.Infof("%d: %s\n", index, item.name)
 		} else {
-			//   配置文件的格式: id: key = value  或者  id: key value
+			//   Configuration format: id: key = value  or  id: key value
 			if len(strings.TrimSpace(c.sep)) > 0 {
 				log.Infof("%d: %s %s %s\n", index, item.name, c.sep, item.value)
 			} else {
@@ -194,18 +221,21 @@ func (c *DeployConfig) Show() {
 }
 
 func (c *DeployConfig) ReWrite(confName string) error {
-	//  confName = DefaultName.tmp
 	f, err := os.Create(confName)
 	if err != nil {
 		log.WarnErrorf(err, "create %s failed.\n", confName)
 		return err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.WarnErrorf(err, "Close %s failed.\n", confName)
+		}
+	}(f)
 
 	w := bufio.NewWriter(f)
-
+	var lineStr string
 	for _, item := range c.items {
-		var lineStr string
 		if item.confType == TypeComment {
 			lineStr = fmt.Sprintf("%s", item.name)
 		} else {
@@ -221,7 +251,7 @@ func (c *DeployConfig) ReWrite(confName string) error {
 }
 
 func RewriteConfig(postConf interface{}, defaultConf string, sep string, isWrap bool) error {
-	conf := new(DeployConfig)
+	conf := &DeployConfig{}
 	err := conf.Init(defaultConf, sep)
 	if err != nil {
 		log.WarnErrorf(err, "open  %s file failed.\n", defaultConf)
@@ -229,15 +259,12 @@ func RewriteConfig(postConf interface{}, defaultConf string, sep string, isWrap 
 	}
 	conf.Reset(postConf, isWrap)
 	conf.Show()
-	//  重写一份config
 	var newConf = defaultConf + ".tmp"
 	if err = conf.ReWrite(newConf); err != nil {
 		return err
-	} else {
-		if err = os.Remove(defaultConf); err != nil {
-			return err
-		} else {
-			return os.Rename(newConf, defaultConf)
-		}
 	}
+	if err = os.Remove(defaultConf); err != nil {
+		return err
+	}
+	return os.Rename(newConf, defaultConf)
 }

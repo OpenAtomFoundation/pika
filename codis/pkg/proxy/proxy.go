@@ -218,8 +218,14 @@ func (s *Proxy) ConfigGet(key string) *redis.Resp {
 	switch key {
 	case "proxy_max_clients":
 		return redis.NewBulkBytes([]byte(strconv.Itoa(s.config.ProxyMaxClients)))
+	case "backend_primary_only":
+		return redis.NewBulkBytes([]byte(strconv.FormatBool(s.config.BackendPrimaryOnly)))
+	case "slowlog_log_slower_than":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(s.config.SlowlogLogSlowerThan, 10)))
+	case "slowlog_max_len":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(s.config.SlowlogMaxLen, 10)))
 	default:
-		return redis.NewErrorf("unsurport key[%s].", key)
+		return redis.NewErrorf("unsupported key: %s", key)
 	}
 }
 
@@ -230,17 +236,41 @@ func (s *Proxy) ConfigSet(key, value string) *redis.Resp {
 	case "proxy_max_clients":
 		n, err := strconv.Atoi(value)
 		if err != nil {
-			return redis.NewErrorf("err：%s.", err)
+			return redis.NewErrorf("err：%s", err)
 		}
-
 		if n <= 0 {
 			return redis.NewErrorf("invalid proxy_max_clients")
-		} else {
-			s.config.ProxyMaxClients = n
-			return redis.NewString([]byte("OK"))
 		}
+		s.config.ProxyMaxClients = n
+		return redis.NewString([]byte("OK"))
+	case "backend_primary_only":
+		return redis.NewErrorf("not currently supported")
+	case "slowlog_log_slower_than":
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s", err)
+		}
+		if n < 0 {
+			return redis.NewErrorf("invalid slowlog_log_slower_than")
+		}
+		s.config.SlowlogLogSlowerThan = n
+		return redis.NewString([]byte("OK"))
+	case "slowlog_max_len":
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s", err)
+		}
+
+		if n < 0 {
+			return redis.NewErrorf("invalid slowlog_max_len")
+		}
+		s.config.SlowlogMaxLen = n
+		if s.config.SlowlogMaxLen > 0 {
+			SlowLogSetMaxLen(s.config.SlowlogMaxLen)
+		}
+		return redis.NewString([]byte("OK"))
 	default:
-		return redis.NewErrorf("unsurport key.")
+		return redis.NewErrorf("unsupported key: %s", key)
 	}
 }
 

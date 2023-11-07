@@ -2,11 +2,12 @@ package proxy
 
 import (
 	"container/list"
+	"strconv"
+	"sync"
+
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/log"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
-	"strconv"
-	"sync"
 )
 
 const (

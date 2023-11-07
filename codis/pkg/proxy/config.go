@@ -115,6 +115,12 @@ session_keepalive_period = "75s"
 # Set session to be sensitive to failures. Default is false, instead of closing socket, proxy will send an error response to client.
 session_break_on_failure = false
 
+# Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
+slowlog_log_slower_than = 100000
+
+# set the number of slowlog in memory, max len is 10000000. (0 to disable)
+slowlog_max_len = 128000
+
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
 metrics_report_period = "1s"
@@ -134,9 +140,6 @@ metrics_report_statsd_prefix = ""
 
 type Config struct {
 	ConfigFileName string `toml:"-" json:"config_file_name"`
-	Log            string `toml:"log"`
-	LogLevel       string `toml:"log_level"`
-	Ncpu           int    `toml:"ncpu"`
 
 	ProtoType string `toml:"proto_type" json:"proto_type"`
 	ProxyAddr string `toml:"proxy_addr" json:"proxy_addr"`
@@ -181,8 +184,8 @@ type Config struct {
 	SessionKeepAlivePeriod timesize.Duration `toml:"session_keepalive_period" json:"session_keepalive_period"`
 	SessionBreakOnFailure  bool              `toml:"session_break_on_failure" json:"session_break_on_failure"`
 
-	//SlowlogLogSlowerThan int64 `toml:"slowlog_log_slower_than" json:"slowlog_log_slower_than"`
-	//SlowlogMaxLen        int64 `toml:"slowlog_max_len" json:"slowlog_max_len"`
+	SlowlogLogSlowerThan int64 `toml:"slowlog_log_slower_than" json:"slowlog_log_slower_than"`
+	SlowlogMaxLen        int64 `toml:"slowlog_max_len" json:"slowlog_max_len"`
 
 	MetricsReportServer           string            `toml:"metrics_report_server" json:"metrics_report_server"`
 	MetricsReportPeriod           timesize.Duration `toml:"metrics_report_period" json:"metrics_report_period"`
@@ -310,21 +313,12 @@ func (c *Config) Validate() error {
 		return errors.New("invalid session_keepalive_period")
 	}
 
-	//if c.SlowlogLogSlowerThan < 0 {
-	//	return errors.New("invalid slowlog_log_slower_than")
-	//}
-	//if c.SlowlogMaxLen < 0 {
-	//	return errors.New("invalid slowlog_max_len")
-	//}
-	//if c.Log == "" {
-	//	return errors.New("invalid log")
-	//}
-	//if c.LogLevel == "" {
-	//	return errors.New("invalid log_level")
-	//}
-	//if c.Ncpu <= 0 {
-	//	return errors.New("invalid ncpu")
-	//}
+	if c.SlowlogLogSlowerThan < 0 {
+		return errors.New("invalid slowlog_log_slower_than")
+	}
+	if c.SlowlogMaxLen < 0 {
+		return errors.New("invalid slowlog_max_len")
+	}
 
 	if c.MetricsReportPeriod < 0 {
 		return errors.New("invalid metrics_report_period")

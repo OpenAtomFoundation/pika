@@ -208,8 +208,6 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		})
 		s.flushOpStats(true)
 	}()
-
-	//var cmd = make([]byte, 128)
 	var (
 		breakOnFailure = s.config.SessionBreakOnFailure
 		maxPipelineLen = s.config.SessionMaxPipeline
@@ -240,29 +238,26 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		if fflush {
 			s.flushOpStats(false)
 		}
-		//if s.config.SlowlogLogSlowerThan > 0 {
-		//	nowTime := time.Now().UnixNano()
-		//	duration := int64((nowTime - r.ReceiveTime) / 1e3)
-		//	if duration >= s.config.SlowlogLogSlowerThan {
-		//		var d0, d1, d2 int64 = -1, -1, -1
-		//		if r.SendToServerTime > 0 {
-		//			d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
-		//		}
-		//		if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
-		//			d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
-		//		}
-		//		if r.ReceiveFromServerTime > 0 {
-		//			d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
-		//		}
-		//		index := getWholeCmd(r.Multi, cmd)
-		//		cmdLog := fmt.Sprintf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
-		//			time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
-		//		log.Warnf("%s", cmdLog)
-		//		if s.config.SlowlogMaxLen > 0 {
-		//			SlowLogPush(&SlowLogEntry{SlowLogGetCurLogId(), r.ReceiveTime / 1e3, duration, cmdLog})
-		//		}
-		//	}
-		//}
+		nowTime := time.Now().UnixNano()
+		duration := int64((nowTime - r.ReceiveTime) / 1e3)
+		if duration >= 50000 {
+			//client -> proxy -> server -> porxy -> client
+			//Record the waiting time from receiving the request from the client to sending it to the backend server
+			//the waiting time from sending the request to the backend server to receiving the response from the server
+			//the waiting time from receiving the server response to sending it to the client
+			var d0, d1, d2 int64 = -1, -1, -1
+			if r.SendToServerTime > 0 {
+				d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+			}
+			if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
+				d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+			}
+			if r.ReceiveFromServerTime > 0 {
+				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
+			}
+			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d",
+				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen)
+		}
 		return nil
 	})
 }
