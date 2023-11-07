@@ -155,6 +155,8 @@ class FlushallCmd : public Cmd {
  public:
   FlushallCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
@@ -262,6 +264,8 @@ class InfoCmd : public Cmd {
   void InfoDebug(std::string& info);
   void InfoCommandStats(std::string& info);
   void InfoCache(std::string& info);
+
+  std::string CacheStatusToString(int status);
 };
 
 class ShutdownCmd : public Cmd {
@@ -288,7 +292,7 @@ class ConfigCmd : public Cmd {
   std::vector<std::string> config_args_v_;
   void DoInitial() override;
   void ConfigGet(std::string& ret);
-  void ConfigSet(std::string& ret);
+  void ConfigSet(std::string& ret, std::shared_ptr<Slot> slot);
   void ConfigRewrite(std::string& ret);
   void ConfigResetstat(std::string& ret);
   void ConfigRewriteReplicationID(std::string& ret);
@@ -488,6 +492,25 @@ class DisableWalCmd : public Cmd {
 
  private:
   void DoInitial() override;
+};
+
+class CacheCmd : public Cmd {
+ public:
+  enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
+  CacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new CacheCmd(*this); }
+
+ private:
+  CacheCondition condition_;
+  std::vector<std::string> keys_;
+  rocksdb::Status s_;
+  void DoInitial() override;
+  void Clear() override {
+    keys_.clear();
+  }
 };
 
 #ifdef WITH_COMMAND_DOCS

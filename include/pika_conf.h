@@ -334,6 +334,16 @@ class PikaConf : public pstd::BaseConf {
   int cache_hash() { return cache_hash_; }
   int cache_list() { return cache_list_; }
   int cache_bit() { return cache_bit_; }
+  int cache_num() { return cache_num_; }
+  void SetCacheNum(const int value) { cache_num_ = value; }
+  void SetCacheModel(const int value) { cache_model_ = value; }
+  void SetCacheStartPos(const int value) { cache_start_pos_ = value; }
+  void SetCacheItemsPerKey(const int value) { cache_items_per_key_ = value; }
+  void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
+  void SetCacheMaxmemoryPolicy(const int value) { cache_maxmemory_policy_ = value; }
+  void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
+  void SetCacheLFUDecayTime(const int value) { cache_lfu_decay_time_ = value; }
+  void UnsetCacheDisableFlag() { tmp_cache_disable_flag_ = false; }
   bool enable_blob_files() { return enable_blob_files_; }
   int64_t min_blob_size() { return min_blob_size_; }
   int64_t blob_file_size() { return blob_file_size_; }
@@ -593,7 +603,13 @@ class PikaConf : public pstd::BaseConf {
   }
 
   void SetCacheType(const std::string &value);
-
+  void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
+  int cache_start_pos() { return cache_start_pos_; }
+  int cache_items_per_key() { return cache_items_per_key_; }
+  int64_t cache_maxmemory() { return cache_maxmemory_; }
+  int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
+  int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
+  int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -606,7 +622,6 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
-
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 

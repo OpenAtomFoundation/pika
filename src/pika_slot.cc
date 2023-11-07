@@ -118,6 +118,7 @@ void Slot::Init() {
   cache_ = std::make_shared<PikaCache>(0, 0, shared_from_this());
   cache_->Init();
 }
+
 void Slot::Compact(const storage::DataType& type) {
   if (!opened_) {
     return;

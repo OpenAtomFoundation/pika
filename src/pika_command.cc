@@ -101,6 +101,8 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameClearReplicationID, std::move(clearreplicationidptr)));
   std::unique_ptr<Cmd> disablewalptr = std::make_unique<DisableWalCmd>(kCmdNameDisableWal, 2, kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDisableWal, std::move(disablewalptr)));
+  std::unique_ptr<Cmd> cacheptr = std::make_unique<CacheCmd>(kCmdNameCache, -2, kCmdFlagsAdmin | kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCache, std::move(cacheptr)));
 
 #ifdef WITH_COMMAND_DOCS
   std::unique_ptr<Cmd> commandptr = std::make_unique<CommandCmd>(kCmdNameCommand, -1, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -832,8 +834,8 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
     slot->DbRWLockReader();
   }
   if (need_cache_do()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
-   // && PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()) {
+      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (is_need_read_cache()) {
       PreDo(slot);
     }

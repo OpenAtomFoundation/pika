@@ -1307,6 +1307,7 @@ void PikaServer::DoTimingTask() {
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
   g_pika_cache_manager->ProcessCronTask();
+  g_pika_cache_manager->UpdateCacheInfo();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
 
@@ -1789,4 +1790,110 @@ void DoBgslotscleanup(void* arg) {
   std::string slotsStr;
   slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
+}
+
+void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg) {
+  if (PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()
+      || PIKA_CACHE_STATUS_NONE == slot->cache()->CacheStatus()) {
+
+    common_bg_thread_.StartThread();
+    BGCacheTaskArg *arg = new BGCacheTaskArg();
+    arg->slot = slot;
+    arg->cache_num = cache_num;
+    if (cache_cfg == nullptr) {
+      arg->task_type = CACHE_BGTASK_RESET_NUM;
+    } else {
+      arg->task_type = CACHE_BGTASK_RESET_CFG;
+      arg->cache_cfg = *cache_cfg;
+    }
+    common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+  } else {
+    LOG(WARNING) << "can not reset cache in status: " << slot->cache()->CacheStatus();
+  }
+}
+
+void PikaServer::ClearCacheDbAsync(std::shared_ptr<Slot> slot) {
+  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+    return;
+  }
+
+  common_bg_thread_.StartThread();
+  BGCacheTaskArg *arg = new BGCacheTaskArg();
+  arg->slot = slot;
+  arg->task_type = CACHE_BGTASK_CLEAR;
+  common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::DoCacheBGTask(void* arg) {
+  std::unique_ptr<BGCacheTaskArg> pCacheTaskArg(static_cast<BGCacheTaskArg*>(arg));
+  std::shared_ptr<Slot> slot = pCacheTaskArg->slot;
+
+  switch (pCacheTaskArg->task_type) {
+    case CACHE_BGTASK_CLEAR:
+      LOG(INFO) << "clear cache start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
+      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR);
+      slot->cache()->FlushSlot();
+      LOG(INFO) << "clear cache finish";
+      break;
+    case CACHE_BGTASK_RESET_NUM:
+      LOG(INFO) << "reset cache num start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+      slot->cache()->Reset();
+      LOG(INFO) << "reset cache num finish";
+      break;
+    case CACHE_BGTASK_RESET_CFG:
+      LOG(INFO) << "reset cache config start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+      slot->cache()->Reset();
+      LOG(INFO) << "reset cache config finish";
+      break;
+    default:
+      LOG(WARNING) << "invalid cache task type: " << pCacheTaskArg->task_type;
+      break;
+  }
+  slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
+  if (pCacheTaskArg->reenable_cache && pCacheTaskArg->conf) {
+    pCacheTaskArg->conf->UnsetCacheDisableFlag();
+  }
+}
+
+void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
+  cache::CacheConfig cache_cfg;
+  cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+  cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+  cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+  cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
+  cache_cfg.cache_start_pos = g_pika_conf->cache_start_pos();
+  cache_cfg.cache_items_per_key = g_pika_conf->cache_items_per_key();
+  slot->cache()->ResetConfig(&cache_cfg);
+}
+
+void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
+  slot->cache()->ClearHitRatio();
+}
+
+void PikaServer::OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot) {
+  // disable cache temporarily, and restore it after cache cleared
+  g_pika_conf->SetCacheDisableFlag();
+  ResetCacheConfig(slot);
+  ClearCacheDbAsyncV2(slot);
+}
+
+void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
+  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+    return;
+  }
+
+  common_bg_thread_.StartThread();
+  BGCacheTaskArg *arg = new BGCacheTaskArg();
+  arg->slot = slot;
+  arg->task_type = CACHE_BGTASK_CLEAR;
+  arg->conf = std::move(g_pika_conf);
+  arg->reenable_cache = true;
+  common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
 }

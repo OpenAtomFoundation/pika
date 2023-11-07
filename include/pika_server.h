@@ -16,6 +16,7 @@
 #include <memory>
 #include <set>
 
+#include "src/cache/include/config.h"
 #include "net/include/bg_thread.h"
 #include "net/include/net_pubsub.h"
 #include "net/include/thread_pool.h"
@@ -41,6 +42,8 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_cache.h"
+#include "include/pika_slot.h"
 
 
 
@@ -478,9 +481,6 @@ class PikaServer : public pstd::noncopyable {
     std::vector<int> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
-  PikaCache* Cache() {
-    return cache_;
-  }
 
   /*
    * StorageOptions used
@@ -510,6 +510,25 @@ class PikaServer : public pstd::noncopyable {
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
+  struct BGCacheTaskArg {
+    BGCacheTaskArg() : conf(nullptr), reenable_cache(false) {}
+    int task_type;
+    std::shared_ptr<Slot> slot;
+    uint32_t cache_num;
+    cache::CacheConfig cache_cfg;
+    std::unique_ptr<PikaConf> conf;
+    bool reenable_cache;
+  };
+  /*
+   * Cache used
+   */
+  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot = nullptr, cache::CacheConfig *cache_cfg = nullptr);
+  void ClearCacheDbAsync(std::shared_ptr<Slot> slot = nullptr);
+  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot = nullptr);
+  void ResetCacheConfig(std::shared_ptr<Slot> slot = nullptr);
+  void ClearHitRatio(std::shared_ptr<Slot> slot = nullptr);
+  void OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot = nullptr);
+  static void DoCacheBGTask(void* arg);
  private:
   /*
    * TimingTask use
@@ -639,7 +658,7 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 
-  PikaCache *cache_;
+  net::BGThread common_bg_thread_;
 };
 
 #endif

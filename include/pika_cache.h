@@ -33,6 +33,15 @@ const char PIKA_KEY_TYPE_LIST = 'l';
 const char PIKA_KEY_TYPE_SET = 's';
 const char PIKA_KEY_TYPE_ZSET = 'z';
 
+/*
+ * cache task type
+ */
+enum CacheBgTask {
+  CACHE_BGTASK_CLEAR = 0,
+  CACHE_BGTASK_RESET_NUM = 1,
+  CACHE_BGTASK_RESET_CFG = 2
+};
+
 enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
 
 class PikaCacheLoadThread;
@@ -79,11 +88,11 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   int CacheStatus(void);
 
   // Normal Commands
-  CacheInfo Info();
+  CacheInfo Info(CacheInfo &info);
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
-
+  void ClearHitRatio(void);
   rocksdb::Status Del(const std::vector<std::string> &keys);
   rocksdb::Status Expire(std::string &key, int64_t ttl);
   rocksdb::Status Expireat(std::string &key, int64_t ttl);

@@ -46,8 +46,6 @@ void LIndexCmd::PreDo(std::shared_ptr<Slot> slot) {
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
-    res_.AppendStringLen(-1);
-  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
