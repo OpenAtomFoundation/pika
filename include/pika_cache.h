@@ -1,3 +1,8 @@
+// Copyright (c) 2023-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #ifndef PIKA_PIKA_CACHE_H
 #define PIKA_PIKA_CACHE_H
 
@@ -6,41 +11,12 @@
 #include <vector>
 
 #include "include/pika_server.h"
-#include "include/pika_define.h"
-#include "include/pika_zset.h"
+#include "pika_define.h"
+#include "pika_zset.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "cache/include/cache.h"
 #include "storage/storage.h"
-
-/*
- * cache status
- */
-const int PIKA_CACHE_STATUS_NONE = 0;
-const int PIKA_CACHE_STATUS_INIT = 1;
-const int PIKA_CACHE_STATUS_OK = 2;
-const int PIKA_CACHE_STATUS_RESET = 3;
-const int PIKA_CACHE_STATUS_DESTROY = 4;
-const int PIKA_CACHE_STATUS_CLEAR = 5;
-const int CACHE_START_FROM_BEGIN = 0;
-const int CACHE_START_FROM_END = -1;
-/*
- * key type
- */
-const char PIKA_KEY_TYPE_KV = 'k';
-const char PIKA_KEY_TYPE_HASH = 'h';
-const char PIKA_KEY_TYPE_LIST = 'l';
-const char PIKA_KEY_TYPE_SET = 's';
-const char PIKA_KEY_TYPE_ZSET = 'z';
-
-/*
- * cache task type
- */
-enum CacheBgTask {
-  CACHE_BGTASK_CLEAR = 0,
-  CACHE_BGTASK_RESET_NUM = 1,
-  CACHE_BGTASK_RESET_CFG = 2
-};
 
 enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
 
@@ -80,19 +56,21 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   PikaCache(int cache_start_pos_, int cache_items_per_key, std::shared_ptr<Slot> slot);
   ~PikaCache();
 
-  rocksdb::Status Init();
-  rocksdb::Status Reset();
+  rocksdb::Status Init(uint32_t cache_num, cache::CacheConfig *cache_cfg);
+  rocksdb::Status Reset(uint32_t cache_num, cache::CacheConfig *cache_cfg = nullptr);
   void ResetConfig(cache::CacheConfig *cache_cfg);
   void Destroy(void);
+  void ProcessCronTask(void);
   void SetCacheStatus(int status);
   int CacheStatus(void);
 
   // Normal Commands
-  CacheInfo Info(CacheInfo &info);
+  void Info(CacheInfo &info);
+  long long DbSize(void);
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
-  void ClearHitRatio(void);
+
   rocksdb::Status Del(const std::vector<std::string> &keys);
   rocksdb::Status Expire(std::string &key, int64_t ttl);
   rocksdb::Status Expireat(std::string &key, int64_t ttl);
@@ -179,25 +157,25 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZIncrby(std::string &key, std::string &member, double increment);
   rocksdb::Status ZIncrbyIfKeyExist(std::string &key, std::string &member, double increment, ZIncrbyCmd *cmd);
   rocksdb::Status ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                const std::shared_ptr<Slot> &slot);
+                         const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRangebyscore(std::string &key, std::string &min, std::string &max,
-                       std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd);
+                                std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd);
   rocksdb::Status ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot = nullptr);
   rocksdb::Status ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted = 0,
-                         const std::shared_ptr<Slot> &slot = nullptr);
+                                  const std::shared_ptr<Slot> &slot = nullptr);
   rocksdb::Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                   const std::shared_ptr<Slot> &slot);
+                            const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrangebyscore(std::string &key, std::string &min, std::string &max,
-                          std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd);
+                                   std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd);
   rocksdb::Status ZRevrangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members,
-                        const std::shared_ptr<Slot> &slot);
+                                 const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZLexcount(std::string &key, std::string &min, std::string &max, uint64_t *len,
-                   const std::shared_ptr<Slot> &slot);
+                            const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRemrangebylex(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
 
   // Bit Commands
@@ -216,19 +194,21 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl);
   rocksdb::Status WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
   void PushKeyToAsyncLoadQueue(const char key_type, std::string &key);
-//  static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
-//                                       std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
+  //  static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
+  //                                       std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
   rocksdb::Status CacheZCard(std::string &key, uint64_t *len);
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }
  private:
-  rocksdb::Status InitWithoutLock();
+
+  rocksdb::Status InitWithoutLock(uint32_t cache_num, cache::CacheConfig *cache_cfg);
   void DestroyWithoutLock(void);
+  int CacheIndex(const std::string &key);
   RangeStatus CheckCacheRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop, int64_t &out_start,
                               int64_t &out_stop);
   RangeStatus CheckCacheRevRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop, int64_t &out_start,
                                  int64_t &out_stop);
-  RangeStatus CheckCacheRangeByScore(unsigned long cache_len, double cache_min, double cache_max, double min,
+  RangeStatus CheckCacheRangeByScore(uint64_t  cache_len, double cache_min, double cache_max, double min,
                                      double max, bool left_close, bool right_close);
   bool CacheSizeEqsDB(std::string &key, const std::shared_ptr<Slot> &slot);
   void GetMinMaxScore(std::vector<storage::ScoreMember> &score_members, double &min, double &max);
@@ -241,13 +221,16 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
  private:
   std::atomic<int> cache_status_;
   std::unique_ptr<cache::RedisCache> cache_;
+  uint32_t cache_num_;
 
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;
   std::shared_mutex rwlock_;
-  std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
+  PikaCacheLoadThread *cache_load_thread_;  // 这个线程保留
   std::shared_ptr<Slot> slot_;
+  std::vector<cache::RedisCache*> caches_;
+  std::vector<pstd::Mutex*> cache_mutexs_;
 };
 
 #endif

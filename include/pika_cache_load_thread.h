@@ -24,7 +24,7 @@
 
 class PikaCacheLoadThread : public net::Thread {
  public:
-  PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<PikaCache> cache);
+  PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<Slot> slot);
   ~PikaCacheLoadThread();
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }

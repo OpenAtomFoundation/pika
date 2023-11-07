@@ -413,4 +413,32 @@ const std::string PCacheKeyPrefixZ = "Z";
 const std::string PCacheKeyPrefixL = "L";
 const std::string PCacheKeyPrefixB = "B";
 
+/*
+ * cache task type
+ */
+const int CACHE_BGTASK_CLEAR  =  0;
+const int CACHE_BGTASK_RESET_NUM = 1;
+const int CACHE_BGTASK_RESET_CFG = 2;
+
+
+/*
+ * cache status
+ */
+const int PIKA_CACHE_STATUS_NONE = 0;
+const int PIKA_CACHE_STATUS_INIT = 1;
+const int PIKA_CACHE_STATUS_OK = 2;
+const int PIKA_CACHE_STATUS_RESET = 3;
+const int PIKA_CACHE_STATUS_DESTROY = 4;
+const int PIKA_CACHE_STATUS_CLEAR = 5;
+const int CACHE_START_FROM_BEGIN = 0;
+const int CACHE_START_FROM_END = -1;
+/*
+ * key type
+ */
+const char PIKA_KEY_TYPE_KV = 'k';
+const char PIKA_KEY_TYPE_HASH = 'h';
+const char PIKA_KEY_TYPE_LIST = 'l';
+const char PIKA_KEY_TYPE_SET = 's';
+const char PIKA_KEY_TYPE_ZSET = 'z';
+
 #endif
