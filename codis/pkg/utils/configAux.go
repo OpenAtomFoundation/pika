@@ -29,7 +29,7 @@ type ConfItem struct {
 type DeployConfig struct {
 	items   []*ConfItem
 	confMap map[string]*ConfItem
-	sep     string //配置项中key、value分隔符
+	sep     string
 }
 
 func (c *DeployConfig) Init(path string, sep string) error {
@@ -185,10 +185,11 @@ func (c *DeployConfig) Set(key string, value string) error {
 	if found {
 		item.value = value
 	} else {
-		item := &ConfItem{}
-		item.confType = TypeConf
-		item.name = key
-		item.value = value
+		item := &ConfItem{
+			confType: TypeConf,
+			name:     key,
+			value:    value,
+		}
 		c.items = append(c.items, item)
 		c.confMap[item.name] = item
 	}

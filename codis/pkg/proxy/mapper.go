@@ -73,7 +73,6 @@ func init() {
 		{"BLPOP", FlagWrite | FlagNotAllow},
 		{"BRPOP", FlagWrite | FlagNotAllow},
 		{"BRPOPLPUSH", FlagWrite | FlagNotAllow},
-		{"CCONFIG", FlagWrite},
 		{"CLIENT", FlagNotAllow},
 		{"CLUSTER", FlagNotAllow},
 		{"COMMAND", 0},
@@ -216,7 +215,7 @@ func init() {
 		{"SLOTSRESTORE-ASYNC-AUTH", FlagWrite | FlagNotAllow},
 		{"SLOTSRESTORE-ASYNC-ACK", FlagWrite | FlagNotAllow},
 		{"SLOTSSCAN", FlagMasterOnly},
-		{"SLOWLOG", 0},
+		{"SLOWLOG", FlagNotAllow},
 		{"SMEMBERS", 0},
 		{"SMOVE", FlagWrite},
 		{"SORT", FlagWrite},
@@ -230,6 +229,8 @@ func init() {
 		{"SUNION", 0},
 		{"SUNIONSTORE", FlagWrite},
 		{"SYNC", FlagNotAllow},
+		{"PCONFIG", 0},
+		{"PSLOWLOG", 0},
 		{"TIME", FlagNotAllow},
 		{"TOUCH", FlagWrite},
 		{"TTL", 0},
@@ -322,9 +323,10 @@ func getHashKey(multi []*redis.Resp, opstr string) []byte {
 }
 
 func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
-	var index = 0
-	var bytes = 0
-
+	var (
+		index = 0
+		bytes = 0
+	)
 	for i := 0; i < len(multi); i++ {
 		if index < len(cmd) {
 			index += copy(cmd[index:], multi[i].Value)
@@ -334,7 +336,6 @@ func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
 		}
 		bytes += len(multi[i].Value)
 
-		//  如果cmd已经满了，那么最后腾出来一个more长度的位置添加more信息
 		if i == len(multi)-1 && index == len(cmd) {
 			more := []byte("... " + strconv.Itoa(len(multi)) + " elements " + strconv.Itoa(bytes) + " bytes.")
 			index = len(cmd) - len(more)

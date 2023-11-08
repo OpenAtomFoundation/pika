@@ -15,10 +15,6 @@ const (
 	PIKA_SLOWLOG_LENGTH_MAX     = 10000000
 )
 
-type Mutex struct {
-	sync.Mutex
-}
-
 type SlowLogEntry struct {
 	id       int64
 	time     int64
@@ -27,7 +23,7 @@ type SlowLogEntry struct {
 }
 
 type SlowLog struct {
-	Mutex
+	sync.Mutex
 	logList *list.List
 	logId   atomic2.Int64
 	maxLen  atomic2.Int64
@@ -107,7 +103,7 @@ func SlowLogGetByNum(num int64) *redis.Resp {
 		num = int64(PSlowLog.logList.Len())
 	}
 	var res = make([]*redis.Resp, 0, num)
-	var iter = PSlowLog.logList.Front() //  从最新的数据开始
+	var iter = PSlowLog.logList.Front()
 	for i := int64(0); i < num; i++ {
 		if iter == nil || iter.Value == nil {
 			break

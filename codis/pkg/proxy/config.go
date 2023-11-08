@@ -139,8 +139,6 @@ metrics_report_statsd_prefix = ""
 `
 
 type Config struct {
-	ConfigFileName string `toml:"-" json:"config_file_name"`
-
 	ProtoType string `toml:"proto_type" json:"proto_type"`
 	ProxyAddr string `toml:"proxy_addr" json:"proxy_addr"`
 	AdminAddr string `toml:"admin_addr" json:"admin_addr"`
@@ -197,6 +195,7 @@ type Config struct {
 	MetricsReportStatsdServer     string            `toml:"metrics_report_statsd_server" json:"metrics_report_statsd_server"`
 	MetricsReportStatsdPeriod     timesize.Duration `toml:"metrics_report_statsd_period" json:"metrics_report_statsd_period"`
 	MetricsReportStatsdPrefix     string            `toml:"metrics_report_statsd_prefix" json:"metrics_report_statsd_prefix"`
+	ConfigFileName                string            `toml:"-" json:"config_file_name"`
 }
 
 func NewDefaultConfig() *Config {
