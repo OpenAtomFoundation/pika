@@ -260,13 +260,15 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     slot->DbRWLockReader();
   }
   if (c_ptr->need_cache_do()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
-   // && PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()) {
+      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
       c_ptr->DoFromCache(slot);
       if (c_ptr->is_need_update_cache()) {
         c_ptr->DoUpdateCache(slot);
       }
+    } else {
+      LOG(WARNING) << "This is an impossible logic";
     }
   } else {
     c_ptr->Do(slot);

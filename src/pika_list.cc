@@ -59,8 +59,7 @@ void LIndexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void LIndexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, CachePrefixKeyl);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
   }
 }
 
@@ -143,8 +142,7 @@ void LLenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void LLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, CachePrefixKeyl);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
   }
 }
 
@@ -529,8 +527,7 @@ void LRangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void LRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, CachePrefixKeyl);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
   }
 }
 

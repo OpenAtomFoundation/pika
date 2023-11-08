@@ -112,9 +112,9 @@ void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
     if (has_ttl_) {
-      slot->cache()->Setxx(CachePrefixKeyk, value_, sec_);
+      slot->cache()->Setnx(CachePrefixKeyk, value_, sec_);
     } else {
-      slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, value_);
+      slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, value_);
     }
   }
 }

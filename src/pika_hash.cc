@@ -121,8 +121,7 @@ void HGetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -199,8 +198,7 @@ void HGetallCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HGetallCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -243,8 +241,7 @@ void HExistsCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HExistsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -371,8 +368,7 @@ void HKeysCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HKeysCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -414,8 +410,7 @@ void HLenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -477,8 +472,7 @@ void HMgetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HMgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -593,8 +587,7 @@ void HStrlenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HStrlenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 
@@ -644,8 +637,7 @@ void HValsCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void HValsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, CachePrefixKeyh);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
   }
 }
 

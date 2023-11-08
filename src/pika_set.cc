@@ -136,8 +136,7 @@ void SCardCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void SCardCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, CachePrefixKeyS);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
   }
 }
 
@@ -187,8 +186,7 @@ void SMembersCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void SMembersCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, CachePrefixKeyS);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
   }
 }
 
@@ -468,8 +466,7 @@ void SIsmemberCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void SIsmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, CachePrefixKeyS);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
   }
 }
 
@@ -659,8 +656,7 @@ void SRandmemberCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void SRandmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixS + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, CachePrefixKeyk);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
   }
 }
 

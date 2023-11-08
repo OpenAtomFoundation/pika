@@ -809,7 +809,7 @@ void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_pt
 void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                                  const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
-  if (is_write() || is_need_update_cache()) {
+  if (is_write()) {
     record_lock.Lock(current_key());
   }
 
@@ -824,7 +824,7 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
 
   DoBinlog(sync_slot);
 
-  if (is_write() || is_need_update_cache()) {
+  if (is_write()) {
     record_lock.Unlock(current_key());
   }
 }

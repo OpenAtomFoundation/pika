@@ -110,8 +110,7 @@ void BitGetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void BitGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot){
   if (s_.ok()) {
-    std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, CachePrefixKeyB);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 
@@ -181,8 +180,7 @@ void BitCountCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void BitCountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, CachePrefixKeyB);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 
@@ -273,8 +271,7 @@ void BitPosCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 
 void BitPosCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, CachePrefixKeyB);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 

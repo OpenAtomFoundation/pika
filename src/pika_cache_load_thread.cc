@@ -33,11 +33,10 @@ PikaCacheLoadThread::~PikaCacheLoadThread() {
 }
 
 void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
-  std::lock_guard lq(loadkeys_mutex_);
-  std::lock_guard lm(loadkeys_map_mutex_);
-
+  std::unique_lock lq(loadkeys_mutex_);
+  std::unique_lock lm(loadkeys_map_mutex_);
   if (CACHE_LOAD_QUEUE_MAX_SIZE < loadkeys_queue_.size()) {
-    // 5s打印一次日志
+    // 5s to print logs once
     static uint64_t last_log_time_us = 0;
     if (pstd::NowMicros() - last_log_time_us > 5000000) {
       LOG(WARNING) << "PikaCacheLoadThread::Push waiting...";
@@ -57,23 +56,19 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
 bool PikaCacheLoadThread::LoadKv(std::string &key, const std::shared_ptr<Slot>& slot) {
   std::string value;
   int64_t ttl;
-  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->GetWithTTL(key, &value, &ttl);
-  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load kv failed, key=" << key;
     return false;
   }
-
-  cache_->WriteKvToCache(key, value, ttl);
+  std::string CachePrefixKeyk = PCacheKeyPrefixK + key;
+  cache_->WriteKvToCache(CachePrefixKeyk, value, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>& slot) {
   int32_t len = 0;
-  slot->DbRWLockReader();
   slot->db()->HLen(key, &len);
-  slot->DbRWUnLock();
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
@@ -82,24 +77,20 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<storage::FieldValue> fvs;
   int64_t ttl;
-  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->HGetallWithTTL(key, &fvs, &ttl);
-  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load hash failed, key=" << key;
     return false;
   }
-
-  cache_->WriteHashToCache(key, fvs, ttl);
+  std::string CachePrefixKeyh = PCacheKeyPrefixH + key;
+  cache_->WriteHashToCache(CachePrefixKeyh, fvs, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>& slot) {
   uint64_t len = 0;
-  slot->DbRWLockReader();
   slot->db()->LLen(key, &len);
-  slot->DbRWLockWriter();
-  if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
+  if (len <= 0 || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
     return false;
@@ -107,23 +98,19 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<std::string> values;
   int64_t ttl;
-  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->LRangeWithTTL(key, 0, -1, &values, &ttl);
-  slot->DbRWLockWriter();
   if (!s.ok()) {
     LOG(WARNING) << "load list failed, key=" << key;
     return false;
   }
-
-  cache_->WriteListToCache(key, values, ttl);
+  std::string CachePrefixKeyl = PCacheKeyPrefixL + key;
+  cache_->WriteListToCache(CachePrefixKeyl, values, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>& slot) {
   int32_t len = 0;
-  slot->DbRWLockReader();
   slot->db()->SCard(key, &len);
-  slot->DbRWLockWriter();
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
     LOG(WARNING) << "can not load key, because item size:" << len
                  << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
@@ -132,15 +119,13 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
 
   std::vector<std::string> values;
   int64_t ttl;
-  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->SMembersWithTTL(key, &values, &ttl);
-  slot->DbRWLockWriter();
   if (!s.ok()) {
     LOG(WARNING) << "load set failed, key=" << key;
     return false;
   }
-
-  cache_->WriteSetToCache(key, values, ttl);
+  std::string CachePrefixKeys = PCacheKeyPrefixS + key;
+  cache_->WriteSetToCache(CachePrefixKeys, values, ttl);
   return true;
 }
 
@@ -148,9 +133,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   int32_t len = 0;
   int start_index = 0;
   int stop_index = -1;
-  slot->DbRWLockReader();
   slot->db()->ZCard(key, &len);
-  slot->DbRWUnLock();
   if (0 >= len) {
     return false;
   }
@@ -172,22 +155,19 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
 
   std::vector<storage::ScoreMember> score_members;
   int64_t ttl;
-  slot->DbRWLockReader();
   rocksdb::Status s = slot->db()->ZRangeWithTTL(key, start_index, stop_index, &score_members, &ttl);
-  slot->DbRWUnLock();
   if (!s.ok()) {
     LOG(WARNING) << "load zset failed, key=" << key;
     return false;
   }
-
-  cache_->WriteZSetToCache(key, score_members, ttl);
+  std::string CachePrefixKeyz = PCacheKeyPrefixZ + key;
+  cache_->WriteZSetToCache(CachePrefixKeyz, score_members, ttl);
   return true;
 }
 
 bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot>& slot) {
   // 加载缓存时，保证操作rocksdb和cache是原子的
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
-
   switch (key_type) {
     case 'k':
       return LoadKv(key, slot);
@@ -211,10 +191,10 @@ void *PikaCacheLoadThread::ThreadMain() {
   while (!should_exit_) {
     std::deque<std::pair<const char, std::string>> load_keys;
     {
-      std::lock_guard lq(loadkeys_mutex_);
+      std::unique_lock lq(loadkeys_mutex_);
       waitting_load_keys_num_ = loadkeys_queue_.size();
-      while (!should_exit_ && 0 >= loadkeys_queue_.size()) {
-        loadkeys_cond_.notify_one();
+      while (!should_exit_ && loadkeys_queue_.size() <= 0) {
+        loadkeys_cond_.wait(lq);
       }
 
       if (should_exit_) {
@@ -236,7 +216,7 @@ void *PikaCacheLoadThread::ThreadMain() {
         LOG(WARNING) << "PikaCacheLoadThread::ThreadMain LoadKey: " << iter->second << " failed !!!";
       }
 
-      std::lock_guard lq(loadkeys_map_mutex_);
+      std::unique_lock lm(loadkeys_map_mutex_);
       loadkeys_map_.erase(iter->second);
     }
   }
