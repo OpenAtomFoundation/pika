@@ -120,17 +120,7 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-centos
-        with:
-          key: ${{ runner.os }}-build-centos-${{ hashFiles('**/CMakeLists.txt') }}
-          path: |
-            ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
-
       - name: Build
-        if: ${{ steps.cache-centos.outputs.cache-hit != 'true' }}
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
@@ -178,17 +168,7 @@ jobs:
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
           cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-macos
-        with:
-          key: ${{ runner.os }}-build-macos-${{ hashFiles('**/CMakeLists.txt') }}
-          path: |
-            ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
-
       - name: Build
-        if: ${{ steps.cache-macos.outputs.cache-hit != 'true' }}
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
