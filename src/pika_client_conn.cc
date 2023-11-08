@@ -33,7 +33,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
       current_db_(g_pika_conf->default_db()) {
   // client init, set client user is default, and authenticated = false
-  UnAuth(g_pika_server->Acl()->GetUser(Acl::DefaultUser, true));
+  UnAuth(g_pika_server->Acl()->GetUserLock(Acl::DefaultUser));
   time_stat_.reset(new TimeStat());
 }
 

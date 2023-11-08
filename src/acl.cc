@@ -273,7 +273,7 @@ AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdA
 
 // class Acl
 pstd::Status Acl::Initialization() {
-  AddUser(CreateDefaultUser(), true);
+  AddUser(CreateDefaultUser());
   UpdateDefaultUserPassword(g_pika_conf->requirepass());
   auto status = LoadUsersAtStartup();
   if (!status.ok()) {
@@ -282,10 +282,7 @@ pstd::Status Acl::Initialization() {
   return status;
 }
 
-std::shared_ptr<User> Acl::GetUser(const std::string& userName, bool look) {
-  if (look) {
-    std::shared_lock rl(mutex_);
-  }
+std::shared_ptr<User> Acl::GetUser(const std::string& userName) {
   auto u = users_.find(userName);
   if (u == users_.end()) {
     return nullptr;
@@ -293,11 +290,19 @@ std::shared_ptr<User> Acl::GetUser(const std::string& userName, bool look) {
   return u->second;
 }
 
-void Acl::AddUser(const std::shared_ptr<User>& user, bool lock) {
-  if (lock) {
-    std::unique_lock wl(mutex_);
+std::shared_ptr<User> Acl::GetUserLock(const std::string& userName) {
+  std::shared_lock rl(mutex_);
+  auto u = users_.find(userName);
+  if (u == users_.end()) {
+    return nullptr;
   }
+  return u->second;
+}
 
+void Acl::AddUser(const std::shared_ptr<User>& user) { users_[user->Name()] = user; }
+
+void Acl::AddUserLock(const std::shared_ptr<User>& user) {
+  std::unique_lock wl(mutex_);
   users_[user->Name()] = user;
 }
 
@@ -439,6 +444,7 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
 }
 
 void Acl::UpdateDefaultUserPassword(const std::string& pass) {
+  std::unique_lock wl(mutex_);
   auto u = GetUser(DefaultUser);
   u->SetUser("resetpass");
   if (pass.empty()) {
@@ -463,7 +469,7 @@ std::shared_ptr<User> Acl::CreateDefaultUser() {
 std::shared_ptr<User> Acl::CreatedUser(const std::string& name) { return std::make_shared<User>(name); }
 
 pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>& op) {
-  auto user = GetUser(userName, true);
+  auto user = GetUserLock(userName);
 
   bool add = false;
   if (!user) {  // if the user not exist, create new user
@@ -480,7 +486,7 @@ pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>&
   }
 
   if (add) {
-    AddUser(user, true);
+    AddUserLock(user);
   } else {
     if (user->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
       g_pika_server->AllClientUnAuth({userName});

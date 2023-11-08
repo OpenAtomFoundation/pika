@@ -273,13 +273,17 @@ class Acl {
    * @param userName
    * @return
    */
-  std::shared_ptr<User> GetUser(const std::string& userName, bool look = false);
+  std::shared_ptr<User> GetUser(const std::string& userName);
+
+  std::shared_ptr<User> GetUserLock(const std::string& userName);
 
   /**
    * store a user to users_ map
    * @param user
    */
-  void AddUser(const std::shared_ptr<User>& user, bool lock = false);
+  void AddUser(const std::shared_ptr<User>& user);
+
+  void AddUserLock(const std::shared_ptr<User>& user);
 
   // bo user auth, pass not is sha256
   std::shared_ptr<User> Auth(const std::string& userName, const std::string& password);

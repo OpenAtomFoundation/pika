@@ -62,7 +62,7 @@ enum AuthResult {
 static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
                                    const std::shared_ptr<net::NetConn>& conn, bool defaultAuth) {
   if (defaultAuth) {
-    auto defaultUser = g_pika_server->Acl()->GetUser(Acl::DefaultUser, false);
+    auto defaultUser = g_pika_server->Acl()->GetUserLock(Acl::DefaultUser);
     if (defaultUser->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {
       return AuthResult::NO_REQUIRE_PASS;
     }
@@ -280,7 +280,7 @@ void AuthCmd::Do(std::shared_ptr<Slot> slot) {
       res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
       return;
     case AuthResult::INVALID_PASSWORD:
-      res_.SetRes(CmdRes::kErrOther, "WRONGPASS invalid username-password pair or user is disabled");
+      res_.AppendContent("-WRONGPASS invalid username-password pair or user is disabled.");
       return;
     case AuthResult::NO_REQUIRE_PASS:
       res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
@@ -2033,6 +2033,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
+    g_pika_server->Acl()->UpdateDefaultUserPassword(value);
     ret = "+OK\r\n";
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
@@ -2665,7 +2666,7 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
     next_arg++;
 
     if (ver < 2 || ver > 3) {
-      res_.SetRes(CmdRes::kErrOther, "-NOPROTO unsupported protocol version");
+      res_.AppendContent("-NOPROTO unsupported protocol version");
       return;
     }
   }

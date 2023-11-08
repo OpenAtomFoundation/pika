@@ -111,7 +111,7 @@ void PikaAclCmd::DelUser() {
 }
 
 void PikaAclCmd::DryRun() {
-  auto user = g_pika_server->Acl()->GetUser(argv_[2], true);
+  auto user = g_pika_server->Acl()->GetUserLock(argv_[2]);
 
   if (!user) {
     res().SetRes(CmdRes::kErrOther, fmt::format("User '{}' not found", argv_[2]));
@@ -187,7 +187,7 @@ void PikaAclCmd::GenPass() {
 }
 
 void PikaAclCmd::GetUser() {
-  auto user = g_pika_server->Acl()->GetUser(argv_[2]);
+  auto user = g_pika_server->Acl()->GetUserLock(argv_[2]);
 
   if (!user) {
     res().AppendStringLen(-1);
