@@ -6,6 +6,7 @@ package proxy
 import (
 	"bytes"
 	"hash/crc32"
+	"strconv"
 	"strings"
 
 	"pika/codis/v2/pkg/proxy/redis"
@@ -228,6 +229,8 @@ func init() {
 		{"SUNION", 0},
 		{"SUNIONSTORE", FlagWrite},
 		{"SYNC", FlagNotAllow},
+		{"PCONFIG", 0},
+		{"PSLOWLOG", 0},
 		{"TIME", FlagNotAllow},
 		{"TOUCH", FlagWrite},
 		{"TTL", 0},
@@ -317,4 +320,31 @@ func getHashKey(multi []*redis.Resp, opstr string) []byte {
 		return multi[index].Value
 	}
 	return nil
+}
+
+func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
+	var (
+		index = 0
+		bytes = 0
+	)
+	for i := 0; i < len(multi); i++ {
+		if index < len(cmd) {
+			index += copy(cmd[index:], multi[i].Value)
+			if i < len(multi)-i {
+				index += copy(cmd[index:], []byte(" "))
+			}
+		}
+		bytes += len(multi[i].Value)
+
+		if i == len(multi)-1 && index == len(cmd) {
+			more := []byte("... " + strconv.Itoa(len(multi)) + " elements " + strconv.Itoa(bytes) + " bytes.")
+			index = len(cmd) - len(more)
+			if index < 0 {
+				index = 0
+			}
+			index += copy(cmd[index:], more)
+			break
+		}
+	}
+	return index
 }

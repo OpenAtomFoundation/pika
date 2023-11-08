@@ -11,11 +11,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils"
 	"pika/codis/v2/pkg/utils/errors"
 	"pika/codis/v2/pkg/utils/log"
@@ -60,82 +62,82 @@ func New(config *Config) (*Proxy, error) {
 		return nil, errors.Trace(err)
 	}
 
-	s := &Proxy{}
-	s.config = config
-	s.exit.C = make(chan struct{})
-	s.router = NewRouter(config)
-	s.ignore = make([]byte, config.ProxyHeapPlaceholder.Int64())
+	p := &Proxy{}
+	p.config = config
+	p.exit.C = make(chan struct{})
+	p.router = NewRouter(config)
+	p.ignore = make([]byte, config.ProxyHeapPlaceholder.Int64())
 
-	s.model = &models.Proxy{
+	p.model = &models.Proxy{
 		StartTime: time.Now().String(),
 	}
-	s.model.ProductName = config.ProductName
-	s.model.DataCenter = config.ProxyDataCenter
-	s.model.Pid = os.Getpid()
-	s.model.Pwd, _ = os.Getwd()
+	p.model.ProductName = config.ProductName
+	p.model.DataCenter = config.ProxyDataCenter
+	p.model.Pid = os.Getpid()
+	p.model.Pwd, _ = os.Getwd()
 	if b, err := exec.Command("uname", "-a").Output(); err != nil {
 		log.WarnErrorf(err, "run command uname failed")
 	} else {
-		s.model.Sys = strings.TrimSpace(string(b))
+		p.model.Sys = strings.TrimSpace(string(b))
 	}
-	s.model.Hostname = utils.Hostname
+	p.model.Hostname = utils.Hostname
 
-	if err := s.setup(config); err != nil {
-		s.Close()
+	if err := p.setup(config); err != nil {
+		p.Close()
 		return nil, err
 	}
 
-	log.Warnf("[%p] create new proxy:\n%s", s, s.model.Encode())
+	log.Warnf("[%p] create new proxy:\n%s", p, p.model.Encode())
 
 	unsafe2.SetMaxOffheapBytes(config.ProxyMaxOffheapBytes.Int64())
 
-	go s.serveAdmin()
-	go s.serveProxy()
+	go p.serveAdmin()
+	go p.serveProxy()
 
-	s.startMetricsJson()
-	s.startMetricsInfluxdb()
-	s.startMetricsStatsd()
+	p.startMetricsJson()
+	p.startMetricsInfluxdb()
+	p.startMetricsStatsd()
 
-	return s, nil
+	return p, nil
 }
 
-func (s *Proxy) setup(config *Config) error {
+func (p *Proxy) setup(config *Config) error {
 	proto := config.ProtoType
 	if l, err := net.Listen(proto, config.ProxyAddr); err != nil {
 		return errors.Trace(err)
 	} else {
-		s.lproxy = l
+		p.lproxy = l
 
 		x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
 		if err != nil {
 			return err
 		}
-		s.model.ProtoType = proto
-		s.model.ProxyAddr = x
+		p.model.ProtoType = proto
+		p.model.ProxyAddr = x
 	}
 
 	proto = "tcp"
 	if l, err := net.Listen(proto, config.AdminAddr); err != nil {
 		return errors.Trace(err)
 	} else {
-		s.ladmin = l
+		p.ladmin = l
 
 		x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostAdmin)
 		if err != nil {
 			return err
 		}
-		s.model.AdminAddr = x
+		p.model.AdminAddr = x
 	}
 
-	s.model.Token = rpc.NewToken(
+	p.model.Token = rpc.NewToken(
 		config.ProductName,
-		s.lproxy.Addr().String(),
-		s.ladmin.Addr().String(),
+		p.lproxy.Addr().String(),
+		p.ladmin.Addr().String(),
 	)
-	s.xauth = rpc.NewXAuth(
+	p.xauth = rpc.NewXAuth(
 		config.ProductName,
 		config.ProductAuth,
-		s.model.Token,
+		p.model.Token,
 	)
 
 	if config.JodisAddr != "" {
@@ -144,171 +146,242 @@ func (s *Proxy) setup(config *Config) error {
 			return err
 		}
 		if config.JodisCompatible {
-			s.model.JodisPath = filepath.Join("/zk/codis", fmt.Sprintf("db_%s", config.ProductName), "proxy", s.model.Token)
+			p.model.JodisPath = filepath.Join("/zk/codis", fmt.Sprintf("db_%s", config.ProductName), "proxy", p.model.Token)
 		} else {
-			s.model.JodisPath = models.JodisPath(config.ProductName, s.model.Token)
+			p.model.JodisPath = models.JodisPath(config.ProductName, p.model.Token)
 		}
-		s.jodis = NewJodis(c, s.model)
+		p.jodis = NewJodis(c, p.model)
 	}
-	s.model.MaxSlotNum = config.MaxSlotNum
+	p.model.MaxSlotNum = config.MaxSlotNum
 
 	return nil
 }
 
-func (s *Proxy) Start() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) Start() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return ErrClosedProxy
 	}
-	if s.online {
+	if p.online {
 		return nil
 	}
-	s.online = true
-	s.router.Start()
-	if s.jodis != nil {
-		s.jodis.Start()
+	p.online = true
+	p.router.Start()
+	if p.jodis != nil {
+		p.jodis.Start()
 	}
 	return nil
 }
 
-func (s *Proxy) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return nil
 	}
-	s.closed = true
-	close(s.exit.C)
+	p.closed = true
+	close(p.exit.C)
 
-	if s.jodis != nil {
-		s.jodis.Close()
+	if p.jodis != nil {
+		p.jodis.Close()
 	}
-	if s.ladmin != nil {
-		s.ladmin.Close()
+	if p.ladmin != nil {
+		p.ladmin.Close()
 	}
-	if s.lproxy != nil {
-		s.lproxy.Close()
+	if p.lproxy != nil {
+		p.lproxy.Close()
 	}
-	if s.router != nil {
-		s.router.Close()
+	if p.router != nil {
+		p.router.Close()
 	}
 	return nil
 }
 
-func (s *Proxy) XAuth() string {
-	return s.xauth
+func (p *Proxy) XAuth() string {
+	return p.xauth
 }
 
-func (s *Proxy) Model() *models.Proxy {
-	return s.model
+func (p *Proxy) Model() *models.Proxy {
+	return p.model
 }
 
-func (s *Proxy) Config() *Config {
-	return s.config
+func (p *Proxy) Config() *Config {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.config
 }
 
-func (s *Proxy) IsOnline() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.online && !s.closed
+func (p *Proxy) ConfigGet(key string) *redis.Resp {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	switch key {
+	case "proxy_max_clients":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.ProxyMaxClients)))
+	case "backend_primary_only":
+		return redis.NewBulkBytes([]byte(strconv.FormatBool(p.config.BackendPrimaryOnly)))
+	case "slowlog_log_slower_than":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.SlowlogLogSlowerThan, 10)))
+	case "slowlog_max_len":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.SlowlogMaxLen, 10)))
+	default:
+		return redis.NewErrorf("unsupported key: %s", key)
+	}
 }
 
-func (s *Proxy) IsClosed() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.closed
+func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	switch key {
+	case "proxy_max_clients":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s", err)
+		}
+		if n <= 0 {
+			return redis.NewErrorf("invalid proxy_max_clients")
+		}
+		p.config.ProxyMaxClients = n
+		return redis.NewString([]byte("OK"))
+	case "backend_primary_only":
+		return redis.NewErrorf("not currently supported")
+	case "slowlog_log_slower_than":
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s", err)
+		}
+		if n < 0 {
+			return redis.NewErrorf("invalid slowlog_log_slower_than")
+		}
+		p.config.SlowlogLogSlowerThan = n
+		return redis.NewString([]byte("OK"))
+	case "slowlog_max_len":
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s", err)
+		}
+
+		if n < 0 {
+			return redis.NewErrorf("invalid slowlog_max_len")
+		}
+		p.config.SlowlogMaxLen = n
+		if p.config.SlowlogMaxLen > 0 {
+			SlowLogSetMaxLen(p.config.SlowlogMaxLen)
+		}
+		return redis.NewString([]byte("OK"))
+	default:
+		return redis.NewErrorf("unsupported key: %s", key)
+	}
 }
 
-func (s *Proxy) HasSwitched() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.router.HasSwitched()
+func (p *Proxy) ConfigRewrite() *redis.Resp {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	utils.RewriteConfig(*(p.config), p.config.ConfigFileName, "=", true)
+	return redis.NewString([]byte("OK"))
 }
 
-func (s *Proxy) Slots() []*models.Slot {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.router.GetSlots()
+func (p *Proxy) IsOnline() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.online && !p.closed
 }
 
-func (s *Proxy) FillSlot(m *models.Slot) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) IsClosed() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.closed
+}
+
+func (p *Proxy) HasSwitched() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.router.HasSwitched()
+}
+
+func (p *Proxy) Slots() []*models.Slot {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.router.GetSlots()
+}
+
+func (p *Proxy) FillSlot(m *models.Slot) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return ErrClosedProxy
 	}
-	return s.router.FillSlot(m)
+	return p.router.FillSlot(m)
 }
 
-func (s *Proxy) FillSlots(slots []*models.Slot) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) FillSlots(slots []*models.Slot) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return ErrClosedProxy
 	}
 	for _, m := range slots {
-		if err := s.router.FillSlot(m); err != nil {
+		if err := p.router.FillSlot(m); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *Proxy) SwitchMasters(masters map[int]string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) SwitchMasters(masters map[int]string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return ErrClosedProxy
 	}
-	s.ha.masters = masters
+	p.ha.masters = masters
 
 	if len(masters) != 0 {
-		s.router.SwitchMasters(masters)
+		p.router.SwitchMasters(masters)
 	}
 	return nil
 }
 
-func (s *Proxy) GetSentinels() ([]string, map[int]string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+func (p *Proxy) GetSentinels() ([]string, map[int]string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
 		return nil, nil
 	}
-	return s.ha.servers, s.ha.masters
+	return p.ha.servers, p.ha.masters
 }
 
-func (s *Proxy) serveAdmin() {
-	if s.IsClosed() {
+func (p *Proxy) serveAdmin() {
+	if p.IsClosed() {
 		return
 	}
-	defer s.Close()
+	defer p.Close()
 
-	log.Warnf("[%p] admin start service on %s", s, s.ladmin.Addr())
+	log.Warnf("[%p] admin start service on %s", p, p.ladmin.Addr())
 
 	eh := make(chan error, 1)
 	go func(l net.Listener) {
 		h := http.NewServeMux()
-		h.Handle("/", newApiServer(s))
+		h.Handle("/", newApiServer(p))
 		hs := &http.Server{Handler: h}
 		eh <- hs.Serve(l)
-	}(s.ladmin)
+	}(p.ladmin)
 
 	select {
-	case <-s.exit.C:
-		log.Warnf("[%p] admin shutdown", s)
+	case <-p.exit.C:
+		log.Warnf("[%p] admin shutdown", p)
 	case err := <-eh:
-		log.ErrorErrorf(err, "[%p] admin exit on error", s)
+		log.ErrorErrorf(err, "[%p] admin exit on error", p)
 	}
 }
 
-func (s *Proxy) serveProxy() {
-	if s.IsClosed() {
+func (p *Proxy) serveProxy() {
+	if p.IsClosed() {
 		return
 	}
-	defer s.Close()
+	defer p.Close()
 
-	log.Warnf("[%p] proxy start service on %s", s, s.lproxy.Addr())
+	log.Warnf("[%p] proxy start service on %s", p, p.lproxy.Addr())
 
 	eh := make(chan error, 1)
 	go func(l net.Listener) (err error) {
@@ -316,40 +389,40 @@ func (s *Proxy) serveProxy() {
 			eh <- err
 		}()
 		for {
-			c, err := s.acceptConn(l)
+			c, err := p.acceptConn(l)
 			if err != nil {
 				return err
 			}
-			NewSession(c, s.config).Start(s.router)
+			NewSession(c, p.config, p).Start(p.router)
 		}
-	}(s.lproxy)
+	}(p.lproxy)
 
-	if d := s.config.BackendPingPeriod.Duration(); d != 0 {
-		go s.keepAlive(d)
+	if d := p.config.BackendPingPeriod.Duration(); d != 0 {
+		go p.keepAlive(d)
 	}
 
 	select {
-	case <-s.exit.C:
-		log.Warnf("[%p] proxy shutdown", s)
+	case <-p.exit.C:
+		log.Warnf("[%p] proxy shutdown", p)
 	case err := <-eh:
-		log.ErrorErrorf(err, "[%p] proxy exit on error", s)
+		log.ErrorErrorf(err, "[%p] proxy exit on error", p)
 	}
 }
 
-func (s *Proxy) keepAlive(d time.Duration) {
+func (p *Proxy) keepAlive(d time.Duration) {
 	var ticker = time.NewTicker(math2.MaxDuration(d, time.Second))
 	defer ticker.Stop()
 	for {
 		select {
-		case <-s.exit.C:
+		case <-p.exit.C:
 			return
 		case <-ticker.C:
-			s.router.KeepAlive()
+			p.router.KeepAlive()
 		}
 	}
 }
 
-func (s *Proxy) acceptConn(l net.Listener) (net.Conn, error) {
+func (p *Proxy) acceptConn(l net.Listener) (net.Conn, error) {
 	var delay = &DelayExp2{
 		Min: 10, Max: 500,
 		Unit: time.Millisecond,
@@ -358,7 +431,7 @@ func (s *Proxy) acceptConn(l net.Listener) (net.Conn, error) {
 		c, err := l.Accept()
 		if err != nil {
 			if e, ok := err.(net.Error); ok && e.Temporary() {
-				log.WarnErrorf(err, "[%p] proxy accept new connection failed", s)
+				log.WarnErrorf(err, "[%p] proxy accept new connection failed", p)
 				delay.Sleep()
 				continue
 			}
@@ -458,24 +531,24 @@ const (
 	StatsFull = StatsFlags(^uint32(0))
 )
 
-func (s *Proxy) Overview(flags StatsFlags) *Overview {
+func (p *Proxy) Overview(flags StatsFlags) *Overview {
 	o := &Overview{
 		Version: utils.Version,
 		Compile: utils.Compile,
-		Config:  s.Config(),
-		Model:   s.Model(),
-		Stats:   s.Stats(flags),
+		Config:  p.Config(),
+		Model:   p.Model(),
+		Stats:   p.Stats(flags),
 	}
 	if flags.HasBit(StatsSlots) {
-		o.Slots = s.Slots()
+		o.Slots = p.Slots()
 	}
 	return o
 }
 
-func (s *Proxy) Stats(flags StatsFlags) *Stats {
+func (p *Proxy) Stats(flags StatsFlags) *Stats {
 	stats := &Stats{}
-	stats.Online = s.IsOnline()
-	stats.Closed = s.IsClosed()
+	stats.Online = p.IsOnline()
+	stats.Closed = p.IsClosed()
 
 	stats.Ops.Total = OpTotal()
 	stats.Ops.Fails = OpFails()
@@ -496,7 +569,7 @@ func (s *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Rusage.Raw = u.Usage
 	}
 
-	stats.Backend.PrimaryOnly = s.Config().BackendPrimaryOnly
+	stats.Backend.PrimaryOnly = p.Config().BackendPrimaryOnly
 
 	if flags.HasBit(StatsRuntime) {
 		var r runtime.MemStats
