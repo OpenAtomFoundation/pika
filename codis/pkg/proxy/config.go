@@ -118,8 +118,6 @@ session_break_on_failure = false
 # Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
 slowlog_log_slower_than = 100000
 
-# set the number of slowlog in memory, max len is 10000000. (0 to disable)
-slowlog_max_len = 128000
 
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
@@ -183,7 +181,6 @@ type Config struct {
 	SessionBreakOnFailure  bool              `toml:"session_break_on_failure" json:"session_break_on_failure"`
 
 	SlowlogLogSlowerThan int64 `toml:"slowlog_log_slower_than" json:"slowlog_log_slower_than"`
-	SlowlogMaxLen        int64 `toml:"slowlog_max_len" json:"slowlog_max_len"`
 
 	MetricsReportServer           string            `toml:"metrics_report_server" json:"metrics_report_server"`
 	MetricsReportPeriod           timesize.Duration `toml:"metrics_report_period" json:"metrics_report_period"`
@@ -195,7 +192,8 @@ type Config struct {
 	MetricsReportStatsdServer     string            `toml:"metrics_report_statsd_server" json:"metrics_report_statsd_server"`
 	MetricsReportStatsdPeriod     timesize.Duration `toml:"metrics_report_statsd_period" json:"metrics_report_statsd_period"`
 	MetricsReportStatsdPrefix     string            `toml:"metrics_report_statsd_prefix" json:"metrics_report_statsd_prefix"`
-	ConfigFileName                string            `toml:"-" json:"config_file_name"`
+
+	ConfigFileName string `toml:"-" json:"config_file_name"`
 }
 
 func NewDefaultConfig() *Config {
@@ -314,9 +312,6 @@ func (c *Config) Validate() error {
 
 	if c.SlowlogLogSlowerThan < 0 {
 		return errors.New("invalid slowlog_log_slower_than")
-	}
-	if c.SlowlogMaxLen < 0 {
-		return errors.New("invalid slowlog_max_len")
 	}
 
 	if c.MetricsReportPeriod < 0 {

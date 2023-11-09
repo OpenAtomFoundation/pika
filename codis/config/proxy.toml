@@ -102,8 +102,6 @@ session_break_on_failure = false
 # Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
 slowlog_log_slower_than = 100000
 
-# set the number of slowlog in memory, max len is 10000000. (0 to disable)
-slowlog_max_len = 128000
 
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
