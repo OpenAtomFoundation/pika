@@ -230,7 +230,6 @@ func init() {
 		{"SUNIONSTORE", FlagWrite},
 		{"SYNC", FlagNotAllow},
 		{"PCONFIG", 0},
-		{"PSLOWLOG", 0},
 		{"TIME", FlagNotAllow},
 		{"TOUCH", FlagWrite},
 		{"TTL", 0},
