@@ -8,17 +8,17 @@
 #include "include/pika_server.h"
 #include "include/pika_cache.h"
 #include "pstd/include/scope_record_lock.h"
-#include "include/pika_cache.h"
 
 extern PikaServer *g_pika_server;
 
-PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key, std::shared_ptr<PikaCache> cache)
-    : should_exit_(false),
-      async_load_keys_num_(0),
-      waitting_load_keys_num_(0),
-      cache_start_pos_(cache_start_pos),
-      cache_items_per_key_(cache_items_per_key),
-      cache_(cache) {
+PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key)
+    : should_exit_(false)
+      , loadkeys_cond_()
+      , async_load_keys_num_(0)
+      , waitting_load_keys_num_(0)
+      , cache_start_pos_(cache_start_pos)
+      , cache_items_per_key_(cache_items_per_key)
+{
   set_thread_name("PikaCacheLoadThread");
 }
 

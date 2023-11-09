@@ -280,7 +280,7 @@ void LPushCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void LPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LPushx(CachePrefixKeyl, values_);
+    slot->cache()->LPush(CachePrefixKeyl, values_);
   }
 }
 
@@ -851,7 +851,7 @@ void RPushCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void RPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->RPushx(CachePrefixKeyl, values_);
+    slot->cache()->RPush(CachePrefixKeyl, values_);
   }
 }
 

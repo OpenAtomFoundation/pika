@@ -52,7 +52,7 @@ void ZAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void ZAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZAddIfKeyExist(key_, score_members);
+    slot->cache()->ZAdd(key_, score_members);
   }
 }
 
@@ -184,7 +184,7 @@ void ZIncrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this);
+    slot->cache()->ZIncrby(CachePrefixKeyZ, member_, by_);
   }
 }
 
@@ -513,7 +513,7 @@ void ZRangebyscoreCmd::PreDo(std::shared_ptr<Slot> slot) {
 
 void ZRangebyscoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
   res_.clear();
-  Do();
+  Do(slot);
 }
 
 void ZRangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
@@ -866,7 +866,7 @@ void ZInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void ZInterstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
-  Do();
+  Do(slot);
 }
 
 void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
@@ -1009,7 +1009,7 @@ void ZRevrankCmd::PreDo(std::shared_ptr<Slot> slot) {
 
 void ZRevrankCmd::DoFromCache(std::shared_ptr<Slot> slot) {
   res_.clear();
-  Do();
+  Do(slot);
 }
 
 void ZRevrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {

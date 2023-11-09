@@ -25,42 +25,9 @@ void PikaCacheManager::Init(const std::map<std::string, std::shared_ptr<DB>>& db
   }
 }
 
-void PikaCacheManager::ProcessCronTask() {
-  for (auto& cache : caches_) {
-    cache.second->ActiveExpireCycle();
-  }
-  LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
-}
-
-double PikaCacheManager::HitRatio(void) {
-  std::unique_lock l(mu_);
-  int64_t hits = 0;
-  int64_t misses = 0;
-  cache::RedisCache::GetHitAndMissNum(&hits, &misses);
-  int64_t all_cmds = hits + misses;
-  if (0 >= all_cmds) {
-    return 0;
-  }
-  return hits / (all_cmds * 1.0);
-}
-
 void PikaCacheManager::ClearHitRatio(void) {
   std::unique_lock l(mu_);
   cache::RedisCache::ResetHitAndMissNum();
-}
-
-CacheInfo PikaCacheManager::Info() {
-  CacheInfo info;
-  std::unique_lock l(mu_);
-  for (const auto &cache : caches_) {
-    auto each_info = cache.second->Info(info);
-    info.keys_num += each_info.keys_num;
-    info.async_load_keys_num += each_info.async_load_keys_num;
-  }
-  info.used_memory = cache::RedisCache::GetUsedMemory();
-  info.cache_num = caches_.size();
-  cache::RedisCache::GetHitAndMissNum(&info.hits, &info.misses);
- return info;
 }
 
 void PikaCacheManager::UpdateCacheInfo(void) {
@@ -123,4 +90,11 @@ void PikaCacheManager::ResetDisplayCacheInfo(int status) {
 void PikaCacheManager::GetCacheInfo(DisplayCacheInfo &cache_info) {
   std::shared_lock<std::shared_mutex> lock(cache_info_rwlock_);
   cache_info = cache_info_;
+}
+
+void PikaCacheManager::CacheConfigInit(cache::CacheConfig& cache_cfg) {
+  cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+  cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+  cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+  cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
 }

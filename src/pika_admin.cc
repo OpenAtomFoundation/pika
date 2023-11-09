@@ -462,10 +462,7 @@ void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {
     LOG(INFO) << "Flushall, but Slot not found";
   } else {
-    auto ok = slot->FlushDB();
-    if (ok) {
-      slot->cache()->FlushSlot();
-    }
+    slot->FlushDB();
   }
 }
 
@@ -531,6 +528,17 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
     }
     //todo(leehao): flush specified db name
     slot->cache()->FlushSlot();
+  }
+}
+
+void FlushdbCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void FlushdbCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  // clear cache
+  if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
+    g_pika_server->ClearCacheDbAsync(slot);
   }
 }
 

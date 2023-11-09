@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <memory.h>
 
 #include "include/build_version.h"
 #include "include/pika_cache_manager.h"
@@ -225,7 +226,6 @@ int main(int argc, char* argv[]) {
     g_pika_rm.reset();
     g_pika_cmd_table_manager.reset();
     g_network_statistic.reset();
-    g_pika_cache_manager.reset();
     ::google::ShutdownGoogleLogging();
     g_pika_conf.reset();
   };

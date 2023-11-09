@@ -1306,7 +1306,7 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
-  g_pika_cache_manager->ProcessCronTask();
+  ProcessCronTask();
   g_pika_cache_manager->UpdateCacheInfo();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
@@ -1841,14 +1841,14 @@ void PikaServer::DoCacheBGTask(void* arg) {
       LOG(INFO) << "reset cache num start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
       g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
-      slot->cache()->Reset();
+      slot->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache num finish";
       break;
     case CACHE_BGTASK_RESET_CFG:
       LOG(INFO) << "reset cache config start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
       g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
-      slot->cache()->Reset();
+      slot->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache config finish";
       break;
     default:
@@ -1873,7 +1873,7 @@ void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
 }
 
 void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
-  slot->cache()->ClearHitRatio();
+  g_pika_cache_manager->ClearHitRatio();
 }
 
 void PikaServer::OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot) {
@@ -1896,4 +1896,30 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
   arg->conf = std::move(g_pika_conf);
   arg->reenable_cache = true;
   common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::ProcessCronTask() {
+  for (auto& dbs : dbs_) {
+    auto db =  dbs.second;
+    auto slots = db->GetSlots();
+    for (uint32_t i = 0; i < slots.size(); ++i) {
+      auto caches = slots[i]->cache()->GetCaches();
+      for (uint32_t i = 0; i < caches.size(); ++i) {
+        caches[i]->ActiveExpireCycle();
+      }
+    }
+  }
+  LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
+}
+
+double PikaServer::HitRatio(void) {
+  std::unique_lock l(mu_);
+  int64_t hits = 0;
+  int64_t misses = 0;
+  cache::RedisCache::GetHitAndMissNum(&hits, &misses);
+  int64_t all_cmds = hits + misses;
+  if (0 >= all_cmds) {
+    return 0;
+  }
+  return hits / (all_cmds * 1.0);
 }

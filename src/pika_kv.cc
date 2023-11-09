@@ -471,7 +471,7 @@ void GetsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void GetsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, new_value_);
+    slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, new_value_);
   }
 }
 
@@ -722,7 +722,7 @@ void SetexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void SetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->Setxx(CachePrefixKeyk, value_, sec_);
+    slot->cache()->Setnx(CachePrefixKeyk, value_, sec_);
   }
 }
 
@@ -872,7 +872,7 @@ void MsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     for (auto key : kvs_) {
       std::string CachePrefixKeyk = PCacheKeyPrefixK + key.key;
-      slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, key.value);
+      slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, key.value);
     }
   }
 }

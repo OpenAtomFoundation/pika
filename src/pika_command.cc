@@ -56,10 +56,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> selectptr = std::make_unique<SelectCmd>(kCmdNameSelect, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSelect, std::move(selectptr)));
   std::unique_ptr<Cmd> flushallptr =
-      std::make_unique<FlushallCmd>(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache);
+      std::make_unique<FlushallCmd>(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushall, std::move(flushallptr)));
   std::unique_ptr<Cmd> flushdbptr =
-      std::make_unique<FlushdbCmd>(kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache);
+      std::make_unique<FlushdbCmd>(kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache | kCmdFlagsDoFromCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushdb, std::move(flushdbptr)));
   std::unique_ptr<Cmd> clientptr = std::make_unique<ClientCmd>(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameClient, std::move(clientptr)));

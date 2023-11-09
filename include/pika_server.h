@@ -167,6 +167,8 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
+  void ProcessCronTask();
+  double HitRatio();
 
   /*
    * Table use
@@ -659,6 +661,11 @@ class PikaServer : public pstd::noncopyable {
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 
   net::BGThread common_bg_thread_;
+
+  /*
+   * Cache used
+   */
+  std::shared_mutex mu_;
 };
 
 #endif

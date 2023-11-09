@@ -74,7 +74,7 @@ void HSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void HSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HSetIfKeyExist(CachePrefixKeyh, field_, value_);
+    slot->cache()->HSet(CachePrefixKeyh, field_, value_);
   }
 }
 
@@ -511,7 +511,7 @@ void HMsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void HMsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HMSetxx(CachePrefixKeyh, fvs_);
+    slot->cache()->HMSet(CachePrefixKeyh, fvs_);
   }
 }
 

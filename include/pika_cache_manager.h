@@ -16,8 +16,6 @@ class PikaCacheManager : public pstd::noncopyable {
   PikaCacheManager();
   ~PikaCacheManager() = default;
   void Init(const std::map<std::string, std::shared_ptr<DB>>& dbs);
-  void ProcessCronTask();
-  double HitRatio();
   void ClearHitRatio();
   PikaCache::CacheInfo Info();
   // for cache info
@@ -58,6 +56,7 @@ class PikaCacheManager : public pstd::noncopyable {
   void UpdateCacheInfo(void);
   void GetCacheInfo(DisplayCacheInfo &cache_info);
   void ResetDisplayCacheInfo(int status);
+  void CacheConfigInit(cache::CacheConfig &cache_cfg);
  private:
   std::shared_mutex mu_;
   std::unordered_map<std::string, std::shared_ptr<PikaCache>> caches_;

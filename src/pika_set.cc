@@ -42,7 +42,7 @@ void SAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SAddIfKeyExist(CachePrefixKeyS, members_);
+    slot->cache()->SAdd(CachePrefixKeyS, members_);
   }
 }
 
@@ -271,7 +271,7 @@ void SRemCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 }
 
 void SRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  if (s_.ok() && 0 < deleted_) {
+  if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
     slot->cache()->SRem(CachePrefixKeyS, members_);
   }
@@ -585,7 +585,7 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     slot->cache()->SRem(CachePrefixKeyk, members);
     // warning: it is not atomic to add dest key member when in cache model
     std::string CachePrefixKeyk1 = PCacheKeyPrefixS + src_key_;
-    slot->cache()->SAddIfKeyExist(CachePrefixKeyk1, members);
+    slot->cache()->SAdd(CachePrefixKeyk1, members);
   }
 }
 
