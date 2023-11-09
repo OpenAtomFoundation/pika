@@ -833,6 +833,11 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
   if (!is_suspend()) {
     slot->DbRWLockReader();
   }
+  DEFER {
+    if (!is_suspend()) {
+      slot->DbRWUnLock();
+    }
+  };
   if (need_cache_do()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
@@ -849,12 +854,11 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
       if (is_need_update_cache()) {
         DoUpdateCache(slot);
       }
+    } else {
+      LOG(WARNING) << "This branch is not impossible reach";
     }
   } else {
     Do(slot);
-  }
-  if (!is_suspend()) {
-    slot->DbRWUnLock();
   }
 }
 
