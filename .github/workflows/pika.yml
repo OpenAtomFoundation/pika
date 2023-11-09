@@ -9,6 +9,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo
+  ARTIFACT_PIKA_NAME: artifact-pika
 
 jobs:
   build_on_ubuntu:
@@ -50,14 +51,18 @@ jobs:
         id: cache-ubuntu
         with:
           key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
-          path: ${{ github.workspace }}
-          restore-keys: |
-            ${{ runner.os }}-build-ubuntu-
+          path: |
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
 
       - name: Build
-        if: ${{ steps.cache-ubuntu.outputs.cache-hit != 'true' }}
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_PIKA_NAME }}
+          path: ${{ github.workspace }}/build/pika
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
@@ -115,17 +120,7 @@ jobs:
           source /opt/rh/devtoolset-10/enable
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-centos
-        with:
-          key: ${{ runner.os }}-build-centos-${{ hashFiles('**/CMakeLists.txt') }}
-          path: ${{ github.workspace }}
-          restore-keys: |
-            ${{ runner.os }}-build-centos-
-
       - name: Build
-        if: ${{ steps.cache-centos.outputs.cache-hit != 'true' }}
         run: |
           source /opt/rh/devtoolset-10/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
@@ -150,7 +145,6 @@ jobs:
           cd ../tests/integration/
           chmod +x integrate_test.sh 
           sh integrate_test.sh
-  
 
   build_on_macos:
     runs-on: macos-latest
@@ -174,17 +168,7 @@ jobs:
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
           cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-macos
-        with:
-          key: ${{ runner.os }}-build-macos-${{ hashFiles('**/CMakeLists.txt') }}
-          path: ${{ github.workspace }}
-          restore-keys: |
-            ${{ runner.os }}-build-macos-
-
       - name: Build
-        if: ${{ steps.cache-macos.outputs.cache-hit != 'true' }}
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
@@ -213,6 +197,7 @@ jobs:
   build_pika_image:
     name: Build Pika Docker image
     runs-on: ubuntu-latest
+    needs: build_on_ubuntu
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -229,11 +214,16 @@ jobs:
         with:
           images: pikadb/pika
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_PIKA_NAME }}
+          path: artifact/
+
       - name: Build Docker image
-        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./ci/Dockerfile
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

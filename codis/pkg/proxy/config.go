@@ -118,7 +118,6 @@ session_break_on_failure = false
 # Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
 slowlog_log_slower_than = 100000
 
-
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
 metrics_report_period = "1s"
