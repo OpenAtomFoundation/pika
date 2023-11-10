@@ -251,7 +251,7 @@ Status RedisLists::LInsert(const Slice& key, const BeforeOrAfter& before_or_afte
       ListsDataKey start_data_key(key, version, current_index);
       for (iter->Seek(start_data_key.Encode()); iter->Valid() && current_index < parsed_lists_meta_value.right_index();
            iter->Next(), current_index++) {
-        if (strcmp(iter->value().ToString().data(), pivot.data()) == 0) {
+        if (memcmp(iter->value().ToString().data(), pivot.data(), strlen(iter->value().ToString().data())) == 0) {
           find_pivot = true;
           pivot_index = current_index;
           break;
@@ -538,7 +538,7 @@ Status RedisLists::LRem(const Slice& key, int64_t count, const Slice& value, uin
         for (iter->Seek(start_data_key.Encode());
              iter->Valid() && current_index <= stop_index && ((count == 0) || rest != 0);
              iter->Next(), current_index++) {
-          if (strcmp(iter->value().ToString().data(), value.data()) == 0) {
+          if (iter->value() == value) {
             target_index.push_back(current_index);
             if (count != 0) {
               rest--;
@@ -552,7 +552,7 @@ Status RedisLists::LRem(const Slice& key, int64_t count, const Slice& value, uin
         for (iter->Seek(stop_data_key.Encode());
              iter->Valid() && current_index >= start_index && ((count == 0) || rest != 0);
              iter->Prev(), current_index--) {
-          if (strcmp(iter->value().ToString().data(), value.data()) == 0) {
+          if (iter->value() == value) {
             target_index.push_back(current_index);
             if (count != 0) {
               rest--;
@@ -577,7 +577,7 @@ Status RedisLists::LRem(const Slice& key, int64_t count, const Slice& value, uin
           rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[1]);
           for (iter->Seek(sublist_right_key.Encode()); iter->Valid() && current_index >= start_index;
                iter->Prev(), current_index--) {
-            if ((strcmp(iter->value().ToString().data(), value.data()) == 0) && rest > 0) {
+            if ((iter->value() == value) && rest > 0) {
               rest--;
             } else {
               ListsDataKey lists_data_key(key, version, left--);
@@ -597,7 +597,7 @@ Status RedisLists::LRem(const Slice& key, int64_t count, const Slice& value, uin
           rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[1]);
           for (iter->Seek(sublist_left_key.Encode()); iter->Valid() && current_index <= stop_index;
                iter->Next(), current_index++) {
-            if ((strcmp(iter->value().ToString().data(), value.data()) == 0) && rest > 0) {
+            if ((iter->value() == value) && rest > 0) {
               rest--;
             } else {
               ListsDataKey lists_data_key(key, version, right++);
