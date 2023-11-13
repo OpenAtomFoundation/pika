@@ -251,7 +251,7 @@ Status RedisLists::LInsert(const Slice& key, const BeforeOrAfter& before_or_afte
       ListsDataKey start_data_key(key, version, current_index);
       for (iter->Seek(start_data_key.Encode()); iter->Valid() && current_index < parsed_lists_meta_value.right_index();
            iter->Next(), current_index++) {
-	if (iter->value() == Slice(pivot)) {
+        if (iter->value() == Slice(pivot)) {
           find_pivot = true;
           pivot_index = current_index;
           break;
