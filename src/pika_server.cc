@@ -1901,10 +1901,8 @@ void PikaServer::ProcessCronTask() {
     auto db =  dbs.second;
     auto slots = db->GetSlots();
     for (size_t i = 0; i < slots.size(); ++i) {
-      auto caches = slots[i]->cache()->GetCaches();
-      for (size_t i = 0; i < caches.size(); ++i) {
-        caches[i]->ActiveExpireCycle();
-      }
+      auto cache = slots[i]->cache();
+      cache->ProcessCronTask();
     }
   }
   LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
@@ -1939,7 +1937,6 @@ void PikaServer::UpdateCacheInfo(void) {
 }
 
 void PikaServer::ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot) {
-  std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);
   slot->ResetDisplayCacheInfo(status);
 }
 

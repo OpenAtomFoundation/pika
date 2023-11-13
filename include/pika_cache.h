@@ -52,7 +52,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status Reset(uint32_t cache_num, cache::CacheConfig *cache_cfg = nullptr);
   void ResetConfig(cache::CacheConfig *cache_cfg);
   void Destroy(void);
-  void ProcessCronTask(void);
   void SetCacheStatus(int status);
   int CacheStatus(void);
   void ClearHitRatio(void);
@@ -62,6 +61,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   bool Exists(std::string &key);
   void FlushSlot(void);
   void ActiveExpireCycle();
+  void ProcessCronTask(void);
 
   rocksdb::Status Del(const std::vector<std::string> &keys);
   rocksdb::Status Expire(std::string &key, int64_t ttl);

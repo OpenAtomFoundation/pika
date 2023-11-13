@@ -46,6 +46,14 @@ Status PikaCache::Init(uint32_t cache_num, cache::CacheConfig *cache_cfg) {
   return InitWithoutLock(cache_num, cache_cfg);
 }
 
+void PikaCache::ProcessCronTask(void) {
+  std::lock_guard l(rwlock_);
+  for (uint32_t i = 0; i < caches_.size(); ++i) {
+    std::unique_lock lm(*cache_mutexs_[i]);
+    caches_[i]->ActiveExpireCycle();
+  }
+}
+
 Status PikaCache::Reset(uint32_t cache_num, cache::CacheConfig *cache_cfg) {
   std::lock_guard l(rwlock_);
 
@@ -64,14 +72,6 @@ void PikaCache::ResetConfig(cache::CacheConfig *cache_cfg) {
 void PikaCache::Destroy(void) {
   std::lock_guard l(rwlock_);
   DestroyWithoutLock();
-}
-
-void PikaCache::ProcessCronTask(void) {
-  std::lock_guard l(rwlock_);
-  for (uint32_t i = 0; i < caches_.size(); ++i) {
-    std::unique_lock lm(*cache_mutexs_[i]);
-    caches_[i]->ActiveExpireCycle();
-  }
 }
 
 void PikaCache::ActiveExpireCycle() {

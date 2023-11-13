@@ -212,7 +212,6 @@ int main(int argc, char* argv[]) {
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
   g_pika_server->InitDBStruct();
 
-
   if (g_pika_conf->daemonize()) {
     close_std();
   }
