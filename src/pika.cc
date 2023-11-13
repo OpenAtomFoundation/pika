@@ -9,7 +9,6 @@
 #include <memory.h>
 
 #include "include/build_version.h"
-#include "include/pika_cache_manager.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
@@ -28,7 +27,6 @@ PikaServer* g_pika_server = nullptr;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 
@@ -213,8 +211,7 @@ int main(int argc, char* argv[]) {
   g_pika_rm = std::make_unique<PikaReplicaManager>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
   g_pika_server->InitDBStruct();
-  g_pika_cache_manager = std::make_unique<PikaCacheManager>();
-  g_pika_cache_manager->Init(g_pika_server->GetDB());
+
 
   if (g_pika_conf->daemonize()) {
     close_std();

@@ -8,12 +8,11 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_binlog_transverter.h"
-#include "include/pika_cache_manager.h"
+#include "include/pika_cache.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
-extern std::shared_ptr<PikaCacheManager> g_pika_cache_manager;
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

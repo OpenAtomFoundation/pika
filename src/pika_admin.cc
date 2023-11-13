@@ -15,7 +15,6 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_cache_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -26,7 +25,6 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -526,8 +524,6 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
     } else {
       slot->FlushSubDB(db_name_);
     }
-    //todo(leehao): flush specified db name
-    slot->cache()->FlushSlot();
   }
 }
 
@@ -830,7 +826,7 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoCommandStats(info);
       break;
     case kInfoCache:
-      InfoCache(info);
+      InfoCache(info, slot);
       break;
     default:
       // kInfoErr is nothing
@@ -1316,14 +1312,13 @@ void InfoCmd::InfoCommandStats(std::string& info) {
     info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoCache(std::string& info) {
+void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
     std::stringstream tmp_stream;
     tmp_stream << "# Cache" << "\r\n";
     if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
       tmp_stream << "cache_status:Disable" << "\r\n";
     } else {
-      PikaCacheManager::DisplayCacheInfo cache_info;
-      g_pika_cache_manager->GetCacheInfo(cache_info);
+      auto cache_info = slot->GetCacheInfo();
       tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
       tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
       tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";

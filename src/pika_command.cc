@@ -8,7 +8,6 @@
 #include <glog/logging.h>
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cache_manager.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"

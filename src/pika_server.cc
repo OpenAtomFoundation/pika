@@ -28,14 +28,12 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
-#include "include/pika_cache_manager.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
-extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 // QUEUE_SIZE_THRESHOLD_PERCENTAGE is used to represent a percentage value and should be within the range of 0 to 100.
 const size_t QUEUE_SIZE_THRESHOLD_PERCENTAGE = 75;
 
@@ -1307,7 +1305,7 @@ void PikaServer::DoTimingTask() {
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
   ProcessCronTask();
-  g_pika_cache_manager->UpdateCacheInfo();
+  UpdateCacheInfo();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
 
@@ -1833,21 +1831,21 @@ void PikaServer::DoCacheBGTask(void* arg) {
     case CACHE_BGTASK_CLEAR:
       LOG(INFO) << "clear cache start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
-      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, slot);
       slot->cache()->FlushSlot();
       LOG(INFO) << "clear cache finish";
       break;
     case CACHE_BGTASK_RESET_NUM:
       LOG(INFO) << "reset cache num start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
-      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
       slot->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache num finish";
       break;
     case CACHE_BGTASK_RESET_CFG:
       LOG(INFO) << "reset cache config start...";
       slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
-      g_pika_cache_manager->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
       slot->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache config finish";
       break;
@@ -1873,7 +1871,7 @@ void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
 }
 
 void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
-  g_pika_cache_manager->ClearHitRatio();
+  slot->cache()->ClearHitRatio();
 }
 
 void PikaServer::OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot) {
@@ -1902,9 +1900,9 @@ void PikaServer::ProcessCronTask() {
   for (auto& dbs : dbs_) {
     auto db =  dbs.second;
     auto slots = db->GetSlots();
-    for (uint32_t i = 0; i < slots.size(); ++i) {
+    for (size_t i = 0; i < slots.size(); ++i) {
       auto caches = slots[i]->cache()->GetCaches();
-      for (uint32_t i = 0; i < caches.size(); ++i) {
+      for (size_t i = 0; i < caches.size(); ++i) {
         caches[i]->ActiveExpireCycle();
       }
     }
@@ -1922,4 +1920,32 @@ double PikaServer::HitRatio(void) {
     return 0;
   }
   return hits / (all_cmds * 1.0);
+}
+
+void PikaServer::UpdateCacheInfo(void) {
+  for (auto& dbs : dbs_) {
+    auto db =  dbs.second;
+    auto slots = db->GetSlots();
+    for (size_t i = 0; i < slots.size(); ++i) {
+      if (PIKA_CACHE_STATUS_OK != slots[i]->cache()->CacheStatus()) {
+        return;
+      }
+      // get cache info from redis cache
+      CacheInfo cache_info;
+      slots[i]->cache()->Info(cache_info);
+      slots[i]->UpdateCacheInfo(cache_info);
+    }
+  }
+}
+
+void PikaServer::ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot) {
+  std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);
+  slot->ResetDisplayCacheInfo(status);
+}
+
+void PikaServer::CacheConfigInit(cache::CacheConfig& cache_cfg) {
+  cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+  cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+  cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+  cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
 }

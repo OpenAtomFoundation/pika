@@ -265,7 +265,7 @@ class InfoCmd : public Cmd {
   void InfoRocksDB(std::string& info);
   void InfoDebug(std::string& info);
   void InfoCommandStats(std::string& info);
-  void InfoCache(std::string& info);
+  void InfoCache(std::string& info, std::shared_ptr<Slot> slot = nullptr);
 
   std::string CacheStatusToString(int status);
 };

@@ -7,9 +7,8 @@
 
 #include "include/pika_slot_command.h"
 #include "pstd/include/pstd_string.h"
-
+#include "include/pika_cache.h"
 #include "include/pika_binlog_transverter.h"
-#include "include/pika_cache_manager.h"
 #include "include/pika_conf.h"
 
 void SAddCmd::DoInitial() {

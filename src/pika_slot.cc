@@ -10,8 +10,6 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
-#include "include/pika_cache_manager.h"
-
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
 
@@ -19,7 +17,6 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCacheManager> g_pika_cache_manager;
 
 std::string SlotPath(const std::string& db_path, uint32_t slot_id) {
   char buf[100];
@@ -115,10 +112,10 @@ std::shared_ptr<storage::Storage> Slot::db() const { return db_; }
 std::shared_ptr<PikaCache> Slot::cache() const { return cache_; }
 
 void Slot::Init() {
-  cache_ = std::make_shared<PikaCache>(0, 0, shared_from_this());
+  cache_ = std::make_shared<PikaCache>(g_pika_conf->cache_start_pos(), g_pika_conf->cache_items_per_key(), shared_from_this());
   // Create cache
   cache::CacheConfig cache_cfg;
-  g_pika_cache_manager->CacheConfigInit(cache_cfg);
+  g_pika_server->CacheConfigInit(cache_cfg);
   cache_->Init(g_pika_conf->cache_num(), &cache_cfg);
 }
 
@@ -528,6 +525,11 @@ KeyScanInfo Slot::GetKeyScanInfo() {
   return key_scan_info_;
 }
 
+DisplayCacheInfo Slot::GetCacheInfo() {
+  std::lock_guard l(key_info_protector_);
+  return cache_info_;
+}
+
 Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   std::lock_guard l(key_info_protector_);
   if (key_scan_info_.key_scaning_) {
@@ -548,3 +550,51 @@ Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   return Status::OK();
 }
 
+void Slot::UpdateCacheInfo(CacheInfo& cache_info) {
+  std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);
+
+  cache_info_.status = cache_info.status;
+  cache_info_.cache_num = cache_info.cache_num;
+  cache_info_.keys_num = cache_info.keys_num;
+  cache_info_.used_memory = cache_info.used_memory;
+  cache_info_.waitting_load_keys_num = cache_info.waitting_load_keys_num;
+  cache_usage_ = cache_info.used_memory;
+
+  uint64_t all_cmds = cache_info.hits + cache_info.misses;
+  cache_info_.hitratio_all = (0 >= all_cmds) ? 0.0 : (cache_info.hits * 100.0) / all_cmds;
+
+  uint64_t cur_time_us = pstd::NowMicros();
+  uint64_t delta_time = cur_time_us - cache_info_.last_time_us + 1;
+  uint64_t delta_hits = cache_info.hits - cache_info_.hits;
+  cache_info_.hits_per_sec = delta_hits * 1000000 / delta_time;
+
+  uint64_t delta_all_cmds = all_cmds - (cache_info_.hits + cache_info_.misses);
+  cache_info_.read_cmd_per_sec = delta_all_cmds * 1000000 / delta_time;
+
+  cache_info_.hitratio_per_sec = (0 >= delta_all_cmds) ? 0.0 : (delta_hits * 100.0) / delta_all_cmds;
+
+  uint64_t delta_load_keys = cache_info.async_load_keys_num - cache_info_.last_load_keys_num;
+  cache_info_.load_keys_per_sec = delta_load_keys * 1000000 / delta_time;
+
+  cache_info_.hits = cache_info.hits;
+  cache_info_.misses = cache_info.misses;
+  cache_info_.last_time_us = cur_time_us;
+  cache_info_.last_load_keys_num = cache_info.async_load_keys_num;
+}
+
+void Slot::ResetDisplayCacheInfo(int status) {
+  std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);
+  cache_info_.status = status;
+  cache_info_.cache_num = 0;
+  cache_info_.keys_num = 0;
+  cache_info_.used_memory = 0;
+  cache_info_.hits = 0;
+  cache_info_.misses = 0;
+  cache_info_.hits_per_sec = 0;
+  cache_info_.read_cmd_per_sec = 0;
+  cache_info_.hitratio_per_sec = 0.0;
+  cache_info_.hitratio_all = 0.0;
+  cache_info_.load_keys_per_sec = 0;
+  cache_info_.waitting_load_keys_num = 0;
+  cache_usage_ = 0;
+}

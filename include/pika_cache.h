@@ -20,38 +20,30 @@
 
 enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
 
+struct CacheInfo {
+  int status = PIKA_CACHE_STATUS_NONE;
+  uint32_t cache_num = 0;
+  int64_t keys_num = 0;
+  size_t used_memory = 0;
+  int64_t hits = 0;
+  int64_t misses = 0;
+  uint64_t async_load_keys_num = 0;
+  uint32_t waitting_load_keys_num = 0;
+  void clear() {
+    status = PIKA_CACHE_STATUS_NONE;
+    cache_num = 0;
+    keys_num = 0;
+    used_memory = 0;
+    hits = 0;
+    misses = 0;
+    async_load_keys_num = 0;
+    waitting_load_keys_num = 0;
+  }
+};
+
 class PikaCacheLoadThread;
 class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<PikaCache> {
  public:
-  struct CacheInfo {
-    int status;
-    uint32_t cache_num;
-    int64_t keys_num;
-    size_t used_memory;
-    int64_t hits;
-    int64_t misses;
-    uint64_t async_load_keys_num;
-    uint32_t waitting_load_keys_num;
-    CacheInfo()
-        : status(PIKA_CACHE_STATUS_NONE),
-          cache_num(0),
-          keys_num(0),
-          used_memory(0),
-          hits(0),
-          misses(0),
-          async_load_keys_num(0),
-          waitting_load_keys_num(0) {}
-    void clear() {
-      status = PIKA_CACHE_STATUS_NONE;
-      cache_num = 0;
-      keys_num = 0;
-      used_memory = 0;
-      hits = 0;
-      misses = 0;
-      async_load_keys_num = 0;
-      waitting_load_keys_num = 0;
-    }
-  };
 
   PikaCache(int cache_start_pos_, int cache_items_per_key, std::shared_ptr<Slot> slot);
   ~PikaCache();
@@ -63,7 +55,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   void ProcessCronTask(void);
   void SetCacheStatus(int status);
   int CacheStatus(void);
-
+  void ClearHitRatio(void);
   // Normal Commands
   void Info(CacheInfo &info);
   long long DbSize(void);

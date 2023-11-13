@@ -167,8 +167,6 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
-  void ProcessCronTask();
-  double HitRatio();
 
   /*
    * Table use
@@ -531,6 +529,12 @@ class PikaServer : public pstd::noncopyable {
   void ClearHitRatio(std::shared_ptr<Slot> slot = nullptr);
   void OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot = nullptr);
   static void DoCacheBGTask(void* arg);
+  void UpdateCacheInfo(void);
+  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot = nullptr);
+  void CacheConfigInit(cache::CacheConfig &cache_cfg);
+  void ClearHitRatio(void);
+  void ProcessCronTask();
+  double HitRatio();
  private:
   /*
    * TimingTask use
@@ -666,6 +670,7 @@ class PikaServer : public pstd::noncopyable {
    * Cache used
    */
   std::shared_mutex mu_;
+  std::shared_mutex cache_info_rwlock_;
 };
 
 #endif

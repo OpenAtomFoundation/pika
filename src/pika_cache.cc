@@ -1724,3 +1724,8 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
 void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key) {
   cache_load_thread_->Push(key_type, key);
 }
+
+void PikaCache::ClearHitRatio(void) {
+  std::unique_lock l(rwlock_);
+  cache::RedisCache::ResetHitAndMissNum();
+}
