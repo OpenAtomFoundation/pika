@@ -294,7 +294,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogReset();
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
+  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
 
   /*
    * Statistic used
