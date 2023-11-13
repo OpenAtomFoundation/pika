@@ -52,7 +52,7 @@ void ZAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void ZAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZAdd(key_, score_members);
+    slot->cache()->ZAddIfKeyExist(CachePrefixKeyZ, score_members);
   }
 }
 
@@ -184,7 +184,7 @@ void ZIncrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZIncrby(CachePrefixKeyZ, member_, by_);
+    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this);
   }
 }
 

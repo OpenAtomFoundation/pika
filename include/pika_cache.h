@@ -186,8 +186,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl);
   rocksdb::Status WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
   void PushKeyToAsyncLoadQueue(const char key_type, std::string &key);
-  //  static bool CheckCacheDBScoreMembers(std::vector<storage::ScoreMember> &cache_score_members,
-  //                                       std::vector<storage::ScoreMember> &db_score_members, bool print_result = true);
   rocksdb::Status CacheZCard(std::string &key, uint64_t *len);
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }
@@ -222,6 +220,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   std::shared_mutex rwlock_;
   std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
   std::shared_ptr<Slot> slot_;
+  // todo: smart point may be coredump as unbuntu and centos
   std::vector<cache::RedisCache*> caches_;
   std::vector<std::shared_ptr<pstd::Mutex>> cache_mutexs_;
 };

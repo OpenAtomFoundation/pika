@@ -8,7 +8,6 @@
 #include "include/pika_slot_command.h"
 #include "pstd/include/pstd_string.h"
 #include "include/pika_cache.h"
-#include "include/pika_binlog_transverter.h"
 #include "include/pika_conf.h"
 
 void SAddCmd::DoInitial() {
@@ -41,7 +40,7 @@ void SAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SAdd(CachePrefixKeyS, members_);
+    slot->cache()->SAddIfKeyExist(CachePrefixKeyS, members_);
   }
 }
 
@@ -583,8 +582,8 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     std::string CachePrefixKeyk = PCacheKeyPrefixS + src_key_;
     slot->cache()->SRem(CachePrefixKeyk, members);
     // warning: it is not atomic to add dest key member when in cache model
-    std::string CachePrefixKeyk1 = PCacheKeyPrefixS + src_key_;
-    slot->cache()->SAdd(CachePrefixKeyk1, members);
+    std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
+    slot->cache()->SAddIfKeyExist(CachePrefixKeyS, members);
   }
 }
 
@@ -628,8 +627,8 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
 
 void SRandmemberCmd::PreDo(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  std::string CachePrefixKeyk = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SRandmember(CachePrefixKeyk, count_, &members);
+  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
+  rocksdb::Status s = slot->cache()->SRandmember(CachePrefixKeyS, count_, &members);
   if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());

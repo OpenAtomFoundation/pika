@@ -853,8 +853,6 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
       if (is_need_update_cache()) {
         DoUpdateCache(slot);
       }
-    } else {
-      LOG(WARNING) << "This branch is not impossible reach";
     }
   } else {
     Do(slot);

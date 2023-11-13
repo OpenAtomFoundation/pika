@@ -111,9 +111,9 @@ void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
     if (has_ttl_) {
-      slot->cache()->Setnx(CachePrefixKeyk, value_, sec_);
+      slot->cache()->Setxx(CachePrefixKeyk, value_, sec_);
     } else {
-      slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, value_);
+      slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, value_);
     }
   }
 }
@@ -417,6 +417,7 @@ void DecrbyCmd::DoInitial() {
 void DecrbyCmd::Do(std::shared_ptr<Slot> slot) {
   s_ = slot->db()->Decrby(key_, by_, &new_value_);
   if (s_.ok()) {
+    AddSlotKey("k", key_, slot);
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -470,7 +471,7 @@ void GetsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void GetsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, new_value_);
+    slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, new_value_);
   }
 }
 
@@ -721,7 +722,7 @@ void SetexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void SetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->Setnx(CachePrefixKeyk, value_, sec_);
+    slot->cache()->Setxx(CachePrefixKeyk, value_, sec_);
   }
 }
 

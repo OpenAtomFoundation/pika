@@ -12,8 +12,6 @@
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 
-const size_t MaxKeySendSize = 10 * 1024;
-
 extern uint32_t crc32tab[256];
 
 void CRC32TableInit(uint32_t poly);
