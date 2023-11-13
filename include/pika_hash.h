@@ -423,6 +423,5 @@ class PKHRScanRangeCmd : public Cmd {
     pattern_ = "*";
     limit_ = 10;
   }
-  rocksdb::Status s_;
 };
 #endif

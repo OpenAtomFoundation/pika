@@ -321,9 +321,9 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
 void ZRevrangeCmd::PreDo(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  s_ = slot->cache()->ZRevrange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
+  auto s = slot->cache()->ZRevrange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
 
-  if (s_.ok()) {
+  if (s.ok()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
@@ -342,7 +342,7 @@ void ZRevrangeCmd::PreDo(std::shared_ptr<Slot> slot) {
         res_.AppendContent(sm.member);
       }
     }
-  } else if (s_.IsNotFound()) {
+  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -483,8 +483,8 @@ void ZRangebyscoreCmd::PreDo(std::shared_ptr<Slot> slot) {
 
   std::vector<storage::ScoreMember> score_members;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  s_ = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
-  if (s_.ok()) {
+  auto s = slot->cache()->ZRangebyscore(CachePrefixKeyZ, min_, max_, &score_members, this);
+  if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
       char buf[32];
@@ -504,10 +504,10 @@ void ZRangebyscoreCmd::PreDo(std::shared_ptr<Slot> slot) {
         res_.AppendContent(item.member);
       }
     }
-  } else if (s_.IsNotFound()) {
+  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 

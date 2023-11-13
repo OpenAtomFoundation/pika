@@ -74,7 +74,7 @@ void HSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void HSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HSet(CachePrefixKeyh, field_, value_);
+    slot->cache()->HSetIfKeyExist(CachePrefixKeyh, field_, value_);
   }
 }
 
@@ -511,7 +511,7 @@ void HMsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
 void HMsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HMSet(CachePrefixKeyh, fvs_);
+    slot->cache()->HMSetxx(CachePrefixKeyh, fvs_);
   }
 }
 
@@ -683,9 +683,9 @@ void HScanCmd::DoInitial() {
 void HScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<storage::FieldValue> field_values;
-  s_ = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
+  auto s = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
     int32_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
@@ -698,7 +698,7 @@ void HScanCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendString(field_value.value);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -741,9 +741,9 @@ void HScanxCmd::DoInitial() {
 void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  s_ = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
     res_.AppendStringLenUint64(next_field.size());
     res_.AppendContent(next_field);
@@ -794,9 +794,10 @@ void PKHScanRangeCmd::DoInitial() {
 void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  s_ = slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+  rocksdb::Status s =
+      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
     res_.AppendString(next_field);
 
@@ -806,7 +807,7 @@ void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendString(field_value.value);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -846,7 +847,8 @@ void PKHRScanRangeCmd::DoInitial() {
 void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  s_ = slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+  rocksdb::Status s =
+      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLen(2);

@@ -218,10 +218,6 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void DelCmd::DoFromCache(std::shared_ptr<Slot> slot) {
-  if (keys_.size() > 1) {
-    res_.SetRes(CmdRes::kErrOther, "only can delete one key in cache model");
-    return;
-  }
   Do(slot);
 }
 
@@ -872,7 +868,7 @@ void MsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     for (auto key : kvs_) {
       std::string CachePrefixKeyk = PCacheKeyPrefixK + key.key;
-      slot->cache()->SetnxWithoutTTL(CachePrefixKeyk, key.value);
+      slot->cache()->SetxxWithoutTTL(CachePrefixKeyk, key.value);
     }
   }
 }
