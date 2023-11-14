@@ -145,7 +145,7 @@ func (d *forwardHelper) slotsmgrt(s *Slot, hkey []byte, database int32, seed uin
 	}
 	m.Batch = &sync.WaitGroup{}
 
-	s.migrate.bc.BackendConn(database, seed, true).PushBack(m)
+	s.migrate.bc.BackendConn(database, seed, true, m.OpFlag.IsQuick()).PushBack(m)
 
 	m.Batch.Wait()
 
@@ -176,7 +176,7 @@ func (d *forwardHelper) slotsmgrtExecWrapper(s *Slot, hkey []byte, database int3
 	m.Multi = append(m.Multi, multi...)
 	m.Batch = &sync.WaitGroup{}
 
-	s.migrate.bc.BackendConn(database, seed, true).PushBack(m)
+	s.migrate.bc.BackendConn(database, seed, true, m.OpFlag.IsQuick()).PushBack(m)
 
 	m.Batch.Wait()
 
@@ -220,11 +220,11 @@ func (d *forwardHelper) forward2(s *Slot, r *Request) *BackendConn {
 			var i = seed
 			for range group {
 				i = (i + 1) % uint(len(group))
-				if bc := group[i].BackendConn(database, seed, false); bc != nil {
+				if bc := group[i].BackendConn(database, seed, false, r.OpFlag.IsQuick()); bc != nil {
 					return bc
 				}
 			}
 		}
 	}
-	return s.backend.bc.BackendConn(database, seed, true)
+	return s.backend.bc.BackendConn(database, seed, true, r.OpFlag.IsQuick())
 }

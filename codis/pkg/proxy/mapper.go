@@ -6,8 +6,10 @@ package proxy
 import (
 	"bytes"
 	"hash/crc32"
+	"pika/codis/v2/pkg/utils/log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/errors"
@@ -45,6 +47,21 @@ func (f OpFlag) IsMasterOnly() bool {
 	return (f & mask) != 0
 }
 
+func (f OpFlag) IsQuick() bool {
+	const mask = FlagSureSlow | FlagMaySlow
+	return (f & mask) == 0
+}
+
+func (f OpFlag) IsSureQuick() bool {
+	const mask = FlagSureQuick
+	return (f & mask) != 0
+}
+
+func (f OpFlag) IsMayQuick() bool {
+	const mask = FlagMayQuick
+	return (f & mask) != 0
+}
+
 type OpInfo struct {
 	Name string
 	Flag OpFlag
@@ -55,6 +72,10 @@ const (
 	FlagMasterOnly
 	FlagMayWrite
 	FlagNotAllow
+	FlagSureQuick //16
+	FlagMayQuick  //32
+	FlagSureSlow  //64
+	FlagMaySlow
 )
 
 var opTable = make(map[string]OpInfo, 256)
@@ -346,4 +367,137 @@ func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
 		}
 	}
 	return index
+}
+
+var cmdsflag sync.RWMutex
+
+func setQuickCmdList(cmdlist string) error {
+	cmdsflag.Lock()
+	defer cmdsflag.Unlock()
+
+	for _, r := range opTable {
+		r.Flag = r.Flag &^ FlagSureQuick
+		opTable[r.Name] = r
+	}
+	if cmdlist == "" {
+		return nil
+	}
+	cmdlist = strings.ToUpper(cmdlist)
+	cmds := strings.Split(cmdlist, ",")
+	for i := 0; i < len(cmds); i++ {
+		if r, ok := opTable[strings.TrimSpace(cmds[i])]; ok {
+			log.Infof("before setQuickCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			if r.Flag&FlagSureSlow == 0 {
+				r.Flag = r.Flag &^ FlagMayQuick
+				r.Flag = r.Flag &^ FlagMaySlow
+				r.Flag = r.Flag | FlagSureQuick
+				opTable[strings.TrimSpace(cmds[i])] = r
+				log.Infof("after setQuickCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			} else {
+				log.Warnf("cmd[%s] is FlagSureSlow command.", cmds[i])
+				return errors.Errorf("cmd[%s] is FlagSureSlow command.", cmds[i])
+			}
+		} else {
+			log.Warnf("cant find [%s] command.", cmds[i])
+			return errors.Errorf("cant find [%s] command.", cmds[i])
+		}
+	}
+
+	return nil
+}
+
+func setSlowCmdList(cmdlist string) error {
+	cmdsflag.Lock()
+	defer cmdsflag.Unlock()
+	for _, r := range opTable {
+		r.Flag = r.Flag &^ FlagSureSlow
+		opTable[r.Name] = r
+	}
+
+	if cmdlist == "" {
+		return nil
+	}
+
+	cmdlist = strings.ToUpper(cmdlist)
+	cmds := strings.Split(cmdlist, ",")
+	for i := 0; i < len(cmds); i++ {
+		if r, ok := opTable[strings.TrimSpace(cmds[i])]; ok {
+			log.Infof("before setSlowCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			if r.Flag&FlagSureQuick == 0 {
+				r.Flag = r.Flag &^ FlagMayQuick
+				r.Flag = r.Flag &^ FlagMaySlow
+				r.Flag = r.Flag | FlagSureSlow
+				opTable[strings.TrimSpace(cmds[i])] = r
+				log.Infof("after setSlowCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			} else {
+				log.Warnf("cmd[%s] is FlagSureQuick command.", cmds[i])
+				return errors.Errorf("cmd[%s] is FlagSureQuick command.", cmds[i])
+			}
+		} else {
+			log.Warnf("cant find [%s] command.", cmds[i])
+			return errors.Errorf("cant find [%s] command.", cmds[i])
+		}
+	}
+
+	return nil
+}
+
+func setMaySlowOpFlag(op string) error {
+	cmdsflag.RLock()
+	defer cmdsflag.RUnlock()
+	const mask = FlagSureQuick | FlagSureSlow
+	if r, ok := opTable[strings.ToUpper(op)]; ok {
+		if r.Flag&mask == 0 {
+			r.Flag = r.Flag | FlagMaySlow
+		}
+	} else {
+		return errors.Errorf("cant find %s.", op)
+	}
+
+	return nil
+}
+
+func clearMaySlowOpFlag(op string) error {
+	cmdsflag.RLock()
+	defer cmdsflag.RUnlock()
+	const mask = FlagSureQuick | FlagSureSlow
+	if r, ok := opTable[strings.ToUpper(op)]; ok {
+		if r.Flag&mask == 0 {
+			r.Flag = r.Flag &^ FlagMaySlow
+		}
+	} else {
+		return errors.Errorf("cant find %s.", op)
+	}
+
+	return nil
+}
+
+func getCmdFlag() *redis.Resp {
+	var array = make([]*redis.Resp, 0, 32)
+	const mask = FlagSureQuick | FlagMayQuick | FlagSureSlow | FlagMaySlow
+
+	for _, r := range opTable {
+		if r.Flag&mask != 0 {
+			retStr := r.Name + " : Flag[" + strconv.Itoa(int(r.Flag)) + "]"
+
+			if r.Flag&FlagSureQuick != 0 {
+				retStr += ", FlagSureQuick"
+			}
+
+			if r.Flag&FlagMayQuick != 0 {
+				retStr += ", FlagMayQuick"
+			}
+
+			if r.Flag&FlagSureSlow != 0 {
+				retStr += ", FlagSureSlow"
+			}
+
+			if r.Flag&FlagMaySlow != 0 {
+				retStr += ", FlagMaySlow"
+			}
+
+			array = append(array, redis.NewBulkBytes([]byte(retStr)))
+		}
+	}
+	return redis.NewArray(array)
 }

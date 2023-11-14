@@ -29,8 +29,8 @@ type Router struct {
 
 func NewRouter(config *Config) *Router {
 	s := &Router{config: config}
-	s.pool.primary = newSharedBackendConnPool(config, config.BackendPrimaryParallel)
-	s.pool.replica = newSharedBackendConnPool(config, config.BackendReplicaParallel)
+	s.pool.primary = newSharedBackendConnPool(config, config.BackendPrimaryParallel, config.BackendPrimaryQuick)
+	s.pool.replica = newSharedBackendConnPool(config, config.BackendReplicaParallel, config.BackendReplicaQuick)
 	s.slots = make([]Slot, models.GetMaxSlotNum())
 	for i := range s.slots {
 		s.slots[i].id = i
@@ -153,11 +153,11 @@ func (s *Router) dispatchSlot(r *Request, id int) error {
 func (s *Router) dispatchAddr(r *Request, addr string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if bc := s.pool.primary.Get(addr).BackendConn(r.Database, r.Seed16(), false); bc != nil {
+	if bc := s.pool.primary.Get(addr).BackendConn(r.Database, r.Seed16(), false, r.OpFlag.IsQuick()); bc != nil {
 		bc.PushBack(r)
 		return true
 	}
-	if bc := s.pool.replica.Get(addr).BackendConn(r.Database, r.Seed16(), false); bc != nil {
+	if bc := s.pool.replica.Get(addr).BackendConn(r.Database, r.Seed16(), false, r.OpFlag.IsQuick()); bc != nil {
 		bc.PushBack(r)
 		return true
 	}
@@ -229,6 +229,14 @@ func (s *Router) fillSlot(m *models.Slot, switched bool, method forwardMethod) {
 			}
 		}
 	}
+}
+
+func (s *Router) SetPrimaryQuickConn(quick int) {
+	s.pool.primary.SetQuickConn(quick)
+}
+
+func (s *Router) SetReplicaQuickConn(quick int) {
+	s.pool.replica.SetQuickConn(quick)
 }
 
 func (s *Router) SwitchMasters(masters map[int]string) error {
