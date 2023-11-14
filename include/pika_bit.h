@@ -24,9 +24,9 @@ class BitGetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitGetCmd(*this); }
@@ -52,7 +52,7 @@ class BitSetCmd : public Cmd {
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitSetCmd(*this); }
@@ -79,9 +79,9 @@ class BitCountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitCountCmd(*this); }
@@ -110,9 +110,9 @@ class BitPosCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void PreDo(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitPosCmd(*this); }
@@ -155,7 +155,7 @@ class BitOpCmd : public Cmd {
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoFromCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new BitOpCmd(*this); }

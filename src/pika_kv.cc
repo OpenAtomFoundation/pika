@@ -100,7 +100,7 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -169,7 +169,7 @@ void GetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetCmd::PreDo(std::shared_ptr<Slot> slot) {
+void GetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->Get(CachePrefixKeyk, &value_);
   if (s.ok()) {
@@ -180,7 +180,7 @@ void GetCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void GetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -217,7 +217,7 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DelCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void DelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -276,7 +276,7 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void IncrCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -313,7 +313,7 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void IncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -352,7 +352,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrbyfloatCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void IncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -387,7 +387,7 @@ void DecrCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DecrCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void DecrCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -424,7 +424,7 @@ void DecrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DecrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void DecrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -460,7 +460,7 @@ void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void GetsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -491,7 +491,7 @@ void AppendCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void AppendCmd::DoFromCache(std::shared_ptr<Slot> slot){
+void AppendCmd::DoThroughDB(std::shared_ptr<Slot> slot){
   Do(slot);
 }
 
@@ -513,11 +513,11 @@ void MgetCmd::DoInitial() {
 }
 
 void MgetCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<storage::ValueStatus> vss;
-  s_ = slot->db()->MGet(keys_, &vss);
+  db_value_status_array_.clear();
+  s_ = slot->db()->MGet(keys_, &db_value_status_array_);
   if (s_.ok()) {
-    res_.AppendArrayLenUint64(vss.size());
-    for (const auto& vs : vss) {
+    res_.AppendArrayLenUint64(db_value_status_array_.size());
+    for (const auto& vs : db_value_status_array_) {
       if (vs.status.ok()) {
         res_.AppendStringLenUint64(vs.value.size());
         res_.AppendContent(vs.value);
@@ -530,40 +530,40 @@ void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void MgetCmd::PreDo(std::shared_ptr<Slot> slot) {
-  if (keys_.size() > 1) {
-    res_.SetRes(CmdRes::kErrOther, "only can get one key in cache model");
-    return;
+void MgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
+  std::vector<std::string> CachePrefixKeyk;
+  cache_value_status_array_.clear();
+  for (auto key : keys_) {
+    std::string newkey = PCacheKeyPrefixK + key;
+    CachePrefixKeyk.push_back(newkey);
   }
-  std::string CachePrefixKeyk = PCacheKeyPrefixK + keys_[0];
-  auto s = slot->cache()->Get(CachePrefixKeyk, &value_);
+  auto s = slot->cache()->MGet(CachePrefixKeyk, &cache_value_status_array_);
   if (s.ok()) {
-    res_.AppendArrayLen(1);
-    res_.AppendStringLen(value_.size());
-    res_.AppendContent(value_);
+    res_.AppendArrayLenUint64(cache_value_status_array_.size());
+    for (const auto& vs : cache_value_status_array_) {
+      if (vs.status.ok()) {
+        res_.AppendStringLenUint64(vs.value.size());
+        res_.AppendContent(vs.value);
+      } else {
+        res_.AppendContent("$-1");
+      }
+    }
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
 }
 
-void MgetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
-  s_ = slot->db()->GetWithTTL(keys_[0], &value_, &ttl_);
-  res_.AppendArrayLen(1);
-  if (s_.ok()) {
-    res_.AppendStringLen(value_.size());
-    res_.AppendContent(value_);
-  } else if (s_.IsNotFound()) {
-    res_.AppendContent("$-1");
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
-  }
+  Do(slot);
 }
 
 void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixK + keys_[0];
-    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, ttl_);
+    for (int i = 0; i < keys_.size(); i++) {
+      std::string CachePrefixKeyk = PCacheKeyPrefixK + keys_[i];
+      slot->cache()->WriteKvToCache(CachePrefixKeyk, db_value_status_array_[i].value, ttl_);
+    }
   }
 }
 
@@ -711,7 +711,7 @@ void SetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -771,7 +771,7 @@ void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PsetexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void PsetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -856,11 +856,7 @@ void MsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void MsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
-  if (kvs_.size() > 1) {
-    res_.SetRes(CmdRes::kErrOther, "only can mset one kv in cache model");
-    return;
-  }
+void MsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -989,7 +985,7 @@ void GetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetrangeCmd::PreDo(std::shared_ptr<Slot> slot) {
+void GetrangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string substr;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->GetRange(CachePrefixKeyk, start_, end_, &substr);
@@ -1001,7 +997,7 @@ void GetrangeCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetrangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void GetrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   std::string substr;
   s_ = slot->db()->GetrangeWithValue(key_, start_, end_, &substr, &value_, &sec_);
@@ -1047,7 +1043,7 @@ void SetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetrangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SetrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -1076,7 +1072,7 @@ void StrlenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void StrlenCmd::PreDo(std::shared_ptr<Slot> slot) {
+void StrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s= slot->cache()->Strlen(CachePrefixKeyk, &len);
@@ -1087,7 +1083,7 @@ void StrlenCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void StrlenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void StrlenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   s_ = slot->db()->GetWithTTL(key_, &value_, &sec_);
   if (s_.ok() || s_.IsNotFound()) {
@@ -1135,7 +1131,7 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
-void ExistsCmd::PreDo(std::shared_ptr<Slot> slot) {
+void ExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   if (keys_.size() > 1) {
     res_.SetRes(CmdRes::kCacheMiss);
     return;
@@ -1149,7 +1145,7 @@ void ExistsCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ExistsCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void ExistsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -1203,7 +1199,7 @@ std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
                                              content, {});
 }
 
-void ExpireCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void ExpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -1263,7 +1259,7 @@ std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
                                              content, {});
 }
 
-void PexpireCmd::DoFromCache(std::shared_ptr<Slot> slot){
+void PexpireCmd::DoThroughDB(std::shared_ptr<Slot> slot){
   Do(slot);
 }
 
@@ -1299,7 +1295,7 @@ void ExpireatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ExpireatCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void ExpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -1359,7 +1355,7 @@ void PexpireatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PexpireatCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void PexpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -1405,7 +1401,7 @@ void TtlCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void TtlCmd::PreDo(std::shared_ptr<Slot> slot) {
+void TtlCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t ttl;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->TTL(CachePrefixKeyk, &ttl);
@@ -1416,7 +1412,7 @@ void TtlCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void TtlCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void TtlCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -1476,7 +1472,7 @@ void PttlCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PttlCmd::PreDo(std::shared_ptr<Slot> slot) {
+void PttlCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t ttl;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->TTL(CachePrefixKeyk, &ttl);
@@ -1487,7 +1483,7 @@ void PttlCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PttlCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void PttlCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -1512,7 +1508,7 @@ void PersistCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PersistCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void PersistCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -1533,15 +1529,15 @@ void TypeCmd::DoInitial() {
 
 void TypeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> types(1);
-  s_ = slot->db()->GetType(key_, true, types);
-  if (s_.ok()) {
+  rocksdb::Status s = slot->db()->GetType(key_, true, types);
+  if (s.ok()) {
     res_.AppendContent("+" + types[0]);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
-void TypeCmd::PreDo(std::shared_ptr<Slot> slot) {
+void TypeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string type;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->Type(CachePrefixKeyk, &type);
@@ -1552,7 +1548,7 @@ void TypeCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void TypeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void TypeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }

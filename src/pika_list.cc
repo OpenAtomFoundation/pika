@@ -39,7 +39,7 @@ void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LIndexCmd::PreDo(std::shared_ptr<Slot> slot) {
+void LIndexCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
   std::string value;
   auto s = slot->cache()->LIndex(CachePrefixKeyl, index_, &value);
@@ -52,7 +52,7 @@ void LIndexCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LIndexCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LIndexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -93,7 +93,7 @@ void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LInsertCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LInsertCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -122,7 +122,7 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LLenCmd::PreDo(std::shared_ptr<Slot> slot) {
+void LLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
   auto s = slot->cache()->LLen(CachePrefixKeyl, &llen);
@@ -135,7 +135,7 @@ void LLenCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LLenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -273,7 +273,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void LPushCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -424,7 +424,7 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LPopCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -459,7 +459,7 @@ void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LPushxCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -504,7 +504,7 @@ void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRangeCmd::PreDo(std::shared_ptr<Slot> slot) {
+void LRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
   auto s = slot->cache()->LRange(CachePrefixKeyl, left_, right_, &values);
@@ -520,7 +520,7 @@ void LRangeCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRangeCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LRangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -555,7 +555,7 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRemCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -595,7 +595,7 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -632,7 +632,7 @@ void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LTrimCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void LTrimCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -748,7 +748,7 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void RPopCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void RPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -792,7 +792,7 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(receiver_, slot);
 }
 
-void RPopLPushCmd::PreDo(std::shared_ptr<Slot> slot) {
+void RPopLPushCmd::ReadCache(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kErrOther, "the command is not support in cache mode");
 }
 
@@ -844,7 +844,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void RPushCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void RPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -878,7 +878,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void RPushxCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 

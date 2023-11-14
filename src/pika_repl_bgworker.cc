@@ -263,7 +263,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
-      c_ptr->DoFromCache(slot);
+      c_ptr->DoThroughDB(slot);
       if (c_ptr->is_need_update_cache()) {
         c_ptr->DoUpdateCache(slot);
       }

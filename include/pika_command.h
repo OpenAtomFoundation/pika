@@ -232,7 +232,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
   kCmdFlagsMaskCacheDo = 1024,
-  kCmdFlagsMaskPreDo = 128,
+  kCmdFlagsMaskReadCache = 128,
   kCmdFlagsMaskUpdateCache = 2048,
   kCmdFlagsMaskOnlyDoCache = 4096,
   kCmdFlagsMaskSlot = 1536,
@@ -262,9 +262,9 @@ enum CmdFlags {
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsPreDo = 128,
+  kCmdFlagsReadCache = 128,
   kCmdFlagsUpdateCache = 2048,
-  kCmdFlagsDoFromCache = 4096,
+  kCmdFlagsDoThroughDB = 4096,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -461,9 +461,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void ProcessMultiSlotCmd();
   virtual void ProcessDoNotSpecifySlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
-  virtual void DoFromCache(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
   virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
-  virtual void PreDo(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void ReadCache(std::shared_ptr<Slot> slot = nullptr) {}
   rocksdb::Status CmdStatus() { return s_; };
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots

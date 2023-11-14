@@ -35,7 +35,7 @@ void HDelCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HDelCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HDelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -67,7 +67,7 @@ void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -100,7 +100,7 @@ void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string value;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HGet(CachePrefixKeyh, field_, &value);
@@ -114,7 +114,7 @@ void HGetCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -172,7 +172,7 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetallCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HGetallCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::FieldValue> fvs;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HGetall(CachePrefixKeyh, &fvs);
@@ -191,7 +191,7 @@ void HGetallCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetallCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HGetallCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -222,7 +222,7 @@ void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HExistsCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HExists(CachePrefixKeyh, field_);
   if (s.ok()) {
@@ -234,7 +234,7 @@ void HExistsCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HExistsCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HExistsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -273,7 +273,7 @@ void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -310,7 +310,7 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyfloatCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HIncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -345,7 +345,7 @@ void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HKeysCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HKeysCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> fields;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HKeys(CachePrefixKeyh, &fields);
@@ -361,7 +361,7 @@ void HKeysCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HKeysCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HKeysCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -390,7 +390,7 @@ void HLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HLenCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t len = 0;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HLen(CachePrefixKeyh, &len);
@@ -403,7 +403,7 @@ void HLenCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HLenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -444,7 +444,7 @@ void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMgetCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HMgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HMGet(CachePrefixKeyh, fields_, &vss);
@@ -465,7 +465,7 @@ void HMgetCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMgetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HMgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -504,7 +504,7 @@ void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMsetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HMsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -536,7 +536,7 @@ void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HSetnxCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HSetnxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -566,7 +566,7 @@ void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HStrlenCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t len = 0;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HStrlen(CachePrefixKeyh, field_, &len);
@@ -580,7 +580,7 @@ void HStrlenCmd::PreDo(std::shared_ptr<Slot> slot) {
   return;
 }
 
-void HStrlenCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -613,7 +613,7 @@ void HValsCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HValsCmd::PreDo(std::shared_ptr<Slot> slot) {
+void HValsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
   auto s = slot->cache()->HVals(CachePrefixKeyh, &values);
@@ -630,7 +630,7 @@ void HValsCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HValsCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void HValsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }

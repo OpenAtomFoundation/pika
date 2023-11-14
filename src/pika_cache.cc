@@ -118,11 +118,13 @@ void PikaCache::FlushSlot(void) {
 
 Status PikaCache::Del(const std::vector<std::string> &keys) {
   std::lock_guard l(rwlock_);
+  rocksdb::Status s;
   for (const auto &key : keys) {
     int cache_index = CacheIndex(key);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
-    return caches_[cache_index]->Del(key);
+    s = caches_[cache_index]->Del(key);
   }
+  return s;
 }
 
 Status PikaCache::Expire(std::string &key, int64_t ttl) {
@@ -140,7 +142,7 @@ Status PikaCache::Expireat(std::string &key, int64_t ttl) {
 }
 
 Status PikaCache::TTL(std::string &key, int64_t *ttl) {
-  std::lock_guard l(rwlock_);
+  std::shared_lock l(rwlock_);
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->TTL(key, ttl);
@@ -1657,8 +1659,8 @@ int PikaCache::CacheIndex(const std::string &key) {
 }
 
 Status PikaCache::WriteKvToCache(std::string &key, std::string &value, int64_t ttl) {
-  if (ttl <= 0) {
-    if (ttl == PIKA_TTL_NONE) {
+  if (0 >= ttl) {
+    if (PIKA_TTL_NONE == ttl) {
       return SetnxWithoutTTL(key, value);
     } else {
       return Del({key});
@@ -1670,8 +1672,8 @@ Status PikaCache::WriteKvToCache(std::string &key, std::string &value, int64_t t
 }
 
 Status PikaCache::WriteHashToCache(std::string &key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
-  if (ttl <= 0) {
-    if (ttl == PIKA_TTL_NONE) {
+  if (0 >= ttl) {
+    if (PIKA_TTL_NONE == ttl) {
       return HMSetnxWithoutTTL(key, fvs);
     } else {
       return Del({key});
@@ -1683,8 +1685,8 @@ Status PikaCache::WriteHashToCache(std::string &key, std::vector<storage::FieldV
 }
 
 Status PikaCache::WriteListToCache(std::string &key, std::vector<std::string> &values, int64_t ttl) {
-  if (ttl <= 0) {
-    if (ttl == PIKA_TTL_NONE) {
+  if (0 >= ttl) {
+    if (PIKA_TTL_NONE == ttl) {
       return RPushnxWithoutTTL(key, values);
     } else {
       return Del({key});
@@ -1696,8 +1698,8 @@ Status PikaCache::WriteListToCache(std::string &key, std::vector<std::string> &v
 }
 
 Status PikaCache::WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl) {
-  if (ttl <= 0) {
-    if (ttl == PIKA_TTL_NONE) {
+  if (0 >= ttl) {
+    if (PIKA_TTL_NONE == ttl) {
       return SAddnxWithoutTTL(key, members);
     } else {
       return Del({key});
@@ -1709,8 +1711,8 @@ Status PikaCache::WriteSetToCache(std::string &key, std::vector<std::string> &me
 }
 
 Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
-  if (ttl <= 0) {
-    if (ttl == PIKA_TTL_NONE) {
+  if (0 >= ttl) {
+    if (PIKA_TTL_NONE == ttl) {
       return ZAddnxWithoutTTL(key, score_members);
     } else {
       return Del({key});

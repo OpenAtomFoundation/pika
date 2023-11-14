@@ -52,7 +52,7 @@ void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitSetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void BitSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -90,7 +90,7 @@ void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitGetCmd::PreDo(std::shared_ptr<Slot> slot) {
+void BitGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t bit_val = 0;
   std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
   rocksdb::Status s = slot->cache()->GetBit(CachePrefixKeyB, bit_offset_, &bit_val);
@@ -103,7 +103,7 @@ void BitGetCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitGetCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void BitGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -152,7 +152,7 @@ void BitCountCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitCountCmd::PreDo(std::shared_ptr<Slot> slot) {
+void BitCountCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t count = 0;
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);
@@ -173,7 +173,7 @@ void BitCountCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitCountCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void BitCountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -241,7 +241,7 @@ void BitPosCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitPosCmd::PreDo(std::shared_ptr<Slot> slot) {
+void BitPosCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t pos = 0;
   rocksdb::Status s;
   int64_t bit = static_cast<long>(bit_val_);
@@ -264,7 +264,7 @@ void BitPosCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitPosCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void BitPosCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -320,7 +320,7 @@ void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitOpCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void BitOpCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 

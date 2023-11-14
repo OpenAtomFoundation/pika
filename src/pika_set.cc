@@ -33,7 +33,7 @@ void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void SAddCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SAddCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -83,7 +83,7 @@ void SPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SPopCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -114,7 +114,7 @@ void SCardCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SCardCmd::PreDo(std::shared_ptr<Slot> slot) {
+void SCardCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t card = 0;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
   rocksdb::Status s = slot->cache()->SCard(CachePrefixKeyS, &card);
@@ -127,7 +127,7 @@ void SCardCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SCardCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SCardCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -160,7 +160,7 @@ void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMembersCmd::PreDo(std::shared_ptr<Slot> slot) {
+void SMembersCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
   rocksdb::Status s = slot->cache()->SMembers(CachePrefixKeyS, &members);
@@ -177,7 +177,7 @@ void SMembersCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMembersCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SMembersCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -264,7 +264,7 @@ void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void SRemCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -315,7 +315,7 @@ void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SUnionstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -410,7 +410,7 @@ void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SInterstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -444,7 +444,7 @@ void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SIsmemberCmd::PreDo(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
   rocksdb::Status s = slot->cache()->SIsmember(CachePrefixKeyS, member_);
   if (s.ok()) {
@@ -457,7 +457,7 @@ void SIsmemberCmd::PreDo(std::shared_ptr<Slot> slot) {
 }
 
 
-void SIsmemberCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }
@@ -508,7 +508,7 @@ void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SDiffstoreCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SDiffstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -571,7 +571,7 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   sadd_cmd_->DoBinlog(slot);
 }
 
-void SMoveCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -625,7 +625,7 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRandmemberCmd::PreDo(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
   rocksdb::Status s = slot->cache()->SRandmember(CachePrefixKeyS, count_, &members);
@@ -647,7 +647,7 @@ void SRandmemberCmd::PreDo(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRandmemberCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
 }

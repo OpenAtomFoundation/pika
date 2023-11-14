@@ -464,7 +464,7 @@ void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void FlushallCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void FlushallCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
@@ -527,7 +527,7 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void FlushdbCmd::DoFromCache(std::shared_ptr<Slot> slot) {
+void FlushdbCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
