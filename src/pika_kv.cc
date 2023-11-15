@@ -1059,8 +1059,6 @@ void StrlenCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameStrlen);
     return;
   }
-  LOG(INFO) << "key:" << key_ ;
-  LOG(INFO) << "argv_[1]" << argv_[1];
   key_ = argv_[1];
 }
 
