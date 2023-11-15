@@ -927,15 +927,15 @@ void MsetnxCmd::DoInitial() {
 
 void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
   success_ = 0;
-  s_ = slot->db()->MSetnx(kvs_, &success_);
-  if (s_.ok()) {
+  rocksdb::Status s = slot->db()->MSetnx(kvs_, &success_);
+  if (s.ok()) {
     res_.AppendInteger(success_);
     std::vector<storage::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       AddSlotKey("k", it->key, slot);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -1067,6 +1067,7 @@ void StrlenCmd::Do(std::shared_ptr<Slot> slot) {
   s_ = slot->db()->Strlen(key_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
+
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
