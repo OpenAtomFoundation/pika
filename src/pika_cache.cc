@@ -1016,18 +1016,18 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
 
 Status PikaCache::ZCount(std::string &key, std::string &min, std::string &max, uint64_t *len, ZCountCmd *cmd) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto cache_obj = caches_[cache_index];
   uint64_t cache_len = 0;
-  cache_obj->ZCard(key, &cache_len);
+  cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
     storage::ScoreMember cache_min_sm;
     storage::ScoreMember cache_max_sm;
-    if (!GetCacheMinMaxSM(cache_obj, key, cache_min_sm, cache_max_sm)) {
+    if (!GetCacheMinMaxSM(cache_obj, CachePrefixKeyZ, cache_min_sm, cache_max_sm)) {
       return Status::NotFound("key not exist");
     }
     auto cache_min_score = cache_min_sm.score;
@@ -1035,7 +1035,7 @@ Status PikaCache::ZCount(std::string &key, std::string &min, std::string &max, u
 
     if (RangeStatus::RangeHit == CheckCacheRangeByScore(cache_len, cache_min_score, cache_max_score, cmd->MinScore(),
                                                         cmd->MaxScore(), cmd->LeftClose(), cmd->RightClose())) {
-      auto s = cache_obj->ZCount(key, min, max, len);
+      auto s = cache_obj->ZCount(CachePrefixKeyZ, min, max, len);
       return s;
     } else {
       return Status::NotFound("key not in cache");
@@ -1053,9 +1053,10 @@ Status PikaCache::ZIncrby(std::string &key, std::string &member, double incremen
 
 bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key, int mem_len, int db_len,
                                        const std::shared_ptr<Slot> &slot) {
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   if (mem_len == -1) {
     uint64_t cache_len = 0;
-    cache_obj->ZCard(key, &cache_len);
+    cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
     mem_len = cache_len;
   }
   if (db_len == -1) {
@@ -1067,7 +1068,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   }
   if (db_len < cache_items_per_key_) {
     if (mem_len * 2 < db_len) {
-      cache_obj->Del(key);
+      cache_obj->Del(CachePrefixKeyZ);
       PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key);
       return true;
     } else {
@@ -1075,7 +1076,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
     }
   } else {
     if (cache_items_per_key_ && mem_len * 2 < cache_items_per_key_) {
-      cache_obj->Del(key);
+      cache_obj->Del(CachePrefixKeyZ);
       PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key);
       return true;
     } else {
@@ -1218,23 +1219,23 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
 Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                          const std::shared_ptr<Slot> &slot) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
   auto db_obj = slot->db();
   Status s;
-  if (cache_obj->Exists(key)) {
+  if (cache_obj->Exists(CachePrefixKeyZ)) {
     uint64_t cache_len = 0;
-    cache_obj->ZCard(key, &cache_len);
+    cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
     int32_t db_len = 0;
     db_obj->ZCard(key, &db_len);
     int64_t out_start;
     int64_t out_stop;
     RangeStatus rs = CheckCacheRange(cache_len, db_len, start, stop, out_start, out_stop);
     if (rs == RangeStatus::RangeHit) {
-      return cache_obj->ZRange(key, out_start, out_stop, score_members);
+      return cache_obj->ZRange(CachePrefixKeyZ, out_start, out_stop, score_members);
     } else if (rs == RangeStatus::RangeMiss) {
       ReloadCacheKeyIfNeeded(cache_obj, key, cache_len, db_len);
       return Status::NotFound("key not in cache");
@@ -1251,26 +1252,26 @@ Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vec
 Status PikaCache::ZRangebyscore(std::string &key, std::string &min, std::string &max,
                                 std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
   uint64_t cache_len = 0;
-  cache_obj->ZCard(key, &cache_len);
+  cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
     storage::ScoreMember cache_min_sm;
     storage::ScoreMember cache_max_sm;
-    if (!GetCacheMinMaxSM(cache_obj, key, cache_min_sm, cache_max_sm)) {
+    if (!GetCacheMinMaxSM(cache_obj, CachePrefixKeyZ, cache_min_sm, cache_max_sm)) {
       return Status::NotFound("key not exist");
     }
 
     if (RangeStatus::RangeHit == CheckCacheRangeByScore(cache_len, cache_min_sm.score, cache_max_sm.score,
                                                         cmd->MinScore(), cmd->MaxScore(), cmd->LeftClose(),
                                                         cmd->RightClose())) {
-      return cache_obj->ZRangebyscore(key, min, max, score_members, cmd->Offset(), cmd->Count());
+      return cache_obj->ZRangebyscore(CachePrefixKeyZ, min, max, score_members, cmd->Offset(), cmd->Count());
     } else {
       return Status::NotFound("key not in cache");
     }
@@ -1279,17 +1280,17 @@ Status PikaCache::ZRangebyscore(std::string &key, std::string &min, std::string 
 
 Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
   uint64_t cache_len = 0;
-  cache_obj->ZCard(key, &cache_len);
+  cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
-    auto s = cache_obj->ZRank(key, member, rank);
+    auto s = cache_obj->ZRank(CachePrefixKeyZ, member, rank);
     if (s.ok()) {
       if (cache_start_pos_ == cache::CACHE_START_FROM_END) {
         int32_t db_len = 0;
@@ -1386,23 +1387,23 @@ Status PikaCache::ZRemrangebyscore(std::string &key, std::string &min, std::stri
 Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                             const std::shared_ptr<Slot> &slot) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
   auto db_obj = slot->db();
   Status s;
-  if (cache_obj->Exists(key)) {
+  if (cache_obj->Exists(CachePrefixKeyZ)) {
     uint64_t cache_len = 0;
-    cache_obj->ZCard(key, &cache_len);
+    cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
     int32_t db_len = 0;
     db_obj->ZCard(key, &db_len);
     int64_t out_start;
     int64_t out_stop;
     RangeStatus rs = CheckCacheRevRange(cache_len, db_len, start, stop, out_start, out_stop);
     if (rs == RangeStatus::RangeHit) {
-      return cache_obj->ZRevrange(key, out_start, out_stop, score_members);
+      return cache_obj->ZRevrange(CachePrefixKeyZ, out_start, out_stop, score_members);
     } else if (rs == RangeStatus::RangeMiss) {
       ReloadCacheKeyIfNeeded(cache_obj, key, cache_len, db_len);
       return Status::NotFound("key not in cache");
@@ -1419,19 +1420,19 @@ Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::
 Status PikaCache::ZRevrangebyscore(std::string &key, std::string &min, std::string &max,
                                    std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
   uint64_t cache_len = 0;
-  cache_obj->ZCard(key, &cache_len);
+  cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
     storage::ScoreMember cache_min_sm;
     storage::ScoreMember cache_max_sm;
-    if (!GetCacheMinMaxSM(cache_obj, key, cache_min_sm, cache_max_sm)) {
+    if (!GetCacheMinMaxSM(cache_obj, CachePrefixKeyZ, cache_min_sm, cache_max_sm)) {
       return Status::NotFound("key not exist");
     }
     auto cache_min_score = cache_min_sm.score;
@@ -1440,7 +1441,7 @@ Status PikaCache::ZRevrangebyscore(std::string &key, std::string &min, std::stri
     auto rs = CheckCacheRangeByScore(cache_len, cache_min_score, cache_max_score, cmd->MinScore(), cmd->MaxScore(),
                                      cmd->LeftClose(), cmd->RightClose());
     if (RangeStatus::RangeHit == rs) {
-      return cache_obj->ZRevrangebyscore(key, min, max, score_members, cmd->Offset(), cmd->Count());
+      return cache_obj->ZRevrangebyscore(CachePrefixKeyZ, min, max, score_members, cmd->Offset(), cmd->Count());
     } else if (RangeStatus::RangeMiss == rs) {
       ReloadCacheKeyIfNeeded(cache_obj, key, cache_len);
       return Status::NotFound("score range miss");
@@ -1455,23 +1456,22 @@ bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<Slot> &sl
   slot->db()->ZCard(key, &db_len);
 
   std::lock_guard l(rwlock_);
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   uint64_t cache_len = 0;
-  caches_[cache_index]->ZCard(key, &cache_len);
-
-  return db_len == (int32_t)cache_len;
+  caches_[cache_index]->ZCard(CachePrefixKeyZ, &cache_len);
+  return (db_len == (int32_t)cache_len) && cache_len;
 }
 
 Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string &max,
                                  std::vector<std::string> *members, const std::shared_ptr<Slot> &slot) {
   if (CacheSizeEqsDB(key, slot)) {
     std::lock_guard l(rwlock_);
-
-    int cache_index = CacheIndex(key);
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+    int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
-
-    return caches_[cache_index]->ZRevrangebylex(key, min, max, members);
+    return caches_[cache_index]->ZRevrangebylex(CachePrefixKeyZ, min, max, members);
   } else {
     return Status::NotFound("key not in cache");
   }
@@ -1479,16 +1479,16 @@ Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string
 
 Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot) {
   std::lock_guard l(rwlock_);
-
-  int cache_index = CacheIndex(key);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto cache_obj = caches_[cache_index];
   uint64_t cache_len = 0;
-  cache_obj->ZCard(key, &cache_len);
+  cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
-    auto s = cache_obj->ZRevrank(key, member, rank);
+    auto s = cache_obj->ZRevrank(CachePrefixKeyZ, member, rank);
     if (s.ok()) {
       if (cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
         int32_t db_len = 0;
@@ -1517,11 +1517,10 @@ Status PikaCache::ZRangebylex(std::string &key, std::string &min, std::string &m
                               const std::shared_ptr<Slot> &slot) {
   if (CacheSizeEqsDB(key, slot)) {
     std::lock_guard l(rwlock_);
-
-    int cache_index = CacheIndex(key);
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+    int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
-
-    return caches_[cache_index]->ZRangebylex(key, min, max, members);
+    return caches_[cache_index]->ZRangebylex(CachePrefixKeyZ, min, max, members);
   } else {
     return Status::NotFound("key not in cache");
   }
@@ -1531,11 +1530,11 @@ Status PikaCache::ZLexcount(std::string &key, std::string &min, std::string &max
                             const std::shared_ptr<Slot> &slot) {
   if (CacheSizeEqsDB(key, slot)) {
     std::lock_guard l(rwlock_);
-
-    int cache_index = CacheIndex(key);
+    std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+    int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
 
-    return caches_[cache_index]->ZLexcount(key, min, max, len);
+    return caches_[cache_index]->ZLexcount(CachePrefixKeyZ, min, max, len);
   } else {
     return Status::NotFound("key not in cache");
   }

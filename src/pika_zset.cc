@@ -243,8 +243,7 @@ void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
 
 void ZRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot ->cache()->ZRange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
+  rocksdb::Status s = slot ->cache()->ZRange(key_, start_, stop_, &score_members, slot);
   if (s.ok()) {
     if (is_ws_) {
       char buf[32];
@@ -320,8 +319,7 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
 
 void ZRevrangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  auto s = slot->cache()->ZRevrange(CachePrefixKeyZ, start_, stop_, &score_members, slot);
+  auto s = slot->cache()->ZRevrange(key_, start_, stop_, &score_members, slot);
 
   if (s.ok()) {
     if (is_ws_) {
@@ -482,8 +480,7 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 
   std::vector<storage::ScoreMember> score_members;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  auto s = slot->cache()->ZRangebyscore(CachePrefixKeyZ, min_, max_, &score_members, this);
+  auto s = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -580,8 +577,7 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot->cache()->ZRevrangebyscore(CachePrefixKeyZ, min_, max_, &score_members, this);
+  rocksdb::Status s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -654,8 +650,7 @@ void ZCountCmd::ReadCache(std::shared_ptr<Slot> slot) {
     return;
   }
   uint64_t count = 0;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot->cache()->ZCount(CachePrefixKeyZ, min_, max_, &count, this);
+  rocksdb::Status s = slot->cache()->ZCount(key_, min_, max_, &count, this);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else if (s.IsNotFound()) {
@@ -952,8 +947,7 @@ void ZRankCmd::Do(std::shared_ptr<Slot> slot) {
 
 void ZRankCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t rank = 0;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot->cache()->ZRank(CachePrefixKeyZ, member_, &rank, slot);
+  rocksdb::Status s = slot->cache()->ZRank(key_, member_, &rank, slot);
   if (s.ok()) {
     res_.AppendInteger(rank);
   } else if (s.IsNotFound()){
@@ -996,8 +990,7 @@ void ZRevrankCmd::Do(std::shared_ptr<Slot> slot) {
 
 void ZRevrankCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t revrank = 0;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot->cache()->ZRevrank(CachePrefixKeyZ, member_, &revrank, slot);
+  rocksdb::Status s = slot->cache()->ZRevrank(key_, member_, &revrank, slot);
   if (s.ok()) {
     res_.AppendInteger(revrank);
   } else if (s.IsNotFound()){
@@ -1161,8 +1154,7 @@ void ZRangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  rocksdb::Status s = slot->cache()->ZRangebylex(CachePrefixKeyZ, min_, max_, &members, slot);
+  auto s = slot->cache()->ZRangebylex(key_, min_, max_, &members, slot);
   if (s.ok()) {
     FitLimit(count_, offset_, members.size());
 

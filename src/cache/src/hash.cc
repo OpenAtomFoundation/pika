@@ -213,7 +213,6 @@ Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
   }
 
   FreeHitemList(items, items_size);
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 
