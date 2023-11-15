@@ -68,11 +68,10 @@ void SPopCmd::DoInitial() {
 }
 
 void SPopCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> members;
-   s_ = slot->db()->SPop(key_, &members, count_);
+   s_ = slot->db()->SPop(key_, &members_, count_);
   if (s_.ok()) {
-    res_.AppendArrayLenUint64(members.size());
-    for (const auto& member : members) {
+    res_.AppendArrayLenUint64(members_.size());
+    for (const auto& member : members_) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
@@ -89,10 +88,8 @@ void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    std::vector<std::string> members;
-    members.push_back(member_);
-    slot->cache()->SRem(CachePrefixKeyS, members);
+    std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
+    slot->cache()->SRem(CachePrefixKeys, members_);
   }
 }
 
@@ -162,8 +159,8 @@ void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
 
 void SMembersCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SMembers(CachePrefixKeyS, &members);
+  std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
+  rocksdb::Status s = slot->cache()->SMembers(CachePrefixKeys, &members);
   if (s.ok()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -259,9 +256,8 @@ void SRemCmd::DoInitial() {
 }
 
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
-  int32_t count = 0;
-  s_ = slot->db()->SRem(key_, members_, &count);
-  res_.AppendInteger(count);
+  s_ = slot->db()->SRem(key_, members_, &deleted_);
+  res_.AppendInteger(deleted_);
 }
 
 void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
@@ -270,8 +266,8 @@ void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SRem(CachePrefixKeyS, members_);
+    std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
+    slot->cache()->SRem(CachePrefixKeys, members_);
   }
 }
 

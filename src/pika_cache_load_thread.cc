@@ -62,7 +62,7 @@ bool PikaCacheLoadThread::LoadKv(std::string &key, const std::shared_ptr<Slot>& 
     return false;
   }
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key;
-  cache_->WriteKvToCache(CachePrefixKeyk, value, ttl);
+  slot->cache()->WriteKvToCache(CachePrefixKeyk, value, ttl);
   return true;
 }
 
@@ -83,7 +83,7 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
     return false;
   }
   std::string CachePrefixKeyh = PCacheKeyPrefixH + key;
-  cache_->WriteHashToCache(CachePrefixKeyh, fvs, ttl);
+  slot->cache()->WriteHashToCache(CachePrefixKeyh, fvs, ttl);
   return true;
 }
 
@@ -104,7 +104,7 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
     return false;
   }
   std::string CachePrefixKeyl = PCacheKeyPrefixL + key;
-  cache_->WriteListToCache(CachePrefixKeyl, values, ttl);
+  slot->cache()->WriteListToCache(CachePrefixKeyl, values, ttl);
   return true;
 }
 
@@ -125,7 +125,7 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
     return false;
   }
   std::string CachePrefixKeys = PCacheKeyPrefixS + key;
-  cache_->WriteSetToCache(CachePrefixKeys, values, ttl);
+  slot->cache()->WriteSetToCache(CachePrefixKeys, values, ttl);
   return true;
 }
 
@@ -139,7 +139,8 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   }
 
   uint64_t cache_len = 0;
-  cache_->CacheZCard(key, &cache_len);
+  std::string CachePrefixKeyz = PCacheKeyPrefixZ + key;
+  slot->cache()->CacheZCard(CachePrefixKeyz, &cache_len);
   if (cache_len != 0) {
     return true;
   }
@@ -160,8 +161,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
     LOG(WARNING) << "load zset failed, key=" << key;
     return false;
   }
-  std::string CachePrefixKeyz = PCacheKeyPrefixZ + key;
-  cache_->WriteZSetToCache(CachePrefixKeyz, score_members, ttl);
+  slot->cache()->WriteZSetToCache(CachePrefixKeyz, score_members, ttl);
   return true;
 }
 
@@ -208,7 +208,7 @@ void *PikaCacheLoadThread::ThreadMain() {
         }
       }
     }
-    auto slot = cache_->GetSlot();
+    auto slot = g_pika_server->GetSlotByDBName(g_pika_conf->default_db());
     for (auto iter = load_keys.begin(); iter != load_keys.end(); ++iter) {
       if (LoadKey(iter->first, iter->second, slot)) {
         ++async_load_keys_num_;

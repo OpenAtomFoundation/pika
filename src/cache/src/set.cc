@@ -19,17 +19,13 @@ Status RedisCache::SAdd(std::string &key, std::vector<std::string> &members) {
     vals[i] = createObject(OBJ_STRING, sdsnewlen(members[i].data(), members[i].size()));
   }
   DEFER {
-    DecrObjectsRefCount(kobj);
     FreeObjectList(vals, members.size());
+    DecrObjectsRefCount(kobj);
   };
   if (C_OK != RcSAdd(cache_, kobj, vals, members.size())) {
-    FreeObjectList(vals, members.size());
-    DecrObjectsRefCount(kobj);
     return Status::Corruption("RcSAdd failed");
   }
 
-  FreeObjectList(vals, members.size());
-  DecrObjectsRefCount(kobj);
   return Status::OK();
 }
 

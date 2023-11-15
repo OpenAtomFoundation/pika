@@ -52,7 +52,7 @@ class SPopCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string member_;
+  std::vector<std::string> members_;
   int64_t count_ = 1;
   rocksdb::Status s_;
   void DoInitial() override;

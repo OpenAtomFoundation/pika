@@ -950,14 +950,6 @@ void ZRankCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrankCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrank);
-    return;
-  }
-  ZsetRankParentCmd::DoInitial();
-}
-
 void ZRankCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t rank = 0;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
@@ -980,6 +972,14 @@ void ZRankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
   }
+}
+
+void ZRevrankCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrank);
+    return;
+  }
+  ZsetRankParentCmd::DoInitial();
 }
 
 void ZRevrankCmd::Do(std::shared_ptr<Slot> slot) {
