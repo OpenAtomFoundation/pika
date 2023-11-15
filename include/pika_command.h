@@ -231,10 +231,9 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskCacheDo = 1024,
+  kCmdFlagsMaskDoThrouhDB = 4096,
   kCmdFlagsMaskReadCache = 128,
   kCmdFlagsMaskUpdateCache = 2048,
-  kCmdFlagsMaskOnlyDoCache = 4096,
   kCmdFlagsMaskSlot = 1536,
 };
 
@@ -270,7 +269,7 @@ enum CmdFlags {
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
-   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+  RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
 }
 
 const std::string kNewLine = "\r\n";

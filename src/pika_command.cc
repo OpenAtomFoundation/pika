@@ -953,8 +953,6 @@ bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLo
 bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
 // Must with admin auth
 bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
-bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsSingleSlot); }
-bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMaskSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::is_need_update_cache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
 bool Cmd::need_cache_do() const {
   if (g_pika_conf->IsCacheDisabledTemporarily()) {
@@ -986,7 +984,7 @@ bool Cmd::need_cache_do() const {
       return false;
     }
   }
-  return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);
+  return ((flag_ & kCmdFlagsMaskDoThrouhDB) == kCmdFlagsDoThroughDB);
 }
 
 bool Cmd::is_need_read_cache() const { return ((flag_ & kCmdFlagsMaskReadCache) == kCmdFlagsReadCache); }

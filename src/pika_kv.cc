@@ -446,7 +446,7 @@ void GetsetCmd::DoInitial() {
 
 void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string old_value;
-   s_ = slot->db()->GetSet(key_, new_value_, &old_value);
+  s_ = slot->db()->GetSet(key_, new_value_, &old_value);
   if (s_.ok()) {
     if (old_value.empty()) {
       res_.AppendContent("$-1");
@@ -763,11 +763,11 @@ void PsetexCmd::DoInitial() {
 }
 
 void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->Setex(key_, value_, static_cast<int32_t>(usec_ / 1000));
-  if (s.ok()) {
+  s_ = slot->db()->Setex(key_, value_, static_cast<int32_t>(usec_ / 1000));
+  if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -844,7 +844,7 @@ void MsetCmd::DoInitial() {
 }
 
 void MsetCmd::Do(std::shared_ptr<Slot> slot) {
-   s_ = slot->db()->MSet(kvs_);
+  s_ = slot->db()->MSet(kvs_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
     std::vector<storage::KeyValue>::const_iterator it;
@@ -1132,14 +1132,16 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  if (keys_.size() > 1) {
-    res_.SetRes(CmdRes::kCacheMiss);
-    return;
+  int result = keys_.size();
+  for (auto key : keys_) {
+    std::string CachePrefixKeyk = PCacheKeyPrefixK + key;
+    bool exit = slot->cache()->Exists(CachePrefixKeyk);
+    if(!exit){
+      result--;
+    }
   }
-  std::string CachePrefixKeyk = PCacheKeyPrefixK + keys_[0];
-  bool exist = slot->cache()->Exists(CachePrefixKeyk);
-  if (exist) {
-    res_.AppendInteger(1);
+  if (result > 0) {
+    res_.AppendInteger(result);
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
@@ -1402,7 +1404,7 @@ void TtlCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void TtlCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int64_t ttl;
+  int64_t ttl = -1;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->TTL(CachePrefixKeyk, &ttl);
   if (s.ok()) {
@@ -1473,7 +1475,7 @@ void PttlCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void PttlCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int64_t ttl;
+  int64_t ttl = -1;
   std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
   auto s = slot->cache()->TTL(CachePrefixKeyk, &ttl);
   if (s.ok()) {
@@ -1892,7 +1894,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
   s_ = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_),
-                                               &keys, &kvs, &next_key);
+                                &keys, &kvs, &next_key);
 
   if (s_.ok()) {
     res_.AppendArrayLen(2);
