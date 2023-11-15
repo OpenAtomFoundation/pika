@@ -439,7 +439,6 @@ class MsetnxCmd : public Cmd {
   void DoInitial() override;
   // used for write binlog
   std::shared_ptr<SetCmd> set_cmd_;
-  rocksdb::Status s_;
 };
 
 class GetrangeCmd : public Cmd {
