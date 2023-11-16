@@ -865,13 +865,10 @@ void ZInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyZ;
-  for(auto key:dest_key_){
-    std::string newkey = PCacheKeyPrefixZ + dest_key_;
-    CachePrefixKeyZ.push_back(newkey);
-  }
   if (s_.ok()) {
-    slot->cache()->Del(CachePrefixKeyZ);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixZ + dest_key_);
+    slot->cache()->Del(v);
   }
 }
 
