@@ -7,3 +7,4 @@ metadata:
 data:
   admin.sh: |-
     {{- .Files.Get "script/admin.sh" | nindent 4 }}
+

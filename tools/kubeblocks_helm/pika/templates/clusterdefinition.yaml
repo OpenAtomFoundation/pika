@@ -32,6 +32,16 @@ spec:
           namespace: {{ .Release.Namespace }}
           volumeName: script
           defaultMode: 0555
+      postStartSpec:
+        cmdExecutorConfig:
+          image: {{ include "codis.image" . }}
+          command:
+            - "/bin/bash"
+          args:
+            - "-c"
+            - "/script/admin.sh --rebalance"
+        scriptSpecSelectors:
+          - name: pika-script
       podSpec:
         containers:
           - name: pika

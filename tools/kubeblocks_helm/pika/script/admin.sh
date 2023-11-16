@@ -42,6 +42,24 @@ wait_master_registered() {
   done
 }
 
+## 确认这个group是最大的 pika-group
+confirm_max_group() {
+    max_group_id=0
+    for component in ${KB_CLUSTER_COMPONENT_LIST//,/ }; do
+        if [[ ${component} =~ pika-group-([0-9]+) ]]; then
+        group_id=${BASH_REMATCH[1]}
+        if [ ${group_id} -gt ${max_group_id} ]; then
+            max_group_id=${group_id}
+        fi
+        fi
+    done
+    if [ ${GROUP_ID} -ne ${max_group_id} ]; then
+        echo "Exit: group id ${GROUP_ID} is not max group id ${max_group_id}"
+        exit 0
+    fi
+ 
+}
+
 reload_until_success() {
   until $CODIS_ADMIN --reload 1>/dev/null 2>&1; do
     echo waiting for reload success
@@ -65,12 +83,15 @@ remove_server() {
   $CODIS_ADMIN --group-del --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
 }
 
-reblance() {
+rebalance() {
   $CODIS_ADMIN --rebalance --confirm
+  if [ $? != 0 ]; then
+      echo "Error: rebalance failed"
+      exit 1
+  fi
 }
 
 set_group_id
-set_instance_role
 set_codis_dashboard
 
 if [ $# -eq 1 ]; then
@@ -84,13 +105,22 @@ if [ $# -eq 1 ]; then
     exit 0
     ;;
   --register-server)
+    set_instance_role
     wait_dashboard_running
     wait_server_running
     register_server
     exit 0
     ;;
   --remove-server)
+    set_instance_role
     remove_server
+    exit 0
+    ;;
+  --rebalance)
+    wait_dashboard_running
+    confirm_max_group
+    wait_master_registered
+    rebalance
     exit 0
     ;;
   *)

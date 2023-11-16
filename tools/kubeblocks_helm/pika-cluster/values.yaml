@@ -5,7 +5,7 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 2
+replicaCount: 5
 
 slaveCount: 1
 
