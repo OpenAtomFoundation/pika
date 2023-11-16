@@ -42,7 +42,7 @@ wait_master_registered() {
   done
 }
 
-## 确认这个group是最大的 pika-group
+# confirm group has the max index of all groups
 confirm_max_group() {
     max_group_id=0
     for component in ${KB_CLUSTER_COMPONENT_LIST//,/ }; do
