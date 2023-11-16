@@ -187,8 +187,7 @@ void GetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void GetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, sec_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 
@@ -223,12 +222,15 @@ void DelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void DelCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::vector<std::string> CachePrefixKeyk;
+    std::vector<std::string> v;
     for (auto key : keys_) {
-      std::string newkey = PCacheKeyPrefixK + key;
-      CachePrefixKeyk.push_back(newkey);
+      v.emplace_back(PCacheKeyPrefixK + key);
+      v.emplace_back(PCacheKeyPrefixL + key);
+      v.emplace_back(PCacheKeyPrefixZ + key);
+      v.emplace_back(PCacheKeyPrefixS + key);
+      v.emplace_back(PCacheKeyPrefixH + key);
     }
-    slot->cache()->Del(CachePrefixKeyk);
+    slot->cache()->Del(v);
   }
 }
 
@@ -561,8 +563,7 @@ void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     for (int i = 0; i < keys_.size(); i++) {
-      std::string CachePrefixKeyk = PCacheKeyPrefixK + keys_[i];
-      slot->cache()->WriteKvToCache(CachePrefixKeyk, db_value_status_array_[i].value, ttl_);
+      slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, keys_[i]);
     }
   }
 }
@@ -777,8 +778,7 @@ void PsetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void PsetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, static_cast<int32_t>(usec_ / 1000));
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 
@@ -1014,8 +1014,7 @@ void GetrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void GetrangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, sec_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 
@@ -1096,8 +1095,7 @@ void StrlenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void StrlenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyk = PCacheKeyPrefixK + key_;
-    slot->cache()->WriteKvToCache(CachePrefixKeyk, value_, sec_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
   }
 }
 

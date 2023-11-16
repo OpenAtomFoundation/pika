@@ -316,13 +316,10 @@ void SUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void SUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyS;
-  for (auto key : dest_key_) {
-    std::string newkey = PCacheKeyPrefixS + key;
-    CachePrefixKeyS.push_back(newkey);
-  }
   if (s_.ok()) {
-    slot->cache()->Del(CachePrefixKeyS);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    slot->cache()->Del(v);
   }
 }
 
@@ -411,12 +408,9 @@ void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void SInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyS;
-  for(auto key : dest_key_) {
-    std::string newkey = PCacheKeyPrefixS + key;
-    CachePrefixKeyS.push_back(newkey);
-  }
   if (s_.ok()) {
+    std::vector<std::string> CachePrefixKeyS;
+    CachePrefixKeyS.emplace_back(PCacheKeyPrefixS + dest_key_);
     slot->cache()->Del(CachePrefixKeyS);
   }
 }
@@ -539,6 +533,22 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+
+void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  if (s_.ok()) {
+    std::vector<std::string> members;
+    members.push_back(member_);
+    std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
+    std::string CachePrefixKeyD = PCacheKeyPrefixS + dest_key_;
+    slot->cache()->SRem(CachePrefixKeyS, members);
+    slot->cache()->SAddIfKeyExist(CachePrefixKeyD, members);
+  }
+}
+
 void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   if(!move_success_){
     //the member is not in the source set, nothing changed
@@ -565,22 +575,6 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
 
   srem_cmd_->DoBinlog(slot);
   sadd_cmd_->DoBinlog(slot);
-}
-
-void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
-
-void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  if (s_.ok()) {
-    std::vector<std::string> members;
-    members.push_back(member_);
-    std::string CachePrefixKeyk = PCacheKeyPrefixS + src_key_;
-    slot->cache()->SRem(CachePrefixKeyk, members);
-    // warning: it is not atomic to add dest key member when in cache model
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
-    slot->cache()->SAddIfKeyExist(CachePrefixKeyS, members);
-  }
 }
 
 void SRandmemberCmd::DoInitial() {
