@@ -108,7 +108,7 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  // self is master of A , want to slavof B
+  // self is master of A , want to slaveof B
   if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
     res_.SetRes(CmdRes::kErrOther, "already master of others, invalid usage");
     return;
@@ -122,7 +122,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
-    res_.SetRes(CmdRes::kErrOther, "you fucked up");
+    res_.SetRes(CmdRes::kErrOther, "The master ip:port and the slave ip:port are the same");
     return;
   }
 
@@ -1626,6 +1626,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->max_background_compactions());
   }
 
+  if (pstd::stringmatch(pattern.data(), "max-background-jobs", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-background-jobs");
+    EncodeNumber(&config_body, g_pika_conf->max_background_jobs());
+  }
+
   if (pstd::stringmatch(pattern.data(), "max-cache-files", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-cache-files");
@@ -1919,13 +1925,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "loglevel");
     EncodeString(&config_body, g_pika_conf->log_level());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "min-blob-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "min-blob-size");
     EncodeNumber(&config_body, g_pika_conf->min_blob_size());
   }
-  
+
   if (pstd::stringmatch(pattern.data(), "pin_l0_filter_and_index_blocks_in_cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "pin_l0_filter_and_index_blocks_in_cache");
@@ -1994,6 +2000,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     // MutableDBOptions
     EncodeString(&ret, "max-cache-files");
     EncodeString(&ret, "max-background-compactions");
+    EncodeString(&ret, "max-background-jobs");
     // MutableColumnFamilyOptions
     EncodeString(&ret, "write-buffer-size");
     EncodeString(&ret, "max-write-buffer-num");
@@ -2242,6 +2249,19 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "max-background-jobs") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-jobs'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_background_jobs", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-background-jobs wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxBackgroudJobs(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2759,6 +2779,28 @@ void ClearReplicationIDCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_conf->SetReplicationID("");
   g_pika_conf->ConfigRewriteReplicationID();
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
+}
+
+void DisableWalCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    return;
+  }
+}
+
+void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string option = argv_[1].data();
+  bool is_wal_disable = false;
+  if (option.compare("true") == 0) {
+    is_wal_disable = true;
+  } else if (option.compare("false") == 0) {
+    is_wal_disable = false;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Invalid parameter");
+    return;
+  }
+  slot->db()->DisableWal(is_wal_disable);
+  res_.SetRes(CmdRes::kOk, "Wal options is changed");
 }
 
 #ifdef WITH_COMMAND_DOCS

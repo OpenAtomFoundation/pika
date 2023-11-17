@@ -1793,6 +1793,14 @@ int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_stat
     type_count++;
   }
   return type_count;
+  
+  
+void Storage::DisableWal(const bool is_wal_disable) {
+  strings_db_->SetWriteWalOptions(is_wal_disable);
+  hashes_db_->SetWriteWalOptions(is_wal_disable);
+  lists_db_->SetWriteWalOptions(is_wal_disable);
+  sets_db_->SetWriteWalOptions(is_wal_disable);
+  zsets_db_->SetWriteWalOptions(is_wal_disable);
 }
 
 }  //  namespace storage

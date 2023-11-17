@@ -366,9 +366,6 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
 
     *snapshot_uuid = resp->snapshot_uuid();
-    for (int i = 0; i < resp->meta_resp().filenames_size(); i++) {
-      file_set->insert(resp->meta_resp().filenames(i));
-    }
     break;
   }
   return s;

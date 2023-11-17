@@ -228,6 +228,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_background_compactions_;
   }
+  int max_background_jobs() {
+    std::shared_lock l(rwlock_);
+    return max_background_jobs_;
+  }
   int max_cache_files() {
     std::shared_lock l(rwlock_);
     return max_cache_files_;
@@ -541,6 +545,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-background-compactions", std::to_string(value));
     max_background_compactions_ = value;
   }
+  void SetMaxBackgroudJobs(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-background-jobs", std::to_string(value));
+    max_background_jobs_ = value;
+  }
   void SetWriteBufferSize(const int& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
@@ -653,6 +662,7 @@ class PikaConf : public pstd::BaseConf {
   int small_compaction_threshold_ = 0;
   int max_background_flushes_ = 0;
   int max_background_compactions_ = 0;
+  int max_background_jobs_ = 0;
   int max_cache_files_ = 0;
   int max_bytes_for_level_multiplier_ = 0;
   int64_t block_size_ = 0;
@@ -663,9 +673,9 @@ class PikaConf : public pstd::BaseConf {
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = false;
-  int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200M
-  int64_t rate_limiter_refill_period_us_ = 100 * 1000;
-  int64_t rate_limiter_fairness_ = 10;
+  int64_t rate_limiter_bandwidth_ = 0;
+  int64_t rate_limiter_refill_period_us_ = 0;
+  int64_t rate_limiter_fairness_ = 0;
   bool rate_limiter_auto_tuned_ = true;
 
   std::atomic<int> sync_window_size_;
@@ -702,7 +712,7 @@ class PikaConf : public pstd::BaseConf {
   std::shared_mutex rwlock_;
 
   // Rsync Rate limiting configuration
-  int throttle_bytes_per_second_ = 307200000;
+  int throttle_bytes_per_second_ = 207200000;
   int max_rsync_parallel_num_ = 4;
 };
 

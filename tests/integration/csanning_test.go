@@ -3,6 +3,7 @@ package pika_integration
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
@@ -16,6 +17,7 @@ var _ = Describe("Csanning Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		time.Sleep(1 * time.Second)
 	})
 
 	AfterEach(func() {

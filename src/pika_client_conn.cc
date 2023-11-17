@@ -32,6 +32,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
       current_db_(g_pika_conf->default_db()) {
   auth_stat_.Init();
+  time_stat_.reset(new TimeStat());
 }
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
@@ -54,11 +55,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (!auth_stat_.IsAuthed(c_ptr)) {
     c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
     return c_ptr;
-  }
-
-  uint64_t start_us = 0;
-  if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = pstd::NowMicros();
   }
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
@@ -121,10 +117,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
   // Process Command
   c_ptr->Execute();
-  uint64_t duration = pstd::NowMicros() - start_us;
+  time_stat_->process_done_ts_ = pstd::NowMicros();
   auto cmdstat_map = g_pika_server->GetCommandStatMap();
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
-  (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
+  (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
 
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
     if (c_ptr->name() == kCmdNameFlushdb) {
@@ -142,17 +138,15 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
+    ProcessSlowlog(argv, c_ptr->GetDoDuration());
   }
 
   return c_ptr;
 }
 
-void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration) {
-  auto start_time = static_cast<int32_t>(start_us / 1000000);
-  auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
-  if (duration > g_pika_conf->slowlog_slower_than()) {
-    g_pika_server->SlowlogPushEntry(argv, start_time, duration);
+void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_duration) {
+  if (time_stat_->total_time() > g_pika_conf->slowlog_slower_than()) {
+    g_pika_server->SlowlogPushEntry(argv, time_stat_->start_ts(), time_stat_->total_time());
     if (g_pika_conf->slowlog_write_errorlog()) {
       bool trim = false;
       std::string slow_log;
@@ -171,8 +165,10 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       }
       LOG(ERROR) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
                  << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
-                 << ", start_time(s): " << start_time << ", duration(us): " << duration
-                 << ", do_duration_(us): " << do_duration;
+                 << ", total_time(ms): " << time_stat_->total_time() / 1000
+                 << ", queue_time(ms): " << time_stat_->queue_time() / 1000
+                 << ", process_time(ms): " << time_stat_->process_time() / 1000
+                 << ", cmd_time(ms): " << do_duration / 1000;
     }
   }
 }
@@ -189,9 +185,11 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 
 void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                       std::string* response) {
+  time_stat_->Reset();
   if (async) {
     auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
+    time_stat_->enqueue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
     return;
@@ -202,6 +200,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
 void PikaClientConn::DoBackgroundTask(void* arg) {
   std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  conn_ptr->time_stat_->dequeue_ts_ = pstd::NowMicros();
   if (bg_arg->redis_cmds.empty()) {
     conn_ptr->NotifyEpoll(false);
     return;
@@ -226,14 +225,10 @@ void PikaClientConn::DoExecTask(void* arg) {
   uint32_t slot_id = bg_arg->slot_id;
   bg_arg.reset();
 
-  uint64_t start_us = 0;
-  if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = pstd::NowMicros();
-  }
   cmd_ptr->SetStage(Cmd::kExecuteStage);
   cmd_ptr->Execute();
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
+    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), cmd_ptr->GetDoDuration());
   }
 
   std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
@@ -261,6 +256,7 @@ void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>&
     resp_array.push_back(resp_ptr);
     ExecRedisCmd(argv, resp_ptr);
   }
+  time_stat_->process_done_ts_ = pstd::NowMicros();
   TryWriteResp();
 }
 
