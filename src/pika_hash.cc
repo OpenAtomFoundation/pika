@@ -41,8 +41,8 @@ void HDelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HDelCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HDel(CachePrefixKeyh, fields_);
+    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+    slot->cache()->HDel(CachePrefixKeyH, fields_);
   }
 }
 
@@ -73,8 +73,8 @@ void HSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HSetIfKeyExist(CachePrefixKeyh, field_, value_);
+    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+    slot->cache()->HSetIfKeyExist(CachePrefixKeyH, field_, value_);
   }
 }
 
@@ -102,8 +102,8 @@ void HGetCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string value;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HGet(CachePrefixKeyh, field_, &value);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HGet(CachePrefixKeyH, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -174,8 +174,8 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HGetallCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::FieldValue> fvs;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HGetall(CachePrefixKeyh, &fvs);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HGetall(CachePrefixKeyH, &fvs);
   if (s.ok()) {
     res_.AppendArrayLen(fvs.size() * 2);
     for (const auto& fv : fvs) {
@@ -223,8 +223,8 @@ void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void HExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HExists(CachePrefixKeyh, field_);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HExists(CachePrefixKeyH, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -279,8 +279,8 @@ void HIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HIncrbyxx(CachePrefixKeyh, field_, by_);
+    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+    slot->cache()->HIncrbyxx(CachePrefixKeyH, field_, by_);
   }
 }
 
@@ -318,8 +318,8 @@ void HIncrbyfloatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     long double long_double_by;
     if (storage::StrToLongDouble(by_.data(), by_.size(), &long_double_by) != -1) {
-      std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-      slot->cache()->HIncrbyfloatxx(CachePrefixKeyh, field_, long_double_by);
+      std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+      slot->cache()->HIncrbyfloatxx(CachePrefixKeyH, field_, long_double_by);
     }
   }
 }
@@ -347,8 +347,8 @@ void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HKeysCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> fields;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HKeys(CachePrefixKeyh, &fields);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HKeys(CachePrefixKeyH, &fields);
   if (s.ok()) {
     res_.AppendArrayLen(fields.size());
     for (const auto& field : fields) {
@@ -392,8 +392,8 @@ void HLenCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t len = 0;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HLen(CachePrefixKeyh, &len);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HLen(CachePrefixKeyH, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -446,8 +446,8 @@ void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HMgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HMGet(CachePrefixKeyh, fields_, &vss);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HMGet(CachePrefixKeyH, fields_, &vss);
   if (s.ok()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -510,8 +510,8 @@ void HMsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HMsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HMSetxx(CachePrefixKeyh, fvs_);
+    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+    slot->cache()->HMSetxx(CachePrefixKeyH, fvs_);
   }
 }
 
@@ -542,8 +542,8 @@ void HSetnxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HSetnxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-    slot->cache()->HSetIfKeyExistAndFieldNotExist(CachePrefixKeyh, field_, value_);
+    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+    slot->cache()->HSetIfKeyExistAndFieldNotExist(CachePrefixKeyH, field_, value_);
   }
 }
 
@@ -568,8 +568,8 @@ void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HStrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t len = 0;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HStrlen(CachePrefixKeyh, field_, &len);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HStrlen(CachePrefixKeyH, field_, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -615,8 +615,8 @@ void HValsCmd::Do(std::shared_ptr<Slot> slot) {
 
 void HValsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HVals(CachePrefixKeyh, &values);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
+  auto s = slot->cache()->HVals(CachePrefixKeyH, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {

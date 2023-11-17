@@ -88,8 +88,8 @@ void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
-    slot->cache()->SRem(CachePrefixKeys, members_);
+    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
+    slot->cache()->SRem(CachePrefixKeyS, members_);
   }
 }
 
@@ -114,7 +114,7 @@ void SCardCmd::Do(std::shared_ptr<Slot> slot) {
 void SCardCmd::ReadCache(std::shared_ptr<Slot> slot) {
   uint64_t card = 0;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SCard(CachePrefixKeyS, &card);
+  auto s = slot->cache()->SCard(CachePrefixKeyS, &card);
   if (s.ok()) {
     res_.AppendInteger(card);
   } else if (s.IsNotFound()) {
@@ -159,8 +159,8 @@ void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
 
 void SMembersCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SMembers(CachePrefixKeys, &members);
+  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
+  auto s = slot->cache()->SMembers(CachePrefixKeyS, &members);
   if (s.ok()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -266,8 +266,8 @@ void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
-    std::string CachePrefixKeys = PCacheKeyPrefixS + key_;
-    slot->cache()->SRem(CachePrefixKeys, members_);
+    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
+    slot->cache()->SRem(CachePrefixKeyS, members_);
   }
 }
 
@@ -409,9 +409,9 @@ void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::vector<std::string> CachePrefixKeyS;
-    CachePrefixKeyS.emplace_back(PCacheKeyPrefixS + dest_key_);
-    slot->cache()->Del(CachePrefixKeyS);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    slot->cache()->Del(v);
   }
 }
 
@@ -436,7 +436,7 @@ void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
 
 void SIsmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SIsmember(CachePrefixKeyS, member_);
+  auto s = slot->cache()->SIsmember(CachePrefixKeyS, member_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -503,13 +503,10 @@ void SDiffstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void SDiffstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyS;
-  for (auto key : dest_key_) {
-    std::string newkey = PCacheKeyPrefixS + key;
-    CachePrefixKeyS.push_back(newkey);
-  }
   if (s_.ok()) {
-    slot->cache()->Del(CachePrefixKeyS);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    slot->cache()->Del(v);
   }
 }
 
@@ -541,7 +538,7 @@ void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::vector<std::string> members;
-    members.push_back(member_);
+    members.emplace_back(member_);
     std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
     std::string CachePrefixKeyD = PCacheKeyPrefixS + dest_key_;
     slot->cache()->SRem(CachePrefixKeyS, members);
@@ -618,7 +615,7 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
 void SRandmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  rocksdb::Status s = slot->cache()->SRandmember(CachePrefixKeyS, count_, &members);
+  auto s = slot->cache()->SRandmember(CachePrefixKeyS, count_, &members);
   if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());

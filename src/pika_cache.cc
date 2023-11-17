@@ -563,6 +563,7 @@ Status PikaCache::LPop(std::string &key, std::string *element) {
 
 Status PikaCache::LPush(std::string &key, std::vector<std::string> &values) {
   std::lock_guard l(rwlock_);
+
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LPush(key, values);

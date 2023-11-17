@@ -93,7 +93,7 @@ void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
 void BitGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t bit_val = 0;
   std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-  rocksdb::Status s = slot->cache()->GetBit(CachePrefixKeyB, bit_offset_, &bit_val);
+  auto s = slot->cache()->GetBit(CachePrefixKeyB, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(bit_val);
   } else if (s.IsNotFound()) {
@@ -325,13 +325,10 @@ void BitOpCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void BitOpCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyB;
-  for (auto key : dest_key_) {
-    std::string newkey = PCacheKeyPrefixB + dest_key_;
-    CachePrefixKeyB.push_back(newkey);
-  }
   if (s_.ok()) {
-    slot->cache()->Del(CachePrefixKeyB);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixB + dest_key_);
+    slot->cache()->Del(v);
   }
 }
 

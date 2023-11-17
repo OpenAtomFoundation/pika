@@ -40,9 +40,9 @@ void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void LIndexCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   std::string value;
-  auto s = slot->cache()->LIndex(CachePrefixKeyl, index_, &value);
+  auto s = slot->cache()->LIndex(CachePrefixKeyL, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -99,8 +99,8 @@ void LInsertCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LInsertCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LInsert(CachePrefixKeyl, dir_, pivot_, value_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
   }
 }
 
@@ -123,9 +123,9 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void LLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
-  auto s = slot->cache()->LLen(CachePrefixKeyl, &llen);
+  auto s = slot->cache()->LLen(CachePrefixKeyL, &llen);
   if (s.ok()){
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
@@ -279,8 +279,8 @@ void LPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LPushx(CachePrefixKeyl, values_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->LPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -430,9 +430,9 @@ void LPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    slot->cache()->LPop(CachePrefixKeyl, &value);
+    slot->cache()->LPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -465,10 +465,10 @@ void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    slot->cache()->LPushx(CachePrefixKeyl, values);
+    slot->cache()->LPushx(CachePrefixKeyL, values);
   }
 }
 
@@ -506,8 +506,8 @@ void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
 
 void LRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
-  std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-  auto s = slot->cache()->LRange(CachePrefixKeyl, left_, right_, &values);
+  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+  auto s = slot->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -561,8 +561,8 @@ void LRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LRem(CachePrefixKeyl, count_, value_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->LRem(CachePrefixKeyL, count_, value_);
   }
 }
 
@@ -601,8 +601,8 @@ void LSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LSet(CachePrefixKeyl, index_, value_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->LSet(CachePrefixKeyL, index_, value_);
   }
 }
 
@@ -638,8 +638,8 @@ void LTrimCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LTrimCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->LTrim(CachePrefixKeyl, start_, stop_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->LTrim(CachePrefixKeyL, start_, stop_);
   }
 }
 
@@ -754,9 +754,9 @@ void RPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void RPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    slot->cache()->RPop(CachePrefixKeyl, &value);
+    slot->cache()->RPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -850,8 +850,8 @@ void RPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void RPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
-    slot->cache()->RPushx(CachePrefixKeyl, values_);
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
+    slot->cache()->RPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -884,9 +884,9 @@ void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void RPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyl = PCacheKeyPrefixL + key_;
+    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    slot->cache()->RPushx(CachePrefixKeyl, values);
+    slot->cache()->RPushx(CachePrefixKeyL, values);
   }
 }
