@@ -444,4 +444,8 @@ enum CacheBgTask {
   CACHE_BGTASK_RESET_CFG = 2
 };
 
+const int64_t CACHE_LOAD_QUEUE_MAX_SIZE = 2048;
+const int64_t CACHE_VALUE_ITEM_MAX_SIZE = 2048;
+const int64_t CACHE_LOAD_NUM_ONE_TIME = 256;
+
 #endif

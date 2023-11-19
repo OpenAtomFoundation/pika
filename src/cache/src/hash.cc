@@ -18,9 +18,9 @@ Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields) {
     DecrObjectsRefCount(kobj);
     FreeObjectList(fields_obj, fields.size());
   };
-  int ret;
   unsigned long deleted;
-  if (C_OK != (ret = RcHDel(cache_, kobj, fields_obj, fields.size(), &deleted))) {
+  int ret = RcHDel(cache_, kobj, fields_obj, fields.size(), &deleted);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -31,7 +31,8 @@ Status RedisCache::HDel(std::string &key, std::vector<std::string> &fields) {
 }
 
 Status RedisCache::HSet(std::string &key, std::string &field, std::string &value) {
-  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
+  int res = RcFreeMemoryIfNeeded(cache_);
+  if (C_OK != res) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -41,7 +42,8 @@ Status RedisCache::HSet(std::string &key, std::string &field, std::string &value
   DEFER {
     DecrObjectsRefCount(kobj, fobj, vobj);
   };
-  if (C_OK != RcHSet(cache_, kobj, fobj, vobj)) {
+  int ret = RcHSet(cache_, kobj, fobj, vobj);
+  if (C_OK != ret) {
     return Status::Corruption("RcHSet failed");
   }
 
@@ -67,7 +69,8 @@ Status RedisCache::HSetnx(std::string &key, std::string &field, std::string &val
 }
 
 Status RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs) {
-  if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
+  int res = RcFreeMemoryIfNeeded(cache_);
+  if (C_OK != res) {
     return Status::Corruption("[error] Free memory faild !");
   }
 
@@ -82,25 +85,25 @@ Status RedisCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs
     FreeObjectList(items, items_size);
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != RcHMSet(cache_, kobj, items, items_size)) {
+  int ret = RcHMSet(cache_, kobj, items, items_size);
+  if (C_OK != ret) {
     return Status::Corruption("RcHMSet failed");
   }
   return Status::OK();
 }
 
 Status RedisCache::HGet(std::string &key, std::string &field, std::string *value) {
-  int ret;
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHGet(cache_, kobj, fobj, &val))) {
+  int ret = RcHGet(cache_, kobj, fobj, &val);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     } else if (REDIS_ITEM_NOT_EXIST == ret) {
-      // todo(leehao): its better to let pstd::Status to inherit rocksdb::Status
       return Status::NotFound("field not exist");
     }
     return Status::Corruption("RcHGet failed");
@@ -124,8 +127,8 @@ Status RedisCache::HMGet(std::string &key, std::vector<std::string> &fields, std
     DecrObjectsRefCount(kobj);
   };
 
-  int ret;
-  if (C_OK != (ret = RcHMGet(cache_, kobj, items, fields.size()))) {
+  int ret = RcHMGet(cache_, kobj, items, fields.size());
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -147,12 +150,12 @@ Status RedisCache::HMGet(std::string &key, std::vector<std::string> &fields, std
 Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs) {
   hitem *items;
   unsigned long items_size;
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcHGetAll(cache_, kobj, &items, &items_size))) {
+  int ret = RcHGetAll(cache_, kobj, &items, &items_size);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -173,12 +176,12 @@ Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *f
 Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
   hitem *items;
   unsigned long items_size;
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcHKeys(cache_, kobj, &items, &items_size))) {
+  int ret = RcHKeys(cache_, kobj, &items, &items_size);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -196,12 +199,12 @@ Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
 Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
   hitem *items;
   unsigned long items_size;
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcHVals(cache_, kobj, &items, &items_size))) {
+  int ret = RcHVals(cache_, kobj, &items, &items_size);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -217,13 +220,14 @@ Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
 }
 
 Status RedisCache::HExists(std::string &key, std::string &field) {
-  int ret, is_exist;
+  int is_exist;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHExists(cache_, kobj, fobj, &is_exist))) {
+  int ret = RcHExists(cache_, kobj, fobj, &is_exist);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -234,14 +238,14 @@ Status RedisCache::HExists(std::string &key, std::string &field) {
 }
 
 Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) {
-  int ret;
   int64_t result;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHIncrby(cache_, kobj, fobj, value, (long long int*)&result))) {
+  int ret = RcHIncrby(cache_, kobj, fobj, value, (long long int*)&result);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -252,14 +256,14 @@ Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) 
 }
 
 Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, double value) {
-  int ret;
   long double result;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHIncrbyfloat(cache_, kobj, fobj, value, &result))) {
+  int ret = RcHIncrbyfloat(cache_, kobj, fobj, value, &result);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -270,12 +274,12 @@ Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, double val
 }
 
 Status RedisCache::HLen(std::string &key, uint64_t *len) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcHlen(cache_, kobj, reinterpret_cast<unsigned long *>(len)))) {
+  int ret = RcHlen(cache_, kobj, reinterpret_cast<unsigned long *>(len));
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -286,13 +290,13 @@ Status RedisCache::HLen(std::string &key, uint64_t *len) {
 }
 
 Status RedisCache::HStrlen(std::string &key, std::string &field, uint64_t *len) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
     DecrObjectsRefCount(kobj, fobj);
   };
-  if (C_OK != (ret = RcHStrlen(cache_, kobj, fobj, reinterpret_cast<unsigned long *>(len)))) {
+  int ret = RcHStrlen(cache_, kobj, fobj, reinterpret_cast<unsigned long *>(len));
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }

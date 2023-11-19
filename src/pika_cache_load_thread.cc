@@ -166,7 +166,6 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
 }
 
 bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot>& slot) {
-  // 加载缓存时，保证操作rocksdb和cache是原子的
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
   switch (key_type) {
     case 'k':
