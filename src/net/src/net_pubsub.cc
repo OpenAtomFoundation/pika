@@ -100,6 +100,30 @@ bool PubSubThread::IsReady(int fd) {
   return false;
 }
 
+int PubSubThread::ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn) {
+  int subscribed = 0;
+  std::lock_guard l(channel_mutex_);
+  for (auto& channel : pubsub_channel_) {
+    auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
+    if (conn_ptr != channel.second.end()) {
+      subscribed++;
+    }
+  }
+  return subscribed;
+}
+
+int PubSubThread::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn) {
+  int subscribed = 0;
+  std::lock_guard l(pattern_mutex_);
+  for (auto& channel : pubsub_pattern_) {
+    auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
+    if (conn_ptr != channel.second.end()) {
+      subscribed++;
+    }
+  }
+  return subscribed;
+}
+
 void PubSubThread::RemoveConn(const std::shared_ptr<NetConn>& conn) {
   {
     std::lock_guard lock(pattern_mutex_);
@@ -298,7 +322,7 @@ void PubSubThread::PubSubChannels(const std::string& pattern, std::vector<std::s
   } else {
     std::lock_guard l(channel_mutex_);
     for (auto& channel : pubsub_channel_) {
-      if (pstd::stringmatchlen(channel.first.c_str(), static_cast<int32_t>(channel.first.size()), 
+      if (pstd::stringmatchlen(channel.first.c_str(), static_cast<int32_t>(channel.first.size()),
 							   pattern.c_str(), static_cast<int32_t>(pattern.size()), 0)) {
         if (!channel.second.empty()) {
           result->push_back(channel.first);
@@ -404,7 +428,7 @@ void* PubSubThread::ThreadMain() {
           // Send message to a channel pattern's clients
           pattern_mutex_.lock();
           for (auto& it : pubsub_pattern_) {
-            if (pstd::stringmatchlen(it.first.c_str(), static_cast<int32_t>(it.first.size()), 
+            if (pstd::stringmatchlen(it.first.c_str(), static_cast<int32_t>(it.first.size()),
 									 channel.c_str(), static_cast<int32_t>(channel.size()), 0)) {
               for (size_t i = 0; i < it.second.size(); i++) {
                 if (!IsReady(it.second[i]->fd())) {

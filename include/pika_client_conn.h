@@ -128,6 +128,7 @@ class PikaClientConn : public net::RedisConn {
   void ExitTxn();
 
   net::ServerThread* server_thread() { return server_thread_; }
+  void ClientInfoToString(std::string* info, const std::string& cmdName);
 
   std::atomic<int> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;

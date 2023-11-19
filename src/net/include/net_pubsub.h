@@ -72,6 +72,8 @@ class PubSubThread : public Thread {
   void UpdateConnReadyState(int fd, const ReadyState& state);
 
   bool IsReady(int fd);
+  int ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn);
+  int ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn);
 
  private:
   void RemoveConn(const std::shared_ptr<NetConn>& conn);

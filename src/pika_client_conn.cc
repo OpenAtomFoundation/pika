@@ -67,33 +67,47 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   int8_t subCmdIndex = -1;
-  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex);
+  int32_t index = 0;
+  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex, index);
   std::string cmdName = c_ptr->name();
   if (subCmdIndex >= 0 && checkRes == AclDeniedCmd::CMD) {
     cmdName += "|" + argv[1];
   }
 
+  std::string object;
   switch (checkRes) {
     case AclDeniedCmd::CMD:
       c_ptr->res().SetRes(CmdRes::kNone, fmt::format("-NOPERM this user has no permissions to run the '{}' command\r\n",
                                                      pstd::StringToLower(cmdName)));
-      return c_ptr;
+      object = cmdName;
+      break;
     case AclDeniedCmd::KEY:
       c_ptr->res().SetRes(CmdRes::kNone,
                           "-NOPERM this user has no permissions to access one of the keys used as arguments\r\n");
-      return c_ptr;
+      object = argv[index];
+      break;
     case AclDeniedCmd::CHANNEL:
       c_ptr->res().SetRes(CmdRes::kNone,
                           "-NOPERM this user has no permissions to access one of the channel used as arguments\r\n");
-      return c_ptr;
+      object = argv[index];
+      break;
     case AclDeniedCmd::NO_SUB_CMD:
       c_ptr->res().SetRes(CmdRes::kErrOther, fmt::format("unknown subcommand '{}' subcommand", argv[1]));
-      return c_ptr;
+      break;
     case AclDeniedCmd::NO_AUTH:
       c_ptr->res().AppendContent("-NOAUTH Authentication required.");
-      return c_ptr;
+      break;
     default:
       break;
+  }
+
+  if (checkRes == AclDeniedCmd::CMD || checkRes == AclDeniedCmd::KEY || checkRes == AclDeniedCmd::CHANNEL) {
+    std::string cInfo;
+    ClientInfoToString(&cInfo, cmdName);
+    g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(checkRes), static_cast<int32_t>(AclLogCtx::TOPLEVEL),
+                                      user_->Name(), object, cInfo);
+
+    return c_ptr;
   }
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
@@ -480,6 +494,24 @@ bool PikaClientConn::AuthRequired() const {
   return user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));  // user disabled
 }
 std::string PikaClientConn::UserName() const { return user_->Name(); }
+
+void PikaClientConn::ClientInfoToString(std::string* info, const std::string& cmdName) {
+  uint64_t age = pstd::NowMicros() - last_interaction().tv_usec;
+
+  std::string flags;
+  g_pika_server->ClientIsMonitor(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this())) ? flags.append("O")
+                                                                                                : flags.append("S");
+  if (IsPubSub()) {
+    flags.append("P");
+  }
+
+  info->append(fmt::format(
+      "id={} addr={} name={} age={} idle={} flags={} db={} sub={} psub={} multi={} "
+      "cmd={} user={} resp=2",
+      fd(), ip_port(), name(), age, age / 1000000, flags, GetCurrentTable(),
+      IsPubSub() ? g_pika_server->ClientPubSubChannelSize(shared_from_this()) : 0,
+      IsPubSub() ? g_pika_server->ClientPubSubChannelPatternSize(shared_from_this()) : 0, -1, cmdName, user_->Name()));
+}
 
 // compare addr in ClientInfo
 bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs) { return rhs.ip_port < lhs.ip_port; }

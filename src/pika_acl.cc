@@ -66,6 +66,10 @@ void PikaAclCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, "'acl|dryrun'");
     return;
   }
+  if (subCmd_ == "log" && argv_.size() != 2 && argv_.size() != 3) {
+    res_.SetRes(CmdRes::kWrongNum, "'acl|log'");
+    return;
+  }
 
   if (subCmd_ == "save" || subCmd_ == "load") {
     if (g_pika_conf->acl_file().empty()) {
@@ -130,7 +134,8 @@ void PikaAclCmd::DryRun() {
   }
 
   int8_t subCmdIndex = -1;
-  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex);
+  int32_t index = 0;
+  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex, index);
 
   switch (checkRes) {
     case AclDeniedCmd::OK:
@@ -216,7 +221,25 @@ void PikaAclCmd::Load() {
   res().SetRes(CmdRes::kErrOther, status.ToString());
 }
 
-void PikaAclCmd::Log() { res().SetRes(CmdRes::kErrOther, "Not implemented"); }
+void PikaAclCmd::Log() {
+  if (argv_.size() == 2) {
+    g_pika_server->Acl()->GetLog(-1, &res_);
+    return;
+  }
+
+  long count = 0;
+  if (argv_[2] == "reset") {
+    g_pika_server->Acl()->ResetLog();
+    res().SetRes(CmdRes::kOk);
+    return;
+  }
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &count)) {
+    res().SetRes(CmdRes::kErrOther, fmt::format("Invalid count value: {}", argv_[2]));
+    return;
+  }
+
+  g_pika_server->Acl()->GetLog(count, &res_);
+}
 
 void PikaAclCmd::Save() {
   auto status = g_pika_server->Acl()->SaveToFile();

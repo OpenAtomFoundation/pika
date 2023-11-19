@@ -1084,6 +1084,10 @@ bool PikaServer::HasMonitorClients() const {
   std::unique_lock lock(monitor_mutex_protector_);
   return !pika_monitor_clients_.empty();
 }
+bool PikaServer::ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const {
+  std::unique_lock lock(monitor_mutex_protector_);
+  return pika_monitor_clients_.count(client_ptr) != 0;
+}
 
 void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
   const std::string msg = "+" + monitor_message + "\r\n";
@@ -1275,6 +1279,14 @@ void PikaServer::PubSubChannels(const std::string& pattern, std::vector<std::str
 void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
                               std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->PubSubNumSub(channels, result);
+}
+
+int PikaServer::ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelSize(conn);
+}
+
+int PikaServer::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelPatternSize(conn);
 }
 
 /******************************* PRIVATE *******************************/

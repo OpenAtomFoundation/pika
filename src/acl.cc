@@ -246,7 +246,8 @@ void User::GetUserDescribe(CmdRes* res) {
   }
 }
 
-AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex) {
+AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex,
+                                       int32_t& errIndex) {
   std::shared_lock l(mutex_);
 
   if (HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
@@ -262,7 +263,7 @@ AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdA
   auto keys = cmd->current_key();
   AclDeniedCmd res = AclDeniedCmd::OK;
   for (const auto& selector : selectors_) {
-    res = selector->CheckCanExecCmd(cmd, subCmdIndex, keys);
+    res = selector->CheckCanExecCmd(cmd, subCmdIndex, keys, errIndex);
     if (res == AclDeniedCmd::OK) {
       return AclDeniedCmd::OK;
     }
@@ -680,8 +681,144 @@ std::array<std::pair<std::string, uint32_t>, 3> Acl::SelectorFlags = {{
 }};
 
 const std::string Acl::DefaultUser = "default";
+const int64_t Acl::LogGroupingMaxTimeDelta = 60000;
 
+void Acl::AddLogEntry(int32_t reason, int32_t context, const std::string& username, const std::string& object,
+                      const std::string& cInfo) {
+  int64_t nowUnix =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+          .count();
+  {
+    std::unique_lock wl(mutex_);
+    for (const auto& item : logEntries_) {
+      if (item->Match(reason, context, nowUnix, object, username)) {
+        item->AddEntry(cInfo, nowUnix);
+        return;
+      }
+    }
+    auto entry = std::make_unique<ACLLogEntry>(reason, context, object, username, nowUnix, cInfo);
+    logEntries_.push_front(std::move(entry));
+  }
+}
+
+void Acl::GetLog(long count, CmdRes* res) {
+  std::shared_lock rl(mutex_);
+  auto size = static_cast<long>(logEntries_.size());
+  if (count == -1) {
+    count = size;
+  }
+  if (count > size) {
+    count = size;
+  }
+  if (count == 0) {
+    res->AppendArrayLen(0);
+    return;
+  }
+
+  std::vector<std::string> items;
+  res->AppendArrayLen(static_cast<int64_t>(count));
+  items.reserve(14);
+  for (const auto& item : logEntries_) {
+    items.clear();
+    item->GetReplyInfo(&items);
+    res->AppendStringVector(items);
+    count--;
+    if (count == 0) {
+      break;
+    }
+  }
+}
+
+void Acl::ResetLog() {
+  std::unique_lock wl(mutex_);
+  logEntries_.clear();
+}
 // class Acl end
+
+// class ACLLogEntry
+bool ACLLogEntry::Match(int32_t reason, int32_t context, int64_t ctime, const std::string& object,
+                        const std::string& username) {
+  if (reason_ != reason) {
+    return false;
+  }
+  if (context_ != context) {
+    return false;
+  }
+  auto delta = ctime_ - ctime;
+  if (delta > Acl::LogGroupingMaxTimeDelta) {
+    return false;
+  };
+  if (object_ != object) {
+    return false;
+  }
+  if (username_ != username) {
+    return false;
+  }
+  return true;
+}
+
+void ACLLogEntry::AddEntry(const std::string& cinfo, u_int64_t ctime) {
+  cinfo_ = cinfo;
+  ctime_ = ctime;
+  ++count_;
+}
+
+void ACLLogEntry::GetReplyInfo(std::vector<std::string>* vector) {
+  vector->emplace_back("count");
+  vector->emplace_back(std::to_string(count_));
+  vector->emplace_back("reason");
+  switch (reason_) {
+    case static_cast<int32_t>(AclDeniedCmd::CMD):
+      vector->emplace_back("command");
+      break;
+    case static_cast<int32_t>(AclDeniedCmd::KEY):
+      vector->emplace_back("key");
+      break;
+    case static_cast<int32_t>(AclDeniedCmd::CHANNEL):
+      vector->emplace_back("channel");
+      break;
+    case static_cast<int32_t>(AclDeniedCmd::NO_AUTH):
+      vector->emplace_back("auth");
+      break;
+    default:
+      vector->emplace_back("unknown");
+      break;
+  }
+
+  vector->emplace_back("context");
+  vector->emplace_back(std::to_string(context_));
+  switch (reason_) {
+    case static_cast<int32_t>(AclLogCtx::TOPLEVEL):
+      vector->emplace_back("toplevel");
+      break;
+    case static_cast<int32_t>(AclLogCtx::MULTI):
+      vector->emplace_back("multi");
+      break;
+    case static_cast<int32_t>(AclLogCtx::LUA):
+      vector->emplace_back("lua");
+      break;
+    default:
+      vector->emplace_back("unknown");
+      break;
+  }
+
+  vector->emplace_back("object");
+  vector->emplace_back(object_);
+  vector->emplace_back("username");
+  vector->emplace_back(username_);
+  vector->emplace_back("age-seconds");
+  int64_t nowUnix =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+          .count();
+
+  char latitude[32];
+  pstd::d2string(latitude, 32, static_cast<double>(nowUnix - ctime_) / 1000);
+  vector->emplace_back(latitude);
+  vector->emplace_back("client-info");
+  vector->emplace_back(cinfo_);
+}
+
+// class ACLLogEntry end
 
 // class AclSelector
 AclSelector::AclSelector(uint32_t flag) : flags_(flag) {
@@ -990,7 +1127,7 @@ void AclSelector::ACLDescribeSelector(std::vector<std::string>& vector) {
 }
 
 AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex,
-                                          const std::vector<std::string>& keys) {
+                                          const std::vector<std::string>& keys, int32_t& errIndex) {
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS)) && !(cmd->flag() & kCmdFlagsNoAuth)) {
     if (subCmdIndex < 0) {
       if (!allowedCommands_.test(cmd->GetCmdId())) {
@@ -1004,22 +1141,28 @@ AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subC
   }
 
   // key match
+  int32_t index = 0;
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS)) && !keys.empty() && !cmd->hasFlag(kCmdFlagsPubSub)) {
     for (const auto& key : keys) {
       // if the key is empty, skip, because some command keys for write categories are empty
       if (!key.empty() && !CheckKey(key, cmd->flag())) {
+        errIndex = index;
         return AclDeniedCmd::KEY;
       }
+      ++index;
     }
   }
 
   // channel match
+  index = 0;
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS)) && cmd->hasFlag(kCmdFlagsPubSub)) {
     bool isPattern = cmd->name() == kCmdNamePSubscribe || cmd->name() == kCmdNamePUnSubscribe;
     for (const auto& key : keys) {
       if (!CheckChannel(key, isPattern)) {
+        errIndex = index;
         return AclDeniedCmd::CHANNEL;
       }
+      ++index;
     }
   }
   return AclDeniedCmd::OK;

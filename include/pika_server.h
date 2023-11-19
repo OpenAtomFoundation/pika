@@ -304,6 +304,7 @@ class PikaServer : public pstd::noncopyable {
    * Monitor used
    */
   bool HasMonitorClients() const;
+  bool ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const;
   void AddMonitorMessage(const std::string& monitor_message);
   void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
 
@@ -361,6 +362,9 @@ class PikaServer : public pstd::noncopyable {
                  std::vector<std::pair<std::string, int>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
+
+  int ClientPubSubChannelSize(const std::shared_ptr<net::NetConn>& conn);
+  int ClientPubSubChannelPatternSize(const std::shared_ptr<net::NetConn>& conn);
 
   pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 

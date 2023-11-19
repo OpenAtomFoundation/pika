@@ -59,7 +59,7 @@ enum AuthResult {
   INVALID_CONN,
 };
 
-static AuthResult AuthenticateUser(const std::string& userName, const std::string& pwd,
+static AuthResult AuthenticateUser(const std::string& cmdName, const std::string& userName, const std::string& pwd,
                                    const std::shared_ptr<net::NetConn>& conn, bool defaultAuth) {
   if (defaultAuth) {
     auto defaultUser = g_pika_server->Acl()->GetUserLock(Acl::DefaultUser);
@@ -71,6 +71,12 @@ static AuthResult AuthenticateUser(const std::string& userName, const std::strin
   auto user = g_pika_server->Acl()->Auth(userName, pwd);
 
   if (!user) {
+    std::string cInfo;
+    if (auto ptr = std::dynamic_pointer_cast<PikaClientConn>(conn); ptr) {
+      ptr->ClientInfoToString(&cInfo, cmdName);
+    }
+    g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(AclDeniedCmd::NO_AUTH),
+                                      static_cast<int32_t>(AclLogCtx::TOPLEVEL), userName, cmdName, cInfo);
     return AuthResult::INVALID_PASSWORD;
   }
 
@@ -273,7 +279,7 @@ void AuthCmd::Do(std::shared_ptr<Slot> slot) {
     pwd = argv_[2];
   }
 
-  auto authResult = AuthenticateUser(userName, pwd, conn, defaultAuth);
+  auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
 
   switch (authResult) {
     case AuthResult::INVALID_CONN:
@@ -2687,7 +2693,7 @@ void HelloCmd::Do(std::shared_ptr<Slot> slot) {
       if (userName == Acl::DefaultUser) {
         defaultAuth = true;
       }
-      auto authResult = AuthenticateUser(userName, pwd, conn, defaultAuth);
+      auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
       switch (authResult) {
         case AuthResult::INVALID_CONN:
           res_.SetRes(CmdRes::kErrOther, kCmdNamePing);

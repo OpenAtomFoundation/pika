@@ -64,6 +64,12 @@ enum class AclUserFlag {
 
 enum class AclDeniedCmd { OK, CMD, KEY, CHANNEL, NUMBER, NO_SUB_CMD, NO_AUTH };
 
+enum class AclLogCtx {
+  TOPLEVEL,
+  MULTI,
+  LUA,
+};
+
 // ACL key permission types
 enum class AclPermission {
   READ = (1 << 0),
@@ -87,6 +93,35 @@ struct AclKeyPattern {
   std::string pattern; /* The pattern to match keys against */
 };
 
+class ACLLogEntry {
+ public:
+  ACLLogEntry() = delete;
+  ACLLogEntry(int32_t reason, int32_t context, const std::string& object, const std::string& username, int64_t ctime,
+              const std::string& cinfo)
+      : count_(1),
+        reason_(reason),
+        context_(context),
+        object_(object),
+        username_(username),
+        ctime_(ctime),
+        cinfo_(cinfo) {}
+
+  bool Match(int32_t reason, int32_t context, int64_t ctime, const std::string& object, const std::string& username);
+
+  void AddEntry(const std::string& cinfo, u_int64_t ctime);
+
+  void GetReplyInfo(std::vector<std::string>* vector);
+
+ private:
+  uint64_t count_;
+  int32_t reason_;
+  int32_t context_;
+  std::string object_;
+  std::string username_;
+  int64_t ctime_;
+  std::string cinfo_;
+};
+
 class AclSelector {
  public:
   explicit AclSelector() : AclSelector(0){};
@@ -107,7 +142,8 @@ class AclSelector {
 
   void ACLDescribeSelector(std::vector<std::string>& vector);
 
-  AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex, const std::vector<std::string>& keys);
+  AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex, const std::vector<std::string>& keys,
+                               int32_t& errIndex);
 
  private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
@@ -222,7 +258,8 @@ class User {
   void GetUserDescribe(CmdRes* res);
 
   // check the user can exec the cmd
-  AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex);
+  AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex,
+                                   int32_t& errIndex);
 
  private:
   mutable std::shared_mutex mutex_;
@@ -316,6 +353,15 @@ class Acl {
   static std::vector<std::string> GetAllCategoryName();
 
   static const std::string DefaultUser;
+  static const int64_t LogGroupingMaxTimeDelta;
+
+  // Adds a new entry in the ACL log, making sure to delete the old entry
+  // if we reach the maximum length allowed for the log.
+  void AddLogEntry(int32_t reason, int32_t context, const std::string& username, const std::string& object,
+                   const std::string& cInfo);
+
+  void GetLog(long count, CmdRes* res);
+  void ResetLog();
 
  private:
   /**
@@ -353,6 +399,8 @@ class Acl {
   static std::array<std::pair<std::string, uint32_t>, 3> SelectorFlags;
 
   std::map<std::string, std::shared_ptr<User>> users_;
+
+  std::list<std::unique_ptr<ACLLogEntry>> logEntries_;
 };
 
 #endif  // PIKA_ACL_H
