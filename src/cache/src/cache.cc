@@ -189,7 +189,7 @@ Status RedisCache::Type(std::string &key, std::string *value) {
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  int ret = RcType(cache_, kobj, &val));
+  int ret = RcType(cache_, kobj, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
