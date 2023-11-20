@@ -33,7 +33,7 @@ var _ = Describe("Text Txn", func() {
 	})
 	Describe("test watch", func() {
 		It("basic watch", func() {
-			txnClient.Watch(ctx, func(tx *redis.Tx) error { // 这个func相当于就是被一对watch和unwatch所包含了
+			txnClient.Watch(ctx, func(tx *redis.Tx) error { //  including in a pair of watch and unwatch
 				pipe := tx.TxPipeline()
 				cmdClient.Set(ctx, "key", "1", 0)
 				pipe.Set(ctx, "key", "2", 0)
@@ -61,7 +61,7 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, "key")
 		})
-		// 在事务中有另一个事务来使用flushdb清除db1的数据，不会影响到watch的这个db的key的事务执行
+		// Having another transaction in the transaction to clear the data in db1 using flushdb will not affect the transaction execution of the key in this db of watch
 		It("test watch1", func() {
 			watchKey := "key"
 			watchkeyValue := "value"
@@ -81,7 +81,7 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, watchKey)
 		})
-		// 测试watch的key有多个类型
+		// multiple types of keys for testing watch
 		It("test watch multi type key", func() {
 			watchKey := "key"
 			watchkeyValue := "value"
@@ -94,7 +94,7 @@ var _ = Describe("Text Txn", func() {
 			}, watchKey)
 			Expect(err).To(HaveOccurred())
 		})
-		//// 测试flushall命令会使watch的key失败
+		// Testing the flushall command will cause watch's key to fail
 		It("txn failed cause of flushall", func() {
 			watchKey := "key"
 			watchkeyValue := "value"
@@ -114,7 +114,7 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, watchKey)
 		})
-		// 测试select命令
+		// test 'select' command
 		It("select in txn", func() {
 			watchKey := "key"
 			noExist := "noExist"
@@ -126,20 +126,20 @@ var _ = Describe("Text Txn", func() {
 			Expect(intCmd.Err()).NotTo(HaveOccurred())
 
 			err := txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				tx.Select(ctx, 1) // 这个是和txnClient.Watch使用的一个端口
+				tx.Select(ctx, 1) // this command used the same port with txnClient.Watch
 				tx.Watch(ctx, watchKey)
 				cmdClient.Set(ctx, watchKey, watchkeyValue, 0)
 				pipeline := tx.TxPipeline()
 				pipeline.Set(ctx, watchKey, modifiedValue, 0)
 				pipeline.Get(ctx, watchKey)
-				cmders, _ := pipeline.Exec(ctx) // 这个也是和txnClient.Watch使用的一个端口
+				cmders, _ := pipeline.Exec(ctx) // using the same port with txnClient.Watch
 				AssertEqualRedisString(modifiedValue, cmders[1])
 				return nil
 			}, noExist)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		// 测试执行在事务中执行命令时不阻塞其他普通命令的执行
+		// The test execution does not block the execution of other ordinary commands when executing commands in transactions
 		It("test txn no block other cmd", func() {
 			pipe := txnClient.TxPipeline()
 			pipe.Get(ctx, "key")
@@ -183,7 +183,7 @@ var _ = Describe("Text Txn", func() {
 		})
 	})
 	Describe("Test Unwatch", func() {
-		// 测试unwatch的基本功能，unwatch之后事务应该不受影响
+		// test unwatch
 		It("unwatch1", func() {
 			watchKey := "key"
 			watchkeyValue := "value"
