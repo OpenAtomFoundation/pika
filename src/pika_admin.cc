@@ -519,6 +519,7 @@ void FlushallCmd::FlushAllWithoutLock() {
     res_.SetRes(CmdRes::kOk);
   }
 }
+
 void FlushallCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
   if (!slot) {
     LOG(INFO) << "Flushall, but Slot not found";

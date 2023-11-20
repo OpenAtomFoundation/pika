@@ -484,6 +484,7 @@ bool Slot::FlushSubDB(const std::string& db_name) {
   std::lock_guard rwl(db_rwlock_);
   return FlushSubDBWithoutLock(db_name);
 }
+
 bool Slot::FlushSubDBWithoutLock(const std::string& db_name) {
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
@@ -510,6 +511,7 @@ bool Slot::FlushSubDBWithoutLock(const std::string& db_name) {
   g_pika_server->PurgeDir(del_dbpath);
   return true;
 }
+
 void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
@@ -542,4 +544,3 @@ Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   key_scan_info_.duration = static_cast<int32_t>(time(nullptr) - key_scan_info_.start_time);
   return Status::OK();
 }
-
