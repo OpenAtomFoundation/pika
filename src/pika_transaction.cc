@@ -63,7 +63,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
       if (cmd->res().ok()) {
         cmd->res().SetRes(CmdRes::kOk);
       }
-      client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->db_name_);
+      client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
     } else {
       cmd->Do(slot);
       if (cmd->res().ok() && cmd->is_write()) {
@@ -83,6 +83,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
     res_.AppendStringRaw(r.message());
   }
 }
+
 void ExecCmd::Execute() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -186,7 +187,7 @@ void ExecCmd::SetCmdsVec() {
       lock_db_.emplace(g_pika_server->GetDB(cmd_db));
     } else if (cmd->name() == kCmdNameFlushall) {
       is_lock_rm_slots_ = true;
-      for (const auto& db_item : g_pika_server->dbs_) {
+      for (const auto& db_item : g_pika_server->GetDB()) {
         lock_db_.emplace(db_item.second);
       }
     } else {

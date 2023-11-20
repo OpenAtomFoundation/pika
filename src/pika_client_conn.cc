@@ -400,6 +400,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
   *resp_ptr = std::move(cmd_ptr->res().message());
   resp_num--;
 }
+
 std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() {
   return txn_cmd_que_;
 }
