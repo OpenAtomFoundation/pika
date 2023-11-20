@@ -416,7 +416,7 @@ Status RedisZSets::ZCard(const Slice& key, int32_t* card) {
   return s;
 }
 
-Status RedisZSets::ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret) {
+Status RedisZSets::ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret, bool* need_compact) {
   *ret = 0;
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
@@ -424,7 +424,7 @@ Status RedisZSets::ZCount(const Slice& key, double min, double max, bool left_cl
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
-
+  uint64_t start_us = pstd::NowMicros();
   Status s = db_->Get(read_options, key, &meta_value);
   if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -468,6 +468,8 @@ Status RedisZSets::ZCount(const Slice& key, double min, double max, bool left_cl
       *ret = cnt;
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
@@ -534,7 +536,7 @@ Status RedisZSets::ZIncrby(const Slice& key, const Slice& member, double increme
   return s;
 }
 
-Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
+Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, bool* need_compact) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
@@ -542,7 +544,7 @@ Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::ve
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
-
+  uint64_t start_us = pstd::NowMicros();
   Status s = db_->Get(read_options, key, &meta_value);
   if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -575,15 +577,17 @@ Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::ve
       delete iter;
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
 Status RedisZSets::ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
-                                 int64_t count, int64_t offset, std::vector<ScoreMember>* score_members) {
+                                 int64_t count, int64_t offset, std::vector<ScoreMember>* score_members, bool* need_compact) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -640,14 +644,17 @@ Status RedisZSets::ZRangebyscore(const Slice& key, double min, double max, bool 
       delete iter;
     }
   }
+
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
-Status RedisZSets::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
+Status RedisZSets::ZRank(const Slice& key, const Slice& member, int32_t* rank, bool* need_compact) {
   *rank = -1;
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -682,6 +689,8 @@ Status RedisZSets::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
       }
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
@@ -743,10 +752,11 @@ Status RedisZSets::ZRem(const Slice& key, const std::vector<std::string>& member
   return s;
 }
 
-Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret) {
+Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret, bool* need_compact) {
   *ret = 0;
   uint32_t statistic = 0;
   std::string meta_value;
+  uint64_t start_us = pstd::NowMicros();
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
@@ -793,15 +803,17 @@ Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop
     return s;
   }
   s = db_->Write(default_write_options_, &batch);
-  UpdateSpecificKeyStatistics(key.ToString(), statistic);
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
 Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
-                                    int32_t* ret) {
+                                    int32_t* ret, bool* need_compact) {
   *ret = 0;
   uint32_t statistic = 0;
   std::string meta_value;
+  uint64_t start_us = pstd::NowMicros();
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
@@ -860,15 +872,16 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
     return s;
   }
   s = db_->Write(default_write_options_, &batch);
-  UpdateSpecificKeyStatistics(key.ToString(), statistic);
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
-Status RedisZSets::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
+Status RedisZSets::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, bool* need_compact) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -906,15 +919,17 @@ Status RedisZSets::ZRevrange(const Slice& key, int32_t start, int32_t stop, std:
       delete iter;
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
 Status RedisZSets::ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
-                                    int64_t count, int64_t offset, std::vector<ScoreMember>* score_members) {
+                                    int64_t count, int64_t offset, std::vector<ScoreMember>* score_members, bool* need_compact) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -970,14 +985,16 @@ Status RedisZSets::ZRevrangebyscore(const Slice& key, double min, double max, bo
       delete iter;
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
-Status RedisZSets::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
+Status RedisZSets::ZRevrank(const Slice& key, const Slice& member, int32_t* rank, bool* need_compact) {
   *rank = -1;
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -1011,6 +1028,8 @@ Status RedisZSets::ZRevrank(const Slice& key, const Slice& member, int32_t* rank
       }
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
@@ -1275,11 +1294,11 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
 }
 
 Status RedisZSets::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                               std::vector<std::string>* members) {
+                               std::vector<std::string>* members, bool* need_compact) {
   members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   std::string meta_value;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
@@ -1319,25 +1338,27 @@ Status RedisZSets::ZRangebylex(const Slice& key, const Slice& min, const Slice& 
       delete iter;
     }
   }
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 
 Status RedisZSets::ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                             int32_t* ret) {
+                             int32_t* ret, bool* need_compact) {
   std::vector<std::string> members;
-  Status s = ZRangebylex(key, min, max, left_close, right_close, &members);
+  Status s = ZRangebylex(key, min, max, left_close, right_close, &members, need_compact);
   *ret = static_cast<int32_t>(members.size());
   return s;
 }
 
 Status RedisZSets::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close,
-                                  bool right_close, int32_t* ret) {
+                                  bool right_close, int32_t* ret, bool* need_compact) {
   *ret = 0;
   uint32_t statistic = 0;
   rocksdb::WriteBatch batch;
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
-
+  uint64_t start_us = pstd::NowMicros();
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
   ScopeRecordLock l(lock_mgr_, key);
@@ -1398,7 +1419,8 @@ Status RedisZSets::ZRemrangebylex(const Slice& key, const Slice& min, const Slic
     return s;
   }
   s = db_->Write(default_write_options_, &batch);
-  UpdateSpecificKeyStatistics(key.ToString(), statistic);
+  uint64_t duration = pstd::NowMicros() - start_us;
+  *need_compact = duration >= ZRANGE_COMPACT_THRESHOLD_DURATION;
   return s;
 }
 

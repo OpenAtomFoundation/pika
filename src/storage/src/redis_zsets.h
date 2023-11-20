@@ -10,8 +10,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include "pstd/include/env.h"
 #include "src/custom_comparator.h"
 #include "src/redis.h"
+
+#define ZRANGE_COMPACT_THRESHOLD_DURATION 1000 //ms
 
 namespace storage {
 
@@ -32,30 +35,30 @@ class RedisZSets : public Redis {
   // ZSets Commands
   Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members, int32_t* ret);
   Status ZCard(const Slice& key, int32_t* card);
-  Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
+  Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret, bool* need_compact);
   Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
-  Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+  Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, bool* need_compact);
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
-                       int64_t offset, std::vector<ScoreMember>* score_members);
-  Status ZRank(const Slice& key, const Slice& member, int32_t* rank);
+                       int64_t offset, std::vector<ScoreMember>* score_members, bool* need_compact);
+  Status ZRank(const Slice& key, const Slice& member, int32_t* rank, bool* need_compact);
   Status ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
-  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret);
-  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
-  Status ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret, bool* need_compact);
+  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret, bool* need_compact);
+  Status ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, bool* need_compact);
   Status ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
-                          int64_t offset, std::vector<ScoreMember>* score_members);
-  Status ZRevrank(const Slice& key, const Slice& member, int32_t* rank);
+                          int64_t offset, std::vector<ScoreMember>* score_members, bool* need_compact);
+  Status ZRevrank(const Slice& key, const Slice& member, int32_t* rank, bool* need_compact);
   Status ZScore(const Slice& key, const Slice& member, double* score);
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
                      AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret);
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
                      AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret);
   Status ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                     std::vector<std::string>* members);
+                     std::vector<std::string>* members, bool* need_compact);
   Status ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                   int32_t* ret);
+                   int32_t* ret, bool* need_compact);
   Status ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                        int32_t* ret);
+                        int32_t* ret, bool* need_compact);
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
   Status PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,

@@ -411,7 +411,12 @@ Status Storage::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_mem
 Status Storage::ZCard(const Slice& key, int32_t* ret) { return zsets_db_->ZCard(key, ret); }
 
 Status Storage::ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret) {
-  return zsets_db_->ZCount(key, min, max, left_close, right_close, ret);
+  bool need_compact = false;
+  auto status = zsets_db_->ZCount(key, min, max, left_close, right_close, ret, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret) {
@@ -419,23 +424,43 @@ Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment,
 }
 
 Status Storage::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
-  return zsets_db_->ZRange(key, start, stop, score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRange(key, start, stop, score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                               std::vector<ScoreMember>* score_members) {
   // maximum number of zset is std::numeric_limits<int32_t>::max()
-  return zsets_db_->ZRangebyscore(key, min, max, left_close, right_close, std::numeric_limits<int32_t>::max(), 0,
-                                  score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRangebyscore(key, min, max, left_close, right_close, std::numeric_limits<int32_t>::max(), 0,
+                                  score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                               int64_t count, int64_t offset, std::vector<ScoreMember>* score_members) {
-  return zsets_db_->ZRangebyscore(key, min, max, left_close, right_close, count, offset, score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRangebyscore(key, min, max, left_close, right_close, count, offset, score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
-  return zsets_db_->ZRank(key, member, rank);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRank(key, member, rank, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret) {
@@ -443,32 +468,62 @@ Status Storage::ZRem(const Slice& key, const std::vector<std::string>& members, 
 }
 
 Status Storage::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret) {
-  return zsets_db_->ZRemrangebyrank(key, start, stop, ret);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRemrangebyrank(key, start, stop, ret, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                                  int32_t* ret) {
-  return zsets_db_->ZRemrangebyscore(key, min, max, left_close, right_close, ret);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRemrangebyscore(key, min, max, left_close, right_close, ret, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                                  int64_t count, int64_t offset, std::vector<ScoreMember>* score_members) {
-  return zsets_db_->ZRevrangebyscore(key, min, max, left_close, right_close, count, offset, score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRevrangebyscore(key, min, max, left_close, right_close, count, offset, score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
-  return zsets_db_->ZRevrange(key, start, stop, score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRevrange(key, start, stop, score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
                                  std::vector<ScoreMember>* score_members) {
   // maximum number of zset is std::numeric_limits<int32_t>::max()
-  return zsets_db_->ZRevrangebyscore(key, min, max, left_close, right_close, std::numeric_limits<int32_t>::max(), 0,
-                                     score_members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRevrangebyscore(key, min, max, left_close, right_close, std::numeric_limits<int32_t>::max(), 0,
+                                     score_members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
-  return zsets_db_->ZRevrank(key, member, rank);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRevrank(key, member, rank, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZScore(const Slice& key, const Slice& member, double* ret) {
@@ -487,17 +542,32 @@ Status Storage::ZInterstore(const Slice& destination, const std::vector<std::str
 
 Status Storage::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                             std::vector<std::string>* members) {
-  return zsets_db_->ZRangebylex(key, min, max, left_close, right_close, members);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRangebylex(key, min, max, left_close, right_close, members, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                           int32_t* ret) {
-  return zsets_db_->ZLexcount(key, min, max, left_close, right_close, ret);
+  bool need_compact = false;
+  auto status = zsets_db_->ZLexcount(key, min, max, left_close, right_close, ret, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                                int32_t* ret) {
-  return zsets_db_->ZRemrangebylex(key, min, max, left_close, right_close, ret);
+  bool need_compact = false;
+  auto status = zsets_db_->ZRemrangebylex(key, min, max, left_close, right_close, ret, &need_compact);
+  if (need_compact) {
+    AddBGTask({kZSets, kCompactKey, key.ToString()});
+  }
+  return status;
 }
 
 Status Storage::ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
