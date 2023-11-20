@@ -530,7 +530,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   CmdRes res_;
   PikaCmdArgsType argv_;
-  std::string db_name_{};
+  std::string db_name_;
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;

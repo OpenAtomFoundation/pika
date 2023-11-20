@@ -18,9 +18,9 @@ class MultiCmd : public Cmd {
   Cmd* Clone() override { return new MultiCmd(*this); }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {}
   void Merge() override {}
+
  private:
   void DoInitial() override;
-
 };
 
 class ExecCmd : public Cmd {
@@ -56,6 +56,7 @@ class ExecCmd : public Cmd {
   std::vector<CmdInfo> list_cmd_;
   std::vector<std::string> keys_;
 };
+
 class DiscardCmd : public Cmd {
  public:
   DiscardCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
@@ -66,8 +67,6 @@ class DiscardCmd : public Cmd {
  private:
   void DoInitial() override;
 };
-
-
 
 class WatchCmd : public Cmd {
  public:
