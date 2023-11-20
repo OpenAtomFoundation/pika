@@ -326,7 +326,8 @@ void MigratorThread::MigrateZsetsDB() {
         break;
       }
       std::vector<storage::ScoreMember> score_members;
-      storage::Status s = db->ZRange(k, 0, -1, &score_members);
+      bool need_compact;
+      storage::Status s = db->ZRange(k, 0, -1, &score_members, &need_compact);
       if (!s.ok()) {
         LOG(WARNING) << "db->ZRange(key:" << k << ") = " << s.ToString();
         continue;
