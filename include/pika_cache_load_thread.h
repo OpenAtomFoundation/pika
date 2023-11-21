@@ -18,10 +18,6 @@
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
 
-#define CACHE_LOAD_QUEUE_MAX_SIZE 2048
-#define CACHE_VALUE_ITEM_MAX_SIZE 2048
-#define CACHE_LOAD_NUM_ONE_TIME 256
-
 class PikaCacheLoadThread : public net::Thread {
  public:
   PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key);
@@ -41,16 +37,16 @@ class PikaCacheLoadThread : public net::Thread {
   virtual void* ThreadMain();
 
  private:
-  std::atomic<bool> should_exit_;
+  std::atomic_bool should_exit_;
   std::deque<std::tuple<const char, std::string, const std::shared_ptr<Slot>>> loadkeys_queue_;
+  
   pstd::CondVar loadkeys_cond_;
   pstd::Mutex loadkeys_mutex_;
 
   std::unordered_map<std::string, std::string> loadkeys_map_;
   pstd::Mutex loadkeys_map_mutex_;
-
-  std::atomic<uint64_t> async_load_keys_num_;
-  std::atomic<uint32_t> waitting_load_keys_num_;
+  std::atomic_uint64_t async_load_keys_num_;
+  std::atomic_uint32_t waitting_load_keys_num_;
   // currently only take effects to zset
   int cache_start_pos_;
   int cache_items_per_key_;

@@ -100,12 +100,12 @@ int64_t RedisCache::DbSize(void) {
 void RedisCache::FlushDb(void) { RcFlushCache(cache_); }
 
 Status RedisCache::Del(const std::string &key) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     decrRefCount(kobj);
   };
-  if (C_OK != (ret = RcDel(cache_, kobj))) {
+  int ret = RcDel(cache_, kobj);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     } else {
@@ -117,13 +117,13 @@ Status RedisCache::Del(const std::string &key) {
 }
 
 Status RedisCache::Expire(std::string &key, int64_t ttl) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
   DEFER {
     DecrObjectsRefCount(kobj, tobj);
   };
-  if (C_OK != (ret = RcExpire(cache_, kobj, tobj))) {
+  int ret = RcExpire(cache_, kobj, tobj);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     } else {
@@ -135,13 +135,13 @@ Status RedisCache::Expire(std::string &key, int64_t ttl) {
 }
 
 Status RedisCache::Expireat(std::string &key, int64_t ttl) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
   DEFER {
     DecrObjectsRefCount(kobj, tobj);
   };
-  if (C_OK != (ret = RcExpireat(cache_, kobj, tobj))) {
+  int ret = RcExpireat(cache_, kobj, tobj);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -152,12 +152,12 @@ Status RedisCache::Expireat(std::string &key, int64_t ttl) {
 }
 
 Status RedisCache::TTL(std::string &key, int64_t *ttl) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcTTL(cache_, kobj, ttl))) {
+  int ret = RcTTL(cache_, kobj, ttl);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -168,12 +168,12 @@ Status RedisCache::TTL(std::string &key, int64_t *ttl) {
 }
 
 Status RedisCache::Persist(std::string &key) {
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcPersist(cache_, kobj))) {
+  int ret = RcPersist(cache_, kobj);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -185,12 +185,12 @@ Status RedisCache::Persist(std::string &key) {
 
 Status RedisCache::Type(std::string &key, std::string *value) {
   sds val;
-  int ret;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
   };
-  if (C_OK != (ret = RcType(cache_, kobj, &val))) {
+  int ret = RcType(cache_, kobj, &val);
+  if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
@@ -206,8 +206,8 @@ Status RedisCache::Type(std::string &key, std::string *value) {
 
 Status RedisCache::RandomKey(std::string *key) {
   sds val;
-  int ret;
-  if (C_OK != (ret = RcRandomkey(cache_, &val))) {
+  int ret = RcRandomkey(cache_, &val);
+  if (C_OK != ret) {
     if (REDIS_NO_KEYS == ret) {
       return Status::NotFound("no keys in cache");
     }
