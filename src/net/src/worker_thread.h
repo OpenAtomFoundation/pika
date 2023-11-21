@@ -48,6 +48,8 @@ class WorkerThread : public Thread {
   NetMultiplexer* net_multiplexer() { return net_multiplexer_.get(); }
   bool TryKillConn(const std::string& ip_port);
 
+  ServerThread* GetServerThread() { return server_thread_; }
+
   mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<NetConn>> conns_;
 

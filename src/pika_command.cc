@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <memory>
 #include <utility>
 
 #include <glog/logging.h>
@@ -19,6 +20,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
+#include "include/pika_transaction.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
 
@@ -685,6 +687,25 @@ void InitCmdTable(CmdTable* cmd_table) {
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr = std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
+
+  // Transaction
+  ////Multi
+  std::unique_ptr<Cmd> multiptr =
+      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsMultiSlot);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
+  ////Exec
+  std::unique_ptr<Cmd> execptr =
+      std::make_unique<ExecCmd>(kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSuspend);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
+  ////Discard
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
+  ////Watch
+  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameWatch, std::move(watchptr)));
+  ////Unwatch
+  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnWatch, std::move(unwatchptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
@@ -710,64 +731,7 @@ std::vector<std::string> Cmd::current_key() const {
 }
 
 void Cmd::Execute() {
-  if (name_ == kCmdNameFlushdb) {
-    ProcessFlushDBCmd();
-  } else if (name_ == kCmdNameFlushall) {
-    ProcessFlushAllCmd();
-  } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
-    ProcessDoNotSpecifySlotCmd();
-  } else {
-    ProcessSingleSlotCmd();
-  }
-}
-
-void Cmd::ProcessFlushDBCmd() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  if (!db) {
-    res_.SetRes(CmdRes::kInvalidDB);
-  } else {
-    if (db->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-    } else {
-      std::lock_guard l_prw(db->slots_rw_);
-      std::lock_guard s_prw(g_pika_rm->slots_rw_);
-      for (const auto& slot_item : db->slots_) {
-        std::shared_ptr<Slot> slot = slot_item.second;
-        SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-        if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
-          res_.SetRes(CmdRes::kErrOther, "Slot not found");
-          return;
-        }
-        ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
-      }
-      res_.SetRes(CmdRes::kOk);
-    }
-  }
-}
-
-void Cmd::ProcessFlushAllCmd() {
-  std::lock_guard l_trw(g_pika_server->dbs_rw_);
-  for (const auto& db_item : g_pika_server->dbs_) {
-    if (db_item.second->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-      return;
-    }
-  }
-
-  for (const auto& db_item : g_pika_server->dbs_) {
-    std::lock_guard l_prw(db_item.second->slots_rw_);
-    std::lock_guard s_prw(g_pika_rm->slots_rw_);
-    for (const auto& slot_item : db_item.second->slots_) {
-      std::shared_ptr<Slot> slot = slot_item.second;
-      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-      if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
-        res_.SetRes(CmdRes::kErrOther, "Slot not found");
-        return;
-      }
-      ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
-    }
-  }
-  res_.SetRes(CmdRes::kOk);
+  ProcessSingleSlotCmd();
 }
 
 void Cmd::ProcessSingleSlotCmd() {
@@ -915,12 +879,6 @@ void Cmd::ProcessMultiSlotCmd() {
   if (current_stage == kNone || current_stage == kExecuteStage) {
     Merge();
   }
-}
-
-void Cmd::ProcessDoNotSpecifySlotCmd() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
 }
 
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }

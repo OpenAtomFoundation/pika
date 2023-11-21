@@ -261,6 +261,68 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
+/**
+ * @param keys format: tablename + key,because can watch the key of different db
+ */
+void DispatchThread::AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn) {
+  std::lock_guard lg(watch_keys_mu_);
+  for (const auto &key : keys) {
+    if (key_conns_map_.count(key) == 0) {
+      key_conns_map_.emplace();
+    }
+    key_conns_map_[key].emplace(client_conn);
+    conn_keys_map_[client_conn].emplace(key);
+  }
+}
+
+void DispatchThread::RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn) {
+  std::lock_guard lg(watch_keys_mu_);
+  auto &keys = conn_keys_map_[client_conn];
+  for (const auto &key : keys) {
+    if (key_conns_map_.count(key) == 0 || key_conns_map_[key].count(client_conn) == 0) {
+      continue;
+    }
+    key_conns_map_[key].erase(client_conn);
+    if (key_conns_map_[key].empty()) {
+      key_conns_map_.erase(key);
+    }
+  }
+  conn_keys_map_.erase(client_conn);
+}
+
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::vector<std::string> &keys) {
+  std::lock_guard lg(watch_keys_mu_);
+  auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+  for (const auto &key : keys) {
+    if (key_conns_map_.count(key) == 0 || key_conns_map_[key].empty()) {
+      continue;
+    }
+    for(auto &client_conn : key_conns_map_[key]) {
+      involved_conns.emplace_back(client_conn);
+    }
+  }
+  return involved_conns;
+}
+
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetAllTxns() {
+  std::lock_guard lg(watch_keys_mu_);
+  auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+  for(auto &[client_conn, _] : conn_keys_map_) {
+    involved_conns.emplace_back(client_conn);
+  }
+  return involved_conns;
+}
+
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetDBTxns(std::string db_name) {
+  std::lock_guard lg(watch_keys_mu_);
+  auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+  for(auto &[db_key, client_conns] : key_conns_map_) {
+    if (db_key.find(db_name) == 0) {
+      involved_conns.insert(involved_conns.end(), client_conns.begin(), client_conns.end());
+    }
+  }
+  return involved_conns;
+}
 
 extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                                        int queue_limit, const ServerHandle* handle) {

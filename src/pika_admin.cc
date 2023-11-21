@@ -417,10 +417,21 @@ void PingCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.SetRes(CmdRes::kPong);
 }
-
 void SelectCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
+    return;
+  }
+  db_name_ = "db" + argv_[1];
+  select_db_ = g_pika_server->GetDB(db_name_);
+  return ;
+}
+
+void SelectCmd::Do(std::shared_ptr<Slot> slot) {
+  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   int index = atoi(argv_[1].data());
@@ -432,21 +443,11 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
     return;
   }
-  db_name_ = "db" + argv_[1];
-  if (!g_pika_server->IsDBExist(db_name_)) {
+  if (select_db_ == nullptr) {
     res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
     return;
   }
-}
-
-void SelectCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
-  if (!conn) {
-    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
-    LOG(WARNING) << name_ << " weak ptr is empty";
-    return;
-  }
-  conn->SetCurrentTable(db_name_);
+  conn->SetCurrentDb(db_name_);
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -477,6 +478,53 @@ std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t
   RedisAppendContent(content, flushdb_cmd);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
                                              content, {});
+}
+
+void FlushallCmd::Execute() {
+  std::lock_guard l_trw(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    if (db_item.second->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+      return;
+    }
+  }
+  g_pika_rm->slots_rw_.lock();
+  for (const auto& db_item : g_pika_server->dbs_) {
+    db_item.second->slots_rw_.lock();
+  }
+  FlushAllWithoutLock();
+  for (const auto& db_item : g_pika_server->dbs_) {
+    db_item.second->slots_rw_.unlock();
+  }
+  g_pika_rm->slots_rw_.unlock();
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  }
+}
+
+void FlushallCmd::FlushAllWithoutLock() {
+  for (const auto& db_item : g_pika_server->dbs_) {
+    for (const auto& slot_item : db_item.second->slots_) {
+      std::shared_ptr<Slot> slot = slot_item.second;
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
+      if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
+        return;
+      }
+      DoWithoutLock(slot);
+      DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
+    }
+  }
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  }
+}
+void FlushallCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushall, but Slot not found";
+  } else {
+    slot->FlushDBWithoutLock();
+  }
 }
 
 void FlushdbCmd::DoInitial() {
@@ -512,6 +560,47 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
       slot->FlushDB();
     } else {
       slot->FlushSubDB(db_name_);
+    }
+  }
+}
+
+void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
+  for (const auto& slot_item : db->slots_) {
+    std::shared_ptr<Slot> slot = slot_item.second;
+    SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
+    if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+      res_.SetRes(CmdRes::kErrOther, "Slot not found");
+      return;
+    }
+    DoWithoutLock(slot);
+    DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
+  }
+}
+
+void FlushdbCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushdb, but Slot not found";
+  } else {
+    if (db_name_ == "all") {
+      slot->FlushDBWithoutLock();
+    } else {
+      slot->FlushSubDBWithoutLock(db_name_);
+    }
+  }
+}
+
+void FlushdbCmd::Execute() {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(Cmd::db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
+  } else {
+    if (db->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    } else {
+      std::lock_guard l_prw(db->slots_rw_);
+      std::lock_guard s_prw(g_pika_rm->slots_rw_);
+      FlushAllSlotsWithoutLock(db);
+      res_.SetRes(CmdRes::kOk);
     }
   }
 }
@@ -1280,6 +1369,12 @@ void InfoCmd::InfoCommandStats(std::string& info) {
       }
     }
     info.append(tmp_stream.str());
+}
+
+void InfoCmd::Execute() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 void ConfigCmd::DoInitial() {
@@ -2245,6 +2340,12 @@ void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
 void ConfigCmd::ConfigResetstat(std::string& ret) {
   g_pika_server->ResetStat();
   ret = "+OK\r\n";
+}
+
+void ConfigCmd::Execute() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 void MonitorCmd::DoInitial() {

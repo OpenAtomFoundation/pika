@@ -452,6 +452,11 @@ void Slot::FinishBgsave() {
 bool Slot::FlushDB() {
   std::lock_guard rwl(db_rwlock_);
   std::lock_guard l(bgsave_protector_);
+  return FlushDBWithoutLock();
+}
+
+bool Slot::FlushDBWithoutLock() {
+  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -477,6 +482,9 @@ bool Slot::FlushDB() {
 
 bool Slot::FlushSubDB(const std::string& db_name) {
   std::lock_guard rwl(db_rwlock_);
+  return FlushSubDBWithoutLock(db_name);
+}
+bool Slot::FlushSubDBWithoutLock(const std::string& db_name) {
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
@@ -502,7 +510,6 @@ bool Slot::FlushSubDB(const std::string& db_name) {
   g_pika_server->PurgeDir(del_dbpath);
   return true;
 }
-
 void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
