@@ -1420,10 +1420,8 @@ void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
     tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
     tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
     tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
-    tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%"
-               << "\r\n";
-    tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%"
-               << "\r\n";
+    tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" << "\r\n";
+    tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" << "\r\n";
     tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
     tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
   }
