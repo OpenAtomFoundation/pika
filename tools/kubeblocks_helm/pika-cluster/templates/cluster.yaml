@@ -15,7 +15,7 @@ spec:
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
   componentSpecs:
-    {{- range $i := until (int .Values.replicaCount) }}
+    {{- range $i := until (int .Values.groupCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
       componentDefRef: pika-group # ref clusterDefinition componentDefs.name
       monitor: {{ $.Values.monitor.enabled | default false }}
