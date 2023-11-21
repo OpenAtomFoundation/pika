@@ -725,7 +725,7 @@ void ShutdownCmd::DoInitial() {
   }
 
   // For now, only shutdown need check local
-  if (is_local()) {
+  if (IsLocal()) {
     std::shared_ptr<net::NetConn> conn = GetConn();
     if (conn) {
       if (conn->ip_port().find("127.0.0.1") == std::string::npos &&
@@ -1428,22 +1428,23 @@ void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
 }
 
 std::string InfoCmd::CacheStatusToString(int status) {
-  switch (status) {
-    case PIKA_CACHE_STATUS_NONE:
-      return std::string("None");
-    case PIKA_CACHE_STATUS_OK:
-      return std::string("Ok");
-    case PIKA_CACHE_STATUS_INIT:
-      return std::string("Init");
-    case PIKA_CACHE_STATUS_RESET:
-      return std::string("Reset");
-    case PIKA_CACHE_STATUS_DESTROY:
-      return std::string("Destroy");
-    case PIKA_CACHE_STATUS_CLEAR:
-      return std::string("Clear");
-    default:
-      return std::string("Unknown");
-  }
+    switch (status) {
+      case PIKA_CACHE_STATUS_NONE:
+        return std::string("None");
+      case PIKA_CACHE_STATUS_OK:
+        return std::string("Ok");
+      case PIKA_CACHE_STATUS_INIT:
+        return std::string("Init");
+      case PIKA_CACHE_STATUS_RESET:
+        return std::string("Reset");
+      case PIKA_CACHE_STATUS_DESTROY:
+        return std::string("Destroy");
+      case PIKA_CACHE_STATUS_CLEAR:
+        return std::string("Clear");
+      default:
+        return std::string("Unknown");
+    }
+}
 
 void InfoCmd::Execute() {
   std::shared_ptr<Slot> slot;
@@ -2397,7 +2398,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
 
     int cache_num = (ival <= 0 || ival > 48) ? 16 : ival;
-    if (cache_num != g_pika_conf->cache_num()) {
+    if (cache_num != g_pika_conf->GetCacheNum()) {
       g_pika_conf->SetCacheNum(cache_num);
       g_pika_server->ResetCacheAsync(cache_num, slot);
     }

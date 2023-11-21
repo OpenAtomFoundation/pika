@@ -495,15 +495,15 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_read() const;
   bool is_write() const;
 
-  bool is_local() const;
-  bool is_suspend() const;
-  bool is_admin_require() const;
+  bool IsLocal() const;
+  bool IsSuspend() const;
+  bool IsAdminRequire() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
-  bool is_need_update_cache() const;
+  bool IsNeedUpdateCache() const;
   bool is_only_from_cache() const;
-  bool is_need_read_cache() const;
-  bool need_cache_do() const;
+  bool IsNeedReadCache() const;
+  bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }

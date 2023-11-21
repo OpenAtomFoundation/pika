@@ -246,12 +246,12 @@ class CmdInfo {
   }
   bool is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
   uint16_t flag_type() const { return flag_ & kCmdFlagsMaskType; }
-  bool is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
+  bool IsLocal() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
   // Others need to be suspended when a suspend command run
-  bool is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
+  bool IsSuspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
   bool is_prior() const { return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior); }
   // Must with admin auth
-  bool is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
+  bool IsAdminRequire() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
   std::string name() const { return name_; }
 
  private:
