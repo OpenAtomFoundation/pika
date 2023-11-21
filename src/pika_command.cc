@@ -910,8 +910,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
     RedisAppendContent(content, v);
   }
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }

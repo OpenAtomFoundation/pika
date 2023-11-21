@@ -476,8 +476,7 @@ std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t
   std::string flushdb_cmd("flushdb");
   RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
   RedisAppendContent(content, flushdb_cmd);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void FlushallCmd::Execute() {

@@ -355,31 +355,12 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
 
   LogOffset log_offset;
 
-  stable_logger_->Logger()->Lock();
-//  std::this_thread::sleep_for(std::chrono::seconds(20));
-  // build BinlogItem
-  uint32_t filenum = 0;
-  uint32_t term = 0;
-  uint64_t offset = 0;
-  uint64_t logic_id = 0;
-  Status s = stable_logger_->Logger()->GetProducerStatus(&filenum, &offset, &term, &logic_id);
-  if (!s.ok()) {
-    stable_logger_->Logger()->Unlock();
-    return s;
-  }
   BinlogItem item;
-  item.set_exec_time(time(nullptr));
-  item.set_term_id(term);
-  item.set_logic_id(logic_id + 1);
-  item.set_filenum(filenum);
-  item.set_offset(offset);
   // make sure stable log and mem log consistent
-  s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
+  Status s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
   if (!s.ok()) {
-    stable_logger_->Logger()->Unlock();
     return s;
   }
-  stable_logger_->Logger()->Unlock();
 
   g_pika_server->SignalAuxiliary();
   return Status::OK();
@@ -409,9 +390,7 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     return Status::OK();
   }
 
-  stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
-  stable_logger_->Logger()->Unlock();
 
   InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
   return Status::OK();
