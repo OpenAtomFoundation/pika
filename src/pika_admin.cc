@@ -1407,8 +1407,7 @@ void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
   std::stringstream tmp_stream;
   tmp_stream << "# Cache" << "\r\n";
   if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
-    tmp_stream << "cache_status:Disable"
-               << "\r\n";
+    tmp_stream << "cache_status:Disable" << "\r\n";
   } else {
     auto cache_info = slot->GetCacheInfo();
     tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
