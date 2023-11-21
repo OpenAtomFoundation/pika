@@ -409,9 +409,8 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const 
 
 Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
                                                   LogOffset* log_offset) {
-  std::string binlog =
-      cmd_ptr->ToBinlog(item.exec_time(), item.term_id(), item.logic_id(), item.filenum(), item.offset());
-  Status s = stable_logger_->Logger()->Put(binlog);
+  std::string content = cmd_ptr->ToRedisProtocol();
+  Status s = stable_logger_->Logger()->Put(content);
   if (!s.ok()) {
     std::string db_name = cmd_ptr->db_name().empty() ? g_pika_conf->default_db() : cmd_ptr->db_name();
     std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
