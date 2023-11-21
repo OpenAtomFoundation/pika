@@ -145,8 +145,7 @@ std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logi
     // value
     RedisAppendLenUint64(content, value_.size(), "$");
     RedisAppendContent(content, value_);
-    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                               content, {});
+    return content;
   } else {
     return Cmd::ToBinlog(exec_time, term_id, logic_id, filenum, offset);
   }
@@ -689,9 +688,7 @@ std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
   // value
   RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void SetexCmd::DoInitial() {
@@ -751,8 +748,7 @@ std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t lo
   // value
   RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void PsetexCmd::DoInitial() {
@@ -811,8 +807,7 @@ std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
   // value
   RedisAppendLenUint64(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void DelvxCmd::DoInitial() {
@@ -1205,9 +1200,7 @@ std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t l
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void ExpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
@@ -1265,9 +1258,7 @@ std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void PexpireCmd::DoThroughDB(std::shared_ptr<Slot> slot){
@@ -1349,9 +1340,7 @@ std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
 }
 
 void PexpireatCmd::Do(std::shared_ptr<Slot> slot) {
