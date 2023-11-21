@@ -328,13 +328,13 @@ class PikaConf : public pstd::BaseConf {
     return rate_limiter_auto_tuned_;
   }
   bool IsCacheDisabledTemporarily() { return tmp_cache_disable_flag_; }
-  int cache_string() { return cache_string_; }
-  int cache_set() { return cache_set_; }
-  int cache_zset() { return cache_zset_; }
-  int cache_hash() { return cache_hash_; }
-  int cache_list() { return cache_list_; }
-  int cache_bit() { return cache_bit_; }
-  int cache_num() { return cache_num_; }
+  int GetCacheString() { return cache_string_; }
+  int GetCacheSet() { return cache_set_; }
+  int GetCacheZset() { return cache_zset_; }
+  int GetCacheHash() { return cache_hash_; }
+  int GetCacheList() { return cache_list_; }
+  int GetCacheBit() { return cache_bit_; }
+  int GetCacheNum() { return cache_num_; }
   void SetCacheNum(const int value) { cache_num_ = value; }
   void SetCacheModel(const int value) { cache_model_ = value; }
   void SetCacheStartPos(const int value) { cache_start_pos_ = value; }

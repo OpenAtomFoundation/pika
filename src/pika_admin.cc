@@ -725,7 +725,7 @@ void ShutdownCmd::DoInitial() {
   }
 
   // For now, only shutdown need check local
-  if (is_local()) {
+  if (IsLocal()) {
     std::shared_ptr<net::NetConn> conn = GetConn();
     if (conn) {
       if (conn->ip_port().find("127.0.0.1") == std::string::npos &&
@@ -1382,49 +1382,49 @@ void InfoCmd::InfoDebug(std::string& info) {
 }
 
 void InfoCmd::InfoCommandStats(std::string& info) {
-    std::stringstream tmp_stream;
-    tmp_stream.precision(2);
-    tmp_stream.setf(std::ios::fixed);
-    tmp_stream << "# Commandstats" << "\r\n";
-    for (auto iter : *g_pika_server->GetCommandStatMap()) {
-      if (iter.second.cmd_count != 0) {
-        tmp_stream << iter.first << ":"
-                   << "calls=" << iter.second.cmd_count << ", usec="
-                   << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
-                   << ", usec_per_call=";
-        if (!iter.second.cmd_time_consuming) {
-          tmp_stream << 0 << "\r\n";
-        } else {
-          tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
-                     << "\r\n";
-        }
+  std::stringstream tmp_stream;
+  tmp_stream.precision(2);
+  tmp_stream.setf(std::ios::fixed);
+  tmp_stream << "# Commandstats" << "\r\n";
+  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+    if (iter.second.cmd_count != 0) {
+      tmp_stream << iter.first << ":"
+                 << "calls=" << iter.second.cmd_count << ", usec="
+                 << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
+                 << ", usec_per_call=";
+      if (!iter.second.cmd_time_consuming) {
+        tmp_stream << 0 << "\r\n";
+      } else {
+        tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
+                   << "\r\n";
       }
     }
-    info.append(tmp_stream.str());
+  }
+  info.append(tmp_stream.str());
 }
 
 void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
-    std::stringstream tmp_stream;
-    tmp_stream << "# Cache" << "\r\n";
-    if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
-      tmp_stream << "cache_status:Disable" << "\r\n";
-    } else {
-      auto cache_info = slot->GetCacheInfo();
-      tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
-      tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
-      tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
-      tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
-      tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
-      tmp_stream << "hits:" << cache_info.hits << "\r\n";
-      tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
-      tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
-      tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
-      tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" <<"\r\n";
-      tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" <<"\r\n";
-      tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
-      tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
-    }
-    info.append(tmp_stream.str());
+  std::stringstream tmp_stream;
+  tmp_stream << "# Cache" << "\r\n";
+  if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
+    tmp_stream << "cache_status:Disable" << "\r\n";
+  } else {
+    auto cache_info = slot->GetCacheInfo();
+    tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
+    tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
+    tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
+    tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
+    tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
+    tmp_stream << "hits:" << cache_info.hits << "\r\n";
+    tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
+    tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
+    tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
+    tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" << "\r\n";
+    tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" << "\r\n";
+    tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
+    tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
+  }
+  info.append(tmp_stream.str());
 }
 
 std::string InfoCmd::CacheStatusToString(int status) {
@@ -1444,6 +1444,7 @@ std::string InfoCmd::CacheStatusToString(int status) {
     default:
       return std::string("Unknown");
   }
+}
 
 void InfoCmd::Execute() {
   std::shared_ptr<Slot> slot;
@@ -2397,7 +2398,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
 
     int cache_num = (ival <= 0 || ival > 48) ? 16 : ival;
-    if (cache_num != g_pika_conf->cache_num()) {
+    if (cache_num != g_pika_conf->GetCacheNum()) {
       g_pika_conf->SetCacheNum(cache_num);
       g_pika_server->ResetCacheAsync(cache_num, slot);
     }

@@ -793,28 +793,28 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
 }
 
 void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
-  if (!is_suspend()) {
+  if (!IsSuspend()) {
     slot->DbRWLockReader();
   }
   DEFER {
-    if (!is_suspend()) {
+    if (!IsSuspend()) {
       slot->DbRWUnLock();
     }
   };
-  if (need_cache_do()
+  if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
-    if (is_need_read_cache()) {
+    if (IsNeedReadCache()) {
       ReadCache(slot);
     }
     if (is_read() && res().CacheMiss()) {
       DoThroughDB(slot);
-      if (is_need_update_cache()) {
+      if (IsNeedUpdateCache()) {
         DoUpdateCache(slot);
       }
     } else if (is_write()) {
       DoThroughDB(slot);
-      if (is_need_update_cache()) {
+      if (IsNeedUpdateCache()) {
         DoUpdateCache(slot);
       }
     }
@@ -906,46 +906,46 @@ void Cmd::ProcessMultiSlotCmd() {
 
 bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
 bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
-bool Cmd::is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
+bool Cmd::IsLocal() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
 // Others need to be suspended when a suspend command run
-bool Cmd::is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
+bool Cmd::IsSuspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
 // Must with admin auth
-bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
-bool Cmd::is_need_update_cache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
-bool Cmd::need_cache_do() const {
+bool Cmd::IsAdminRequire() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
+bool Cmd::IsNeedUpdateCache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
+bool Cmd::IsNeedCacheDo() const {
   if (g_pika_conf->IsCacheDisabledTemporarily()) {
     return false;
   }
 
   if ((flag_ & kCmdFlagsKv) == kCmdFlagsKv) {
-    if (!g_pika_conf->cache_string()) {
+    if (!g_pika_conf->GetCacheString()) {
       return false;
     }
   } else if ((flag_ & kCmdFlagsSet) == kCmdFlagsSet) {
-    if (!g_pika_conf->cache_set()) {
+    if (!g_pika_conf->GetCacheSet()) {
       return false;
     }
   } else if ((flag_ & kCmdFlagsZset) == kCmdFlagsZset) {
-    if (!g_pika_conf->cache_zset()) {
+    if (!g_pika_conf->GetCacheZset()) {
       return false;
     }
   } else if ((flag_ & kCmdFlagsHash) == kCmdFlagsHash){
-    if (!g_pika_conf->cache_hash()) {
+    if (!g_pika_conf->GetCacheHash()) {
       return false;
     }
   } else if ((flag_ & kCmdFlagsList) == kCmdFlagsList) {
-    if (!g_pika_conf->cache_list()) {
+    if (!g_pika_conf->GetCacheList()) {
       return false;
     }
   } else if ((flag_ & kCmdFlagsBit) == kCmdFlagsBit) {
-    if (!g_pika_conf->cache_bit()) {
+    if (!g_pika_conf->GetCacheBit()) {
       return false;
     }
   }
   return ((flag_ & kCmdFlagsMaskDoThrouhDB) == kCmdFlagsDoThroughDB);
 }
 
-bool Cmd::is_need_read_cache() const { return ((flag_ & kCmdFlagsMaskReadCache) == kCmdFlagsReadCache); }
+bool Cmd::IsNeedReadCache() const { return ((flag_ & kCmdFlagsMaskReadCache) == kCmdFlagsReadCache); }
 
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }

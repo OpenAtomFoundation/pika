@@ -255,15 +255,15 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   }
   std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   // Add read lock for no suspend command
-  if (!c_ptr->is_suspend()) {
+  if (!c_ptr->IsSuspend()) {
     slot->DbRWLockReader();
   }
-  if (c_ptr->need_cache_do()
+  if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
       c_ptr->DoThroughDB(slot);
-      if (c_ptr->is_need_update_cache()) {
+      if (c_ptr->IsNeedUpdateCache()) {
         c_ptr->DoUpdateCache(slot);
       }
     } else {
@@ -272,7 +272,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   } else {
     c_ptr->Do(slot);
   }
-  if (!c_ptr->is_suspend()) {
+  if (!c_ptr->IsSuspend()) {
     slot->DbRWUnLock();
   }
 

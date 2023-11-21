@@ -117,7 +117,7 @@ void Slot::Init() {
   // Create cache
   cache::CacheConfig cache_cfg;
   g_pika_server->CacheConfigInit(cache_cfg);
-  cache_->Init(g_pika_conf->cache_num(), &cache_cfg);
+  cache_->Init(g_pika_conf->GetCacheNum(), &cache_cfg);
 }
 
 void Slot::Compact(const storage::DataType& type) {
