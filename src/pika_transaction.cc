@@ -3,14 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_transaction.h"
 #include <memory>
+
+#include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 #include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_transaction.h"
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -36,7 +38,6 @@ void MultiCmd::DoInitial() {
     return;
   }
 }
-
 
 void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   auto conn = GetConn();
