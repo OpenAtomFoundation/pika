@@ -1,6 +1,6 @@
 package metrics
 
-func init() {
+func RegisterServer() {
 	Register(collectServerMetrics)
 }
 

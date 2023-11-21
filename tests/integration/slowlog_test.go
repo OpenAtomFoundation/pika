@@ -2,11 +2,16 @@ package pika_integration
 
 import (
 	"context"
+	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
 )
+
+func isBetween(first, second, target int64) bool {
+	return first <= target && second >= target
+}
 
 var _ = Describe("Slowlog Commands", func() {
 	ctx := context.TODO()
@@ -15,13 +20,14 @@ var _ = Describe("Slowlog Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		time.Sleep(1 * time.Second)
 	})
 
 	AfterEach(func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 	})
 
-	Describe("SlowLogGet", func() {
+	Describe("SlowLog", func() {
 		It("returns slow query result", func() {
 			const key = "slowlog-log-slower-than"
 
@@ -38,5 +44,46 @@ var _ = Describe("Slowlog Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(result)).NotTo(BeZero())
 		})
+		It("Should be able to handle the situation when the log is full correctly", func() {
+			const key1 = "slowlog-log-slower-than"
+			old := client.ConfigGet(ctx, key1).Val()
+			defer Expect(client.ConfigSet(ctx, key1, old[key1]).Err()).NotTo(HaveOccurred())
+			client.ConfigSet(ctx, key1, "0")
+
+			const key2 = "slowlog-max-len"
+			oldMaxLen := client.ConfigGet(ctx, key2).Val()
+			defer Expect(client.ConfigSet(ctx, key2, oldMaxLen[key2]).Err()).NotTo(HaveOccurred())
+			client.ConfigSet(ctx, key2, "10")
+
+			for i := 0; i < 20; i++ {
+				Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
+			}
+
+			result, err := client.SlowLogGet(ctx, -1).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(result)).To(Equal(int(10)))
+		})
+		It("Make sure that the returned timestamp is correct.", func() {
+			const key1 = "slowlog-log-slower-than"
+			old := client.ConfigGet(ctx, key1).Val()
+			defer Expect(client.ConfigSet(ctx, key1, old[key1]).Err()).NotTo(HaveOccurred())
+			client.ConfigSet(ctx, key1, "0")
+			time1 := time.Now()
+			Expect(client.Do(ctx, "SLOWLOG", "reset").Val()).To(Equal("OK"))
+
+			time.Sleep(200 * time.Millisecond)
+			for i := 0; i < 15; i++ {
+				Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
+			}
+			result, err := client.SlowLogGet(ctx, 10).Result()
+			time.Sleep(200 * time.Millisecond)
+			time2 := time.Now()
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := 0; i < 10; i++ {
+				Expect(isBetween(time1.UnixNano(), time2.UnixNano(), time.Unix(0, result[i].Time.Unix()*1e3).UnixNano())).To(Equal(true))
+			}
+		})
 	})
+
 })

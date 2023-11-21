@@ -347,8 +347,8 @@ class RPopLPushCmd : public BlockingBaseCmd {
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
-    res.push_back(source_);
     res.push_back(receiver_);
+    res.push_back(source_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;

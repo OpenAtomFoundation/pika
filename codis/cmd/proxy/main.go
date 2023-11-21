@@ -112,6 +112,8 @@ Options:
 		if err := config.LoadFromFile(s); err != nil {
 			log.PanicErrorf(err, "load config %s failed", s)
 		}
+		config.ConfigFileName = s
+		log.Warnf("option --config = %s", s)
 	}
 	models.SetMaxSlotNum(config.MaxSlotNum)
 	if s, ok := utils.Argument(d, "--host-admin"); ok {

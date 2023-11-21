@@ -205,7 +205,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);
-
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {

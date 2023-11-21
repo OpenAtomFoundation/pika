@@ -234,6 +234,9 @@ Status RedisHashes::HDel(const Slice& key, const std::vector<std::string>& field
         }
       }
       *ret = del_cnt;
+      if (!parsed_hashes_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("hash size overflow");
+      }
       parsed_hashes_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -391,6 +394,9 @@ Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value,
         statistic++;
       } else if (s.IsNotFound()) {
         Int64ToStr(value_buf, 32, value);
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("hash size overflow");
+        }
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
         batch.Put(handles_[1], hashes_data_key.Encode(), value_buf);
@@ -464,6 +470,9 @@ Status RedisHashes::HIncrbyfloat(const Slice& key, const Slice& field, const Sli
         statistic++;
       } else if (s.IsNotFound()) {
         LongDoubleToStr(long_double_by, new_value);
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("hash size overflow");
+        }
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
         batch.Put(handles_[1], hashes_data_key.Encode(), *new_value);
@@ -604,6 +613,9 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.count() == 0) {
       version = parsed_hashes_meta_value.InitialMetaValue();
+      if (!parsed_hashes_meta_value.check_set_count(static_cast<int32_t>(filtered_fvs.size()))) {
+        return Status::InvalidArgument("hash size overflow");
+      }
       parsed_hashes_meta_value.set_count(static_cast<int32_t>(filtered_fvs.size()));
       batch.Put(handles_[0], key, meta_value);
       for (const auto& fv : filtered_fvs) {
@@ -626,6 +638,9 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
         } else {
           return s;
         }
+      }
+      if (!parsed_hashes_meta_value.CheckModifyCount(count)){
+        return Status::InvalidArgument("hash size overflow");
       }
       parsed_hashes_meta_value.ModifyCount(count);
       batch.Put(handles_[0], key, meta_value);
@@ -677,6 +692,9 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
           statistic++;
         }
       } else if (s.IsNotFound()) {
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("hash size overflow");
+        }
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
         batch.Put(handles_[1], hashes_data_key.Encode(), value);
@@ -726,6 +744,9 @@ Status RedisHashes::HSetnx(const Slice& key, const Slice& field, const Slice& va
       if (s.ok()) {
         *ret = 0;
       } else if (s.IsNotFound()) {
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("hash size overflow");
+        }
         parsed_hashes_meta_value.ModifyCount(1);
         batch.Put(handles_[0], key, meta_value);
         batch.Put(handles_[1], hashes_data_key.Encode(), value);

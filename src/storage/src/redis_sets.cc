@@ -217,6 +217,9 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (parsed_sets_meta_value.IsStale() || parsed_sets_meta_value.count() == 0) {
       version = parsed_sets_meta_value.InitialMetaValue();
+      if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(filtered_members.size()))) {
+        return Status::InvalidArgument("set size overflow");
+      }
       parsed_sets_meta_value.set_count(static_cast<int32_t>(filtered_members.size()));
       batch.Put(handles_[0], key, meta_value);
       for (const auto& member : filtered_members) {
@@ -243,6 +246,9 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
       if (cnt == 0) {
         return rocksdb::Status::OK();
       } else {
+        if (!parsed_sets_meta_value.CheckModifyCount(cnt)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(cnt);
         batch.Put(handles_[0], key, meta_value);
       }
@@ -420,6 +426,9 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+      if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+        return Status::InvalidArgument("set size overflow");
+      }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
@@ -603,6 +612,9 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+    if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+      return Status::InvalidArgument("set size overflow");
+    }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
@@ -758,6 +770,9 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
       s = db_->Get(default_read_options_, handles_[1], sets_member_key.Encode(), &member_value);
       if (s.ok()) {
         *ret = 1;
+        if (!parsed_sets_meta_value.CheckModifyCount(-1)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(-1);
         batch.Put(handles_[0], source, meta_value);
         batch.Delete(handles_[1], sets_member_key.Encode());
@@ -791,6 +806,9 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
       SetsMemberKey sets_member_key(destination, version, member);
       s = db_->Get(default_read_options_, handles_[1], sets_member_key.Encode(), &member_value);
       if (s.IsNotFound()) {
+        if (!parsed_sets_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(1);
         batch.Put(handles_[0], destination, meta_value);
         batch.Put(handles_[1], sets_member_key.Encode(), Slice());
@@ -887,6 +905,9 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
           }
         }
 
+        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(static_cast<int32_t>(-cnt));
         batch.Put(handles_[0], key, meta_value);
         delete iter;
@@ -1018,6 +1039,9 @@ rocksdb::Status RedisSets::SRem(const Slice& key, const std::vector<std::string>
         }
       }
       *ret = cnt;
+      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)){
+        return Status::InvalidArgument("set size overflow");
+      }
       parsed_sets_meta_value.ModifyCount(-cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -1130,6 +1154,9 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+    if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+      return Status::InvalidArgument("set size overflow");
+    }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {

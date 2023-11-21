@@ -32,6 +32,13 @@ spec:
           namespace: {{ .Release.Namespace }}
           volumeName: script
           defaultMode: 0555
+      postStartSpec:
+        cmdExecutorConfig:
+          image: {{ .Values.image.pika.registry | default "docker.io" }}/{{ .Values.image.pika.repository }}:{{ .Values.image.pika.tag }}
+          command:
+            - /script/pika-group-post-start.sh
+        scriptSpecSelectors:
+          - name: pika-script
       podSpec:
         containers:
           - name: pika

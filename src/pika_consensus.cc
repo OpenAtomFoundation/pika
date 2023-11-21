@@ -356,6 +356,7 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
   LogOffset log_offset;
 
   stable_logger_->Logger()->Lock();
+//  std::this_thread::sleep_for(std::chrono::seconds(20));
   // build BinlogItem
   uint32_t filenum = 0;
   uint32_t term = 0;

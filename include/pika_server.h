@@ -37,10 +37,11 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
+#include "include/pika_migrate_thread.h"
 #include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_migrate_thread.h"
+#include "include/pika_transaction.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_cache.h"
 #include "include/pika_slot.h"
@@ -297,7 +298,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogReset();
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
+  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
 
   /*
    * Statistic used
@@ -509,6 +510,8 @@ class PikaServer : public pstd::noncopyable {
   friend class InfoCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
+  friend class FlushallCmd;
+  friend class ExecCmd;
 
   struct BGCacheTaskArg {
     BGCacheTaskArg() : conf(nullptr), reenable_cache(false) {}

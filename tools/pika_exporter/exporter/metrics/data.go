@@ -1,6 +1,6 @@
 package metrics
 
-func init() {
+func RegisterData() {
 	Register(collectDataMetrics)
 }
 
@@ -15,16 +15,16 @@ var collectDataMetrics = map[string]MetricConfig{
 			ValueName: "db_size",
 		},
 	},
-    "log_size": {
-        Parser: &normalParser{},
-        MetricMeta: &MetaData{
-            Name:      "log_size",
-            Help:      "pika serve instance total log size in bytes",
-            Type:      metricTypeGauge,
-            Labels:    []string{LabelNameAddr, LabelNameAlias},
-            ValueName: "log_size",
-        },
-    },
+	"log_size": {
+		Parser: &normalParser{},
+		MetricMeta: &MetaData{
+			Name:      "log_size",
+			Help:      "pika serve instance total log size in bytes",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelNameAlias},
+			ValueName: "log_size",
+		},
+	},
 	"used_memory": {
 		Parser: &normalParser{},
 		MetricMeta: &MetaData{

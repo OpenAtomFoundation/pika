@@ -18,6 +18,7 @@ var _ = Describe("String Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		time.Sleep(1 * time.Second)
 	})
 
 	AfterEach(func() {
@@ -181,23 +182,38 @@ var _ = Describe("String Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		// fix: https://github.com/OpenAtomFoundation/pika/issues/2061
 		It("should Decr", func() {
-			set := client.Set(ctx, "key", "10", 0)
-			Expect(set.Err()).NotTo(HaveOccurred())
-			Expect(set.Val()).To(Equal("OK"))
+			basicSet := client.Set(ctx, "mykey", "10", 0)
+			Expect(basicSet.Err()).NotTo(HaveOccurred())
+			Expect(basicSet.Val()).To(Equal("OK"))
+			basicDecr := client.Decr(ctx, "mykey")
+			Expect(basicDecr.Err()).NotTo(HaveOccurred())
+			Expect(basicDecr.Val()).To(Equal(int64(9)))
+			basicDecr = client.Decr(ctx, "mykey")
+			Expect(basicDecr.Err()).NotTo(HaveOccurred())
+			Expect(basicDecr.Val()).To(Equal(int64(8)))
 
-			decr := client.Decr(ctx, "key")
-			Expect(decr.Err()).NotTo(HaveOccurred())
-			Expect(decr.Val()).To(Equal(int64(9)))
+			for i := 0; i < 5; i++ {
+				set := client.Set(ctx, "key", "234293482390480948029348230948", 0)
+				Expect(set.Err()).NotTo(HaveOccurred())
+				Expect(set.Val()).To(Equal("OK"))
+				decr := client.Decr(ctx, "key")
+				Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
 
-			set = client.Set(ctx, "key", "234293482390480948029348230948", 0)
-			Expect(set.Err()).NotTo(HaveOccurred())
-			Expect(set.Val()).To(Equal("OK"))
+				set = client.Set(ctx, "key", "-9223372036854775809", 0)
+				Expect(set.Err()).NotTo(HaveOccurred())
+				Expect(set.Val()).To(Equal("OK"))
+				decr = client.Decr(ctx, "key")
+				Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
 
-			//decr = client.Decr(ctx, "key")
-			//Expect(set.Err()).NotTo(HaveOccurred())
-			//Expect(decr.Err()).To(MatchError("ERR value is not an integer or out of range"))
-			//Expect(decr.Val()).To(Equal(int64(-1)))
+				inter := randomInt(500)
+				set = client.Set(ctx, "key", inter, 0)
+				for j := 0; j < 200; j++ {
+					res := client.Decr(ctx, "key")
+					Expect(res.Err()).NotTo(HaveOccurred())
+				}
+			}
 		})
 
 		It("should DecrBy", func() {
@@ -222,6 +238,23 @@ var _ = Describe("String Commands", func() {
 			get = client.Get(ctx, "key")
 			Expect(get.Err()).NotTo(HaveOccurred())
 			Expect(get.Val()).To(Equal("hello"))
+		})
+
+		It("should SetBit", func() {
+			setBit := client.SetBit(ctx, "key_3s", 7, 1)
+			Expect(setBit.Err()).NotTo(HaveOccurred())
+			Expect(setBit.Val()).To(Equal(int64(0)))
+
+			Expect(client.Expire(ctx, "key_3s", 3*time.Second).Val()).To(Equal(true))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			setBit = client.SetBit(ctx, "key_3s", 69, 1)
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+			Expect(setBit.Err()).NotTo(HaveOccurred())
+			Expect(setBit.Val()).To(Equal(int64(0)))
+
+			time.Sleep(4 * time.Second)
+			Expect(client.TTL(ctx, "key_3s").Val()).To(Equal(time.Duration(-2)))
 		})
 
 		It("should GetBit", func() {
@@ -866,17 +899,24 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should SetRange", func() {
-			set := client.Set(ctx, "key", "Hello World", 0)
+			set := client.Set(ctx, "key_3s", "Hello World", 0)
 			Expect(set.Err()).NotTo(HaveOccurred())
 			Expect(set.Val()).To(Equal("OK"))
 
-			range_ := client.SetRange(ctx, "key", 6, "Redis")
+			Expect(client.Expire(ctx, "key_3s", 3*time.Second).Val()).To(Equal(true))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			range_ := client.SetRange(ctx, "key_3s", 6, "Redis")
 			Expect(range_.Err()).NotTo(HaveOccurred())
 			Expect(range_.Val()).To(Equal(int64(11)))
 
-			get := client.Get(ctx, "key")
+			get := client.Get(ctx, "key_3s")
 			Expect(get.Err()).NotTo(HaveOccurred())
 			Expect(get.Val()).To(Equal("Hello Redis"))
+			Expect(client.TTL(ctx, "key_3s").Val()).NotTo(Equal(int64(-2)))
+
+			time.Sleep(4 * time.Second)
+			Expect(client.TTL(ctx, "key_3s").Val()).To(Equal(time.Duration(-2)))
 		})
 
 		It("should StrLen", func() {

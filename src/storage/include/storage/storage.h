@@ -959,6 +959,10 @@ class Storage {
   // return >=0 the number of keys existing
   int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
 
+  // Return the key exists type count
+  // return param type_status: return every type status
+  int64_t IsExist(const Slice& key, std::map<DataType, Status>* type_status);
+
   // EXPIREAT has the same effect and semantic as EXPIRE, but instead of
   // specifying the number of seconds representing the TTL (time to live), it
   // takes an absolute Unix timestamp (seconds since January 1, 1970). A

@@ -6,6 +6,7 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
+#include <string>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -199,6 +200,13 @@ const std::string kCmdNameSDiffstore = "sdiffstore";
 const std::string kCmdNameSMove = "smove";
 const std::string kCmdNameSRandmember = "srandmember";
 
+// transation
+const std::string kCmdNameMulti = "multi";
+const std::string kCmdNameExec = "exec";
+const std::string kCmdNameDiscard = "discard";
+const std::string kCmdNameWatch = "watch";
+const std::string kCmdNameUnWatch = "unwatch";
+
 // HyperLogLog
 const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
@@ -302,6 +310,9 @@ class CmdRes {
     kErrOther,
     kCacheMiss,
     KIncrByOverFlow,
+    kInvalidTransaction,
+    kTxnQueued,
+    kTxnAbort,
   };
 
   CmdRes() = default;
@@ -376,6 +387,17 @@ class CmdRes {
         result.append(message_);
         result.append("'\r\n");
         break;
+      case kInvalidTransaction:
+        return "-ERR WATCH inside MULTI is not allowed\r\n";
+      case kTxnQueued:
+        result = "+QUEUED";
+        result.append("\r\n");
+        break;
+      case kTxnAbort:
+        result = "-EXECABORT ";
+        result.append(message_);
+        result.append(kNewLine);
+        break;
       case kErrOther:
         result = "-ERR ";
         result.append(message_);
@@ -410,7 +432,9 @@ class CmdRes {
       message_ = content;
     }
   }
-
+  CmdRet GetCmdRet() const {
+    return ret_;
+  }
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -454,11 +478,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessFlushDBCmd();
-  virtual void ProcessFlushAllCmd();
   virtual void ProcessSingleSlotCmd();
   virtual void ProcessMultiSlotCmd();
-  virtual void ProcessDoNotSpecifySlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
   virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
@@ -485,6 +506,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool need_cache_do() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  void SetDbName(const std::string& db_name) { db_name_ = db_name; }
+  std::string GetDBName() { return db_name_; }
 
   std::string name() const;
   CmdRes& res();

@@ -29,7 +29,6 @@ class SetCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SetCmd(*this); }
-
  private:
   std::string key_;
   std::string value_;
