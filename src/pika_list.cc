@@ -59,7 +59,7 @@ void LIndexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LIndexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
   }
 }
 
@@ -142,7 +142,7 @@ void LLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
   }
 }
 
@@ -527,7 +527,7 @@ void LRangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void LRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
   }
 }
 

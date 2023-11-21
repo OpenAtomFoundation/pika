@@ -32,7 +32,7 @@ PikaCacheLoadThread::~PikaCacheLoadThread() {
   StopThread();
 }
 
-void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
+void PikaCacheLoadThread::Push(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot) {
   std::unique_lock lq(loadkeys_mutex_);
   std::unique_lock lm(loadkeys_map_mutex_);
   if (CACHE_LOAD_QUEUE_MAX_SIZE < loadkeys_queue_.size()) {
@@ -46,14 +46,14 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key) {
   }
 
   if (loadkeys_map_.find(key) == loadkeys_map_.end()) {
-    std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
-    loadkeys_queue_.push_back(kpair);
+    std::tuple<const char, std::string, const std::shared_ptr<Slot>> ktuple = std::make_tuple(key_type, key, slot);
+    loadkeys_queue_.push_back(ktuple);
     loadkeys_map_[key] = std::string("");
     loadkeys_cond_.notify_all();
   }
 }
 
-bool PikaCacheLoadThread::LoadKv(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<Slot>& slot) {
   std::string value;
   int64_t ttl;
   rocksdb::Status s = slot->db()->GetWithTTL(key, &value, &ttl);
@@ -61,8 +61,8 @@ bool PikaCacheLoadThread::LoadKv(std::string &key, const std::shared_ptr<Slot>& 
     LOG(WARNING) << "load kv failed, key=" << key;
     return false;
   }
-  std::string CachePrefixKeyk = PCacheKeyPrefixK + key;
-  slot->cache()->WriteKvToCache(CachePrefixKeyk, value, ttl);
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key;
+  slot->cache()->WriteKVToCache(CachePrefixKeyK, value, ttl);
   return true;
 }
 
@@ -82,8 +82,8 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
     LOG(WARNING) << "load hash failed, key=" << key;
     return false;
   }
-  std::string CachePrefixKeyh = PCacheKeyPrefixH + key;
-  slot->cache()->WriteHashToCache(CachePrefixKeyh, fvs, ttl);
+  std::string CachePrefixKeyH = PCacheKeyPrefixH + key;
+  slot->cache()->WriteHashToCache(CachePrefixKeyH, fvs, ttl);
   return true;
 }
 
@@ -103,8 +103,8 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
     LOG(WARNING) << "load list failed, key=" << key;
     return false;
   }
-  std::string CachePrefixKeyl = PCacheKeyPrefixL + key;
-  slot->cache()->WriteListToCache(CachePrefixKeyl, values, ttl);
+  std::string CachePrefixKeyL = PCacheKeyPrefixL + key;
+  slot->cache()->WriteListToCache(CachePrefixKeyL, values, ttl);
   return true;
 }
 
@@ -124,8 +124,8 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
     LOG(WARNING) << "load set failed, key=" << key;
     return false;
   }
-  std::string CachePrefixKeys = PCacheKeyPrefixS + key;
-  slot->cache()->WriteSetToCache(CachePrefixKeys, values, ttl);
+  std::string CachePrefixKeyS = PCacheKeyPrefixS + key;
+  slot->cache()->WriteSetToCache(CachePrefixKeyS, values, ttl);
   return true;
 }
 
@@ -139,8 +139,8 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   }
 
   uint64_t cache_len = 0;
-  std::string CachePrefixKeyz = PCacheKeyPrefixZ + key;
-  slot->cache()->CacheZCard(CachePrefixKeyz, &cache_len);
+  std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
+  slot->cache()->CacheZCard(CachePrefixKeyZ, &cache_len);
   if (cache_len != 0) {
     return true;
   }
@@ -161,7 +161,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
     LOG(WARNING) << "load zset failed, key=" << key;
     return false;
   }
-  slot->cache()->WriteZSetToCache(CachePrefixKeyz, score_members, ttl);
+  slot->cache()->WriteZSetToCache(CachePrefixKeyZ, score_members, ttl);
   return true;
 }
 
@@ -169,7 +169,7 @@ bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const s
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
   switch (key_type) {
     case 'k':
-      return LoadKv(key, slot);
+      return LoadKV(key, slot);
     case 'h':
       return LoadHash(key, slot);
     case 'l':
@@ -188,7 +188,7 @@ void *PikaCacheLoadThread::ThreadMain() {
   LOG(INFO) << "PikaCacheLoadThread::ThreadMain Start";
 
   while (!should_exit_) {
-    std::deque<std::pair<const char, std::string>> load_keys;
+    std::deque<std::tuple<const char, std::string, const std::shared_ptr<Slot>>> load_keys;
     {
       std::unique_lock lq(loadkeys_mutex_);
       waitting_load_keys_num_ = loadkeys_queue_.size();
@@ -207,16 +207,15 @@ void *PikaCacheLoadThread::ThreadMain() {
         }
       }
     }
-    auto slot = g_pika_server->GetSlotByDBName(g_pika_conf->default_db());
     for (auto iter = load_keys.begin(); iter != load_keys.end(); ++iter) {
-      if (LoadKey(iter->first, iter->second, slot)) {
+      if (LoadKey(std::get<0>(*iter), std::get<1>(*iter), std::get<2>(*iter))) {
         ++async_load_keys_num_;
       } else {
-        LOG(WARNING) << "PikaCacheLoadThread::ThreadMain LoadKey: " << iter->second << " failed !!!";
+        LOG(WARNING) << "PikaCacheLoadThread::ThreadMain LoadKey: " << std::get<1>(*iter) << " failed !!!";
       }
 
       std::unique_lock lm(loadkeys_map_mutex_);
-      loadkeys_map_.erase(iter->second);
+      loadkeys_map_.erase(std::get<1>(*iter));
     }
   }
 

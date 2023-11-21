@@ -131,7 +131,7 @@ void SCardCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SCardCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
   }
 }
 
@@ -181,7 +181,7 @@ void SMembersCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SMembersCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
   }
 }
 
@@ -454,7 +454,7 @@ void SIsmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SIsmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
   }
 }
 
@@ -641,7 +641,7 @@ void SRandmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void SRandmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
   }
 }
 

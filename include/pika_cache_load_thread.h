@@ -25,10 +25,10 @@ class PikaCacheLoadThread : public net::Thread {
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
   uint32_t WaittingLoadKeysNum(void) { return waitting_load_keys_num_; }
-  void Push(const char key_type, std::string& key);
+  void Push(const char key_type, std::string& key, const std::shared_ptr<Slot> &slot);
 
  private:
-  bool LoadKv(std::string& key, const std::shared_ptr<Slot>& slot);
+  bool LoadKV(std::string& key, const std::shared_ptr<Slot>& slot);
   bool LoadHash(std::string& key, const std::shared_ptr<Slot>& slot);
   bool LoadList(std::string& key, const std::shared_ptr<Slot>& slot);
   bool LoadSet(std::string& key, const std::shared_ptr<Slot>& slot);
@@ -38,7 +38,8 @@ class PikaCacheLoadThread : public net::Thread {
 
  private:
   std::atomic_bool should_exit_;
-  std::deque<std::pair<const char, std::string>> loadkeys_queue_;
+  std::deque<std::tuple<const char, std::string, const std::shared_ptr<Slot>>> loadkeys_queue_;
+  
   pstd::CondVar loadkeys_cond_;
   pstd::Mutex loadkeys_mutex_;
 

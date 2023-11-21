@@ -1070,7 +1070,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   if (db_len < cache_items_per_key_) {
     if (mem_len * 2 < db_len) {
       cache_obj->Del(CachePrefixKeyZ);
-      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key);
+      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, slot);
       return true;
     } else {
       return false;
@@ -1078,7 +1078,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   } else {
     if (cache_items_per_key_ && mem_len * 2 < cache_items_per_key_) {
       cache_obj->Del(CachePrefixKeyZ);
-      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key);
+      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, slot);
       return true;
     } else {
       return false;
@@ -1658,7 +1658,7 @@ int PikaCache::CacheIndex(const std::string &key) {
   return (int)(crc % caches_.size());
 }
 
-Status PikaCache::WriteKvToCache(std::string &key, std::string &value, int64_t ttl) {
+Status PikaCache::WriteKVToCache(std::string &key, std::string &value, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return SetnxWithoutTTL(key, value);
@@ -1723,8 +1723,8 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
   return Status::OK();
 }
 
-void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key) {
-  cache_load_thread_->Push(key_type, key);
+void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot) {
+  cache_load_thread_->Push(key_type, key, slot);
 }
 
 void PikaCache::ClearHitRatio(void) {
