@@ -24,8 +24,8 @@ class SetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new SetCmd(*this); }
  private:
   std::string key_;
@@ -53,8 +53,8 @@ class GetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GetCmd(*this); }
 
  private:
@@ -87,8 +87,8 @@ class IncrCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new IncrCmd(*this); }
 
  private:
@@ -106,8 +106,8 @@ class IncrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new IncrbyCmd(*this); }
 
  private:
@@ -125,8 +125,8 @@ class IncrbyfloatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new IncrbyfloatCmd(*this); }
 
  private:
@@ -144,8 +144,8 @@ class DecrCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new DecrCmd(*this); }
 
  private:
@@ -163,8 +163,8 @@ class DecrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new DecrbyCmd(*this); }
 
  private:
@@ -182,8 +182,8 @@ class GetsetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GetsetCmd(*this); }
 
  private:
@@ -201,8 +201,8 @@ class AppendCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new AppendCmd(*this); }
 
  private:
@@ -230,8 +230,8 @@ class KeysCmd : public Cmd {
  public:
   KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new KeysCmd(*this); }
 
  private:
@@ -250,8 +250,8 @@ class SetnxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new SetnxCmd(*this); }
 
  private:
@@ -272,8 +272,8 @@ class SetexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new SetexCmd(*this); }
 
  private:
@@ -294,8 +294,8 @@ class PsetexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PsetexCmd(*this); }
 
  private:
@@ -316,8 +316,8 @@ class DelvxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new DelvxCmd(*this); }
 
  private:
@@ -373,8 +373,8 @@ class MsetnxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new MsetnxCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
@@ -395,8 +395,8 @@ class GetrangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GetrangeCmd(*this); }
 
  private:
@@ -415,8 +415,8 @@ class SetrangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new SetrangeCmd(*this); }
 
  private:
@@ -435,8 +435,8 @@ class StrlenCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new StrlenCmd(*this); }
 
  private:
@@ -468,8 +468,8 @@ class ExpireCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ExpireCmd(*this); }
 
  private:
@@ -489,8 +489,8 @@ class PexpireCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PexpireCmd(*this); }
 
  private:
@@ -510,8 +510,8 @@ class ExpireatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ExpireatCmd(*this); }
 
  private:
@@ -529,8 +529,8 @@ class PexpireatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PexpireatCmd(*this); }
 
  private:
@@ -550,8 +550,8 @@ class TtlCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new TtlCmd(*this); }
 
  private:
@@ -568,8 +568,8 @@ class PttlCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PttlCmd(*this); }
 
  private:
@@ -586,8 +586,8 @@ class PersistCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PersistCmd(*this); }
 
  private:
@@ -604,8 +604,8 @@ class TypeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new TypeCmd(*this); }
 
  private:
@@ -635,8 +635,8 @@ class ScanCmd : public Cmd {
  public:
   ScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ScanCmd(*this); }
 
  private:
@@ -656,8 +656,8 @@ class ScanxCmd : public Cmd {
  public:
   ScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ScanxCmd(*this); }
 
  private:
@@ -681,8 +681,8 @@ class PKSetexAtCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKSetexAtCmd(*this); }
 
  private:
@@ -702,8 +702,8 @@ class PKScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKScanRangeCmd(*this); }
 
  private:
@@ -730,8 +730,8 @@ class PKRScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:

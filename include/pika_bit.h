@@ -139,8 +139,8 @@ class BitOpCmd : public Cmd {
     return {dest_key_};
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitOpCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 

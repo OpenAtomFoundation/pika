@@ -59,8 +59,8 @@ class PfMergeCmd : public Cmd {
     return keys_;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PfMergeCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
