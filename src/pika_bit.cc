@@ -110,7 +110,7 @@ void BitGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void BitGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot){
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, slot);
   }
 }
 
@@ -180,7 +180,7 @@ void BitCountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void BitCountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, slot);
   }
 }
 
@@ -271,7 +271,7 @@ void BitPosCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void BitPosCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, slot);
   }
 }
 

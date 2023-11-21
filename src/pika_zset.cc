@@ -278,7 +278,7 @@ void ZRangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -355,7 +355,7 @@ void ZRevrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRevrangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -515,7 +515,7 @@ void ZRangebyscoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -612,7 +612,7 @@ void ZRevrangebyscoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRevrangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -667,7 +667,7 @@ void ZCountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZCountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -958,7 +958,7 @@ void ZRankCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -1001,7 +1001,7 @@ void ZRevrankCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRevrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -1173,7 +1173,7 @@ void ZRangebylexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -1247,7 +1247,7 @@ void ZRevrangebylexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZRevrangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 
@@ -1301,7 +1301,7 @@ void ZLexcountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ZLexcountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
   }
 }
 

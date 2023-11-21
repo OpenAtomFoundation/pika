@@ -180,12 +180,12 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status BitPos(std::string &key, int64_t bit, int64_t start, int64_t end, int64_t *value);
 
   // Cache
-  rocksdb::Status WriteKvToCache(std::string &key, std::string &value, int64_t ttl);
+  rocksdb::Status WriteKVToCache(std::string &key, std::string &value, int64_t ttl);
   rocksdb::Status WriteHashToCache(std::string &key, std::vector<storage::FieldValue> &fvs, int64_t ttl);
   rocksdb::Status WriteListToCache(std::string &key, std::vector<std::string> &values, int64_t ttl);
   rocksdb::Status WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl);
   rocksdb::Status WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
-  void PushKeyToAsyncLoadQueue(const char key_type, std::string &key);
+  void PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot);
   rocksdb::Status CacheZCard(std::string &key, uint64_t *len);
 
   std::shared_ptr<Slot> GetSlot() { return slot_; }

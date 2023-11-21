@@ -121,7 +121,7 @@ void HGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -198,7 +198,7 @@ void HGetallCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HGetallCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -241,7 +241,7 @@ void HExistsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HExistsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -368,7 +368,7 @@ void HKeysCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HKeysCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -410,7 +410,7 @@ void HLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -472,7 +472,7 @@ void HMgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HMgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -587,7 +587,7 @@ void HStrlenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HStrlenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
@@ -637,7 +637,7 @@ void HValsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void HValsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_);
+    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
   }
 }
 
