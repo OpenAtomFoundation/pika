@@ -481,38 +481,38 @@ std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t
 }
 
 void FlushallCmd::Execute() {
-  std::lock_guard l_trw(g_pika_server->dbs_rw_);
-  for (const auto& db_item : g_pika_server->dbs_) {
+  std::lock_guard l_trw(g_pika_server->GetDBLock());
+  for (const auto& db_item : g_pika_server->GetDB()) {
     if (db_item.second->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
       return;
     }
   }
-  g_pika_rm->slots_rw_.lock();
-  for (const auto& db_item : g_pika_server->dbs_) {
-    db_item.second->slots_rw_.lock();
+  g_pika_rm->SlotLock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->SlotLock();
   }
   FlushAllWithoutLock();
-  for (const auto& db_item : g_pika_server->dbs_) {
-    db_item.second->slots_rw_.unlock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->SlotUnlock();
   }
-  g_pika_rm->slots_rw_.unlock();
+  g_pika_rm->SlotUnlock();
   if (res_.ok()) {
     res_.SetRes(CmdRes::kOk);
   }
 }
 
 void FlushallCmd::FlushAllWithoutLock() {
-  for (const auto& db_item : g_pika_server->dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    for (const auto& slot_item : db_item.second->GetSlots()) {
       std::shared_ptr<Slot> slot = slot_item.second;
       SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-      if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+      if (g_pika_rm->GetSyncMasterSlots().find(p_info) == g_pika_rm->GetSyncMasterSlots().end()) {
         res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
       DoWithoutLock(slot);
-      DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
+      DoBinlog(g_pika_rm->GetSyncMasterSlots()[p_info]);
     }
   }
   if (res_.ok()) {
@@ -566,15 +566,15 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
-  for (const auto& slot_item : db->slots_) {
+  for (const auto& slot_item : db->GetSlots()) {
     std::shared_ptr<Slot> slot = slot_item.second;
     SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
-    if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+    if (g_pika_rm->GetSyncMasterSlots().find(p_info) == g_pika_rm->GetSyncMasterSlots().end()) {
       res_.SetRes(CmdRes::kErrOther, "Slot not found");
       return;
     }
     DoWithoutLock(slot);
-    DoBinlog(g_pika_rm->sync_master_slots_[p_info]);
+    DoBinlog(g_pika_rm->GetSyncMasterSlots()[p_info]);
   }
 }
 
@@ -598,8 +598,8 @@ void FlushdbCmd::Execute() {
     if (db->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db->slots_rw_);
-      std::lock_guard s_prw(g_pika_rm->slots_rw_);
+      std::lock_guard l_prw(db->GetSlotLock());
+      std::lock_guard s_prw(g_pika_rm->GetSlotLock());
       FlushAllSlotsWithoutLock(db);
       res_.SetRes(CmdRes::kOk);
     }
@@ -1083,7 +1083,7 @@ void InfoCmd::InfoReplication(std::string& info) {
 
   bool all_slot_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
-  for (const auto& db_item : g_pika_server->dbs_) {
+  for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot =

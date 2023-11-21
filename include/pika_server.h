@@ -181,6 +181,21 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
+  std::shared_mutex& GetDBLock() {
+    return dbs_rw_;
+  }
+  void DBLockShared() {
+    dbs_rw_.lock_shared();
+  }
+  void DBLock() {
+    dbs_rw_.lock();
+  }
+  void DBUnlock() {
+    dbs_rw_.unlock();
+  }
+  void DBUnlockShared() {
+    dbs_rw_.unlock_shared();
+  }
 
   /*
    * Slot use
@@ -508,8 +523,6 @@ class PikaServer : public pstd::noncopyable {
   friend class InfoCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
-  friend class FlushallCmd;
-  friend class ExecCmd;
 
  private:
   /*
