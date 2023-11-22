@@ -466,8 +466,7 @@ void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 // flushall convert flushdb writes to every slot binlog
-std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                  uint64_t offset) {
+std::string FlushallCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 1, "*");
@@ -2559,8 +2558,7 @@ void PaddingCmd::DoInitial() {
 
 void PaddingCmd::Do(std::shared_ptr<Slot> slot) { res_.SetRes(CmdRes::kOk); }
 
-std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                 uint64_t offset) {
+std::string PaddingCmd::ToRedisProtocol() {
   return PikaBinlogTransverter::ConstructPaddingBinlog(
       BinlogType::TypeFirst,
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);

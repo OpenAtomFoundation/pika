@@ -900,7 +900,7 @@ std::string Cmd::db_name() const { return db_name_; }
 
 PikaCmdArgsType& Cmd::argv() { return argv_; }
 
-std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum, uint64_t offset) {
+std::string Cmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLenUint64(content, argv_.size(), "*");

@@ -40,8 +40,7 @@ class SetCmd : public Cmd {
     success_ = 0;
     condition_ = kNONE;
   }
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class GetCmd : public Cmd {
@@ -259,8 +258,7 @@ class SetnxCmd : public Cmd {
   std::string value_;
   int32_t success_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class SetexCmd : public Cmd {
@@ -281,8 +279,7 @@ class SetexCmd : public Cmd {
   int64_t sec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class PsetexCmd : public Cmd {
@@ -303,8 +300,7 @@ class PsetexCmd : public Cmd {
   int64_t usec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class DelvxCmd : public Cmd {
@@ -476,8 +472,7 @@ class ExpireCmd : public Cmd {
   std::string key_;
   int64_t sec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class PexpireCmd : public Cmd {
@@ -497,8 +492,7 @@ class PexpireCmd : public Cmd {
   std::string key_;
   int64_t msec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class ExpireatCmd : public Cmd {
@@ -537,8 +531,7 @@ class PexpireatCmd : public Cmd {
   std::string key_;
   int64_t time_stamp_ms_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class TtlCmd : public Cmd {

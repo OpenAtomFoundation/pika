@@ -164,8 +164,7 @@ class FlushallCmd : public Cmd {
   void FlushAllWithoutLock();
  private:
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
   void DoWithoutLock(std::shared_ptr<Slot> slot);
 };
 
@@ -405,8 +404,7 @@ class PaddingCmd : public Cmd {
 
  private:
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
 };
 
 class PKPatternMatchDelCmd : public Cmd {
