@@ -11,13 +11,13 @@
 
 extern PikaServer *g_pika_server;
 
-PikaCacheLoadThread::PikaCacheLoadThread(int cache_start_pos, int cache_items_per_key)
+PikaCacheLoadThread::PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key)
     : should_exit_(false)
       , loadkeys_cond_()
       , async_load_keys_num_(0)
       , waitting_load_keys_num_(0)
-      , cache_start_pos_(cache_start_pos)
-      , cache_items_per_key_(cache_items_per_key)
+      , zset_cache_start_pos_(zset_cache_start_pos)
+      , zset_cache_field_num_per_key_(zset_cache_field_num_per_key)
 {
   set_thread_name("PikaCacheLoadThread");
 }
@@ -55,7 +55,7 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key, const std:
 
 bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<Slot>& slot) {
   std::string value;
-  int64_t ttl;
+  int64_t ttl = -1;
   rocksdb::Status s = slot->db()->GetWithTTL(key, &value, &ttl);
   if (!s.ok()) {
     LOG(WARNING) << "load kv failed, key=" << key;
@@ -76,7 +76,7 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
   }
 
   std::vector<storage::FieldValue> fvs;
-  int64_t ttl;
+  int64_t ttl = -1;
   rocksdb::Status s = slot->db()->HGetallWithTTL(key, &fvs, &ttl);
   if (!s.ok()) {
     LOG(WARNING) << "load hash failed, key=" << key;
@@ -97,7 +97,7 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
   }
 
   std::vector<std::string> values;
-  int64_t ttl;
+  int64_t ttl = -1;
   rocksdb::Status s = slot->db()->LRangeWithTTL(key, 0, -1, &values, &ttl);
   if (!s.ok()) {
     LOG(WARNING) << "load list failed, key=" << key;
@@ -118,7 +118,7 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
   }
 
   std::vector<std::string> values;
-  int64_t ttl;
+  int64_t ttl = -1;
   rocksdb::Status s = slot->db()->SMembersWithTTL(key, &values, &ttl);
   if (!s.ok()) {
     LOG(WARNING) << "load set failed, key=" << key;
@@ -144,18 +144,18 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   if (cache_len != 0) {
     return true;
   }
-  if (cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
-    if (cache_items_per_key_ <= len) {
-      stop_index = cache_items_per_key_ - 1;
+  if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_field_num_per_key_ <= len) {
+      stop_index = zset_cache_field_num_per_key_ - 1;
     }
-  } else if (cache_start_pos_ == cache::CACHE_START_FROM_END) {
-    if (cache_items_per_key_ <= len) {
-      start_index = len - cache_items_per_key_;
+  } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    if (zset_cache_field_num_per_key_ <= len) {
+      start_index = len - zset_cache_field_num_per_key_;
     }
   }
 
   std::vector<storage::ScoreMember> score_members;
-  int64_t ttl;
+  int64_t ttl = -1;
   rocksdb::Status s = slot->db()->ZRangeWithTTL(key, start_index, stop_index, &score_members, &ttl);
   if (!s.ok()) {
     LOG(WARNING) << "load zset failed, key=" << key;

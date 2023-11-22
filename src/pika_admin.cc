@@ -2431,24 +2431,24 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
     g_pika_conf->SetCacheType(value);
     ret = "+OK\r\n";
-  } else if (set_item == "cache-start-direction") {
+  } else if (set_item == "zset-cache-start-direction") {
     if (!pstd::string2int(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-start-direction'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'zset-cache-start-direction'\r\n";
       return;
     }
     if (ival != CACHE_START_FROM_BEGIN && ival != CACHE_START_FROM_END) {
-      ret = "-ERR Invalid cache-start-direction\r\n";
+      ret = "-ERR Invalid zset-cache-start-direction\r\n";
       return;
     }
-    auto origin_start_pos = g_pika_conf->cache_start_pos();
+    auto origin_start_pos = g_pika_conf->zset_cache_start_pos();
     if (origin_start_pos != ival) {
       g_pika_conf->SetCacheStartPos(ival);
       g_pika_server->OnCacheStartPosChanged(ival, slot);
     }
     ret = "+OK\r\n";
-  } else if (set_item == "cache-items-per-key") {
+  } else if (set_item == "zset-cache-field-num-per-key") {
     if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-items-per-key'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'zset-cache-field-num-per-key'\r\n";
       return;
     }
     g_pika_conf->SetCacheItemsPerKey(ival);

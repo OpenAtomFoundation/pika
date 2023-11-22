@@ -3,8 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef PIKA_CACHE_H
-#define PIKA_CACHE_H
+#ifndef PIKA_CACHE_H_
+#define PIKA_CACHE_H_
 
 #include <atomic>
 #include <sstream>
@@ -18,7 +18,7 @@
 #include "cache/include/cache.h"
 #include "storage/storage.h"
 
-enum RangeStatus : int { RangeError = 1, RangeHit, RangeMiss };
+enum RangeStatus { RangeError = 1, RangeHit, RangeMiss };
 
 struct CacheInfo {
   int status = PIKA_CACHE_STATUS_NONE;
@@ -45,7 +45,7 @@ class PikaCacheLoadThread;
 class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<PikaCache> {
  public:
 
-  PikaCache(int cache_start_pos_, int cache_items_per_key, std::shared_ptr<Slot> slot);
+  PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key, std::shared_ptr<Slot> slot);
   ~PikaCache();
 
   rocksdb::Status Init(uint32_t cache_num, cache::CacheConfig *cache_cfg);
@@ -215,8 +215,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   uint32_t cache_num_ = 0;
 
   // currently only take effects to zset
-  int cache_start_pos_ = 0;
-  int cache_items_per_key_ = 0;
+  int zset_cache_start_pos_ = 0;
+  int zset_cache_field_num_per_key_ = 0;
   std::shared_mutex rwlock_;
   std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
   std::shared_ptr<Slot> slot_;

@@ -530,7 +530,7 @@ class PikaServer : public pstd::noncopyable {
   void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot = nullptr);
   void ResetCacheConfig(std::shared_ptr<Slot> slot = nullptr);
   void ClearHitRatio(std::shared_ptr<Slot> slot = nullptr);
-  void OnCacheStartPosChanged(int cache_start_pos, std::shared_ptr<Slot> slot = nullptr);
+  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot = nullptr);
   static void DoCacheBGTask(void* arg);
   void UpdateCacheInfo(void);
   void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot = nullptr);

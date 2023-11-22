@@ -144,7 +144,7 @@ Status RedisCache::LPushx(std::string &key, std::vector<std::string> &values) {
 
 Status RedisCache::LRange(std::string &key, int64_t start, int64_t stop, std::vector<std::string> *values) {
   sds *vals = nullptr;
-  uint64_t vals_size;
+  uint64_t vals_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);

@@ -337,8 +337,8 @@ class PikaConf : public pstd::BaseConf {
   int GetCacheNum() { return cache_num_; }
   void SetCacheNum(const int value) { cache_num_ = value; }
   void SetCacheModel(const int value) { cache_model_ = value; }
-  void SetCacheStartPos(const int value) { cache_start_pos_ = value; }
-  void SetCacheItemsPerKey(const int value) { cache_items_per_key_ = value; }
+  void SetCacheStartPos(const int value) { zset_cache_start_pos_ = value; }
+  void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
   void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
   void SetCacheMaxmemoryPolicy(const int value) { cache_maxmemory_policy_ = value; }
   void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
@@ -604,8 +604,8 @@ class PikaConf : public pstd::BaseConf {
 
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
-  int cache_start_pos() { return cache_start_pos_; }
-  int cache_items_per_key() { return cache_items_per_key_; }
+  int zset_cache_start_pos() { return zset_cache_start_pos_; }
+  int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
   int64_t cache_maxmemory() { return cache_maxmemory_; }
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
@@ -731,8 +731,8 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_int cache_hash_;
   std::atomic_int cache_list_;
   std::atomic_int cache_bit_;
-  std::atomic_int cache_start_pos_;
-  std::atomic_int cache_items_per_key_;
+  std::atomic_int zset_cache_start_pos_;
+  std::atomic_int zset_cache_field_num_per_key_;
   std::atomic_int64_t cache_maxmemory_;
   std::atomic_int cache_maxmemory_policy_;
   std::atomic_int cache_maxmemory_samples_;

@@ -205,7 +205,7 @@ Status RedisCache::DecrBy(std::string &key, int64_t incr) {
 }
 
 Status RedisCache::Incrbyfloat(std::string &key, double incr) {
-  long double ret;
+  long double ret = .0f;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -219,7 +219,7 @@ Status RedisCache::Incrbyfloat(std::string &key, double incr) {
 }
 
 Status RedisCache::Append(std::string &key, std::string &value) {
-  uint64_t ret;
+  uint64_t ret = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
   DEFER {
@@ -260,7 +260,7 @@ Status RedisCache::SetRange(std::string &key, int64_t start, std::string &value)
     return Status::Corruption("[error] Free memory faild !");
   }
 
-  uint64_t ret;
+  uint64_t ret = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
   DEFER {

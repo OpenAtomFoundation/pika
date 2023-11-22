@@ -579,19 +579,19 @@ int PikaConf::Load() {
   GetConfStr("cache-type", &cache_type);
   SetCacheType(cache_type);
 
-  int cache_start_pos = 0;
-  GetConfInt("cache-start-direction", &cache_start_pos);
-  if (cache_start_pos != cache::CACHE_START_FROM_BEGIN && cache_start_pos != cache::CACHE_START_FROM_END) {
-    cache_start_pos = cache::CACHE_START_FROM_BEGIN;
+  int zset_cache_start_pos = 0;
+  GetConfInt("zset-cache-start-direction", &zset_cache_start_pos);
+  if (zset_cache_start_pos != cache::CACHE_START_FROM_BEGIN && zset_cache_start_pos != cache::CACHE_START_FROM_END) {
+    zset_cache_start_pos = cache::CACHE_START_FROM_BEGIN;
   }
-  cache_start_pos_ = cache_start_pos;
+  zset_cache_start_pos_ = zset_cache_start_pos;
 
-  int cache_items_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
-  GetConfInt("cache-items-per-key", &cache_items_per_key);
-  if (cache_items_per_key <= 0) {
-    cache_items_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
+  int zset_cache_field_num_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
+  GetConfInt("zset-cache-field-num-per-key", &zset_cache_field_num_per_key);
+  if (zset_cache_field_num_per_key <= 0) {
+    zset_cache_field_num_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
   }
-  cache_items_per_key_ = cache_items_per_key;
+  zset_cache_field_num_per_key_ = zset_cache_field_num_per_key;
 
   int64_t cache_maxmemory = 10737418240 ;
   GetConfInt64("cache-maxmemory", &cache_maxmemory);

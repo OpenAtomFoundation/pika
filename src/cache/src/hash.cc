@@ -148,8 +148,8 @@ Status RedisCache::HMGet(std::string &key, std::vector<std::string> &fields, std
 }
 
 Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs) {
-  hitem *items;
-  unsigned long items_size;
+  hitem *items = nullptr;
+  unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -174,8 +174,8 @@ Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *f
 }
 
 Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
-  hitem *items;
-  unsigned long items_size;
+  hitem *items = nullptr;
+  unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -197,8 +197,8 @@ Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
 }
 
 Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
-  hitem *items;
-  unsigned long items_size;
+  hitem *items = nullptr;
+  unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -220,7 +220,7 @@ Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
 }
 
 Status RedisCache::HExists(std::string &key, std::string &field) {
-  int is_exist;
+  int is_exist = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
@@ -238,7 +238,7 @@ Status RedisCache::HExists(std::string &key, std::string &field) {
 }
 
 Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) {
-  int64_t result;
+  int64_t result = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {
@@ -256,7 +256,7 @@ Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) 
 }
 
 Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, double value) {
-  long double result;
+  long double result = .0f;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   DEFER {

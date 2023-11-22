@@ -48,7 +48,7 @@ Status RedisCache::SCard(std::string &key, uint64_t *len) {
 }
 
 Status RedisCache::SIsmember(std::string &key, std::string &member) {
-  int is_member;
+  int is_member = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
   DEFER {
@@ -67,7 +67,7 @@ Status RedisCache::SIsmember(std::string &key, std::string &member) {
 
 Status RedisCache::SMembers(std::string &key, std::vector<std::string> *members) {
   sds *vals = nullptr;
-  unsigned long vals_size;
+  unsigned long vals_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
