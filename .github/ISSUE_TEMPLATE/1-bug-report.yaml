@@ -1,0 +1,49 @@
+name: Bug Report
+description: Report a bug in the PikiwiDB
+labels: [ "☢️ Bug" ]
+
+body:
+  - type: dropdown
+    id: is-regression
+    attributes:
+      label: Is this a regression?
+      options:
+        - 'Yes'
+        - 'No'
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: input
+    id: reproduction
+    attributes:
+      label: Please provide a link to a minimal reproduction of the bug
+
+  - type: textarea
+    attributes:
+      label: Screenshots or videos
+      description: If you can, upload any screenshots of the bug.
+      value: |
+        ![images](https://camo.githubusercontent.com/3f51b5a32e6e5d5adabdebc5ef968150bdabc8d17a8dc1a535b8fb255d2165d0/68747470733a2f2f67772e616c697061796f626a656374732e636f6d2f7a6f732f616e7466696e63646e2f79396b776737445643642f726570726f647563652e676966)
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Please provide the version you discovered this bug in (check about page for version information)
+      render: true
+      placeholder: |
+        Version: v0.0.1
+        Commit Hash: 7c9b67171b4d2fbdd37218e59dbabe64451d9d68
+        Build Date: Oct 11, 2023, 10:49 AM GMT+8
+        OS: linux x64
+
+  - type: textarea
+    id: other
+    attributes:
+      label: Anything else?
