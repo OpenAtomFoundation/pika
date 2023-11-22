@@ -121,8 +121,7 @@ void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                             uint64_t offset) {
+std::string SetCmd::ToRedisProtocol() {
   if (condition_ == SetCmd::kEXORPX) {
     std::string content;
     content.reserve(RAW_ARGS_LEN);
@@ -147,7 +146,7 @@ std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logi
     RedisAppendContent(content, value_);
     return content;
   } else {
-    return Cmd::ToBinlog(exec_time, term_id, logic_id, filenum, offset);
+    return Cmd::ToRedisProtocol();
   }
 }
 
@@ -671,8 +670,7 @@ void SetnxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) {
+std::string SetnxCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 3, "*");
@@ -725,8 +723,7 @@ void SetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset) {
+std::string SetexCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 4, "*");
@@ -784,8 +781,7 @@ void PsetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                uint64_t offset) {
+std::string PsetexCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 4, "*");
@@ -1180,8 +1176,7 @@ void ExpireCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                uint64_t offset) {
+std::string ExpireCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 3, "*");
@@ -1238,8 +1233,7 @@ void PexpireCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                 uint64_t offset) {
+std::string PexpireCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLenUint64(content, argv_.size(), "*");
@@ -1320,8 +1314,7 @@ void PexpireatCmd::DoInitial() {
   }
 }
 
-std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                   uint64_t offset) {
+std::string PexpireatCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLenUint64(content, argv_.size(), "*");

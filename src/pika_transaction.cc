@@ -137,12 +137,12 @@ bool ExecCmd::IsTxnFailedAndSetState() {
 }
 
 void ExecCmd::Lock() {
-  g_pika_server->dbs_rw_.lock_shared();
+  g_pika_server->DBLockShared();
   std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->slots_rw_.lock();
+    need_lock_db->SlotLock();
   });
   if (is_lock_rm_slots_) {
-    g_pika_rm->slots_rw_.lock();
+    g_pika_rm->SlotLock();
   }
 
   std::for_each(r_lock_slots_.begin(), r_lock_slots_.end(), [this](auto& need_lock_slot) {
@@ -163,12 +163,12 @@ void ExecCmd::Unlock() {
     need_lock_slot->DbRWUnLock();
   });
   if (is_lock_rm_slots_) {
-    g_pika_rm->slots_rw_.unlock();
+    g_pika_rm->SlotUnlock();
   }
   std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->slots_rw_.unlock();
+    need_lock_db->SlotUnlock();
   });
-  g_pika_server->dbs_rw_.unlock_shared();
+  g_pika_server->DBUnlockShared();
 }
 
 void ExecCmd::SetCmdsVec() {

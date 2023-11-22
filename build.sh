@@ -13,6 +13,66 @@ TAR_MIN_VERSION="1.26"
 
 BUILD_DIR=output
 
+CLEAN_BUILD="false"
+ARGS=()
+
+for i in "$@"; do
+  case $i in
+    -c*|--clean*)
+      CLEAN_BUILD="true"
+      ;;
+    -*|--*)
+      echo "Unknown option $i"
+      exit 1
+      ;;
+    *)
+      ARGS=("${ARGS[@]}" $i)
+      ;;
+  esac
+done
+
+if [ ! -f "/proc/cpuinfo" ];then
+  CPU_CORE=$(sysctl -n hw.ncpu)
+else
+  CPU_CORE=$(cat /proc/cpuinfo| grep "processor"| wc -l)
+fi
+if [ ${CPU_CORE} -eq 0 ]; then
+  CPU_CORE=1
+fi
+
+echo "cpu core ${CPU_CORE}"
+
+if [[ "${CLEAN_BUILD}" = "true" ]]; then
+  rm -rf "${BUILD_DIR}" buildtrees deps pkg
+fi
+
+if [[ "${ARGS[0]}" = "clean" ]]; then
+  rm -rf "${BUILD_DIR}" buildtrees deps pkg
+  exit 0
+fi
+
+if [[ "${ARGS[0]}" = "codis" ]]; then
+  export GOPATH=${PWD}
+  export CGO_ENABLED=1
+  pushd codis
+  if [[ "${CLEAN_BUILD}" = "true" ]]; then
+    make -j ${CPU_CORE} clean
+  fi
+  make -j ${CPU_CORE} "${ARGS[@]:1}"
+  popd
+  exit 0
+fi
+
+if [[ "${ARGS[0]}" = "operator" ]]; then
+  pushd tools/pika_operator
+  if [[ "${CLEAN_BUILD}" = "true" ]]; then
+    rm -rf bin
+  fi
+  make -j ${CPU_CORE} "${ARGS[@]:1}"
+  popd
+  exit 0
+fi
+
 source ./utils/Get_OS_Version.sh
 
 function version_compare() {
@@ -93,7 +153,7 @@ fi
 cd ${BUILD_DIR}
 
 use_pika_tools=""
-if [[ $1 = "tools" ]]; then
+if [[ "${ARGS[0]}" = "tools" ]]; then
   use_pika_tools="-DUSE_PIKA_TOOLS=ON"
 fi
 
@@ -108,17 +168,6 @@ if [ $? -ne 0 ]; then
     echo -e "${C_RED} cmake execution error ${C_END}"
     exit 1
 fi
-
-if [ ! -f "/proc/cpuinfo" ];then
-  CPU_CORE=$(sysctl -n hw.ncpu)
-else
-  CPU_CORE=$(cat /proc/cpuinfo| grep "processor"| wc -l)
-fi
-if [ ${CPU_CORE} -eq 0 ]; then
-  CPU_CORE=1
-fi
-
-echo "cpu core ${CPU_CORE}"
 
 make -j ${CPU_CORE}
 

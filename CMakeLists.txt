@@ -77,6 +77,8 @@ elseif(HOST_ARCH MATCHES "arm")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc+crypto -moutline-atomics")
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
+
 set(EP_BASE_SUFFIX "buildtrees")
 set_property(DIRECTORY PROPERTY EP_BASE ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
@@ -457,6 +459,7 @@ ExternalProject_Add(zlib
   CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  -DZLIB_USE_STATIC_LIBS=ON
   BUILD_ALWAYS
   1
   BUILD_COMMAND

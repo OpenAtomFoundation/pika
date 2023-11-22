@@ -379,6 +379,7 @@ class RPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};

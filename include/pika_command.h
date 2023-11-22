@@ -514,8 +514,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string db_name() const;
   BinlogOffset binlog_offset() const;
   PikaCmdArgsType& argv();
-  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset);
+  virtual std::string ToRedisProtocol();
 
   void SetConn(const std::shared_ptr<net::NetConn>& conn);
   std::shared_ptr<net::NetConn> GetConn();

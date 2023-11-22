@@ -43,9 +43,8 @@ class SetCmd : public Cmd {
     success_ = 0;
     condition_ = kNONE;
   }
+  std::string ToRedisProtocol() override;
   rocksdb::Status s_;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
 };
 
 class GetCmd : public Cmd {
@@ -272,8 +271,8 @@ class KeysCmd : public Cmd {
  public:
   KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new KeysCmd(*this); }
 
  private:
@@ -293,8 +292,8 @@ class SetnxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new SetnxCmd(*this); }
 
  private:
@@ -302,9 +301,8 @@ class SetnxCmd : public Cmd {
   std::string value_;
   int32_t success_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
   rocksdb::Status s_;
+  std::string ToRedisProtocol() override;
 };
 
 class SetexCmd : public Cmd {
@@ -327,9 +325,8 @@ class SetexCmd : public Cmd {
   int64_t sec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
   rocksdb::Status s_;
+  std::string ToRedisProtocol() override;
 };
 
 class PsetexCmd : public Cmd {
@@ -352,9 +349,8 @@ class PsetexCmd : public Cmd {
   int64_t usec_ = 0;
   std::string value_;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
   rocksdb::Status s_;
+  std::string ToRedisProtocol() override;
 };
 
 class DelvxCmd : public Cmd {
@@ -366,8 +362,8 @@ class DelvxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new DelvxCmd(*this); }
 
  private:
@@ -427,8 +423,8 @@ class MsetnxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new MsetnxCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
@@ -550,8 +546,7 @@ class ExpireCmd : public Cmd {
   std::string key_;
   int64_t sec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
   rocksdb::Status s_;
 };
 
@@ -574,8 +569,7 @@ class PexpireCmd : public Cmd {
   std::string key_;
   int64_t msec_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
+  std::string ToRedisProtocol() override;
   rocksdb::Status s_;
 };
 
@@ -620,9 +614,8 @@ class PexpireatCmd : public Cmd {
   std::string key_;
   int64_t time_stamp_ms_ = 0;
   void DoInitial() override;
-  std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                       uint64_t offset) override;
   rocksdb::Status s_;
+  std::string ToRedisProtocol() override;
 };
 
 class TtlCmd : public Cmd {
@@ -732,8 +725,8 @@ class ScanCmd : public Cmd {
  public:
   ScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ScanCmd(*this); }
 
  private:
@@ -754,8 +747,8 @@ class ScanxCmd : public Cmd {
  public:
   ScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ScanxCmd(*this); }
 
  private:
@@ -780,8 +773,8 @@ class PKSetexAtCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKSetexAtCmd(*this); }
 
  private:
@@ -802,8 +795,8 @@ class PKScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKScanRangeCmd(*this); }
 
  private:
@@ -831,8 +824,8 @@ class PKRScanRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:
