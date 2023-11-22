@@ -121,6 +121,11 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
+  if((g_pika_server->role() & PIKA_ROLE_SLAVE) != 0 && master_ip_ != g_pika_server->host()) {
+    res_.SetRes(CmdRes::kErrOther, "Not the same master");
+    return;
+  }
+
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
     res_.SetRes(CmdRes::kErrOther, "The master ip:port and the slave ip:port are the same");
     return;
