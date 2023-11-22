@@ -716,7 +716,7 @@ std::string StringTrim(const std::string& ori, const std::string& charlist) {
     }
     ++pos;
   }
-  while (rpos >= 0) {
+  while (rpos > 0) {
     bool meet = false;
     for (char c : charlist) {
       if (ori.at(rpos) == c) {

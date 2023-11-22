@@ -821,7 +821,7 @@ Status RedisStrings::Setrange(const Slice& key, int64_t start_offset, const Slic
       } else {
         std::string head = old_value.substr(0, start_offset);
         std::string tail;
-        if (start_offset + value.size() - 1 < old_value.length() - 1) {
+        if ((start_offset + value.size()) < old_value.length()) {
           tail = old_value.substr(start_offset + value.size());
         }
         new_value = head + value.data() + tail;
