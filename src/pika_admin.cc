@@ -122,7 +122,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if((g_pika_server->role() & PIKA_ROLE_SLAVE) != 0 && master_ip_ != g_pika_server->host()) {
-    res_.SetRes(CmdRes::kErrOther, "Not the same master");
+    res_.SetRes(CmdRes::kErrOther, "Not the same master,please use salveof no one to return the single mode before binding to other cluster.");
     return;
   }
 
