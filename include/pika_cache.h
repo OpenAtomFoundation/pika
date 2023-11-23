@@ -211,7 +211,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
 
  private:
   std::atomic<int> cache_status_;
-  std::unique_ptr<cache::RedisCache> cache_;
   uint32_t cache_num_ = 0;
 
   // currently only take effects to zset
@@ -220,7 +219,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   std::shared_mutex rwlock_;
   std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
   std::shared_ptr<Slot> slot_;
-  // todo: smart point may be coredump as unbuntu and centos
   std::vector<cache::RedisCache*> caches_;
   std::vector<std::shared_ptr<pstd::Mutex>> cache_mutexs_;
 };
