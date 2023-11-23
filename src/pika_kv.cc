@@ -562,9 +562,9 @@ void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 }
 
 void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  if (s_.ok()) {
-    std::string CachePrefixKeyK;
-    for (size_t i = 0; i < keys_.size(); i++) {
+  for (size_t i = 0; i < keys_.size(); i++) {
+    if (db_value_status_array_[i].status.ok()) {
+      std::string CachePrefixKeyK;
       CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
       slot->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, ttl_);
     }
