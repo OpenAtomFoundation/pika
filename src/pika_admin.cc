@@ -3032,6 +3032,21 @@ void CacheCmd::Do(std::shared_ptr<Slot> slot) {
   return;
 }
 
+void ClearCacheCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearCache);
+    return;
+  }
+}
+
+void ClearCacheCmd::Do(std::shared_ptr<Slot> slot) {
+  // clean cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+    g_pika_server->ClearCacheDbAsync(slot);
+  }
+  res_.SetRes(CmdRes::kOk, "Cache is cleared");
+}
+
 #ifdef WITH_COMMAND_DOCS
 
 bool CommandCmd::CommandFieldCompare::operator()(const std::string& a, const std::string& b) const {
