@@ -19,12 +19,6 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-std::string SlotPath(const std::string& db_path, uint32_t slot_id) {
-  char buf[100];
-  snprintf(buf, sizeof(buf), "%u/", slot_id);
-  return db_path + buf;
-}
-
 std::string SlotName(const std::string& db_name, uint32_t slot_id) {
   char buf[256];
   snprintf(buf, sizeof(buf), "(%s:%u)", db_name.data(), slot_id);
