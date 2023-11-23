@@ -247,7 +247,7 @@ Status PikaCache::MSet(const std::vector<storage::KeyValue> &kvs) {
 Status PikaCache::MGet(const std::vector<std::string> &keys, std::vector<storage::ValueStatus> *vss) {
   std::shared_lock l(rwlock_);
   vss->resize(keys.size());
-  auto ret = Status::OK();
+  rocksdb::Status ret;
   for (int i = 0; i < keys.size(); ++i) {
     int cache_index = CacheIndex(keys[i]);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
