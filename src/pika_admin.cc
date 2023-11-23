@@ -534,6 +534,7 @@ void FlushallCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
     LOG(INFO) << "Flushall, but Slot not found";
   } else {
     slot->FlushDBWithoutLock();
+    DoUpdateCache(slot);
   }
 }
 
@@ -583,8 +584,8 @@ void FlushdbCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   // clear cache
   if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
     g_pika_server->ClearCacheDbAsync(slot);
-    }
- }
+  }
+}
 
 void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
   for (const auto& slot_item : db->GetSlots()) {
@@ -608,6 +609,7 @@ void FlushdbCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
     } else {
       slot->FlushSubDBWithoutLock(db_name_);
     }
+    DoUpdateCache(slot);
   }
 }
 
