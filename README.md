@@ -125,6 +125,19 @@ By default the compilation process is in 'release' mode. If you wanna debug this
   cd output && make
 ```
 
+Extra components like `codis` or `pika_operator` could also built by using `build.sh`.
+
+```bash
+  # build codis, default target build-all
+  ./build.sh codis
+
+  # build codis, but only the codis-proxy
+  ./build.sh codis codis-proxy
+
+  # build pika_operator
+  ./build.sh operator
+```
+
 ## Usage
 
 ```

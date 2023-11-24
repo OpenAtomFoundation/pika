@@ -22,8 +22,8 @@ class LIndexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LIndexCmd(*this); }
 
  private:
@@ -42,8 +42,8 @@ class LInsertCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LInsertCmd(*this); }
 
  private:
@@ -63,8 +63,8 @@ class LLenCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LLenCmd(*this); }
 
  private:
@@ -124,8 +124,8 @@ class LPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPopCmd(*this); }
 
  private:
@@ -144,8 +144,8 @@ class LPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPushCmd(*this); }
 
  private:
@@ -164,8 +164,8 @@ class LPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPushxCmd(*this); }
 
  private:
@@ -183,8 +183,8 @@ class LRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LRangeCmd(*this); }
 
  private:
@@ -203,8 +203,8 @@ class LRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LRemCmd(*this); }
 
  private:
@@ -223,8 +223,8 @@ class LSetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LSetCmd(*this); }
 
  private:
@@ -243,8 +243,8 @@ class LTrimCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LTrimCmd(*this); }
 
  private:
@@ -282,8 +282,8 @@ class RPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPopCmd(*this); }
 
  private:
@@ -309,13 +309,13 @@ class RPopLPushCmd : public BlockingBaseCmd {
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
-    res.push_back(source_);
     res.push_back(receiver_);
+    res.push_back(source_);
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPopLPushCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
@@ -339,8 +339,8 @@ class RPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPushCmd(*this); }
 
  private:
@@ -359,8 +359,8 @@ class RPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPushxCmd(*this); }
 
  private:

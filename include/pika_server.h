@@ -36,10 +36,11 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
+#include "include/pika_migrate_thread.h"
 #include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_migrate_thread.h"
+#include "include/pika_transaction.h"
 #include "include/pika_cmd_table_manager.h"
 
 
@@ -180,6 +181,21 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
+  std::shared_mutex& GetDBLock() {
+    return dbs_rw_;
+  }
+  void DBLockShared() {
+    dbs_rw_.lock_shared();
+  }
+  void DBLock() {
+    dbs_rw_.lock();
+  }
+  void DBUnlock() {
+    dbs_rw_.unlock();
+  }
+  void DBUnlockShared() {
+    dbs_rw_.unlock_shared();
+  }
 
   /*
    * Slot use
@@ -294,7 +310,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogReset();
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
+  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
 
   /*
    * Statistic used

@@ -89,12 +89,28 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
   int32_t count() { return count_; }
 
+  bool check_set_count(size_t count) {
+    if (count > INT32_MAX) {
+      return false;
+    }
+    return true;
+  }
+
   void set_count(int32_t count) {
     count_ = count;
     if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed32(dst, count_);
     }
+  }
+
+  bool CheckModifyCount(int32_t delta) {
+    int64_t count = count_;
+    count += delta;
+    if (count < 0 || count > INT32_MAX) {
+      return false;
+    }
+    return true;
   }
 
   void ModifyCount(int32_t delta) {

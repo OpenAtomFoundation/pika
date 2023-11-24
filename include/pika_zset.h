@@ -24,8 +24,8 @@ class ZAddCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZAddCmd(*this); }
 
  private:
@@ -43,8 +43,8 @@ class ZCardCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZCardCmd(*this); }
 
  private:
@@ -61,8 +61,8 @@ class ZScanCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZScanCmd(*this); }
 
  private:
@@ -84,8 +84,8 @@ class ZIncrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
 
  private:
@@ -115,8 +115,8 @@ class ZRangeCmd : public ZsetRangeParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRangeCmd(*this); }
 
  private:
@@ -132,8 +132,8 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRevrangeCmd(*this); }
 
  private:
@@ -167,8 +167,8 @@ class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRangebyscoreCmd(*this); }
 
  private:
@@ -185,8 +185,8 @@ class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRevrangebyscoreCmd(*this); }
 
  private:
@@ -202,8 +202,8 @@ class ZCountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZCountCmd(*this); }
 
  private:
@@ -226,8 +226,8 @@ class ZRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRemCmd(*this); }
 
  private:
@@ -274,8 +274,8 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZUnionstoreCmd(*this); }
 
  private:
@@ -289,8 +289,8 @@ class ZInterstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZInterstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZInterstoreCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
@@ -318,8 +318,8 @@ class ZRankCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRankCmd(*this); }
 
  private:
@@ -335,8 +335,8 @@ class ZRevrankCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRevrankCmd(*this); }
 
  private:
@@ -352,8 +352,8 @@ class ZScoreCmd : public ZsetRankParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZScoreCmd(*this); }
 
  private:
@@ -386,8 +386,8 @@ class ZRangebylexCmd : public ZsetRangebylexParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRangebylexCmd(*this); }
 
  private:
@@ -403,8 +403,8 @@ class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRevrangebylexCmd(*this); }
 
  private:
@@ -420,8 +420,8 @@ class ZLexcountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZLexcountCmd(*this); }
 
  private:
@@ -440,8 +440,8 @@ class ZRemrangebyrankCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
 
  private:
@@ -459,8 +459,8 @@ class ZRemrangebyscoreCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
 
  private:
@@ -480,8 +480,8 @@ class ZRemrangebylexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
 
  private:
@@ -501,8 +501,8 @@ class ZPopmaxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
 
  private:
@@ -520,8 +520,8 @@ class ZPopminCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new ZPopminCmd(*this); }
 
  private:

@@ -1,3 +1,34 @@
+# v3.5.2
+
+## 新特性
+
+- Pika 支持 Redis 事务 [#2124](https://github.com/OpenAtomFoundation/pika/pull/2124) @[ForestLH](https://github.com/ForestLH)
+
+- Pika 上层增加缓存层实现冷热数据分离，提升读性能 [#2133](https://github.com/OpenAtomFoundation/pika/pull/2133) @[chejinge](https://github.com/chejinge)@[Mixficsol](https://github.com/Mixficsol)
+
+- Codis-Proxy 支持动态修改配置参数 [#2103](https://github.com/OpenAtomFoundation/pika/pull/2103) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- 补全 Go Test 测试用例 [#2063](https://github.com/OpenAtomFoundation/pika/pull/2063)@[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- CI 增加 cache 提升编译速度 [#2088](https://github.com/OpenAtomFoundation/pika/pull/2088)@[baerwang](https://github.com/baerwang)
+
+## bugfix
+
+- 修复 pika 在使用 SETRANGE 命令出现 coredump的问题 [#2125](https://github.com/OpenAtomFoundation/pika/issues/2125) @[chejinge](https://github.com/chejinge)
+
+- 修复因删除 Clearreplicationid 写进 binlog 导致的全量复制问题 [#2136](https://github.com/OpenAtomFoundation/pika/issues/2136) @[Mixficsol](https://github.com/Mixficsol)
+
+- 修改锁粒度，提升 pika 写 binlog 的性能 [#2129](https://github.com/OpenAtomFoundation/pika/pull/2129) @[wangshao1](https://github.com/wangshao1)
+
+- 增加 redis-copy 流量复制工具 [#2044](https://github.com/OpenAtomFoundation/pika/issues/2044)  @[Mixficsol](https://github.com/Mixficsol)
+
+- 修复复杂数据类型成员变量可能出现数据溢出  [#2016](https://github.com/OpenAtomFoundation/pika/pull/2106)  @[u6th9d](https://github.com/u6th9d)
+
+- 修复 decr 命令返回值错误问题 [#2092](https://github.com/OpenAtomFoundation/pika/pull/2092) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- 修复 setrange 和 setbit 命令没有保留原 key 的过期时间的问题 [#2095](https://github.com/OpenAtomFoundation/pika/pull/2095) @[u6th9d](https://github.com/u6th9d)
+
+
 # v3.5.1
 
 ## 新特性
@@ -37,6 +68,7 @@
 - 解决了 Codis 在线上出现大毛刺的问题 [#2016](https://github.com/OpenAtomFoundation/pika/pull/2016) @[chejinge](https://github.com/chejinge)
 
 - 修复了 Macos 环境下编译使用 tools 导致编译不过的问题 [#2011](https://github.com/OpenAtomFoundation/pika/pull/2011) @[A2ureStone](https://github.com/A2ureStone)
+
 
 # v3.5.0
 

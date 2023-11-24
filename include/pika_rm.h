@@ -250,6 +250,27 @@ class PikaReplicaManager {
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
+  std::shared_mutex& GetSlotLock() { return slots_rw_; }
+  void SlotLock() {
+    slots_rw_.lock();
+  }
+  void SlotLockShared() {
+    slots_rw_.lock_shared();
+  }
+  void SlotUnlock() {
+    slots_rw_.unlock();
+  }
+  void SlotUnlockShared() {
+    slots_rw_.unlock_shared();
+  }
+
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_slot_info>& GetSyncMasterSlots() {
+    return sync_master_slots_;
+  }
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncSlaveSlot>, hash_slot_info>& GetSyncSlaveSlots() {
+    return sync_slave_slots_;
+  }
+
  private:
   void InitSlot();
   pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);

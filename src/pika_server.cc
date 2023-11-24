@@ -1149,7 +1149,7 @@ void PikaServer::SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlo
   }
 }
 
-void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration) {
+void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration) {
   SlowlogEntry entry;
   uint32_t slargc = (argv.size() < SLOWLOG_ENTRY_MAX_ARGC) ? argv.size() : SLOWLOG_ENTRY_MAX_ARGC;
 
@@ -1537,6 +1537,9 @@ void PikaServer::InitStorageOptions() {
 
   storage_options_.options.compression = PikaConf::GetCompression(g_pika_conf->compression());
   storage_options_.options.compression_per_level = g_pika_conf->compression_per_level();
+  // avoid blocking io on scan
+  // see https://github.com/facebook/rocksdb/wiki/IO#avoid-blocking-io
+  storage_options_.options.avoid_unnecessary_blocking_io = true;
 
   // default l0 l1 noCompression l2 and more use `compression` option
   if (storage_options_.options.compression_per_level.empty() &&
