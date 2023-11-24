@@ -212,6 +212,13 @@ void DB::Compact(const storage::DataType& type) {
   }
 }
 
+void DB::CompactRange(const storage::DataType& type, const std::string& start, const std::string& end) {
+  std::lock_guard rwl(slots_rw_);
+  for (const auto& item : slots_) {
+    item.second->CompactRange(type, start, end);
+  }
+}
+
 void DB::DoKeyScan(void* arg) {
   std::unique_ptr <BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
   bg_task_arg->db->RunKeyScan();

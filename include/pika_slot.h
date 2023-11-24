@@ -57,6 +57,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   std::shared_ptr<storage::Storage> db() const;
 
   void Compact(const storage::DataType& type);
+  void CompactRange(const storage::DataType& type, const std::string& start, const std::string& end);
 
   void DbRWLockWriter();
   void DbRWLockReader();

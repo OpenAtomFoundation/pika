@@ -130,6 +130,18 @@ enum TaskType {
   kStartKeyScan,
   kStopKeyScan,
   kBgSave,
+  kCompactRangeStrings,
+  kCompactRangeHashes,
+  kCompactRangeSets,
+  kCompactRangeZSets,
+  kCompactRangeList,
+};
+
+struct TaskArg {
+  TaskType type;
+  std::vector<std::string> argv;
+  TaskArg(TaskType t) : type(t) {}
+  TaskArg(TaskType t, const std::vector<std::string>& a) : type(t), argv(a) {}
 };
 
 void DoBgslotscleanup(void* arg);
@@ -180,7 +192,7 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
-  pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
+  pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;
   }

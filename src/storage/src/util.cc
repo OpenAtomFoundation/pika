@@ -211,9 +211,13 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
   const char* start = dst.get();
   std::strncpy(dst.get(), key.data(), key.size());
   char* dst_ptr = dst.get() + key.size();
-  meta_start_key->assign(start, key.size());
+  if (meta_start_key) {
+    meta_start_key->assign(start, key.size());
+  }
   *dst_ptr = static_cast<char>(0xff);
-  meta_end_key->assign(start, key.size() + 1);
+  if (meta_end_key) {
+    meta_end_key->assign(start, key.size() + 1);
+  }
   return 0;
 }
 
@@ -229,9 +233,12 @@ int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_
   dst_ptr += key.size();
   *dst_ptr = static_cast<char>(0xff);
 
-  data_start_key->assign(start, sizeof(int32_t) + key.size());
-  data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);
-
+  if (data_start_key) {
+    data_start_key->assign(start, sizeof(int32_t) + key.size());
+  }
+  if (data_end_key) {
+    data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);
+  }
   return 0;
 }
 

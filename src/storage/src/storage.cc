@@ -323,7 +323,7 @@ Status Storage::SPop(const Slice& key, std::vector<std::string>* members, int64_
   bool need_compact = false;
   Status status = sets_db_->SPop(key, members, &need_compact, count);
   if (need_compact) {
-    AddBGTask({kSets, kCompactKey, key.ToString()});
+    AddBGTask({kSets, kCompactRange, {key.ToString(), key.ToString()}});
   }
   return status;
 }
@@ -1523,8 +1523,10 @@ Status Storage::RunBGTask() {
 
     if (task.operation == kCleanAll) {
       DoCompact(task.type);
-    } else if (task.operation == kCompactKey) {
-      CompactKey(task.type, task.argv);
+    } else if (task.operation == kCompactRange) {
+      if (task.argv.size() == 2) {
+        DoCompactRange(task.type, task.argv.front(), task.argv.back());
+      }
     }
   }
   return Status::OK();
@@ -1572,31 +1574,50 @@ Status Storage::DoCompact(const DataType& type) {
   return s;
 }
 
-Status Storage::CompactKey(const DataType& type, const std::string& key) {
+Status Storage::CompactRange(const DataType& type, const std::string& start, const std::string& end, bool sync) {
+  if (sync) {
+    return DoCompactRange(type, start, end);
+  } else {
+    AddBGTask({type, kCompactRange, {start, end}});
+  }
+  return Status::OK();
+}
+
+Status Storage::DoCompactRange(const DataType& type, const std::string& start, const std::string& end) {
+  Status s;
+  if (type == kStrings) {
+    Slice slice_begin(start);
+    Slice slice_end(end);
+    s = strings_db_->CompactRange(&slice_begin, &slice_end);
+    return s;
+  }
+
   std::string meta_start_key;
   std::string meta_end_key;
   std::string data_start_key;
   std::string data_end_key;
-  CalculateMetaStartAndEndKey(key, &meta_start_key, &meta_end_key);
-  CalculateDataStartAndEndKey(key, &data_start_key, &data_end_key);
+  CalculateMetaStartAndEndKey(start, &meta_start_key, nullptr);
+  CalculateMetaStartAndEndKey(end, nullptr, &meta_end_key);
+  CalculateDataStartAndEndKey(start, &data_start_key, nullptr);
+  CalculateDataStartAndEndKey(end, nullptr, &data_end_key);
   Slice slice_meta_begin(meta_start_key);
   Slice slice_meta_end(meta_end_key);
   Slice slice_data_begin(data_start_key);
   Slice slice_data_end(data_end_key);
   if (type == kSets) {
-    sets_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
-    sets_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+    s = sets_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = sets_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   } else if (type == kZSets) {
-    zsets_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
-    zsets_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+    s = zsets_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = zsets_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   } else if (type == kHashes) {
-    hashes_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
-    hashes_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+    s = hashes_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = hashes_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   } else if (type == kLists) {
-    lists_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
-    lists_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+    s = lists_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = lists_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   }
-  return Status::OK();
+  return s;
 }
 
 Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {

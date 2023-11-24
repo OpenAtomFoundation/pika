@@ -124,15 +124,16 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactKey };
+enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactRange };
 
 struct BGTask {
   DataType type;
   Operation operation;
-  std::string argv;
+  std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
-      : type(_type), operation(_opeation), argv(std::move(_argv)) {}
+  BGTask(const DataType& _type = DataType::kAll,
+         const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {}) : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
@@ -1011,8 +1012,9 @@ class Storage {
   Status AddBGTask(const BGTask& bg_task);
 
   Status Compact(const DataType& type, bool sync = false);
+  Status CompactRange(const DataType& type, const std::string& start, const std::string& end, bool sync = false);
   Status DoCompact(const DataType& type);
-  Status CompactKey(const DataType& type, const std::string& key);
+  Status DoCompactRange(const DataType& type, const std::string& start, const std::string& end);
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
