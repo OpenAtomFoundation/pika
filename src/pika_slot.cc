@@ -111,7 +111,10 @@ void Slot::Init() {
   // Create cache
   cache::CacheConfig cache_cfg;
   g_pika_server->CacheConfigInit(cache_cfg);
-  cache->Init(g_pika_conf->GetCacheNum(), &cache_cfg);
+  rocksdb::Status ret = cache->Init(g_pika_conf->GetCacheNum(), &cache_cfg);
+  assert(cache_);
+  assert(ret.ok());
+  LOG(INFO) << "Cache Success";
   cache_ = std::move(cache);
 }
 
