@@ -103,7 +103,8 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
   }
 
   auto* args = new UnblockTaskArgs(key, std::move(slot), dispatchThread);
-  g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args);
+  bool is_slow_cmd = g_pika_conf->is_slow_cmd("LPOP") || g_pika_conf->is_slow_cmd("RPOP");
+  g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args, is_slow_cmd);
 }
 void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto bg_args = std::unique_ptr<UnblockTaskArgs>(static_cast<UnblockTaskArgs*>(args));

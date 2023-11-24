@@ -89,6 +89,7 @@ PikaServer::PikaServer()
   pika_migrate_thread_ = std::make_unique<PikaMigrateThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
+  pika_low_level_thread_pool_ = std::make_unique<net::ThreadPool>(g_pika_conf->low_level_thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
 }
@@ -98,7 +99,7 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-
+  pika_low_level_thread_pool_->stop_thread_pool();
   {
     std::lock_guard l(slave_mutex_);
     auto iter = slaves_.begin();
@@ -158,6 +159,12 @@ void PikaServer::Start() {
   if (ret != net::kSuccess) {
     dbs_.clear();
     LOG(FATAL) << "Start PikaClientProcessor Error: " << ret
+               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  ret = pika_low_level_thread_pool_->start_thread_pool();
+  if (ret != net::kSuccess) {
+    dbs_.clear();
+    LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
@@ -843,7 +850,13 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg) { pika_client_processor_->SchedulePool(func, arg); }
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
+  if(is_slow_cmd) {
+    pika_low_level_thread_pool_->Schedule(func, arg);
+    return;
+  }
+  pika_client_processor_->SchedulePool(func, arg);
+}
 
 void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str) {
   pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
@@ -861,6 +874,24 @@ size_t PikaServer::ClientProcessorThreadPoolMaxQueueSize() {
     return 0;
   }
   return pika_client_processor_->ThreadPoolMaxQueueSize();
+}
+
+size_t PikaServer::LowLevelThreadPoolCurQueueSize() {
+  if (!pika_low_level_thread_pool_) {
+    return 0;
+  }
+  size_t cur_size = 0;
+  pika_low_level_thread_pool_->cur_queue_size(&cur_size);
+  return cur_size;
+}
+
+size_t PikaServer::LowLevelThreadPoolMaxQueueSize() {
+  if (!pika_low_level_thread_pool_) {
+    return 0;
+  }
+  size_t max_size = 0;
+  max_size = pika_low_level_thread_pool_->max_queue_size();
+  return max_size;
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
@@ -1509,6 +1540,14 @@ void PikaServer::PrintThreadPoolQueueStatus() {
     size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
     if (cur_size > thread_hold) {
       LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
+    }
+
+    // Print the current low level queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
+    size_t low_level_queue_cur_size = LowLevelThreadPoolCurQueueSize();
+    size_t low_level_queue_max_size = LowLevelThreadPoolMaxQueueSize();
+    size_t low_level_queue_thread_hold = (low_level_queue_max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
+    if (low_level_queue_cur_size > low_level_queue_thread_hold) {
+      LOG(INFO) << "The current queue size of the Pika Server's low level thread pool: " << low_level_queue_cur_size;
     }
 }
 

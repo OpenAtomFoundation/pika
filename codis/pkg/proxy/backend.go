@@ -465,7 +465,6 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool, is
 		return nil
 	}
 
-	//  后端只有一个连接，不区分快慢命令
 	if s.single != nil {
 		bc := s.single[database]
 		if must || bc.IsConnected() {
@@ -474,29 +473,18 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool, is
 		return nil
 	}
 
-	// 每个db的并发度是相同的
 	var parallel = s.conns[database]
 	var i = seed
 
-	//for range parallel {
-	//	i = (i + 1) % uint(len(parallel))
-	//	if bc := parallel[i]; bc.IsConnected() {
-	//		return bc
-	//	}
-	//}
-
-	//快慢命令区分的原理是，对于类型的命令，使用不同的连接通道
 	if quick := s.owner.quick; quick > 0 {
 		if isQuick {
 			i = seed % uint(quick)
 			if bc := parallel[i]; bc.IsConnected() {
-				log.Warnf("BackendConn: find quick bc[%d]", i)
 				return bc
 			}
 		} else {
-			i = seed%uint(len(parallel)-quick) + uint(quick)
+			i = uint(quick) + seed%uint(len(parallel)-quick)
 			if bc := parallel[i]; bc.IsConnected() {
-				log.Warnf("BackendConn: find slow bc[%d]", i)
 				return bc
 			}
 		}

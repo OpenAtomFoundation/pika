@@ -236,11 +236,13 @@ class PikaServer : public pstd::noncopyable {
   /*
    * PikaClientProcessor Process Task
    */
-  void ScheduleClientPool(net::TaskFunc func, void* arg);
+  void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd);
   void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
   size_t ClientProcessorThreadPoolMaxQueueSize();
+  size_t LowLevelThreadPoolCurQueueSize();
+  size_t LowLevelThreadPoolMaxQueueSize();
 
   /*
    * BGSave used
@@ -555,6 +557,7 @@ class PikaServer : public pstd::noncopyable {
    */
   int worker_num_ = 0;
   std::unique_ptr<PikaClientProcessor> pika_client_processor_;
+  std::unique_ptr<net::ThreadPool> pika_low_level_thread_pool_;
   std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
   /*

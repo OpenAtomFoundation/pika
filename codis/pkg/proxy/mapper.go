@@ -48,18 +48,7 @@ func (f OpFlag) IsMasterOnly() bool {
 }
 
 func (f OpFlag) IsQuick() bool {
-	const mask = FlagSureSlow | FlagMaySlow
-	return (f & mask) == 0
-}
-
-func (f OpFlag) IsSureQuick() bool {
-	const mask = FlagSureQuick
-	return (f & mask) != 0
-}
-
-func (f OpFlag) IsMayQuick() bool {
-	const mask = FlagMayQuick
-	return (f & mask) != 0
+	return (f & FlagQuick) != 0
 }
 
 type OpInfo struct {
@@ -72,13 +61,13 @@ const (
 	FlagMasterOnly
 	FlagMayWrite
 	FlagNotAllow
-	FlagSureQuick //16
-	FlagMayQuick  //32
-	FlagSureSlow  //64
-	FlagMaySlow
+	FlagQuick
+	FlagSlow
 )
 
 var opTable = make(map[string]OpInfo, 256)
+
+var cmdsFlag sync.RWMutex
 
 func init() {
 	for _, i := range []OpInfo{
@@ -369,14 +358,12 @@ func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
 	return index
 }
 
-var cmdsflag sync.RWMutex
-
 func setQuickCmdList(cmdlist string) error {
-	cmdsflag.Lock()
-	defer cmdsflag.Unlock()
+	cmdsFlag.Lock()
+	defer cmdsFlag.Unlock()
 
 	for _, r := range opTable {
-		r.Flag = r.Flag &^ FlagSureQuick
+		r.Flag = r.Flag &^ FlagQuick
 		opTable[r.Name] = r
 	}
 	if cmdlist == "" {
@@ -387,30 +374,27 @@ func setQuickCmdList(cmdlist string) error {
 	for i := 0; i < len(cmds); i++ {
 		if r, ok := opTable[strings.TrimSpace(cmds[i])]; ok {
 			log.Infof("before setQuickCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
-			if r.Flag&FlagSureSlow == 0 {
-				r.Flag = r.Flag &^ FlagMayQuick
-				r.Flag = r.Flag &^ FlagMaySlow
-				r.Flag = r.Flag | FlagSureQuick
+			if r.Flag&FlagSlow == 0 {
+				r.Flag = r.Flag | FlagQuick
 				opTable[strings.TrimSpace(cmds[i])] = r
 				log.Infof("after setQuickCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
 			} else {
-				log.Warnf("cmd[%s] is FlagSureSlow command.", cmds[i])
-				return errors.Errorf("cmd[%s] is FlagSureSlow command.", cmds[i])
+				log.Warnf("cmd[%s] is FlagSlow command.", cmds[i])
+				return errors.Errorf("cmd[%s] is FlagSlow command.", cmds[i])
 			}
 		} else {
-			log.Warnf("cant find [%s] command.", cmds[i])
-			return errors.Errorf("cant find [%s] command.", cmds[i])
+			log.Warnf("can not find [%s] command.", cmds[i])
+			return errors.Errorf("can not find [%s] command.", cmds[i])
 		}
 	}
-
 	return nil
 }
 
 func setSlowCmdList(cmdlist string) error {
-	cmdsflag.Lock()
-	defer cmdsflag.Unlock()
+	cmdsFlag.Lock()
+	defer cmdsFlag.Unlock()
 	for _, r := range opTable {
-		r.Flag = r.Flag &^ FlagSureSlow
+		r.Flag = r.Flag &^ FlagSlow
 		opTable[r.Name] = r
 	}
 
@@ -423,77 +407,36 @@ func setSlowCmdList(cmdlist string) error {
 	for i := 0; i < len(cmds); i++ {
 		if r, ok := opTable[strings.TrimSpace(cmds[i])]; ok {
 			log.Infof("before setSlowCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
-			if r.Flag&FlagSureQuick == 0 {
-				r.Flag = r.Flag &^ FlagMayQuick
-				r.Flag = r.Flag &^ FlagMaySlow
-				r.Flag = r.Flag | FlagSureSlow
+			if r.Flag&FlagQuick == 0 {
+				r.Flag = r.Flag | FlagSlow
 				opTable[strings.TrimSpace(cmds[i])] = r
 				log.Infof("after setSlowCmdList: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
 			} else {
-				log.Warnf("cmd[%s] is FlagSureQuick command.", cmds[i])
-				return errors.Errorf("cmd[%s] is FlagSureQuick command.", cmds[i])
+				log.Warnf("cmd[%s] is FlagQuick command.", cmds[i])
+				return errors.Errorf("cmd[%s] is FlagQuick command.", cmds[i])
 			}
 		} else {
-			log.Warnf("cant find [%s] command.", cmds[i])
-			return errors.Errorf("cant find [%s] command.", cmds[i])
+			log.Warnf("can not find [%s] command.", cmds[i])
+			return errors.Errorf("can not find [%s] command.", cmds[i])
 		}
 	}
-
-	return nil
-}
-
-func setMaySlowOpFlag(op string) error {
-	cmdsflag.RLock()
-	defer cmdsflag.RUnlock()
-	const mask = FlagSureQuick | FlagSureSlow
-	if r, ok := opTable[strings.ToUpper(op)]; ok {
-		if r.Flag&mask == 0 {
-			r.Flag = r.Flag | FlagMaySlow
-		}
-	} else {
-		return errors.Errorf("cant find %s.", op)
-	}
-
-	return nil
-}
-
-func clearMaySlowOpFlag(op string) error {
-	cmdsflag.RLock()
-	defer cmdsflag.RUnlock()
-	const mask = FlagSureQuick | FlagSureSlow
-	if r, ok := opTable[strings.ToUpper(op)]; ok {
-		if r.Flag&mask == 0 {
-			r.Flag = r.Flag &^ FlagMaySlow
-		}
-	} else {
-		return errors.Errorf("cant find %s.", op)
-	}
-
 	return nil
 }
 
 func getCmdFlag() *redis.Resp {
 	var array = make([]*redis.Resp, 0, 32)
-	const mask = FlagSureQuick | FlagMayQuick | FlagSureSlow | FlagMaySlow
+	const mask = FlagQuick | FlagSlow
 
 	for _, r := range opTable {
 		if r.Flag&mask != 0 {
 			retStr := r.Name + " : Flag[" + strconv.Itoa(int(r.Flag)) + "]"
 
-			if r.Flag&FlagSureQuick != 0 {
-				retStr += ", FlagSureQuick"
+			if r.Flag&FlagQuick != 0 {
+				retStr += ", FlagQuick"
 			}
 
-			if r.Flag&FlagMayQuick != 0 {
-				retStr += ", FlagMayQuick"
-			}
-
-			if r.Flag&FlagSureSlow != 0 {
-				retStr += ", FlagSureSlow"
-			}
-
-			if r.Flag&FlagMaySlow != 0 {
-				retStr += ", FlagMaySlow"
+			if r.Flag&FlagSlow != 0 {
+				retStr += ", FlagSlow"
 			}
 
 			array = append(array, redis.NewBulkBytes([]byte(retStr)))

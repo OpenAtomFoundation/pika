@@ -105,9 +105,9 @@ session_break_on_failure = false
 slowlog_log_slower_than = 100000
 
 # quick command list
-quick_cmd_list = "get,set"
+quick_cmd_list = ""
 # slow command list
-slow_cmd_list = "mget, mset"
+slow_cmd_list = ""
 
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""

@@ -597,6 +597,30 @@ std::vector<std::string>& StringSplit(const std::string& s, char delim, std::vec
   return elems;
 }
 
+void StringSplit2Map(const std::string& s, char delim, std::unordered_map<std::string, std::string>& elems) {
+  elems.clear();
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, delim)) {
+    item = pstd::StringTrim(item);
+    if (!item.empty()) {
+      elems[item] = "";
+    }
+  }
+}
+
+std::string Map2String(const std::unordered_map<std::string, std::string>& elems, char delim) {
+  std::string value;
+  for (const auto &e : elems) {
+    value.append(e.first);
+    value.append(1, delim);
+  }
+  if (!value.empty()) {
+    value.resize(value.size() - 1);
+  }
+  return value;
+}
+
 std::string StringConcat(const std::vector<std::string>& elems, char delim) {
   std::string result;
   auto it = elems.begin();

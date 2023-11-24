@@ -1375,6 +1375,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->thread_pool_size());
   }
 
+  if (pstd::stringmatch(pattern.data(), "low-level-thread-pool-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "low-level-thread-pool-size");
+    EncodeNumber(&config_body, g_pika_conf->low_level_thread_pool_size());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "slow-cmd-list");
+    EncodeString(&config_body, g_pika_conf->GetSlowCmd());
+  }
+
   if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
@@ -1876,7 +1888,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*28\r\n";
+    ret = "*29\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1901,6 +1913,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "compact-interval");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
+    EncodeString(&ret, "slow-cmd-list");
     // Options for storage engine
     // MutableDBOptions
     EncodeString(&ret, "max-cache-files");
@@ -2129,7 +2142,10 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetSyncWindowSize(static_cast<int>(ival));
     ret = "+OK\r\n";
-  } else if (set_item == "max-cache-files") {
+  } else if (set_item == "slow-cmd-list") {
+    g_pika_conf->SetSlowCmd(value);
+    ret = "+OK\r\n";
+  }else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-files'\r\n";
       return;
