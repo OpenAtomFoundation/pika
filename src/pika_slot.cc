@@ -107,11 +107,12 @@ std::shared_ptr<storage::Storage> Slot::db() const { return db_; }
 std::shared_ptr<PikaCache> Slot::cache() const { return cache_; }
 
 void Slot::Init() {
-  cache_ = std::make_shared<PikaCache>(g_pika_conf->zset_cache_start_pos(), g_pika_conf->zset_cache_field_num_per_key(), shared_from_this());
+  auto cache = std::make_shared<PikaCache>(g_pika_conf->zset_cache_start_pos(), g_pika_conf->zset_cache_field_num_per_key(), shared_from_this());
   // Create cache
   cache::CacheConfig cache_cfg;
   g_pika_server->CacheConfigInit(cache_cfg);
-  cache_->Init(g_pika_conf->GetCacheNum(), &cache_cfg);
+  cache->Init(g_pika_conf->GetCacheNum(), &cache_cfg);
+  cache_ = std::move(cache);
 }
 
 void Slot::Compact(const storage::DataType& type) {
