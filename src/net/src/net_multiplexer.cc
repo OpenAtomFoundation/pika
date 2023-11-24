@@ -67,7 +67,7 @@ bool NetMultiplexer::Register(const NetItem& it, bool force) {
   notify_queue_protector_.unlock();
   if (success) {
     ssize_t n = write(notify_send_fd_, "", 1);
-    void(n);
+    (void)(n);
   }
   return success;
 }

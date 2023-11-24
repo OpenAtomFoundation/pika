@@ -133,7 +133,7 @@ int PubSubThread::Publish(const std::string& channel, const std::string& msg) {
   message_ = msg;
   // Send signal to ThreadMain()
   ssize_t n = write(msg_pfd_[1], "", 1);
-  void(n);
+  (void)(n);
   std::unique_lock lock(receiver_mutex_);
   receiver_rsignal_.wait(lock, [this]() { return receivers_ != -1; });
 
@@ -347,7 +347,7 @@ void* PubSubThread::ThreadMain() {
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {  // New connection comming
         if (pfe->mask & kReadable) {
           ssize_t n = read(net_multiplexer_->NotifyReceiveFd(), triger, 1);
-          void(n);
+          (void)(n);
           {
             NetItem ti = net_multiplexer_->NotifyQueuePop();
             if (ti.notify_type() == kNotiClose) {
@@ -368,7 +368,7 @@ void* PubSubThread::ThreadMain() {
       if (pfe->fd == msg_pfd_[0]) {  // Publish message
         if (pfe->mask & kReadable) {
           ssize_t n = read(msg_pfd_[0], triger, 1);
-          void(n);
+          (void)(n);
           std::string channel;
           std::string msg;
           int32_t receivers = 0;
