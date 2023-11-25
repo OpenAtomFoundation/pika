@@ -54,6 +54,7 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
+const std::string kCmdNameLastsave = "lastsave";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
@@ -535,6 +536,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::weak_ptr<std::string> resp_;
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
+
+  struct timeval bgSaveTimeTv;
 
  private:
   virtual void DoInitial() = 0;
