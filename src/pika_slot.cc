@@ -379,7 +379,7 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
-  Cmd::UpdateLastSave();
+  PikaServer::UpdateLastSave();
   return true;
 }
 

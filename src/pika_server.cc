@@ -28,6 +28,7 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/storage/db_checkpoint.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -91,6 +92,8 @@ PikaServer::PikaServer()
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
+  int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
+  UpdateLastSave(lastsave);
 }
 
 PikaServer::~PikaServer() {
@@ -1743,6 +1746,18 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   // Start new thread if needed
   bgslots_cleanup_thread_.StartThread();
   bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
+}
+int64_t PikaServer::GetLastSaveTime(const std::string& dir_path) {
+  std::vector<std::string> dump_dir;
+  if (pstd::GetChildren(dir_path, dump_dir) != 0) {
+    return 0;
+  }
+  std::string dump_file = dir_path + dump_dir[0];
+  struct stat fileStat;
+  if (stat(dump_file.c_str(), &fileStat) == 0) {
+    return static_cast<int64_t>(fileStat.st_mtime);
+  }
+  return 0;
 }
 
 void DoBgslotscleanup(void* arg) {

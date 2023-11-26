@@ -2421,7 +2421,7 @@ void LastsaveCmd::DoInitial() {
 }
 
 void LastsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  __time_t lastsave_time = Cmd::GetLastSave();
+  __time_t lastsave_time = PikaServer::GetLastSave();
   res_.AppendInteger(static_cast<int64_t>(lastsave_time));
 }
 

@@ -495,6 +495,20 @@ class PikaServer : public pstd::noncopyable {
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
 
+  /*
+   * lastsave used
+   */
+  static __time_t GetLastSave() {
+    return lastsave_;
+  }
+
+  static void UpdateLastSave() {
+    lastsave_ = time(nullptr);
+  }
+
+  static void UpdateLastSave(int64_t lsTime) {
+    lastsave_ = static_cast<__time_t>(lsTime);
+  }
 
   /*
    * StorageOptions used
@@ -536,6 +550,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  static int64_t GetLastSaveTime(const std::string& dump_dir);
   
   std::string host_;
   int port_ = 0;
@@ -592,6 +607,11 @@ class PikaServer : public pstd::noncopyable {
    * Bgsave used
    */
   net::BGThread bgsave_thread_;
+
+  /*
+   * lastsave used
+   */
+  static __time_t lastsave_;
 
   /*
    * Purgelogs use
