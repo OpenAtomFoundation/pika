@@ -360,6 +360,7 @@ class PikaConf : public pstd::BaseConf {
   std::string acl_file() { return aclFile_; };
 
   uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(); }
+  uint32_t acl_log_max_len() { return acl_Log_max_len_.load(); }
 
   // Setter
   void SetPort(const int value) {
@@ -599,6 +600,11 @@ class PikaConf : public pstd::BaseConf {
       acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
     }
   }
+  void SetAclLogMaxLen(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("acllog-max-len", std::to_string(value));
+    acl_Log_max_len_ = value;
+  }
 
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
   //  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
@@ -705,6 +711,7 @@ class PikaConf : public pstd::BaseConf {
   std::string aclFile_;
 
   std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
+  std::atomic<uint32_t> acl_Log_max_len_ = 0;      // default acl log max len
 
   // diff commands between cached commands and config file commands
   std::map<std::string, std::string> diff_commands_;

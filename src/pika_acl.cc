@@ -134,8 +134,7 @@ void PikaAclCmd::DryRun() {
   }
 
   int8_t subCmdIndex = -1;
-  int32_t index = 0;
-  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex, index);
+  AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex, nullptr);
 
   switch (checkRes) {
     case AclDeniedCmd::OK:
@@ -228,7 +227,7 @@ void PikaAclCmd::Log() {
   }
 
   long count = 0;
-  if (argv_[2] == "reset") {
+  if (!strcasecmp(argv_[2].data(), "reset")) {
     g_pika_server->Acl()->ResetLog();
     res().SetRes(CmdRes::kOk);
     return;

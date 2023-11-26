@@ -56,6 +56,9 @@ class PubSubThread : public Thread {
   // Move into pubsub thread
   void MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type);
 
+  void ConnCanSubscribe(const std::vector<std::string>& allChannel,
+                        const std::function<bool(const std::shared_ptr<NetConn>&)>& func);
+
   enum ReadyState {
     kNotReady,
     kReady,
@@ -77,6 +80,7 @@ class PubSubThread : public Thread {
 
  private:
   void RemoveConn(const std::shared_ptr<NetConn>& conn);
+  void CloseConn(const std::shared_ptr<NetConn>& conn);
 
   int ClientChannelSize(const std::shared_ptr<NetConn>& conn);
 

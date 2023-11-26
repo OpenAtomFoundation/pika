@@ -21,8 +21,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
-#include "include/pika_transaction.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_transaction.h"
 #include "include/pika_zset.h"
 
 using pstd::Status;
@@ -770,20 +770,20 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Transaction
   ////Multi
   std::unique_ptr<Cmd> multiptr =
-      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsMultiSlot);
+      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
   ////Exec
-  std::unique_ptr<Cmd> execptr =
-      std::make_unique<ExecCmd>(kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSuspend);
+  std::unique_ptr<Cmd> execptr = std::make_unique<ExecCmd>(
+      kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSuspend | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
   ////Discard
-  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead);
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
   ////Watch
-  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead);
+  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameWatch, std::move(watchptr)));
   ////Unwatch
-  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead);
+  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnWatch, std::move(unwatchptr)));
 }
 
@@ -811,9 +811,7 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
 
 std::vector<std::string> Cmd::current_key() const { return {}; }
 
-void Cmd::Execute() {
-  ProcessSingleSlotCmd();
-}
+void Cmd::Execute() { ProcessSingleSlotCmd(); }
 
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
@@ -960,12 +958,6 @@ void Cmd::ProcessMultiSlotCmd() {
   if (current_stage == kNone || current_stage == kExecuteStage) {
     Merge();
   }
-}
-
-void Cmd::ProcessDoNotSpecifySlotCmd() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
 }
 
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) {

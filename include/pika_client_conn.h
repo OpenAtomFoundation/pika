@@ -64,22 +64,6 @@ class PikaClientConn : public net::RedisConn {
     static constexpr uint8_t Execing = 3;
   };
 
-  // Auth related
-  class AuthStat {
-   public:
-    void Init();
-    bool IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr);
-    bool ChecknUpdate(const std::string& message);
-
-   private:
-    enum StatType {
-      kNoAuthed = 0,
-      kAdminAuthed,
-      kLimitAuthed,
-    };
-    StatType stat_;
-  };
-
   PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
   ~PikaClientConn() = default;

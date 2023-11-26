@@ -1744,6 +1744,16 @@ void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {
   pika_dispatch_thread_->UnAuthUserAndKillClient(users, acl_->GetUserLock(Acl::DefaultUser));
 }
 
+void PikaServer::CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel) {
+  pika_pubsub_thread_->ConnCanSubscribe(allChannel, [&](const std::shared_ptr<net::NetConn>& conn) -> bool {
+    auto pikaConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+    if (pikaConn && pikaConn->UserName() == userName) {
+      return true;
+    }
+    return false;
+  });
+}
+
 void DoBgslotscleanup(void* arg) {
   auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();

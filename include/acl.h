@@ -122,7 +122,12 @@ class ACLLogEntry {
   std::string cinfo_;
 };
 
+class User;
+class Acl;
+
 class AclSelector {
+  friend User;
+
  public:
   explicit AclSelector() : AclSelector(0){};
   explicit AclSelector(uint32_t flag);
@@ -133,7 +138,9 @@ class AclSelector {
   inline bool HasFlags(uint32_t flag) const { return flags_ & flag; };
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
+  bool EqualChannel(const std::vector<std::string> &allChannel);
 
+ private:
   pstd::Status SetSelector(const std::string& op);
 
   pstd::Status SetSelectorFromOpSet(const std::string& opSet);
@@ -143,9 +150,8 @@ class AclSelector {
   void ACLDescribeSelector(std::vector<std::string>& vector);
 
   AclDeniedCmd CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex, const std::vector<std::string>& keys,
-                               int32_t& errIndex);
+                               std::string* errKey);
 
- private:
   bool SetSelectorCommandBitsForCategory(const std::string& categoryName, bool allow);
   void SetAllCommandSelector();
   void RestAllCommandSelector();
@@ -209,9 +215,13 @@ class AclSelector {
 
 // acl user
 class User {
+  friend Acl;
+
  public:
   User() = delete;
   explicit User(std::string name);
+  explicit User(const User& user);
+  ~User() = default;
 
   std::string Name() const;
 
@@ -224,28 +234,38 @@ class User {
 
   /**
    * store a password
+   * A lock is required before the call
    * @param password
    */
   void AddPassword(const std::string& password);
 
   /**
    * delete a stored password
+   * A lock is required before the call
    * @param password
    */
   void RemovePassword(const std::string& password);
 
+  // clean the user password
+  // A lock is required before the call
   void CleanPassword();
 
+  // Add a selector to the user
+  // A lock is required before the call
   void AddSelector(const std::shared_ptr<AclSelector>& selector);
 
   // Set rule for user based on given parameters
   // Use this function to handle it because it allows locking specified users
   pstd::Status SetUser(const std::vector<std::string>& rules);
 
+  // Set the user rule with the given string
+  // A lock is required before the call
   pstd::Status SetUser(const std::string& op);
 
   pstd::Status CreateSelectorFromOpSet(const std::string& opSet);
 
+  // Get the user default selector
+  // A lock is required before the call
   std::shared_ptr<AclSelector> GetRootSelector();
 
   void DescribeUser(std::string* str);
@@ -257,24 +277,28 @@ class User {
   // handle Cmd Acl|get
   void GetUserDescribe(CmdRes* res);
 
+  // Get the user Channel key
+  // A lock is required before the call
+  std::vector<std::string> AllChannelKey();
+
   // check the user can exec the cmd
   AclDeniedCmd CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex,
-                                   int32_t& errIndex);
+                                   std::string* errKey);
 
  private:
   mutable std::shared_mutex mutex_;
 
-  std::string name_;                                                            // The username
+  const std::string name_;  // The username
 
   std::atomic<uint32_t> flags_ = static_cast<uint32_t>(AclUserFlag::DISABLED);  // See USER_FLAG_*
 
-  std::set<std::string> passwords_;                                             // passwords for this user
+  std::set<std::string> passwords_;  // passwords for this user
 
   std::list<std::shared_ptr<AclSelector>> selectors_; /* A set of selectors this user validates commands
                         against. This list will always contain at least
                         one selector for backwards compatibility. */
 
-  std::string aclString_;                             /* cached string represent of ACLs */
+  std::string aclString_; /* cached string represent of ACLs */
 };
 
 class Acl {
@@ -340,6 +364,9 @@ class Acl {
   pstd::Status LoadUserFromFile(std::set<std::string>* toUnAuthUsers);
 
   void UpdateDefaultUserPassword(const std::string& pass);
+
+  // After the user channel is modified, determine whether the current channel needs to be disconnected
+  void KillPubsubClientsIfNeeded(const std::shared_ptr<User>& origin, const std::shared_ptr<User>& newUser);
 
   // check the user can be exec the command, after exec command
   //  bool CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv);

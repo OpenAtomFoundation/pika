@@ -17,9 +17,17 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 // class User
-
 User::User(std::string name) : name_(std::move(name)) {
   selectors_.emplace_back(std::make_shared<AclSelector>(static_cast<uint32_t>(AclSelectorFlag::ROOT)));
+}
+
+User::User(const User& user) : name_(user.Name()) {
+  flags_ = user.flags_.load();
+  passwords_ = user.passwords_;
+  aclString_ = user.aclString_;
+  for (const auto& item : user.selectors_) {
+    selectors_.emplace_back(std::make_shared<AclSelector>(*item));
+  }
 }
 
 std::string User::Name() const { return name_; }
@@ -97,7 +105,7 @@ pstd::Status User::SetUser(const std::string& op) {
   } else if (!strcasecmp(op.data(), "clearselectors")) {
     selectors_.clear();
     return pstd::Status::OK();
-  } else if (op == "reset") {
+  } else if (!strcasecmp(op.data(), "reset")) {
     auto status = SetUser("resetpass");
     if (!status.ok()) {
       return status;
@@ -247,12 +255,12 @@ void User::GetUserDescribe(CmdRes* res) {
 }
 
 AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv, int8_t& subCmdIndex,
-                                       int32_t& errIndex) {
+                                       std::string* errKey) {
   std::shared_lock l(mutex_);
 
-  if (HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
-    return AclDeniedCmd::NO_AUTH;
-  }
+  //  if (HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
+  //    return AclDeniedCmd::NO_AUTH;
+  //  }
   subCmdIndex = -1;
   if (cmd->HasSubCommand()) {
     subCmdIndex = cmd->SubCmdIndex(argv[1]);
@@ -263,12 +271,22 @@ AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdA
   auto keys = cmd->current_key();
   AclDeniedCmd res = AclDeniedCmd::OK;
   for (const auto& selector : selectors_) {
-    res = selector->CheckCanExecCmd(cmd, subCmdIndex, keys, errIndex);
+    res = selector->CheckCanExecCmd(cmd, subCmdIndex, keys, errKey);
     if (res == AclDeniedCmd::OK) {
       return AclDeniedCmd::OK;
     }
   }
   return res;
+}
+
+std::vector<std::string> User::AllChannelKey() {
+  std::vector<std::string> result;
+  for (const auto& selector : selectors_) {
+    for (const auto& item : selector->channels_) {
+      result.emplace_back(item);
+    }
+  }
+  return result;
 }
 // class User end
 
@@ -472,10 +490,13 @@ std::shared_ptr<User> Acl::CreatedUser(const std::string& name) { return std::ma
 pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>& op) {
   auto user = GetUserLock(userName);
 
+  std::shared_ptr<User> tempUser = nullptr;
   bool add = false;
   if (!user) {  // if the user not exist, create new user
     user = CreatedUser(userName);
     add = true;
+  } else {
+    tempUser = std::make_shared<User>(*user);
   }
 
   std::vector<std::string> aclArgc;
@@ -489,11 +510,35 @@ pstd::Status Acl::SetUser(const std::string& userName, std::vector<std::string>&
   if (add) {
     AddUserLock(user);
   } else {
-    if (user->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
-      g_pika_server->AllClientUnAuth({userName});
-    }
+    KillPubsubClientsIfNeeded(tempUser, user);
   }
   return pstd::Status::OK();
+}
+
+void Acl::KillPubsubClientsIfNeeded(const std::shared_ptr<User>& origin, const std::shared_ptr<User>& newUser) {
+  std::shared_lock l(mutex_);
+  bool match = true;
+  for (const auto& newUserSelector : newUser->selectors_) {
+    if (newUserSelector->HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS))) {  // new user has all channels
+      return;
+    }
+  }
+  auto newChKey = newUser->AllChannelKey();
+
+  for (const auto& selector : origin->selectors_) {
+    if (selector->HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS))) {
+      match = false;
+      break;
+    }
+    if (!selector->EqualChannel(newChKey)) {
+      match = false;
+      break;
+    }
+  }
+  if (match) {
+    return;
+  }
+  g_pika_server->CheckPubsubClientKill(newUser->Name(), newChKey);
 }
 
 uint32_t Acl::GetCommandCategoryFlagByName(const std::string& name) {
@@ -698,6 +743,15 @@ void Acl::AddLogEntry(int32_t reason, int32_t context, const std::string& userna
     }
     auto entry = std::make_unique<ACLLogEntry>(reason, context, object, username, nowUnix, cInfo);
     logEntries_.push_front(std::move(entry));
+
+    auto maxLen = g_pika_conf->acl_log_max_len();
+    if (logEntries_.size() > maxLen) {  // remove overflow log
+      if (maxLen == 0) {
+        logEntries_.clear();
+      } else {
+        logEntries_.erase(std::next(logEntries_.begin(), maxLen), logEntries_.end());
+      }
+    }
   }
 }
 
@@ -786,8 +840,8 @@ void ACLLogEntry::GetReplyInfo(std::vector<std::string>* vector) {
   }
 
   vector->emplace_back("context");
-  vector->emplace_back(std::to_string(context_));
-  switch (reason_) {
+  //  vector->emplace_back(std::to_string(context_));
+  switch (context_) {
     case static_cast<int32_t>(AclLogCtx::TOPLEVEL):
       vector->emplace_back("toplevel");
       break;
@@ -1127,7 +1181,7 @@ void AclSelector::ACLDescribeSelector(std::vector<std::string>& vector) {
 }
 
 AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subCmdIndex,
-                                          const std::vector<std::string>& keys, int32_t& errIndex) {
+                                          const std::vector<std::string>& keys, std::string* errKey) {
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_COMMANDS)) && !(cmd->flag() & kCmdFlagsNoAuth)) {
     if (subCmdIndex < 0) {
       if (!allowedCommands_.test(cmd->GetCmdId())) {
@@ -1141,31 +1195,40 @@ AclDeniedCmd AclSelector::CheckCanExecCmd(std::shared_ptr<Cmd>& cmd, int8_t subC
   }
 
   // key match
-  int32_t index = 0;
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_KEYS)) && !keys.empty() && !cmd->hasFlag(kCmdFlagsPubSub)) {
     for (const auto& key : keys) {
       // if the key is empty, skip, because some command keys for write categories are empty
       if (!key.empty() && !CheckKey(key, cmd->flag())) {
-        errIndex = index;
+        if (errKey) {
+          *errKey = key;
+        }
         return AclDeniedCmd::KEY;
       }
-      ++index;
     }
   }
 
   // channel match
-  index = 0;
   if (!HasFlags(static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS)) && cmd->hasFlag(kCmdFlagsPubSub)) {
     bool isPattern = cmd->name() == kCmdNamePSubscribe || cmd->name() == kCmdNamePUnSubscribe;
     for (const auto& key : keys) {
       if (!CheckChannel(key, isPattern)) {
-        errIndex = index;
+        if (errKey) {
+          *errKey = key;
+        }
         return AclDeniedCmd::CHANNEL;
       }
-      ++index;
     }
   }
   return AclDeniedCmd::OK;
+}
+
+bool AclSelector::EqualChannel(const std::vector<std::string>& allChannel) {
+  for (const auto& item : channels_) {
+    if (std::count(allChannel.begin(), allChannel.end(), item) == 0) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void AclSelector::DescribeSelectorCommandRules(std::string* str) {
@@ -1261,7 +1324,7 @@ void AclSelector::RemoveCommonRule(const std::string& rule) {
 
     if (start > 0) {  // the rule not included '-'/'+', but need delete need
       --start;
-      ++delNum;       // star position moved one forward So delNum takes +1
+      ++delNum;  // star position moved one forward So delNum takes +1
     }
 
     commandRules_.erase(start, delNum);

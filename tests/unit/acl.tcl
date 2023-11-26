@@ -158,18 +158,18 @@ start_server {tags {"acl external:skip"}} {
         set e
     } {*NOPERM*channel*}
 
-#    test {In transaction queue publish/subscribe/psubscribe to unauthorized channel will fail} {
-#        r ACL setuser psuser +multi +discard
-#        r MULTI
-#        assert_error {*NOPERM*channel*} {r PUBLISH notexits helloworld}
-#        r DISCARD
-#        r MULTI
-#        assert_error {*NOPERM*channel*} {r SUBSCRIBE notexits foo:1}
-#        r DISCARD
-#        r MULTI
-#        assert_error {*NOPERM*channel*} {r PSUBSCRIBE notexits:* bar:*}
-#        r DISCARD
-#    }
+    test {In transaction queue publish/subscribe/psubscribe to unauthorized channel will fail} {
+        r ACL setuser psuser +multi +discard
+        r MULTI
+        assert_error {*NOPERM*channel*} {r PUBLISH notexits helloworld}
+        r DISCARD
+        r MULTI
+        assert_error {*NOPERM*channel*} {r SUBSCRIBE notexits foo:1}
+        r DISCARD
+        r MULTI
+        assert_error {*NOPERM*channel*} {r PSUBSCRIBE notexits:* bar:*}
+        r DISCARD
+    }
 
     test {It's possible to allow subscribing to a subset of channels} {
         set rd [redis_deferring_client]
@@ -637,22 +637,22 @@ start_server {tags {"acl external:skip"}} {
 #         assert {$new_error_entry_id eq $entry_id_lastest_error + 1 }
 #    }
 #
-#    test {ACL LOG shows failed command executions at toplevel} {
-#        r ACL LOG RESET
-#        r ACL setuser antirez >foo on +set ~object:1234
-#        r ACL setuser antirez +eval +multi +exec
-#        r ACL setuser antirez resetchannels +publish
-#        r AUTH antirez foo
-#        assert_error "*NOPERM*get*" {r GET foo}
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry username] eq {antirez}}
-#        assert {[dict get $entry context] eq {toplevel}}
-#        assert {[dict get $entry reason] eq {command}}
-#        assert {[dict get $entry object] eq {get}}
-#        assert_match {*cmd=get*} [dict get $entry client-info]
-#    }
-#
+    test {ACL LOG shows failed command executions at toplevel} {
+        r ACL LOG RESET
+        r ACL setuser antirez >foo on +set ~object:1234
+        r ACL setuser antirez +multi +exec
+        r ACL setuser antirez resetchannels +publish
+        r AUTH antirez foo
+        assert_error "*NOPERM*get*" {r GET foo}
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry username] eq {antirez}}
+        assert {[dict get $entry context] eq {toplevel}}
+        assert {[dict get $entry reason] eq {command}}
+        assert {[dict get $entry object] eq {get}}
+        assert_match {*cmd=get*} [dict get $entry client-info]
+    }
+
 #    test "ACL LOG shows failed subcommand executions at toplevel" {
 #        r ACL LOG RESET
 #        r ACL DELUSER demo
@@ -666,73 +666,71 @@ start_server {tags {"acl external:skip"}} {
 #        assert_equal [dict get $entry reason] {command}
 #        assert_equal [dict get $entry object] {script|help}
 #    }
-#
-#    test {ACL LOG is able to test similar events} {
-#        r ACL LOG RESET
-#        r AUTH antirez foo
-#        catch {r GET foo}
-#        catch {r GET foo}
-#        catch {r GET foo}
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry count] == 3}
-#    }
-#
-#    test {ACL LOG is able to log keys access violations and key name} {
-#        r AUTH antirez foo
-#        catch {r SET somekeynotallowed 1234}
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry reason] eq {key}}
-#        assert {[dict get $entry object] eq {somekeynotallowed}}
-#    }
-#
-#    test {ACL LOG is able to log channel access violations and channel name} {
-#        r AUTH antirez foo
-#        catch {r PUBLISH somechannelnotallowed nullmsg}
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry reason] eq {channel}}
-#        assert {[dict get $entry object] eq {somechannelnotallowed}}
-#    }
-#
-#    test {ACL LOG RESET is able to flush the entries in the log} {
-#        r ACL LOG RESET
-#        assert {[llength [r ACL LOG]] == 0}
-#    }
-#
-#    test {ACL LOG can distinguish the transaction context (1)} {
-#        r AUTH antirez foo
-#        r MULTI
-#        catch {r INCR foo}
-#        catch {r EXEC}
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry context] eq {multi}}
-#        assert {[dict get $entry object] eq {incr}}
-#    }
-#
-#    test {ACL LOG can distinguish the transaction context (2)} {
-#        set rd1 [redis_deferring_client]
-#        r ACL SETUSER antirez +incr
-#
-#        r AUTH antirez foo
-#        r MULTI
-#        r INCR object:1234
-#        $rd1 ACL SETUSER antirez -incr
-#        $rd1 read
-#        catch {r EXEC}
-#        $rd1 close
-#        r AUTH default ""
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry context] eq {multi}}
-#        assert {[dict get $entry object] eq {incr}}
-#        assert_match {*cmd=exec*} [dict get $entry client-info]
-#        r ACL SETUSER antirez -incr
-#    }
-# acl log end
 
-# now pika not supported the command
+    test {ACL LOG is able to test similar events} {
+        r ACL LOG RESET
+        r AUTH antirez foo
+        catch {r GET foo}
+        catch {r GET foo}
+        catch {r GET foo}
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry count] == 3}
+    }
+
+    test {ACL LOG is able to log keys access violations and key name} {
+        r AUTH antirez foo
+        catch {r SET somekeynotallowed 1234}
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry reason] eq {key}}
+        assert {[dict get $entry object] eq {somekeynotallowed}}
+    }
+
+    test {ACL LOG is able to log channel access violations and channel name} {
+        r AUTH antirez foo
+        catch {r PUBLISH somechannelnotallowed nullmsg}
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry reason] eq {channel}}
+        assert {[dict get $entry object] eq {somechannelnotallowed}}
+    }
+
+    test {ACL LOG RESET is able to flush the entries in the log} {
+        r ACL LOG RESET
+        assert {[llength [r ACL LOG]] == 0}
+    }
+
+    test {ACL LOG can distinguish the transaction context (1)} {
+        r AUTH antirez foo
+        r MULTI
+        catch {r INCR foo}
+        catch {r EXEC}
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry context] eq {multi}}
+        assert {[dict get $entry object] eq {incr}}
+    }
+
+    test {ACL LOG can distinguish the transaction context (2)} {
+        set rd1 [redis_deferring_client]
+        r ACL SETUSER antirez +incr
+
+        r AUTH antirez foo
+        r MULTI
+        r INCR object:1234
+        $rd1 ACL SETUSER antirez -incr
+        $rd1 read
+        catch {r EXEC}
+        $rd1 close
+        r AUTH default ""
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry context] eq {multi}}
+        assert {[dict get $entry object] eq {incr}}
+        r ACL SETUSER antirez -incr
+    }
+
+# now pika not supported lua command
 #    test {ACL can log errors in the context of Lua scripting} {
 #        r AUTH antirez foo
 #        catch {r EVAL {redis.call('incr','foo')} 0}
@@ -743,36 +741,36 @@ start_server {tags {"acl external:skip"}} {
 #        assert_match {*cmd=eval*} [dict get $entry client-info]
 #    }
 
-#    test {ACL LOG can accept a numerical argument to show less entries} {
-#        r AUTH antirez foo
-#        catch {r INCR foo}
-#        catch {r INCR foo}
-#        catch {r INCR foo}
-#        catch {r INCR foo}
-#        r AUTH default ""
-#        assert {[llength [r ACL LOG]] > 1}
-#        assert {[llength [r ACL LOG 2]] == 2}
-#    }
+    test {ACL LOG can accept a numerical argument to show less entries} {
+        r AUTH antirez foo
+        catch {r INCR foo}
+        catch {r INCR foo}
+        catch {r INCR foo}
+        catch {r INCR foo}
+        r AUTH default ""
+        assert {[llength [r ACL LOG]] > 1}
+        assert {[llength [r ACL LOG 2]] == 2}
+    }
 
-#    test {ACL LOG can log failed auth attempts} {
-#        catch {r AUTH antirez wrong-password}
-#        set entry [lindex [r ACL LOG] 0]
-#        assert {[dict get $entry context] eq {toplevel}}
-#        assert {[dict get $entry reason] eq {auth}}
-#        assert {[dict get $entry object] eq {AUTH}}
-#        assert {[dict get $entry username] eq {antirez}}
-#    }
+    test {ACL LOG can log failed auth attempts} {
+        catch {r AUTH antirez wrong-password}
+        set entry [lindex [r ACL LOG] 0]
+        assert {[dict get $entry context] eq {toplevel}}
+        assert {[dict get $entry reason] eq {auth}}
+        assert {[dict get $entry object] eq {AUTH}}
+        assert {[dict get $entry username] eq {antirez}}
+    }
 
-#    test {ACL LOG entries are limited to a maximum amount} {
-#        r ACL LOG RESET
-#        r CONFIG SET acllog-max-len 5
-#        r AUTH antirez foo
-#        for {set j 0} {$j < 10} {incr j} {
-#            catch {r SET obj:$j 123}
-#        }
-#        r AUTH default ""
-#        assert {[llength [r ACL LOG]] == 5}
-#    }
+    test {ACL LOG entries are limited to a maximum amount} {
+        r ACL LOG RESET
+        r CONFIG SET acllog-max-len 5
+        r AUTH antirez foo
+        for {set j 0} {$j < 10} {incr j} {
+            catch {r SET obj:$j 123}
+        }
+        r AUTH default ""
+        assert {[llength [r ACL LOG]] == 5}
+    }
 
 #    test {When default user is off, new connections are not authenticated} {
 #        r ACL setuser default off

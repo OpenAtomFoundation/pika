@@ -21,11 +21,10 @@
 #include "net/src/dispatch_thread.h"
 #include "net/src/worker_thread.h"
 
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-
-
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -59,16 +58,18 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       return c_ptr;
     }
   }
-
   // Initial
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
+    if (IsInTxn()) {
+      SetTxnInitFailState(true);
+    }
     return c_ptr;
   }
 
   int8_t subCmdIndex = -1;
-  int32_t index = 0;
-  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex, index);
+  std::string errKey;
+  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex, &errKey);
   std::string cmdName = c_ptr->name();
   if (subCmdIndex >= 0 && checkRes == AclDeniedCmd::CMD) {
     cmdName += "|" + argv[1];
@@ -84,12 +85,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     case AclDeniedCmd::KEY:
       c_ptr->res().SetRes(CmdRes::kNone,
                           "-NOPERM this user has no permissions to access one of the keys used as arguments\r\n");
-      object = argv[index];
+      object = errKey;
       break;
     case AclDeniedCmd::CHANNEL:
       c_ptr->res().SetRes(CmdRes::kNone,
                           "-NOPERM this user has no permissions to access one of the channel used as arguments\r\n");
-      object = argv[index];
+      object = errKey;
       break;
     case AclDeniedCmd::NO_SUB_CMD:
       c_ptr->res().SetRes(CmdRes::kErrOther, fmt::format("unknown subcommand '{}' subcommand", argv[1]));
@@ -104,9 +105,19 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (checkRes == AclDeniedCmd::CMD || checkRes == AclDeniedCmd::KEY || checkRes == AclDeniedCmd::CHANNEL) {
     std::string cInfo;
     ClientInfoToString(&cInfo, cmdName);
-    g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(checkRes), static_cast<int32_t>(AclLogCtx::TOPLEVEL),
-                                      user_->Name(), object, cInfo);
+    int32_t context = IsInTxn() ? static_cast<int32_t>(AclLogCtx::MULTI) : static_cast<int32_t>(AclLogCtx::TOPLEVEL);
 
+    if (checkRes == AclDeniedCmd::CMD && IsInTxn() && cmdName == kCmdNameExec) {
+      object = kCmdNameMulti;
+    }
+    g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(checkRes), context, user_->Name(), object, cInfo);
+
+    return c_ptr;
+  }
+
+  if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
+    PushCmdToQue(c_ptr);
+    c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
   }
 
@@ -115,19 +126,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     ProcessMonitor(argv);
   }
 
-  // Initial
-  c_ptr->Initial(argv, current_db_);
-  if (!c_ptr->res().ok()) {
-    if (IsInTxn()) {
-      SetTxnInitFailState(true);
-    }
-    return c_ptr;
-  }
-  if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
-    PushCmdToQue(c_ptr);
-    c_ptr->res().SetRes(CmdRes::kTxnQueued);
-    return c_ptr;
-  }
   g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
 
   // PubSub connection
@@ -329,9 +327,7 @@ void PikaClientConn::TryWriteResp() {
   }
 }
 
-void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
-  txn_cmd_que_.push(cmd);
-}
+void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) { txn_cmd_que_.push(cmd); }
 
 bool PikaClientConn::IsInTxn() {
   std::lock_guard<std::mutex> lg(txn_state_mu_);
@@ -373,36 +369,33 @@ void PikaClientConn::SetTxnStartState(bool is_start) {
   txn_state_[TxnStateBitMask::Start] = is_start;
 }
 
-void PikaClientConn::ClearTxnCmdQue() {
-  txn_cmd_que_ = std::queue<std::shared_ptr<Cmd>>{};
-}
+void PikaClientConn::ClearTxnCmdQue() { txn_cmd_que_ = std::queue<std::shared_ptr<Cmd>>{}; }
 
-
-void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &db_keys) {
-  for (const auto &it : db_keys) {
+void PikaClientConn::AddKeysToWatch(const std::vector<std::string>& db_keys) {
+  for (const auto& it : db_keys) {
     watched_db_keys_.emplace(it);
   }
 
-  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
   if (dispatcher != nullptr) {
     dispatcher->AddWatchKeys(watched_db_keys_, shared_from_this());
   }
 }
 
 void PikaClientConn::RemoveWatchedKeys() {
-  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
   if (dispatcher != nullptr) {
     watched_db_keys_.clear();
     dispatcher->RemoveWatchKeys(shared_from_this());
   }
 }
 
-void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &db_keys) {
-  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string>& db_keys) {
+  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
   if (dispatcher != nullptr) {
     auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
     involved_conns = dispatcher->GetInvolvedTxn(db_keys);
-    for (auto &conn : involved_conns) {
+    for (auto& conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
         c->SetTxnWatchFailState(true);
       }
@@ -411,10 +404,10 @@ void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &db_key
 }
 
 void PikaClientConn::SetAllTxnFailed() {
-  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
   if (dispatcher != nullptr) {
     auto involved_conns = dispatcher->GetAllTxns();
-    for (auto &conn : involved_conns) {
+    for (auto& conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
         c->SetTxnWatchFailState(true);
       }
@@ -423,10 +416,10 @@ void PikaClientConn::SetAllTxnFailed() {
 }
 
 void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
-  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
   if (dispatcher != nullptr) {
     auto involved_conns = dispatcher->GetDBTxns(db_name);
-    for (auto &conn : involved_conns) {
+    for (auto& conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
         c->SetTxnWatchFailState(true);
       }
@@ -459,17 +452,8 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
   resp_num--;
 }
 
-std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() {
-  return txn_cmd_que_;
-}
+std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() { return txn_cmd_que_; }
 
-// Initial permission status
-void PikaClientConn::AuthStat::Init() {
-  // Check auth required
-  stat_ = g_pika_conf->userpass().empty() ? kLimitAuthed : kNoAuthed;
-  if (stat_ == kLimitAuthed && g_pika_conf->requirepass().empty()) {
-    stat_ = kAdminAuthed;
-  }
 void PikaClientConn::DoAuth(const std::shared_ptr<User>& user) {
   user_ = user;
   authenticated_ = true;

@@ -76,7 +76,7 @@ static AuthResult AuthenticateUser(const std::string& cmdName, const std::string
       ptr->ClientInfoToString(&cInfo, cmdName);
     }
     g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(AclDeniedCmd::NO_AUTH),
-                                      static_cast<int32_t>(AclLogCtx::TOPLEVEL), userName, cmdName, cInfo);
+                                      static_cast<int32_t>(AclLogCtx::TOPLEVEL), userName, "AUTH", cInfo);
     return AuthResult::INVALID_PASSWORD;
   }
 
@@ -436,7 +436,7 @@ void SelectCmd::DoInitial() {
   }
   db_name_ = "db" + argv_[1];
   select_db_ = g_pika_server->GetDB(db_name_);
-  return ;
+  return;
 }
 
 void SelectCmd::Do(std::shared_ptr<Slot> slot) {
@@ -2345,6 +2345,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetAclPubsubDefault(v);
     ret = "+OK\r\n";
+  } else if (set_item == "acllog-max-len") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'acllog-max-len'\r\n";
+      return;
+    }
+    g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2375,15 +2382,6 @@ void ConfigCmd::Execute() {
   std::shared_ptr<Slot> slot;
   slot = g_pika_server->GetSlotByDBName(db_name_);
   Do(slot);
-}
-
-int8_t ConfigCmd::SubCmdIndex(const std::string& cmdName) {
-  for (int i = 0; i < subCmdName_.size(); i++) {
-    if (subCmdName_[i] == cmdName) {
-      return i;
-    }
-  }
-  return -1;
 }
 
 void MonitorCmd::DoInitial() {

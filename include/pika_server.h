@@ -29,25 +29,20 @@
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_migrate_thread.h"
 #include "include/pika_instant.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
-#include "include/pika_migrate_thread.h"
-#include "include/rsync_server.h"
-#include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_statistic.h"
-#include "include/pika_migrate_thread.h"
 #include "include/pika_transaction.h"
-#include "include/pika_cmd_table_manager.h"
-
-
+#include "include/rsync_server.h"
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -185,21 +180,11 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
-  std::shared_mutex& GetDBLock() {
-    return dbs_rw_;
-  }
-  void DBLockShared() {
-    dbs_rw_.lock_shared();
-  }
-  void DBLock() {
-    dbs_rw_.lock();
-  }
-  void DBUnlock() {
-    dbs_rw_.unlock();
-  }
-  void DBUnlockShared() {
-    dbs_rw_.unlock_shared();
-  }
+  std::shared_mutex& GetDBLock() { return dbs_rw_; }
+  void DBLockShared() { dbs_rw_.lock_shared(); }
+  void DBLock() { dbs_rw_.lock(); }
+  void DBUnlock() { dbs_rw_.unlock(); }
+  void DBUnlockShared() { dbs_rw_.unlock_shared(); }
 
   /*
    * Slot use
@@ -282,7 +267,8 @@ class PikaServer : public pstd::noncopyable {
    * DBSync used
    */
   pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
-  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files,
+                           std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
@@ -437,6 +423,8 @@ class PikaServer : public pstd::noncopyable {
   // Revoke the authorization of the specified account, when handle Cmd deleteUser
   void AllClientUnAuth(const std::set<std::string>& users);
 
+  // Determine whether the user's conn can continue to subscribe to the channel
+  void CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel);
 
   /*
    * BGSlotsCleanup used
