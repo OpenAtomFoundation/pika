@@ -10,6 +10,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
+#include "include/pika_command.h"
 
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
@@ -378,7 +379,7 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
-
+  Cmd::UpdateLastSave();
   return true;
 }
 

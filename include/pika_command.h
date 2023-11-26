@@ -512,6 +512,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
 
+  // 获取最后一次成功保存到磁盘的时间戳
+  static __time_t GetLastSave() {
+    return lastsave_;
+  }
+
+  // 在 pika_slot.cc 中更新时间戳的值
+  static void UpdateLastSave() {
+    lastsave_ = time(nullptr);
+  }
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -537,11 +547,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
 
-  struct timeval bgSaveTimeTv;
-
  private:
   virtual void DoInitial() = 0;
   virtual void Clear(){};
+
+  static __time_t lastsave_;
 
   Cmd& operator=(const Cmd&);
 };

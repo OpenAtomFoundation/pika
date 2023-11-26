@@ -308,10 +308,6 @@ void BgsaveCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_server->DoSameThingSpecificDB(TaskType::kBgSave, bgsave_dbs_);
   LogCommand();
   res_.AppendContent("+Background saving started");
-  memset(&bgSaveTimeTv,0,sizeof(struct timeval));
-  if (gettimeofday(&bgSaveTimeTv, nullptr) != 0) {
-    res_.SetRes(CmdRes::kErrOther, strerror(errno));
-  }
 }
 
 void CompactCmd::DoInitial() {
@@ -2425,13 +2421,8 @@ void LastsaveCmd::DoInitial() {
 }
 
 void LastsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  struct timeval tv;
-  if (gettimeofday(&tv, nullptr) == 0) {
-    __time_t relativeTime = tv.tv_sec - bgSaveTimeTv.tv_sec;
-    res_.AppendInteger(static_cast<int64_t>(relativeTime));
-  } else {
-    res_.SetRes(CmdRes::kErrOther, strerror(errno));
-  }
+  __time_t lastsave_time = Cmd::GetLastSave();
+  res_.AppendInteger(static_cast<int64_t>(lastsave_time));
 }
 
 void DelbackupCmd::DoInitial() {
