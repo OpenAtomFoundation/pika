@@ -55,6 +55,7 @@ const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
 const std::string kCmdNameCache = "cache";
+const std::string kCmdNameClearCache = "clearcache";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";

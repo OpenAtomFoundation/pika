@@ -90,7 +90,7 @@ void PikaCache::Info(CacheInfo &info) {
   info.waitting_load_keys_num = cache_load_thread_->WaittingLoadKeysNum();
   cache::RedisCache::GetHitAndMissNum(&info.hits, &info.misses);
   for (uint32_t i = 0; i < caches_.size(); ++i) {
-    std::unique_lock lm(*cache_mutexs_[i]);
+    std::lock_guard lm(*cache_mutexs_[i]);
     info.keys_num += caches_[i]->DbSize();
   }
 }

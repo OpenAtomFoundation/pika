@@ -399,7 +399,7 @@ int PikaConf::Load() {
   // max_write_buffer_size
   GetConfInt64Human("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
-    max_write_buffer_size_ = 10737418240;  // 10Gb
+    max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
   // rate-limiter-bandwidth
@@ -593,7 +593,7 @@ int PikaConf::Load() {
   }
   zset_cache_field_num_per_key_ = zset_cache_field_num_per_key;
 
-  int64_t cache_maxmemory = 10737418240 ;
+  int64_t cache_maxmemory = PIKA_CACHE_SIZE_DEFAULT;
   GetConfInt64("cache-maxmemory", &cache_maxmemory);
   cache_maxmemory_ = (PIKA_CACHE_SIZE_MIN > cache_maxmemory) ? PIKA_CACHE_SIZE_DEFAULT : cache_maxmemory;
 
