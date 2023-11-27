@@ -7,13 +7,3 @@ metadata:
 data:
   admin.sh: |-
     {{- .Files.Get "script/admin.sh" | nindent 4 }}
-  pika-group-post-start.sh: |-
-    #! /bin/bash
-    set -x
-
-    echo "add your post start script logic here"
-    envParams=$(env)
-    echo "add envs can be used in script:"
-    echo $envParams
-
-    sleep 60

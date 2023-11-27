@@ -34,9 +34,12 @@ spec:
           defaultMode: 0555
       postStartSpec:
         cmdExecutorConfig:
-          image: {{ .Values.image.pika.registry | default "docker.io" }}/{{ .Values.image.pika.repository }}:{{ .Values.image.pika.tag }}
+          image: {{ include "codis.image" . }}
           command:
-            - /script/pika-group-post-start.sh
+            - "/bin/bash"
+          args:
+            - "-c"
+            - "/script/admin.sh --rebalance"
         scriptSpecSelectors:
           - name: pika-script
       podSpec:
