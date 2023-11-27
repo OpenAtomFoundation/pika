@@ -1375,10 +1375,10 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->thread_pool_size());
   }
 
-  if (pstd::stringmatch(pattern.data(), "low-level-thread-pool-size", 1) != 0) {
+  if (pstd::stringmatch(pattern.data(), "slow-cmd-thread-pool-size", 1) != 0) {
     elements += 2;
-    EncodeString(&config_body, "low-level-thread-pool-size");
-    EncodeNumber(&config_body, g_pika_conf->low_level_thread_pool_size());
+    EncodeString(&config_body, "slow-cmd-thread-pool-size");
+    EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
 
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
@@ -2145,7 +2145,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "slow-cmd-list") {
     g_pika_conf->SetSlowCmd(value);
     ret = "+OK\r\n";
-  }else if (set_item == "max-cache-files") {
+  } else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-files'\r\n";
       return;

@@ -55,9 +55,9 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return thread_pool_size_;
   }
-  int low_level_thread_pool_size() {
+  int slow_cmd_thread_pool_size() {
     std::shared_lock l(rwlock_);
-    return low_level_thread_pool_size_;
+    return slow_cmd_thread_pool_size_;
   }
   int sync_thread_num() {
     std::shared_lock l(rwlock_);
@@ -356,6 +356,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return pstd::Map2String(slow_cmd_set_, ',');
   }
+
   bool is_slow_cmd(const std::string &cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
@@ -388,10 +389,12 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
+
   void SetLowLevelThreadPoolSize(const int value) {
     std::lock_guard l(rwlock_);
-    low_level_thread_pool_size_ = value;
+    slow_cmd_thread_pool_size_ = value;
   }
+
   void SetSlaveof(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
@@ -633,7 +636,7 @@ class PikaConf : public pstd::BaseConf {
   int slave_priority_ = 0;
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
-  int low_level_thread_pool_size_ = 0;
+  int slow_cmd_thread_pool_size_ = 0;
   std::unordered_map<std::string, std::string> slow_cmd_set_;
   int sync_thread_num_ = 0;
   std::string log_path_;

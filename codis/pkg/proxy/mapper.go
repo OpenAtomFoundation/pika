@@ -398,7 +398,7 @@ func setSlowCmdList(cmdlist string) error {
 		opTable[r.Name] = r
 	}
 
-	if cmdlist == "" {
+	if len(cmdlist) == 0 {
 		return nil
 	}
 

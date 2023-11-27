@@ -85,8 +85,9 @@ backend_primary_only = false
 
 # Set backend parallel connections per server
 backend_primary_parallel = 2
-backend_primary_quick = 1
 backend_replica_parallel = 2
+# Set quick backend parallel connections per server
+backend_primary_quick = 1
 backend_replica_quick = 1
 
 # Set slot num

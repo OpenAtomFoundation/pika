@@ -262,12 +262,12 @@ int PikaConf::Load() {
     thread_pool_size_ = 100;
   }
 
-  GetConfInt("low-level-thread-pool-size", &low_level_thread_pool_size_);
-  if (low_level_thread_pool_size_ <= 0) {
-    low_level_thread_pool_size_ = 12;
+  GetConfInt("slow-cmd-thread-pool-size", &slow_cmd_thread_pool_size_);
+  if (slow_cmd_thread_pool_size_ <= 0) {
+    slow_cmd_thread_pool_size_ = 12;
   }
-  if (low_level_thread_pool_size_ > 100) {
-    low_level_thread_pool_size_ = 100;
+  if (slow_cmd_thread_pool_size_ > 100) {
+    slow_cmd_thread_pool_size_ = 100;
   }
 
   std::string slow_cmd_list;

@@ -507,7 +507,7 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool, is
 type sharedBackendConnPool struct {
 	config   *Config
 	parallel int
-	quick    int
+	quick    int // The number of quick backend connection
 
 	pool map[string]*sharedBackendConn
 }

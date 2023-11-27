@@ -557,7 +557,7 @@ class PikaServer : public pstd::noncopyable {
    */
   int worker_num_ = 0;
   std::unique_ptr<PikaClientProcessor> pika_client_processor_;
-  std::unique_ptr<net::ThreadPool> pika_low_level_thread_pool_;
+  std::unique_ptr<net::ThreadPool> pika_slow_cmd_thread_pool_;
   std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
   /*

@@ -231,10 +231,12 @@ func (s *Router) fillSlot(m *models.Slot, switched bool, method forwardMethod) {
 	}
 }
 
+// SetPrimaryQuickConn Set the number of quick connections.
 func (s *Router) SetPrimaryQuickConn(quick int) {
 	s.pool.primary.SetQuickConn(quick)
 }
 
+// SetReplicaQuickConn Set the number of quick connections.
 func (s *Router) SetReplicaQuickConn(quick int) {
 	s.pool.replica.SetQuickConn(quick)
 }
