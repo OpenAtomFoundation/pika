@@ -1464,7 +1464,6 @@ Status PikaCache::InitWithoutLock(uint32_t cache_num, cache::CacheConfig *cache_
     cache_mutexs_.push_back(std::make_shared<pstd::Mutex>());
   }
   cache_status_ = PIKA_CACHE_STATUS_OK;
-
   return Status::OK();
 }
 

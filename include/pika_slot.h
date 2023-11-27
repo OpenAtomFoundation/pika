@@ -128,16 +128,11 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   KeyScanInfo GetKeyScanInfo();
 
   /*
-   * SlotsMgrt used
-   */
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
-  /*
    * Cache used
    */
   DisplayCacheInfo GetCacheInfo();
   void UpdateCacheInfo(CacheInfo& cache_info);
   void ResetDisplayCacheInfo(int status);
-  uint64_t GetCacheUsage() {return cache_usage_;}
   uint64_t cache_usage_;
 
  private:
@@ -181,7 +176,6 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
   /*
    * Cache used
    */
-  pstd::Mutex cache_info_protector_;
   DisplayCacheInfo cache_info_;
   std::shared_mutex cache_info_rwlock_;
 };
