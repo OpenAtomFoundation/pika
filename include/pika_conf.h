@@ -354,7 +354,7 @@ class PikaConf : public pstd::BaseConf {
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
-    return pstd::Map2String(slow_cmd_set_, ',');
+    return pstd::Set2String(slow_cmd_set_, ',');
   }
 
   bool is_slow_cmd(const std::string &cmd) {
@@ -612,7 +612,7 @@ class PikaConf : public pstd::BaseConf {
     std::string lower_value = value;
     pstd::StringToLower(lower_value);
     TryPushDiffCommands("slow-cmd-list", lower_value);
-    pstd::StringSplit2Map(lower_value, ',', slow_cmd_set_);
+    pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
   }
 
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
@@ -637,7 +637,7 @@ class PikaConf : public pstd::BaseConf {
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
-  std::unordered_map<std::string, std::string> slow_cmd_set_;
+  std::unordered_set<std::string> slow_cmd_set_;
   int sync_thread_num_ = 0;
   std::string log_path_;
   std::string log_level_;

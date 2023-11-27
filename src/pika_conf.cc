@@ -681,7 +681,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
-  SetConfStr("slow-cmd-list", pstd::Map2String(slow_cmd_set_, ','));
+  SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
