@@ -112,6 +112,7 @@ class CompactCmd : public Cmd {
   std::set<std::string> compact_dbs_;
 };
 
+// we can use pika/tests/helpers/test_queue.py to test this command
 class CompactRangeCmd : public Cmd {
  public:
   CompactRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
