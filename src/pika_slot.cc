@@ -117,6 +117,13 @@ void Slot::Compact(const storage::DataType& type) {
   db_->Compact(type);
 }
 
+void Slot::CompactRange(const storage::DataType& type, const std::string& start, const std::string& end) {
+  if (!opened_) {
+    return;
+  }
+  db_->CompactRange(type, start, end);
+}
+
 void Slot::DbRWLockWriter() { db_rwlock_.lock(); }
 
 void Slot::DbRWLockReader() { db_rwlock_.lock_shared(); }

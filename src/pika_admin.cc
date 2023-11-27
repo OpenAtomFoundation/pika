@@ -305,7 +305,7 @@ void BgsaveCmd::DoInitial() {
 }
 
 void BgsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  g_pika_server->DoSameThingSpecificDB(TaskType::kBgSave, bgsave_dbs_);
+  g_pika_server->DoSameThingSpecificDB(bgsave_dbs_, {TaskType::kBgSave});
   LogCommand();
   res_.AppendContent("+Background saving started");
 }
@@ -342,17 +342,62 @@ void CompactCmd::DoInitial() {
 
 void CompactCmd::Do(std::shared_ptr<Slot> slot) {
   if (strcasecmp(struct_type_.data(), "all") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactAll, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
   } else if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactStrings, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactStrings});
   } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactHashes, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactHashes});
   } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactSets, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactSets});
   } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactZSets, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactZSets});
   } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactList, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactList});
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
+    return;
+  }
+  LogCommand();
+  res_.SetRes(CmdRes::kOk);
+}
+
+void CompactRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCompactRange);
+    return;
+  }
+
+  if (g_pika_server->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
+    return;
+  }
+
+  std::vector<std::string> dbs;
+  pstd::StringSplit(argv_[1], COMMA, dbs);
+  for (const auto& db : dbs) {
+    if (!g_pika_server->IsDBExist(db)) {
+      res_.SetRes(CmdRes::kInvalidDB, db);
+      return;
+    } else {
+      compact_dbs_.insert(db);
+    }
+  }
+  struct_type_ = argv_[2];
+  start_key_ = argv_[3];
+  end_key_ = argv_[4];
+}
+
+void CompactRangeCmd::Do(std::shared_ptr<Slot> slot) {
+  if (strcasecmp(struct_type_.data(), "string") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeStrings, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeHashes, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeSets, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeZSets, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeList, {start_key_, end_key_}});
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
     return;
@@ -677,7 +722,7 @@ void ClientCmd::Do(std::shared_ptr<Slot> slot) {
       std::sort(clients.begin(), clients.end(), IdleCompare);
     }
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%lld\n", iter->ip_port.c_str(), iter->fd,
+      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n", iter->ip_port.c_str(), iter->fd,
                iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);  // NOLINT
       reply.append(buf);
       iter++;
@@ -1188,7 +1233,7 @@ void InfoCmd::InfoReplication(std::string& info) {
 
 void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kStopKeyScan, keyspace_scan_dbs_);
+    g_pika_server->DoSameThingSpecificDB(keyspace_scan_dbs_, {TaskType::kStopKeyScan});
     info.append("OK\r\n");
     return;
   }
@@ -1247,7 +1292,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kStartKeyScan, keyspace_scan_dbs_);
+    g_pika_server->DoSameThingSpecificDB(keyspace_scan_dbs_, {TaskType::kStartKeyScan});
   }
 }
 

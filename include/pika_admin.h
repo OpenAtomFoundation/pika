@@ -112,6 +112,29 @@ class CompactCmd : public Cmd {
   std::set<std::string> compact_dbs_;
 };
 
+// we can use pika/tests/helpers/test_queue.py to test this command
+class CompactRangeCmd : public Cmd {
+ public:
+  CompactRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new CompactRangeCmd(*this); }
+
+ private:
+  void DoInitial() override;
+  void Clear() override {
+    struct_type_.clear();
+    compact_dbs_.clear();
+    start_key_.clear();
+    end_key_.clear();
+  }
+  std::string struct_type_;
+  std::set<std::string> compact_dbs_;
+  std::string start_key_;
+  std::string end_key_;
+};
+
 class PurgelogstoCmd : public Cmd {
  public:
   PurgelogstoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}

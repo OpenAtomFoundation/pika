@@ -433,44 +433,57 @@ bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   return db ? db->IsBinlogIoError() : true;
 }
 
-// If no collection of specified dbs is given, we execute task in all dbs
-Status PikaServer::DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs) {
+Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    if (!dbs.empty() && dbs.find(db_item.first) == dbs.end()) {
+    if (dbs.find(db_item.first) == dbs.end()) {
       continue;
-    } else {
-      switch (type) {
-        case TaskType::kCompactAll:
-          db_item.second->Compact(storage::DataType::kAll);
-          break;
-        case TaskType::kCompactStrings:
-          db_item.second->Compact(storage::DataType::kStrings);
-          break;
-        case TaskType::kCompactHashes:
-          db_item.second->Compact(storage::DataType::kHashes);
-          break;
-        case TaskType::kCompactSets:
-          db_item.second->Compact(storage::DataType::kSets);
-          break;
-        case TaskType::kCompactZSets:
-          db_item.second->Compact(storage::DataType::kZSets);
-          break;
-        case TaskType::kCompactList:
-          db_item.second->Compact(storage::DataType::kLists);
-          break;
-        case TaskType::kStartKeyScan:
-          db_item.second->KeyScan();
-          break;
-        case TaskType::kStopKeyScan:
-          db_item.second->StopKeyScan();
-          break;
-        case TaskType::kBgSave:
-          db_item.second->BgSaveDB();
-          break;
-        default:
-          break;
-      }
+    }
+    switch (arg.type) {
+      case TaskType::kCompactAll:
+        db_item.second->Compact(storage::DataType::kAll);
+        break;
+      case TaskType::kCompactStrings:
+        db_item.second->Compact(storage::DataType::kStrings);
+        break;
+      case TaskType::kCompactHashes:
+        db_item.second->Compact(storage::DataType::kHashes);
+        break;
+      case TaskType::kCompactSets:
+        db_item.second->Compact(storage::DataType::kSets);
+        break;
+      case TaskType::kCompactZSets:
+        db_item.second->Compact(storage::DataType::kZSets);
+        break;
+      case TaskType::kCompactList:
+        db_item.second->Compact(storage::DataType::kLists);
+        break;
+      case TaskType::kStartKeyScan:
+        db_item.second->KeyScan();
+        break;
+      case TaskType::kStopKeyScan:
+        db_item.second->StopKeyScan();
+        break;
+      case TaskType::kBgSave:
+        db_item.second->BgSaveDB();
+        break;
+      case TaskType::kCompactRangeStrings:
+        db_item.second->CompactRange(storage::DataType::kStrings, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeHashes:
+        db_item.second->CompactRange(storage::DataType::kHashes, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeSets:
+        db_item.second->CompactRange(storage::DataType::kSets, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeZSets:
+        db_item.second->CompactRange(storage::DataType::kZSets, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeList:
+        db_item.second->CompactRange(storage::DataType::kLists, arg.argv[0], arg.argv[1]);
+        break;
+      default:
+        break;
     }
   }
   return Status::OK();
@@ -1333,7 +1346,14 @@ void PikaServer::AutoCompactRange() {
     if (last_check_compact_time_.tv_sec == 0 || now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, nullptr);
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
-        Status s = DoSameThingSpecificDB(TaskType::kCompactAll);
+        std::set<std::string> dbs;
+        {
+          std::shared_lock l(dbs_rw_);
+          for (const auto& db_item : dbs_) {
+            dbs.insert(db_item.first);
+          }
+        }
+        Status s = DoSameThingSpecificDB(dbs, {TaskType::kCompactAll});
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size / 1048576
                     << "MB, disksize: " << total_size / 1048576 << "MB";
