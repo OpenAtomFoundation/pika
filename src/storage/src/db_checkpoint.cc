@@ -48,9 +48,6 @@ class DBCheckpointImpl : public DBCheckpoint {
                                    VectorLogPtr& live_wal_files, uint64_t manifest_file_size,
                                    uint64_t sequence_number) override;
 
-  using DBCheckpoint::GetCheckpointTime;
-  int64_t GetCheckpointTime(const std::string& checkpoint_dir) override;
-
  private:
   DB* db_;
 };

@@ -2415,14 +2415,13 @@ void TimeCmd::Do(std::shared_ptr<Slot> slot) {
 
 void LastsaveCmd::DoInitial() {
   if (argv_.size() != 1) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameLastsave);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLastSave);
     return;
   }
 }
 
 void LastsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  __time_t lastsave_time = PikaServer::GetLastSave();
-  res_.AppendInteger(static_cast<int64_t>(lastsave_time));
+  res_.AppendInteger(PikaServer::lastsave_);
 }
 
 void DelbackupCmd::DoInitial() {

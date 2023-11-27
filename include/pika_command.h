@@ -54,7 +54,7 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
-const std::string kCmdNameLastsave = "lastsave";
+const std::string kCmdNameLastSave = "lastsave";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";

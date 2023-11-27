@@ -498,17 +498,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * lastsave used
    */
-  static __time_t GetLastSave() {
-    return lastsave_;
-  }
-
-  static void UpdateLastSave() {
-    lastsave_ = time(nullptr);
-  }
-
-  static void UpdateLastSave(int64_t lsTime) {
-    lastsave_ = static_cast<__time_t>(lsTime);
-  }
+  static int64_t lastsave_;
 
   /*
    * StorageOptions used
@@ -607,11 +597,6 @@ class PikaServer : public pstd::noncopyable {
    * Bgsave used
    */
   net::BGThread bgsave_thread_;
-
-  /*
-   * lastsave used
-   */
-  static __time_t lastsave_;
 
   /*
    * Purgelogs use

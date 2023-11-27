@@ -36,8 +36,6 @@ class DBCheckpoint {
                                            VectorLogPtr& live_wal_files, uint64_t manifest_file_size,
                                            uint64_t sequence_number) = 0;
 
-  virtual  = 0;
-
   virtual ~DBCheckpoint() = default;
 };
 

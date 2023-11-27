@@ -38,6 +38,8 @@ extern std::unique_ptr<net::NetworkStatistic> g_network_statistic;
 // QUEUE_SIZE_THRESHOLD_PERCENTAGE is used to represent a percentage value and should be within the range of 0 to 100.
 const size_t QUEUE_SIZE_THRESHOLD_PERCENTAGE = 75;
 
+int64_t PikaServer::lastsave_ = 0;
+
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
   LOG(INFO) << "Delete dir: " << *path << " start";
@@ -92,8 +94,7 @@ PikaServer::PikaServer()
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
-  int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
-  UpdateLastSave(lastsave);
+  PikaServer::lastsave_ = GetLastSaveTime(g_pika_conf->bgsave_path());
 }
 
 PikaServer::~PikaServer() {

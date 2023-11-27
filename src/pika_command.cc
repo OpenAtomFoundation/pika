@@ -30,7 +30,6 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-__time_t Cmd::lastsave_ = 0;
 
 void InitCmdTable(CmdTable* cmd_table) {
   // Admin
