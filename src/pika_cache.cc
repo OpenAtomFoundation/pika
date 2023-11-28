@@ -19,12 +19,11 @@ extern PikaServer *g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
 using rocksdb::Status;
 
-PikaCache::PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key, std::shared_ptr<Slot> slot)
+PikaCache::PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key)
     : cache_status_(PIKA_CACHE_STATUS_NONE),
       cache_num_(0),
       zset_cache_start_pos_(zset_cache_start_pos),
-      zset_cache_field_num_per_key_(EXTEND_CACHE_SIZE(zset_cache_field_num_per_key)),
-      slot_(slot) {
+      zset_cache_field_num_per_key_(EXTEND_CACHE_SIZE(zset_cache_field_num_per_key)) {
   cache_load_thread_ = std::make_unique<PikaCacheLoadThread> (zset_cache_start_pos_, zset_cache_field_num_per_key_);
   cache_load_thread_->StartThread();
 }

@@ -45,7 +45,7 @@ class PikaCacheLoadThread;
 class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<PikaCache> {
  public:
 
-  PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key, std::shared_ptr<Slot> slot);
+  PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key);
   ~PikaCache();
 
   rocksdb::Status Init(uint32_t cache_num, cache::CacheConfig *cache_cfg);
@@ -188,8 +188,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   void PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot);
   rocksdb::Status CacheZCard(std::string &key, uint64_t *len);
 
-  std::shared_ptr<Slot> GetSlot() { return slot_; }
-  std::vector<cache::RedisCache*> GetCaches() { return caches_;}
  private:
 
   rocksdb::Status InitWithoutLock(uint32_t cache_num, cache::CacheConfig *cache_cfg);
@@ -218,7 +216,6 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   int zset_cache_field_num_per_key_ = 0;
   std::shared_mutex rwlock_;
   std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;
-  std::shared_ptr<Slot> slot_;
   std::vector<cache::RedisCache*> caches_;
   std::vector<std::shared_ptr<pstd::Mutex>> cache_mutexs_;
 };
