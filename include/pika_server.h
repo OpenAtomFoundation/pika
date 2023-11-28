@@ -215,6 +215,7 @@ class PikaServer : public pstd::noncopyable {
   void PrepareSlotTrySync();
   void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  void SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
   bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
   std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);

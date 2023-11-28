@@ -450,8 +450,18 @@ int PikaConf::Load() {
 
   small_compaction_threshold_ = 5000;
   GetConfInt("small-compaction-threshold", &small_compaction_threshold_);
-  if (small_compaction_threshold_ <= 0 || small_compaction_threshold_ >= 100000) {
-    small_compaction_threshold_ = 5000;
+  if (small_compaction_threshold_ < 0) {
+    small_compaction_threshold_ = 0;
+  } else if (small_compaction_threshold_ >= 100000) {
+    small_compaction_threshold_ = 100000;
+  }
+
+  small_compaction_duration_threshold_ = 10000;
+  GetConfInt("small-compaction-duration-threshold", &small_compaction_duration_threshold_);
+  if (small_compaction_duration_threshold_ < 0) {
+    small_compaction_duration_threshold_ = 0;
+  } else if (small_compaction_duration_threshold_ >= 1000000) {
+    small_compaction_duration_threshold_ = 1000000;
   }
 
   max_background_flushes_ = 1;
@@ -655,6 +665,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("replication-id", replication_id_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
+  SetConfInt("small-compaction-duration-threshold", small_compaction_duration_threshold_);
   SetConfInt("max-client-response-size", static_cast<int32_t>(max_client_response_size_));
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);

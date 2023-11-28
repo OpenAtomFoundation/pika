@@ -22,6 +22,7 @@ RedisHashes::RedisHashes(Storage* const s, const DataType& type) : Redis(s, type
 Status RedisHashes::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
+  small_compaction_duration_threshold_ = storage_options.small_compaction_duration_threshold;
 
   rocksdb::Options ops(storage_options.options);
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
@@ -298,6 +299,7 @@ Status RedisHashes::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
       version = parsed_hashes_meta_value.version();
       HashesDataKey hashes_data_key(key, version, "");
       Slice prefix = hashes_data_key.Encode();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
@@ -473,6 +475,7 @@ Status RedisHashes::HKeys(const Slice& key, std::vector<std::string>* fields) {
       version = parsed_hashes_meta_value.version();
       HashesDataKey hashes_data_key(key, version, "");
       Slice prefix = hashes_data_key.Encode();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
@@ -745,6 +748,7 @@ Status RedisHashes::HVals(const Slice& key, std::vector<std::string>* values) {
       version = parsed_hashes_meta_value.version();
       HashesDataKey hashes_data_key(key, version, "");
       Slice prefix = hashes_data_key.Encode();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         values->push_back(iter->value().ToString());
@@ -807,6 +811,7 @@ Status RedisHashes::HScan(const Slice& key, int64_t cursor, const std::string& p
       HashesDataKey hashes_data_prefix(key, version, sub_field);
       HashesDataKey hashes_start_data_key(key, version, start_point);
       std::string prefix = hashes_data_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(hashes_start_data_key.Encode()); iter->Valid() && rest > 0 && iter->key().starts_with(prefix);
            iter->Next()) {
@@ -857,6 +862,7 @@ Status RedisHashes::HScanx(const Slice& key, const std::string& start_field, con
       HashesDataKey hashes_data_prefix(key, version, Slice());
       HashesDataKey hashes_start_data_key(key, version, start_field);
       std::string prefix = hashes_data_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(hashes_start_data_key.Encode()); iter->Valid() && rest > 0 && iter->key().starts_with(prefix);
            iter->Next()) {
@@ -913,6 +919,7 @@ Status RedisHashes::PKHScanRange(const Slice& key, const Slice& field_start, con
       HashesDataKey hashes_data_prefix(key, version, Slice());
       HashesDataKey hashes_start_data_key(key, version, field_start);
       std::string prefix = hashes_data_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(start_no_limit ? prefix : hashes_start_data_key.Encode());
            iter->Valid() && remain > 0 && iter->key().starts_with(prefix); iter->Next()) {
@@ -973,6 +980,7 @@ Status RedisHashes::PKHRScanRange(const Slice& key, const Slice& field_start, co
       HashesDataKey hashes_data_prefix(key, version, Slice());
       HashesDataKey hashes_start_data_key(key, start_key_version, start_key_field);
       std::string prefix = hashes_data_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->SeekForPrev(hashes_start_data_key.Encode().ToString());
            iter->Valid() && remain > 0 && iter->key().starts_with(prefix); iter->Prev()) {
