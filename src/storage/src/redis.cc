@@ -57,7 +57,7 @@ Status Redis::SetSmallCompactionDurationThreshold(uint64_t small_compaction_dura
   return Status::OK();
 }
 
-Status Redis::UpdateSpecificKeyStatistics(const std::string& key, size_t count) {
+Status Redis::UpdateSpecificKeyStatistics(const std::string& key, uint64_t count) {
   if ((statistics_store_->Capacity() != 0U) && (count != 0U)) {
     KeyStatistics data;
     statistics_store_->Lookup(key, &data);
