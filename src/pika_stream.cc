@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_stream.h"
+#include <cassert>
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
@@ -101,7 +102,7 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
   if (idpos) {
     *idpos = i;
   } else if (is_xadd) {
-    LOG(ERROR) << "idpos is null, xadd comand must parse idpos";
+    res.SetRes(CmdRes::kErrOther, "idpos is null, xadd comand must parse idpos");
   }
 }
 
@@ -256,6 +257,12 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   GenerateStreamIDOrReply(stream_meta);
   if (res_.ret() != CmdRes::kNone) {
     return;
+  }
+
+  // reset command's id in argvs if it not be given
+  if (!args_.id_given || !args_.seq_given) {
+    assert(field_pos_ > 0);
+    argv_[field_pos_ - 1] = args_.id.ToString();
   }
 
   std::string message;
@@ -637,7 +644,7 @@ void XTrimCmd::DoInitial() {
   }
 
   key_ = argv_[1];
-  ParseAddOrTrimArgsOrReply(res_, argv_, args_, nullptr, true);
+  ParseAddOrTrimArgsOrReply(res_, argv_, args_, nullptr, false);
   if (res_.ret() != CmdRes::kNone) {
     return;
   }
