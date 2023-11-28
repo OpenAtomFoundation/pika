@@ -410,7 +410,7 @@ var _ = Describe("Server", func() {
 
             lastSave := client.LastSave(ctx)
             Expect(lastSave.Err()).NotTo(HaveOccurred())
-            Expect(lastSave.Val()).NotTo(Equal(int64(bgSaveTime))
+            Expect(lastSave.Val()).NotTo(Equal(int64(bgSaveTime)))
             // Missing lastsave persistence test
 		})
 
