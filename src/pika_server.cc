@@ -518,7 +518,7 @@ void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_thres
 }
 
 bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id,
-                                               BinlogOffset* const boffset) {
+                                       BinlogOffset* const boffset) {
   std::shared_ptr<SyncMasterSlot> slot =
       g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
@@ -1203,7 +1203,7 @@ void PikaServer::ResetLastSecQuerynum() {
 }
 
 void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command,
-                                                 bool is_write) {
+                                              bool is_write) {
   std::string cmd(command);
   statistic_.server_stat.qps.querynum++;
   statistic_.server_stat.exec_count_db[pstd::StringToUpper(cmd)]++;
@@ -1503,13 +1503,13 @@ void PikaServer::AutoUpdateNetworkMetric() {
 }
 
 void PikaServer::PrintThreadPoolQueueStatus() {
-    // Print the current queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
-    size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
-    size_t max_size = ClientProcessorThreadPoolMaxQueueSize();
-    size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
-    if (cur_size > thread_hold) {
-      LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
-    }
+  // Print the current queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
+  size_t cur_size = ClientProcessorThreadPoolCurQueueSize();
+  size_t max_size = ClientProcessorThreadPoolMaxQueueSize();
+  size_t thread_hold = (max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
+  if (cur_size > thread_hold) {
+    LOG(INFO) << "The current queue size of the Pika Server's client thread processor thread pool: " << cur_size;
+  }
 }
 
 void PikaServer::InitStorageOptions() {
@@ -1566,14 +1566,14 @@ void PikaServer::InitStorageOptions() {
   }
 
   storage_options_.options.rate_limiter =
-    std::shared_ptr<rocksdb::RateLimiter>(
-      rocksdb::NewGenericRateLimiter(
-        g_pika_conf->rate_limiter_bandwidth(),
-        g_pika_conf->rate_limiter_refill_period_us(),
-        static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
-        rocksdb::RateLimiter::Mode::kWritesOnly,
-        g_pika_conf->rate_limiter_auto_tuned()
-      ));
+      std::shared_ptr<rocksdb::RateLimiter>(
+          rocksdb::NewGenericRateLimiter(
+              g_pika_conf->rate_limiter_bandwidth(),
+              g_pika_conf->rate_limiter_refill_period_us(),
+              static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
+              rocksdb::RateLimiter::Mode::kWritesOnly,
+              g_pika_conf->rate_limiter_auto_tuned()
+                  ));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
