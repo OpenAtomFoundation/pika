@@ -456,6 +456,31 @@ var _ = Describe("shuould replication ", func() {
 			slave_unionstore_set := clientSlave.SMembers(ctx, "set_out")
 			Expect(slave_unionstore_set.Err()).NotTo(HaveOccurred())
 			Expect(master_unionstore_set.Val()).To(Equal(slave_unionstore_set.Val()))
+			
+			// Stream replication test
+			streamName := "mystream"
+			for i := 0; i < 20; i++ {
+					messageData := map[string]interface{}{"key": fmt.Sprintf("value%d", i)}
+					_, err := clientMaster.XAdd(ctx, &redis.XAddArgs{
+							Stream: streamName,
+							Values: messageData,
+					}).Result()
+					Expect(err).NotTo(HaveOccurred())
+			}
+			messages, err := clientSlave.XRange(ctx, streamName, "-", "+").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(messages)).To(Equal(20))
+			_, err = clientMaster.XTrimMaxLen(ctx, streamName, 10).Result()
+			Expect(err).NotTo(HaveOccurred())
+			if len(messages) > 0 {
+					_, err = clientMaster.XDel(ctx, streamName, messages[0].ID).Result()
+					Expect(err).NotTo(HaveOccurred())
+			}
+			masterMessages, err := clientMaster.XRange(ctx, streamName, "-", "+").Result()
+			Expect(err).NotTo(HaveOccurred())
+			slaveMessages, err := clientSlave.XRange(ctx, streamName, "-", "+").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(masterMessages)).To(Equal(len(slaveMessages)))
 		})
 
 	})
