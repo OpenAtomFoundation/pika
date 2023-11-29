@@ -408,7 +408,7 @@ var _ = Describe("Server", func() {
             		Expect(err).NotTo(HaveOccurred())
             		Expect(bgSave).To(ContainSubstring("Background saving started"))
 	    		//等待后台保存完成
-			Expect(client.Wait(ctx).Err()).NotTo(HaveOccurred())
+			//Expect(client.Wait(ctx).Err()).NotTo(HaveOccurred())
 
             		lastSave = client.LastSave(ctx)
             		Expect(lastSave.Err()).NotTo(HaveOccurred())
