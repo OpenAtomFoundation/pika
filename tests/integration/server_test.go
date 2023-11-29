@@ -396,22 +396,24 @@ var _ = Describe("Server", func() {
 			Expect(lastSave.Val()).NotTo(Equal(0))
 
 			mset := client.MSet(ctx, "key", "Hello", "key1", "Hello1")
-            Expect(lastSave.Err()).NotTo(HaveOccurred())
-            Expect(lastSave.Val()).NotTo(Equal("OK"))
+            		Expect(mset.Err()).NotTo(HaveOccurred())
+           		Expect(mset.Val()).NotTo(Equal("OK"))
 
-            mGet := client.MGet(ctx, "key", "key1")
-            Expect(mGet.Err()).NotTo(HaveOccurred())
-            Expect(mGet.Val()).To(Equal([]interface{}{"Hello", "Hello1"}))
+            		mGet := client.MGet(ctx, "key", "key1")
+            		Expect(mGet.Err()).NotTo(HaveOccurred())
+            		Expect(mGet.Val()).To(Equal([]interface{}{"Hello", "Hello1"}))
 
-            bgSave := client.BgSave(ctx).Result()
-            bgSaveTime := time.Now().Unix()
-            Expect(bgSave).NotTo(HaveOccurred())
-            Expect(bgSave).To(ContainSubstring("Background saving started"))
+            		bgSave, err := client.BgSave(ctx).Result()
+            		bgSaveTime := time.Now().Unix()
+            		Expect(err).NotTo(HaveOccurred())
+            		Expect(bgSave).To(ContainSubstring("Background saving started"))
+	    		//等待后台保存完成
+			Expect(client.Wait(ctx).Err()).NotTo(HaveOccurred())
 
-            lastSave := client.LastSave(ctx)
-            Expect(lastSave.Err()).NotTo(HaveOccurred())
-            Expect(lastSave.Val()).NotTo(Equal(int64(bgSaveTime)))
-            // Missing lastsave persistence test
+            		lastSave = client.LastSave(ctx)
+            		Expect(lastSave.Err()).NotTo(HaveOccurred())
+            		Expect(lastSave.Val()).NotTo(Equal(int64(bgSaveTime)))
+            		// Missing lastsave persistence test
 		})
 
 		//It("should Save", func() {
