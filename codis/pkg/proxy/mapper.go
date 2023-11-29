@@ -6,13 +6,13 @@ package proxy
 import (
 	"bytes"
 	"hash/crc32"
-	"pika/codis/v2/pkg/utils/log"
 	"strconv"
 	"strings"
 	"sync"
 
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/log"
 )
 
 var charmap [256]byte

@@ -214,8 +214,9 @@ func (d *forwardHelper) slotsmgrtExecWrapper(s *Slot, hkey []byte, database int3
 }
 
 func (d *forwardHelper) forward2(s *Slot, r *Request) *BackendConn {
-	var database, seed = r.Database, r.Seed16()
+	var database = r.Database
 	if s.migrate.bc == nil && !r.IsMasterOnly() && len(s.replicaGroups) != 0 {
+		var seed = r.Seed16()
 		for _, group := range s.replicaGroups {
 			var i = seed
 			for range group {
@@ -226,5 +227,6 @@ func (d *forwardHelper) forward2(s *Slot, r *Request) *BackendConn {
 			}
 		}
 	}
-	return s.backend.bc.BackendConn(database, seed, true, r.OpFlag.IsQuick())
+	//  fix:https://github.com/OpenAtomFoundation/pika/issues/2174
+	return s.backend.bc.BackendConn(database, uint(s.id), true, r.OpFlag.IsQuick())
 }
