@@ -58,7 +58,7 @@ Status Redis::SetSmallCompactionDurationThreshold(uint64_t small_compaction_dura
 }
 
 Status Redis::UpdateSpecificKeyStatistics(const std::string& key, uint64_t count) {
-  if ((statistics_store_->Capacity() != 0U) && (count != 0U)) {
+  if ((statistics_store_->Capacity() != 0U) && (count != 0U) && (small_compaction_threshold_ != 0U)) {
     KeyStatistics data;
     statistics_store_->Lookup(key, &data);
     data.AddModifyCount(count);
@@ -69,7 +69,7 @@ Status Redis::UpdateSpecificKeyStatistics(const std::string& key, uint64_t count
 }
 
 Status Redis::UpdateSpecificKeyDuration(const std::string& key, uint64_t duration) {
-  if ((statistics_store_->Capacity() != 0U) && (duration != 0U)) {
+  if ((statistics_store_->Capacity() != 0U) && (duration != 0U) && (small_compaction_duration_threshold_ != 0U)) {
     KeyStatistics data;
     statistics_store_->Lookup(key, &data);
     data.AddDuration(duration);
