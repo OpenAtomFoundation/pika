@@ -26,10 +26,9 @@ void HDelCmd::DoInitial() {
 }
 
 void HDelCmd::Do(std::shared_ptr<Slot> slot) {
-  int32_t num = 0;
-  s_ = slot->db()->HDel(key_, fields_, &num);
+  s_ = slot->db()->HDel(key_, fields_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
-    res_.AppendInteger(num);
+    res_.AppendInteger(deleted_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
