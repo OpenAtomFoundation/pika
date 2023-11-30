@@ -203,13 +203,13 @@ void BitOpCmd::DoInitial() {
   }
 
   dest_key_ = argv_[2];
-  for (unsigned int i = 3; i <= argv_.size() - 1; i++) {
+  for (size_t i = 3; i <= argv_.size() - 1; i++) {
     src_keys_.emplace_back(argv_[i].data());
   }
 }
 
 void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
-  int64_t result_length;
+  int64_t result_length = 0;
   rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);

@@ -13,6 +13,7 @@
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
@@ -24,6 +25,7 @@ void LIndexCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
   }
 }
+
 void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->LIndex(key_, index_, &value);
@@ -54,6 +56,7 @@ void LInsertCmd::DoInitial() {
   pivot_ = argv_[3];
   value_ = argv_[4];
 }
+
 void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t llen = 0;
   rocksdb::Status s = slot->db()->LInsert(key_, dir_, pivot_, value_, &llen);
@@ -82,7 +85,6 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-
 void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
   if (!curr_conn) {
@@ -105,6 +107,7 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
   auto* args = new UnblockTaskArgs(key, std::move(slot), dispatchThread);
   g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args);
 }
+
 void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto bg_args = std::unique_ptr<UnblockTaskArgs>(static_cast<UnblockTaskArgs*>(args));
   net::DispatchThread* dispatchThread = bg_args->dispatchThread;
@@ -196,6 +199,7 @@ void LPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
+
 void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->LPush(key_, values_, &llen);
@@ -241,6 +245,7 @@ void BlockingBaseCmd::BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, s
   conn_to_keys_.emplace(conn_to_block->fd(),
                         std::make_unique<std::list<net::BlockKey>>(blrpop_keys.begin(), blrpop_keys.end()));
 }
+
 void BlockingBaseCmd::removeDuplicates(std::vector<std::string>& keys_) {
   std::unordered_set<std::string> seen;
   auto it = std::remove_if(keys_.begin(), keys_.end(), [&seen](const auto& key) { return !seen.insert(key).second; });
@@ -256,7 +261,7 @@ void BLPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -308,7 +313,7 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void BLPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(is_binlog_deferred_) {
+  if (is_binlog_deferred_) {
     return;
   }
   std::vector<WriteBinlogOfPopArgs> args;
@@ -335,6 +340,7 @@ void LPopCmd::DoInitial() {
     }
   }
 }
+
 void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> elements;
   rocksdb::Status s = slot->db()->LPop(key_, count_, &elements);
@@ -364,6 +370,7 @@ void LPushxCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
+
 void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->LPushx(key_, values_, &llen);
@@ -419,6 +426,7 @@ void LRemCmd::DoInitial() {
   }
   value_ = argv_[3];
 }
+
 void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t res = 0;
   rocksdb::Status s = slot->db()->LRem(key_, count_, value_, &res);
@@ -442,6 +450,7 @@ void LSetCmd::DoInitial() {
   }
   value_ = argv_[3];
 }
+
 void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LSet(key_, index_, value_);
   if (s.ok()) {
@@ -473,6 +482,7 @@ void LTrimCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
   }
 }
+
 void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
@@ -523,7 +533,7 @@ void BRPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -542,7 +552,7 @@ void BRPopCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 void BRPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(is_binlog_deferred_){
+  if (is_binlog_deferred_) {
     return;
   }
   std::vector<WriteBinlogOfPopArgs> args;
@@ -568,6 +578,7 @@ void RPopCmd::DoInitial() {
     }
   }
 }
+
 void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector <std::string> elements;
   rocksdb::Status s = slot->db()->RPop(key_, count_, &elements);
@@ -596,6 +607,7 @@ void RPopLPushCmd::DoInitial() {
     res_.SetRes(CmdRes::kInconsistentHashTag);
   }
 }
+
 void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   rocksdb::Status s = slot->db()->RPoplpush(source_, receiver_, &value);
@@ -651,6 +663,7 @@ void RPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
+
 void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   rocksdb::Status s = slot->db()->RPush(key_, values_, &llen);

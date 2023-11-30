@@ -159,7 +159,7 @@ void HIncrbyCmd::DoInitial() {
 }
 
 void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
-  int64_t new_value;
+  int64_t new_value = 0;
   rocksdb::Status s = slot->db()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));

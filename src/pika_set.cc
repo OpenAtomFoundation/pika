@@ -23,12 +23,12 @@ void SAddCmd::DoInitial() {
 void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->SAdd(key_, members_, &count);
-  if (!s.ok()) {
+  if (s.ok()) {
+    AddSlotKey("s", key_, slot);
+    res_.AppendInteger(count);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
   }
-  AddSlotKey("s", key_, slot);
-  res_.AppendInteger(count);
 }
 
 void SPopCmd::DoInitial() {
@@ -43,11 +43,7 @@ void SPopCmd::DoInitial() {
   count_ = 1;
 
   if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
-      return;
-    }
-    if (count_ <= 0) {
+    if (count_ <= 0 || (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0)) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -183,7 +179,11 @@ void SRemCmd::DoInitial() {
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->SRem(key_, members_, &count);
-  res_.AppendInteger(count);
+  if (s.ok()) {
+    res_.AppendInteger(count);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
 }
 
 void SUnionCmd::DoInitial() {
@@ -197,11 +197,15 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SUnion(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  rocksdb::Status s = slot->db()->SUnion(keys_, &members);
+  if (s.ok()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -235,7 +239,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
 
-  if(value_to_dest_.size() == 0){
+  if (value_to_dest_.size() == 0) {
     //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
     return;
   }
@@ -251,8 +255,8 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& sadd_argv = sadd_cmd_->argv();
   size_t data_size = value_to_dest_[0].size();
 
-  for(int i = 1; i < value_to_dest_.size(); i++){
-    if(data_size >= 131072){
+  for (size_t i = 1; i < value_to_dest_.size(); i++) {
+    if (data_size >= 131072) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       sadd_cmd_->DoBinlog(slot);
       sadd_argv.clear();
@@ -277,11 +281,15 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SInter(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  rocksdb::Status s = slot->db()->SInter(keys_, &members);
+  if (s.ok()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -317,11 +325,15 @@ void SIsmemberCmd::DoInitial() {
 
 void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t is_member = 0;
-  slot->db()->SIsmember(key_, member_, &is_member);
-  if (is_member != 0) {
-    res_.AppendContent(":1");
+  rocksdb::Status s = slot->db()->SIsmember(key_, member_, &is_member);
+  if (s.ok()) {
+    if (is_member != 0) {
+      res_.AppendContent(":1");
+    } else {
+      res_.AppendContent(":0");
+    }
   } else {
-    res_.AppendContent(":0");
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -336,11 +348,15 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SDiff(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  rocksdb::Status s = slot->db()->SDiff(keys_, &members);
+  if (s.ok()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -386,7 +402,7 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!move_success_){
+  if (!move_success_) {
     //the member is not in the source set, nothing changed
     return;
   }
@@ -419,15 +435,11 @@ void SRandmemberCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() > 3) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
-    return;
-  } else if (argv_.size() == 3) {
+  if (argv_.size() == 3) {
     if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
       reply_arr = true;
-      ;
     }
   }
 }
