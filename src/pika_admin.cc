@@ -873,7 +873,7 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       info.append("\r\n");
       InfoCommandStats(info);
       info.append("\r\n");
-      InfoCache(info);
+      InfoCache(info, slot);
       info.append("\r\n");
       InfoCPU(info);
       info.append("\r\n");
