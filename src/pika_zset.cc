@@ -138,7 +138,7 @@ void ZIncrbyCmd::DoInitial() {
 }
 
 void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0.0f;
+  double score = 0.0;
   rocksdb::Status s = slot->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     char buf[32];
@@ -360,7 +360,7 @@ void ZRevrangebyscoreCmd::DoInitial() {
     return;
   }
   ZsetRangebyscoreParentCmd::DoInitial();
-  double tmp_score = 0.0f;
+  double tmp_score = 0.0;
   tmp_score = min_score_;
   min_score_ = max_score_;
   max_score_ = tmp_score;
@@ -697,7 +697,7 @@ void ZScoreCmd::DoInitial() {
 }
 
 void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0.0f;
+  double score = 0.0;
   rocksdb::Status s = slot->db()->ZScore(key_, member_, &score);
   if (s.ok()) {
     char buf[32];

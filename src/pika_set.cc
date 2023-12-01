@@ -23,12 +23,11 @@ void SAddCmd::DoInitial() {
 void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->SAdd(key_, members_, &count);
-  if (s.ok()) {
-    AddSlotKey("s", key_, slot);
-    res_.AppendInteger(count);
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  if (!s.ok()) {
+    return;
   }
+  AddSlotKey("s", key_, slot);
+  res_.AppendInteger(count);
 }
 
 void SPopCmd::DoInitial() {
@@ -43,7 +42,11 @@ void SPopCmd::DoInitial() {
   count_ = 1;
 
   if (index < argc) {
-    if (count_ <= 0 || (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0)) {
+    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
+      return;
+    }
+    if (count_ <= 0) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -179,11 +182,7 @@ void SRemCmd::DoInitial() {
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s = slot->db()->SRem(key_, members_, &count);
-  if (s.ok()) {
-    res_.AppendInteger(count);
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  }
+  res_.AppendInteger(count);
 }
 
 void SUnionCmd::DoInitial() {
@@ -197,15 +196,11 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SUnion(keys_, &members);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(members.size());
-    for (const auto& member : members) {
-      res_.AppendStringLenUint64(member.size());
-      res_.AppendContent(member);
-    }
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  slot->db()->SUnion(keys_, &members);
+  res_.AppendArrayLenUint64(members.size());
+  for (const auto& member : members) {
+    res_.AppendStringLenUint64(member.size());
+    res_.AppendContent(member);
   }
 }
 
@@ -281,15 +276,11 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SInter(keys_, &members);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(members.size());
-    for (const auto& member : members) {
-      res_.AppendStringLenUint64(member.size());
-      res_.AppendContent(member);
-    }
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  slot->db()->SInter(keys_, &members);
+  res_.AppendArrayLenUint64(members.size());
+  for (const auto& member : members) {
+    res_.AppendStringLenUint64(member.size());
+    res_.AppendContent(member);
   }
 }
 
@@ -325,15 +316,11 @@ void SIsmemberCmd::DoInitial() {
 
 void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t is_member = 0;
-  rocksdb::Status s = slot->db()->SIsmember(key_, member_, &is_member);
-  if (s.ok()) {
-    if (is_member != 0) {
-      res_.AppendContent(":1");
-    } else {
-      res_.AppendContent(":0");
-    }
+  slot->db()->SIsmember(key_, member_, &is_member);
+  if (is_member != 0) {
+    res_.AppendContent(":1");
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.AppendContent(":0");
   }
 }
 
@@ -348,15 +335,11 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SDiff(keys_, &members);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(members.size());
-    for (const auto& member : members) {
-      res_.AppendStringLenUint64(member.size());
-      res_.AppendContent(member);
-    }
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  slot->db()->SDiff(keys_, &members);
+  res_.AppendArrayLenUint64(members.size());
+  for (const auto& member : members) {
+    res_.AppendStringLenUint64(member.size());
+    res_.AppendContent(member);
   }
 }
 
@@ -435,7 +418,10 @@ void SRandmemberCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 3) {
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
+    return;
+  } else if (argv_.size() == 3) {
     if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {

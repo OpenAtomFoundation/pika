@@ -78,7 +78,7 @@ void GeoPosCmd::DoInitial() {
 }
 
 void GeoPosCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0.0f;
+  double score = 0.0;
   res_.AppendArrayLenUint64(members_.size());
   for (const auto& member : members_) {
     rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
@@ -153,8 +153,8 @@ void GeoDistCmd::DoInitial() {
 }
 
 void GeoDistCmd::Do(std::shared_ptr<Slot> slot) {
-  double first_score = 0.0f;
-  double second_score = 0.0f;
+  double first_score = 0.0;
+  double second_score = 0.0;
   double first_xy[2];
   double second_xy[2];
   rocksdb::Status s = slot->db()->ZScore(key_, first_pos_, &first_score);
@@ -206,7 +206,7 @@ void GeoHashCmd::Do(std::shared_ptr<Slot> slot) {
   const char* geoalphabet = "0123456789bcdefghjkmnpqrstuvwxyz";
   res_.AppendArrayLenUint64(members_.size());
   for (const auto& member : members_) {
-    double score = 0.0f;
+    double score = 0.0;
     rocksdb::Status s = slot->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
@@ -307,7 +307,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
     // Insert into result only if the point is within the search area.
     for (auto & score_member : score_members) {
       double xy[2];
-      double real_distance = 0.0f;
+      double real_distance = 0.0;
       GeoHashBits hash = {.bits = static_cast<uint64_t>(score_member.score), .step = GEO_STEP_MAX};
       geohashDecodeToLongLatWGS84(hash, xy);
       if (geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1], distance, &real_distance) != 0) {
@@ -542,7 +542,7 @@ void GeoRadiusByMemberCmd::DoInitial() {
 }
 
 void GeoRadiusByMemberCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0.0f;
+  double score = 0.0;
   rocksdb::Status s = slot->db()->ZScore(key_, range_.member, &score);
   if (s.ok()) {
     double xy[2];
