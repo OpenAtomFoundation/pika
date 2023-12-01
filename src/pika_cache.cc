@@ -1050,7 +1050,7 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
   } else {
     if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
       if (start_index < cache_len && stop_index < cache_len) {
-        // cache 逆向的index
+        // cache reverse index
         out_start = cache_len - stop_index - 1;
         out_stop = cache_len - start_index - 1;
 
@@ -1088,8 +1088,8 @@ Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vec
     cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
     int32_t db_len = 0;
     db_obj->ZCard(key, &db_len);
-    int64_t out_start;
-    int64_t out_stop;
+    int64_t out_start = 0;
+    int64_t out_stop = 0;
     RangeStatus rs = CheckCacheRange(cache_len, db_len, start, stop, out_start, out_stop);
     if (rs == RangeStatus::RangeHit) {
       return cache_obj->ZRange(CachePrefixKeyZ, out_start, out_stop, score_members);
@@ -1248,8 +1248,8 @@ Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::
     cache_obj->ZCard(CachePrefixKeyZ, &cache_len);
     int32_t db_len = 0;
     db_obj->ZCard(key, &db_len);
-    int64_t out_start;
-    int64_t out_stop;
+    int64_t out_start = 0;
+    int64_t out_stop = 0;
     RangeStatus rs = CheckCacheRevRange(cache_len, db_len, start, stop, out_start, out_stop);
     if (rs == RangeStatus::RangeHit) {
       return cache_obj->ZRevrange(CachePrefixKeyZ, out_start, out_stop, score_members);
