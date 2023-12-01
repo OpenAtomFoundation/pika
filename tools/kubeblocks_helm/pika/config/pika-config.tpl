@@ -306,7 +306,7 @@ max-bytes-for-level-multiplier : 10
 # slotmigrate is mainly used to migrate slots, usually we will set it to no.
 # When you migrate slots, you need to set it to yes, and reload slotskeys before.
 # slotmigrate  [yes | no]
-slotmigrate : no
+slotmigrate : yes
 
 # BlockBasedTable block_size, default 4k
 # block-size: 4096

@@ -29,6 +29,7 @@ const std::string kCmdNameDbSlaveof = "dbslaveof";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";
+const std::string kCmdNameCompactRange = "compactrange";
 const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
@@ -54,6 +55,8 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
+const std::string kCmdNameCache = "cache";
+const std::string kCmdNameClearCache = "clearcache";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
@@ -249,9 +252,9 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskPreDo = 512,
-  kCmdFlagsMaskCacheDo = 1024,
-  kCmdFlagsMaskPostDo = 2048,
+  kCmdFlagsMaskDoThrouhDB = 4096,
+  kCmdFlagsMaskReadCache = 128,
+  kCmdFlagsMaskUpdateCache = 2048,
   kCmdFlagsMaskSlot = 1536,
 };
 
@@ -281,12 +284,15 @@ enum CmdFlags {
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsPreDo = 2048,
   kCmdFlagsStream = 1536
+  kCmdFlagsReadCache = 128,
+  kCmdFlagsUpdateCache = 2048,
+  kCmdFlagsDoThroughDB = 4096,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
-   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+  RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
 }
 
 const std::string kNewLine = "\r\n";
@@ -317,6 +323,7 @@ class CmdRes {
     kInvalidDB,
     kInconsistentHashTag,
     kErrOther,
+    kCacheMiss,
     KIncrByOverFlow,
     kInvalidTransaction,
     kTxnQueued,
@@ -331,6 +338,9 @@ class CmdRes {
   void clear() {
     message_.clear();
     ret_ = kNone;
+  }
+  bool CacheMiss() const {
+    return ret_ == kCacheMiss;
   }
   std::string raw_message() const { return message_; }
   std::string message() const {
@@ -487,6 +497,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void ProcessSingleSlotCmd();
   virtual void ProcessMultiSlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
+  virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void ReadCache(std::shared_ptr<Slot> slot = nullptr) {}
+  rocksdb::Status CmdStatus() { return s_; };
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
@@ -497,11 +511,15 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_read() const;
   bool is_write() const;
 
-  bool is_local() const;
-  bool is_suspend() const;
-  bool is_admin_require() const;
+  bool IsLocal() const;
+  bool IsSuspend() const;
+  bool IsAdminRequire() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool IsNeedUpdateCache() const;
+  bool is_only_from_cache() const;
+  bool IsNeedReadCache() const;
+  bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
@@ -543,6 +561,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdRes res_;
   PikaCmdArgsType argv_;
   std::string db_name_;
+  rocksdb::Status s_;
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;

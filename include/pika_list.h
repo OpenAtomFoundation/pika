@@ -22,8 +22,11 @@ class LIndexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LIndexCmd(*this); }
 
  private:
@@ -31,6 +34,7 @@ class LIndexCmd : public Cmd {
   int64_t index_ = 0;
   void DoInitial() override;
   void Clear() override { index_ = 0; }
+  rocksdb::Status s_;
 };
 
 class LInsertCmd : public Cmd {
@@ -42,8 +46,10 @@ class LInsertCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LInsertCmd(*this); }
 
  private:
@@ -52,6 +58,7 @@ class LInsertCmd : public Cmd {
   std::string pivot_;
   std::string value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class LLenCmd : public Cmd {
@@ -63,13 +70,17 @@ class LLenCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LLenCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class BlockingBaseCmd : public Cmd {
@@ -113,6 +124,7 @@ class BLPopCmd final : public BlockingBaseCmd {
   int64_t expire_time_{0};
   WriteBinlogOfPopArgs binlog_args_;
   bool is_binlog_deferred_{false};
+  rocksdb::Status s_;
 };
 
 class LPopCmd : public Cmd {
@@ -124,14 +136,17 @@ class LPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LPopCmd(*this); }
 
  private:
   std::string key_;
   std::int64_t count_ = 1;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 
@@ -144,13 +159,16 @@ class LPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LPushCmd(*this); }
 
  private:
   std::string key_;
   std::vector<std::string> values_;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override { values_.clear(); }
 };
@@ -164,12 +182,16 @@ class LPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LPushxCmd(*this); }
 
  private:
   std::string key_;
+  std::string value_;
+  rocksdb::Status s_;
   std::vector<std::string> values_;
   void DoInitial() override;
 };
@@ -183,14 +205,18 @@ class LRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LRangeCmd(*this); }
 
  private:
   std::string key_;
   int64_t left_ = 0;
   int64_t right_ = 0;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -203,14 +229,17 @@ class LRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LRemCmd(*this); }
 
  private:
   std::string key_;
   int64_t count_ = 0;
   std::string value_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -223,13 +252,16 @@ class LSetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LSetCmd(*this); }
 
  private:
   std::string key_;
   int64_t index_ = 0;
+  rocksdb::Status s_;
   std::string value_;
   void DoInitial() override;
 };
@@ -243,14 +275,17 @@ class LTrimCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new LTrimCmd(*this); }
 
  private:
   std::string key_;
   int64_t start_ = 0;
   int64_t stop_ = 0;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -282,14 +317,17 @@ class RPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new RPopCmd(*this); }
 
  private:
   std::string key_;
   std::int64_t count_ = 1;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class RPopLPushCmd : public BlockingBaseCmd {
@@ -314,8 +352,9 @@ class RPopLPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new RPopLPushCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
 
@@ -327,6 +366,7 @@ class RPopLPushCmd : public BlockingBaseCmd {
   // used for write binlog
   std::shared_ptr<Cmd> rpop_cmd_;
   std::shared_ptr<Cmd> lpush_cmd_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -339,13 +379,17 @@ class RPushCmd : public BlockingBaseCmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new RPushCmd(*this); }
 
  private:
   std::string key_;
   std::vector<std::string> values_;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override { values_.clear(); }
 };
@@ -359,13 +403,17 @@ class RPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new RPushxCmd(*this); }
 
  private:
   std::string key_;
+  std::string value_;
   std::vector<std::string> values_;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 #endif

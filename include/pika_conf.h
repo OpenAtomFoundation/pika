@@ -306,6 +306,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return network_interface_;
   }
+  int cache_model() { return cache_model_; }
   int sync_window_size() { return sync_window_size_.load(); }
   int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
   int consensus_level() { return consensus_level_.load(); }
@@ -326,7 +327,23 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return rate_limiter_auto_tuned_;
   }
-
+  bool IsCacheDisabledTemporarily() { return tmp_cache_disable_flag_; }
+  int GetCacheString() { return cache_string_; }
+  int GetCacheSet() { return cache_set_; }
+  int GetCacheZset() { return cache_zset_; }
+  int GetCacheHash() { return cache_hash_; }
+  int GetCacheList() { return cache_list_; }
+  int GetCacheBit() { return cache_bit_; }
+  int GetCacheNum() { return cache_num_; }
+  void SetCacheNum(const int value) { cache_num_ = value; }
+  void SetCacheModel(const int value) { cache_model_ = value; }
+  void SetCacheStartPos(const int value) { zset_cache_start_pos_ = value; }
+  void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
+  void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
+  void SetCacheMaxmemoryPolicy(const int value) { cache_maxmemory_policy_ = value; }
+  void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
+  void SetCacheLFUDecayTime(const int value) { cache_lfu_decay_time_ = value; }
+  void UnsetCacheDisableFlag() { tmp_cache_disable_flag_ = false; }
   bool enable_blob_files() { return enable_blob_files_; }
   int64_t min_blob_size() { return min_blob_size_; }
   int64_t blob_file_size() { return blob_file_size_; }
@@ -585,6 +602,14 @@ class PikaConf : public pstd::BaseConf {
     max_rsync_parallel_num_ = value;
   }
 
+  void SetCacheType(const std::string &value);
+  void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
+  int zset_cache_start_pos() { return zset_cache_start_pos_; }
+  int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
+  int64_t cache_maxmemory() { return cache_maxmemory_; }
+  int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
+  int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
+  int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
   pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
@@ -597,7 +622,6 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
-
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
@@ -695,6 +719,25 @@ class PikaConf : public pstd::BaseConf {
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
   int binlog_file_size_ = 0;
+
+  // cache
+  std::atomic_int cache_num_;
+  std::atomic_int cache_model_;
+  std::atomic_bool tmp_cache_disable_flag_;
+  std::vector<std::string> cache_type_;
+  std::atomic_int cache_string_;
+  std::atomic_int cache_set_;
+  std::atomic_int cache_zset_;
+  std::atomic_int cache_hash_;
+  std::atomic_int cache_list_;
+  std::atomic_int cache_bit_;
+  std::atomic_int zset_cache_start_pos_;
+  std::atomic_int zset_cache_field_num_per_key_;
+  std::atomic_int64_t cache_maxmemory_;
+  std::atomic_int cache_maxmemory_policy_;
+  std::atomic_int cache_maxmemory_samples_;
+  std::atomic_int cache_lfu_decay_time_;
+
 
   // rocksdb blob
   bool enable_blob_files_ = false;

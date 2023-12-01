@@ -431,7 +431,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
     case kAdminAuthed:
       break;
     case kLimitAuthed:
-      if (cmd_ptr->is_admin_require() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
+      if (cmd_ptr->IsAdminRequire() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
         return false;
       }
       break;
