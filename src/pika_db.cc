@@ -97,6 +97,8 @@ Status DB::AddSlots(const std::set<uint32_t>& slot_ids) {
 
   for (const uint32_t& id : slot_ids) {
     slots_.emplace(id, std::make_shared<Slot>(db_name_, id, db_path_));
+    slots_[id]->Init();
+
   }
   return Status::OK();
 }
