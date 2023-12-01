@@ -538,15 +538,15 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Cache used
    */
-  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot = nullptr, cache::CacheConfig *cache_cfg = nullptr);
-  void ClearCacheDbAsync(std::shared_ptr<Slot> slot = nullptr);
-  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot = nullptr);
-  void ResetCacheConfig(std::shared_ptr<Slot> slot = nullptr);
-  void ClearHitRatio(std::shared_ptr<Slot> slot = nullptr);
-  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot = nullptr);
+  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg = nullptr);
+  void ClearCacheDbAsync(std::shared_ptr<Slot> slot);
+  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot);
+  void ResetCacheConfig(std::shared_ptr<Slot> slot);
+  void ClearHitRatio(std::shared_ptr<Slot> slot);
+  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot);
   static void DoCacheBGTask(void* arg);
   void UpdateCacheInfo(void);
-  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot = nullptr);
+  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot);
   void CacheConfigInit(cache::CacheConfig &cache_cfg);
   void ClearHitRatio(void);
   void ProcessCronTask();
