@@ -246,7 +246,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
-      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsFast | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCach);
+      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsFast | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDel, std::move(delptr)));
   std::unique_ptr<Cmd> Unlinkptr =
       std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsFast);
@@ -983,9 +983,9 @@ void Cmd::ProcessMultiSlotCmd() {
 
 uint32_t Cmd::flag() const { return flag_; }
 bool Cmd::hasFlag(uint32_t flag) const { return ((flag_ & flag) == flag); }
-bool Cmd::is_read() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsRead); }
-bool Cmd::is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
-bool Cmd::IsLocal() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
+bool Cmd::is_read() const { return ((flag_ & kCmdFlagsRead) == kCmdFlagsRead); }
+bool Cmd::is_write() const { return ((flag_ & kCmdFlagsWrite) == kCmdFlagsWrite); }
+bool Cmd::IsLocal() const { return ((flag_ & kCmdFlagsLocal) == kCmdFlagsLocal); }
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
   if (subCmdName_.empty()) {
     return -1;
@@ -999,16 +999,15 @@ int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
 }
 
 // Others need to be suspended when a suspend command run
-bool Cmd::IsSuspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
+bool Cmd::IsSuspend() const { return ((flag_ & kCmdFlagsSuspend) == kCmdFlagsSuspend); }
 // Must with admin auth
-bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsAdminRequire) == kCmdFlagsAdminRequire); }
 bool Cmd::is_single_slot() const { return ((flag_ & kCmdFlagsSingleSlot) == kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return ((flag_ & kCmdFlagsMultiSlot) == kCmdFlagsMultiSlot); }
 bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 // std::string Cmd::CurrentSubCommand() const { return ""; };
-bool Cmd::IsAdminRequire() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
-bool Cmd::IsNeedUpdateCache() const { return ((flag_ & kCmdFlagsMaskUpdateCache) == kCmdFlagsUpdateCache);  }
+bool Cmd::IsAdminRequire() const { return ((flag_ & kCmdFlagsAdminRequire) == kCmdFlagsAdminRequire); }
+bool Cmd::IsNeedUpdateCache() const { return ((flag_ & kCmdFlagsUpdateCache) == kCmdFlagsUpdateCache);  }
 bool Cmd::IsNeedCacheDo() const {
   if (g_pika_conf->IsCacheDisabledTemporarily()) {
     return false;
@@ -1039,10 +1038,10 @@ bool Cmd::IsNeedCacheDo() const {
       return false;
     }
   }
-  return ((flag_ & kCmdFlagsMaskDoThrouhDB) == kCmdFlagsDoThroughDB);
+  return ((flag_ & kCmdFlagsDoThroughDB) == kCmdFlagsDoThroughDB);
 }
 
-bool Cmd::IsNeedReadCache() const { return ((flag_ & kCmdFlagsMaskReadCache) == kCmdFlagsReadCache); }
+bool Cmd::IsNeedReadCache() const { return ((flag_ & kCmdFlagsReadCache) == kCmdFlagsReadCache); }
 
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }

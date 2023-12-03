@@ -2489,7 +2489,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     std::set<std::string> available_types = {"string", "set", "zset", "list", "hash", "bit"};
     std::string type_str = value;
     std::vector<std::string> types;
-    type_str.erase(remove_if(type_str.begin(), type_str.end(), isspace), type_str.end());
+    type_str.erase(remove_if(type_str.begin(), type_str.end(), ::isspace), type_str.end());
     pstd::StringSplit(type_str, COMMA, types);
     for (auto& type : types) {
       if (available_types.find(type) == available_types.end()) {
