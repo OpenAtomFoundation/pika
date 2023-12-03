@@ -32,6 +32,9 @@ spec:
           namespace: {{ .Release.Namespace }}
           volumeName: script
           defaultMode: 0555
+      volumeTypes:
+        - name: data
+          type: data
       postStartSpec:
         cmdExecutorConfig:
           image: {{ include "codis.image" . }}
@@ -51,6 +54,8 @@ spec:
             volumeMounts:
               - name: config
                 mountPath: /etc/pika
+              - name: data
+                mountPath: /data
             command:
               - "/pika/bin/pika"
             args:
