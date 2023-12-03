@@ -26,8 +26,10 @@ class SetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetCmd(*this); }
  private:
   std::string key_;
@@ -35,6 +37,7 @@ class SetCmd : public Cmd {
   std::string target_;
   int32_t success_ = 0;
   int64_t sec_ = 0;
+  bool has_ttl_ = false;
   SetCmd::SetCondition condition_{kNONE};
   void DoInitial() override;
   void Clear() override {
@@ -43,6 +46,7 @@ class SetCmd : public Cmd {
     condition_ = kNONE;
   }
   std::string ToRedisProtocol() override;
+  rocksdb::Status s_;
 };
 
 class GetCmd : public Cmd {
@@ -55,13 +59,19 @@ class GetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetCmd(*this); }
 
  private:
   std::string key_;
+  std::string value_;
+  int64_t sec_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class DelCmd : public Cmd {
@@ -69,6 +79,8 @@ class DelCmd : public Cmd {
   DelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STRING)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
   void Merge() override;
@@ -79,6 +91,7 @@ class DelCmd : public Cmd {
   std::vector<std::string> keys_;
   int64_t split_res_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class IncrCmd : public Cmd {
@@ -91,14 +104,17 @@ class IncrCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrCmd(*this); }
 
  private:
   std::string key_;
   int64_t new_value_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class IncrbyCmd : public Cmd {
@@ -111,14 +127,17 @@ class IncrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrbyCmd(*this); }
 
  private:
   std::string key_;
   int64_t by_ = 0, new_value_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class IncrbyfloatCmd : public Cmd {
@@ -131,14 +150,17 @@ class IncrbyfloatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new IncrbyfloatCmd(*this); }
 
  private:
   std::string key_, value_, new_value_;
   double by_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class DecrCmd : public Cmd {
@@ -151,14 +173,17 @@ class DecrCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new DecrCmd(*this); }
 
  private:
   std::string key_;
   int64_t new_value_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class DecrbyCmd : public Cmd {
@@ -171,14 +196,17 @@ class DecrbyCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new DecrbyCmd(*this); }
 
  private:
   std::string key_;
   int64_t by_ = 0, new_value_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class GetsetCmd : public Cmd {
@@ -191,14 +219,17 @@ class GetsetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetsetCmd(*this); }
 
  private:
   std::string key_;
   std::string new_value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class AppendCmd : public Cmd {
@@ -211,14 +242,17 @@ class AppendCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new AppendCmd(*this); }
 
  private:
   std::string key_;
   std::string value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class MgetCmd : public Cmd {
@@ -226,6 +260,9 @@ class MgetCmd : public Cmd {
   MgetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STRING)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
   void Merge() override;
@@ -233,8 +270,13 @@ class MgetCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
+  std::string value_;
   std::vector<storage::ValueStatus> split_res_;
+  std::vector<storage::ValueStatus> db_value_status_array_;
+  std::vector<storage::ValueStatus> cache_value_status_array_;
+  int64_t ttl_ = -1;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class KeysCmd : public Cmd {
@@ -251,6 +293,7 @@ class KeysCmd : public Cmd {
   storage::DataType type_{storage::DataType::kAll};
   void DoInitial() override;
   void Clear() override { type_ = storage::DataType::kAll; }
+  rocksdb::Status s_;
 };
 
 class SetnxCmd : public Cmd {
@@ -272,6 +315,7 @@ class SetnxCmd : public Cmd {
   std::string value_;
   int32_t success_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
   std::string ToRedisProtocol() override;
 };
 
@@ -285,8 +329,10 @@ class SetexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetexCmd(*this); }
 
  private:
@@ -294,6 +340,7 @@ class SetexCmd : public Cmd {
   int64_t sec_ = 0;
   std::string value_;
   void DoInitial() override;
+  rocksdb::Status s_;
   std::string ToRedisProtocol() override;
 };
 
@@ -307,8 +354,10 @@ class PsetexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PsetexCmd(*this); }
 
  private:
@@ -316,6 +365,7 @@ class PsetexCmd : public Cmd {
   int64_t usec_ = 0;
   std::string value_;
   void DoInitial() override;
+  rocksdb::Status s_;
   std::string ToRedisProtocol() override;
 };
 
@@ -338,6 +388,7 @@ class DelvxCmd : public Cmd {
   std::string value_;
   int32_t success_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class MsetCmd : public Cmd {
@@ -351,6 +402,8 @@ class MsetCmd : public Cmd {
   }
 
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     for (auto& kv : kvs_) {
@@ -368,6 +421,7 @@ class MsetCmd : public Cmd {
   void DoInitial() override;
   // used for write binlog
   std::shared_ptr<SetCmd> set_cmd_;
+  rocksdb::Status s_;
 };
 
 class MsetnxCmd : public Cmd {
@@ -410,14 +464,20 @@ class GetrangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new GetrangeCmd(*this); }
 
  private:
   std::string key_;
   int64_t start_ = 0;
   int64_t end_ = 0;
+  std::string value_;
+  int64_t sec_ = 0;
+  rocksdb::Status s_;
   void DoInitial() override;
 };
 
@@ -431,8 +491,10 @@ class SetrangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SetrangeCmd(*this); }
 
  private:
@@ -440,6 +502,7 @@ class SetrangeCmd : public Cmd {
   int64_t offset_ = 0;
   std::string value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class StrlenCmd : public Cmd {
@@ -452,13 +515,19 @@ class StrlenCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new StrlenCmd(*this); }
 
  private:
   std::string key_;
+  std::string value_;
+  int64_t sec_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class ExistsCmd : public Cmd {
@@ -466,6 +535,8 @@ class ExistsCmd : public Cmd {
   ExistsCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override;
   void Merge() override;
@@ -475,6 +546,7 @@ class ExistsCmd : public Cmd {
   std::vector<std::string> keys_;
   int64_t split_res_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class ExpireCmd : public Cmd {
@@ -487,8 +559,10 @@ class ExpireCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ExpireCmd(*this); }
 
  private:
@@ -496,6 +570,7 @@ class ExpireCmd : public Cmd {
   int64_t sec_ = 0;
   void DoInitial() override;
   std::string ToRedisProtocol() override;
+  rocksdb::Status s_;
 };
 
 class PexpireCmd : public Cmd {
@@ -508,8 +583,10 @@ class PexpireCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PexpireCmd(*this); }
 
  private:
@@ -517,6 +594,7 @@ class PexpireCmd : public Cmd {
   int64_t msec_ = 0;
   void DoInitial() override;
   std::string ToRedisProtocol() override;
+  rocksdb::Status s_;
 };
 
 class ExpireatCmd : public Cmd {
@@ -529,14 +607,17 @@ class ExpireatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ExpireatCmd(*this); }
 
  private:
   std::string key_;
   int64_t time_stamp_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class PexpireatCmd : public Cmd {
@@ -549,14 +630,17 @@ class PexpireatCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PexpireatCmd(*this); }
 
  private:
   std::string key_;
   int64_t time_stamp_ms_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
   std::string ToRedisProtocol() override;
 };
 
@@ -570,13 +654,16 @@ class TtlCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new TtlCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class PttlCmd : public Cmd {
@@ -589,13 +676,16 @@ class PttlCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PttlCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class PersistCmd : public Cmd {
@@ -608,13 +698,16 @@ class PersistCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new PersistCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class TypeCmd : public Cmd {
@@ -627,13 +720,16 @@ class TypeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new TypeCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class PTypeCmd : public Cmd {
@@ -653,6 +749,7 @@ class PTypeCmd : public Cmd {
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class ScanCmd : public Cmd {
@@ -675,6 +772,7 @@ class ScanCmd : public Cmd {
     count_ = 10;
     type_ = storage::DataType::kAll;
   }
+  rocksdb::Status s_;
 };
 
 class ScanxCmd : public Cmd {
@@ -696,6 +794,7 @@ class ScanxCmd : public Cmd {
     pattern_ = "*";
     count_ = 10;
   }
+  rocksdb::Status s_;
 };
 
 class PKSetexAtCmd : public Cmd {
@@ -718,6 +817,7 @@ class PKSetexAtCmd : public Cmd {
   int64_t time_stamp_ = 0;
   void DoInitial() override;
   void Clear() override { time_stamp_ = 0; }
+  rocksdb::Status s_;
 };
 
 class PKScanRangeCmd : public Cmd {
@@ -747,6 +847,7 @@ class PKScanRangeCmd : public Cmd {
     limit_ = 10;
     string_with_value = false;
   }
+  rocksdb::Status s_;
 };
 
 class PKRScanRangeCmd : public Cmd {
@@ -776,5 +877,6 @@ class PKRScanRangeCmd : public Cmd {
     limit_ = 10;
     string_with_value = false;
   }
+  rocksdb::Status s_;
 };
 #endif

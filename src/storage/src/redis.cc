@@ -65,7 +65,7 @@ Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key, size_t total) {
   if (total < small_compaction_threshold_) {
     return Status::OK();
   } else {
-    storage_->AddBGTask({type_, kCompactKey, key});
+    storage_->AddBGTask({type_, kCompactRange, {key, key}});
     statistics_store_->Remove(key);
   }
   return Status::OK();

@@ -37,6 +37,8 @@ class Status {
 
   static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
+  static Status ItemNotExist(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kItemNotExist, msg, msg2); }
+
   static Status Error(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kError, msg, msg2); }
 
   // Returns true if the status indicates success.
@@ -102,7 +104,8 @@ class Status {
     kTimeout = 9,
     kAuthFailed = 10,
     kBusy = 11,
-    kError = 12
+    kItemNotExist = 12,
+    kError = 13
   };
 
   Code code() const { return !state_ ? kOk : static_cast<Code>(state_[4]); }

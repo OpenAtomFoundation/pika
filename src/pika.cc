@@ -6,8 +6,8 @@
 #include <glog/logging.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <memory.h>
 
-#include "net/include/net_stats.h"
 #include "include/build_version.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
@@ -17,6 +17,7 @@
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_version.h"
+#include "net/include/net_stats.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_defer.h"
 
@@ -210,6 +211,7 @@ int main(int argc, char* argv[]) {
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
+  g_pika_server->InitDBStruct();
 
   auto status = g_pika_server->InitAcl();
   if (!status.ok()) {

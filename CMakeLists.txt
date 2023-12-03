@@ -52,6 +52,7 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RELEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -DNDEBUG")
+
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -588,9 +589,9 @@ ExternalProject_Add(rocksdb
   ${LIBGPERF_NAME}
   ${LIBJEMALLOC_NAME}
   URL
-  https://github.com/facebook/rocksdb/archive/refs/tags/v8.3.3.tar.gz
+  https://github.com/facebook/rocksdb/archive/refs/tags/v8.7.3.tar.gz
   URL_HASH
-  MD5=2815555a2ee2d12a7081a91fb988bf24
+  MD5=d57bc74c955c6271cfd9459e44c177b1
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -628,6 +629,35 @@ ExternalProject_Add(rocksdb
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
+
+ExternalProject_Add(rediscache
+  URL
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.5.tar.gz
+  URL_HASH
+  MD5=99e4d0bde20811a6058a6aa482c18711
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_BUILD
+  1
+  BUILD_IN_SOURCE
+  1
+  SOURCE_SUBDIR
+  ""
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_INSTALL_INCLUDEDIR=${INSTALL_INCLUDEDIR}
+  -DCMAKE_INSTALL_LIBDIR=${INSTALL_LIBDIR}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+set(REDISCACHE_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(REDISCACHE_LIBRARY ${INSTALL_LIBDIR}/librediscache.a)
+
 
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
@@ -700,6 +730,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(src/cache)
 if (USE_PIKA_TOOLS)
   add_subdirectory(tools)
 endif()
@@ -734,7 +765,9 @@ message("pika GIT_DATE = ${PIKA_GIT_DATE}")
 message("pika GIT_TAG = ${PIKA_GIT_TAG}")
 message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
-set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
+set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc
+        src/pika_cache_load_thread.cc
+        )
 message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 
@@ -769,7 +802,10 @@ add_dependencies(${PROJECT_NAME}
   protobuf
   pstd
   net
-  storage)
+  rediscache
+  storage
+  cache
+)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -778,6 +814,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+  cache
   storage
   net
   pstd
@@ -790,6 +827,7 @@ target_link_libraries(${PROJECT_NAME}
   libzstd.a
   liblz4.a
   libz.a
+  librediscache.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
 

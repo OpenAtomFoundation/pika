@@ -9,7 +9,6 @@ aux_source_directory(../src TEST_SRCS)
 # set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
 foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   get_filename_component(storage_test_filename ${blackwindow_test_source} NAME)
-  message(${storage_test_filename})
   string(REPLACE ".cc" "" blackwindow_test_name ${storage_test_filename})
 
   # Add the test target

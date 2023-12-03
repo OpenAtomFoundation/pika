@@ -13,6 +13,7 @@
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 
+#include "cache/include/config.h"
 #include "include/acl.h"
 #include "include/pika_define.h"
 
@@ -161,7 +162,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-//  GetConfStr("userpass", &userpass_);
+  //  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -198,10 +199,10 @@ int PikaConf::Load() {
   }
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
-//  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
-//  for (auto& item : user_blacklist_) {
-//    pstd::StringToLower(item);
-//  }
+  //  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
+  //  for (auto& item : user_blacklist_) {
+  //    pstd::StringToLower(item);
+  //  }
   GetConfInt("default-slot-num", &default_slot_num_);
   if (default_slot_num_ <= 0) {
     LOG(FATAL) << "config default-slot-num error,"
@@ -363,7 +364,7 @@ int PikaConf::Load() {
 
   GetConfInt64("manually-resume-interval", &resume_check_interval_);
   if (resume_check_interval_ <= 0) {
-    resume_check_interval_ = 60; // seconds
+    resume_check_interval_ = 60;  // seconds
   }
 
   GetConfDouble("min-check-resume-ratio", &min_check_resume_ratio_);
@@ -398,7 +399,7 @@ int PikaConf::Load() {
   // max_write_buffer_size
   GetConfInt64Human("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
-    max_write_buffer_size_ = 10737418240;  // 10Gb
+    max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
   // rate-limiter-bandwidth
@@ -584,7 +585,47 @@ int PikaConf::Load() {
       master_run_id_ = master_run_id;
     }
   }
+  int cache_num = 16;
+  GetConfInt("cache-num", &cache_num);
+  cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
 
+  int cache_model = 0;
+  GetConfInt("cache-model", &cache_model);
+  cache_model_ = (PIKA_CACHE_NONE > cache_model || PIKA_CACHE_READ < cache_model) ? PIKA_CACHE_NONE : cache_model;
+
+  std::string cache_type;
+  GetConfStr("cache-type", &cache_type);
+  SetCacheType(cache_type);
+
+  int zset_cache_start_pos = 0;
+  GetConfInt("zset-cache-start-direction", &zset_cache_start_pos);
+  if (zset_cache_start_pos != cache::CACHE_START_FROM_BEGIN && zset_cache_start_pos != cache::CACHE_START_FROM_END) {
+    zset_cache_start_pos = cache::CACHE_START_FROM_BEGIN;
+  }
+  zset_cache_start_pos_ = zset_cache_start_pos;
+
+  int zset_cache_field_num_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
+  GetConfInt("zset-cache-field-num-per-key", &zset_cache_field_num_per_key);
+  if (zset_cache_field_num_per_key <= 0) {
+    zset_cache_field_num_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
+  }
+  zset_cache_field_num_per_key_ = zset_cache_field_num_per_key;
+
+  int64_t cache_maxmemory = PIKA_CACHE_SIZE_DEFAULT;
+  GetConfInt64("cache-maxmemory", &cache_maxmemory);
+  cache_maxmemory_ = (PIKA_CACHE_SIZE_MIN > cache_maxmemory) ? PIKA_CACHE_SIZE_DEFAULT : cache_maxmemory;
+
+  int cache_maxmemory_policy = 1;
+  GetConfInt("cache-maxmemory-policy", &cache_maxmemory_policy);
+  cache_maxmemory_policy_ = (0 > cache_maxmemory_policy || 7 < cache_maxmemory_policy) ? 1 : cache_maxmemory_policy;
+
+  int cache_maxmemory_samples = 5;
+  GetConfInt("cache-maxmemory-samples", &cache_maxmemory_samples);
+  cache_maxmemory_samples_ = (1 > cache_maxmemory_samples) ? 5 : cache_maxmemory_samples;
+
+  int cache_lfu_decay_time = 1;
+  GetConfInt("cache-lfu-decay-time", &cache_lfu_decay_time);
+  cache_lfu_decay_time_ = (0 > cache_lfu_decay_time) ? 1 : cache_lfu_decay_time;
   // sync window size
   int tmp_sync_window_size = kBinlogReadWinDefaultSize;
   GetConfInt("sync-window-size", &tmp_sync_window_size);
@@ -648,16 +689,44 @@ void PikaConf::TryPushDiffCommands(const std::string& command, const std::string
   }
 }
 
+void PikaConf::SetCacheType(const std::string& value) {
+  cache_string_ = cache_set_ = cache_zset_ = cache_hash_ = cache_list_ = cache_bit_ = 0;
+  if (value == "") {
+    return;
+  }
+  std::lock_guard l(rwlock_);
+
+  std::string lower_value = value;
+  pstd::StringToLower(lower_value);
+  lower_value.erase(remove_if(lower_value.begin(), lower_value.end(), isspace), lower_value.end());
+  pstd::StringSplit(lower_value, COMMA, cache_type_);
+  for (auto& type : cache_type_) {
+    if (type == "string") {
+      cache_string_ = 1;
+    } else if (type == "set") {
+      cache_set_ = 1;
+    } else if (type == "zset") {
+      cache_zset_ = 1;
+    } else if (type == "hash") {
+      cache_hash_ = 1;
+    } else if (type == "list") {
+      cache_list_ = 1;
+    } else if (type == "bit") {
+      cache_bit_ = 1;
+    }
+  }
+}
+
 int PikaConf::ConfigRewrite() {
-//  std::string userblacklist = suser_blacklist();
+  //  std::string userblacklist = suser_blacklist();
 
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-//  SetConfStr("userpass", userpass_);
-//  SetConfStr("userblacklist", userblacklist);
+  //  SetConfStr("userpass", userpass_);
+  //  SetConfStr("userblacklist", userblacklist);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);

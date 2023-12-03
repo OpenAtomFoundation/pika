@@ -115,6 +115,29 @@ class CompactCmd : public Cmd {
   std::set<std::string> compact_dbs_;
 };
 
+// we can use pika/tests/helpers/test_queue.py to test this command
+class CompactRangeCmd : public Cmd {
+ public:
+  CompactRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new CompactRangeCmd(*this); }
+
+ private:
+  void DoInitial() override;
+  void Clear() override {
+    struct_type_.clear();
+    compact_dbs_.clear();
+    start_key_.clear();
+    end_key_.clear();
+  }
+  std::string struct_type_;
+  std::set<std::string> compact_dbs_;
+  std::string start_key_;
+  std::string end_key_;
+};
+
 class PurgelogstoCmd : public Cmd {
  public:
   PurgelogstoCmd(const std::string& name, int arity, uint32_t flag)
@@ -162,8 +185,10 @@ class FlushallCmd : public Cmd {
   FlushallCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
   void Execute() override;
   void FlushAllWithoutLock();
@@ -180,8 +205,10 @@ class FlushdbCmd : public Cmd {
   // The flush command belongs to the write categories, so the key cannot be empty
   std::vector<std::string> current_key() const override { return {""}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllSlotsWithoutLock(std::shared_ptr<DB> db);
   void Execute() override;
@@ -228,7 +255,8 @@ class InfoCmd : public Cmd {
     kInfo,
     kInfoAll,
     kInfoDebug,
-    kInfoCommandStats
+    kInfoCommandStats,
+    kInfoCache
   };
 
   InfoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
@@ -257,6 +285,7 @@ class InfoCmd : public Cmd {
   const static std::string kRocksDBSection;
   const static std::string kDebugSection;
   const static std::string kCommandStatsSection;
+  const static std::string kCacheSection;
 
   void DoInitial() override;
   void Clear() override {
@@ -277,6 +306,9 @@ class InfoCmd : public Cmd {
   void InfoRocksDB(std::string& info);
   void InfoDebug(std::string& info);
   void InfoCommandStats(std::string& info);
+  void InfoCache(std::string& info, std::shared_ptr<Slot> slot);
+
+  std::string CacheStatusToString(int status);
 };
 
 class ShutdownCmd : public Cmd {
@@ -308,7 +340,7 @@ class ConfigCmd : public Cmd {
   std::vector<std::string> config_args_v_;
   void DoInitial() override;
   void ConfigGet(std::string& ret);
-  void ConfigSet(std::string& ret);
+  void ConfigSet(std::string& ret, std::shared_ptr<Slot> slot);
   void ConfigRewrite(std::string& ret);
   void ConfigResetstat(std::string& ret);
   void ConfigRewriteReplicationID(std::string& ret);
@@ -514,6 +546,37 @@ class DisableWalCmd : public Cmd {
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DisableWalCmd(*this); }
+
+ private:
+  void DoInitial() override;
+};
+
+class CacheCmd : public Cmd {
+ public:
+  enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
+  CacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new CacheCmd(*this); }
+
+ private:
+  CacheCondition condition_;
+  std::vector<std::string> keys_;
+  rocksdb::Status s_;
+  void DoInitial() override;
+  void Clear() override {
+    keys_.clear();
+  }
+};
+
+class ClearCacheCmd : public Cmd {
+ public:
+  ClearCacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new ClearCacheCmd(*this); }
 
  private:
   void DoInitial() override;
