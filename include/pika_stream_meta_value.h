@@ -221,7 +221,7 @@ class StreamCGroupMetaValue {
   treeID consumers_ = 0;
 };
 
-static const size_t kDefaultStreamConsumerValueLength = sizeof(mstime_t) * 2 + sizeof(treeID);
+static const size_t kDefaultStreamConsumerValueLength = sizeof(stream_ms_t) * 2 + sizeof(treeID);
 class StreamConsumerMetaValue {
  public:
   // pel must been set at beginning
@@ -237,10 +237,10 @@ class StreamConsumerMetaValue {
     }
     if (value_.size() == kDefaultStreamConsumerValueLength) {
       auto pos = value_.data();
-      memcpy(&seen_time_, pos, sizeof(mstime_t));
-      pos += sizeof(mstime_t);
-      memcpy(&active_time_, pos, sizeof(mstime_t));
-      pos += sizeof(mstime_t);
+      memcpy(&seen_time_, pos, sizeof(stream_ms_t));
+      pos += sizeof(stream_ms_t);
+      memcpy(&active_time_, pos, sizeof(stream_ms_t));
+      pos += sizeof(stream_ms_t);
       memcpy(&pel_, pos, sizeof(treeID));
     }
   }
@@ -256,29 +256,29 @@ class StreamConsumerMetaValue {
     value_.resize(needed);
     auto dst = value_.data();
 
-    memcpy(dst, &seen_time_, sizeof(mstime_t));
-    dst += sizeof(mstime_t);
-    memcpy(dst, &active_time_, sizeof(mstime_t));
-    dst += sizeof(mstime_t);
+    memcpy(dst, &seen_time_, sizeof(stream_ms_t));
+    dst += sizeof(stream_ms_t);
+    memcpy(dst, &active_time_, sizeof(stream_ms_t));
+    dst += sizeof(stream_ms_t);
     memcpy(dst, &pel_, sizeof(treeID));
   }
 
-  mstime_t seen_time() { return seen_time_; }
+  stream_ms_t seen_time() { return seen_time_; }
 
-  void set_seen_time(mstime_t seen_time) {
+  void set_seen_time(stream_ms_t seen_time) {
     seen_time_ = seen_time;
     assert(value_.size() == kDefaultStreamConsumerValueLength);
     char* dst = const_cast<char*>(value_.data());
-    memcpy(dst, &seen_time_, sizeof(mstime_t));
+    memcpy(dst, &seen_time_, sizeof(stream_ms_t));
   }
 
-  mstime_t active_time() { return active_time_; }
+  stream_ms_t active_time() { return active_time_; }
 
-  void set_active_time(mstime_t active_time) {
+  void set_active_time(stream_ms_t active_time) {
     active_time_ = active_time;
     assert(value_.size() == kDefaultStreamConsumerValueLength);
-    char* dst = const_cast<char*>(value_.data()) + sizeof(mstime_t);
-    memcpy(dst, &active_time_, sizeof(mstime_t));
+    char* dst = const_cast<char*>(value_.data()) + sizeof(stream_ms_t);
+    memcpy(dst, &active_time_, sizeof(stream_ms_t));
   }
 
   // pel was set in constructor,  can't be modified
@@ -289,18 +289,18 @@ class StreamConsumerMetaValue {
  private:
   std::string value_;
 
-  mstime_t seen_time_ = 0;
-  mstime_t active_time_ = 0;
+  stream_ms_t seen_time_ = 0;
+  stream_ms_t active_time_ = 0;
   treeID pel_ = 0;
 };
 
-static const size_t kDefaultStreamPelMetaValueLength = sizeof(mstime_t) + sizeof(uint64_t) + sizeof(treeID);
+static const size_t kDefaultStreamPelMetaValueLength = sizeof(stream_ms_t) + sizeof(uint64_t) + sizeof(treeID);
 class StreamPelMeta {
  public:
   // consumer must been set at beginning
   StreamPelMeta() = default;
 
-  void Init(std::string consumer, mstime_t delivery_time) {
+  void Init(std::string consumer, stream_ms_t delivery_time) {
     consumer_ = std::move(consumer);
     delivery_time_ = delivery_time;
     size_t needed = kDefaultStreamPelMetaValueLength;
@@ -312,8 +312,8 @@ class StreamPelMeta {
     value_.resize(needed);
     char* dst = value_.data();
 
-    memcpy(dst, &delivery_time_, sizeof(mstime_t));
-    dst += sizeof(mstime_t);
+    memcpy(dst, &delivery_time_, sizeof(stream_ms_t));
+    dst += sizeof(stream_ms_t);
     memcpy(dst, &delivery_count_, sizeof(uint64_t));
     dst += sizeof(uint64_t);
     memcpy(dst, &cname_len_, sizeof(size_t));
@@ -329,8 +329,8 @@ class StreamPelMeta {
       return;
     }
     auto pos = value_.data();
-    memcpy(&delivery_time_, pos, sizeof(mstime_t));
-    pos += sizeof(mstime_t);
+    memcpy(&delivery_time_, pos, sizeof(stream_ms_t));
+    pos += sizeof(stream_ms_t);
     memcpy(&delivery_count_, pos, sizeof(uint64_t));
     pos += sizeof(uint64_t);
     memcpy(&cname_len_, pos, sizeof(size_t));
@@ -338,13 +338,13 @@ class StreamPelMeta {
     consumer_.assign(pos, cname_len_);
   }
 
-  mstime_t delivery_time() { return delivery_time_; }
+  stream_ms_t delivery_time() { return delivery_time_; }
 
-  void set_delivery_time(mstime_t delivery_time) {
+  void set_delivery_time(stream_ms_t delivery_time) {
     assert(value_.size() == kDefaultStreamPelMetaValueLength);
     delivery_time_ = delivery_time;
     char* dst = const_cast<char*>(value_.data());
-    memcpy(dst, &delivery_time_, sizeof(mstime_t));
+    memcpy(dst, &delivery_time_, sizeof(stream_ms_t));
   }
 
   uint64_t delivery_count() { return delivery_count_; }
@@ -353,7 +353,7 @@ class StreamPelMeta {
     assert(value_.size() == kDefaultStreamPelMetaValueLength);
     delivery_count_ = delivery_count;
     char* dst = const_cast<char*>(value_.data());
-    memcpy(dst + sizeof(mstime_t), &delivery_count_, sizeof(uint64_t));
+    memcpy(dst + sizeof(stream_ms_t), &delivery_count_, sizeof(uint64_t));
   }
 
   std::string& consumer() { return consumer_; }
@@ -363,7 +363,7 @@ class StreamPelMeta {
  private:
   std::string value_;
 
-  mstime_t delivery_time_ = 0;
+  stream_ms_t delivery_time_ = 0;
   uint64_t delivery_count_ = 1;
   size_t cname_len_ = 0;
   std::string consumer_;

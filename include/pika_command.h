@@ -283,7 +283,7 @@ enum CmdFlags {
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsPreDo = 2048,
-  kCmdFlagsStream = 1536
+  kCmdFlagsStream = 1536,
   kCmdFlagsReadCache = 128,
   kCmdFlagsUpdateCache = 2048,
   kCmdFlagsDoThroughDB = 4096,

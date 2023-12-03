@@ -78,6 +78,6 @@ enum class StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_S
 using treeID = int32_t;
 static const treeID kINVALID_TREE_ID = -1;
 
-using mstime_t = uint64_t;
+using stream_ms_t = uint64_t;
 
 #endif  // SRC_STREAM_TYPE_H_
