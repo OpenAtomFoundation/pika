@@ -498,7 +498,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * lastsave used
    */
-  static int64_t lastsave_;
+  int64_t lastsave_ = 0;
 
   /*
    * StorageOptions used
@@ -540,7 +540,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
-  static int64_t GetLastSaveTime(const std::string& dump_dir);
+  int64_t GetLastSaveTime(const std::string& dump_dir);
   
   std::string host_;
   int port_ = 0;
