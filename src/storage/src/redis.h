@@ -133,8 +133,8 @@ class Redis {
   Status StoreScanNextPoint(const Slice& key, const Slice& pattern, int64_t cursor, const std::string& next_point);
 
   // For Statistics
-  std::atomic<uint64_t> small_compaction_threshold_;
-  std::atomic<uint64_t> small_compaction_duration_threshold_;
+  std::atomic_uint64_t small_compaction_threshold_;
+  std::atomic_uint64_t small_compaction_duration_threshold_;
   std::unique_ptr<LRUCache<std::string, KeyStatistics>> statistics_store_;
 
   Status UpdateSpecificKeyStatistics(const std::string& key, uint64_t count);
