@@ -309,6 +309,49 @@ Status RedisHashes::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
   return s;
 }
 
+Status RedisHashes::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl) {
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+
+  std::string meta_value;
+  int32_t version = 0;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+  Status s = db_->Get(read_options, handles_[0], key, &meta_value);
+  if (s.ok()) {
+    ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
+    if (parsed_hashes_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else if (parsed_hashes_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else {
+      // ttl
+      *ttl = parsed_hashes_meta_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      version = parsed_hashes_meta_value.version();
+      HashesDataKey hashes_data_key(key, version, "");
+      Slice prefix = hashes_data_key.Encode();
+      auto iter = db_->NewIterator(read_options, handles_[1]);
+      for (iter->Seek(prefix);
+           iter->Valid() && iter->key().starts_with(prefix);
+           iter->Next()) {
+        ParsedHashesDataKey parsed_hashes_data_key(iter->key());
+        fvs->push_back({parsed_hashes_data_key.field().ToString(),
+                        iter->value().ToString()});
+      }
+      delete iter;
+    }
+  }
+  return s;
+}
+
 Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
