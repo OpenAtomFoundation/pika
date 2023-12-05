@@ -51,7 +51,7 @@ int string2int(const char* s, size_t slen, unsigned long* lval);
 int d2string(char* buf, size_t len, double value);
 int string2d(const char* s, size_t slen, double* dval);
 std::vector<std::string>& StringSplit(const std::string& s, char delim, std::vector<std::string>& elems);
-void StringSplit2Set(const std::string&s, char delim, std::unordered_set<std::string>& elems);
+void StringSplit2Set(const std::string& s, char delim, std::unordered_set<std::string>& elems);
 std::string Set2String(const std::unordered_set<std::string>& elems, char delim);
 std::string StringConcat(const std::vector<std::string>& elems, char delim);
 std::string& StringToLower(std::string& ori);

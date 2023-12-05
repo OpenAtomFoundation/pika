@@ -851,7 +851,7 @@ void PikaServer::SetFirstMetaSync(bool v) {
 }
 
 void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
-  if(is_slow_cmd) {
+  if (is_slow_cmd) {
     pika_slow_cmd_thread_pool_->Schedule(func, arg);
     return;
   }
@@ -876,7 +876,7 @@ size_t PikaServer::ClientProcessorThreadPoolMaxQueueSize() {
   return pika_client_processor_->ThreadPoolMaxQueueSize();
 }
 
-size_t PikaServer::LowLevelThreadPoolCurQueueSize() {
+size_t PikaServer::SlowCmdThreadPoolCurQueueSize() {
   if (!pika_slow_cmd_thread_pool_) {
     return 0;
   }
@@ -885,13 +885,11 @@ size_t PikaServer::LowLevelThreadPoolCurQueueSize() {
   return cur_size;
 }
 
-size_t PikaServer::LowLevelThreadPoolMaxQueueSize() {
+size_t PikaServer::SlowCmdThreadPoolMaxQueueSize() {
   if (!pika_slow_cmd_thread_pool_) {
     return 0;
   }
-  size_t max_size = 0;
-  max_size = pika_slow_cmd_thread_pool_->max_queue_size();
-  return max_size;
+  return pika_slow_cmd_thread_pool_->max_queue_size();
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
@@ -1543,11 +1541,11 @@ void PikaServer::PrintThreadPoolQueueStatus() {
     }
 
     // Print the current low level queue size if it exceeds QUEUE_SIZE_THRESHOLD_PERCENTAGE/100 of the maximum queue size.
-    size_t low_level_queue_cur_size = LowLevelThreadPoolCurQueueSize();
-    size_t low_level_queue_max_size = LowLevelThreadPoolMaxQueueSize();
-    size_t low_level_queue_thread_hold = (low_level_queue_max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
-    if (low_level_queue_cur_size > low_level_queue_thread_hold) {
-      LOG(INFO) << "The current queue size of the Pika Server's low level thread pool: " << low_level_queue_cur_size;
+    size_t slow_cmd_queue_cur_size = SlowCmdThreadPoolCurQueueSize();
+    size_t slow_cmd_queue_max_size = SlowCmdThreadPoolMaxQueueSize();
+    size_t slow_cmd_queue_thread_hold = (slow_cmd_queue_max_size / 100) * QUEUE_SIZE_THRESHOLD_PERCENTAGE;
+    if (slow_cmd_queue_cur_size > slow_cmd_queue_thread_hold) {
+      LOG(INFO) << "The current queue size of the Pika Server's low level thread pool: " << slow_cmd_queue_cur_size;
     }
 }
 

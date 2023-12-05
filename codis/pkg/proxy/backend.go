@@ -476,6 +476,11 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool, is
 	var parallel = s.conns[database]
 	var i = seed
 
+	/**
+	The seed is the result after hashing using a key, so in order to ensure
+	the execution order of the same key in a pipeline, do not select another
+	connection when the first connection is invalid.
+	*/
 	if quick := s.owner.quick; quick > 0 {
 		if isQuick {
 			i = seed % uint(quick)

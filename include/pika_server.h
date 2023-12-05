@@ -241,8 +241,8 @@ class PikaServer : public pstd::noncopyable {
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
   size_t ClientProcessorThreadPoolMaxQueueSize();
-  size_t LowLevelThreadPoolCurQueueSize();
-  size_t LowLevelThreadPoolMaxQueueSize();
+  size_t SlowCmdThreadPoolCurQueueSize();
+  size_t SlowCmdThreadPoolMaxQueueSize();
 
   /*
    * BGSave used

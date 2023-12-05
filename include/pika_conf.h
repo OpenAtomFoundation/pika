@@ -357,7 +357,7 @@ class PikaConf : public pstd::BaseConf {
     return pstd::Set2String(slow_cmd_set_, ',');
   }
 
-  bool is_slow_cmd(const std::string &cmd) {
+  bool is_slow_cmd(const std::string& cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
   }
@@ -607,7 +607,7 @@ class PikaConf : public pstd::BaseConf {
     max_rsync_parallel_num_ = value;
   }
 
-  void SetSlowCmd(std::string& value) {
+  void SetSlowCmd(const std::string& value) {
     std::lock_guard l(rwlock_);
     std::string lower_value = value;
     pstd::StringToLower(lower_value);
