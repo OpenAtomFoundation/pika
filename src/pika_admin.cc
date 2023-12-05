@@ -1273,7 +1273,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 
   std::string db_name;
   KeyScanInfo key_scan_info;
-  int32_t duration;
+  int32_t duration = 0;
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace"
@@ -1492,8 +1492,7 @@ std::string InfoCmd::CacheStatusToString(int status) {
 }
 
 void InfoCmd::Execute() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
+  std::shared_ptr<Slot> slot = g_pika_server->GetSlotByDBName(db_name_);
   Do(slot);
 }
 
@@ -2129,7 +2128,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "max-rsync-parallel-num");
     return;
   }
-  long int ival;
+  long int ival = 0;
   std::string value = config_args_v_[2];
   if (set_item == "timeout") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {

@@ -332,7 +332,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
 
-  if(value_to_dest_.size() == 0){
+  if (value_to_dest_.size() == 0) {
     //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
     return;
   }
@@ -348,8 +348,8 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& sadd_argv = sadd_cmd_->argv();
   size_t data_size = value_to_dest_[0].size();
 
-  for(int i = 1; i < value_to_dest_.size(); i++){
-    if(data_size >= 131072){
+  for (size_t i = 1; i < value_to_dest_.size(); i++) {
+    if (data_size >= 131072) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       sadd_cmd_->DoBinlog(slot);
       sadd_argv.clear();
@@ -547,7 +547,7 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 }
 
 void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!move_success_){
+  if (!move_success_) {
     //the member is not in the source set, nothing changed
     return;
   }
@@ -588,7 +588,6 @@ void SRandmemberCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
       reply_arr = true;
-      ;
     }
   }
 }
