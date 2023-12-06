@@ -527,6 +527,17 @@ void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_thres
   }
 }
 
+void PikaServer::SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
+  std::shared_lock rwl(dbs_rw_);
+  for (const auto& db_item : dbs_) {
+    for (const auto& slot_item : db_item.second->slots_) {
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
+      slot_item.second->DbRWUnLock();
+    }
+  }
+}
+
 bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id,
                                                BinlogOffset* const boffset) {
   std::shared_ptr<SyncMasterSlot> slot =

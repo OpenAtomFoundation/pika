@@ -1733,6 +1733,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->small_compaction_threshold());
   }
 
+  if (pstd::stringmatch(pattern.data(), "small-compaction-duration-threshold", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "small-compaction-duration-threshold");
+    EncodeNumber(&config_body, g_pika_conf->small_compaction_duration_threshold());
+  }
+
   if (pstd::stringmatch(pattern.data(), "max-background-flushes", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-background-flushes");
@@ -2090,7 +2096,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
 void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*28\r\n";
+    ret = "*29\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -2109,6 +2115,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "max-cache-statistic-keys");
     EncodeString(&ret, "small-compaction-threshold");
+    EncodeString(&ret, "small-compaction-duration-threshold");
     EncodeString(&ret, "max-client-response-size");
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
@@ -2240,6 +2247,14 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
     g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
     g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "small-compaction-duration-threshold") {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-duration-threshold'\r\n";
+      return;
+    }
+    g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    g_pika_server->SlotSetSmallCompactionDurationThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
