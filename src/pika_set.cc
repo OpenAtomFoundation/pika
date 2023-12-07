@@ -256,11 +256,11 @@ void SRemCmd::DoInitial() {
 }
 
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->SRem(key_, members_, &deleted_);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SRem(key_, members_, &deleted_);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -286,15 +286,15 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SUnion(keys_, &members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SUnion(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-  }else{
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -382,15 +382,15 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SInter(keys_, &members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SInter(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-  }else{
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -481,15 +481,15 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SDiff(keys_, &members);
-  if (s.ok() || s.IsNotFound()){
+  s_ = slot->db()->SDiff(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-  }else{
-    res_.SetRes(CmdRes::kErrOther,s.ToString());
+  } else {
+    res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
 }
 
