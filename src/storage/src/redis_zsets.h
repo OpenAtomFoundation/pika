@@ -35,6 +35,8 @@ class RedisZSets : public Redis {
   Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
   Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                   int64_t* ttl);
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
                        int64_t offset, std::vector<ScoreMember>* score_members);
   Status ZRank(const Slice& key, const Slice& member, int32_t* rank);
