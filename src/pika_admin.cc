@@ -1281,13 +1281,13 @@ void InfoCmd::InfoData(std::string& info) {
   int64_t now_t = pstd::NowMicros() / 1000000;
   uint64_t log_size = 0;
 
-  if (now_t - 60 > db_size_last_time_){
-    db_size = pstd::Du(g_pika_conf->db_path());
+  if (now_t - 60 > db_size_last_time_) {
     db_size_last_time_ = now_t;
+    db_size = pstd::Du(g_pika_conf->db_path());
     db_size_ = db_size;
     log_size = pstd::Du(g_pika_conf->log_path());
     log_size_ = log_size;
-  }else{
+  } else {
     db_size = db_size_;
     log_size = log_size_;
   }
