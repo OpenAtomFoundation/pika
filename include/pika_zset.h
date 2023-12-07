@@ -482,6 +482,7 @@ class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
 
  private:
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class ZLexcountCmd : public Cmd {

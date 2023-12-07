@@ -1278,11 +1278,11 @@ void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
   uint64_t db_size = 0;
-  int64_t now_t = pstd::NowMicros() / 1000000;
+  time_t current_time_s = time(nullptr);
   uint64_t log_size = 0;
 
-  if (now_t - 60 > db_size_last_time_) {
-    db_size_last_time_ = now_t;
+  if (current_time_s - 60 >= db_size_last_time_) {
+    db_size_last_time_ = current_time_s;
     db_size = pstd::Du(g_pika_conf->db_path());
     db_size_ = db_size;
     log_size = pstd::Du(g_pika_conf->log_path());

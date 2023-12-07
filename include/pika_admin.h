@@ -261,7 +261,7 @@ class InfoCmd : public Cmd {
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
   std::set<std::string> keyspace_scan_dbs_;
-  int64_t db_size_last_time_ = 0;
+  time_t db_size_last_time_ = 0;
   uint64_t db_size_ = 0;
   uint64_t log_size_ = 0;
   const static std::string kInfoSection;

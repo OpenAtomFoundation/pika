@@ -577,8 +577,8 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
-  if (s.ok()) {
+  s_ = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
+  if (s_.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
       char buf[32];
@@ -598,10 +598,10 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
         res_.AppendContent(item.member);
       }
     }
-  } else if (s.IsNotFound()) {
+  } else if (s_.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -1201,9 +1201,9 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   FitLimit(count_, offset_, static_cast<int32_t>(members.size()));
