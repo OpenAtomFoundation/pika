@@ -226,9 +226,9 @@ void SScanCmd::DoInitial() {
 void SScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  s_ = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
     int64_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
@@ -240,7 +240,7 @@ void SScanCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendString(member);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
