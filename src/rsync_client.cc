@@ -139,7 +139,8 @@ void* RsyncClient::ThreadMain() {
 }
 
 Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
-    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
+    const std::string filepath = dir_ + "/" + filename;
+    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(filepath));
     Status s = Status::OK();
     size_t offset = 0;
     int retries = 0;
@@ -150,7 +151,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         writer.reset();
       }
       if (!s.ok()) {
-        DeleteFile(filename);
+        DeleteFile(filepath);
       }
     };
 
@@ -183,12 +184,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         continue;
       }
 
-      RsyncResponse* resp = nullptr;
-      DEFER {
-        if (resp) {
-          delete resp;
-        }
-      };
+      std::shared_ptr<RsyncResponse> resp = nullptr;
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
         LOG(WARNING) << "rsync request timeout";
@@ -335,19 +331,14 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   std::string to_send;
   request.SerializeToString(&to_send);
   while (retries < max_retries_) {
-    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, 0xFFFFFFFF);
+    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, kInvalidOffset);
     s = client_thread_->Write(master_ip_, master_port_, to_send);
     if (!s.ok()) {
       retries++;
     }
-    RsyncResponse* resp = nullptr;
-    DEFER {
-      if (resp) {
-        delete resp;
-      }
-    };
+    std::shared_ptr<RsyncResponse> resp;
     s = wo->Wait(resp);
-    if (s.IsTimeout() || resp == nullptr) {
+    if (s.IsTimeout() || resp.get() == nullptr) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
                    << "retry times: " << retries;
       retries++;
