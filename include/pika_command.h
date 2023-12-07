@@ -537,7 +537,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::vector<std::string> SubCommand() const;  // Get command is there a sub command
   //  virtual std::string CurrentSubCommand() const;  // Get command is there a sub command
   bool IsNeedUpdateCache() const;
-  //  bool is_only_from_cache() const;
+  bool is_only_from_cache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;

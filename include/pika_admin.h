@@ -118,7 +118,7 @@ class CompactCmd : public Cmd {
 // we can use pika/tests/helpers/test_queue.py to test this command
 class CompactRangeCmd : public Cmd {
  public:
-  CompactRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CompactRangeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -541,7 +541,7 @@ class ClearReplicationIDCmd : public Cmd {
 
 class DisableWalCmd : public Cmd {
  public:
-  DisableWalCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DisableWalCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -554,7 +554,7 @@ class DisableWalCmd : public Cmd {
 class CacheCmd : public Cmd {
  public:
   enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
-  CacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -572,7 +572,7 @@ class CacheCmd : public Cmd {
 
 class ClearCacheCmd : public Cmd {
  public:
-  ClearCacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ClearCacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};

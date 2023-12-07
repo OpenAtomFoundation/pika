@@ -14,7 +14,7 @@
 
 class MultiCmd : public Cmd {
  public:
-  MultiCmd(const std::string& name, int arity, uint16_t flag)
+  MultiCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new MultiCmd(*this); }
@@ -27,7 +27,7 @@ class MultiCmd : public Cmd {
 
 class ExecCmd : public Cmd {
  public:
-  ExecCmd(const std::string& name, int arity, uint16_t flag)
+  ExecCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new ExecCmd(*this); }
@@ -64,7 +64,7 @@ class ExecCmd : public Cmd {
 
 class DiscardCmd : public Cmd {
  public:
-  DiscardCmd(const std::string& name, int arity, uint16_t flag)
+  DiscardCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   Cmd* Clone() override { return new DiscardCmd(*this); }
@@ -77,7 +77,7 @@ class DiscardCmd : public Cmd {
 
 class WatchCmd : public Cmd {
  public:
-  WatchCmd(const std::string& name, int arity, uint16_t flag)
+  WatchCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
 
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
@@ -95,7 +95,7 @@ class WatchCmd : public Cmd {
 
 class UnwatchCmd : public Cmd {
  public:
-  UnwatchCmd(const std::string& name, int arity, uint16_t flag)
+  UnwatchCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
 
   void Do(std::shared_ptr<Slot> slot = nullptr) override;

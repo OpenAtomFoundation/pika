@@ -18,7 +18,7 @@
  */
 class BitGetCmd : public Cmd {
  public:
-  BitGetCmd(const std::string& name, int arity, uint16_t flag)
+  BitGetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -46,7 +46,7 @@ class BitGetCmd : public Cmd {
 
 class BitSetCmd : public Cmd {
  public:
-  BitSetCmd(const std::string& name, int arity, uint16_t flag)
+  BitSetCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -75,7 +75,7 @@ class BitSetCmd : public Cmd {
 
 class BitCountCmd : public Cmd {
  public:
-  BitCountCmd(const std::string& name, int arity, uint16_t flag)
+  BitCountCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -107,7 +107,7 @@ class BitCountCmd : public Cmd {
 
 class BitPosCmd : public Cmd {
  public:
-  BitPosCmd(const std::string& name, int arity, uint16_t flag)
+  BitPosCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -143,7 +143,7 @@ class BitPosCmd : public Cmd {
 
 class BitOpCmd : public Cmd {
  public:
-  BitOpCmd(const std::string& name, int arity, uint16_t flag)
+  BitOpCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   };
