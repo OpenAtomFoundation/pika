@@ -46,17 +46,16 @@ void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 
 void SPopCmd::DoInitial() {
   size_t argc = argv_.size();
-  size_t index = 2;
   if (!CheckArg(argc)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
 
   key_ = argv_[1];
-  count_ = 1;
-
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -64,6 +63,8 @@ void SPopCmd::DoInitial() {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
+  } else {
+    count_ = 1;
   }
 }
 

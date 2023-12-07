@@ -28,7 +28,6 @@
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
-#include "include/storage/db_checkpoint.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
