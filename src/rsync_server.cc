@@ -48,13 +48,15 @@ int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start rsync Server Thread Error: " << res;
+    LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "
+               << (res == net::kBindError ? ": bind port conflict" : ": other error");
   }
   res = work_thread_->start_thread_pool();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res
+    LOG(FATAL) << "Start rsync Server ThreadPool Error, ret_code: " << res << " message: "
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
+  LOG(INFO) << "RsyncServer started ...";
   return res;
 }
 
