@@ -151,9 +151,6 @@ void PikaServer::Start() {
   }
   */
 
-  // We Init DB Struct Before Start The following thread
-  InitDBStruct();
-
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     dbs_.clear();
@@ -433,44 +430,57 @@ bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   return db ? db->IsBinlogIoError() : true;
 }
 
-// If no collection of specified dbs is given, we execute task in all dbs
-Status PikaServer::DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs) {
+Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    if (!dbs.empty() && dbs.find(db_item.first) == dbs.end()) {
+    if (dbs.find(db_item.first) == dbs.end()) {
       continue;
-    } else {
-      switch (type) {
-        case TaskType::kCompactAll:
-          db_item.second->Compact(storage::DataType::kAll);
-          break;
-        case TaskType::kCompactStrings:
-          db_item.second->Compact(storage::DataType::kStrings);
-          break;
-        case TaskType::kCompactHashes:
-          db_item.second->Compact(storage::DataType::kHashes);
-          break;
-        case TaskType::kCompactSets:
-          db_item.second->Compact(storage::DataType::kSets);
-          break;
-        case TaskType::kCompactZSets:
-          db_item.second->Compact(storage::DataType::kZSets);
-          break;
-        case TaskType::kCompactList:
-          db_item.second->Compact(storage::DataType::kLists);
-          break;
-        case TaskType::kStartKeyScan:
-          db_item.second->KeyScan();
-          break;
-        case TaskType::kStopKeyScan:
-          db_item.second->StopKeyScan();
-          break;
-        case TaskType::kBgSave:
-          db_item.second->BgSaveDB();
-          break;
-        default:
-          break;
-      }
+    }
+    switch (arg.type) {
+      case TaskType::kCompactAll:
+        db_item.second->Compact(storage::DataType::kAll);
+        break;
+      case TaskType::kCompactStrings:
+        db_item.second->Compact(storage::DataType::kStrings);
+        break;
+      case TaskType::kCompactHashes:
+        db_item.second->Compact(storage::DataType::kHashes);
+        break;
+      case TaskType::kCompactSets:
+        db_item.second->Compact(storage::DataType::kSets);
+        break;
+      case TaskType::kCompactZSets:
+        db_item.second->Compact(storage::DataType::kZSets);
+        break;
+      case TaskType::kCompactList:
+        db_item.second->Compact(storage::DataType::kLists);
+        break;
+      case TaskType::kStartKeyScan:
+        db_item.second->KeyScan();
+        break;
+      case TaskType::kStopKeyScan:
+        db_item.second->StopKeyScan();
+        break;
+      case TaskType::kBgSave:
+        db_item.second->BgSaveDB();
+        break;
+      case TaskType::kCompactRangeStrings:
+        db_item.second->CompactRange(storage::DataType::kStrings, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeHashes:
+        db_item.second->CompactRange(storage::DataType::kHashes, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeSets:
+        db_item.second->CompactRange(storage::DataType::kSets, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeZSets:
+        db_item.second->CompactRange(storage::DataType::kZSets, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactRangeList:
+        db_item.second->CompactRange(storage::DataType::kLists, arg.argv[0], arg.argv[1]);
+        break;
+      default:
+        break;
     }
   }
   return Status::OK();
@@ -512,6 +522,17 @@ void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_thres
     for (const auto& slot_item : db_item.second->slots_) {
       slot_item.second->DbRWLockReader();
       slot_item.second->db()->SetSmallCompactionThreshold(small_compaction_threshold);
+      slot_item.second->DbRWUnLock();
+    }
+  }
+}
+
+void PikaServer::SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
+  std::shared_lock rwl(dbs_rw_);
+  for (const auto& db_item : dbs_) {
+    for (const auto& slot_item : db_item.second->slots_) {
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
       slot_item.second->DbRWUnLock();
     }
   }
@@ -1307,8 +1328,11 @@ void PikaServer::DoTimingTask() {
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
   AutoUpdateNetworkMetric();
+  ProcessCronTask();
+  UpdateCacheInfo();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
+
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1333,7 +1357,14 @@ void PikaServer::AutoCompactRange() {
     if (last_check_compact_time_.tv_sec == 0 || now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, nullptr);
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
-        Status s = DoSameThingSpecificDB(TaskType::kCompactAll);
+        std::set<std::string> dbs;
+        {
+          std::shared_lock l(dbs_rw_);
+          for (const auto& db_item : dbs_) {
+            dbs.insert(db_item.first);
+          }
+        }
+        Status s = DoSameThingSpecificDB(dbs, {TaskType::kCompactAll});
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size / 1048576
                     << "MB, disksize: " << total_size / 1048576 << "MB";
@@ -1537,6 +1568,9 @@ void PikaServer::InitStorageOptions() {
 
   storage_options_.options.compression = PikaConf::GetCompression(g_pika_conf->compression());
   storage_options_.options.compression_per_level = g_pika_conf->compression_per_level();
+  // avoid blocking io on scan
+  // see https://github.com/facebook/rocksdb/wiki/IO#avoid-blocking-io
+  storage_options_.options.avoid_unnecessary_blocking_io = true;
 
   // default l0 l1 noCompression l2 and more use `compression` option
   if (storage_options_.options.compression_per_level.empty() &&
@@ -1788,4 +1822,161 @@ void DoBgslotscleanup(void* arg) {
   std::string slotsStr;
   slotsStr.assign(cleanup.cleanup_slots.begin(), cleanup.cleanup_slots.end());
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
+}
+
+void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg) {
+  if (PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()
+      || PIKA_CACHE_STATUS_NONE == slot->cache()->CacheStatus()) {
+
+    common_bg_thread_.StartThread();
+    BGCacheTaskArg *arg = new BGCacheTaskArg();
+    arg->slot = slot;
+    arg->cache_num = cache_num;
+    if (cache_cfg == nullptr) {
+      arg->task_type = CACHE_BGTASK_RESET_NUM;
+    } else {
+      arg->task_type = CACHE_BGTASK_RESET_CFG;
+      arg->cache_cfg = *cache_cfg;
+    }
+    common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+  } else {
+    LOG(WARNING) << "can not reset cache in status: " << slot->cache()->CacheStatus();
+  }
+}
+
+void PikaServer::ClearCacheDbAsync(std::shared_ptr<Slot> slot) {
+  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+    return;
+  }
+
+  common_bg_thread_.StartThread();
+  BGCacheTaskArg *arg = new BGCacheTaskArg();
+  arg->slot = slot;
+  arg->task_type = CACHE_BGTASK_CLEAR;
+  common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::DoCacheBGTask(void* arg) {
+  std::unique_ptr<BGCacheTaskArg> pCacheTaskArg(static_cast<BGCacheTaskArg*>(arg));
+  std::shared_ptr<Slot> slot = pCacheTaskArg->slot;
+
+  switch (pCacheTaskArg->task_type) {
+    case CACHE_BGTASK_CLEAR:
+      LOG(INFO) << "clear cache start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, slot);
+      slot->cache()->FlushSlot();
+      LOG(INFO) << "clear cache finish";
+      break;
+    case CACHE_BGTASK_RESET_NUM:
+      LOG(INFO) << "reset cache num start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
+      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      LOG(INFO) << "reset cache num finish";
+      break;
+    case CACHE_BGTASK_RESET_CFG:
+      LOG(INFO) << "reset cache config start...";
+      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
+      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      LOG(INFO) << "reset cache config finish";
+      break;
+    default:
+      LOG(WARNING) << "invalid cache task type: " << pCacheTaskArg->task_type;
+      break;
+  }
+  slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
+  if (pCacheTaskArg->reenable_cache && pCacheTaskArg->conf) {
+    pCacheTaskArg->conf->UnsetCacheDisableFlag();
+  }
+}
+
+void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
+  cache::CacheConfig cache_cfg;
+  cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+  cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+  cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+  cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
+  cache_cfg.zset_cache_start_pos = g_pika_conf->zset_cache_start_pos();
+  cache_cfg.zset_cache_field_num_per_key = g_pika_conf->zset_cache_field_num_per_key();
+  slot->cache()->ResetConfig(&cache_cfg);
+}
+
+void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
+  slot->cache()->ClearHitRatio();
+}
+
+void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot) {
+  // disable cache temporarily, and restore it after cache cleared
+  g_pika_conf->SetCacheDisableFlag();
+  ResetCacheConfig(slot);
+  ClearCacheDbAsyncV2(slot);
+}
+
+void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
+  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+    return;
+  }
+
+  common_bg_thread_.StartThread();
+  BGCacheTaskArg *arg = new BGCacheTaskArg();
+  arg->slot = slot;
+  arg->task_type = CACHE_BGTASK_CLEAR;
+  arg->conf = std::move(g_pika_conf);
+  arg->reenable_cache = true;
+  common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
+}
+
+void PikaServer::ProcessCronTask() {
+  for (auto& dbs : dbs_) {
+    auto db =  dbs.second;
+    auto slots = db->GetSlots();
+    for (size_t i = 0; i < slots.size(); ++i) {
+      auto cache = slots[i]->cache();
+      cache->ProcessCronTask();
+    }
+  }
+  LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
+}
+
+double PikaServer::HitRatio(void) {
+  std::unique_lock l(mu_);
+  int64_t hits = 0;
+  int64_t misses = 0;
+  cache::RedisCache::GetHitAndMissNum(&hits, &misses);
+  int64_t all_cmds = hits + misses;
+  if (0 >= all_cmds) {
+    return 0;
+  }
+  return hits / (all_cmds * 1.0);
+}
+
+void PikaServer::UpdateCacheInfo(void) {
+  for (auto& dbs : dbs_) {
+    auto db =  dbs.second;
+    auto slots = db->GetSlots();
+    for (size_t i = 0; i < slots.size(); ++i) {
+      if (PIKA_CACHE_STATUS_OK != slots[i]->cache()->CacheStatus()) {
+        return;
+      }
+      // get cache info from redis cache
+      CacheInfo cache_info;
+      slots[i]->cache()->Info(cache_info);
+      slots[i]->UpdateCacheInfo(cache_info);
+    }
+  }
+}
+
+void PikaServer::ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot) {
+  slot->ResetDisplayCacheInfo(status);
+}
+
+void PikaServer::CacheConfigInit(cache::CacheConfig& cache_cfg) {
+  cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
+  cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
+  cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
+  cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
 }

@@ -66,6 +66,7 @@ struct StorageOptions {
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
+  size_t small_compaction_duration_threshold = 10000;
   Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
 };
 
@@ -124,15 +125,16 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactKey };
+enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactRange };
 
 struct BGTask {
   DataType type;
   Operation operation;
-  std::string argv;
+  std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
-      : type(_type), operation(_opeation), argv(std::move(_argv)) {}
+  BGTask(const DataType& _type = DataType::kAll,
+         const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {}) : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
@@ -158,6 +160,10 @@ class Storage {
   // Get the value of key. If the key does not exist
   // the special value nil is returned
   Status Get(const Slice& key, std::string* value);
+
+  // Get the value and ttl of key. If the key does not exist
+  // the special value nil is returned. If the key has no ttl, ttl is -1
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
 
   // Atomically sets key to value and returns the old value stored at key
   // Returns an error when key exists but does not hold a string value.
@@ -207,6 +213,9 @@ class Storage {
   // Returns the substring of the string value stored at key,
   // determined by the offsets start and end (both are inclusive)
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
+
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                           std::string* ret, std::string* value, int64_t* ttl);
 
   // If key already exists and is a string, this command appends the value at
   // the end of the string
@@ -284,6 +293,8 @@ class Storage {
   // value, every field name is followed by its value, so the length of the
   // reply is twice the size of the hash.
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
+
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
 
   // Returns all field names in the hash stored at key.
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
@@ -416,6 +427,8 @@ class Storage {
   // This has the same effect as running SINTER with one argument key.
   Status SMembers(const Slice& key, std::vector<std::string>* members);
 
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl);
+
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
   // treated as an empty set and this command returns 0.
@@ -486,6 +499,8 @@ class Storage {
   // and stop are zero-based indexes, with 0 being the first element of the list
   // (the head of the list), 1 being the next element and so on.
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
+
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -646,6 +661,9 @@ class Storage {
   // libraries are free to return a more appropriate data type (suggestion: an
   // array with (value, score) arrays/tuples).
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+
+  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                int64_t *ttl);
 
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
@@ -1011,11 +1029,13 @@ class Storage {
   Status AddBGTask(const BGTask& bg_task);
 
   Status Compact(const DataType& type, bool sync = false);
+  Status CompactRange(const DataType& type, const std::string& start, const std::string& end, bool sync = false);
   Status DoCompact(const DataType& type);
-  Status CompactKey(const DataType& type, const std::string& key);
+  Status DoCompactRange(const DataType& type, const std::string& start, const std::string& end);
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  Status SetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
 
   std::string GetCurrentTaskType();
   Status GetUsage(const std::string& property, uint64_t* result);

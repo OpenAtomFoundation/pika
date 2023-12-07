@@ -12,8 +12,9 @@ Redis::Redis(Storage* const s, const DataType& type)
     : storage_(s),
       type_(type),
       lock_mgr_(std::make_shared<LockMgr>(1000, 0, std::make_shared<MutexFactoryImpl>())),
-      small_compaction_threshold_(5000) {
-  statistics_store_ = std::make_unique<LRUCache<std::string, size_t>>();
+      small_compaction_threshold_(5000),
+      small_compaction_duration_threshold_(10000) {
+  statistics_store_ = std::make_unique<LRUCache<std::string, KeyStatistics>>();
   scan_cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   scan_cursors_store_->SetCapacity(5000);
   default_compact_range_options_.exclusive_manual_compaction = false;
@@ -46,26 +47,43 @@ Status Redis::SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys) {
   return Status::OK();
 }
 
-Status Redis::SetSmallCompactionThreshold(size_t small_compaction_threshold) {
+Status Redis::SetSmallCompactionThreshold(uint64_t small_compaction_threshold) {
   small_compaction_threshold_ = small_compaction_threshold;
   return Status::OK();
 }
 
-Status Redis::UpdateSpecificKeyStatistics(const std::string& key, size_t count) {
-  if ((statistics_store_->Capacity() != 0U) && (count != 0U)) {
-    size_t total = 0;
-    statistics_store_->Lookup(key, &total);
-    statistics_store_->Insert(key, total + count);
-    AddCompactKeyTaskIfNeeded(key, total + count);
+Status Redis::SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold) {
+  small_compaction_duration_threshold_ = small_compaction_duration_threshold;
+  return Status::OK();
+}
+
+Status Redis::UpdateSpecificKeyStatistics(const std::string& key, uint64_t count) {
+  if ((statistics_store_->Capacity() != 0U) && (count != 0U) && (small_compaction_threshold_ != 0U)) {
+    KeyStatistics data;
+    statistics_store_->Lookup(key, &data);
+    data.AddModifyCount(count);
+    statistics_store_->Insert(key, data);
+    AddCompactKeyTaskIfNeeded(key, data.ModifyCount(), data.AvgDuration());
   }
   return Status::OK();
 }
 
-Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key, size_t total) {
-  if (total < small_compaction_threshold_) {
+Status Redis::UpdateSpecificKeyDuration(const std::string& key, uint64_t duration) {
+  if ((statistics_store_->Capacity() != 0U) && (duration != 0U) && (small_compaction_duration_threshold_ != 0U)) {
+    KeyStatistics data;
+    statistics_store_->Lookup(key, &data);
+    data.AddDuration(duration);
+    statistics_store_->Insert(key, data);
+    AddCompactKeyTaskIfNeeded(key, data.ModifyCount(), data.AvgDuration());
+  }
+  return Status::OK();
+}
+
+Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key, uint64_t count, uint64_t duration) {
+  if (count < small_compaction_threshold_ || duration < small_compaction_duration_threshold_) {
     return Status::OK();
   } else {
-    storage_->AddBGTask({type_, kCompactKey, key});
+    storage_->AddBGTask({type_, kCompactRange, {key, key}});
     statistics_store_->Remove(key);
   }
   return Status::OK();

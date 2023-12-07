@@ -1,0 +1,33 @@
+name: 'Feature Request'
+description: Suggest a feature for PikiwiDB
+labels: [ "✏️ Feature" ]
+
+body:
+  - type: dropdown
+    id: affected-packages
+    attributes:
+      label: Which PikiwiDB functionalities are relevant/related to the feature request?
+      options:
+        - other
+      multiple: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: true

@@ -26,6 +26,7 @@ RedisLists::RedisLists(Storage* const s, const DataType& type) : Redis(s, type) 
 Status RedisLists::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
+  small_compaction_duration_threshold_ = storage_options.small_compaction_duration_threshold;
 
   rocksdb::Options ops(storage_options.options);
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
@@ -498,6 +499,71 @@ Status RedisLists::LRange(const Slice& key, int64_t start, int64_t stop, std::ve
         uint64_t current_index = sublist_left_index;
         ListsDataKey start_data_key(key, version, current_index);
         for (iter->Seek(start_data_key.Encode()); iter->Valid() && current_index <= sublist_right_index;
+             iter->Next(), current_index++) {
+          ret->push_back(iter->value().ToString());
+        }
+        delete iter;
+        return Status::OK();
+      }
+    }
+  } else {
+    return s;
+  }
+}
+
+Status RedisLists::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl) {
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+
+  std::string meta_value;
+  Status s = db_->Get(read_options, handles_[0], key, &meta_value);
+  if (s.ok()) {
+    ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
+    if (parsed_lists_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else if (parsed_lists_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else {
+      // ttl
+      *ttl = parsed_lists_meta_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      int32_t version = parsed_lists_meta_value.version();
+      uint64_t origin_left_index = parsed_lists_meta_value.left_index() + 1;
+      uint64_t origin_right_index = parsed_lists_meta_value.right_index() - 1;
+      uint64_t sublist_left_index  = start >= 0 ?
+                                               origin_left_index + start :
+                                               origin_right_index + start + 1;
+      uint64_t sublist_right_index = stop >= 0 ?
+                                               origin_left_index + stop :
+                                               origin_right_index + stop + 1;
+
+      if (sublist_left_index > sublist_right_index
+          || sublist_left_index > origin_right_index
+          || sublist_right_index < origin_left_index) {
+        return Status::OK();
+      } else {
+        if (sublist_left_index < origin_left_index) {
+          sublist_left_index = origin_left_index;
+        }
+        if (sublist_right_index > origin_right_index) {
+          sublist_right_index = origin_right_index;
+        }
+        rocksdb::Iterator* iter = db_->NewIterator(read_options,
+                                                   handles_[1]);
+        uint64_t current_index = sublist_left_index;
+        ListsDataKey start_data_key(key, version, current_index);
+        for (iter->Seek(start_data_key.Encode());
+             iter->Valid() && current_index <= sublist_right_index;
              iter->Next(), current_index++) {
           ret->push_back(iter->value().ToString());
         }

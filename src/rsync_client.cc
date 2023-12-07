@@ -99,7 +99,6 @@ void* RsyncClient::ThreadMain() {
   uint64_t start_time = pstd::NowMicros();
 
   while (state_.load() == RUNNING) {
-    uint64_t now = pstd::NowMicros();
     uint64_t elapse = pstd::NowMicros() - start_time;
     if (elapse < kFlushIntervalUs) {
       int wait_for_us = kFlushIntervalUs - elapse;
@@ -386,7 +385,8 @@ Status RsyncClient::LoadLocalMeta(std::string* snapshot_uuid, std::map<std::stri
 
   std::atomic_int8_t retry_times = 5;
 
-  while (retry_times-- > 0) {
+  while (retry_times > 0) {
+    retry_times--;
     fp = fopen(meta_file_path.c_str(), "r");
     if (fp == nullptr) {
       LOG(WARNING) << "open meta file failed, meta_path: " << dir_;
