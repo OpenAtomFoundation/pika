@@ -454,6 +454,10 @@ func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCac
 			return err
 		}
 		defer client2.Close()
+		if err = client2.SetMaster("NO:ONE"); err != nil {
+			log.WarnErrorf(err, "redis %s set node to NO:ONE failed", master)
+			return err
+		}
 		if err = client2.SetMaster(master); err != nil {
 			log.WarnErrorf(err, "redis %s set master to %s failed", server.Addr, master)
 			return err
