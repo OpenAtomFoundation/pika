@@ -430,6 +430,15 @@ bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   return db ? db->IsBinlogIoError() : true;
 }
 
+std::set<std::string> PikaServer::GetAllDBName() {
+  std::set<std::string> dbs;
+  std::shared_lock l(dbs_rw_);
+  for (const auto& db_item : dbs_) {
+    dbs.insert(db_item.first);
+  }
+  return dbs;
+}
+
 Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
@@ -1357,13 +1366,7 @@ void PikaServer::AutoCompactRange() {
     if (last_check_compact_time_.tv_sec == 0 || now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, nullptr);
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
-        std::set<std::string> dbs;
-        {
-          std::shared_lock l(dbs_rw_);
-          for (const auto& db_item : dbs_) {
-            dbs.insert(db_item.first);
-          }
-        }
+        std::set<std::string> dbs = g_pika_server->GetAllDBName();
         Status s = DoSameThingSpecificDB(dbs, {TaskType::kCompactAll});
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size / 1048576
