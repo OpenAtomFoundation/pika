@@ -1103,61 +1103,6 @@ void InfoCmd::InfoCPU(std::string& info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoShardingReplication(std::string& info) {
-  int role = 0;
-  std::string slave_list_string;
-  uint32_t slave_num = g_pika_server->GetShardingSlaveListString(slave_list_string);
-  if (slave_num != 0U) {
-    role |= PIKA_ROLE_MASTER;
-  }
-  std::string common_master;
-  std::string master_ip;
-  int master_port = 0;
-  g_pika_rm->FindCommonMaster(&common_master);
-  if (!common_master.empty()) {
-    role |= PIKA_ROLE_SLAVE;
-    if (!pstd::ParseIpPortString(common_master, master_ip, master_port)) {
-      return;
-    }
-  }
-
-  std::stringstream tmp_stream;
-  tmp_stream << "# Replication(";
-  switch (role) {
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "MASTER)\r\nrole:master\r\n";
-      break;
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "SLAVE)\r\nrole:slave\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "Master && SLAVE)\r\nrole:master&&slave\r\n";
-      break;
-    default:
-      info.append("ERR: server role is error\r\n");
-      return;
-  }
-  switch (role) {
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "connected_slaves:" << slave_num << "\r\n" << slave_list_string;
-  }
-  info.append(tmp_stream.str());
-}
-
 void InfoCmd::InfoReplication(std::string& info) {
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
@@ -1338,13 +1283,24 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
+  uint64_t db_size = 0;
+  time_t current_time_s = time(nullptr);
+  uint64_t log_size = 0;
 
-  uint64_t db_size = pstd::Du(g_pika_conf->db_path());
+  if (current_time_s - 60 >= db_size_last_time_) {
+    db_size_last_time_ = current_time_s;
+    db_size = pstd::Du(g_pika_conf->db_path());
+    db_size_ = db_size;
+    log_size = pstd::Du(g_pika_conf->log_path());
+    log_size_ = log_size;
+  } else {
+    db_size = db_size_;
+    log_size = log_size_;
+  }
   tmp_stream << "# Data"
              << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
-  uint64_t log_size = pstd::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -1353,8 +1309,8 @@ void InfoCmd::InfoData(std::string& info) {
   std::map<std::string, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
-  uint64_t memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
+  uint64_t memtable_usage = 0;
   uint64_t table_reader_usage = 0;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
