@@ -119,7 +119,6 @@ class SScanCmd : public Cmd {
   std::string key_, pattern_ = "*";
   int64_t cursor_ = 0;
   int64_t count_ = 10;
-  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";
@@ -231,6 +230,7 @@ class SInterstoreCmd : public SetOperationCmd {
 
  private:
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class SIsmemberCmd : public Cmd {
@@ -339,6 +339,7 @@ class SRandmemberCmd : public Cmd {
   std::string key_;
   int64_t count_ = 1;
   bool reply_arr = false;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     count_ = 1;
