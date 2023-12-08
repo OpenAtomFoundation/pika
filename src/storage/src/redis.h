@@ -14,6 +14,8 @@
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 
+#include "pstd/include/env.h"
+
 #include "src/lock_mgr.h"
 #include "src/lru_cache.h"
 #include "src/mutex_impl.h"
@@ -29,6 +31,61 @@ class Redis {
   virtual ~Redis();
 
   rocksdb::DB* GetDB() { return db_; }
+
+  struct KeyStatistics {
+    size_t window_size;
+    std::deque<uint64_t> durations;
+
+    uint64_t modify_count;
+
+    KeyStatistics() : KeyStatistics(10) {}
+
+    KeyStatistics(size_t size) : window_size(size + 2), modify_count(0) {}
+
+    void AddDuration(uint64_t duration) {
+      durations.push_back(duration);
+      while (durations.size() > window_size) {
+        durations.pop_front();
+      }
+    }
+    uint64_t AvgDuration() {
+      if (durations.size () < window_size) {
+        return 0;
+      }
+      uint64_t min = durations[0];
+      uint64_t max = durations[0];
+      uint64_t sum = 0;
+      for (auto duration : durations) {
+        if (duration < min) {
+          min = duration;
+        }
+        if (duration > max) {
+          max = duration;
+        }
+        sum += duration;
+      }
+      return (sum - max - min) / (durations.size() - 2);
+    }
+    void AddModifyCount(uint64_t count) {
+      modify_count += count;
+    }
+    uint64_t ModifyCount() {
+      return modify_count;
+    }
+  };
+
+  struct KeyStatisticsDurationGuard {
+    Redis* ctx;
+    std::string key;
+    uint64_t start_us;
+    KeyStatisticsDurationGuard(Redis* that, const std::string& key): ctx(that), key(key), start_us(pstd::NowMicros()) {
+    }
+    ~KeyStatisticsDurationGuard() {
+      uint64_t end_us = pstd::NowMicros();
+      uint64_t duration = end_us > start_us ? end_us - start_us : 0;
+      ctx->UpdateSpecificKeyDuration(key, duration);
+    }
+  };
 
   Status SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options);
   void SetWriteWalOptions(const bool is_wal_disable);
@@ -54,7 +111,8 @@ class Redis {
   virtual Status TTL(const Slice& key, int64_t* timestamp) = 0;
 
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
-  Status SetSmallCompactionThreshold(size_t small_compaction_threshold);
+  Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
+  Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
  protected:
@@ -75,11 +133,13 @@ class Redis {
   Status StoreScanNextPoint(const Slice& key, const Slice& pattern, int64_t cursor, const std::string& next_point);
 
   // For Statistics
-  std::atomic<size_t> small_compaction_threshold_;
-  std::unique_ptr<LRUCache<std::string, size_t>> statistics_store_;
+  std::atomic_uint64_t small_compaction_threshold_;
+  std::atomic_uint64_t small_compaction_duration_threshold_;
+  std::unique_ptr<LRUCache<std::string, KeyStatistics>> statistics_store_;
 
-  Status UpdateSpecificKeyStatistics(const std::string& key, size_t count);
-  Status AddCompactKeyTaskIfNeeded(const std::string& key, size_t total);
+  Status UpdateSpecificKeyStatistics(const std::string& key, uint64_t count);
+  Status UpdateSpecificKeyDuration(const std::string& key, uint64_t duration);
+  Status AddCompactKeyTaskIfNeeded(const std::string& key, uint64_t count, uint64_t duration);
 };
 
 }  //  namespace storage
