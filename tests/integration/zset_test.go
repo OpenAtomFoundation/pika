@@ -1016,6 +1016,8 @@ var _ = Describe("Zset Commands", func() {
 			Score:  1,
 			Member: "one",
 		}}))
+		err = client.ZPopMax(ctx, "zset", 1, 2).Err()
+		Expect(err).To(MatchError("ERR wrong number of arguments for 'zpopmax' command"))
 	})
 
 	It("should ZPopMin", func() {
@@ -1083,6 +1085,8 @@ var _ = Describe("Zset Commands", func() {
 			Score:  3,
 			Member: "three",
 		}}))
+		err = client.ZPopMin(ctx, "zset", 1, 2).Err()
+        Expect(err).To(MatchError("ERR wrong number of arguments for 'zpopmin' command"))
 	})
 
 	It("should ZRange", func() {
