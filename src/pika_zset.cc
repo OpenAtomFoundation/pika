@@ -577,8 +577,8 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  s_ = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
-  if (s_.ok()) {
+  auto s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
+  if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
       char buf[32];
@@ -598,10 +598,10 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
         res_.AppendContent(item.member);
       }
     }
-  } else if (s_.IsNotFound()) {
+  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
