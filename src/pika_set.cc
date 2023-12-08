@@ -396,11 +396,11 @@ void SInterstoreCmd::DoInitial() {
 
 void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
-  if (s.ok()) {
+  s_ = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -523,12 +523,12 @@ void SMoveCmd::DoInitial() {
 
 void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t res = 0;
-  rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SMove(src_key_, dest_key_, member_, &res);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -595,8 +595,8 @@ void SRandmemberCmd::DoInitial() {
 
 void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
+  if (s_.ok() || s_.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
@@ -608,7 +608,7 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
       }
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
