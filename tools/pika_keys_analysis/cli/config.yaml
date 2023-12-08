@@ -1,0 +1,24 @@
+pika:
+  - addr: 172.19.0.2:9221
+    db: 0
+    password: ""
+
+  - addr: 172.19.0.2:9221
+    db: 1
+    password: ""
+
+  - addr: 172.19.0.2:9222
+    db: 0
+    password: ""
+
+scan-size: 1000 # scan size per time
+concurrency: 1000 # goroutine num
+head: 5 # show top 5
+type:
+  - string
+  - hash
+  - list
+  - set
+  - zset
+memory: 2000 # Memory limit, unit: MB
+print: true # Print key number or not, will use keys command
