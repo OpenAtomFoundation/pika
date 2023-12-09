@@ -268,9 +268,8 @@ var _ = Describe("Set Commands", func() {
 			Expect(sMembers.Err()).NotTo(HaveOccurred())
 			Expect(sMembers.Val()).To(HaveLen(3))
 
-            //error: too many arguments in call to client.SPop
-			//err = client.SPop(ctx, "set", 1, 2).Err()
-            //Expect(err.Error()).To(Equal("ERR wrong number of arguments for 'spop' command"))
+            err := client.Do(ctx, "SPOP", "set", 1, 2)
+            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
 		})
 
 		It("should SPopN", func() {

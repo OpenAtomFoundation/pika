@@ -4,4 +4,4 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
-go test
+go test server_test.go set_test.go list_test.go
