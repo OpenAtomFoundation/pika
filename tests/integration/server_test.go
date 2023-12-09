@@ -397,9 +397,10 @@ var _ = Describe("Server", func() {
 
             bgSaveTime1 := time.Now().Unix()
             bgSave, err := client.BgSave(ctx).Result()
-            bgSaveTime2 := time.Now().Unix()
             Expect(err).NotTo(HaveOccurred())
             Expect(bgSave).To(ContainSubstring("Background saving started"))
+            time.Sleep(1 * time.Second)
+            bgSaveTime2 := time.Now().Unix()
 
             lastSave = client.LastSave(ctx)
             Expect(lastSave.Err()).NotTo(HaveOccurred())
