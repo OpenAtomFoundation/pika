@@ -444,7 +444,7 @@ std::set<std::string> PikaServer::GetAllDBName() {
 Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    if (!dbs.empty() && dbs.find(db_item.first) == dbs.end()) {
+    if (dbs.find(db_item.first) == dbs.end()) {
       continue;
     }
     switch (arg.type) {
