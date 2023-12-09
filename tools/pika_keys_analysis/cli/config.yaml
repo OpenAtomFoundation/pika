@@ -13,7 +13,7 @@ pika:
 
 scan-size: 1000 # scan size per time
 concurrency: 1000 # goroutine num
-head: 100 # show top 5
+head: 100 # show top head keys
 type:
   - string
   - hash
