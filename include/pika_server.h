@@ -195,6 +195,7 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
+  std::set<std::string> GetAllDBName();
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;

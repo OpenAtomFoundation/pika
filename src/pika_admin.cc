@@ -301,6 +301,8 @@ void BgsaveCmd::DoInitial() {
         bgsave_dbs_.insert(db);
       }
     }
+  } else {
+    bgsave_dbs_ = g_pika_server->GetAllDBName();
   }
 }
 
@@ -323,8 +325,10 @@ void CompactCmd::DoInitial() {
 
   if (argv_.size() == 1) {
     struct_type_ = "all";
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 2) {
     struct_type_ = argv_[1];
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 3) {
     std::vector<std::string> dbs;
     pstd::StringSplit(argv_[1], COMMA, dbs);
@@ -866,6 +870,8 @@ void InfoCmd::DoInitial() {
           keyspace_scan_dbs_.insert(db);
         }
       }
+    } else {
+      keyspace_scan_dbs_ = g_pika_server->GetAllDBName();
     }
     LogCommand();
     return;
@@ -1234,7 +1240,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
-    if (keyspace_scan_dbs_.empty() || keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
+    if (keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
       db_name = db_item.second->GetDBName();
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
