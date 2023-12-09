@@ -392,7 +392,7 @@ var _ = Describe("List Commands", func() {
 
             //error: too many arguments in call to client.LPop
 			//err = client.LPop(ctx, "list", 1, 2).Err()
-            //Expect(err).To(MatchError("ERR wrong number of arguments for 'lpop' command"))
+            //Expect(err.Error()).To(Equal("ERR wrong number of arguments for 'lpop' command"))
 		})
 
 		It("should LPopCount", func() {
@@ -638,7 +638,7 @@ var _ = Describe("List Commands", func() {
 			
 			//error: too many arguments in call to client.RPop
             //err = client.RPop(ctx, "list", 1, 2).Err()
-            //Expect(err).To(MatchError("ERR wrong number of arguments for 'rpop' command"))
+            //Expect(err.Error()).To(Equal("ERR wrong number of arguments for 'rpop' command"))
 		})
 
 		It("should RPopCount", func() {
