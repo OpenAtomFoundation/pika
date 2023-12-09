@@ -21,8 +21,15 @@ func TestListBigKey(t *testing.T) {
 	for keyType, minHeap := range bigKeys {
 		data := minHeap.GetTopN(Head)
 		fmt.Printf("Type: %s, Head: %d\n", keyType, Head)
+		if len(data) == 0 {
+			fmt.Println("No big key found")
+		}
 		for _, v := range data {
-			fmt.Printf("key Prefix: %s, Size: %d, From: %s\n", v.Key[:10], v.UsedSize, v.Client)
+			prefixKey := v.Key
+			if len(prefixKey) > 10 {
+				prefixKey = prefixKey[:10]
+			}
+			fmt.Printf("Key Prefix: %s, Size: %d, From: %s\n", prefixKey, v.UsedSize, v.Client)
 		}
 	}
 	end := time.Now()

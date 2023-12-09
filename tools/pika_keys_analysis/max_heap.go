@@ -1,8 +1,8 @@
 package pika_keys_analysis
 
 import (
+	"container/heap"
 	"runtime"
-	"sort"
 	"sync"
 )
 
@@ -14,52 +14,52 @@ type KeyWithMemory struct {
 	Client   string
 }
 
-type FixedSizeMinHeap struct {
+type MaxHeap struct {
 	data []KeyWithMemory
 	mu   sync.Mutex
 }
 
-func NewFixedSizeMinHeap() *FixedSizeMinHeap {
-	return &FixedSizeMinHeap{
+func NewFixedSizeMinHeap() *MaxHeap {
+	return &MaxHeap{
 		data: make([]KeyWithMemory, 0),
 		mu:   sync.Mutex{},
 	}
 }
 
 // Add element to heap
-func (h *FixedSizeMinHeap) Add(value KeyWithMemory) {
+func (h *MaxHeap) Add(value KeyWithMemory) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	runtime.ReadMemStats(&memStats)
 	for memStats.Alloc > uint64(MemoryLimit) {
-		h.Pop()
+		heap.Pop(h)
 		runtime.ReadMemStats(&memStats)
 	}
-	h.Push(value)
+	heap.Push(h, value)
 }
 
 // Len implements heap.Interface's Len method
-func (h *FixedSizeMinHeap) Len() int {
+func (h *MaxHeap) Len() int {
 	return len(h.data)
 }
 
 // Less implements heap.Interface's Less method
-func (h *FixedSizeMinHeap) Less(i, j int) bool {
-	return h.data[i].UsedSize < h.data[j].UsedSize
+func (h *MaxHeap) Less(i, j int) bool {
+	return h.data[i].UsedSize > h.data[j].UsedSize
 }
 
 // Swap implements heap.Interface's Swap method
-func (h *FixedSizeMinHeap) Swap(i, j int) {
+func (h *MaxHeap) Swap(i, j int) {
 	h.data[i], h.data[j] = h.data[j], h.data[i]
 }
 
 // Push implements heap.Interface's Push method
-func (h *FixedSizeMinHeap) Push(x interface{}) {
+func (h *MaxHeap) Push(x interface{}) {
 	h.data = append(h.data, x.(KeyWithMemory))
 }
 
 // Pop implements heap.Interface's Pop method
-func (h *FixedSizeMinHeap) Pop() interface{} {
+func (h *MaxHeap) Pop() interface{} {
 	old := h.data
 	n := len(old)
 	x := old[n-1]
@@ -68,12 +68,13 @@ func (h *FixedSizeMinHeap) Pop() interface{} {
 }
 
 // GetTopN get top n elements from heap
-func (h *FixedSizeMinHeap) GetTopN(head int) []KeyWithMemory {
-	sort.Slice(h.data, func(i, j int) bool {
-		return h.data[i].UsedSize > h.data[j].UsedSize
-	})
-	if head > len(h.data) {
-		head = len(h.data)
+func (h *MaxHeap) GetTopN(head int) []KeyWithMemory {
+	res := make([]KeyWithMemory, 0)
+	for i := 0; i < head; i++ {
+		if h.Len() == 0 {
+			break
+		}
+		res = append(res, heap.Pop(h).(KeyWithMemory))
 	}
-	return h.data[:head]
+	return res
 }

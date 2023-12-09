@@ -28,9 +28,9 @@ func NewPika(configs []PikaConfig) *Pika {
 }
 
 // SolveSingleClient solve single client
-func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitGroup, ch chan map[string]*FixedSizeMinHeap) {
+func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitGroup, ch chan map[string]*MaxHeap) {
 	defer wg.Done()
-	localHeapMap := make(map[string]*FixedSizeMinHeap)
+	localHeapMap := make(map[string]*MaxHeap)
 	for k := range Type {
 		localHeapMap[Type[k]] = NewFixedSizeMinHeap()
 	}
@@ -117,10 +117,10 @@ func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitG
 }
 
 // ListBigKeysByScan list all keys in all clients
-func (pika *Pika) ListBigKeysByScan(ctx context.Context) (map[string]*FixedSizeMinHeap, error) {
-	result := make(map[string]*FixedSizeMinHeap)
+func (pika *Pika) ListBigKeysByScan(ctx context.Context) (map[string]*MaxHeap, error) {
+	result := make(map[string]*MaxHeap)
 	wg := sync.WaitGroup{}
-	resultCh := make(chan map[string]*FixedSizeMinHeap, len(pika.clients))
+	resultCh := make(chan map[string]*MaxHeap, len(pika.clients))
 
 	for _, client := range pika.clients {
 		wg.Add(1)
