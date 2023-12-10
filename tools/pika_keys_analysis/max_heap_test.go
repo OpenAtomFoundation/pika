@@ -1,7 +1,6 @@
 package pika_keys_analysis
 
 import (
-	"fmt"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -31,8 +30,4 @@ func TestHeap(t *testing.T) {
 	})
 	// compare
 	assert.ElementsMatch(t, data, keyList[:100])
-	// print
-	for i := 0; i < 100; i++ {
-		fmt.Println(data[i].UsedSize)
-	}
 }

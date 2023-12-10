@@ -85,4 +85,54 @@ func register(app *grumble.App) {
 			return Init(filename)
 		},
 	})
+
+	app.AddCommand(&grumble.Command{
+		Name:     "compress",
+		Help:     "Compress the big keys",
+		LongHelp: "Compress the big keys and store them to pika",
+		Args: func(a *grumble.Args) {
+			a.String("key", "The key to compress")
+		},
+		Run: func(c *grumble.Context) error {
+			key := c.Args.String("key")
+			return PikaInstance.CompressKey(context.Background(), key)
+		},
+	})
+
+	app.AddCommand(&grumble.Command{
+		Name:     "decompress",
+		Help:     "Decompress the big keys",
+		LongHelp: "Decompress the big keys and store them to pika",
+		Args: func(a *grumble.Args) {
+			a.String("key", "The key to decompress")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Bool("s", "save", false, "Save the decompressed value to pika")
+		},
+		Run: func(c *grumble.Context) error {
+			key := c.Args.String("key")
+			save := c.Flags.Bool("save")
+			decompressKey, err := PikaInstance.DecompressKey(context.Background(), key, save)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Key: %s, Decompress: %s\n", key, decompressKey)
+			return nil
+		},
+	})
+
+	app.AddCommand(&grumble.Command{
+		Name:     "recover",
+		Help:     "Recover the big keys",
+		LongHelp: "Recover the big keys and store them to pika",
+		Args: func(a *grumble.Args) {
+			a.String("key", "The key to recover")
+			a.String("newKey", "The new key to store the recovered value")
+		},
+		Run: func(c *grumble.Context) error {
+			key := c.Args.String("key")
+			newKey := c.Args.String("newKey")
+			return PikaInstance.RecoverKey(context.Background(), key, newKey)
+		},
+	})
 }

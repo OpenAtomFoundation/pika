@@ -13,7 +13,7 @@ pika:
 
 scan-size: 1000 # scan size per time
 concurrency: 1000 # goroutine num
-head: 20 # show top head keys
+head: 30 # show top head keys
 type:
   - string
   - hash
@@ -22,3 +22,4 @@ type:
   - zset
 memory: 2000 # Memory limit, unit: MB
 print: true # Print key number or not, will use keys command
+save: ./save/ # Save dir path, will save key value pairs when compress

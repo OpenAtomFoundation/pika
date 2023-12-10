@@ -17,3 +17,23 @@ bigKey
 ```shell
 apply config.yaml
 ```
+## 5. Compress Key
+```shell
+compress <key>
+```
+## 6. Decompress Key
+- not save to pika
+```shell
+decompress <key>
+```
+- save to pika
+```shell
+decompress -s <key> 
+```
+## 7. Recover Key
+```shell
+recover <from> <to>
+```
+# Notice
+
+When using compression and decompression functions, errors in operation may cause duplicate compression or decompression, and the files used for recovery may be overwritten. If they are overwritten, the decompress command can be used to reach a state where decompression cannot continue, and then continue to compress to use the recover command normally

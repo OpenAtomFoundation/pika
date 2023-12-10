@@ -14,6 +14,7 @@ var (
 	Type         = []string{"string", "hash", "list", "set", "zset"}
 	MemoryLimit  = 1024 * 1024 * 200
 	PrintKeyNum  = false
+	Save         = "./save/"
 )
 
 type Config struct {
@@ -24,6 +25,7 @@ type Config struct {
 	MemoryLimit int          `yaml:"memory"`
 	Type        []string     `yaml:"type"`
 	PrintKeyNum bool         `yaml:"print"`
+	Save        string       `yaml:"save"`
 }
 
 type PikaConfig struct {
@@ -49,5 +51,6 @@ func Init(filename string) error {
 	Type = config.Type
 	MemoryLimit = config.MemoryLimit * 1024 * 1024
 	PrintKeyNum = config.PrintKeyNum
+	Save = config.Save
 	return nil
 }
