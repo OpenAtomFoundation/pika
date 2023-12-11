@@ -17,6 +17,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_slot.h"
+#include "include/pika_db.h"
 #include "net/src/dispatch_thread.h"
 
 class SyncMasterSlot;
@@ -481,15 +482,14 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
   virtual void ProcessSingleSlotCmd();
-  virtual void ProcessMultiSlotCmd();
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
-  virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
-  virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
-  virtual void ReadCache(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void Do(std::shared_ptr<DB> db) = 0;
+  virtual void DoThroughDB(std::shared_ptr<DB> db) {}
+  virtual void DoUpdateCache(std::shared_ptr<DB> db) {}
+  virtual void ReadCache(std::shared_ptr<DB> db) {}
   rocksdb::Status CmdStatus() { return s_; };
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
+  virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
@@ -531,11 +531,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
-  void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
+  void DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_key);
   bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 

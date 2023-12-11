@@ -745,7 +745,7 @@ void Cmd::Execute() {
 void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<Slot> slot;
   slot = g_pika_server->GetSlotByDBName(db_name_);
-
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
   if (!slot) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
@@ -757,25 +757,25 @@ void Cmd::ProcessSingleSlotCmd() {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
   }
-  ProcessCommand(slot, sync_slot);
+  ProcessCommand(db, sync_slot);
 }
 
-void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+void Cmd::ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                          const HintKeys& hint_keys) {
   if (stage_ == kNone) {
-    InternalProcessCommand(slot, sync_slot, hint_keys);
+    InternalProcessCommand(db, sync_slot, hint_keys);
   } else {
     if (stage_ == kBinlogStage) {
       DoBinlog(sync_slot);
     } else if (stage_ == kExecuteStage) {
-      DoCommand(slot, hint_keys);
+      DoCommand(db, hint_keys);
     }
   }
 }
 
-void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+void Cmd::InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                                  const HintKeys& hint_keys) {
-  pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
+  pstd::lock::MultiRecordLock record_lock(db->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
   }
@@ -784,7 +784,7 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  DoCommand(slot, hint_keys);
+  DoCommand(db, hint_keys);
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     do_duration_ += pstd::NowMicros() - start_us;
   }
@@ -796,34 +796,34 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::s
   }
 }
 
-void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys) {
+void Cmd::DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_keys) {
   if (!IsSuspend()) {
-    slot->DbRWLockReader();
+    db->DbRWLockReader();
   }
   DEFER {
     if (!IsSuspend()) {
-      slot->DbRWUnLock();
+      db->DbRWUnLock();
     }
   };
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      && db->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (IsNeedReadCache()) {
-      ReadCache(slot);
+      ReadCache(db);
     }
     if (is_read() && res().CacheMiss()) {
-      DoThroughDB(slot);
+      DoThroughDB(db);
       if (IsNeedUpdateCache()) {
-        DoUpdateCache(slot);
+        DoUpdateCache(db);
       }
     } else if (is_write()) {
-      DoThroughDB(slot);
+      DoThroughDB(db);
       if (IsNeedUpdateCache()) {
-        DoUpdateCache(slot);
+        DoUpdateCache(db);
       }
     }
   } else {
-    Do(slot);
+    Do(db);
   }
 }
 
@@ -851,60 +851,6 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
-  }
-}
-
-void Cmd::ProcessMultiSlotCmd() {
-  std::shared_ptr<Slot> slot;
-  std::vector<std::string> cur_key = current_key();
-  if (cur_key.empty()) {
-    res_.SetRes(CmdRes::kErrOther, "Internal Error");
-    return;
-  }
-
-  int hint = 0;
-  std::unordered_map<uint32_t, ProcessArg> process_map;
-  // split cur_key into slots
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  if (!db) {
-    res_.SetRes(CmdRes::kErrOther, "DB not found");
-    return;
-  }
-
-  CmdStage current_stage = stage_;
-  for (auto& key : cur_key) {
-    // in sharding mode we select slot by key
-    uint32_t slot_id = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
-    auto iter = process_map.find(slot_id);
-    if (iter == process_map.end()) {
-      std::shared_ptr<Slot> slot = db->GetSlotById(slot_id);
-      if (!slot) {
-        res_.SetRes(CmdRes::kErrOther, "Slot not found");
-        return;
-      }
-      std::shared_ptr<SyncMasterSlot> sync_slot =
-          g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
-      if (!sync_slot) {
-        res_.SetRes(CmdRes::kErrOther, "Slot not found");
-        return;
-      }
-      HintKeys hint_keys;
-      hint_keys.Push(key, hint);
-      process_map[slot_id] = ProcessArg(slot, sync_slot, hint_keys);
-    } else {
-      iter->second.hint_keys.Push(key, hint);
-    }
-    hint++;
-  }
-  for (auto& iter : process_map) {
-    ProcessArg& arg = iter.second;
-    ProcessCommand(arg.slot, arg.sync_slot, arg.hint_keys);
-    if (!res_.ok()) {
-      return;
-    }
-  }
-  if (current_stage == kNone || current_stage == kExecuteStage) {
-    Merge();
   }
 }
 

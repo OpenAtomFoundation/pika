@@ -24,6 +24,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   friend class PikaServer;
 
   std::string GetDBName();
+  std::shared_ptr<storage::Storage> storage() const;
   void BgSaveDB();
   void CompactDB(const storage::DataType& type);
   bool FlushSlotDB();
@@ -33,6 +34,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool IsBinlogIoError();
   uint32_t SlotNum();
   void GetAllSlots(std::set<uint32_t>& slot_ids);
+  std::shared_ptr<PikaCache> cache() const;
   std::shared_mutex& GetSlotLock() {
     return slots_rw_;
   }
@@ -76,12 +78,18 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::map<uint32_t, std::shared_ptr<Slot>> GetSlots() {
     return slots_;
   }
+  std::shared_ptr<pstd::lock::LockMgr> LockMgr();
+  void DbRWLockReader();
+  void DbRWUnLock();
  private:
   std::string db_name_;
   uint32_t slot_num_ = 0;
   std::string db_path_;
   std::string log_path_;
-
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
+  std::shared_mutex db_rwlock_;
+  std::shared_ptr<storage::Storage> storage_;
+  std::shared_ptr<PikaCache> cache_;
   std::atomic<bool> binlog_io_error_;
   // lock order
   // slots_rw_ > key_scan_protector_

@@ -22,9 +22,9 @@ extern uint32_t CRC32Update(uint32_t crc, const char *buf, int len);
 extern uint32_t CRC32CheckSum(const char *buf, int len);
 
 int GetSlotID(const std::string &str);
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot);
-void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot);
-void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot);
+int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db);
+void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
+void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
 std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
@@ -75,8 +75,8 @@ class PikaMigrate {
 class SlotsMgrtTagSlotCmd : public Cmd {
  public:
   SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
  private:
@@ -92,8 +92,8 @@ class SlotsMgrtTagSlotCmd : public Cmd {
 class SlotsMgrtTagSlotAsyncCmd : public Cmd {
  public:
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
  private:
@@ -111,8 +111,8 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
 class SlotsMgrtTagOneCmd : public Cmd {
  public:
   SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
  private:
@@ -129,8 +129,8 @@ class SlotsMgrtTagOneCmd : public Cmd {
 class SlotsMgrtAsyncStatusCmd : public Cmd {
  public:
   SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtAsyncStatusCmd(*this); }
 
@@ -141,8 +141,8 @@ class SlotsMgrtAsyncStatusCmd : public Cmd {
 class SlotsInfoCmd : public Cmd {
  public:
   SlotsInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsInfoCmd(*this); }
  private:
@@ -155,8 +155,8 @@ class SlotsInfoCmd : public Cmd {
 class SlotsMgrtAsyncCancelCmd : public Cmd {
  public:
   SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtAsyncCancelCmd(*this); }
  private:
@@ -166,8 +166,8 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
 class SlotsDelCmd : public Cmd {
  public:
   SlotsDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsDelCmd(*this); }
  private:
@@ -178,8 +178,8 @@ class SlotsDelCmd : public Cmd {
 class SlotsHashKeyCmd : public Cmd {
  public:
   SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
  private:
@@ -190,8 +190,8 @@ class SlotsHashKeyCmd : public Cmd {
 class SlotsScanCmd : public Cmd {
  public:
   SlotsScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsScanCmd(*this); }
  private:
@@ -214,8 +214,8 @@ class SlotsScanCmd : public Cmd {
 class SlotsMgrtExecWrapperCmd : public Cmd {
  public:
   SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtExecWrapperCmd(*this); }
  private:
@@ -228,8 +228,8 @@ class SlotsMgrtExecWrapperCmd : public Cmd {
 class SlotsReloadCmd : public Cmd {
  public:
   SlotsReloadCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsReloadCmd(*this); }
  private:
@@ -239,8 +239,8 @@ class SlotsReloadCmd : public Cmd {
 class SlotsReloadOffCmd : public Cmd {
  public:
   SlotsReloadOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot>slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsReloadOffCmd(*this); }
  private:
@@ -250,8 +250,8 @@ class SlotsReloadOffCmd : public Cmd {
 class SlotsCleanupCmd : public Cmd {
  public:
   SlotsCleanupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsCleanupCmd(*this); }
   std::vector<int> cleanup_slots_;
@@ -262,8 +262,8 @@ class SlotsCleanupCmd : public Cmd {
 class SlotsCleanupOffCmd : public Cmd {
  public:
   SlotsCleanupOffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsCleanupOffCmd(*this); }
  private:

@@ -799,7 +799,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
 uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
 
 // add key to slotkey
-void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot) {
+void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   if (g_pika_conf->slotmigrate() != true) {
     return;
   }
@@ -812,7 +812,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);
-  s = slot->db()->SAdd(slot_key, members, &res);
+  s = db->storage()->SAdd(slot_key, members, &res);
   if (!s.ok()) {
     LOG(ERROR) << "sadd key[" << key << "] to slotKey[" << slot_key << "] failed, error: " << s.ToString();
     return;
@@ -822,7 +822,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   // prevent write slot_key success, but write tag_key failed, so always write tag_key
   if (hastag) {
     std::string tag_key = GetSlotsTagKey(crc);
-    s = slot->db()->SAdd(tag_key, members, &res);
+    s = db->storage()->SAdd(tag_key, members, &res);
     if (!s.ok()) {
       LOG(ERROR) << "sadd key[" << key << "] to tagKey[" << tag_key << "] failed, error: " << s.ToString();
       return;
@@ -831,19 +831,19 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
 }
 
 // del key from slotkey
-void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot) {
+void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
   if (g_pika_conf->slotmigrate() != true) {
     return;
   }
   std::string type;
-  if (GetKeyType(key, type, slot) < 0) {
+  if (GetKeyType(key, type, db) < 0) {
     LOG(WARNING) << "SRem key: " << key << " from slotKey error";
     return;
   }
   std::string slotKey = GetSlotKey(GetSlotID(key));
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
-  rocksdb::Status s = slot->db()->SRem(slotKey, members, &count);
+  rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
   if (!s.ok()) {
     LOG(WARNING) << "SRem key: " << key << " from slotKey, error: " << s.ToString();
     return;

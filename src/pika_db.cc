@@ -82,6 +82,11 @@ bool DB::FlushSlotSubDB(const std::string& db_name) {
 void DB::SetBinlogIoError() { return binlog_io_error_.store(true); }
 void DB::SetBinlogIoErrorrelieve() { return binlog_io_error_.store(false); }
 bool DB::IsBinlogIoError() { return binlog_io_error_.load(); }
+std::shared_ptr<pstd::lock::LockMgr> Slot::LockMgr() { return lock_mgr_; }
+void DB::DbRWLockReader() { db_rwlock_.lock_shared(); }
+void DB::DbRWUnLock() { db_rwlock_.unlock(); }
+std::shared_ptr<PikaCache> DB::cache() const { return cache_; }
+std::shared_ptr<storage::Storage> DB::storage() const { return storage_; }
 
 uint32_t DB::SlotNum() { return slot_num_; }
 
