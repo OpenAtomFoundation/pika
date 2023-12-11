@@ -268,7 +268,7 @@ var _ = Describe("Set Commands", func() {
 			Expect(sMembers.Err()).NotTo(HaveOccurred())
 			Expect(sMembers.Val()).To(HaveLen(3))
 
-            err := client.Do(ctx, "SPOP", "set", 1, 2)
+            err := client.Do(ctx, "SPOP", "set", 1, 2).Err()
             Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
 		})
 

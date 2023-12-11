@@ -390,7 +390,7 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
 
-            err := client.Do(ctx, "LPOP", "list", 1, 2)
+            err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
             Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
 		})
 
@@ -635,7 +635,7 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
 
-			err := client.Do(ctx, "RPOP", "list", 1, 2)
+			err := client.Do(ctx, "RPOP", "list", 1, 2).Err()
             Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
 		})
 
