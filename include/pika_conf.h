@@ -221,6 +221,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return small_compaction_threshold_;
   }
+  int small_compaction_duration_threshold() {
+    std::shared_lock l(rwlock_);
+    return small_compaction_duration_threshold_;
+  }
   int max_background_flushes() {
     std::shared_lock l(rwlock_);
     return max_background_flushes_;
@@ -431,6 +435,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("small-compaction-threshold", std::to_string(value));
     small_compaction_threshold_ = value;
+  }
+  void SetSmallCompactionDurationThreshold(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("small-compaction-duration-threshold", std::to_string(value));
+    small_compaction_duration_threshold_ = value;
   }
   void SetMaxClientResponseSize(const int value) {
     std::lock_guard l(rwlock_);
@@ -705,6 +714,7 @@ class PikaConf : public pstd::BaseConf {
 
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
+  int small_compaction_duration_threshold_ = 0;
   int max_background_flushes_ = 0;
   int max_background_compactions_ = 0;
   int max_background_jobs_ = 0;

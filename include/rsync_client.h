@@ -33,6 +33,7 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 
 const std::string kDumpMetaFileName = "DUMP_META_DATA";
 const std::string kUuidPrefix = "snapshot-uuid:";
+const size_t kInvalidOffset = 0xFFFFFFFF;
 
 namespace rsync {
 
@@ -42,8 +43,7 @@ class WaitObject;
 class WaitObjectManager;
 
 using pstd::Status;
-
-
+using ResponseSPtr = std::shared_ptr<RsyncService::RsyncResponse>;
 class RsyncClient : public net::Thread {
  public:
   enum State {
@@ -151,18 +151,18 @@ public:
 
   void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
     std::lock_guard<std::mutex> guard(mu_);
-    resp_ = nullptr;
+    resp_.reset();
     filename_ = filename;
     type_ = t;
     offset_ = offset;
   }
 
-  pstd::Status Wait(RsyncService::RsyncResponse*& resp) {
+  pstd::Status Wait(ResponseSPtr& resp) {
     pstd::Status s = Status::Timeout("rsync timeout", "timeout");
     {
       std::unique_lock<std::mutex> lock(mu_);
       auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
-          return resp_ != nullptr;
+          return resp_.get() != nullptr;
       });
       if (!cv_s) {
         return s;
@@ -175,19 +175,19 @@ public:
 
   void WakeUp(RsyncService::RsyncResponse* resp) {
     std::unique_lock<std::mutex> lock(mu_);
-    resp_ = resp;
+    resp_.reset(resp);
+    offset_ = kInvalidOffset;
     cond_.notify_all();
   }
 
-  RsyncService::RsyncResponse* Response() {return resp_;}
   std::string Filename() {return filename_;}
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
 private:
   std::string filename_;
   RsyncService::Type type_;
-  size_t offset_ = 0xFFFFFFFF;
-  RsyncService::RsyncResponse* resp_ = nullptr;
+  size_t offset_ = kInvalidOffset;
+  ResponseSPtr resp_ = nullptr;
   std::condition_variable cond_;
   std::mutex mu_;
 };
@@ -222,7 +222,8 @@ public:
       return;
     }
     if (resp->type() == RsyncService::kRsyncFile &&
-        (resp->file_resp().filename() != wo_vec_[index]->Filename())) {
+        ((resp->file_resp().filename() != wo_vec_[index]->Filename()) ||
+	 (resp->file_resp().offset() != wo_vec_[index]->Offset()))) {
       delete resp;
       return;
     }

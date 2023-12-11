@@ -23,8 +23,8 @@ func pikaOptions1() *redis.Options {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		MaxRetries:   -1,
-		PoolSize:     10,
-		PoolTimeout:  30 * time.Second,
+		PoolSize:     30,
+		PoolTimeout:  60 * time.Second,
 	}
 }
 
@@ -36,7 +36,7 @@ func pikaOptions2() *redis.Options {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		MaxRetries:   -1,
-		PoolSize:     10,
-		PoolTimeout:  30 * time.Second,
+		PoolSize:     30,
+		PoolTimeout:  60 * time.Second,
 	}
 }

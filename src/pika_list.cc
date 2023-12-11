@@ -261,6 +261,7 @@ void LPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
+
 void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   s_ = slot->db()->LPush(key_, values_, &llen);
@@ -333,7 +334,7 @@ void BLPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -691,7 +692,7 @@ void BRPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;

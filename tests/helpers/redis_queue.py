@@ -6,13 +6,18 @@ import signal
 
 START_FLAG = True
 
+
 def enqueue(client: redis.Redis, queue_name: str):
     while START_FLAG:
+        n = client.zcard(queue_name)
+        if n >= 1000:
+            time.sleep(0.1)
+            continue
         now_ms = int(time.time() * 1000)
         pipeline = client.pipeline(transaction=False)
         for i in range(10):
             score = now_ms << 5 | i
-            pipeline.zadd(queue_name, {str(i): score})
+            pipeline.zadd(queue_name, {str(score): score})
         pipeline.execute()
     print("enqueue exit")
 
@@ -23,6 +28,7 @@ def dequeue(client: redis.Redis, queue_name: str):
         start_time = time.time()
         n = client.zcard(queue_name)
         if n <= 10:
+            time.sleep(0.1)
             continue
         res = client.zremrangebyrank(queue_name, 0, 9)
         latency = time.time() - start_time
@@ -45,37 +51,58 @@ def compact(client: redis.Redis, queue_name: str):
     print("compact exit")
 
 
+def auto_compact(client: redis.Redis):
+    client.config_set("max-cache-statistic-keys", 10000)
+    client.config_set("small-compaction-threshold", 10000)
+    client.config_set("small-compaction-duration-threshold", 10000)
+
+
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python redis_queue.py <redis_host> <port> <passwd>")
+    if len(sys.argv) != 5:
+        print("Usage: python redis_queue.py $redis_host $port $passwd [compact | auto_compact]")
         sys.exit(1)
     host = sys.argv[1]
     port = int(sys.argv[2])
     passwd = sys.argv[3]
-    client_enqueue = redis.Redis(host=host, port=port, password=passwd)
-    client_dequeue = redis.Redis(host=host, port=port, password=passwd)
-    client_compact = redis.Redis(host=host, port=port, password=passwd)
+    mode = sys.argv[4]
+
+    thread_list = []
     queue_name = "test_queue"
+
+    client_enqueue = redis.Redis(host=host, port=port, password=passwd)
     t1 = threading.Thread(target=enqueue, args=(client_enqueue, queue_name))
-    t1.start()
+    thread_list.append(t1)
+
+    client_dequeue = redis.Redis(host=host, port=port, password=passwd)
     t2 = threading.Thread(target=dequeue, args=(client_dequeue, queue_name))
-    t2.start()
-    t3 = threading.Thread(target=compact, args=(client_compact, queue_name))
-    t3.start()
-    
-    def signal_handler(signal, frame):  
+    thread_list.append(t2)
+
+    client_compact = redis.Redis(host=host, port=port, password=passwd)
+    if mode == "compact":
+        t3 = threading.Thread(target=compact, args=(client_compact, queue_name))
+        thread_list.append(t3)
+    elif mode == "auto_compact":
+        auto_compact(client_compact)
+    else:
+        print("invalid compact mode: {}".format(mode))
+        sys.exit(1)
+
+    for t in thread_list:
+        t.start()
+
+    def signal_handler(signal, frame):
         print("revc signal: {}".format(signal))
         global START_FLAG
         START_FLAG = False
-        t1.join()
-        t2.join()
-        t3.join()
+        for t in thread_list:
+            t.join()
         print("exit")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGQUIT, signal_handler)
+
     while True:
         time.sleep(60)
 
