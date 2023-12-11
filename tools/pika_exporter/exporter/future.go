@@ -36,3 +36,38 @@ func (f *future) Wait() map[futureKey]error {
 	defer f.Unlock()
 	return f.m
 }
+
+type futureKeyForProxy struct {
+	addr, instance, ID, productName string
+}
+
+type futureForProxy struct {
+	*sync.Mutex
+	wait sync.WaitGroup
+	m    map[futureKeyForProxy]error
+}
+
+func newFutureForProxy() *futureForProxy {
+	return &futureForProxy{
+		Mutex: new(sync.Mutex),
+		m:     make(map[futureKeyForProxy]error),
+	}
+}
+
+func (f *futureForProxy) Add() {
+	f.wait.Add(1)
+}
+
+func (f *futureForProxy) Done(key futureKeyForProxy, val error) {
+	f.Lock()
+	defer f.Unlock()
+	f.m[key] = val
+	f.wait.Done()
+}
+
+func (f *futureForProxy) Wait() map[futureKeyForProxy]error {
+	f.wait.Wait()
+	f.Lock()
+	defer f.Unlock()
+	return f.m
+}

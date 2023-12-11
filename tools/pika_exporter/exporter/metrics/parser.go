@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -270,4 +272,27 @@ func convertTimeToUnix(ts string) (int64, error) {
 		return 0, nil
 	}
 	return t.Unix(), nil
+}
+
+func StructToMap(obj interface{}) (map[string]string, error) {
+	objValue := reflect.ValueOf(obj)
+	objType := objValue.Type()
+
+	data := make(map[string]string)
+
+	for i := 0; i < objValue.NumField(); i++ {
+		field := objValue.Field(i)
+		fieldName := objType.Field(i).Name
+
+		if field.Kind() == reflect.Struct {
+			innerData, _ := StructToMap(field.Interface())
+			for k, v := range innerData {
+				data[k] = v
+			}
+		} else {
+			data[fieldName] = fmt.Sprintf("%v", field.Interface())
+		}
+	}
+
+	return data, nil
 }
