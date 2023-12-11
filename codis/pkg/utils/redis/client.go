@@ -157,6 +157,24 @@ func (c *Client) Info() (map[string]string, error) {
 	return info, nil
 }
 
+func (c *Client) InfoReplicationIpPort() (map[string]string, error) {
+	text, err := redigo.String(c.Do("INFO", "replication"))
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	info := make(map[string]string)
+	for _, line := range strings.Split(text, "\n") {
+		kv := strings.SplitN(line, ":", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		if key := strings.TrimSpace(kv[0]); key != "" {
+			info[key] = strings.TrimSpace(kv[1])
+		}
+	}
+	return info, nil
+}
+
 func (c *Client) InfoKeySpace() (map[int]string, error) {
 	text, err := redigo.String(c.Do("INFO", "keyspace"))
 	if err != nil {
@@ -237,7 +255,7 @@ func (c *Client) InfoReplication() (*InfoReplication, error) {
 }
 
 func (c *Client) InfoFull() (map[string]string, error) {
-	if info, err := c.Info(); err != nil {
+	if info, err := c.InfoReplicationIpPort(); err != nil {
 		return nil, errors.Trace(err)
 	} else {
 		host := info["master_host"]
