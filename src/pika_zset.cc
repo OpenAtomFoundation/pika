@@ -243,7 +243,7 @@ void ZRangeCmd::Do(std::shared_ptr<DB> db) {
 
 void ZRangeCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot ->cache()->ZRange(key_, start_, stop_, &score_members, db);
+  auto s = db->cache()->ZRange(key_, start_, stop_, &score_members, db);
   if (s.ok()) {
     if (is_ws_) {
       char buf[32];
@@ -792,7 +792,7 @@ void ZUnionstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
@@ -869,7 +869,7 @@ void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);

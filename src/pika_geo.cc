@@ -470,7 +470,7 @@ void GeoRadiusCmd::DoInitial() {
   }
 }
 
-void GeoRadiusCmd::Do(std::shared_ptr<DB> db) { GetAllNeighbors(slot, key_, range_, this->res_); }
+void GeoRadiusCmd::Do(std::shared_ptr<DB> db) { GetAllNeighbors(db, key_, range_, this->res_); }
 
 void GeoRadiusByMemberCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -551,5 +551,5 @@ void GeoRadiusByMemberCmd::Do(std::shared_ptr<DB> db) {
     range_.longitude = xy[0];
     range_.latitude = xy[1];
   }
-  GetAllNeighbors(slot, key_, range_, this->res_);
+  GetAllNeighbors(db, key_, range_, this->res_);
 }

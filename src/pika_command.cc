@@ -752,26 +752,26 @@ void Cmd::ProcessSingleSlotCmd() {
   std::shared_ptr<SyncMasterDB> sync_db =
       g_pika_rm->GetSyncMasterDBByName(DBInfo(db->GetDBName()));
   if (!sync_db) {
-    res_.SetRes(CmdRes::kErrOther, "Slot not found");
+    res_.SetRes(CmdRes::kErrOther, "DB not found");
     return;
   }
   ProcessCommand(db, sync_db);
 }
 
-void Cmd::ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+void Cmd::ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                          const HintKeys& hint_keys) {
   if (stage_ == kNone) {
-    InternalProcessCommand(db, sync_slot, hint_keys);
+    InternalProcessCommand(db, sync_db, hint_keys);
   } else {
     if (stage_ == kBinlogStage) {
-      DoBinlog(sync_slot);
+      DoBinlog(sync_db);
     } else if (stage_ == kExecuteStage) {
       DoCommand(db, hint_keys);
     }
   }
 }
 
-void Cmd::InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+void Cmd::InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                                  const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(db->LockMgr());
   if (is_write()) {
@@ -787,7 +787,7 @@ void Cmd::InternalProcessCommand(const std::shared_ptr<DB>& db, const std::share
     do_duration_ += pstd::NowMicros() - start_us;
   }
 
-  DoBinlog(sync_slot);
+  DoBinlog(sync_db);
 
   if (is_write()) {
     record_lock.Unlock(current_key());
@@ -825,26 +825,26 @@ void Cmd::DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_keys) {
   }
 }
 
-void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void Cmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
     if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
       if (!conn_ptr) {
-        LOG(WARNING) << slot->SyncSlotInfo().ToString() << " conn empty.";
+        LOG(WARNING) << db->SyncDBInfo().ToString() << " conn empty.";
       }
       if (!resp_ptr) {
-        LOG(WARNING) << slot->SyncSlotInfo().ToString() << " resp empty.";
+        LOG(WARNING) << db->SyncDBInfo().ToString() << " resp empty.";
       }
       res().SetRes(CmdRes::kErrOther);
       return;
     }
 
     Status s =
-        slot->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
+        db->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
     if (!s.ok()) {
-      LOG(WARNING) << slot->SyncSlotInfo().ToString() << " Writing binlog failed, maybe no space left on device "
+      LOG(WARNING) << db->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
                    << s.ToString();
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;

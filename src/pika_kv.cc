@@ -248,13 +248,13 @@ void DelCmd::Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) {
 
 void DelCmd::Merge() { res_.AppendInteger(split_res_); }
 
-void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   std::string opt = argv_.at(0);
   for(auto& key: keys_) {
     argv_.clear();
     argv_.emplace_back(opt);
     argv_.emplace_back(key);
-    Cmd::DoBinlog(slot);
+    Cmd::DoBinlog(db);
   }
 }
 
@@ -893,7 +893,7 @@ void MsetCmd::Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) {
 
 void MsetCmd::Merge() {}
 
-void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
   //used "set" instead of "SET" to distinguish the binlog of Set
@@ -904,7 +904,7 @@ void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
-    set_cmd_->DoBinlog(slot);
+    set_cmd_->DoBinlog(db);
   }
 }
 
@@ -938,7 +938,7 @@ void MsetnxCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   if (!success_) {
     //some keys already exist, set operations aborted, no need of binlog
     return;
@@ -953,7 +953,7 @@ void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
-    set_cmd_->DoBinlog(slot);
+    set_cmd_->DoBinlog(db);
   }
 }
 

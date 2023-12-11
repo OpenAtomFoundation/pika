@@ -95,8 +95,8 @@ class BlockingBaseCmd : public Cmd {
     std::shared_ptr<net::NetConn> conn;
     WriteBinlogOfPopArgs() = default;
     WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
-                         std::shared_ptr<Slot> slot_, std::shared_ptr<net::NetConn> conn_)
-        : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
+                         std::shared_ptr<DB> db_, std::shared_ptr<net::NetConn> conn_)
+        : block_type(block_type_), key(key_), db(db_), conn(conn_){}
   };
   void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
   void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<DB> db);

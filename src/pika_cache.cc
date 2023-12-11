@@ -802,9 +802,9 @@ Status PikaCache::ZAddnxWithoutTTL(std::string &key, std::vector<storage::ScoreM
   }
 }
 
-Status PikaCache::ZCard(std::string &key, uint32_t *len, const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZCard(std::string &key, uint32_t *len, const std::shared_ptr<DB>& db) {
   int32_t db_len = 0;
-  slot->db()->ZCard(key, &db_len);
+  db->storage()->ZCard(key, &db_len);
   *len = db_len;
   return Status::OK();
 }
@@ -910,7 +910,7 @@ Status PikaCache::ZIncrby(std::string &key, std::string &member, double incremen
 }
 
 bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key, int mem_len, int db_len,
-                                       const std::shared_ptr<Slot> &slot) {
+                                       const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   if (mem_len == -1) {
     uint64_t cache_len = 0;
@@ -919,7 +919,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   }
   if (db_len == -1) {
     db_len = 0;
-    slot->db()->ZCard(key, &db_len);
+    db->storage()->ZCard(key, &db_len);
     if (!db_len) {
       return false;
     }
@@ -927,7 +927,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   if (db_len < zset_cache_field_num_per_key_) {
     if (mem_len * 2 < db_len) {
       cache_obj->Del(CachePrefixKeyZ);
-      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, slot);
+      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, db);
       return true;
     } else {
       return false;
@@ -935,7 +935,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   } else {
     if (zset_cache_field_num_per_key_ && mem_len * 2 < zset_cache_field_num_per_key_) {
       cache_obj->Del(CachePrefixKeyZ);
-      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, slot);
+      PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key, db);
       return true;
     } else {
       return false;
@@ -1075,13 +1075,13 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
 }
 
 Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                         const std::shared_ptr<Slot> &slot) {
+                         const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
-  auto db_obj = slot->db();
+  auto db_obj = db->storage();
   Status s;
   if (cache_obj->Exists(CachePrefixKeyZ)) {
     uint64_t cache_len = 0;
@@ -1134,7 +1134,7 @@ Status PikaCache::ZRangebyscore(std::string &key, std::string &min, std::string 
   }
 }
 
-Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1149,7 +1149,7 @@ Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, co
     if (s.ok()) {
       if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
         int32_t db_len = 0;
-        slot->db()->ZCard(key, &db_len);
+        db->storage()->ZCard(key, &db_len);
         *rank = db_len - cache_len + *rank;
       }
       return s;
@@ -1169,7 +1169,7 @@ Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std:
 }
 
 Status PikaCache::ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted,
-                                  const std::shared_ptr<Slot> &slot) {
+                                  const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto cache_obj = caches_[cache_index];
@@ -1178,7 +1178,7 @@ Status PikaCache::ZRemrangebyrank(std::string &key, std::string &min, std::strin
   if (cache_len <= 0) {
     return Status::NotFound("key not in cache");
   } else {
-    auto db_obj = slot->db();
+    auto db_obj = db->storage();
     int32_t db_len = 0;
     db_obj->ZCard(key, &db_len);
     db_len += ele_deleted;
@@ -1226,22 +1226,22 @@ Status PikaCache::ZRemrangebyrank(std::string &key, std::string &min, std::strin
 }
 
 Status PikaCache::ZRemrangebyscore(std::string &key, std::string &min, std::string &max,
-                                   const std::shared_ptr<Slot> &slot) {
+                                   const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto s = caches_[cache_index]->ZRemrangebyscore(key, min, max);
-  ReloadCacheKeyIfNeeded(caches_[cache_index], key, -1, -1, slot);
+  ReloadCacheKeyIfNeeded(caches_[cache_index], key, -1, -1, db);
   return s;
 }
 
 Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                            const std::shared_ptr<Slot> &slot) {
+                            const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
   auto cache_obj = caches_[cache_index];
-  auto db_obj = slot->db();
+  auto db_obj = db->storage();
   Status s;
   if (cache_obj->Exists(CachePrefixKeyZ)) {
     uint64_t cache_len = 0;
@@ -1299,9 +1299,9 @@ Status PikaCache::ZRevrangebyscore(std::string &key, std::string &min, std::stri
   }
 }
 
-bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<Slot> &slot) {
+bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<DB>& db) {
   int32_t db_len = 0;
-  slot->db()->ZCard(key, &db_len);
+  db->storage()->ZCard(key, &db_len);
 
   std::lock_guard l(rwlock_);
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
@@ -1313,8 +1313,8 @@ bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<Slot> &sl
 }
 
 Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string &max,
-                                 std::vector<std::string> *members, const std::shared_ptr<Slot> &slot) {
-  if (CacheSizeEqsDB(key, slot)) {
+                                 std::vector<std::string> *members, const std::shared_ptr<DB>& db) {
+  if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
     int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1324,7 +1324,7 @@ Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string
   }
 }
 
-Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1338,7 +1338,7 @@ Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank,
     if (s.ok()) {
       if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
         int32_t db_len = 0;
-        slot->db()->ZCard(key, &db_len);
+        db->storage()->ZCard(key, &db_len);
         *rank = db_len - cache_len + *rank;
       }
       return s;
@@ -1347,7 +1347,7 @@ Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank,
     }
   }
 }
-Status PikaCache::ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto s = caches_[cache_index]->ZScore(key, member, score);
@@ -1358,8 +1358,8 @@ Status PikaCache::ZScore(std::string &key, std::string &member, double *score, c
 }
 
 Status PikaCache::ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members,
-                              const std::shared_ptr<Slot> &slot) {
-  if (CacheSizeEqsDB(key, slot)) {
+                              const std::shared_ptr<DB>& db) {
+  if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
     int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1370,8 +1370,8 @@ Status PikaCache::ZRangebylex(std::string &key, std::string &min, std::string &m
 }
 
 Status PikaCache::ZLexcount(std::string &key, std::string &min, std::string &max, uint64_t *len,
-                            const std::shared_ptr<Slot> &slot) {
-  if (CacheSizeEqsDB(key, slot)) {
+                            const std::shared_ptr<DB>& db) {
+  if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
     int cache_index = CacheIndex(CachePrefixKeyZ);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1383,8 +1383,8 @@ Status PikaCache::ZLexcount(std::string &key, std::string &min, std::string &max
 }
 
 Status PikaCache::ZRemrangebylex(std::string &key, std::string &min, std::string &max,
-                                 const std::shared_ptr<Slot> &slot) {
-  if (CacheSizeEqsDB(key, slot)) {
+                                 const std::shared_ptr<DB>& db) {
+  if (CacheSizeEqsDB(key, db)) {
     int cache_index = CacheIndex(key);
     std::lock_guard lm(*cache_mutexs_[cache_index]);
 
@@ -1547,8 +1547,8 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
   return Status::OK();
 }
 
-void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot) {
-  cache_load_thread_->Push(key_type, key, slot);
+void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<DB>& db) {
+  cache_load_thread_->Push(key_type, key, db);
 }
 
 void PikaCache::ClearHitRatio(void) {

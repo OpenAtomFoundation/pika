@@ -20,8 +20,8 @@
 #include "include/pika_db.h"
 #include "net/src/dispatch_thread.h"
 
-class SyncMasterSlot;
-class SyncSlaveSlot;
+class SyncMasterDB;
+class SyncSlaveDB;
 
 // Constant for command name
 // Admin
@@ -449,10 +449,10 @@ class CmdRes {
  */
 struct UnblockTaskArgs {
   std::string key;
-  std::shared_ptr<Slot> slot;
+  std::shared_ptr<DB> db;
   net::DispatchThread* dispatchThread{ nullptr };
-  UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+  UnblockTaskArgs(std::string key_, std::shared_ptr<DB> db_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), db(db_), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -526,14 +526,14 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
-  virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
+  virtual void DoBinlog(const std::shared_ptr<SyncMasterDB>& db);
 
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_key);
   bool CheckArg(uint64_t num) const;

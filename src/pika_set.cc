@@ -323,7 +323,7 @@ void SUnionstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
@@ -546,7 +546,7 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   if (!move_success_) {
     //the member is not in the source set, nothing changed
     return;

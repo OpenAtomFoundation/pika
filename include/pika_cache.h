@@ -144,31 +144,31 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZAddIfKeyExist(std::string &key, std::vector<storage::ScoreMember> &score_members);
   rocksdb::Status ZAddnx(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
   rocksdb::Status ZAddnxWithoutTTL(std::string &key, std::vector<storage::ScoreMember> &score_members);
-  rocksdb::Status ZCard(std::string &key, uint32_t *len, const std::shared_ptr<Slot> &slot);
+  rocksdb::Status ZCard(std::string &key, uint32_t *len, const std::shared_ptr<DB>& db);
   rocksdb::Status ZCount(std::string &key, std::string &min, std::string &max, uint64_t *len, ZCountCmd *cmd);
   rocksdb::Status ZIncrby(std::string &key, std::string &member, double increment);
   rocksdb::Status ZIncrbyIfKeyExist(std::string &key, std::string &member, double increment, ZIncrbyCmd *cmd);
   rocksdb::Status ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                         const std::shared_ptr<Slot> &slot);
+                         const std::shared_ptr<DB>& db);
   rocksdb::Status ZRangebyscore(std::string &key, std::string &min, std::string &max,
                                 std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd);
-  rocksdb::Status ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot);
+  rocksdb::Status ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db);
   rocksdb::Status ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot = nullptr);
   rocksdb::Status ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted = 0,
-                                  const std::shared_ptr<Slot> &slot = nullptr);
-  rocksdb::Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
+                                  const std::shared_ptr<DB>& db = nullptr);
+  rocksdb::Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max, const std::shared_ptr<DB>& db);
   rocksdb::Status ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                            const std::shared_ptr<Slot> &slot);
+                            const std::shared_ptr<DB>& db);
   rocksdb::Status ZRevrangebyscore(std::string &key, std::string &min, std::string &max,
                                    std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd);
   rocksdb::Status ZRevrangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members,
-                                 const std::shared_ptr<Slot> &slot);
-  rocksdb::Status ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot);
-  rocksdb::Status ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<Slot> &slot);
-  rocksdb::Status ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members, const std::shared_ptr<Slot> &slot);
+                                 const std::shared_ptr<DB>& db);
+  rocksdb::Status ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db);
+  rocksdb::Status ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<DB>& db);
+  rocksdb::Status ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members, const std::shared_ptr<DB>& db);
   rocksdb::Status ZLexcount(std::string &key, std::string &min, std::string &max, uint64_t *len,
-                            const std::shared_ptr<Slot> &slot);
-  rocksdb::Status ZRemrangebylex(std::string &key, std::string &min, std::string &max, const std::shared_ptr<Slot> &slot);
+                            const std::shared_ptr<DB>& db);
+  rocksdb::Status ZRemrangebylex(std::string &key, std::string &min, std::string &max, const std::shared_ptr<DB>& db);
 
   // Bit Commands
   rocksdb::Status SetBit(std::string &key, size_t offset, int64_t value);
@@ -185,7 +185,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status WriteListToCache(std::string &key, std::vector<std::string> &values, int64_t ttl);
   rocksdb::Status WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl);
   rocksdb::Status WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl);
-  void PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot);
+  void PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<DB>& db);
   rocksdb::Status CacheZCard(std::string &key, uint64_t *len);
 
  private:
@@ -199,12 +199,12 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
                                  int64_t &out_stop);
   RangeStatus CheckCacheRangeByScore(uint64_t  cache_len, double cache_min, double cache_max, double min,
                                      double max, bool left_close, bool right_close);
-  bool CacheSizeEqsDB(std::string &key, const std::shared_ptr<Slot> &slot);
+  bool CacheSizeEqsDB(std::string &key, const std::shared_ptr<DB>& db);
   void GetMinMaxScore(std::vector<storage::ScoreMember> &score_members, double &min, double &max);
   bool GetCacheMinMaxSM(cache::RedisCache *cache_obj, std::string &key, storage::ScoreMember &min_m,
                         storage::ScoreMember &max_m);
   bool ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key, int mem_len = -1, int db_len = -1,
-                              const std::shared_ptr<Slot> &slot = nullptr);
+                              const std::shared_ptr<DB>& db = nullptr);
   rocksdb::Status CleanCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key);
 
  private:

@@ -189,7 +189,7 @@ class PikaReplicaManager {
   pstd::Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
 
   // For SyncMasterSlot
-  std::shared_ptr<SyncMasterDB> GetSyncMasterSlotByName(const DBInfo& p_info);
+  std::shared_ptr<SyncMasterDB> GetSyncMasterDBByName(const DBInfo& p_info);
 
   // For SyncSlaveSlot
   std::shared_ptr<SyncSlaveDB> GetSyncSlaveSlotByName(const DBInfo& p_info);

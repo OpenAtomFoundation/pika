@@ -1038,7 +1038,7 @@ Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip, in
   return pika_repl_server_->SendSlaveBinlogChips(ip, port, tasks);
 }
 
-std::shared_ptr<SyncMasterDB> PikaReplicaManager::GetSyncMasterSlotByName(const DBInfo& p_info) {
+std::shared_ptr<SyncMasterDB> PikaReplicaManager::GetSyncMasterDBByName(const DBInfo& p_info) {
   std::shared_lock l(slots_rw_);
   if (sync_master_dbs_.find(p_info) == sync_master_dbs_.end()) {
     return nullptr;

@@ -332,7 +332,7 @@ void BitOpCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType set_args;
   //used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_args.emplace_back("set");
