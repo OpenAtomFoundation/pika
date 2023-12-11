@@ -21,11 +21,11 @@ class LIndexCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void ReadCache(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LIndexCmd(*this); }
 
@@ -45,10 +45,10 @@ class LInsertCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LInsertCmd(*this); }
 
@@ -69,11 +69,11 @@ class LLenCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void ReadCache(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LLenCmd(*this); }
 
@@ -91,7 +91,7 @@ class BlockingBaseCmd : public Cmd {
   struct WriteBinlogOfPopArgs{
     BlockKeyType block_type;
     std::string key;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     std::shared_ptr<net::NetConn> conn;
     WriteBinlogOfPopArgs() = default;
     WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
@@ -99,7 +99,7 @@ class BlockingBaseCmd : public Cmd {
         : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
   };
   void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
-  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
+  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<DB> db);
   static void ServeAndUnblockConns(void* args);
   static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);
   void removeDuplicates(std::vector<std::string> & keys_);
@@ -112,8 +112,8 @@ class BLPopCmd final : public BlockingBaseCmd {
   virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  virtual void Do(std::shared_ptr<DB> db = nullptr) override;
+  virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   virtual void Merge() override {};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
   void DoInitial() override;
@@ -135,10 +135,10 @@ class LPopCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPopCmd(*this); }
 
@@ -158,10 +158,10 @@ class LPushCmd : public BlockingBaseCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPushCmd(*this); }
 
@@ -181,10 +181,10 @@ class LPushxCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPushxCmd(*this); }
 
@@ -204,11 +204,11 @@ class LRangeCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void ReadCache(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LRangeCmd(*this); }
 
@@ -228,10 +228,10 @@ class LRemCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LRemCmd(*this); }
 
@@ -251,10 +251,10 @@ class LSetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LSetCmd(*this); }
 
@@ -274,10 +274,10 @@ class LTrimCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LTrimCmd(*this); }
 
@@ -295,8 +295,8 @@ class BRPopCmd final : public BlockingBaseCmd {
   virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  virtual void Do(std::shared_ptr<DB> db = nullptr) override;
+  virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   virtual void Merge() override {};
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
   void DoInitial() override;
@@ -316,10 +316,10 @@ class RPopCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPopCmd(*this); }
 
@@ -351,9 +351,9 @@ class RPopLPushCmd : public BlockingBaseCmd {
     res.push_back(source_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void ReadCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPopLPushCmd(*this); }
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
@@ -378,11 +378,11 @@ class RPushCmd : public BlockingBaseCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Do(std::shared_ptr<DB> db = nullptr) override;
 
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPushCmd(*this); }
 
@@ -402,10 +402,10 @@ class RPushxCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void DoThroughDB(std::shared_ptr<DB> db = nullptr) override;
+  void DoUpdateCache(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPushxCmd(*this); }
 

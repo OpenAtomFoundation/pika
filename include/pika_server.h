@@ -221,7 +221,6 @@ class PikaServer : public pstd::noncopyable {
   bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
   std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
-  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& db_name, const std::string& key);
   pstd::Status DoSameThingEverySlot(const TaskType& type);
 
   /*

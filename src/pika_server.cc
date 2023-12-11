@@ -548,11 +548,6 @@ std::shared_ptr<Slot> PikaServer::GetDBSlotById(const std::string& db_name, uint
   return db ? db->GetSlotById(slot_id) : nullptr;
 }
 
-std::shared_ptr<Slot> PikaServer::GetDBSlotByKey(const std::string& db_name, const std::string& key) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db ? db->GetSlotByKey(key) : nullptr;
-}
-
 Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
   std::shared_lock rwl(dbs_rw_);
   std::shared_ptr<SyncSlaveSlot> slave_slot = nullptr;

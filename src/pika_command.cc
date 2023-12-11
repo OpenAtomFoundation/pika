@@ -743,21 +743,19 @@ void Cmd::Execute() {
 }
 
 void Cmd::ProcessSingleSlotCmd() {
-  std::shared_ptr<Slot> slot;
-  slot = g_pika_server->GetSlotByDBName(db_name_);
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  if (!slot) {
-    res_.SetRes(CmdRes::kErrOther, "Slot not found");
+  if (!db) {
+    res_.SetRes(CmdRes::kErrOther, "DB not found");
     return;
   }
 
-  std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetDBName(), slot->GetSlotID()));
-  if (!sync_slot) {
+  std::shared_ptr<SyncMasterDB> sync_db =
+      g_pika_rm->GetSyncMasterDBByName(DBInfo(db->GetDBName()));
+  if (!sync_db) {
     res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
   }
-  ProcessCommand(db, sync_slot);
+  ProcessCommand(db, sync_db);
 }
 
 void Cmd::ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterSlot>& sync_slot,
@@ -896,7 +894,6 @@ bool Cmd::IsNeedCacheDo() const {
 }
 
 bool Cmd::IsNeedReadCache() const { return ((flag_ & kCmdFlagsMaskReadCache) == kCmdFlagsReadCache); }
-
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const { return true; }
 

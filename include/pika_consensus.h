@@ -108,7 +108,7 @@ class MemLog {
 
 class ConsensusCoordinator {
  public:
-  ConsensusCoordinator(const std::string& db_name, uint32_t slot_id);
+  ConsensusCoordinator(const std::string& db_name);
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
   void Init();

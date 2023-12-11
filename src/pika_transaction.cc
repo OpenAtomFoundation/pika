@@ -39,7 +39,7 @@ void MultiCmd::DoInitial() {
   }
 }
 
-void ExecCmd::Do(std::shared_ptr<Slot> slot) {
+void ExecCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
@@ -66,7 +66,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
       }
       client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
     } else {
-      cmd->Do(slot);
+      cmd->Do(db);
       if (cmd->res().ok() && cmd->is_write()) {
         cmd->DoBinlog(sync_slot);
         auto db_keys = cmd->current_key();
@@ -219,7 +219,7 @@ void ExecCmd::ServeToBLrPopWithKeys() {
   }
 }
 
-void WatchCmd::Do(std::shared_ptr<Slot> slot) {
+void WatchCmd::Do(std::shared_ptr<DB> db) {
   auto mp = std::map<storage::DataType, storage::Status>{};
   for (const auto& key : keys_) {
     auto type_count = slot->db()->IsExist(key, &mp);
@@ -246,8 +246,8 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void WatchCmd::Execute() {
-  std::shared_ptr<Slot> slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
+  std::shared_ptr<DB> db = g_pika_server->GetSlotByDBName(db_name_);
+  Do(db);
 }
 
 void WatchCmd::DoInitial() {
@@ -262,7 +262,7 @@ void WatchCmd::DoInitial() {
   }
 }
 
-void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
+void UnwatchCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {

@@ -201,18 +201,18 @@ struct BinlogChip {
   }
 };
 
-struct SlotInfo {
-  SlotInfo(std::string db_name, uint32_t slot_id)
-      : db_name_(std::move(db_name)), slot_id_(slot_id) {}
+struct DBInfo {
+  DBInfo(std::string db_name)
+      : db_name_(std::move(db_name)) {}
 
-  SlotInfo() = default;
+  DBInfo() = default;
 
-  bool operator==(const SlotInfo& other) const {
-    return db_name_ == other.db_name_ && slot_id_ == other.slot_id_;
+  bool operator==(const DBInfo& other) const {
+    return db_name_ == other.db_name_;
   }
 
-  bool operator<(const SlotInfo& other) const {
-    return db_name_ < other.db_name_ || (db_name_ == other.db_name_ && slot_id_ < other.slot_id_);
+  bool operator<(const DBInfo& other) const {
+    return db_name_ < other.db_name_ || (db_name_ == other.db_name_);
   }
 
   std::string ToString() const { return "(" + db_name_ + ":" + std::to_string(slot_id_) + ")"; }
@@ -221,7 +221,7 @@ struct SlotInfo {
 };
 
 struct hash_slot_info {
-  size_t operator()(const SlotInfo& n) const {
+  size_t operator()(const DBInfo& n) const {
     return std::hash<std::string>()(n.db_name_) ^ std::hash<uint32_t>()(n.slot_id_);
   }
 };
@@ -242,37 +242,36 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
-      : Node(ip, port), slot_info_(std::move(slot_info)) {}
+  RmNode(const std::string& ip, int port, DBInfo db_info)
+      : Node(ip, port), db_info_(std::move(db_info)) {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name)
       : Node(ip, port),
-        slot_info_(db_name, slot_id)
+        db_info_(db_name)
         {}
 
-  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name, int32_t session_id)
       : Node(ip, port),
-        slot_info_(db_name, slot_id),
+        db_info_(db_name),
         session_id_(session_id)
         {}
 
-  RmNode(const std::string& db_name, uint32_t slot_id)
-      :  slot_info_(db_name, slot_id) {}
+  RmNode(const std::string& db_name)
+      :  db_info_(db_name) {}
   RmNode() = default;
 
   ~RmNode() override = default;
   bool operator==(const RmNode& other) const {
-    return slot_info_.db_name_ == other.DBName() && slot_info_.slot_id_ == other.SlotId() &&
+    return db_info_.db_name_ == other.DBName() &&
         Ip() == other.Ip() && Port() == other.Port();
   }
 
-  const std::string& DBName() const { return slot_info_.db_name_; }
-  uint32_t SlotId() const { return slot_info_.slot_id_; }
-  const SlotInfo& NodeSlotInfo() const { return slot_info_; }
+  const std::string& DBName() const { return db_info_.db_name_; }
+  const DBInfo& NodeSlotInfo() const { return db_info_; }
   void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
+    return "slot=" + DBName() + "_,ip_port=" + Ip() + ":" +
            std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
@@ -281,17 +280,10 @@ class RmNode : public Node {
   uint64_t LastRecvTime() const { return last_recv_time_; }
 
  private:
-  SlotInfo slot_info_;
+  DBInfo db_info_;
   int32_t session_id_ = 0;
   uint64_t last_send_time_ = 0;
   uint64_t last_recv_time_ = 0;
-};
-
-struct hash_rm_node {
-  size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^
-           std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
-  }
 };
 
 struct WriteTask {

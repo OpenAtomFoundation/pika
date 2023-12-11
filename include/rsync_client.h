@@ -51,7 +51,7 @@ class RsyncClient : public net::Thread {
       RUNNING,
       STOP,
   };
-  RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
+  RsyncClient(const std::string& dir, const std::string& db_name);
   void* ThreadMain() override;
   void Copy(const std::set<std::string>& file_set, int index);
   bool Init();
