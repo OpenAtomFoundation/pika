@@ -220,7 +220,7 @@ class PikaServer : public pstd::noncopyable {
   void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
   bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
-  std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
+  std::shared_ptr<DB> GetDBSlotById(const std::string& db_name);
   pstd::Status DoSameThingEverySlot(const TaskType& type);
 
   /*
@@ -294,9 +294,9 @@ class PikaServer : public pstd::noncopyable {
   pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
   pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  void TryDBSync(const std::string& ip, int port, const std::string& db_name, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name);
+  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name);
 
   /*
    * Keyscan used
@@ -380,8 +380,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot> &slot);
+  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<DB> &db);
+  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
 
@@ -399,7 +399,7 @@ class PikaServer : public pstd::noncopyable {
     int64_t cursor = 0;
     std::string pattern = "*";
     int64_t count = 100;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     BGSlotsReload() = default;
     void Clear() {
       reloading = false;
@@ -436,7 +436,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_reload_.end_time = time(nullptr);
   }
-  void Bgslotsreload(const std::shared_ptr<Slot>& slot);
+  void Bgslotsreload(const std::shared_ptr<DB>& db);
 
 
   /*
@@ -450,7 +450,7 @@ class PikaServer : public pstd::noncopyable {
     int64_t cursor = 0;
     std::string pattern = "*";
     int64_t count = 100;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
     BGSlotsCleanup() = default;
@@ -501,7 +501,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.end_time = time(nullptr);
   }
-  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
+  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<DB>& db);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = false;
@@ -540,7 +540,7 @@ class PikaServer : public pstd::noncopyable {
   struct BGCacheTaskArg {
     BGCacheTaskArg() : conf(nullptr), reenable_cache(false) {}
     int task_type;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     uint32_t cache_num;
     cache::CacheConfig cache_cfg;
     std::unique_ptr<PikaConf> conf;
@@ -549,15 +549,15 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Cache used
    */
-  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg = nullptr);
-  void ClearCacheDbAsync(std::shared_ptr<Slot> slot);
-  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot);
-  void ResetCacheConfig(std::shared_ptr<Slot> slot);
-  void ClearHitRatio(std::shared_ptr<Slot> slot);
-  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot);
+  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg = nullptr);
+  void ClearCacheDbAsync(std::shared_ptr<DB> db);
+  void ClearCacheDbAsyncV2(std::shared_ptr<DB> db);
+  void ResetCacheConfig(std::shared_ptr<DB> db);
+  void ClearHitRatio(std::shared_ptr<DB> db);
+  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db);
   static void DoCacheBGTask(void* arg);
   void UpdateCacheInfo(void);
-  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot);
+  void ResetDisplayCacheInfo(int status, std::shared_ptr<DB> db);
   void CacheConfigInit(cache::CacheConfig &cache_cfg);
   void ClearHitRatio(void);
   void ProcessCronTask();

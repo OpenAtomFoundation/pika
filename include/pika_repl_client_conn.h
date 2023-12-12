@@ -14,8 +14,8 @@
 #include "include/pika_conf.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterSlot;
-class SyncSlaveSlot;
+class SyncMasterDB;
+class SyncSlaveDB;
 
 class PikaReplClientConn : public net::PbConn {
  public:
@@ -29,8 +29,8 @@ class PikaReplClientConn : public net::PbConn {
   static void HandleRemoveSlaveNodeResponse(void* arg);
 
   static pstd::Status TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                      const std::shared_ptr<SyncMasterSlot>& slot,
-                                      const std::shared_ptr<SyncSlaveSlot>& slave_slot);
+                                      const std::shared_ptr<SyncMasterDB>& db,
+                                      const std::shared_ptr<SyncSlaveDB>& slave_db);
   static bool IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
                                       const std::vector<DBStruct>& expect_tables);
   int DealMessage() override;

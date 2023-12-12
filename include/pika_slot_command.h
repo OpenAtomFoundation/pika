@@ -25,11 +25,11 @@ int GetSlotID(const std::string &str);
 int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db);
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
+int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
 std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag);
-void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot);
+void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<DB>& db);
 
 class PikaMigrate {
  public:
@@ -37,7 +37,7 @@ class PikaMigrate {
   virtual ~PikaMigrate();
 
   int MigrateKey(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                 std::string &detail, const std::shared_ptr<Slot>& slot);
+                 std::string &detail, const std::shared_ptr<DB>& db);
   void CleanMigrateClient();
 
   void Lock() {
@@ -59,16 +59,16 @@ class PikaMigrate {
   void KillAllMigrateClient();
 
   int MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
-                  const std::shared_ptr<Slot>& slot);
+                  const std::shared_ptr<DB>& db);
   bool MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::string &detail);
 
-  int ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int64_t TTLByType(const char key_type, const std::string &key, const std::shared_ptr<Slot>& slot);
-  int ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
-  int ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot);
+  int ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<DB>& db);
+  int64_t TTLByType(const char key_type, const std::string &key, const std::shared_ptr<DB>& db);
+  int ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db);
   bool SetTTL(const std::string &key, std::string &wbuf_str, int64_t ttl);
 };
 
@@ -123,13 +123,13 @@ class SlotsMgrtTagOneCmd : public Cmd {
   int64_t slot_id_ = 0;
   char key_type_ = '\0';
   void DoInitial() override;
-  int KeyTypeCheck(const std::shared_ptr<Slot>& slot);
+  int KeyTypeCheck(const std::shared_ptr<DB>& db);
 };
 
 class SlotsMgrtAsyncStatusCmd : public Cmd {
  public:
   SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtAsyncStatusCmd(*this); }

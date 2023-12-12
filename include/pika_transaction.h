@@ -35,12 +35,12 @@ class ExecCmd : public Cmd {
  private:
   struct CmdInfo {
    public:
-    CmdInfo(std::shared_ptr<Cmd> cmd, std::shared_ptr<DB> db, std::shared_ptr<DB> db,
-            std::shared_ptr<SyncMasterSlot> sync_slot) : cmd_(cmd), db_(db), slot_(slot), sync_slot_(sync_slot) {}
+    CmdInfo(std::shared_ptr<Cmd> cmd, std::shared_ptr<DB> db,
+            std::shared_ptr<SyncMasterDB> sync_db) : cmd_(cmd), db_(db), sync_db_(sync_db) {}
     std::shared_ptr<Cmd> cmd_;
     std::shared_ptr<DB> db_;
     std::shared_ptr<Slot> slot_;
-    std::shared_ptr<SyncMasterSlot> sync_slot_;
+    std::shared_ptr<SyncMasterDB> sync_db_;
   };
   void DoInitial() override;
   void Lock();

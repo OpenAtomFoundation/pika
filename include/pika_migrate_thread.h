@@ -10,13 +10,13 @@
 #include "storage/storage.h"
 #include "strings.h"
 
-void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot);
+void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<DB>& db);
 static int DoMigrate(net::NetCli *cli, std::string send_str);
 
 class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
  public:
-  PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot_);
+  PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<DB>& db_);
   ~PikaParseSendThread() override;
 
   bool Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num);
@@ -24,7 +24,7 @@ class PikaParseSendThread : public net::Thread {
 
  private:
   int MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async);
-  void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
+  void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<DB>& db);
   bool CheckMigrateRecv(int64_t need_receive_num);
   void *ThreadMain() override;
 
@@ -37,7 +37,7 @@ class PikaParseSendThread : public net::Thread {
   PikaMigrateThread *migrate_thread_ = nullptr;
   net::NetCli *cli_ = nullptr;
   pstd::Mutex working_mutex_;
-  std::shared_ptr<Slot> slot_;
+  std::shared_ptr<DB> db_;
 };
 
 class PikaMigrateThread : public net::Thread {
@@ -45,8 +45,8 @@ class PikaMigrateThread : public net::Thread {
   PikaMigrateThread();
   ~PikaMigrateThread() override;
   bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num, int64_t keys_num,
-                       const std::shared_ptr<Slot>& slot);
-  int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
+                       const std::shared_ptr<DB>& db);
+  int ReqMigrateOne(const std::string &key, const std::shared_ptr<DB>& db);
   void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
                         int64_t *remained);
   void CancelMigrate(void);

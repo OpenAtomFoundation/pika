@@ -47,40 +47,6 @@ struct BgSaveInfo {
   }
 };
 
-struct DisplayCacheInfo {
-  int status = 0;
-  uint32_t cache_num = 0;
-  uint64_t keys_num = 0;
-  uint64_t used_memory = 0;
-  uint64_t hits = 0;
-  uint64_t misses = 0;
-  uint64_t hits_per_sec = 0;
-  uint64_t read_cmd_per_sec = 0;
-  double hitratio_per_sec = 0.0;
-  double hitratio_all = 0.0;
-  uint64_t load_keys_per_sec = 0;
-  uint64_t last_time_us = 0;
-  uint64_t last_load_keys_num = 0;
-  uint32_t waitting_load_keys_num = 0;
-  DisplayCacheInfo& operator=(const DisplayCacheInfo &obj) {
-    status = obj.status;
-    cache_num = obj.cache_num;
-    keys_num = obj.keys_num;
-    used_memory = obj.used_memory;
-    hits = obj.hits;
-    misses = obj.misses;
-    hits_per_sec = obj.hits_per_sec;
-    read_cmd_per_sec = obj.read_cmd_per_sec;
-    hitratio_per_sec = obj.hitratio_per_sec;
-    hitratio_all = obj.hitratio_all;
-    load_keys_per_sec = obj.load_keys_per_sec;
-    last_time_us = obj.last_time_us;
-    last_load_keys_num = obj.last_load_keys_num;
-    waitting_load_keys_num = obj.waitting_load_keys_num;
-    return *this;
-  }
-};
-
 class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
  public:
   Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path);

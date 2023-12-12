@@ -261,15 +261,9 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = 14,
   kCmdFlagsGeo = 16,
   kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
   kCmdFlagsLocal = 32,
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
   kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
-  kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
-  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsReadCache = 128,
@@ -435,9 +429,7 @@ class CmdRes {
       message_ = content;
     }
   }
-  CmdRet GetCmdRet() const {
-    return ret_;
-  }
+
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -460,21 +452,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
-    void Push(const std::string& key, int hint) {
-      keys.push_back(key);
-      hints.push_back(hint);
-    }
+
     bool empty() const { return keys.empty() && hints.empty(); }
     std::vector<std::string> keys;
     std::vector<int> hints;
-  };
-  struct ProcessArg {
-    ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot, HintKeys _hint_keys)
-        : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
-    std::shared_ptr<Slot> slot;
-    std::shared_ptr<SyncMasterSlot> sync_slot;
-    HintKeys hint_keys;
   };
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
@@ -486,7 +467,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void DoThroughDB(std::shared_ptr<DB> db) {}
   virtual void DoUpdateCache(std::shared_ptr<DB> db) {}
   virtual void ReadCache(std::shared_ptr<DB> db) {}
-  rocksdb::Status CmdStatus() { return s_; };
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
   virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) = 0;
@@ -500,21 +480,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsLocal() const;
   bool IsSuspend() const;
   bool IsAdminRequire() const;
-  bool is_single_slot() const;
-  bool is_multi_slot() const;
   bool IsNeedUpdateCache() const;
-  bool is_only_from_cache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
-  void SetDbName(const std::string& db_name) { db_name_ = db_name; }
   std::string GetDBName() { return db_name_; }
 
   std::string name() const;
   CmdRes& res();
   std::string db_name() const;
-  BinlogOffset binlog_offset() const;
   PikaCmdArgsType& argv();
   virtual std::string ToRedisProtocol();
 
@@ -579,7 +554,5 @@ void RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix) {
   str.append(buf);
   str.append(kNewLine);
 }
-
-void TryAliasChange(std::vector<std::string>* argv);
 
 #endif

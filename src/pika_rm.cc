@@ -897,7 +897,7 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int
   return Status::OK();
 }
 
-Status PikaReplicaManager::ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state) {
+Status PikaReplicaManager::ActivateSyncSlaveDB(const RmNode& node, const ReplState& repl_state) {
   std::shared_lock l(slots_rw_);
   const DBInfo& p_info = node.NodeSlotInfo();
   if (sync_slave_dbs_.find(p_info) == sync_slave_dbs_.end()) {
@@ -1046,7 +1046,7 @@ std::shared_ptr<SyncMasterDB> PikaReplicaManager::GetSyncMasterDBByName(const DB
   return sync_master_dbs_[p_info];
 }
 
-std::shared_ptr<SyncSlaveDB> PikaReplicaManager::GetSyncSlaveSlotByName(const DBInfo& p_info) {
+std::shared_ptr<SyncSlaveDB> PikaReplicaManager::GetSyncSlaveDBByName(const DBInfo& p_info) {
   std::shared_lock l(slots_rw_);
   if (sync_slave_dbs_.find(p_info) == sync_slave_dbs_.end()) {
     return nullptr;

@@ -81,7 +81,7 @@ class DelCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override;
   void Merge() override;
   Cmd* Clone() override { return new DelCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  private:
   std::vector<std::string> keys_;
@@ -396,7 +396,7 @@ class MsetCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override;
   void Merge() override;
   Cmd* Clone() override { return new MsetCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  private:
   std::vector<storage::KeyValue> kvs_;
@@ -426,7 +426,7 @@ class MsetnxCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new MsetnxCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  private:
   std::vector<storage::KeyValue> kvs_;

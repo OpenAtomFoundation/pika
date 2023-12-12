@@ -174,7 +174,7 @@ class PikaReplicaManager {
 
   bool CheckMasterSyncFinished();
 
-  pstd::Status ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state);
+  pstd::Status ActivateSyncSlaveDB(const RmNode& node, const ReplState& repl_state);
 
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
@@ -192,7 +192,7 @@ class PikaReplicaManager {
   std::shared_ptr<SyncMasterDB> GetSyncMasterDBByName(const DBInfo& p_info);
 
   // For SyncSlaveSlot
-  std::shared_ptr<SyncSlaveDB> GetSyncSlaveSlotByName(const DBInfo& p_info);
+  std::shared_ptr<SyncSlaveDB> GetSyncSlaveDBByName(const DBInfo& p_info);
 
   pstd::Status RunSyncSlaveSlotStateMachine();
 
@@ -241,10 +241,10 @@ class PikaReplicaManager {
     slots_rw_.unlock();
   }
 
-  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_slot_info>& GetSyncMasterSlots() {
+  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_slot_info>& GetSyncMasterDBs() {
     return sync_master_dbs_;
   }
-  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_slot_info>& GetSyncSlaveSlots() {
+  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_slot_info>& GetSyncSlaveDBs() {
     return sync_slave_dbs_;
   }
 

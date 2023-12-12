@@ -510,7 +510,7 @@ class ClearReplicationIDCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ClearReplicationIDCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override {};
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override {};
 
  private:
   void DoInitial() override;
