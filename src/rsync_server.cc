@@ -114,8 +114,8 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
   uint32_t slot_id = req->slot_id();
-  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
-  if (!slot || slot->IsBgSaving()) {
+  std::shared_ptr<DB> db = g_pika_server->GetDBSlotById(db_name);
+  if (!db || db->IsBgSaving()) {
     LOG(WARNING) << "waiting bgsave done...";
     return;
   }
@@ -173,15 +173,15 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     return;
   }
 
-  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
-  if (!slot) {
+  std::shared_ptr<DB> db = g_pika_server->GetDBSlotById(db_name);
+  if (!db) {
    LOG(WARNING) << "cannot find slot for db_name: " << db_name
                 << " slot_id: " << slot_id;
    response.set_code(RsyncService::kErr);
    RsyncWriteResp(response, conn);
   }
 
-  const std::string filepath = slot->bgsave_info().path + "/" + filename;
+  const std::string filepath = db->bgsave_info().path + "/" + filename;
   char* buffer = new char[req->file_req().count() + 1];
   size_t bytes_read{0};
   std::string checksum = "";

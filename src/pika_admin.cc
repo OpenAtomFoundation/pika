@@ -227,7 +227,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<DB> db) {
   Status s;
   if (is_none_) {
     // In classic mode a db has only one slot
-    s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
+    s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_);
   } else {
     if (slave_db->State() == ReplState::kNoConnect || slave_db->State() == ReplState::kError ||
         slave_db->State() == ReplState::kDBNoConnect) {
@@ -236,7 +236,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<DB> db) {
         db_slot->Logger()->SetProducerStatus(filenum_, offset_);
       }
       ReplState state = force_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
-      s = g_pika_rm->ActivateSyncSlaveSlot(
+      s = g_pika_rm->ActivateSyncSlaveDB(
           RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_name_, 0), state);
     }
   }
@@ -2950,17 +2950,15 @@ void DiskRecoveryCmd::Do(std::shared_ptr<DB> db) {
     db_item.second->SetBinlogIoErrorrelieve();
     std::shared_lock slot_rwl(slots_rw);
     // loop every slot
-    for (const auto &slot_item: db_item.second->GetSlots()) {
-      background_errors_.clear();
-      slot_item.second->DbRWLockReader();
-      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
-      slot_item.second->DbRWUnLock();
-      for (const auto &item: background_errors_) {
-        if (item.second != 0) {
-          rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
-          if (!s.ok()) {
-            res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
-          }
+    background_errors_.clear();
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
+    db_item.second->DbRWUnLock();
+    for (const auto &item: background_errors_) {
+      if (item.second != 0) {
+        rocksdb::Status s = db_item.second->storage()->GetDBByType(item.first)->Resume();
+        if (!s.ok()) {
+          res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
         }
       }
     }

@@ -6,6 +6,8 @@
 #include "include/pika_bit.h"
 
 #include "pstd/include/pstd_string.h"
+#include "include/pika_db.h"
+
 
 #include "include/pika_define.h"
 #include "include/pika_slot_command.h"

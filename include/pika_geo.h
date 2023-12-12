@@ -5,9 +5,9 @@
 
 #ifndef PIKA_GEO_H_
 #define PIKA_GEO_H_
-
+#include "include/pika_db.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
+#include "storage/storage.h"
 
 /*
  * zset

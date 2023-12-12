@@ -5,11 +5,10 @@
 
 #ifndef PIKA_HASH_H_
 #define PIKA_HASH_H_
-
+#include "include/pika_db.h"
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 
 /*
  * hash

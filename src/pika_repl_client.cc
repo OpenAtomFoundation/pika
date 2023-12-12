@@ -75,11 +75,11 @@ void PikaReplClient::ScheduleWriteBinlogTask(const std::string& db_slot,
 }
 
 void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
-                                         const std::string& db_name, uint32_t slot_id) {
+                                         const std::string& db_name) {
   const PikaCmdArgsType& argv = cmd_ptr->argv();
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
   size_t index = GetHashIndex(dispatch_key, false);
-  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, db_name, slot_id);
+  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, db_name);
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
@@ -140,8 +140,7 @@ Status PikaReplClient::SendMetaSync() {
 }
 
 Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                           uint32_t slot_id, const BinlogOffset& boffset,
-                                           const std::string& local_ip) {
+                                      const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kDBSync);
   InnerMessage::InnerRequest::DBSync* db_sync = request.mutable_db_sync();
@@ -150,7 +149,6 @@ Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, cons
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* slot = db_sync->mutable_slot();
   slot->set_db_name(db_name);
-  slot->set_slot_id(slot_id);
 
   InnerMessage::BinlogOffset* binlog_offset = db_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -165,8 +163,7 @@ Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, cons
 }
 
 Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                            uint32_t slot_id, const BinlogOffset& boffset,
-                                            const std::string& local_ip) {
+                                       const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
@@ -175,7 +172,6 @@ Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, con
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* slot = try_sync->mutable_slot();
   slot->set_db_name(db_name);
-  slot->set_slot_id(slot_id);
 
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -190,9 +186,8 @@ Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, con
 }
 
 Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                               uint32_t slot_id, const LogOffset& ack_start,
-                                               const LogOffset& ack_end, const std::string& local_ip,
-                                               bool is_first_send) {
+                                          const LogOffset& ack_start, const LogOffset& ack_end,
+                                          const std::string& local_ip, bool is_first_send) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
@@ -200,7 +195,6 @@ Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, 
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
   binlog_sync->set_db_name(db_name);
-  binlog_sync->set_slot_id(slot_id);
   binlog_sync->set_first_send(is_first_send);
 
   InnerMessage::BinlogOffset* ack_range_start = binlog_sync->mutable_ack_range_start();
@@ -215,13 +209,13 @@ Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, 
   ack_range_end->set_term(ack_end.l_offset.term);
   ack_range_end->set_index(ack_end.l_offset.index);
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
-  if (!slave_slot) {
-    LOG(WARNING) << "Slave Slot: " << db_name << "_" << slot_id << " not exist";
-    return Status::NotFound("SyncSlaveSlot NotFound");
+  std::shared_ptr<SyncSlaveDB> slave_db =
+      g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name));
+  if (!slave_db) {
+    LOG(WARNING) << "Slave DB: " << db_name << " not exist";
+    return Status::NotFound("SyncSlaveDB NotFound");
   }
-  int32_t session_id = slave_slot->MasterSessionId();
+  int32_t session_id = slave_db->MasterSessionId();
   binlog_sync->set_session_id(session_id);
 
   std::string to_send;
@@ -233,7 +227,7 @@ Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, 
 }
 
 Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name,
-                                           uint32_t slot_id, const std::string& local_ip) {
+                                           const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kRemoveSlaveNode);
   InnerMessage::InnerRequest::RemoveSlaveNode* remove_slave_node = request.add_remove_slave_node();
@@ -243,12 +237,10 @@ Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip, uint32_t port,
 
   InnerMessage::Slot* slot = remove_slave_node->mutable_slot();
   slot->set_db_name(db_name);
-  slot->set_slot_id(slot_id);
 
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {
-    LOG(WARNING) << "Serialize Remove Slave Node Failed, to Master (" << ip << ":" << port << "), " << db_name << "_"
-                 << slot_id;
+    LOG(WARNING) << "Serialize Remove Slave Node Failed, to Master (" << ip << ":" << port << "), " << db_name;
     return Status::Corruption("Serialize Failed");
   }
   return client_thread_->Write(ip, static_cast<int32_t>(port + kPortShiftReplServer), to_send);

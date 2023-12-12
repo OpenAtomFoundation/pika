@@ -1159,7 +1159,7 @@ Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, co
   }
 }
 
-Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot) {
+Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<DB> db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 

@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "include/pika_cache.h"
-#include "include/pika_slot.h"
 #include "include/pika_define.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"

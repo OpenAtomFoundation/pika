@@ -166,10 +166,8 @@ struct DBSyncArg {
   std::string ip;
   int port;
   std::string db_name;
-  uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
-            uint32_t _slot_id)
-      : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
+  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name)
+      : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)) {}
 };
 
 // rm define

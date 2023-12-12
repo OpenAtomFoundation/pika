@@ -16,6 +16,7 @@
 #include "pika_inner_message.pb.h"
 
 #include "include/pika_binlog_transverter.h"
+#include "include/pika_define.h"
 #include "include/pika_command.h"
 
 class PikaReplBgWorker {

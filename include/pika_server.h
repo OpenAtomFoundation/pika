@@ -28,96 +28,23 @@
 
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
+#include "include/pika_cache.h"
 #include "include/pika_client_processor.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_instant.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
-#include "include/pika_migrate_thread.h"
-#include "include/rsync_server.h"
-#include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_statistic.h"
 #include "include/pika_transaction.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_cache.h"
-#include "include/pika_slot.h"
-
-
-
-/*
-static std::set<std::string> MultiKvCommands {kCmdNameDel,
-             kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
-             kCmdNameMsetnx,      kCmdNameExists,            kCmdNameScan,
-             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
-             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
-             kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
-             kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
-             kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
-             kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
-             kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
-             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember};
-*/
-
-static std::set<std::string> ConsensusNotSupportCommands{kCmdNameMsetnx,
-                                                         kCmdNameScan,
-                                                         kCmdNameKeys,
-                                                         kCmdNameRPopLPush,
-                                                         kCmdNameZUnionstore,
-                                                         kCmdNameZInterstore,
-                                                         kCmdNameSUnion,
-                                                         kCmdNameSUnionstore,
-                                                         kCmdNameSInter,
-                                                         kCmdNameSInterstore,
-                                                         kCmdNameSDiff,
-                                                         kCmdNameSDiffstore,
-                                                         kCmdNameSMove,
-                                                         kCmdNameBitOp,
-                                                         kCmdNamePfAdd,
-                                                         kCmdNamePfCount,
-                                                         kCmdNamePfMerge,
-                                                         kCmdNameGeoAdd,
-                                                         kCmdNameGeoPos,
-                                                         kCmdNameGeoDist,
-                                                         kCmdNameGeoHash,
-                                                         kCmdNameGeoRadius,
-                                                         kCmdNameGeoRadiusByMember,
-                                                         kCmdNamePKPatternMatchDel,
-                                                         kCmdNameSlaveof,
-                                                         kCmdNameDbSlaveof,
-                                                         kCmdNameMset,
-                                                         kCmdNameMget,
-                                                         kCmdNameScanx};
-
-static std::set<std::string> ShardingModeNotSupportCommands{kCmdNameMsetnx,
-                                                            kCmdNameScan,
-                                                            kCmdNameKeys,
-                                                            kCmdNameScanx,
-                                                            kCmdNameZUnionstore,
-                                                            kCmdNameZInterstore,
-                                                            kCmdNameSUnion,
-                                                            kCmdNameSUnionstore,
-                                                            kCmdNameSInter,
-                                                            kCmdNameSInterstore,
-                                                            kCmdNameSDiff,
-                                                            kCmdNameSDiffstore,
-                                                            kCmdNameSMove,
-                                                            kCmdNameBitOp,
-                                                            kCmdNamePfAdd,
-                                                            kCmdNamePfCount,
-                                                            kCmdNamePfMerge,
-                                                            kCmdNameGeoAdd,
-                                                            kCmdNameGeoPos,
-                                                            kCmdNameGeoDist,
-                                                            kCmdNameGeoHash,
-                                                            kCmdNameGeoRadius,
-                                                            kCmdNameGeoRadiusByMember,
-                                                            kCmdNamePKPatternMatchDel,
-                                                            kCmdNameSlaveof,
-                                                            kCmdNameDbSlaveof};
+#include "include/rsync_server.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -218,8 +145,8 @@ class PikaServer : public pstd::noncopyable {
   void PrepareSlotTrySync();
   void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
-  std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
+  bool GetDBSlotBinlogOffset(const std::string& db_name, BinlogOffset* boffset);
+  std::shared_ptr<DB> GetSlotByDBName(const std::string& db_name);
   std::shared_ptr<DB> GetDBSlotById(const std::string& db_name);
   pstd::Status DoSameThingEverySlot(const TaskType& type);
 
@@ -293,7 +220,7 @@ class PikaServer : public pstd::noncopyable {
    */
   pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
   pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
-  void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  void DBSync(const std::string& ip, int port, const std::string& db_name);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name);
   std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name);
@@ -324,7 +251,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogReset();
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
+  void SlowlogPushEntry(const std::vector<std::string>& argv, int64_t time, int64_t duration);
 
   /*
    * Statistic used
@@ -497,10 +424,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
-  void SetSlotscleaningupEndtime() {
-    std::lock_guard ml(bgsave_protector_);
-    bgslots_cleanup_.end_time = time(nullptr);
-  }
+
   void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<DB>& db);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);

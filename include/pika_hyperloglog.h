@@ -7,7 +7,6 @@
 #define PIKA_HYPERLOGLOG_H_
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "include/pika_kv.h"
 /*
  * hyperloglog

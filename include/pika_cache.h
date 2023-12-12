@@ -10,14 +10,19 @@
 #include <sstream>
 #include <vector>
 
-#include "include/pika_server.h"
+//#include "include/pika_server.h"
 #include "include/pika_define.h"
 #include "include/pika_zset.h"
+#include "include/pika_command.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "cache/include/cache.h"
 #include "storage/storage.h"
 
+class ZIncrbyCmd;
+class ZRangebyscoreCmd;
+class ZRevrangebyscoreCmd;
+class ZCountCmd;
 enum RangeStatus { RangeError = 1, RangeHit, RangeMiss };
 
 struct CacheInfo {
@@ -153,7 +158,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZRangebyscore(std::string &key, std::string &min, std::string &max,
                                 std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd);
   rocksdb::Status ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db);
-  rocksdb::Status ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<Slot> slot = nullptr);
+  rocksdb::Status ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<DB> db);
   rocksdb::Status ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted = 0,
                                   const std::shared_ptr<DB>& db = nullptr);
   rocksdb::Status ZRemrangebyscore(std::string &key, std::string &min, std::string &max, const std::shared_ptr<DB>& db);

@@ -231,12 +231,12 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!slot) {
+  std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
+  if (!db) {
     LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
     return;
   }
-  slot->ConsensusUpdateAppliedIndex(offset);
+  db->ConsensusUpdateAppliedIndex(offset);
 
   if (!conn_ptr || !resp_ptr) {
     return;

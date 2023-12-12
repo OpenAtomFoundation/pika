@@ -22,8 +22,8 @@ const int kBytesPerRequest = 4 << 20;
 const int kThrottleCheckCycle = 10;
 
 namespace rsync {
-RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
-    : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
+RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name)
+    : snapshot_uuid_(""), dir_(dir), db_name_(db_name),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0),
       parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());

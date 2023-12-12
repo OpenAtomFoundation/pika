@@ -77,8 +77,7 @@ class SyncMasterDB : public SyncDB {
   std::string ToStringStatus();
 
   int32_t GenSessionId();
-  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id,
-                      int session_id);
+  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, int session_id);
 
   // consensus use
   pstd::Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
@@ -178,10 +177,10 @@ class PikaReplicaManager {
 
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
-  pstd::Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t slot_id);
-  pstd::Status SendSlotTrySyncRequest(const std::string& db_name, size_t slot_id);
-  pstd::Status SendSlotDBSyncRequest(const std::string& db_name, size_t slot_id);
-  pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id, const LogOffset& ack_start,
+  pstd::Status SendRemoveSlaveNodeRequest(const std::string& table);
+  pstd::Status SendSlotTrySyncRequest(const std::string& db_name);
+  pstd::Status SendSlotDBSyncRequest(const std::string& db_name);
+  pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, const LogOffset& ack_start,
                                            const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
@@ -203,7 +202,7 @@ class PikaReplicaManager {
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-  pstd::Status CheckSlotRole(const std::string& table, uint32_t slot_id, int* role);
+  pstd::Status CheckSlotRole(const std::string& table, int* role);
 
   void RmStatus(std::string* debug_info);
 
@@ -227,8 +226,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& db_slot,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
-                           uint32_t slot_id);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
 
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);

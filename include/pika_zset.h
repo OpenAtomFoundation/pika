@@ -7,9 +7,7 @@
 #define PIKA_ZSET_H_
 
 #include "storage/storage.h"
-
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "pika_kv.h"
 
 /*
@@ -287,7 +285,7 @@ class ZsetUIstoreParentCmd : public Cmd {
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {
     zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   ZsetUIstoreParentCmd(const ZsetUIstoreParentCmd& other)
       : Cmd(other),
@@ -297,7 +295,7 @@ class ZsetUIstoreParentCmd : public Cmd {
         keys_(other.keys_),
         weights_(other.weights_) {
     zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
   std::vector<std::string> current_key() const override {

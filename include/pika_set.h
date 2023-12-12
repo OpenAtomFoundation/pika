@@ -7,7 +7,6 @@
 #define PIKA_SET_H_
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "pika_kv.h"
 
 /*
@@ -164,16 +163,16 @@ class SUnionCmd : public Cmd {
 };
 
 
-class SetOperationCmd : public Cmd{
+class SetOperationCmd : public Cmd {
  public:
   SetOperationCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   SetOperationCmd(const SetOperationCmd& other)
-      : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_){
+      : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_) {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
   std::vector<std::string> current_key() const override {

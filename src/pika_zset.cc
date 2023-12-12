@@ -699,7 +699,7 @@ void ZRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
 void ZRemCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZRem(CachePrefixKeyZ, members_);
+    db->cache()->ZRem(CachePrefixKeyZ, members_, db);
   }
 }
 

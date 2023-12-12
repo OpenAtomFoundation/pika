@@ -13,7 +13,7 @@
 
 class StableLog : public std::enable_shared_from_this<StableLog> {
  public:
-  StableLog(std::string table_name, uint32_t slot_id, std::string log_path);
+  StableLog(std::string table_name, std::string log_path);
   ~StableLog();
   std::shared_ptr<Binlog> Logger() { return stable_logger_; }
   void Leave();

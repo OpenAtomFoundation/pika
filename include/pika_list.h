@@ -7,7 +7,6 @@
 #define PIKA_LIST_H_
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "storage/storage.h"
 
 /*

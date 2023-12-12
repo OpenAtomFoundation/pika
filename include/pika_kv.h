@@ -7,9 +7,8 @@
 #define PIKA_KV_H_
 
 #include "storage/storage.h"
-
+#include "include/pika_db.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 
 /*
  * kv

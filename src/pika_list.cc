@@ -5,12 +5,13 @@
 
 #include "include/pika_list.h"
 #include <utility>
+#include "include/pika_cache.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_cache.h"
+#include "pstd/include/pstd_string.h"
+#include "scope_record_lock.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;

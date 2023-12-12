@@ -3,7 +3,6 @@
 
 #include "include/pika_client_conn.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
