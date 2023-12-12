@@ -320,6 +320,48 @@ func execute(ctx *context.Context, clientMaster *redis.Client, num_thread int, f
 //	clientMaster.PFAdd(*ctx, "hll_out", randomString(5))
 //}
 
+func issueBLPopCheck(ctx *context.Context, client *redis.Client, list string, random_str string) {
+	defer GinkgoRecover()
+	bLPop := client.BLPop(*ctx, 0, "list0", "list1")
+	Expect(bLPop.Err()).NotTo(HaveOccurred())
+	Expect(bLPop.Val()).To(Equal([]string{list, random_str}))
+}
+
+func issueBRpopCheck(ctx *context.Context, client *redis.Client, list string, random_str string) {
+	defer GinkgoRecover()
+	bRPop := client.BRPop(*ctx, 0, "list0", "list1")
+	Expect(bRPop.Err()).NotTo(HaveOccurred())
+	Expect(bRPop.Val()).To(Equal([]string{list, random_str}))
+}
+
+func issuePushPopFrequency(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
+	letters1 := randomString(5)
+	letters2 := randomString(5)
+	letters3 := randomString(5)
+	letters4 := randomString(5)
+	letters5 := randomString(5)
+	letters6 := randomString(5)
+	letters7 := randomString(5)
+	letters8 := randomString(5)
+	letters9 := randomString(5)
+
+	clientMaster.LPush(*ctx, "blist0", letters1, letters2, letters3, letters4, letters5)
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+
+	clientMaster.RPush(*ctx, "blist0", letters9, letters8, letters7, letters6, letters5)
+	clientMaster.BRPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BRPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BRPop(*ctx, 1 * time.Second, "blist0")
+
+	clientMaster.RPush(*ctx, "blist0", letters7, letters8, letters9, letters1, letters2)
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
+}
+
 var _ = Describe("shuould replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
@@ -342,6 +384,7 @@ var _ = Describe("shuould replication ", func() {
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 		})
+
 		It("Let The slave become a replica of The master ", func() {
 			infoRes := clientSlave.Info(ctx, "replication")
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
@@ -481,6 +524,65 @@ var _ = Describe("shuould replication ", func() {
 			Expect(slaveStreamMessages.Err()).NotTo(HaveOccurred())
 			Expect(masterStreamMessages.Val()).To(Equal(slaveStreamMessages.Val()))
 
+			// Blocked master-slave replication test
+			lists := []string{"list0", "list1"}
+			err := clientMaster.Del(ctx, lists...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			for i := 1; i <= 10; i++ {
+				random_str1 := randomString(5)
+				random_str2 := randomString(5)
+				random_str3 := randomString(5)
+				random_str4 := randomString(5)
+				random_str5 := randomString(5)
+
+				go issueBLPopCheck(&ctx, clientMaster, "list1", random_str1)
+				time.Sleep(1 * time.Second)
+				go issueBRpopCheck(&ctx, clientMaster, "list0", random_str2)
+				time.Sleep(1 * time.Second)
+				go issueBLPopCheck(&ctx, clientMaster, "list1", random_str3)
+				time.Sleep(1 * time.Second)
+				go issueBRpopCheck(&ctx, clientMaster, "list0", random_str4)
+				time.Sleep(1 * time.Second)
+				go issueBLPopCheck(&ctx, clientMaster, "list1", random_str5)
+				time.Sleep(1 * time.Second)
+
+				clientMaster.LPush(ctx, "list1", random_str1)
+				time.Sleep(1 * time.Second)
+				clientMaster.RPush(ctx, "list0", random_str2)
+				time.Sleep(1 * time.Second)
+				clientMaster.LPush(ctx, "list1", random_str3)
+				time.Sleep(1 * time.Second)
+				clientMaster.RPush(ctx, "list0", random_str4)
+				time.Sleep(1 * time.Second)
+				clientMaster.LPush(ctx, "list1", random_str5)
+
+				for i := int64(0); i < clientMaster.LLen(ctx, "list0").Val(); i++ {
+					Expect(clientMaster.LIndex(ctx, "list0", i)).To(Equal(clientSlave.LIndex(ctx, "list0", i)))
+				}
+				for i := int64(0); i < clientMaster.LLen(ctx, "list1").Val(); i++ {
+					Expect(clientMaster.LIndex(ctx, "list1", i)).To(Equal(clientSlave.LIndex(ctx, "list1", i)))
+				}
+			}
+
+			// High frequency pop/push during unblocking process
+			lists = []string{"blist0", "blist1"}
+			err = clientMaster.Del(ctx, lists...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			for i := 1; i <= 5; i++ {
+				go func() {
+					clientMaster.BLPop(ctx, 0, lists...)
+				}()
+				go func() {
+					clientMaster.BRPop(ctx, 0, lists...)
+				}()
+			}
+			execute(&ctx, clientMaster, 5, issuePushPopFrequency)
+
+			for i := int64(0); i < clientMaster.LLen(ctx, "blist0").Val(); i++ {
+				Expect(clientMaster.LIndex(ctx, "blist0", i)).To(Equal(clientSlave.LIndex(ctx, "blist0", i)))
+			}
 		})
 
 	})

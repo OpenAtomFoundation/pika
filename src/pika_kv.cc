@@ -902,6 +902,7 @@ void MsetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 }
 
 void MsetCmd::Merge() {}
+
 void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
@@ -948,7 +949,7 @@ void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!success_){
+  if (!success_) {
     //some keys already exist, set operations aborted, no need of binlog
     return;
   }
@@ -958,7 +959,7 @@ void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  for(auto& kv: kvs_){
+  for (auto& kv: kvs_) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
@@ -1041,7 +1042,7 @@ void SetrangeCmd::DoInitial() {
 }
 
 void SetrangeCmd::Do(std::shared_ptr<Slot> slot) {
-  int32_t new_len;
+  int32_t new_len = 0;
   s_ = slot->db()->Setrange(key_, offset_, value_, &new_len);
   if (s_.ok()) {
     res_.AppendInteger(new_len);

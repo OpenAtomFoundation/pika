@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: Build binary
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            file_name: pika-${{ github.ref_name }}-linux-amd64
+            file_ext: .tar.gz
+          - arch: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            file_name: pika-${{ github.ref_name }}-linux-arm64
+            file_ext: .tar.gz
+          - arch: x86_64-apple-darwin
+            os: macos-latest
+            file_name: pika-${{ github.ref_name }}-darwin-amd64
+            file_ext: .tar.gz
+          - arch: aarch64-apple-darwin
+            os: macos-latest
+            file_name: pika-${{ github.ref_name }}-darwin-arm64
+            file_ext: .tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install Deps - linux
+        if: contains(matrix.arch, 'linux')
+        run: |
+          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+          sudo apt-get install -y clang-tidy-12
+
+      - name: Install Deps - darwin
+        if: contains(matrix.os, 'macos')
+        run: |
+          brew update
+          brew install --overwrite python autoconf protobuf llvm wget git
+          brew install gcc@10 automake cmake make binutils
+
+      - name: Configure CMake - linux
+        if: contains(matrix.arch, 'linux')
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS="-s" -DCMAKE_EXE_LINKER_FLAGS="-s"
+
+      - name: Configure CMake - darwin
+        if: contains(matrix.os, 'macos')
+        run: |
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Cache Build - linux
+        if: contains(matrix.arch, 'linux')
+        uses: actions/cache@v3
+        id: cache-ubuntu
+        with:
+          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
+          path: |
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Calculate checksum and rename binary
+        shell: bash
+        run: |
+          cd build/
+          chmod +x pika
+          tar -zcvf ${{ matrix.file_name }}${{ matrix.file_ext }} pika
+          echo $(shasum -a 256 ${{ matrix.file_name }}${{ matrix.file_ext }} | cut -f1 -d' ') > ${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file_name }}${{ matrix.file_ext }}
+          path: build/${{ matrix.file_name }}${{ matrix.file_ext }}
+
+      - name: Upload checksum of artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
+          path: build/${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
+
+  release:
+    name: Release artifacts
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Release ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: |
+            **/pika-*

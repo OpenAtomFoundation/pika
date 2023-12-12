@@ -343,7 +343,7 @@ bool SyncMasterSlot::BinlogCloudPurge(uint32_t index) {
   if (!s.ok()) {
     return false;
   }
-  if (index > boffset.filenum - 10) {  // remain some more
+  if (index > (boffset.filenum - 10)) {  // remain some more
     return false;
   } else {
     std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
