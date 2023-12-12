@@ -242,6 +242,7 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		nowTime := time.Now().UnixNano()
 		duration := int64((nowTime - r.ReceiveTime) / 1e3)
 		if duration >= s.config.SlowlogLogSlowerThan {
+			TimeoutCmdNumber.Incr()
 			//client -> proxy -> server -> porxy -> client
 			//Record the waiting time from receiving the request from the client to sending it to the backend server
 			//the waiting time from sending the request to the backend server to receiving the response from the server

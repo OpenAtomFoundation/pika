@@ -16,9 +16,9 @@ const (
 	LabelNameAlias      = "alias"
 	LabelInstanceMode   = "instance-mode"
 	LabelConsensusLevel = "consensus-level"
-	LabelInstance       = "instance"
-	LabelID             = "id"
+	LabelID             = "proxy_id"
 	LabelProductName    = "product_name"
+	LabelOpstr          = "opstr"
 )
 
 type Describer interface {

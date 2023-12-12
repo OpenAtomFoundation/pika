@@ -38,7 +38,7 @@ func (f *future) Wait() map[futureKey]error {
 }
 
 type futureKeyForProxy struct {
-	addr, instance, ID, productName string
+	addr, ID, productName string
 }
 
 type futureForProxy struct {

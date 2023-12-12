@@ -44,11 +44,19 @@ type RedisInfo struct {
 	Errors int `json:"errors"`
 }
 
+type CmdInfo struct {
+	Opstr         string `json:"opstr"`
+	Calls         int64  `json:"calls"`
+	Usecs_percall int64  `json:"usecs_percall"`
+	Fails         int64  `json:"fails"`
+}
+
 type ProxyOpsInfo struct {
 	Total int       `json:"total"`
 	Fails int       `json:"fails"`
 	Redis RedisInfo `json:"redis"`
 	Qps   int       `json:"qps"`
+	Cmd   []CmdInfo `json:"cmd"`
 }
 
 type RowInfo struct {
@@ -89,6 +97,7 @@ type RunTimeInfo struct {
 }
 
 type ProxyStats struct {
+	Online           bool         `json:"online"`
 	Ops              ProxyOpsInfo `json:"ops"`
 	Rusage           RusageInfo   `json:"rusage"`
 	RunTime          RunTimeInfo  `json:"runtime"`

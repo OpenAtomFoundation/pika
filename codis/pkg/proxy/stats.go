@@ -14,6 +14,11 @@ import (
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
+var (
+	TimeoutCmdNumber         atomic2.Int64
+	TimeoutCmdNumberInSecond atomic2.Int64
+)
+
 type opStats struct {
 	opstr string
 	calls atomic2.Int64
@@ -62,6 +67,8 @@ var cmdstats struct {
 
 func init() {
 	cmdstats.opmap = make(map[string]*opStats, 128)
+	TimeoutCmdNumber.Set(0)
+	TimeoutCmdNumberInSecond.Set(0)
 	go func() {
 		for {
 			start := time.Now()
@@ -70,6 +77,9 @@ func init() {
 			delta := cmdstats.total.Int64() - total
 			normalized := math.Max(0, float64(delta)) * float64(time.Second) / float64(time.Since(start))
 			cmdstats.qps.Set(int64(normalized + 0.5))
+
+			TimeoutCmdNumberInSecond.Swap(TimeoutCmdNumber.Int64())
+			TimeoutCmdNumber.Set(0)
 		}
 	}()
 }

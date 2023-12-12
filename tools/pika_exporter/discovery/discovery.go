@@ -189,6 +189,7 @@ func NewCodisDiscovery(url, password, alias string) (*codisDiscovery, error) {
 func (d *codisDiscovery) GetInstances() []Instance {
 	return d.instances
 }
+
 func (d *codisDiscovery) GetInstancesProxy() []InstanceProxy {
 	return d.instanceProxy
 }

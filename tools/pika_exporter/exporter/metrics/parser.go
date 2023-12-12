@@ -17,9 +17,10 @@ const (
 )
 
 type ParseOption struct {
-	Version  *semver.Version
-	Extracts map[string]string
-	Info     string
+	Version       *semver.Version
+	Extracts      map[string]string
+	ExtractsProxy map[string][]int64
+	Info          string
 }
 
 type Parser interface {
@@ -242,9 +243,9 @@ func convertToFloat64(s string) float64 {
 	s = strings.ToLower(s)
 
 	switch s {
-	case "yes", "up", "online":
+	case "yes", "up", "online", "true":
 		return 1
-	case "no", "down", "offline", "null":
+	case "no", "down", "offline", "null", "false":
 		return 0
 	}
 
@@ -274,25 +275,93 @@ func convertTimeToUnix(ts string) (int64, error) {
 	return t.Unix(), nil
 }
 
-func StructToMap(obj interface{}) (map[string]string, error) {
+type proxyParser struct{}
+
+func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
+	m.Lookup(func(m MetaData) {
+		for opstr, v := range opt.ExtractsProxy {
+			metric := Metric{
+				MetaData:    m,
+				LabelValues: make([]string, len(m.Labels)),
+				Value:       defaultValue,
+			}
+
+			for i := 0; i < len(m.Labels)-1; i++ {
+				labelValue, ok := findInMap(m.Labels[i], opt.Extracts)
+				if !ok {
+					log.Debugf("normalParser::Parse not found label value. metricName:%s labelName:%s",
+						m.Name, m.Labels[i])
+				}
+
+				metric.LabelValues[i] = labelValue
+			}
+			metric.LabelValues[len(m.Labels)-1] = opstr
+
+			switch m.ValueName {
+			case "calls":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[0], 10))
+			case "usecs_percall":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[1], 10))
+			case "fails":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[2], 10))
+			}
+
+			if err := c.Collect(metric); err != nil {
+				log.Errorf("proxyParser::Parse metric collect failed. metric:%#v err:%s",
+					m, m.ValueName)
+			}
+		}
+	})
+
+}
+
+func StructToMap(obj interface{}) (map[string]string, map[string][]int64, error) {
+	result := make(map[string]string)
+	cmdResult := make(map[string][]int64)
 	objValue := reflect.ValueOf(obj)
 	objType := objValue.Type()
 
-	data := make(map[string]string)
-
 	for i := 0; i < objValue.NumField(); i++ {
 		field := objValue.Field(i)
-		fieldName := objType.Field(i).Name
+		fieldType := objType.Field(i)
+		jsonName := fieldType.Tag.Get("json")
+		if jsonName == "" {
+			jsonName = fieldType.Name
+		}
+		value := field.Interface()
 
 		if field.Kind() == reflect.Struct {
-			innerData, _ := StructToMap(field.Interface())
-			for k, v := range innerData {
-				data[k] = v
+			subMap, subCmdMap, _ := StructToMap(value)
+			for k, v := range subMap {
+				result[strings.ToLower(jsonName+"_"+k)] = v
+			}
+			for k, v := range subCmdMap {
+				if v != nil {
+					for index := range v {
+						cmdResult[k] = append(cmdResult[k], v[index])
+					}
+				}
+			}
+		} else if field.Kind() == reflect.Slice && field.Len() > 0 {
+			for j := 0; j < field.Len(); j++ {
+				elemType := field.Index(j).Type()
+				elemValue := field.Index(j)
+				if elemType.Kind() == reflect.Struct {
+					var key string
+					for p := 0; p < elemValue.NumField(); p++ {
+						if p == 0 {
+							key = elemValue.Field(p).String()
+						} else {
+							cmdResult[key] = append(cmdResult[key], elemValue.Field(p).Int())
+						}
+					}
+				} else {
+					result[strings.ToLower(jsonName)] = fmt.Sprintf("%v", value)
+				}
 			}
 		} else {
-			data[fieldName] = fmt.Sprintf("%v", field.Interface())
+			result[strings.ToLower(jsonName)] = fmt.Sprintf("%v", value)
 		}
 	}
-
-	return data, nil
+	return result, cmdResult, nil
 }

@@ -558,7 +558,8 @@ type Stats struct {
 		PrimaryOnly bool `json:"primary_only"`
 	} `json:"backend"`
 
-	Runtime *RuntimeStats `json:"runtime,omitempty"`
+	Runtime          *RuntimeStats `json:"runtime,omitempty"`
+	TimeoutCmdNumber int64         `json:"timeout_cmd_number"`
 }
 
 type RuntimeStats struct {
@@ -667,5 +668,6 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
+	stats.TimeoutCmdNumber = TimeoutCmdNumberInSecond.Int64()
 	return stats
 }

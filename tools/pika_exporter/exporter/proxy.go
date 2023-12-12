@@ -14,7 +14,6 @@ import (
 
 const (
 	NamespaceProxy = "proxy"
-	InstanceType
 )
 
 type exporterProxy struct {
@@ -45,11 +44,11 @@ func (p *exporterProxy) initMetrics() {
 			0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20,
 			0.25, 0.5, 0.75,
 			1, 2, 5, 10,
-		}}) // done
+		}})
 	p.collectCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: p.namespace,
 		Name:      "exporter_collect_count",
-		Help:      "the count of proxy-exporter collect"}) // done
+		Help:      "the count of proxy-exporter collect"})
 	p.scrapeDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: p.namespace,
 		Name:      "exporter_scrape_duration_seconds",
@@ -61,27 +60,27 @@ func (p *exporterProxy) initMetrics() {
 			0.25, 0.5, 0.75,
 			1, 2, 5, 10,
 		},
-	}, []string{metrics.LabelNameAddr, metrics.LabelInstance, metrics.LabelID, metrics.LabelProductName})
+	}, []string{metrics.LabelNameAddr, metrics.LabelID, metrics.LabelProductName})
 	p.scrapeErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: p.namespace,
 		Name:      "exporter_scrape_errors",
 		Help:      "the each of proxy scrape error count",
-	}, []string{metrics.LabelNameAddr, metrics.LabelInstance, metrics.LabelID, metrics.LabelProductName})
+	}, []string{metrics.LabelNameAddr, metrics.LabelID, metrics.LabelProductName})
 	p.scrapeLastError = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: p.namespace,
 		Name:      "exporter_last_scrape_error",
 		Help:      "the each of proxy scrape last error",
-	}, []string{metrics.LabelNameAddr, metrics.LabelInstance, metrics.LabelID, metrics.LabelProductName, "error"})
+	}, []string{metrics.LabelNameAddr, metrics.LabelID, metrics.LabelProductName, "error"})
 	p.scrapeCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: p.namespace,
 		Name:      "exporter_scrape_count",
 		Help:      "the each of proxy scrape count",
-	}, []string{metrics.LabelNameAddr, metrics.LabelInstance, metrics.LabelID, metrics.LabelProductName})
+	}, []string{metrics.LabelNameAddr, metrics.LabelID, metrics.LabelProductName})
 	p.up = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: p.namespace,
 		Name:      "up",
 		Help:      "the each of proxy connection status",
-	}, []string{metrics.LabelNameAddr, metrics.LabelInstance, metrics.LabelID, metrics.LabelProductName})
+	}, []string{metrics.LabelNameAddr, metrics.LabelID, metrics.LabelProductName})
 }
 
 func NewProxyExporter(dis discovery.Discovery, namespace string) (*exporterProxy, error) {
@@ -148,20 +147,20 @@ func (p *exporterProxy) scrape(ch chan<- prometheus.Metric) {
 
 	for _, instance := range p.dis.GetInstancesProxy() {
 		fut.Add()
-		go func(addr, instanceType, id, productName string) {
-			p.scrapeCount.WithLabelValues(addr, instanceType, id, productName).Inc()
+		go func(addr, id, productName string) {
+			p.scrapeCount.WithLabelValues(addr, id, productName).Inc()
 
 			defer func() {
-				p.scrapeDuration.WithLabelValues(addr, instanceType, id, productName).Observe(time.Since(startTime).Seconds())
+				p.scrapeDuration.WithLabelValues(addr, id, productName).Observe(time.Since(startTime).Seconds())
 			}()
 
-			fut.Done(futureKeyForProxy{addr: addr, instance: instanceType, ID: id, productName: productName}, p.collectProxyStats(addr, instanceType, id, productName, ch))
-		}(instance.Addr, InstanceType, strconv.Itoa(instance.ID), instance.ProductName)
+			fut.Done(futureKeyForProxy{addr: addr, ID: id, productName: productName}, p.collectProxyStats(addr, id, productName, ch))
+		}(instance.Addr, strconv.Itoa(instance.ID), instance.ProductName)
 	}
 	for k, v := range fut.Wait() {
 		if v != nil {
-			p.scrapeErrors.WithLabelValues(k.addr, k.instance, k.ID, k.productName).Inc()
-			p.scrapeLastError.WithLabelValues(k.addr, k.instance, k.ID, k.productName, v.Error()).Set(0)
+			p.scrapeErrors.WithLabelValues(k.addr, k.ID, k.productName).Inc()
+			p.scrapeLastError.WithLabelValues(k.addr, k.ID, k.productName, v.Error()).Set(0)
 
 			log.Errorf("exporter::scrape collect pika failed. pika server:%#v err:%s", k, v.Error())
 		}
@@ -169,29 +168,26 @@ func (p *exporterProxy) scrape(ch chan<- prometheus.Metric) {
 
 }
 
-func (p *exporterProxy) collectProxyStats(addr, instanceType, id, productName string, ch chan<- prometheus.Metric) error {
+func (p *exporterProxy) collectProxyStats(addr, id, productName string, ch chan<- prometheus.Metric) error {
 	resp, err := http.Get("http://" + addr + "/proxy/stats")
 	if err != nil {
-		p.up.WithLabelValues(addr, instanceType, id, productName).Set(0)
+		p.up.WithLabelValues(addr, id, productName).Set(0)
 		log.Errorf("exporter::scrape collect proxy failed. proxy server:%#v err:%s", addr, err.Error())
 		return err
 	}
-	p.up.WithLabelValues(addr, instanceType, id, productName).Set(1)
+	p.up.WithLabelValues(addr, id, productName).Set(1)
 
 	var resultProxy discovery.ProxyStats
 	if err = json.NewDecoder(resp.Body).Decode(&resultProxy); err != nil {
 		log.Errorf("exporter::scrape decode json failed. proxy server:%#v err:%s", addr, err.Error())
-		p.scrapeErrors.WithLabelValues(addr, instanceType, id, productName).Inc()
-		p.scrapeLastError.WithLabelValues(addr, instanceType, id, productName, err.Error()).Set(0)
+		p.scrapeErrors.WithLabelValues(addr, id, productName).Inc()
+		p.scrapeLastError.WithLabelValues(addr, id, productName, err.Error()).Set(0)
 		return err
 	}
 
-	result, err := metrics.StructToMap(resultProxy)
-	for k, v := range result {
-		log.Printf("%s = %s\n", k, v)
-	}
+	result, resultCmd, err := metrics.StructToMap(resultProxy)
+
 	result[metrics.LabelNameAddr] = addr
-	result[metrics.LabelInstance] = instanceType
 	result[metrics.LabelID] = id
 	result[metrics.LabelProductName] = productName
 
@@ -207,9 +203,10 @@ func (p *exporterProxy) collectProxyStats(addr, instanceType, id, productName st
 	})
 
 	parseOpt := metrics.ParseOption{
-		Version:  nil,
-		Extracts: result,
-		Info:     "",
+		Version:       nil,
+		Extracts:      result,
+		ExtractsProxy: resultCmd,
+		Info:          "",
 	}
 
 	for _, m := range metrics.MetricConfigsProxy {
