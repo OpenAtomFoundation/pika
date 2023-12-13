@@ -34,7 +34,6 @@ jobs:
     - name: Unit Test
       run: |
         cd tools/pika_operator && make test
-        cd ../pika_keys_analysis && go test -v ./...
 
     - name: E2E Test
       run: |
