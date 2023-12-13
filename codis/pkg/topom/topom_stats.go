@@ -66,7 +66,7 @@ func (s *Topom) RefreshRedisStats(timeout time.Duration) (*sync2.Future, error) 
 	for _, g := range ctx.group {
 		for _, x := range g.Servers {
 			goStats(x.Addr, func(addr string) (*RedisStats, error) {
-				m, err := s.stats.redisp.InfoFull(addr)
+				m, err := s.stats.redisp.InfoFullv2(addr)
 				if err != nil {
 					return nil, err
 				}
