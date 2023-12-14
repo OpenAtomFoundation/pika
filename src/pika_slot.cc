@@ -10,6 +10,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
+#include "include/pika_command.h"
 
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
@@ -389,7 +390,6 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
-
   return true;
 }
 
@@ -458,6 +458,7 @@ void Slot::ClearBgsave() {
 void Slot::FinishBgsave() {
   std::lock_guard l(bgsave_protector_);
   bgsave_info_.bgsaving = false;
+  g_pika_server->UpdateLastSave(time(nullptr));
 }
 
 bool Slot::FlushDB() {

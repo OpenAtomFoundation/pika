@@ -2610,6 +2610,17 @@ void TimeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void LastsaveCmd::DoInitial() {
+  if (argv_.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLastSave);
+    return;
+  }
+}
+
+void LastsaveCmd::Do(std::shared_ptr<Slot> slot) {
+  res_.AppendInteger(g_pika_server->GetLastSave());
+}
+
 void DelbackupCmd::DoInitial() {
   if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelbackup);
