@@ -685,7 +685,6 @@ void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   s_ = slot->db()->ZRem(key_, members_, &count);
   if (s_.ok() || s_.IsNotFound()) {
-    AddSlotKey("z", key_, slot);
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
