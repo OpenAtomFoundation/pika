@@ -25,7 +25,6 @@ func TestPutKeyToPika(t *testing.T) {
 	assert.Nil(t, err)
 	c1 := PikaInstance.clients[0]
 	c2 := PikaInstance.clients[1]
-	c3 := PikaInstance.clients[2]
 	for i := 0; i < 5; i++ {
 		key := "first_big_key_" + uuid.New().String()
 		value := uuid.New().String()
@@ -51,13 +50,13 @@ func TestPutKeyToPika(t *testing.T) {
 		value += value
 		value += value
 		value += value
-		c3.Set(context.Background(), key, value, 0)
+		c1.Set(context.Background(), key, value, 0)
 	}
 	for i := 0; i < 5; i++ {
 		key := "fourth_big_key_" + uuid.New().String()
 		value := uuid.New().String()
 		value += value
-		c3.Set(context.Background(), key, value, 0)
+		c1.Set(context.Background(), key, value, 0)
 	}
 	for i := 0; i < 10000; i++ {
 		key := "fifth_big_key_" + uuid.New().String()
@@ -72,7 +71,7 @@ func TestPutKeyToPika(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		key := "fifth_big_key_" + uuid.New().String()
 		value := uuid.New().String()
-		c3.Set(context.Background(), key, value, 0)
+		c1.Set(context.Background(), key, value, 0)
 	}
 	totalKeyNumber := PikaInstance.GetTotalKeyNumber()
 	assert.Equal(t, 30020, totalKeyNumber)

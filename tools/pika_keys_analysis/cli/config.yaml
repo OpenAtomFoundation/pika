@@ -7,10 +7,6 @@ pika:
     db: 1
     password: ""
 
-  - addr: 127.0.0.1:9221
-    db: 2
-    password: ""
-
 scan-size: 1000 # scan size per time
 concurrency: 1000 # goroutine num
 head: 30 # show top head keys
