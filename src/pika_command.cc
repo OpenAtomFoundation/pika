@@ -842,7 +842,6 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
       res().SetRes(CmdRes::kErrOther);
       return;
     }
-
     Status s =
         slot->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
     if (!s.ok()) {

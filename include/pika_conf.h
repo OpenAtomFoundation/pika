@@ -611,6 +611,12 @@ class PikaConf : public pstd::BaseConf {
     max_rsync_parallel_num_ = value;
   }
 
+  const std::string scache_type() {
+    std::lock_guard l(rwlock_);
+    return pstd::StringConcat(cache_type_, COMMA);
+  }
+
+
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_pos() { return zset_cache_start_pos_; }

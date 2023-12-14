@@ -758,6 +758,17 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
+  SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
+  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
+  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
+  SetConfStr("optimize-filters-for-hits", optimize_filters_for_hits_ ? "yes" : "no");
+  SetConfStr("level-compaction-dynamic-level-bytes", level_compaction_dynamic_level_bytes_ ? "yes" : "no");
+  SetConfInt("cache-model", cache_model_);
+  SetConfStr("cache-type", scache_type());
+  SetConfInt("zset_cache_start_pos", zset_cache_start_pos_);
+  SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
+  SetConfInt("block-size", block_size_);
+  SetConfInt("block-cache", block_cache_);
 
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;
