@@ -85,6 +85,10 @@ var _ = Describe("Set Commands", func() {
 			sDiff := client.SDiff(ctx, "set1", "set2")
 			Expect(sDiff.Err()).NotTo(HaveOccurred())
 			Expect(sDiff.Val()).To(ConsistOf([]string{"a", "b"}))
+
+			sDiff = client.SDiff(ctx, "nonexistent_set1", "nonexistent_set2")
+			Expect(sDiff.Err()).NotTo(HaveOccurred())
+			Expect(sDiff.Val()).To(HaveLen(0))
 		})
 
 		It("should SDiffStore", func() {
@@ -129,6 +133,10 @@ var _ = Describe("Set Commands", func() {
 			sInter := client.SInter(ctx, "set1", "set2")
 			Expect(sInter.Err()).NotTo(HaveOccurred())
 			Expect(sInter.Val()).To(Equal([]string{"c"}))
+
+			sInter = client.SInter(ctx, "nonexistent_set1", "nonexistent_set2")
+			Expect(sInter.Err()).NotTo(HaveOccurred())
+			Expect(sInter.Val()).To(HaveLen(0))
 		})
 
 		//It("should SInterCard", func() {
@@ -336,6 +344,10 @@ var _ = Describe("Set Commands", func() {
 			sMembers := client.SMembers(ctx, "set")
 			Expect(sMembers.Err()).NotTo(HaveOccurred())
 			Expect(sMembers.Val()).To(ConsistOf([]string{"three", "two"}))
+
+			sRem = client.SRem(ctx, "nonexistent_set", "one")
+			Expect(sRem.Err()).NotTo(HaveOccurred())
+			Expect(sRem.Val()).To(Equal(int64(0)))
 		})
 
 		It("should SUnion", func() {
@@ -356,6 +368,10 @@ var _ = Describe("Set Commands", func() {
 			sUnion := client.SUnion(ctx, "set1", "set2")
 			Expect(sUnion.Err()).NotTo(HaveOccurred())
 			Expect(sUnion.Val()).To(HaveLen(5))
+
+			sUnion = client.SUnion(ctx, "nonexistent_set1", "nonexistent_set2")
+			Expect(sUnion.Err()).NotTo(HaveOccurred())
+			Expect(sUnion.Val()).To(HaveLen(0))
 		})
 
 		It("should SUnionStore", func() {
