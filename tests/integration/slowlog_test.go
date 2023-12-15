@@ -81,7 +81,8 @@ var _ = Describe("Slowlog Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			for i := 0; i < 10; i++ {
-				Expect(isBetween(time1.UnixNano(), time2.UnixNano(), time.Unix(0, result[i].Time.Unix()*1e3).UnixNano())).To(Equal(true))
+				Expect(result[i].Time.Unix()).To(BeNumerically("~", 0, 9999999999))
+				Expect(isBetween(time1.Unix(), time2.Unix(), result[i].Time.Unix())).To(Equal(true))
 			}
 		})
 	})
