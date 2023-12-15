@@ -536,7 +536,7 @@ int PikaConf::Load() {
 
   std::string lcdlb;
   GetConfStr("level-compaction-dynamic-level-bytes", &lcdlb);
-  level_compaction_dynamic_level_bytes_ = lcdlb == "yes";
+  level_compaction_dynamic_level_bytes_ = lcdlb == "yes" || lcdlb.empty();
 
   // daemonize
   std::string dmz;
