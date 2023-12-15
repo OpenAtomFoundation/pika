@@ -6,20 +6,20 @@ func RegisterForProxy() {
 }
 
 var collectProxyMetrics map[string]MetricConfig = map[string]MetricConfig{
-	"ops_total": {
+	"total_ops": {
 		Parser: &normalParser{},
 		MetricMeta: &MetaData{
-			Name:      "ops_total",
+			Name:      "total_ops",
 			Help:      "proxy total ops",
 			Type:      metricTypeCounter,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName},
 			ValueName: "ops_total",
 		},
 	},
-	"ops_fails": {
+	"total_ops_fails": {
 		Parser: &normalParser{},
 		MetricMeta: &MetaData{
-			Name:      "ops_fails",
+			Name:      "total_ops_fails",
 			Help:      "proxy fails counter",
 			Type:      metricTypeCounter,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName},
@@ -66,23 +66,23 @@ var collectProxyMetrics map[string]MetricConfig = map[string]MetricConfig{
 			ValueName: "online",
 		},
 	},
-	"timeout_cmd_number": {
+	"total_slow_cmd": {
 		Parser: &normalParser{},
 		MetricMeta: &MetaData{
-			Name:      "timeout_cmd_number",
-			Help:      "The number of commands recorded in the slow log within the last second",
-			Type:      metricTypeGauge,
+			Name:      "total_slow_cmd",
+			Help:      "The number of commands recorded in the slow log",
+			Type:      metricTypeCounter,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName},
-			ValueName: "timeout_cmd_number",
+			ValueName: "slow_cmd_count",
 		},
 	},
 }
 
 var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
-	"calls": {
+	"total_calls": {
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
-			Name:      "calls",
+			Name:      "total_calls",
 			Help:      "the number of cmd calls",
 			Type:      metricTypeCounter,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
@@ -99,14 +99,24 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			ValueName: "usecs_percall",
 		},
 	},
-	"fails": {
+	"total_fails": {
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
-			Name:      "fails",
+			Name:      "total_fails",
 			Help:      "the number of cmd fail",
 			Type:      metricTypeCounter,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "fails",
+		},
+	},
+	"max_delay": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "max_delay",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
 		},
 	},
 }

@@ -1198,9 +1198,15 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int
     entry.start_time = time;
     entry.duration = duration;
     slowlog_list_.push_front(entry);
+    slowlog_counter_++;
   }
 
   SlowlogTrim();
+}
+
+uint64_t PikaServer::SlowlogCount() {
+  std::shared_lock l(slowlog_protector_);
+  return slowlog_counter_;
 }
 
 void PikaServer::ResetStat() {

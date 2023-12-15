@@ -49,6 +49,7 @@ type CmdInfo struct {
 	Calls         int64  `json:"calls"`
 	Usecs_percall int64  `json:"usecs_percall"`
 	Fails         int64  `json:"fails"`
+	MaxDelay      int64  `json:"max_delay"`
 }
 
 type ProxyOpsInfo struct {
@@ -97,9 +98,9 @@ type RunTimeInfo struct {
 }
 
 type ProxyStats struct {
-	Online           bool         `json:"online"`
-	Ops              ProxyOpsInfo `json:"ops"`
-	Rusage           RusageInfo   `json:"rusage"`
-	RunTime          RunTimeInfo  `json:"runtime"`
-	TimeoutCmdNumber int64        `json:"timeout_cmd_number"`
+	Online       bool         `json:"online"`
+	Ops          ProxyOpsInfo `json:"ops"`
+	Rusage       RusageInfo   `json:"rusage"`
+	RunTime      RunTimeInfo  `json:"runtime"`
+	SlowCmdCount int64        `json:"slow_cmd_count"`
 }

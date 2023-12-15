@@ -236,13 +236,14 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		} else {
 			s.incrOpStats(r, resp.Type)
 		}
+		nowTime := time.Now().UnixNano()
+		duration := int64((nowTime - r.ReceiveTime) / 1e3)
+		s.updateMaxDelay(duration, r)
 		if fflush {
 			s.flushOpStats(false)
 		}
-		nowTime := time.Now().UnixNano()
-		duration := int64((nowTime - r.ReceiveTime) / 1e3)
 		if duration >= s.config.SlowlogLogSlowerThan {
-			TimeoutCmdNumber.Incr()
+			SlowCmdCount.Incr() // Atomic global variable, increment by 1 when slow log occurs.
 			//client -> proxy -> server -> porxy -> client
 			//Record the waiting time from receiving the request from the client to sending it to the backend server
 			//the waiting time from sending the request to the backend server to receiving the response from the server
@@ -758,4 +759,11 @@ func (s *Session) handlePConfig(r *Request) error {
 		r.Resp = redis.NewErrorf("ERR Unknown CONFIG subcommand or wrong args. Try GET, SET, REWRITE.")
 	}
 	return nil
+}
+
+func (s *Session) updateMaxDelay(duration int64, r *Request) {
+	e := s.getOpStats(r.OpStr) // There is no race condition in the session
+	if duration > e.maxDelay.Int64() {
+		e.maxDelay.Set(duration)
+	}
 }

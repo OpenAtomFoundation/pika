@@ -304,6 +304,8 @@ func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 				metric.Value = convertToFloat64(strconv.FormatInt(v[1], 10))
 			case "fails":
 				metric.Value = convertToFloat64(strconv.FormatInt(v[2], 10))
+			case "max_delay":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[3], 10))
 			}
 
 			if err := c.Collect(metric); err != nil {

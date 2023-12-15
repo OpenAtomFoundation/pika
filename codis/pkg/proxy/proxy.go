@@ -558,8 +558,8 @@ type Stats struct {
 		PrimaryOnly bool `json:"primary_only"`
 	} `json:"backend"`
 
-	Runtime          *RuntimeStats `json:"runtime,omitempty"`
-	TimeoutCmdNumber int64         `json:"timeout_cmd_number"`
+	Runtime      *RuntimeStats `json:"runtime,omitempty"`
+	SlowCmdCount int64         `json:"slow_cmd_count"` // Cumulative count of slow log
 }
 
 type RuntimeStats struct {
@@ -668,6 +668,6 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
-	stats.TimeoutCmdNumber = TimeoutCmdNumberInSecond.Int64()
+	stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
 }

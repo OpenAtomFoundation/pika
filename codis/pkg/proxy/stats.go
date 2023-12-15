@@ -14,10 +14,7 @@ import (
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
-var (
-	TimeoutCmdNumber         atomic2.Int64
-	TimeoutCmdNumberInSecond atomic2.Int64
-)
+var SlowCmdCount atomic2.Int64 // Cumulative count of slow log
 
 type opStats struct {
 	opstr string
@@ -27,14 +24,16 @@ type opStats struct {
 	redis struct {
 		errors atomic2.Int64
 	}
+	maxDelay atomic2.Int64
 }
 
 func (s *opStats) OpStats() *OpStats {
 	o := &OpStats{
-		OpStr: s.opstr,
-		Calls: s.calls.Int64(),
-		Usecs: s.nsecs.Int64() / 1e3,
-		Fails: s.fails.Int64(),
+		OpStr:    s.opstr,
+		Calls:    s.calls.Int64(),
+		Usecs:    s.nsecs.Int64() / 1e3,
+		Fails:    s.fails.Int64(),
+		MaxDelay: s.maxDelay.Int64(),
 	}
 	if o.Calls != 0 {
 		o.UsecsPercall = o.Usecs / o.Calls
@@ -50,6 +49,7 @@ type OpStats struct {
 	UsecsPercall int64  `json:"usecs_percall"`
 	Fails        int64  `json:"fails"`
 	RedisErrType int64  `json:"redis_errtype"`
+	MaxDelay     int64  `json:"max_delay"`
 }
 
 var cmdstats struct {
@@ -67,8 +67,7 @@ var cmdstats struct {
 
 func init() {
 	cmdstats.opmap = make(map[string]*opStats, 128)
-	TimeoutCmdNumber.Set(0)
-	TimeoutCmdNumberInSecond.Set(0)
+	SlowCmdCount.Set(0)
 	go func() {
 		for {
 			start := time.Now()
@@ -77,9 +76,16 @@ func init() {
 			delta := cmdstats.total.Int64() - total
 			normalized := math.Max(0, float64(delta)) * float64(time.Second) / float64(time.Since(start))
 			cmdstats.qps.Set(int64(normalized + 0.5))
+		}
+	}()
 
-			TimeoutCmdNumberInSecond.Swap(TimeoutCmdNumber.Int64())
-			TimeoutCmdNumber.Set(0)
+	// Clear the accumulated maximum delay to 0 every 15 seconds.
+	go func() {
+		for {
+			time.Sleep(15 * time.Second)
+			for _, s := range cmdstats.opmap {
+				s.maxDelay.Set(0)
+			}
 		}
 	}()
 }
@@ -174,6 +180,22 @@ func incrOpStats(e *opStats) {
 	if n := e.redis.errors.Swap(0); n != 0 {
 		s.redis.errors.Add(n)
 		cmdstats.redis.errors.Add(n)
+	}
+
+	/**
+	Each session refreshes its own saved metrics, and there is a race condition at this time.
+	Use the CAS method to update.
+	*/
+	for {
+		oldValue := s.maxDelay
+		if e.maxDelay > oldValue {
+			if s.maxDelay.CompareAndSwap(oldValue.Int64(), e.maxDelay.Int64()) {
+				e.maxDelay.Set(0)
+				break
+			}
+		} else {
+			break
+		}
 	}
 }
 
