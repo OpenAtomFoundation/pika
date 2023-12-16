@@ -661,8 +661,6 @@ int PikaConf::Load() {
   GetConfInt64("blob-cache", &block_cache_);
   GetConfInt64("blob-num-shard-bits", &blob_num_shard_bits_);
 
-  return ret;
-
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
@@ -673,6 +671,8 @@ int PikaConf::Load() {
   if (max_rsync_parallel_num_ <= 0) {
     max_rsync_parallel_num_ = 4;
   }
+
+  return ret;
 }
 
 void PikaConf::TryPushDiffCommands(const std::string& command, const std::string& value) {
