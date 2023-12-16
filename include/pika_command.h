@@ -274,6 +274,7 @@ enum CmdFlags {
   kCmdFlagsReadCache = (1 << 20),
   kCmdFlagsUpdateCache = (1 << 21),
   kCmdFlagsDoThroughDB = (1 << 22),
+  kCmdFlagsKeySpace = (1 << 23),
 
   kCmdFlagsNoLocal = 0,    // default nolocal
   kCmdFlagsNoSuspend = 0,  // default nosuspend

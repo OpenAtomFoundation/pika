@@ -175,7 +175,7 @@ class PikaServer : public pstd::noncopyable {
   int role();
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
-  bool readonly(const std::string& table, const std::string& key);
+  bool readonly(const std::string& table);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();

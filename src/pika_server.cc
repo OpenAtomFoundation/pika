@@ -266,7 +266,7 @@ void PikaServer::CheckLeaderProtectedMode() {
   }
 }
 
-bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
+bool PikaServer::readonly(const std::string& db_name) {
   std::shared_lock l(state_protector_);
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }

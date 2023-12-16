@@ -160,7 +160,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
-    if (g_pika_server->readonly(current_db_, cur_key.front())) {
+    if (g_pika_server->readonly(current_db_)) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }

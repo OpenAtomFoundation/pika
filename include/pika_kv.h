@@ -77,7 +77,7 @@ class GetCmd : public Cmd {
 class DelCmd : public Cmd {
  public:
   DelCmd(const std::string& name, int arity, uint32_t flag)
-      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STRING)){};
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
