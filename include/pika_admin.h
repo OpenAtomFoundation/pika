@@ -386,6 +386,18 @@ class TimeCmd : public Cmd {
   void DoInitial() override;
 };
 
+class LastsaveCmd : public Cmd {
+ public:
+  LastsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new LastsaveCmd(*this); }
+
+ private:
+  void DoInitial() override;
+};
+
 class DelbackupCmd : public Cmd {
  public:
   DelbackupCmd(const std::string& name, int arity, uint32_t flag)

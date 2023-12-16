@@ -727,7 +727,7 @@ class PikaConf : public pstd::BaseConf {
   bool cache_index_and_filter_blocks_ = false;
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
-  bool level_compaction_dynamic_level_bytes_ = false;
+  bool level_compaction_dynamic_level_bytes_ = true;
   int64_t rate_limiter_bandwidth_ = 0;
   int64_t rate_limiter_refill_period_us_ = 0;
   int64_t rate_limiter_fairness_ = 0;

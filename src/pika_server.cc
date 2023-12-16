@@ -92,6 +92,8 @@ PikaServer::PikaServer()
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
+  int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
+  UpdateLastSave(lastsave);
 
   acl_ = std::make_unique<::Acl>();
 }
@@ -550,7 +552,7 @@ void PikaServer::SlotSetSmallCompactionDurationThreshold(uint32_t small_compacti
 }
 
 bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id,
-                                               BinlogOffset* const boffset) {
+                                       BinlogOffset* const boffset) {
   std::shared_ptr<SyncMasterSlot> slot =
       g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
@@ -1600,10 +1602,15 @@ void PikaServer::InitStorageOptions() {
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 
-  storage_options_.options.rate_limiter = std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(
-      g_pika_conf->rate_limiter_bandwidth(), g_pika_conf->rate_limiter_refill_period_us(),
-      static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()), rocksdb::RateLimiter::Mode::kWritesOnly,
-      g_pika_conf->rate_limiter_auto_tuned()));
+  storage_options_.options.rate_limiter =
+      std::shared_ptr<rocksdb::RateLimiter>(
+          rocksdb::NewGenericRateLimiter(
+              g_pika_conf->rate_limiter_bandwidth(),
+              g_pika_conf->rate_limiter_refill_period_us(),
+              static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
+              rocksdb::RateLimiter::Mode::kWritesOnly,
+              g_pika_conf->rate_limiter_auto_tuned()
+                  ));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
@@ -1774,6 +1781,23 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   // Start new thread if needed
   bgslots_cleanup_thread_.StartThread();
   bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
+}
+int64_t PikaServer::GetLastSaveTime(const std::string& dir_path) {
+  std::vector<std::string> dump_dir;
+  // Dump file is not exist
+  if (!pstd::FileExists(dir_path)) {
+    LOG(INFO) << "Dump file is not exist,path: " << dir_path;
+    return 0;
+  }
+  if (pstd::GetChildren(dir_path, dump_dir) != 0) {
+    return 0;
+  }
+  std::string dump_file = dir_path + dump_dir[0];
+  struct stat fileStat;
+  if (stat(dump_file.c_str(), &fileStat) == 0) {
+    return static_cast<int64_t>(fileStat.st_mtime);
+  }
+  return 0;
 }
 
 void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {

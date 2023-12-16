@@ -585,6 +585,12 @@ class PikaServer : public pstd::noncopyable {
   void ClearHitRatio(void);
   void ProcessCronTask();
   double HitRatio();
+
+  /*
+   * lastsave used
+   */
+  int64_t GetLastSave() const {return lastsave_;}
+  void UpdateLastSave(int64_t lastsave) {lastsave_ = lastsave;}
  private:
   /*
    * TimingTask use
@@ -597,6 +603,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  int64_t GetLastSaveTime(const std::string& dump_dir);
 
   std::string host_;
   int port_ = 0;
@@ -721,6 +728,11 @@ class PikaServer : public pstd::noncopyable {
    */
   std::shared_mutex mu_;
   std::shared_mutex cache_info_rwlock_;
+
+  /*
+   * lastsave used
+   */
+  int64_t lastsave_ = 0;
 
   /*
    * acl
