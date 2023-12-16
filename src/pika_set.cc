@@ -50,7 +50,7 @@ void SPopCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
-
+  count_ = 1;
   key_ = argv_[1];
   if (argc > 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
@@ -63,8 +63,6 @@ void SPopCmd::DoInitial() {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
-  } else {
-    count_ = 1;
   }
 }
 
@@ -258,7 +256,11 @@ void SRemCmd::DoInitial() {
 
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   s_ = slot->db()->SRem(key_, members_, &deleted_);
-  res_.AppendInteger(deleted_);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendInteger(deleted_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
 }
 
 void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
@@ -283,11 +285,15 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SUnion(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SUnion(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -375,11 +381,15 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SInter(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SInter(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -470,11 +480,15 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SDiff(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SDiff(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
 }
 

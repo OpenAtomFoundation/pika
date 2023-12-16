@@ -685,7 +685,6 @@ void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   s_ = slot->db()->ZRem(key_, members_, &count);
   if (s_.ok() || s_.IsNotFound()) {
-    AddSlotKey("z", key_, slot);
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1425,14 +1424,13 @@ void ZPopmaxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  count_ = 1;
   if (argv_.size() > 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmax);
   } else if (argv_.size() == 3) {
     if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
       res_.SetRes(CmdRes::kInvalidInt);
     }
-  } else {
-    count_ = 1;
   }
 }
 
@@ -1460,14 +1458,13 @@ void ZPopminCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  count_ = 1;
   if (argv_.size() > 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
   } else if (argv_.size() == 3) {
     if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
       res_.SetRes(CmdRes::kInvalidInt);
     }
-  } else {
-    count_ = 1;
   }
 }
 

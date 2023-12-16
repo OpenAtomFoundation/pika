@@ -230,6 +230,164 @@ var _ = Describe("Text Txn", func() {
 			AssertEqualRedisString(setValue, cmders[2])
 		})
 
+		It("blpop within transaction", func() {
+			txnClient.Del(ctx, "list")
+			txPipeline := txnClient.TxPipeline()
+			txPipeline.BLPop(ctx, 1*time.Second, "list")
+			_, err := txPipeline.Exec(ctx)
+			Expect(err).To(Equal(redis.Nil))
+		})
+
+		It("brpop within transaction", func() {
+			txnClient.Del(ctx, "list")
+			txPipeline := txnClient.TxPipeline()
+			txPipeline.BRPop(ctx, 1*time.Second, "list")
+			_, err := txPipeline.Exec(ctx)
+			Expect(err).To(Equal(redis.Nil))
+		})
+
+		It("should BLPOP, LPUSH + DEL should not awake blocked client", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.Del(ctx, "list")
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			cmdClient.Del(ctx, "list")
+			cmdClient.LPush(ctx, "list", "a")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should BLPOP, LPUSH + DEL + SET should not awake blocked client", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "b"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.Del(ctx, "list")
+				pipe.Set(ctx, "list", "foo", 0)
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			cmdClient.Del(ctx, "list")
+			cmdClient.LPush(ctx, "list", "b")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should MULTI/EXEC is isolated from the point of view of BLPOP", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "c"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.LPush(ctx, "list", "b")
+				pipe.LPush(ctx, "list", "c")
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
 	})
 	// Because when there is only one list result, Redis returns in two cases, one with * and one without * ,
 	// but go-redis knows only the ones without *
