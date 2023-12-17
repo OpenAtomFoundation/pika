@@ -147,7 +147,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZCard(std::string &key, uint32_t *len, const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZCount(std::string &key, std::string &min, std::string &max, uint64_t *len, ZCountCmd *cmd);
   rocksdb::Status ZIncrby(std::string &key, std::string &member, double increment);
-  rocksdb::Status ZIncrbyIfKeyExist(std::string &key, std::string &member, double increment, ZIncrbyCmd *cmd);
+  rocksdb::Status ZIncrbyIfKeyExist(std::string &key, std::string &member, double increment, ZIncrbyCmd *cmd,
+                           const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                          const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRangebyscore(std::string &key, std::string &min, std::string &max,
@@ -160,7 +161,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                             const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrangebyscore(std::string &key, std::string &min, std::string &max,
-                                   std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd);
+                          std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd,
+                          const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members,
                                  const std::shared_ptr<Slot> &slot);
   rocksdb::Status ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<Slot> &slot);

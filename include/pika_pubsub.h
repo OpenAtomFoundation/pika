@@ -13,7 +13,7 @@
  */
 class PublishCmd : public Cmd {
  public:
-  PublishCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PublishCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -27,7 +27,7 @@ class PublishCmd : public Cmd {
 
 class SubscribeCmd : public Cmd {
  public:
-  SubscribeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SubscribeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -39,7 +39,7 @@ class SubscribeCmd : public Cmd {
 
 class UnSubscribeCmd : public Cmd {
  public:
-  UnSubscribeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  UnSubscribeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -51,7 +51,7 @@ class UnSubscribeCmd : public Cmd {
 
 class PUnSubscribeCmd : public Cmd {
  public:
-  PUnSubscribeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PUnSubscribeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -63,7 +63,7 @@ class PUnSubscribeCmd : public Cmd {
 
 class PSubscribeCmd : public Cmd {
  public:
-  PSubscribeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PSubscribeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -75,7 +75,7 @@ class PSubscribeCmd : public Cmd {
 
 class PubSubCmd : public Cmd {
  public:
-  PubSubCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PubSubCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

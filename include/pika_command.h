@@ -6,8 +6,8 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -249,32 +249,38 @@ enum CmdFlagsMask {
 };
 
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
-  kCmdFlagsWrite = 1,
-  kCmdFlagsAdmin = 0,  // default type
-  kCmdFlagsKv = 2,
-  kCmdFlagsHash = 4,
-  kCmdFlagsList = 6,
-  kCmdFlagsSet = 8,
-  kCmdFlagsZset = 10,
-  kCmdFlagsBit = 12,
-  kCmdFlagsHyperLogLog = 14,
-  kCmdFlagsGeo = 16,
-  kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
-  kCmdFlagsLocal = 32,
+  kCmdFlagsRead = 1,  // default rw
+  kCmdFlagsWrite = (1 << 1),
+  kCmdFlagsAdmin = (1 << 2),  // default type
+  kCmdFlagsKv = (1 << 3),
+  kCmdFlagsHash = (1 << 4),
+  kCmdFlagsList = (1 << 5),
+  kCmdFlagsSet = (1 << 6),
+  kCmdFlagsZset = (1 << 7),
+  kCmdFlagsBit = (1 << 8),
+  kCmdFlagsHyperLogLog = (1 << 9),
+  kCmdFlagsGeo = (1 << 10),
+  kCmdFlagsPubSub = (1 << 11),
+  kCmdFlagsLocal = (1 << 12),
+  kCmdFlagsSuspend = (1 << 13),
+  kCmdFlagsAdminRequire = (1 << 14),
+  kCmdFlagsSingleSlot = (1 << 15),
+  kCmdFlagsMultiSlot = (1 << 16),
+  kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
+  kCmdFlagsFast = (1 << 18),
+  kCmdFlagsSlow = (1 << 19),
+  kCmdFlagsReadCache = (1 << 20),
+  kCmdFlagsUpdateCache = (1 << 21),
+  kCmdFlagsDoThroughDB = (1 << 22),
+  kCmdFlagsKeySpace = (1 << 23),
+
+  kCmdFlagsNoLocal = 0,    // default nolocal
   kCmdFlagsNoSuspend = 0,  // default nosuspend
-  kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
+  kCmdFlagsNoPrior = 0,    // default noprior
   kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
-  kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
-  kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsReadCache = 128,
-  kCmdFlagsUpdateCache = 2048,
-  kCmdFlagsDoThroughDB = 4096,
+  kCmdFlagsNoAdminRequire = 0,    // default no need admin
+  kCmdFlagsPreDo = 2048,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -326,9 +332,7 @@ class CmdRes {
     message_.clear();
     ret_ = kNone;
   }
-  bool CacheMiss() const {
-    return ret_ == kCacheMiss;
-  }
+  bool CacheMiss() const { return ret_ == kCacheMiss; }
   std::string raw_message() const { return message_; }
   std::string message() const {
     std::string result;
@@ -435,9 +439,8 @@ class CmdRes {
       message_ = content;
     }
   }
-  CmdRet GetCmdRet() const {
-    return ret_;
-  }
+  CmdRet GetCmdRet() const { return ret_; }
+
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -450,9 +453,9 @@ class CmdRes {
 struct UnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
-  net::DispatchThread* dispatchThread{ nullptr };
+  net::DispatchThread* dispatchThread{nullptr};
   UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+      : key(std::move(key_)), slot(std::move(slot_)), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -476,7 +479,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  Cmd(std::string name, int arity, uint32_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -495,6 +498,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
+  uint32_t flag() const;
+  bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
 
@@ -542,7 +547,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   std::string name_;
   int arity_ = -2;
-  uint16_t flag_ = 0;
+  uint32_t flag_ = 0;
+
 
  protected:
   CmdRes res_;
