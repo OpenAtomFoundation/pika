@@ -248,7 +248,6 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   }
 
   if (stream_meta.last_id().ms == UINT64_MAX && stream_meta.last_id().seq == UINT64_MAX) {
-    LOG(ERROR) << "Fatal! Sequence number overflow !";
     res_.SetRes(CmdRes::kErrOther, "Fatal! Sequence number overflow !");
     return;
   }
@@ -336,7 +335,6 @@ void XAddCmd::GenerateStreamIDOrReply(const StreamMetaValue &stream_meta) {
     // generate seq
     auto last_id = stream_meta.last_id();
     if (id.ms < last_id.ms) {
-      LOG(ERROR) << "Time backwards detected !";
       res_.SetRes(CmdRes::kErrOther, "The ID specified in XADD is equal or smaller");
       return;
     } else if (id.ms == last_id.ms) {
@@ -472,7 +470,7 @@ inline void XDelCmd::SetFirstOrLastIDOrReply(StreamMetaValue &stream_meta, const
 
 void XDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXDel);
     return;
   }
 

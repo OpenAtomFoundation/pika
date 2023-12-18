@@ -6,7 +6,9 @@
 package pika_integration
 
 import (
+	"sync"
 	"context"
+	"sync/atomic"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -132,6 +134,78 @@ var _ = Describe("Stream Commands", func() {
 	})
 
 	Describe("passed tests", func() {
+		It("should concurrently add and read messages in the stream with separate clients", func() {
+			const streamKey = "mystream"
+			const totalMessages = 200
+			const numWriters = 10
+			const numReaders = 10
+			const messagesPerWriter = 20
+		
+			createClient := func() *redis.Client {
+				return redis.NewClient(pikaOptions1())
+			}
+		
+			var messageCount int32
+		
+			// Start writer goroutines
+			for i := 0; i < numWriters; i++ {
+				go func(writerIndex int) {
+					defer GinkgoRecover()
+					writerClient := createClient()
+					defer writerClient.Close()
+		
+					for j := 0; j < messagesPerWriter; j++ {
+						_, err := writerClient.XAdd(ctx, &redis.XAddArgs{
+							Stream: streamKey,
+							Values: map[string]interface{}{"item": writerIndex*messagesPerWriter + j},
+						}).Result()
+						Expect(err).NotTo(HaveOccurred())
+						atomic.AddInt32(&messageCount, 1)
+					}
+				}(i)
+			}
+		
+			// Start reader goroutines
+			var wg sync.WaitGroup
+			for i := 0; i < numReaders; i++ {
+					wg.Add(1)
+					go func() {
+							defer GinkgoRecover()
+							defer wg.Done()
+							readerClient := createClient()
+							defer readerClient.Close()
+
+							lastID := "0"
+							readMessages := 0
+							for readMessages < totalMessages {
+									items, err := readerClient.XRead(ctx, &redis.XReadArgs{
+											Streams: []string{streamKey, lastID},
+											Block:   0,
+									}).Result()
+									if (err != nil) {
+											continue
+									}
+
+									// Check if items slice is not empty
+									if len(items) > 0 && len(items[0].Messages) > 0 {
+											lastMessageIndex := len(items[0].Messages) - 1
+											lastID = items[0].Messages[lastMessageIndex].ID
+											readMessages += len(items[0].Messages)
+									}
+									// Optionally add a short delay here if needed
+							}
+							Expect(readMessages).To(BeNumerically(">=", totalMessages))
+					}()
+			}
+
+		
+			wg.Wait()
+			Eventually(func() int32 {
+				return atomic.LoadInt32(&messageCount)
+			}).Should(Equal(int32(totalMessages)))
+		})
+		
+		
 		It("XADD wrong number of args", func() {
 			_, err := client.Do(ctx, "XADD", "mystream").Result()
 			Expect(err).To(HaveOccurred())
