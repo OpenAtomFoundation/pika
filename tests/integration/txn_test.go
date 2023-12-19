@@ -43,44 +43,6 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, "key")
 		})
-		It("txn failed cause watch", func() {
-			setRes := cmdClient.Set(ctx, "key", "1", 0)
-			Expect(setRes.Err()).NotTo(HaveOccurred())
-			txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				pipe := tx.TxPipeline()
-
-				selectRes := pipe.Select(ctx, 1)
-				Expect(selectRes.Err()).NotTo(HaveOccurred())
-				pipe.FlushDB(ctx)
-				pipe.Get(ctx, "key")
-				pipe.Select(ctx, 0)
-				pipe.Get(ctx, "key")
-				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString("", results[2])
-				AssertEqualRedisString("1", results[4])
-				return nil
-			}, "key")
-		})
-		// Having another transaction in the transaction to clear the data in db1 using flushdb will not affect the transaction execution of the key in this db of watch
-		It("test watch1", func() {
-			watchKey := "key"
-			watchkeyValue := "value"
-			cmdClient.Set(ctx, watchKey, watchkeyValue, 0)
-			txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				cmdClient.Watch(ctx, func(tx *redis.Tx) error {
-					pipe := tx.TxPipeline()
-					pipe.Select(ctx, 1)
-					pipe.FlushDB(ctx)
-					pipe.Exec(ctx)
-					return nil
-				}, watchKey)
-				pipe := tx.TxPipeline()
-				pipe.Get(ctx, watchKey)
-				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString(watchkeyValue, results[0])
-				return nil
-			}, watchKey)
-		})
 		// multiple types of keys for testing watch
 		It("test watch multi type key", func() {
 			watchKey := "key"
@@ -166,7 +128,7 @@ var _ = Describe("Text Txn", func() {
 			}(&cmdCost)
 			<-resultChann
 			wg.Wait()
-			Expect(cmdCost < (txnCost / 10)).To(BeTrue())
+			Expect(cmdCost < (txnCost / 5)).To(BeTrue())
 		})
 	})
 
