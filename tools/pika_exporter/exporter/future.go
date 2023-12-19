@@ -3,7 +3,8 @@ package exporter
 import "sync"
 
 type futureKey struct {
-	addr, alias string
+	addr  string
+	alias string
 }
 
 type future struct {
@@ -38,7 +39,9 @@ func (f *future) Wait() map[futureKey]error {
 }
 
 type futureKeyForProxy struct {
-	addr, ID, productName string
+	addr        string
+	ID          string
+	productName string
 }
 
 type futureForProxy struct {
@@ -60,9 +63,11 @@ func (f *futureForProxy) Add() {
 
 func (f *futureForProxy) Done(key futureKeyForProxy, val error) {
 	f.Lock()
-	defer f.Unlock()
+	defer func() {
+		f.Unlock()
+		f.wait.Done()
+	}()
 	f.m[key] = val
-	f.wait.Done()
 }
 
 func (f *futureForProxy) Wait() map[futureKeyForProxy]error {

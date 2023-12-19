@@ -14,7 +14,10 @@ import (
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
-var SlowCmdCount atomic2.Int64 // Cumulative count of slow log
+var (
+	SlowCmdCount  atomic2.Int64 // Cumulative count of slow log
+	RefreshPeriod atomic2.Int64
+)
 
 type opStats struct {
 	opstr string
@@ -79,10 +82,10 @@ func init() {
 		}
 	}()
 
-	// Clear the accumulated maximum delay to 0 every 15 seconds.
+	// Clear the accumulated maximum delay to 0
 	go func() {
 		for {
-			time.Sleep(15 * time.Second)
+			time.Sleep(time.Duration(RefreshPeriod.Int64()))
 			for _, s := range cmdstats.opmap {
 				s.maxDelay.Set(0)
 			}

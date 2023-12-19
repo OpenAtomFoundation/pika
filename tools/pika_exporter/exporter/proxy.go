@@ -2,14 +2,16 @@ package exporter
 
 import (
 	"encoding/json"
-	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
-	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/metrics"
-	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -120,14 +122,13 @@ func (p *exporterProxy) Describe(ch chan<- *prometheus.Desc) {
 
 func (p *exporterProxy) Collect(ch chan<- prometheus.Metric) {
 	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
 	startTime := time.Now()
 	defer func() {
 		p.collectCount.Inc()
 		p.collectDuration.Observe(time.Since(startTime).Seconds())
 		ch <- p.collectCount
 		ch <- p.collectDuration
+		p.mutex.Unlock()
 	}()
 
 	p.scrape(ch)

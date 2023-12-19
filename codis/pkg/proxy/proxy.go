@@ -308,6 +308,12 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 			redis.NewBulkBytes([]byte("metrics_report_statsd_prefix")),
 			redis.NewBulkBytes([]byte(p.config.MetricsReportStatsdPrefix)),
 		})
+	case "max_delay_refresh_time_interval":
+		if text, err := p.config.MaxDelayRefreshTimeInterval.MarshalText(); err != nil {
+			return redis.NewErrorf("cant get max_delay_refresh_time_interval value.")
+		} else {
+			return redis.NewBulkBytes(text)
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -342,6 +348,18 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		}
 		p.config.SlowlogLogSlowerThan = n
 		return redis.NewString([]byte("OK"))
+	case "max_delay_refresh_time_interval":
+		s := &(p.config.MaxDelayRefreshTimeInterval)
+		err := s.UnmarshalText([]byte(value))
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if d := p.config.MaxDelayRefreshTimeInterval.Duration(); d <= 0 {
+			return redis.NewErrorf("max_delay_refresh_time_interval must be greater than 0")
+		} else {
+			RefreshPeriod.Set(int64(d))
+			return redis.NewString([]byte("OK"))
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}

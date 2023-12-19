@@ -206,8 +206,11 @@ func (d *codisDiscovery) CheckUpdate(updatechan chan int, codisaddr string) {
 }
 
 func (d *codisDiscovery) comparedis(new_instance *codisDiscovery) bool {
-	var addrs, addrsProxy []string
-	var diff bool = false
+	var (
+		addrs      []string
+		addrsProxy []string
+		diff       bool
+	)
 	for _, instance := range new_instance.instances {
 		addrs = append(addrs, instance.Addr)
 	}

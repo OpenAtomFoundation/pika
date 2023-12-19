@@ -97,7 +97,7 @@ func Benchmark_Parse(b *testing.B) {
 }
 
 func Test_Parse_Proxy_Stats(t *testing.T) {
-	jsonFile := "mockCodisStats.json"
+	jsonFile := "mockProxyStats.json"
 	jsonData, err := ioutil.ReadFile(jsonFile)
 	if err != nil {
 		t.Fatalf("failed to read test data: %v", err)

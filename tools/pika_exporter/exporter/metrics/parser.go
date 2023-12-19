@@ -348,14 +348,10 @@ func StructToMap(obj interface{}) (map[string]string, map[string][]int64, error)
 			for j := 0; j < field.Len(); j++ {
 				elemType := field.Index(j).Type()
 				elemValue := field.Index(j)
-				if elemType.Kind() == reflect.Struct {
-					var key string
-					for p := 0; p < elemValue.NumField(); p++ {
-						if p == 0 {
-							key = elemValue.Field(p).String()
-						} else {
-							cmdResult[key] = append(cmdResult[key], elemValue.Field(p).Int())
-						}
+				if elemType.Kind() == reflect.Struct && elemValue.NumField() > 0 {
+					var key string = elemValue.Field(0).String()
+					for p := 1; p < elemValue.NumField(); p++ {
+						cmdResult[key] = append(cmdResult[key], elemValue.Field(p).Int())
 					}
 				} else {
 					result[strings.ToLower(jsonName)] = fmt.Sprintf("%v", value)
