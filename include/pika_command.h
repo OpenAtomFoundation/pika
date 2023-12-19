@@ -235,19 +235,6 @@ const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
-enum CmdFlagsMask {
-  kCmdFlagsMaskRW = 1,
-  kCmdFlagsMaskType = 30,
-  kCmdFlagsMaskLocal = 32,
-  kCmdFlagsMaskSuspend = 64,
-  kCmdFlagsMaskPrior = 128,
-  kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskDoThrouhDB = 4096,
-  kCmdFlagsMaskReadCache = 128,
-  kCmdFlagsMaskUpdateCache = 2048,
-  kCmdFlagsMaskSlot = 1536,
-};
-
 enum CmdFlags {
   kCmdFlagsRead = 1,  // default rw
   kCmdFlagsWrite = (1 << 1),
@@ -267,20 +254,10 @@ enum CmdFlags {
   kCmdFlagsSingleSlot = (1 << 15),
   kCmdFlagsMultiSlot = (1 << 16),
   kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
-  kCmdFlagsFast = (1 << 18),
-  kCmdFlagsSlow = (1 << 19),
-  kCmdFlagsReadCache = (1 << 20),
-  kCmdFlagsUpdateCache = (1 << 21),
-  kCmdFlagsDoThroughDB = (1 << 22),
-  kCmdFlagsKeySpace = (1 << 23),
-
-  kCmdFlagsNoLocal = 0,    // default nolocal
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
-  kCmdFlagsNoPrior = 0,    // default noprior
-  kCmdFlagsPrior = 128,
-  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
-  kCmdFlagsNoAdminRequire = 0,    // default no need admin
-  kCmdFlagsPreDo = 2048,
+  kCmdFlagsReadCache = (1 << 18),
+  kCmdFlagsUpdateCache = (1 << 19),
+  kCmdFlagsDoThroughDB = (1 << 20),
+  kCmdFlagsOperateKey = (1 << 21),  // redis keySpace
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
