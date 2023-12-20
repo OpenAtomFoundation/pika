@@ -16,6 +16,7 @@
 #include <memory>
 #include <set>
 
+#include "src/cache/include/config.h"
 #include "net/include/bg_thread.h"
 #include "net/include/net_pubsub.h"
 #include "net/include/thread_pool.h"
@@ -36,11 +37,14 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
+#include "include/pika_migrate_thread.h"
 #include "include/rsync_server.h"
 #include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_migrate_thread.h"
+#include "include/pika_transaction.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_cache.h"
+#include "include/pika_slot.h"
 
 
 
@@ -129,6 +133,18 @@ enum TaskType {
   kStartKeyScan,
   kStopKeyScan,
   kBgSave,
+  kCompactRangeStrings,
+  kCompactRangeHashes,
+  kCompactRangeSets,
+  kCompactRangeZSets,
+  kCompactRangeList,
+};
+
+struct TaskArg {
+  TaskType type;
+  std::vector<std::string> argv;
+  TaskArg(TaskType t) : type(t) {}
+  TaskArg(TaskType t, const std::vector<std::string>& a) : type(t), argv(a) {}
 };
 
 void DoBgslotscleanup(void* arg);
@@ -179,7 +195,22 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
-  pstd::Status DoSameThingSpecificDB(const TaskType& type, const std::set<std::string>& dbs = {});
+  pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
+  std::shared_mutex& GetDBLock() {
+    return dbs_rw_;
+  }
+  void DBLockShared() {
+    dbs_rw_.lock_shared();
+  }
+  void DBLock() {
+    dbs_rw_.lock();
+  }
+  void DBUnlock() {
+    dbs_rw_.unlock();
+  }
+  void DBUnlockShared() {
+    dbs_rw_.unlock_shared();
+  }
 
   /*
    * Slot use
@@ -296,7 +327,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogReset();
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
+  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
 
   /*
    * Statistic used
@@ -481,7 +512,6 @@ class PikaServer : public pstd::noncopyable {
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
 
-
   /*
    * StorageOptions used
    */
@@ -510,6 +540,31 @@ class PikaServer : public pstd::noncopyable {
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
+  struct BGCacheTaskArg {
+    BGCacheTaskArg() : conf(nullptr), reenable_cache(false) {}
+    int task_type;
+    std::shared_ptr<Slot> slot;
+    uint32_t cache_num;
+    cache::CacheConfig cache_cfg;
+    std::unique_ptr<PikaConf> conf;
+    bool reenable_cache;
+  };
+  /*
+   * Cache used
+   */
+  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg = nullptr);
+  void ClearCacheDbAsync(std::shared_ptr<Slot> slot);
+  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot);
+  void ResetCacheConfig(std::shared_ptr<Slot> slot);
+  void ClearHitRatio(std::shared_ptr<Slot> slot);
+  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot);
+  static void DoCacheBGTask(void* arg);
+  void UpdateCacheInfo(void);
+  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot);
+  void CacheConfigInit(cache::CacheConfig &cache_cfg);
+  void ClearHitRatio(void);
+  void ProcessCronTask();
+  double HitRatio();
  private:
   /*
    * TimingTask use
@@ -639,6 +694,14 @@ class PikaServer : public pstd::noncopyable {
   * Info Commandstats used
   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
+
+  net::BGThread common_bg_thread_;
+
+  /*
+   * Cache used
+   */
+  std::shared_mutex mu_;
+  std::shared_mutex cache_info_rwlock_;
 };
 
 #endif

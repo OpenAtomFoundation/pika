@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "include/pika_binlog_transverter.h"
+#include "pstd/include/pstd_defer.h"
 #include "pstd_status.h"
 
 using pstd::Status;
@@ -168,7 +169,25 @@ Status Binlog::Put(const std::string& item) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
-  Status s = Put(item.c_str(), static_cast<int>(item.size()));
+  uint32_t filenum = 0;
+  uint32_t term = 0;
+  uint64_t offset = 0;
+  uint64_t logic_id = 0;
+
+  Lock();
+  DEFER {
+    Unlock();
+  };
+
+  Status s = GetProducerStatus(&filenum, &offset, &term, &logic_id);
+  if (!s.ok()) {
+    return s;
+  }
+  logic_id++;
+  std::string data = PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+      time(nullptr), term, logic_id, filenum, offset, item, {});
+
+  s = Put(data.c_str(), static_cast<int>(data.size()));
   if (!s.ok()) {
     binlog_io_error_.store(true);
   }

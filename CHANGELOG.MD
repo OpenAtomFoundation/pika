@@ -1,6 +1,36 @@
+# v3.5.2
+
+## New features
+
+- Pika supports Redis transactions.  [#2124](https://github.com/OpenAtomFoundation/pika/pull/2124) @[ForestLH](https://github.com/ForestLH)
+
+- Pika adds a cache layer for hot and cold data separation, improving read performance. [#2133](https://github.com/OpenAtomFoundation/pika/pull/2133) @[chejinge](https://github.com/chejinge)@[Mixficsol](https://github.com/Mixficsol)
+
+- Codis-Proxy supports dynamic configuration parameter modification.  [#2103](https://github.com/OpenAtomFoundation/pika/pull/2103) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Completing Go Test cases.  [#2063](https://github.com/OpenAtomFoundation/pika/pull/2063)@[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Adds cache to improve compilation speed on CI.  [#2088](https://github.com/OpenAtomFoundation/pika/pull/2088)@[baerwang](https://github.com/baerwang)
+
+## bugfix
+
+- Fixed coredump issue when using SETRANGE command in Pika.  [#2125](https://github.com/OpenAtomFoundation/pika/issues/2125) @[chejinge](https://github.com/chejinge)
+
+- Fixed full replication issue caused by deleting Clearreplicationid from binlog.  [#2136](https://github.com/OpenAtomFoundation/pika/issues/2136) @[Mixficsol](https://github.com/Mixficsol)
+
+- Modified lock granularity to improve binlog writing performance in Pika.  [#2129](https://github.com/OpenAtomFoundation/pika/pull/2129) @[wangshao1](https://github.com/wangshao1)
+
+- Added redis-copy traffic replication tool.  [#2044](https://github.com/OpenAtomFoundation/pika/issues/2044) @[Mixficsol](https://github.com/Mixficsol)
+
+- Fixed potential data overflow issue in complex data types member variables.  [#2016](https://github.com/OpenAtomFoundation/pika/pull/2106)  @[u6th9d](https://github.com/u6th9d)
+
+- Fixed incorrect return value issue in decr command. [#2092](https://github.com/OpenAtomFoundation/pika/pull/2092) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Fixed issue where SETRANGE and SETBIT commands did not retain the original key's expiration time. [#2095](https://github.com/OpenAtomFoundation/pika/pull/2095) @[u6th9d](https://github.com/u6th9d)
+
+
+
 # v3.5.1
-
-
 
 ## New features
 

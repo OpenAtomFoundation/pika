@@ -205,7 +205,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);
-
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
@@ -256,13 +255,24 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   }
   std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   // Add read lock for no suspend command
-  if (!c_ptr->is_suspend()) {
+  if (!c_ptr->IsSuspend()) {
     slot->DbRWLockReader();
   }
-
-  c_ptr->Do(slot);
-
-  if (!c_ptr->is_suspend()) {
+  if (c_ptr->IsNeedCacheDo()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+    if (c_ptr->is_write()) {
+      c_ptr->DoThroughDB(slot);
+      if (c_ptr->IsNeedUpdateCache()) {
+        c_ptr->DoUpdateCache(slot);
+      }
+    } else {
+      LOG(WARNING) << "This branch is not impossible reach";
+    }
+  } else {
+    c_ptr->Do(slot);
+  }
+  if (!c_ptr->IsSuspend()) {
     slot->DbRWUnLock();
   }
 

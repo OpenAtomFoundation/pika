@@ -41,8 +41,11 @@ class Session;
 class WaitObject;
 class WaitObjectManager;
 
+using pstd::Status;
+
+
 class RsyncClient : public net::Thread {
-public:
+ public:
   enum State {
       IDLE,
       RUNNING,

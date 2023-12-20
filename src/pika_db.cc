@@ -97,6 +97,8 @@ Status DB::AddSlots(const std::set<uint32_t>& slot_ids) {
 
   for (const uint32_t& id : slot_ids) {
     slots_.emplace(id, std::make_shared<Slot>(db_name_, id, db_path_));
+    slots_[id]->Init();
+
   }
   return Status::OK();
 }
@@ -209,6 +211,13 @@ void DB::Compact(const storage::DataType& type) {
   std::lock_guard rwl(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Compact(type);
+  }
+}
+
+void DB::CompactRange(const storage::DataType& type, const std::string& start, const std::string& end) {
+  std::lock_guard rwl(slots_rw_);
+  for (const auto& item : slots_) {
+    item.second->CompactRange(type, start, end);
   }
 }
 

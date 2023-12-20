@@ -6,6 +6,7 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
+#include <string>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -28,6 +29,7 @@ const std::string kCmdNameDbSlaveof = "dbslaveof";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";
+const std::string kCmdNameCompactRange = "compactrange";
 const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
@@ -53,6 +55,8 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
+const std::string kCmdNameCache = "cache";
+const std::string kCmdNameClearCache = "clearcache";
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
@@ -198,6 +202,13 @@ const std::string kCmdNameSDiffstore = "sdiffstore";
 const std::string kCmdNameSMove = "smove";
 const std::string kCmdNameSRandmember = "srandmember";
 
+// transation
+const std::string kCmdNameMulti = "multi";
+const std::string kCmdNameExec = "exec";
+const std::string kCmdNameDiscard = "discard";
+const std::string kCmdNameWatch = "watch";
+const std::string kCmdNameUnWatch = "unwatch";
+
 // HyperLogLog
 const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
@@ -230,9 +241,9 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskPreDo = 512,
-  kCmdFlagsMaskCacheDo = 1024,
-  kCmdFlagsMaskPostDo = 2048,
+  kCmdFlagsMaskDoThrouhDB = 4096,
+  kCmdFlagsMaskReadCache = 128,
+  kCmdFlagsMaskUpdateCache = 2048,
   kCmdFlagsMaskSlot = 1536,
 };
 
@@ -260,13 +271,15 @@ enum CmdFlags {
   kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
   kCmdFlagsSingleSlot = 512,
   kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsPreDo = 2048,
+  kCmdFlagsReadCache = 128,
+  kCmdFlagsUpdateCache = 2048,
+  kCmdFlagsDoThroughDB = 4096,
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 void inline RedisAppendLenUint64(std::string& str, uint64_t ori, const std::string& prefix) {
-   RedisAppendLen(str, static_cast<int64_t>(ori), prefix); 
+  RedisAppendLen(str, static_cast<int64_t>(ori), prefix);
 }
 
 const std::string kNewLine = "\r\n";
@@ -297,7 +310,11 @@ class CmdRes {
     kInvalidDB,
     kInconsistentHashTag,
     kErrOther,
+    kCacheMiss,
     KIncrByOverFlow,
+    kInvalidTransaction,
+    kTxnQueued,
+    kTxnAbort,
   };
 
   CmdRes() = default;
@@ -307,6 +324,9 @@ class CmdRes {
   void clear() {
     message_.clear();
     ret_ = kNone;
+  }
+  bool CacheMiss() const {
+    return ret_ == kCacheMiss;
   }
   std::string raw_message() const { return message_; }
   std::string message() const {
@@ -369,6 +389,17 @@ class CmdRes {
         result.append(message_);
         result.append("'\r\n");
         break;
+      case kInvalidTransaction:
+        return "-ERR WATCH inside MULTI is not allowed\r\n";
+      case kTxnQueued:
+        result = "+QUEUED";
+        result.append("\r\n");
+        break;
+      case kTxnAbort:
+        result = "-EXECABORT ";
+        result.append(message_);
+        result.append(kNewLine);
+        break;
       case kErrOther:
         result = "-ERR ";
         result.append(message_);
@@ -403,7 +434,9 @@ class CmdRes {
       message_ = content;
     }
   }
-
+  CmdRet GetCmdRet() const {
+    return ret_;
+  }
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -447,12 +480,13 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessFlushDBCmd();
-  virtual void ProcessFlushAllCmd();
   virtual void ProcessSingleSlotCmd();
   virtual void ProcessMultiSlotCmd();
-  virtual void ProcessDoNotSpecifySlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
+  virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
+  virtual void ReadCache(std::shared_ptr<Slot> slot = nullptr) {}
+  rocksdb::Status CmdStatus() { return s_; };
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
@@ -463,21 +497,26 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_read() const;
   bool is_write() const;
 
-  bool is_local() const;
-  bool is_suspend() const;
-  bool is_admin_require() const;
+  bool IsLocal() const;
+  bool IsSuspend() const;
+  bool IsAdminRequire() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool IsNeedUpdateCache() const;
+  bool is_only_from_cache() const;
+  bool IsNeedReadCache() const;
+  bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  void SetDbName(const std::string& db_name) { db_name_ = db_name; }
+  std::string GetDBName() { return db_name_; }
 
   std::string name() const;
   CmdRes& res();
   std::string db_name() const;
   BinlogOffset binlog_offset() const;
   PikaCmdArgsType& argv();
-  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                               uint64_t offset);
+  virtual std::string ToRedisProtocol();
 
   void SetConn(const std::shared_ptr<net::NetConn>& conn);
   std::shared_ptr<net::NetConn> GetConn();
@@ -508,6 +547,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   CmdRes res_;
   PikaCmdArgsType argv_;
   std::string db_name_;
+  rocksdb::Status s_;
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;

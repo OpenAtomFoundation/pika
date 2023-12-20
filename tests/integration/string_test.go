@@ -899,6 +899,22 @@ var _ = Describe("String Commands", func() {
 		})
 
 		It("should SetRange", func() {
+			setRes := client.Set(ctx, "nil_key", "", 0)
+			Expect(setRes.Err()).NotTo(HaveOccurred())
+			Expect(setRes.Val()).To(Equal("OK"))
+
+			getRes := client.Get(ctx, "nil_key")
+			Expect(getRes.Err()).NotTo(HaveOccurred())
+			Expect(getRes.Val()).To(Equal(""))
+
+			setRangeRes := client.SetRange(ctx, "nil_key", 0, "Pika")
+			Expect(setRangeRes.Err()).NotTo(HaveOccurred())
+			Expect(setRangeRes.Val()).To(Equal(int64(4)))
+
+			getRes = client.Get(ctx, "nil_key")
+			Expect(getRes.Err()).NotTo(HaveOccurred())
+			Expect(getRes.Val()).To(Equal("Pika"))
+
 			set := client.Set(ctx, "key_3s", "Hello World", 0)
 			Expect(set.Err()).NotTo(HaveOccurred())
 			Expect(set.Val()).To(Equal("OK"))
