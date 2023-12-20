@@ -356,8 +356,8 @@ void BLPopCmd::DoInitial() {
 void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    s_ = slot->db()->LPop(this_key, 1, &values);
-    if (s_.ok()) {
+    rocksdb::Status s  = slot->db()->LPop(this_key, 1, &values);
+    if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(values[0]);
@@ -368,10 +368,10 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
-    } else if (s_.IsNotFound()) {
+    } else if (s.IsNotFound()) {
       continue;
     } else {
-      res_.SetRes(CmdRes::kErrOther, s_.ToString());
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }

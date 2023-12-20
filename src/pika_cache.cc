@@ -14,6 +14,7 @@
 #include "include/pika_slot_command.h"
 #include "cache/include/cache.h"
 #include "cache/include/config.h"
+#include "storage/include/storage/storage.h"
 
 extern PikaServer *g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
@@ -136,6 +137,65 @@ Status PikaCache::TTL(std::string &key, int64_t *ttl) {
   return caches_[cache_index]->TTL(key, ttl);
 }
 
+std::map<storage::DataType, int64_t> PikaCache::TTL(std::string &key, std::map<storage::DataType, Status>* type_status) {
+  Status s;
+  std::map<storage::DataType, int64_t> ret;
+  int64_t timestamp = 0;
+
+  std::string CacheKeyPrefixK = PCacheKeyPrefixK + key;
+  int cache_indexk = CacheIndex(CacheKeyPrefixK);
+  s = caches_[cache_indexk]->TTL(CacheKeyPrefixK, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    ret[storage::DataType::kStrings] = timestamp;
+  } else if (!s.IsNotFound()) {
+    ret[storage::DataType::kStrings] = -3;
+    (*type_status)[storage::DataType::kStrings] = s;
+  }
+
+  std::string CacheKeyPrefixH = PCacheKeyPrefixH + key;
+  int cache_indexh = CacheIndex(CacheKeyPrefixH);
+  s = caches_[cache_indexh]->TTL(CacheKeyPrefixH, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    ret[storage::DataType::kHashes] = timestamp;
+  } else if (!s.IsNotFound()) {
+    ret[storage::DataType::kHashes] = -3;
+    (*type_status)[storage::DataType::kHashes] = s;
+  }
+
+  std::string CacheKeyPrefixL = PCacheKeyPrefixL + key;
+  int cache_indexl = CacheIndex(CacheKeyPrefixL);
+  s = caches_[cache_indexl]->TTL(CacheKeyPrefixL, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    ret[storage::DataType::kLists] = timestamp;
+  } else if (!s.IsNotFound()) {
+    ret[storage::DataType::kLists] = -3;
+    (*type_status)[storage::DataType::kLists] = s;
+  }
+
+  std::string CacheKeyPrefixS = PCacheKeyPrefixS + key;
+  int cache_indexs = CacheIndex(CacheKeyPrefixS);
+  s = caches_[cache_indexs]->TTL(CacheKeyPrefixS, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    ret[storage::DataType::kSets] = timestamp;
+  } else if (!s.IsNotFound()) {
+    ret[storage::DataType::kSets] = -3;
+    (*type_status)[storage::DataType::kSets] = s;
+  }
+
+  std::string CacheKeyPrefixZ = PCacheKeyPrefixZ + key;
+  int cache_indexz = CacheIndex(CacheKeyPrefixZ);
+  s = caches_[cache_indexz]->TTL(CacheKeyPrefixZ, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    ret[storage::DataType::kZSets] = timestamp;
+  } else if (!s.IsNotFound()) {
+    ret[storage::DataType::kZSets] = -3;
+    (*type_status)[storage::DataType::kZSets] = s;
+  }
+  return ret;
+}
+
+
+
 Status PikaCache::Persist(std::string &key) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -162,6 +222,77 @@ Status PikaCache::RandomKey(std::string *key) {
     }
   }
   return s;
+}
+
+Status PikaCache::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
+  types.clear();
+
+  Status s;
+  std::string value;
+  std::string CacheKeyPrefixK = PCacheKeyPrefixK + key;
+  int cache_indexk = CacheIndex(CacheKeyPrefixK);
+  s = caches_[cache_indexk]->Get(CacheKeyPrefixK, &value);
+  if (s.ok()) {
+    types.emplace_back("string");
+  } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
+    return s;
+  }
+
+  uint64_t hashes_len = 0;
+  std::string CacheKeyPrefixH = PCacheKeyPrefixH + key;
+  int cache_indexh = CacheIndex(CacheKeyPrefixH);
+  s = caches_[cache_indexh]->HLen(CacheKeyPrefixH, &hashes_len);
+  if (s.ok() && hashes_len != 0) {
+    types.emplace_back("hash");
+  } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
+    return s;
+  }
+
+  uint64_t lists_len = 0;
+  std::string CacheKeyPrefixL = PCacheKeyPrefixL + key;
+  int cache_indexl = CacheIndex(CacheKeyPrefixL);
+  s = caches_[cache_indexl]->LLen(CacheKeyPrefixL, &lists_len);
+  if (s.ok() && lists_len != 0) {
+    types.emplace_back("list");
+  } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
+    return s;
+  }
+
+  uint64_t zsets_size = 0;
+  std::string CacheKeyPrefixZ = PCacheKeyPrefixZ + key;
+  int cache_indexz = CacheIndex(CacheKeyPrefixZ);
+  s = caches_[cache_indexz]->ZCard(CacheKeyPrefixZ, &zsets_size);
+  if (s.ok() && zsets_size != 0) {
+    types.emplace_back("zset");
+  } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && !types.empty()) {
+    return s;
+  }
+
+  uint64_t sets_size = 0;
+  std::string CacheKeyPrefixS = PCacheKeyPrefixS + key;
+  int cache_indexs = CacheIndex(CacheKeyPrefixS);
+  s = caches_[cache_indexs]->SCard(CacheKeyPrefixS, &sets_size);
+  if (s.ok() && sets_size != 0) {
+    types.emplace_back("set");
+  } else if (!s.IsNotFound()) {
+    return s;
+  }
+  if (single && types.empty()) {
+    types.emplace_back("none");
+  }
+  return Status::OK();
 }
 
 /*-----------------------------------------------------------------------------

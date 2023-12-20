@@ -480,6 +480,8 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 
   std::vector<storage::ScoreMember> score_members;
+  min_ = std::to_string(min_score_);
+  max_ = std::to_string(max_score_);
   auto s = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();

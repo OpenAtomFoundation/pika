@@ -6,11 +6,9 @@
 #include "include/pika_kv.h"
 #include <memory>
 
-#include "include/pika_client_conn.h"
 #include "include/pika_command.h"
 #include "pstd/include/pstd_string.h"
 
-#include "include/pika_binlog_transverter.h"
 #include "include/pika_cache.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
@@ -26,7 +24,6 @@ void SetCmd::DoInitial() {
   value_ = argv_[2];
   condition_ = SetCmd::kNONE;
   sec_ = 0;
-  bool has_ttl_ = false;
   size_t index = 3;
   while (index != argv_.size()) {
     std::string opt = argv_[index];
@@ -566,7 +563,7 @@ void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     if (db_value_status_array_[i].status.ok()) {
       std::string CachePrefixKeyK;
       CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
-      slot->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, ttl_);
+      slot->cache()->SetWithoutTTL(CachePrefixKeyK, db_value_status_array_[i].valu);
     }
   }
 }
@@ -1132,13 +1129,19 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int result = keys_.size();
-  std::string CachePrefixKeyK;
+  int result = 0;
+  std::vector<std::string> v;
   for (auto key : keys_) {
-    CachePrefixKeyK = PCacheKeyPrefixK + key;
-    bool exit = slot->cache()->Exists(CachePrefixKeyK);
-    if (!exit){
-      result--;
+    v.emplace_back(PCacheKeyPrefixK + key);
+    v.emplace_back(PCacheKeyPrefixL + key);
+    v.emplace_back(PCacheKeyPrefixZ + key);
+    v.emplace_back(PCacheKeyPrefixS + key);
+    v.emplace_back(PCacheKeyPrefixH + key);
+  }
+  for (auto key : v) {
+    bool exit = slot->cache()->Exists(key);
+    if ( exit ){
+      result++;
     }
   }
   if (result > 0) {
@@ -1205,8 +1208,15 @@ void ExpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ExpireCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->Expire(CachePrefixKeyK, sec_);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      slot->cache()->Expire(key, sec_);
+    }
   }
 }
 
@@ -1262,8 +1272,15 @@ void PexpireCmd::DoThroughDB(std::shared_ptr<Slot> slot){
 
 void PexpireCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->Expire(CachePrefixKeyK, msec_/1000);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v){
+      slot->cache()->Expire(key, msec_/1000);
+    }
   }
 }
 
@@ -1298,8 +1315,15 @@ void ExpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void ExpireatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->Expireat(CachePrefixKeyK, time_stamp_);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      slot->cache()->Expireat(key, time_stamp_);
+    }
   }
 }
 
@@ -1355,8 +1379,15 @@ void PexpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void PexpireatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->Expireat(CachePrefixKeyK, time_stamp_ms_/1000);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      slot->cache()->Expireat(key, time_stamp_ms_ / 1000);
+    }
   }
 }
 
@@ -1396,13 +1427,29 @@ void TtlCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void TtlCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int64_t ttl = -1;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = slot->cache()->TTL(CachePrefixKeyK, &ttl);
-  if (s.ok()) {
-    res_.AppendInteger(ttl);
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  type_timestamp = slot->cache()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
+  }
+  if (type_timestamp[storage::kStrings] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kStrings]);
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kHashes]);
+  } else if (type_timestamp[storage::kLists] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kLists]);
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kZSets]);
+  } else if (type_timestamp[storage::kSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kSets]);
   } else {
-    res_.SetRes(CmdRes::kCacheMiss);
+    // mean this key not exist
+    res_.AppendInteger(-2);
   }
 }
 
@@ -1467,13 +1514,49 @@ void PttlCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void PttlCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int64_t ttl = -1;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = slot->cache()->TTL(CachePrefixKeyK, &ttl);
-  if (s.ok()) {
-    res_.AppendInteger(ttl * 1000);
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  type_timestamp = slot->cache()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
+  }
+  if (type_timestamp[storage::kStrings] != -2) {
+    if (type_timestamp[storage::kStrings] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kStrings] * 1000);
+    }
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    if (type_timestamp[storage::kHashes] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kHashes] * 1000);
+    }
+  } else if (type_timestamp[storage::kLists] != -2) {
+    if (type_timestamp[storage::kLists] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kLists] * 1000);
+    }
+  } else if (type_timestamp[storage::kSets] != -2) {
+    if (type_timestamp[storage::kSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kSets] * 1000);
+    }
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    if (type_timestamp[storage::kZSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kZSets] * 1000);
+    }
   } else {
-    res_.SetRes(CmdRes::kCacheMiss);
+    // mean this key not exist
+    res_.AppendInteger(-2);
   }
 }
 
@@ -1508,8 +1591,15 @@ void PersistCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void PersistCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->Persist(CachePrefixKeyK);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      slot->cache()->Persist(key);
+    }
   }
 }
 
@@ -1532,13 +1622,12 @@ void TypeCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void TypeCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  std::string type;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = slot->cache()->Type(CachePrefixKeyK, &type);
+  std::vector<std::string> types(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, types);
   if (s.ok()) {
-    res_.AppendContent("+" + type);
+    res_.AppendContent("+" + types[0]);
   } else {
-    res_.SetRes(CmdRes::kCacheMiss);
+    res_.SetRes(CmdRes::kCacheMiss, s.ToString());
   }
 }
 
