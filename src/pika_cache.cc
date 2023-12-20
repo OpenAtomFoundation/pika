@@ -14,7 +14,6 @@
 #include "include/pika_slot_command.h"
 #include "cache/include/cache.h"
 #include "cache/include/config.h"
-#include "storage/include/storage/storage.h"
 
 extern PikaServer *g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
@@ -193,8 +192,6 @@ std::map<storage::DataType, int64_t> PikaCache::TTL(std::string &key, std::map<s
   }
   return ret;
 }
-
-
 
 Status PikaCache::Persist(std::string &key) {
   int cache_index = CacheIndex(key);

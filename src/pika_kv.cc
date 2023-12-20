@@ -531,43 +531,6 @@ void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void MgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  std::vector<std::string> CachePrefixKeyK;
-  cache_value_status_array_.clear();
-  for (auto key : keys_) {
-    CachePrefixKeyK.push_back(PCacheKeyPrefixK + key);
-  }
-  auto s = slot->cache()->MGet(CachePrefixKeyK, &cache_value_status_array_);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(cache_value_status_array_.size());
-    for (const auto& vs : cache_value_status_array_) {
-      if (vs.status.ok()) {
-        res_.AppendStringLenUint64(vs.value.size());
-        res_.AppendContent(vs.value);
-      } else {
-        res_.AppendContent("$-1");
-      }
-    }
-  } else {
-    res_.SetRes(CmdRes::kCacheMiss);
-  }
-}
-
-void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  res_.clear();
-  Do(slot);
-}
-
-void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
-  for (size_t i = 0; i < keys_.size(); i++) {
-    if (db_value_status_array_[i].status.ok()) {
-      std::string CachePrefixKeyK;
-      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
-      slot->cache()->SetWithoutTTL(CachePrefixKeyK, db_value_status_array_[i].valu);
-    }
-  }
-}
-
 void MgetCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
   std::vector<storage::ValueStatus> vss;
   const std::vector<std::string>& keys = hint_keys.keys;
@@ -593,6 +556,37 @@ void MgetCmd::Merge() {
       res_.AppendContent(vs.value);
     } else {
       res_.AppendContent("$-1");
+    }
+  }
+}
+
+void MgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
+  if (1 < keys_.size()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+    return;
+  }
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
+  auto s = slot->cache()->Get(CachePrefixKeyK, &value_);
+  if (s.ok()) {
+    res_.AppendArrayLen(1);
+    res_.AppendStringLen(value_.size());
+    res_.AppendContent(value_);
+  } else {
+    res_.SetRes(CmdRes::kCacheMiss);
+  }
+}
+
+void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+  res_.clear();
+  Do(slot);
+}
+
+void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  for (size_t i = 0; i < keys_.size(); i++) {
+    if (db_value_status_array_[i].status.ok()) {
+      std::string CachePrefixKeyK;
+      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
+      slot->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, db_value_status_array_[i].ttl);
     }
   }
 }
@@ -1129,23 +1123,14 @@ void ExistsCmd::Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) {
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  int result = 0;
-  std::vector<std::string> v;
-  for (auto key : keys_) {
-    v.emplace_back(PCacheKeyPrefixK + key);
-    v.emplace_back(PCacheKeyPrefixL + key);
-    v.emplace_back(PCacheKeyPrefixZ + key);
-    v.emplace_back(PCacheKeyPrefixS + key);
-    v.emplace_back(PCacheKeyPrefixH + key);
+  if (1 < keys_.size()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+    return;
   }
-  for (auto key : v) {
-    bool exit = slot->cache()->Exists(key);
-    if ( exit ){
-      result++;
-    }
-  }
-  if (result > 0) {
-    res_.AppendInteger(result);
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
+  bool exist = slot->cache()->Exists(CachePrefixKeyK);
+  if (exist) {
+    res_.AppendInteger(1);
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
@@ -1427,6 +1412,7 @@ void TtlCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void TtlCmd::ReadCache(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s;
   std::map<storage::DataType, int64_t> type_timestamp;
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = slot->cache()->TTL(key_, &type_status);
@@ -1449,7 +1435,7 @@ void TtlCmd::ReadCache(std::shared_ptr<Slot> slot) {
     res_.AppendInteger(type_timestamp[storage::kSets]);
   } else {
     // mean this key not exist
-    res_.AppendInteger(-2);
+    res_.SetRes(CmdRes::kCacheMiss);
   }
 }
 
@@ -1509,7 +1495,7 @@ void PttlCmd::Do(std::shared_ptr<Slot> slot) {
     }
   } else {
     // mean this key not exist
-    res_.AppendInteger(-2);
+    res_.SetRes(CmdRes::kCacheMiss);
   }
 }
 
