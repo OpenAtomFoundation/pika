@@ -815,6 +815,7 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
       ReadCache(slot);
     }
     if (is_read() && res().CacheMiss()) {
+      pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), argv_[1]);
       DoThroughDB(slot);
       if (IsNeedUpdateCache()) {
         DoUpdateCache(slot);
