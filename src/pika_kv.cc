@@ -1127,10 +1127,21 @@ void ExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kCacheMiss);
     return;
   }
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
-  bool exist = slot->cache()->Exists(CachePrefixKeyK);
-  if (exist) {
-    res_.AppendInteger(1);
+  uint32_t nums = 0;
+  std::vector<std::string> v;
+  v.emplace_back(PCacheKeyPrefixK + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixL + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixZ + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixS + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixH + keys_[0]);
+  for (auto key : v) {
+    bool exist = slot->cache()->Exists(key);
+    if (exist) {
+      nums++;
+    }
+  }
+  if (nums > 0) {
+    res_.AppendInteger(nums);
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
@@ -1495,7 +1506,7 @@ void PttlCmd::Do(std::shared_ptr<Slot> slot) {
     }
   } else {
     // mean this key not exist
-    res_.SetRes(CmdRes::kCacheMiss);
+    res_.AppendInteger(-2);
   }
 }
 
@@ -1542,7 +1553,7 @@ void PttlCmd::ReadCache(std::shared_ptr<Slot> slot) {
     }
   } else {
     // mean this key not exist
-    res_.AppendInteger(-2);
+    res_.SetRes(CmdRes::kCacheMiss);
   }
 }
 

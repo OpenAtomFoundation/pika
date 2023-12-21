@@ -632,9 +632,9 @@ ExternalProject_Add(rocksdb
 
 ExternalProject_Add(rediscache
   URL
-  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.6.tar.gz
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.7.tar.gz
   URL_HASH
-  MD5=2fc5345bc3c7fead6700318988562d72
+  MD5=02c8aadc018dd8d4d3803cc420d1d75b
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
