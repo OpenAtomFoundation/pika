@@ -154,6 +154,19 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
       cd output && make
     ```
 
+    其他子组件，如 `codis` 和 `pika_operator` 也可以用 `build.sh` 进行编译。
+
+    ```bash
+      # 编译 codis, 默认 target，build-all
+      ./build.sh codis
+
+      # 编译 codis, 但只构建 codis-proxy
+      ./build.sh codis codis-proxy
+
+      # 编译 pika_operator
+      ./build.sh operator
+    ```
+
 * #### 2.4 启动 Pika
 
   ```bash

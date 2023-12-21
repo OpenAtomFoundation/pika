@@ -20,8 +20,15 @@ type Instance struct {
 	Alias    string
 }
 
+type InstanceProxy struct {
+	ID          int
+	Addr        string
+	ProductName string
+}
+
 type Discovery interface {
 	GetInstances() []Instance
+	GetInstancesProxy() []InstanceProxy
 	CheckUpdate(chan int, string)
 }
 
@@ -56,6 +63,10 @@ func NewCmdArgsDiscovery(addr, password, alias string) (*cmdArgsDiscovery, error
 
 func (d *cmdArgsDiscovery) GetInstances() []Instance {
 	return d.instances
+}
+
+func (d *cmdArgsDiscovery) GetInstancesProxy() []InstanceProxy {
+	return nil
 }
 
 func (d *cmdArgsDiscovery) CheckUpdate(chan int, string) {}
@@ -107,10 +118,15 @@ func (d *fileDiscovery) GetInstances() []Instance {
 	return d.instances
 }
 
+func (d *fileDiscovery) GetInstancesProxy() []InstanceProxy {
+	return nil
+}
+
 func (d *fileDiscovery) CheckUpdate(chan int, string) {}
 
 type codisDiscovery struct {
-	instances []Instance
+	instances     []Instance
+	instanceProxy []InstanceProxy
 }
 
 func NewCodisDiscovery(url, password, alias string) (*codisDiscovery, error) {
@@ -155,11 +171,27 @@ func NewCodisDiscovery(url, password, alias string) (*codisDiscovery, error) {
 			Alias:    aliases[i],
 		}
 	}
-	return &codisDiscovery{instances: instances}, nil
+
+	instancesproxy := make([]InstanceProxy, len(result.Stats.Proxy.Models))
+	for i := range result.Stats.Proxy.Models {
+		instancesproxy[i] = InstanceProxy{
+			ID:          result.Stats.Proxy.Models[i].Id,
+			Addr:        result.Stats.Proxy.Models[i].AdminAddr,
+			ProductName: result.Stats.Proxy.Models[i].ProductName,
+		}
+	}
+	return &codisDiscovery{
+		instances:     instances,
+		instanceProxy: instancesproxy,
+	}, nil
 }
 
 func (d *codisDiscovery) GetInstances() []Instance {
 	return d.instances
+}
+
+func (d *codisDiscovery) GetInstancesProxy() []InstanceProxy {
+	return d.instanceProxy
 }
 
 func (d *codisDiscovery) CheckUpdate(updatechan chan int, codisaddr string) {
@@ -174,8 +206,11 @@ func (d *codisDiscovery) CheckUpdate(updatechan chan int, codisaddr string) {
 }
 
 func (d *codisDiscovery) comparedis(new_instance *codisDiscovery) bool {
-	var addrs []string
-	var diff bool = false
+	var (
+		addrs      []string
+		addrsProxy []string
+		diff       bool
+	)
 	for _, instance := range new_instance.instances {
 		addrs = append(addrs, instance.Addr)
 	}
@@ -185,7 +220,16 @@ func (d *codisDiscovery) comparedis(new_instance *codisDiscovery) bool {
 			return false
 		}
 	}
-	if !diff && len(new_instance.instances) == len(d.instances) {
+	for _, instance := range new_instance.instanceProxy {
+		addrsProxy = append(addrsProxy, instance.Addr)
+	}
+	for _, instance := range d.instanceProxy {
+		if !contains(instance.Addr, addrsProxy) {
+			diff = true
+			return false
+		}
+	}
+	if !diff && len(new_instance.instances) == len(d.instances) && len(new_instance.instanceProxy) == len(d.instanceProxy) {
 		return true
 	}
 	return false

@@ -355,30 +355,12 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
 
   LogOffset log_offset;
 
-  stable_logger_->Logger()->Lock();
-  // build BinlogItem
-  uint32_t filenum = 0;
-  uint32_t term = 0;
-  uint64_t offset = 0;
-  uint64_t logic_id = 0;
-  Status s = stable_logger_->Logger()->GetProducerStatus(&filenum, &offset, &term, &logic_id);
-  if (!s.ok()) {
-    stable_logger_->Logger()->Unlock();
-    return s;
-  }
   BinlogItem item;
-  item.set_exec_time(time(nullptr));
-  item.set_term_id(term);
-  item.set_logic_id(logic_id + 1);
-  item.set_filenum(filenum);
-  item.set_offset(offset);
   // make sure stable log and mem log consistent
-  s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
+  Status s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
   if (!s.ok()) {
-    stable_logger_->Logger()->Unlock();
     return s;
   }
-  stable_logger_->Logger()->Unlock();
 
   g_pika_server->SignalAuxiliary();
   return Status::OK();
@@ -408,9 +390,7 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     return Status::OK();
   }
 
-  stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
-  stable_logger_->Logger()->Unlock();
 
   InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
   return Status::OK();
@@ -429,9 +409,8 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const 
 
 Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
                                                   LogOffset* log_offset) {
-  std::string binlog =
-      cmd_ptr->ToBinlog(item.exec_time(), item.term_id(), item.logic_id(), item.filenum(), item.offset());
-  Status s = stable_logger_->Logger()->Put(binlog);
+  std::string content = cmd_ptr->ToRedisProtocol();
+  Status s = stable_logger_->Logger()->Put(content);
   if (!s.ok()) {
     std::string db_name = cmd_ptr->db_name().empty() ? g_pika_conf->default_db() : cmd_ptr->db_name();
     std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);

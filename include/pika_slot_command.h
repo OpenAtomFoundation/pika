@@ -12,8 +12,6 @@
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 
-const size_t MaxKeySendSize = 10 * 1024;
-
 extern uint32_t crc32tab[256];
 
 void CRC32TableInit(uint32_t poly);
@@ -96,7 +94,7 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){}
   void Do(std::shared_ptr<Slot> slot) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override{};
+  void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
  private:
   std::string dest_ip_;

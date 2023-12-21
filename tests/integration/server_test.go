@@ -390,11 +390,24 @@ var _ = Describe("Server", func() {
 		//	Expect(info.Val()).To(ContainSubstring(`memory`))
 		//})
 		//
-		//It("should LastSave", func() {
-		//	lastSave := client.LastSave(ctx)
-		//	Expect(lastSave.Err()).NotTo(HaveOccurred())
-		//	Expect(lastSave.Val()).NotTo(Equal(0))
-		//})
+		It("should LastSave", func() {
+			lastSave := client.LastSave(ctx)
+			Expect(lastSave.Err()).NotTo(HaveOccurred())
+			//Expect(lastSave.Val()).To(Equal(int64(0)))
+
+			bgSaveTime1 := time.Now().Unix()
+			bgSave, err := client.BgSave(ctx).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bgSave).To(ContainSubstring("Background saving started"))
+			time.Sleep(1 * time.Second)
+			bgSaveTime2 := time.Now().Unix()
+
+			lastSave = client.LastSave(ctx)
+			Expect(lastSave.Err()).NotTo(HaveOccurred())
+			Expect(lastSave.Val()).To(BeNumerically(">=", bgSaveTime1))
+			Expect(lastSave.Val()).To(BeNumerically("<=", bgSaveTime2))
+
+		})
 
 		//It("should Save", func() {
 		//
@@ -407,16 +420,17 @@ var _ = Describe("Server", func() {
 		//	}, "10s").Should(Equal("OK"))
 		//})
 
-		// todo 待回滚
-		//It("should SlaveOf", func() {
-		//	slaveOf := client.SlaveOf(ctx, "localhost", "8888")
-		//	Expect(slaveOf.Err()).NotTo(HaveOccurred())
-		//	Expect(slaveOf.Val()).To(Equal("OK"))
-		//
-		//	slaveOf = client.SlaveOf(ctx, "NO", "ONE")
-		//	Expect(slaveOf.Err()).NotTo(HaveOccurred())
-		//	Expect(slaveOf.Val()).To(Equal("OK"))
-		//})
+		// fix: https://github.com/OpenAtomFoundation/pika/issues/2168
+		It("should SlaveOf itself", func() {
+			slaveOf := client.SlaveOf(ctx, "127.0.0.1", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+
+			slaveOf = client.SlaveOf(ctx, "localhost", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+
+			slaveOf = client.SlaveOf(ctx, "loCalHoSt", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+		})
 
 		It("should Time", func() {
 			tm, err := client.Time(ctx).Result()

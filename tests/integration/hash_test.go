@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = Describe("List Commands", func() {
+var _ = Describe("Hash Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
@@ -308,6 +308,16 @@ var _ = Describe("List Commands", func() {
 			Expect(slice).To(Equal([]string{"hello1", "hello2"}))
 		})
 
+		It("should HSTRLEN", func() {
+			hSet := client.HSet(ctx, "hash", "key1", "hello1")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+
+			hGet := client.HGet(ctx, "hash", "key1")
+			Expect(hGet.Err()).NotTo(HaveOccurred())
+			length := client.Do(ctx, "hstrlen", "hash", "key1")
+
+			Expect(length.Val()).To(Equal(int64(len("hello1"))))
+		})
 		//It("should HRandField", func() {
 		//	err := client.HSet(ctx, "hash", "key1", "hello1").Err()
 		//	Expect(err).NotTo(HaveOccurred())

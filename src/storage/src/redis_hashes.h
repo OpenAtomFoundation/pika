@@ -33,6 +33,7 @@ class RedisHashes : public Redis {
   Status HExists(const Slice& key, const Slice& field);
   Status HGet(const Slice& key, const Slice& field, std::string* value);
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
   Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
   Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
   Status HKeys(const Slice& key, std::vector<std::string>* fields);

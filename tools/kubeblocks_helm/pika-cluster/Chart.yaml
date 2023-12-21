@@ -4,9 +4,9 @@ description: A Pika Codis Cluster Helm chart for KubeBlocks.
 
 type: application
 
-version: 0.6.0-alpha.21
+version: 0.7.1-beta.1
 
-appVersion: "3.5.1"
+appVersion: "3.5.2"
 
 home: https://github.com/OpenAtomFoundation/pika
 keywords:

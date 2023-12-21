@@ -13,14 +13,18 @@
 
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "net/src/dispatch_thread.h"
+#include "net/src/worker_thread.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
+
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -38,6 +42,9 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
+    if (IsInTxn()) {
+      SetTxnInitFailState(true);
+    }
     return tmp_ptr;
   }
   c_ptr->SetConn(shared_from_this());
@@ -58,9 +65,16 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   // Initial
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
+    if (IsInTxn()) {
+      SetTxnInitFailState(true);
+    }
     return c_ptr;
   }
-
+  if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
+    PushCmdToQue(c_ptr);
+    c_ptr->res().SetRes(CmdRes::kTxnQueued);
+    return c_ptr;
+  }
   g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
 
   // PubSub connection
@@ -91,7 +105,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       return c_ptr;
     }
     std::vector<std::string> cur_key = c_ptr->current_key();
-    if (cur_key.empty()) {
+    if (cur_key.empty() && opt != kCmdNameExec) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
@@ -108,6 +122,21 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
 
+  if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
+    if (c_ptr->name() == kCmdNameFlushdb) {
+      auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
+      SetTxnFailedFromDBs(flushdb->GetFlushDname());
+    } else if (c_ptr->name() == kCmdNameFlushall) {
+      SetAllTxnFailed();
+    } else {
+      auto table_keys = c_ptr->current_key();
+      for (auto& key : table_keys) {
+        key = c_ptr->db_name().append(key);
+      }
+      SetTxnFailedFromKeys(table_keys);
+    }
+  }
+
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, c_ptr->GetDoDuration());
   }
@@ -117,7 +146,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_duration) {
   if (time_stat_->total_time() > g_pika_conf->slowlog_slower_than()) {
-    g_pika_server->SlowlogPushEntry(argv, time_stat_->start_ts(), time_stat_->total_time());
+    g_pika_server->SlowlogPushEntry(argv, time_stat_->start_ts() / 1000000, time_stat_->total_time());
     if (g_pika_conf->slowlog_write_errorlog()) {
       bool trim = false;
       std::string slow_log;
@@ -246,7 +275,121 @@ void PikaClientConn::TryWriteResp() {
   }
 }
 
-void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
+void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
+  txn_cmd_que_.push(cmd);
+}
+
+bool PikaClientConn::IsInTxn() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::Start];
+}
+
+bool PikaClientConn::IsTxnFailed() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::WatchFailed] | txn_state_[TxnStateBitMask::InitCmdFailed];
+}
+
+bool PikaClientConn::IsTxnInitFailed() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::InitCmdFailed];
+}
+
+bool PikaClientConn::IsTxnWatchFailed() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::WatchFailed];
+}
+
+bool PikaClientConn::IsTxnExecing() {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  return txn_state_[TxnStateBitMask::Execing] && txn_state_[TxnStateBitMask::Start];
+}
+
+void PikaClientConn::SetTxnWatchFailState(bool is_failed) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::WatchFailed] = is_failed;
+}
+
+void PikaClientConn::SetTxnInitFailState(bool is_failed) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::InitCmdFailed] = is_failed;
+}
+
+void PikaClientConn::SetTxnStartState(bool is_start) {
+  std::lock_guard<std::mutex> lg(txn_state_mu_);
+  txn_state_[TxnStateBitMask::Start] = is_start;
+}
+
+void PikaClientConn::ClearTxnCmdQue() {
+  txn_cmd_que_ = std::queue<std::shared_ptr<Cmd>>{};
+}
+
+
+void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &db_keys) {
+  for (const auto &it : db_keys) {
+    watched_db_keys_.emplace(it);
+  }
+
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    dispatcher->AddWatchKeys(watched_db_keys_, shared_from_this());
+  }
+}
+
+void PikaClientConn::RemoveWatchedKeys() {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    watched_db_keys_.clear();
+    dispatcher->RemoveWatchKeys(shared_from_this());
+  }
+}
+
+void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &db_keys) {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
+    involved_conns = dispatcher->GetInvolvedTxn(db_keys);
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+        c->SetTxnWatchFailState(true);
+      }
+    }
+  }
+}
+
+void PikaClientConn::SetAllTxnFailed() {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = dispatcher->GetAllTxns();
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+        c->SetTxnWatchFailState(true);
+      }
+    }
+  }
+}
+
+void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = dispatcher->GetDBTxns(db_name);
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+        c->SetTxnWatchFailState(true);
+      }
+    }
+  }
+}
+
+void PikaClientConn::ExitTxn() {
+  if (IsInTxn()) {
+    RemoveWatchedKeys();
+    ClearTxnCmdQue();
+    std::lock_guard<std::mutex> lg(txn_state_mu_);
+    txn_state_.reset();
+  }
+}
+
+void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr) {
   // get opt
   std::string opt = argv[0];
   pstd::StringToLower(opt);
@@ -260,6 +403,10 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
   *resp_ptr = std::move(cmd_ptr->res().message());
   resp_num--;
+}
+
+std::queue<std::shared_ptr<Cmd>> PikaClientConn::GetTxnCmdQue() {
+  return txn_cmd_que_;
 }
 
 // Initial permission status
@@ -284,7 +431,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
     case kAdminAuthed:
       break;
     case kLimitAuthed:
-      if (cmd_ptr->is_admin_require() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
+      if (cmd_ptr->IsAdminRequire() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
         return false;
       }
       break;

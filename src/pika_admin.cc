@@ -15,7 +15,6 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -121,7 +120,7 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
+  if ((pstd::StringToLower(master_ip_) == "localhost" || master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
     res_.SetRes(CmdRes::kErrOther, "The master ip:port and the slave ip:port are the same");
     return;
   }
@@ -159,6 +158,7 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
 
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
+    g_pika_server->ClearCacheDbAsync(slot);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
     g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
@@ -301,11 +301,13 @@ void BgsaveCmd::DoInitial() {
         bgsave_dbs_.insert(db);
       }
     }
+  } else {
+    bgsave_dbs_ = g_pika_server->GetAllDBName();
   }
 }
 
 void BgsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  g_pika_server->DoSameThingSpecificDB(TaskType::kBgSave, bgsave_dbs_);
+  g_pika_server->DoSameThingSpecificDB(bgsave_dbs_, {TaskType::kBgSave});
   LogCommand();
   res_.AppendContent("+Background saving started");
 }
@@ -323,8 +325,10 @@ void CompactCmd::DoInitial() {
 
   if (argv_.size() == 1) {
     struct_type_ = "all";
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 2) {
     struct_type_ = argv_[1];
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 3) {
     std::vector<std::string> dbs;
     pstd::StringSplit(argv_[1], COMMA, dbs);
@@ -342,17 +346,62 @@ void CompactCmd::DoInitial() {
 
 void CompactCmd::Do(std::shared_ptr<Slot> slot) {
   if (strcasecmp(struct_type_.data(), "all") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactAll, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
   } else if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactStrings, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactStrings});
   } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactHashes, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactHashes});
   } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactSets, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactSets});
   } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactZSets, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactZSets});
   } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactList, compact_dbs_);
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactList});
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
+    return;
+  }
+  LogCommand();
+  res_.SetRes(CmdRes::kOk);
+}
+
+void CompactRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCompactRange);
+    return;
+  }
+
+  if (g_pika_server->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
+    return;
+  }
+
+  std::vector<std::string> dbs;
+  pstd::StringSplit(argv_[1], COMMA, dbs);
+  for (const auto& db : dbs) {
+    if (!g_pika_server->IsDBExist(db)) {
+      res_.SetRes(CmdRes::kInvalidDB, db);
+      return;
+    } else {
+      compact_dbs_.insert(db);
+    }
+  }
+  struct_type_ = argv_[2];
+  start_key_ = argv_[3];
+  end_key_ = argv_[4];
+}
+
+void CompactRangeCmd::Do(std::shared_ptr<Slot> slot) {
+  if (strcasecmp(struct_type_.data(), "string") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeStrings, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeHashes, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeSets, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeZSets, {start_key_, end_key_}});
+  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
+    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeList, {start_key_, end_key_}});
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
     return;
@@ -417,10 +466,21 @@ void PingCmd::Do(std::shared_ptr<Slot> slot) {
   }
   res_.SetRes(CmdRes::kPong);
 }
-
 void SelectCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
+    return;
+  }
+  db_name_ = "db" + argv_[1];
+  select_db_ = g_pika_server->GetDB(db_name_);
+  return ;
+}
+
+void SelectCmd::Do(std::shared_ptr<Slot> slot) {
+  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   int index = atoi(argv_[1].data());
@@ -432,21 +492,11 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
     return;
   }
-  db_name_ = "db" + argv_[1];
-  if (!g_pika_server->IsDBExist(db_name_)) {
+  if (select_db_ == nullptr) {
     res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
     return;
   }
-}
-
-void SelectCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
-  if (!conn) {
-    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
-    LOG(WARNING) << name_ << " weak ptr is empty";
-    return;
-  }
-  conn->SetCurrentTable(db_name_);
+  conn->SetCurrentDb(db_name_);
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -464,9 +514,19 @@ void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
+void FlushallCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void FlushallCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  // clear cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+    g_pika_server->ClearCacheDbAsync(slot);
+  }
+}
+
 // flushall convert flushdb writes to every slot binlog
-std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                  uint64_t offset) {
+std::string FlushallCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 1, "*");
@@ -475,8 +535,56 @@ std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t
   std::string flushdb_cmd("flushdb");
   RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
   RedisAppendContent(content, flushdb_cmd);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
-                                             content, {});
+  return content;
+}
+
+void FlushallCmd::Execute() {
+  std::lock_guard l_trw(g_pika_server->GetDBLock());
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    if (db_item.second->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+      return;
+    }
+  }
+  g_pika_rm->SlotLock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->SlotLock();
+  }
+  FlushAllWithoutLock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->SlotUnlock();
+  }
+  g_pika_rm->SlotUnlock();
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  }
+}
+
+void FlushallCmd::FlushAllWithoutLock() {
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    for (const auto& slot_item : db_item.second->GetSlots()) {
+      std::shared_ptr<Slot> slot = slot_item.second;
+      SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
+      if (g_pika_rm->GetSyncMasterSlots().find(p_info) == g_pika_rm->GetSyncMasterSlots().end()) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
+        return;
+      }
+      DoWithoutLock(slot);
+      DoBinlog(g_pika_rm->GetSyncMasterSlots()[p_info]);
+    }
+  }
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  }
+}
+
+void FlushallCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushall, but Slot not found";
+  } else {
+    slot->FlushDBWithoutLock();
+    DoUpdateCache(slot);
+  }
 }
 
 void FlushdbCmd::DoInitial() {
@@ -512,6 +620,60 @@ void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
       slot->FlushDB();
     } else {
       slot->FlushSubDB(db_name_);
+    }
+  }
+}
+
+
+void FlushdbCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+  Do(slot);
+}
+
+void FlushdbCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+  // clear cache
+  if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
+    g_pika_server->ClearCacheDbAsync(slot);
+  }
+}
+
+void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
+  for (const auto& slot_item : db->GetSlots()) {
+    std::shared_ptr<Slot> slot = slot_item.second;
+    SlotInfo p_info(slot->GetDBName(), slot->GetSlotID());
+    if (g_pika_rm->GetSyncMasterSlots().find(p_info) == g_pika_rm->GetSyncMasterSlots().end()) {
+      res_.SetRes(CmdRes::kErrOther, "Slot not found");
+      return;
+    }
+    DoWithoutLock(slot);
+    DoBinlog(g_pika_rm->GetSyncMasterSlots()[p_info]);
+  }
+}
+
+void FlushdbCmd::DoWithoutLock(std::shared_ptr<Slot> slot) {
+  if (!slot) {
+    LOG(INFO) << "Flushdb, but Slot not found";
+  } else {
+    if (db_name_ == "all") {
+      slot->FlushDBWithoutLock();
+    } else {
+      slot->FlushSubDBWithoutLock(db_name_);
+    }
+    DoUpdateCache(slot);
+  }
+}
+
+void FlushdbCmd::Execute() {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(Cmd::db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
+  } else {
+    if (db->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    } else {
+      std::lock_guard l_prw(db->GetSlotLock());
+      std::lock_guard s_prw(g_pika_rm->GetSlotLock());
+      FlushAllSlotsWithoutLock(db);
+      res_.SetRes(CmdRes::kOk);
     }
   }
 }
@@ -589,7 +751,7 @@ void ClientCmd::Do(std::shared_ptr<Slot> slot) {
       std::sort(clients.begin(), clients.end(), IdleCompare);
     }
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%lld\n", iter->ip_port.c_str(), iter->fd,
+      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n", iter->ip_port.c_str(), iter->fd,
                iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);  // NOLINT
       reply.append(buf);
       iter++;
@@ -612,7 +774,7 @@ void ShutdownCmd::DoInitial() {
   }
 
   // For now, only shutdown need check local
-  if (is_local()) {
+  if (IsLocal()) {
     std::shared_ptr<net::NetConn> conn = GetConn();
     if (conn) {
       if (conn->ip_port().find("127.0.0.1") == std::string::npos &&
@@ -648,6 +810,7 @@ const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
+const std::string InfoCmd::kCacheSection = "cache";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -707,6 +870,8 @@ void InfoCmd::DoInitial() {
           keyspace_scan_dbs_.insert(db);
         }
       }
+    } else {
+      keyspace_scan_dbs_ = g_pika_server->GetAllDBName();
     }
     LogCommand();
     return;
@@ -718,6 +883,8 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoDebug;
   } else if (strcasecmp(argv_[1].data(), kCommandStatsSection.data()) == 0) {
     info_section_ = kInfoCommandStats;
+  } else if (strcasecmp(argv_[1].data(), kCacheSection.data()) == 0) {
+    info_section_ = kInfoCache;
   } else {
     info_section_ = kInfoErr;
   }
@@ -756,6 +923,8 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       InfoExecCount(info);
       info.append("\r\n");
       InfoCommandStats(info);
+      info.append("\r\n");
+      InfoCache(info, slot);
       info.append("\r\n");
       InfoCPU(info);
       info.append("\r\n");
@@ -797,6 +966,9 @@ void InfoCmd::Do(std::shared_ptr<Slot> slot) {
       break;
     case kInfoCommandStats:
       InfoCommandStats(info);
+      break;
+    case kInfoCache:
+      InfoCache(info, slot);
       break;
     default:
       // kInfoErr is nothing
@@ -890,7 +1062,7 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_slots_migrating:" << (is_migrating ? "Yes, " : "No, ") << start_migration_time_str << ", "
              << (is_migrating ? (current_time_s - start_migration_time) : (end_migration_time - start_migration_time))
              << "\r\n";
-
+  tmp_stream << "slow_logs_count:" << g_pika_server->SlowlogCount() << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -931,61 +1103,6 @@ void InfoCmd::InfoCPU(std::string& info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoShardingReplication(std::string& info) {
-  int role = 0;
-  std::string slave_list_string;
-  uint32_t slave_num = g_pika_server->GetShardingSlaveListString(slave_list_string);
-  if (slave_num != 0U) {
-    role |= PIKA_ROLE_MASTER;
-  }
-  std::string common_master;
-  std::string master_ip;
-  int master_port = 0;
-  g_pika_rm->FindCommonMaster(&common_master);
-  if (!common_master.empty()) {
-    role |= PIKA_ROLE_SLAVE;
-    if (!pstd::ParseIpPortString(common_master, master_ip, master_port)) {
-      return;
-    }
-  }
-
-  std::stringstream tmp_stream;
-  tmp_stream << "# Replication(";
-  switch (role) {
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "MASTER)\r\nrole:master\r\n";
-      break;
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "SLAVE)\r\nrole:slave\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "Master && SLAVE)\r\nrole:master&&slave\r\n";
-      break;
-    default:
-      info.append("ERR: server role is error\r\n");
-      return;
-  }
-  switch (role) {
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "connected_slaves:" << slave_num << "\r\n" << slave_list_string;
-  }
-  info.append(tmp_stream.str());
-}
-
 void InfoCmd::InfoReplication(std::string& info) {
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
@@ -993,7 +1110,7 @@ void InfoCmd::InfoReplication(std::string& info) {
 
   bool all_slot_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
-  for (const auto& db_item : g_pika_server->dbs_) {
+  for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_lock slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot =
@@ -1100,14 +1217,14 @@ void InfoCmd::InfoReplication(std::string& info) {
 
 void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kStopKeyScan, keyspace_scan_dbs_);
+    g_pika_server->DoSameThingSpecificDB(keyspace_scan_dbs_, {TaskType::kStopKeyScan});
     info.append("OK\r\n");
     return;
   }
 
   std::string db_name;
   KeyScanInfo key_scan_info;
-  int32_t duration;
+  int32_t duration = 0;
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace"
@@ -1123,7 +1240,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
-    if (keyspace_scan_dbs_.empty() || keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
+    if (keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
       db_name = db_item.second->GetDBName();
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
@@ -1159,20 +1276,31 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->DoSameThingSpecificDB(TaskType::kStartKeyScan, keyspace_scan_dbs_);
+    g_pika_server->DoSameThingSpecificDB(keyspace_scan_dbs_, {TaskType::kStartKeyScan});
   }
 }
 
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
+  uint64_t db_size = 0;
+  time_t current_time_s = time(nullptr);
+  uint64_t log_size = 0;
 
-  uint64_t db_size = pstd::Du(g_pika_conf->db_path());
+  if (current_time_s - 60 >= db_size_last_time_) {
+    db_size_last_time_ = current_time_s;
+    db_size = pstd::Du(g_pika_conf->db_path());
+    db_size_ = db_size;
+    log_size = pstd::Du(g_pika_conf->log_path());
+    log_size_ = log_size;
+  } else {
+    db_size = db_size_;
+    log_size = log_size_;
+  }
   tmp_stream << "# Data"
              << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
-  uint64_t log_size = pstd::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -1181,8 +1309,8 @@ void InfoCmd::InfoData(std::string& info) {
   std::map<std::string, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
-  uint64_t memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
+  uint64_t memtable_usage = 0;
   uint64_t table_reader_usage = 0;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
@@ -1261,25 +1389,73 @@ void InfoCmd::InfoDebug(std::string& info) {
 }
 
 void InfoCmd::InfoCommandStats(std::string& info) {
-    std::stringstream tmp_stream;
-    tmp_stream.precision(2);
-    tmp_stream.setf(std::ios::fixed);
-    tmp_stream << "# Commandstats" << "\r\n";
-    for (auto iter : *g_pika_server->GetCommandStatMap()) {
-      if (iter.second.cmd_count != 0) {
-        tmp_stream << iter.first << ":"
-                   << "calls=" << iter.second.cmd_count << ", usec="
-                   << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
-                   << ", usec_per_call=";
-        if (!iter.second.cmd_time_consuming) {
-          tmp_stream << 0 << "\r\n";
-        } else {
-          tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
-                     << "\r\n";
-        }
+  std::stringstream tmp_stream;
+  tmp_stream.precision(2);
+  tmp_stream.setf(std::ios::fixed);
+  tmp_stream << "# Commandstats" << "\r\n";
+  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+    if (iter.second.cmd_count != 0) {
+      tmp_stream << iter.first << ":"
+                 << "calls=" << iter.second.cmd_count << ", usec="
+                 << MethodofTotalTimeCalculation(iter.second.cmd_time_consuming)
+                 << ", usec_per_call=";
+      if (!iter.second.cmd_time_consuming) {
+        tmp_stream << 0 << "\r\n";
+      } else {
+        tmp_stream << MethodofCommandStatistics(iter.second.cmd_time_consuming, iter.second.cmd_count)
+                   << "\r\n";
       }
     }
-    info.append(tmp_stream.str());
+  }
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoCache(std::string& info, std::shared_ptr<Slot> slot) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Cache" << "\r\n";
+  if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
+    tmp_stream << "cache_status:Disable" << "\r\n";
+  } else {
+    auto cache_info = slot->GetCacheInfo();
+    tmp_stream << "cache_status:" << CacheStatusToString(cache_info.status) << "\r\n";
+    tmp_stream << "cache_db_num:" << cache_info.cache_num << "\r\n";
+    tmp_stream << "cache_keys:" << cache_info.keys_num << "\r\n";
+    tmp_stream << "cache_memory:" << cache_info.used_memory << "\r\n";
+    tmp_stream << "cache_memory_human:" << (cache_info.used_memory >> 20) << "M\r\n";
+    tmp_stream << "hits:" << cache_info.hits << "\r\n";
+    tmp_stream << "all_cmds:" << cache_info.hits + cache_info.misses << "\r\n";
+    tmp_stream << "hits_per_sec:" << cache_info.hits_per_sec << "\r\n";
+    tmp_stream << "read_cmd_per_sec:" << cache_info.read_cmd_per_sec << "\r\n";
+    tmp_stream << "hitratio_per_sec:" << std::setprecision(4) << cache_info.hitratio_per_sec << "%" << "\r\n";
+    tmp_stream << "hitratio_all:" << std::setprecision(4) << cache_info.hitratio_all << "%" << "\r\n";
+    tmp_stream << "load_keys_per_sec:" << cache_info.load_keys_per_sec << "\r\n";
+    tmp_stream << "waitting_load_keys_num:" << cache_info.waitting_load_keys_num << "\r\n";
+  }
+  info.append(tmp_stream.str());
+}
+
+std::string InfoCmd::CacheStatusToString(int status) {
+  switch (status) {
+    case PIKA_CACHE_STATUS_NONE:
+      return std::string("None");
+    case PIKA_CACHE_STATUS_OK:
+      return std::string("Ok");
+    case PIKA_CACHE_STATUS_INIT:
+      return std::string("Init");
+    case PIKA_CACHE_STATUS_RESET:
+      return std::string("Reset");
+    case PIKA_CACHE_STATUS_DESTROY:
+      return std::string("Destroy");
+    case PIKA_CACHE_STATUS_CLEAR:
+      return std::string("Clear");
+    default:
+      return std::string("Unknown");
+  }
+}
+
+void InfoCmd::Execute() {
+  std::shared_ptr<Slot> slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 void ConfigCmd::DoInitial() {
@@ -1323,7 +1499,7 @@ void ConfigCmd::Do(std::shared_ptr<Slot> slot) {
   if (strcasecmp(config_args_v_[0].data(), "get") == 0) {
     ConfigGet(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "set") == 0) {
-    ConfigSet(config_ret);
+    ConfigSet(config_ret, slot);
   } else if (strcasecmp(config_args_v_[0].data(), "rewrite") == 0) {
     ConfigRewrite(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "resetstat") == 0) {
@@ -1517,6 +1693,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "small-compaction-threshold");
     EncodeNumber(&config_body, g_pika_conf->small_compaction_threshold());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "small-compaction-duration-threshold", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "small-compaction-duration-threshold");
+    EncodeNumber(&config_body, g_pika_conf->small_compaction_duration_threshold());
   }
 
   if (pstd::stringmatch(pattern.data(), "max-background-flushes", 1) != 0) {
@@ -1873,10 +2055,10 @@ void ConfigCmd::ConfigGet(std::string& ret) {
 }
 
 // Remember to sync change PikaConf::ConfigRewrite();
-void ConfigCmd::ConfigSet(std::string& ret) {
+void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*28\r\n";
+    ret = "*29\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1895,6 +2077,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "max-cache-statistic-keys");
     EncodeString(&ret, "small-compaction-threshold");
+    EncodeString(&ret, "small-compaction-duration-threshold");
     EncodeString(&ret, "max-client-response-size");
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
@@ -1914,7 +2097,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "max-rsync-parallel-num");
     return;
   }
-  long int ival;
+  long int ival = 0;
   std::string value = config_args_v_[2];
   if (set_item == "timeout") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2026,6 +2209,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
     g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "small-compaction-duration-threshold") {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-duration-threshold'\r\n";
+      return;
+    }
+    g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    g_pika_server->SlotSetSmallCompactionDurationThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
@@ -2221,6 +2412,106 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetMaxRsyncParallelNum(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "cache-num") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-num'\r\n";
+      return;
+    }
+
+    int cache_num = (ival <= 0 || ival > 48) ? 16 : ival;
+    if (cache_num != g_pika_conf->GetCacheNum()) {
+      g_pika_conf->SetCacheNum(cache_num);
+      g_pika_server->ResetCacheAsync(cache_num, slot);
+    }
+    ret = "+OK\r\n";
+  } else if (set_item == "cache-model") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-model'\r\n";
+      return;
+    }
+    if (PIKA_CACHE_NONE > ival || PIKA_CACHE_READ < ival) {
+      ret = "-ERR Invalid cache model\r\n";
+    } else {
+      g_pika_conf->SetCacheModel(ival);
+      if (PIKA_CACHE_NONE == ival) {
+        g_pika_server->ClearCacheDbAsync(slot);
+      }
+      ret = "+OK\r\n";
+    }
+  } else if (set_item == "cache-type") {
+    pstd::StringToLower(value);
+    std::set<std::string> available_types = {"string", "set", "zset", "list", "hash", "bit"};
+    std::string type_str = value;
+    std::vector<std::string> types;
+    type_str.erase(remove_if(type_str.begin(), type_str.end(), isspace), type_str.end());
+    pstd::StringSplit(type_str, COMMA, types);
+    for (auto& type : types) {
+      if (available_types.find(type) == available_types.end()) {
+        ret = "-ERR Invalid cache type: " + type + "\r\n";
+        return;
+      }
+    }
+    g_pika_conf->SetCacheType(value);
+    ret = "+OK\r\n";
+  } else if (set_item == "zset-cache-start-direction") {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'zset-cache-start-direction'\r\n";
+      return;
+    }
+    if (ival != CACHE_START_FROM_BEGIN && ival != CACHE_START_FROM_END) {
+      ret = "-ERR Invalid zset-cache-start-direction\r\n";
+      return;
+    }
+    auto origin_start_pos = g_pika_conf->zset_cache_start_pos();
+    if (origin_start_pos != ival) {
+      g_pika_conf->SetCacheStartPos(ival);
+      g_pika_server->OnCacheStartPosChanged(ival, slot);
+    }
+    ret = "+OK\r\n";
+  } else if (set_item == "zset-cache-field-num-per-key") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'zset-cache-field-num-per-key'\r\n";
+      return;
+    }
+    g_pika_conf->SetCacheItemsPerKey(ival);
+    g_pika_server->ResetCacheConfig(slot);
+    ret = "+OK\r\n";
+  } else if (set_item == "cache-maxmemory") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-maxmemory'\r\n";
+      return;
+    }
+    int64_t cache_maxmemory = (PIKA_CACHE_SIZE_MIN > ival) ? PIKA_CACHE_SIZE_DEFAULT : ival;
+    g_pika_conf->SetCacheMaxmemory(cache_maxmemory);
+    g_pika_server->ResetCacheConfig(slot);
+    ret = "+OK\r\n";
+  } else if (set_item == "cache-maxmemory-policy") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-maxmemory-policy'\r\n";
+      return;
+    }
+    int cache_maxmemory_policy_ = (ival < 0|| ival > 5) ? 3 : ival; // default allkeys-lru
+    g_pika_conf->SetCacheMaxmemoryPolicy(cache_maxmemory_policy_);
+    g_pika_server->ResetCacheConfig(slot);
+    ret = "+OK\r\n";
+  } else if (set_item == "cache-maxmemory-samples") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-maxmemory-samples'\r\n";
+      return;
+    }
+    int cache_maxmemory_samples = (ival > 1) ? 5 : ival;
+    g_pika_conf->SetCacheMaxmemorySamples(cache_maxmemory_samples);
+    g_pika_server->ResetCacheConfig(slot);
+    ret = "+OK\r\n";
+  } else if (set_item == "cache-lfu-decay-time") {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'cache-lfu-decay-time'\r\n";
+      return;
+    }
+    int cache_lfu_decay_time = (ival < 0) ? 1 : ival;
+    g_pika_conf->SetCacheLFUDecayTime(cache_lfu_decay_time);
+    g_pika_server->ResetCacheConfig(slot);
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2245,6 +2536,12 @@ void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
 void ConfigCmd::ConfigResetstat(std::string& ret) {
   g_pika_server->ResetStat();
   ret = "+OK\r\n";
+}
+
+void ConfigCmd::Execute() {
+  std::shared_ptr<Slot> slot;
+  slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 void MonitorCmd::DoInitial() {
@@ -2311,6 +2608,17 @@ void TimeCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, strerror(errno));
   }
+}
+
+void LastsaveCmd::DoInitial() {
+  if (argv_.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLastSave);
+    return;
+  }
+}
+
+void LastsaveCmd::Do(std::shared_ptr<Slot> slot) {
+  res_.AppendInteger(g_pika_server->GetLastSave());
 }
 
 void DelbackupCmd::DoInitial() {
@@ -2458,8 +2766,7 @@ void PaddingCmd::DoInitial() {
 
 void PaddingCmd::Do(std::shared_ptr<Slot> slot) { res_.SetRes(CmdRes::kOk); }
 
-std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
-                                 uint64_t offset) {
+std::string PaddingCmd::ToRedisProtocol() {
   return PikaBinlogTransverter::ConstructPaddingBinlog(
       BinlogType::TypeFirst,
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
@@ -2700,6 +3007,76 @@ void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
   }
   slot->db()->DisableWal(is_wal_disable);
   res_.SetRes(CmdRes::kOk, "Wal options is changed");
+}
+
+void CacheCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    return;
+  }
+  if (!strcasecmp(argv_[1].data(), "clear")) {
+    if (!strcasecmp(argv_[2].data(), "db")) {
+      condition_ = kCLEAR_DB;
+    } else if (!strcasecmp(argv_[2].data(), "hitratio")) {
+      condition_ = kCLEAR_HITRATIO;
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
+    }
+  } else if (!strcasecmp(argv_[1].data(), "del")) {
+    condition_ = kDEL_KEYS;
+    keys_.assign(argv_.begin() + 2, argv_.end());
+  } else if (!strcasecmp(argv_[1].data(), "randomkey")) {
+    condition_ = kRANDOM_KEY;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
+  }
+  return;
+}
+
+void CacheCmd::Do(std::shared_ptr<Slot> slot) {
+  std::string key;
+  switch (condition_) {
+    case kCLEAR_DB:
+      g_pika_server->ClearCacheDbAsync(slot);
+      res_.SetRes(CmdRes::kOk);
+      break;
+    case kCLEAR_HITRATIO:
+      g_pika_server->ClearHitRatio(slot);
+      res_.SetRes(CmdRes::kOk);
+      break;
+    case kDEL_KEYS:
+      slot->cache()->Del(keys_);
+      res_.SetRes(CmdRes::kOk);
+      break;
+    case kRANDOM_KEY:
+      s_ = slot->cache()->RandomKey(&key);
+      if (!s_.ok()) {
+        res_.AppendStringLen(-1);
+      } else {
+        res_.AppendStringLen(key.size());
+        res_.AppendContent(key);
+      }
+      break;
+    default:
+      res_.SetRes(CmdRes::kErrOther, "Unknown cmd");
+      break;
+  }
+  return;
+}
+
+void ClearCacheCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClearCache);
+    return;
+  }
+}
+
+void ClearCacheCmd::Do(std::shared_ptr<Slot> slot) {
+  // clean cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+    g_pika_server->ClearCacheDbAsync(slot);
+  }
+  res_.SetRes(CmdRes::kOk, "Cache is cleared");
 }
 
 #ifdef WITH_COMMAND_DOCS

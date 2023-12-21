@@ -1108,7 +1108,7 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t ret = 0;
   int32_t len = 0;
   int hastag = 0;
-  uint32_t crc;
+  uint32_t crc = 0;
   std::string detail;
   rocksdb::Status s;
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -1375,7 +1375,7 @@ void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Slot> slot) {
   std::string status;
   std::string ip;
   int64_t port = -1, slots = -1, moved = -1, remained = -1;
-  bool migrating;
+  bool migrating = false;
   g_pika_server->GetSlotsMgrtSenderStatus(&ip, &port, &slots, &migrating, &moved, &remained);
   std::string mstatus = migrating ? "yes" : "no";
   res_.AppendArrayLen(5);
@@ -1573,7 +1573,7 @@ void SlotsReloadCmd::Do(std::shared_ptr<Slot> slot) {
   g_pika_server->Bgslotsreload(slot);
   const PikaServer::BGSlotsReload &info = g_pika_server->bgslots_reload();
   char buf[256];
-  snprintf(buf, sizeof(buf), "+%s : %lld", info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
+  snprintf(buf, sizeof(buf), "+%s : %ld", info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
   res_.AppendContent(buf);
   return;
 }
@@ -1598,7 +1598,7 @@ void SlotsCleanupCmd::DoInitial() {
 
   auto iter = argv_.begin() + 1;
   std::string slot;
-  long slotLong;
+  long slotLong = 0;
   std::vector<int> slots;
   for (; iter != argv_.end(); iter++) {
     slot = *iter;
