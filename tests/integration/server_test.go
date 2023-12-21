@@ -393,19 +393,19 @@ var _ = Describe("Server", func() {
 		It("should LastSave", func() {
 			lastSave := client.LastSave(ctx)
 			Expect(lastSave.Err()).NotTo(HaveOccurred())
-// 			Expect(lastSave.Val()).To(Equal(int64(0)))
+			//Expect(lastSave.Val()).To(Equal(int64(0)))
 
-            bgSaveTime1 := time.Now().Unix()
-            bgSave, err := client.BgSave(ctx).Result()
-            Expect(err).NotTo(HaveOccurred())
-            Expect(bgSave).To(ContainSubstring("Background saving started"))
-            time.Sleep(1 * time.Second)
-            bgSaveTime2 := time.Now().Unix()
+			bgSaveTime1 := time.Now().Unix()
+			bgSave, err := client.BgSave(ctx).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bgSave).To(ContainSubstring("Background saving started"))
+			time.Sleep(1 * time.Second)
+			bgSaveTime2 := time.Now().Unix()
 
-            lastSave = client.LastSave(ctx)
-            Expect(lastSave.Err()).NotTo(HaveOccurred())
-            Expect(lastSave.Val()).To(BeNumerically(">=", bgSaveTime1))
-            Expect(lastSave.Val()).To(BeNumerically("<=", bgSaveTime2))
+			lastSave = client.LastSave(ctx)
+			Expect(lastSave.Err()).NotTo(HaveOccurred())
+			Expect(lastSave.Val()).To(BeNumerically(">=", bgSaveTime1))
+			Expect(lastSave.Val()).To(BeNumerically("<=", bgSaveTime2))
 
 		})
 

@@ -1424,13 +1424,13 @@ void ZPopmaxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmax);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 
@@ -1458,13 +1458,13 @@ void ZPopminCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 
