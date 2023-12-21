@@ -2,19 +2,21 @@
 
 ## Pika简介 [English](https://github.com/Qihoo360/pika/blob/master/README.md)
 
-Pika 是一个以 RocksDB 为存储引擎的的大容量、持久化 KV 存储服务软件。完全兼容 Redis 协议，支持其常用的数据结构，如 String、Hash、List、Set、Zset、HyperLogLog、 Bitmap 等([兼容详情](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况))。
-Pika 的出现并不是为了替代 Redis，而是 Redis 使用场景的补充。它解决了 Redis 一旦存储数据量巨大就会出现内存容量不足的瓶颈问题，并且可以像 Redis 一样，支持使用 slaveof 命令实现主从模式，还支持数据的全量同步和增量同步。
-此外，Pika 还可以用在 twemproxy 或者 Codis 中来实现静态数据分片（Pika 已经可以支持 Codis 的动态迁移 slot功能，目前已合并到master 分支，欢迎使用，感谢作者[left2right](https://github.com/left2right)和[fancy-rabbit](https://github.com/fancy-rabbit)提交的PR）。
+Pika 是一个以 RocksDB 为存储引擎的的大容量、高性能、多租户、数据可持久化的弹性 KV 数据存储系统，完全兼容 Redis 协议，支持其常用的数据结构，如 string/hash/list/zset/set/geo/hyperloglog/pubsub/bitmap/stream 等 [Redis 接口](https://github.com/OpenAtomFoundation/pika/wiki/pika-%E6%94%AF%E6%8C%81%E7%9A%84redis%E6%8E%A5%E5%8F%A3%E5%8F%8A%E5%85%BC%E5%AE%B9%E6%83%85%E5%86%B5)。 
+
+Redis 的内存使用了超过 16GiB 时，会面临内存容量有限、单线程阻塞、启动恢复时间长、内存硬件成本贵、缓冲区容易写满、一主多从故障时切换代价大等问题。Pika 的出现并不是为了替代 Redis, 而是 Redis 补充。Pika 力求在完全兼容Redis 协议、继承 Redis 便捷运维设计的前提下，通过持久化存储的方式解决了 Redis 一旦存储数据量巨大就会出现内存容量不足的瓶颈问题，并且可以像 Redis 一样，支持使用 slaveof 命令实现主从模式，还支持数据的全量同步和增量同步。
+
+还可以通过 twemproxy or [Codis](https://github.com/OpenAtomFoundation/pika/tree/unstable/cluster) 以静态数据分片方式实现 Pika 集群。
 
 ## Pika特性
 
 * 协议兼容：完全兼容 Redis 协议，且极力追求高性能、大容量、低成本、大规模
-* 数据结构：支持 Redis 的常用数据结构 String、 Hash、 List、 Set、 Zset、 Geo、 Bitmap、 Hyperloglog
+* 数据结构：支持 Redis 的常用数据结构 String、Hash、List、Zset、Set、Geo、Hyperloglog、Pubsub、Bitmap、Stream、ACL etc
 * 冷热数据：对热数据做缓存，将全量数据持久化存储到 RocksDB，并且实现冷热分级存储
 * 极大容量：相比于 Redis 的内存存储方式，Pika 支持百 GB 的数据量级，能极大减少服务器资源占用，增强数据的可靠性
 * 部署方式：单机主从模式(slaveof)和 Codis 集群模式，扩缩容简单
 * 迁移简单：不用修改代码即可平滑从 Redis 迁移到 Pika
-* 便于运维：完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令文档
+* 便于运维：完善的[运维](https://github.com/OpenAtomFoundation/pika/wiki/pika%E7%9A%84%E4%B8%80%E4%BA%9B%E7%AE%A1%E7%90%86%E5%91%BD%E4%BB%A4%E6%96%B9%E5%BC%8F%E8%AF%B4%E6%98%8E)命令文档
 
 ## Pika解决的问题及应用场景
 
@@ -186,7 +188,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
   方法 2：彻底重新编译
 
   ```bash
-    rm -rf output 重新生成cmkae
+    rm -rf output # 重新生成cmake
   ```
 
 * #### 2.6 Pika 的开发调试
@@ -520,7 +522,12 @@ __推荐大家在使用 Pika 前在自己的环境，根据使用场景详细测
 
 ## 文档
 
-1. [doc](https://github.com/OpenAtomFoundation/pika/wiki)
+* [wiki](https://github.com/OpenAtomFoundation/pika/wiki)
+
+* release notes
+  -  [What's new in Pika v3.5.2](https://my.oschina.net/dubbogo/blog/10315913)
+  -  [What's new in Pika v3.5.1](https://my.oschina.net/dubbogo/blog/10114890)
+  -  [What's new in Pika v3.5.0](https://mp.weixin.qq.com/s/NNnmd0RtQ-vx9arW9YBcBA)
 
 ## 联系方式
 
