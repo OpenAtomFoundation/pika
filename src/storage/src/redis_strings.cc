@@ -641,7 +641,7 @@ Status RedisStrings::MGet(const std::vector<std::string>& keys, std::vector<Valu
       if (parsed_strings_value.IsStale()) {
         vss->push_back({std::string(), Status::NotFound("Stale")});
       } else {
-        vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK()});
+        vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(), parsed_strings_value.timestamp()});
       }
     } else if (s.IsNotFound()) {
       vss->push_back({std::string(), Status::NotFound()});
