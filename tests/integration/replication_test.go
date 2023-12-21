@@ -281,6 +281,21 @@ func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client, w
 	}
 }
 
+func randomXaddThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := 0; i < 5; i++ {
+		message := map[string]interface{}{
+			"field1": randomString(5),
+			"field2": randomString(5),
+		}
+		clientMaster.XAdd(*ctx, &redis.XAddArgs{
+			Stream: "mystream",
+			Values: message,
+		})
+	}
+}
+
+
 func execute(ctx *context.Context, clientMaster *redis.Client, num_thread int, f command_func) {
 	var wg sync.WaitGroup
 	wg.Add(num_thread)
@@ -499,6 +514,15 @@ var _ = Describe("shuould replication ", func() {
 			slave_unionstore_set := clientSlave.SMembers(ctx, "set_out")
 			Expect(slave_unionstore_set.Err()).NotTo(HaveOccurred())
 			Expect(master_unionstore_set.Val()).To(Equal(slave_unionstore_set.Val()))
+			
+			// Stream replication test
+			clientMaster.Del(ctx, "mystream")
+			execute(&ctx, clientMaster, 4, randomXaddThread)
+			masterStreamMessages := clientMaster.XRange(ctx, "mystream", "-", "+")
+			slaveStreamMessages := clientSlave.XRange(ctx, "mystream", "-", "+")
+			Expect(masterStreamMessages.Err()).NotTo(HaveOccurred())
+			Expect(slaveStreamMessages.Err()).NotTo(HaveOccurred())
+			Expect(masterStreamMessages.Val()).To(Equal(slaveStreamMessages.Val()))
 
 			// Blocked master-slave replication test
 			lists := []string{"list0", "list1"}

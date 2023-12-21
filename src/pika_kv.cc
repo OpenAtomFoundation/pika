@@ -8,6 +8,7 @@
 
 #include "include/pika_client_conn.h"
 #include "include/pika_command.h"
+#include "include/pika_stream_base.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_binlog_transverter.h"
@@ -204,7 +205,16 @@ void DelCmd::DoInitial() {
 
 void DelCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, storage::Status> type_status;
+
   int64_t count = slot->db()->Del(keys_, &type_status);
+  
+  // stream's destory need to be treated specially
+  auto s = StreamStorage::DestoryStreams(keys_, slot.get());
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, "stream delete error: " + s.ToString());
+    return;
+  }
+
   if (count >= 0) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
