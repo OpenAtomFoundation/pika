@@ -515,7 +515,7 @@ void MgetCmd::DoInitial() {
 
 void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   db_value_status_array_.clear();
-  s_ = slot->db()->MGet(keys_, &db_value_status_array_);
+  s_ = slot->db()->MGetWithTTL(keys_, &db_value_status_array_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(db_value_status_array_.size());
     for (const auto& vs : db_value_status_array_) {

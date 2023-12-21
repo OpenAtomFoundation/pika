@@ -185,6 +185,11 @@ class Storage {
   // special value nil is returned
   Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
 
+  // Returns the values of all specified keyswithTTL. For every key
+  // that does not hold a string value or does not exist, the
+  // special value nil is returned
+  Status MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
+
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
