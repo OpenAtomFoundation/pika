@@ -133,6 +133,9 @@ metrics_report_influxdb_database = ""
 metrics_report_statsd_server = ""
 metrics_report_statsd_period = "1s"
 metrics_report_statsd_prefix = ""
+
+# Maximum delay statistical time interval.(This value must be greater than 0.)
+max_delay_refresh_time_interval = "15s"
 `
 
 type Config struct {
@@ -191,6 +194,8 @@ type Config struct {
 	MetricsReportStatsdServer     string            `toml:"metrics_report_statsd_server" json:"metrics_report_statsd_server"`
 	MetricsReportStatsdPeriod     timesize.Duration `toml:"metrics_report_statsd_period" json:"metrics_report_statsd_period"`
 	MetricsReportStatsdPrefix     string            `toml:"metrics_report_statsd_prefix" json:"metrics_report_statsd_prefix"`
+
+	MaxDelayRefreshTimeInterval timesize.Duration `toml:"max_delay_refresh_time_interval" json:"max_delay_refresh_time_interval"`
 
 	ConfigFileName string `toml:"-" json:"config_file_name"`
 }
@@ -321,6 +326,10 @@ func (c *Config) Validate() error {
 	}
 	if c.MetricsReportStatsdPeriod < 0 {
 		return errors.New("invalid metrics_report_statsd_period")
+	}
+
+	if c.MaxDelayRefreshTimeInterval <= 0 {
+		return errors.New("max_delay_refresh_time_interval must be greater than 0")
 	}
 
 	return nil

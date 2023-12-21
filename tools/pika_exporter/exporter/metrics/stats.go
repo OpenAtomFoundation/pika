@@ -158,4 +158,14 @@ var collectStatsMetrics = map[string]MetricConfig{
 			Labels: []string{LabelNameAddr, LabelNameAlias, "is_compact", "compact_cron", "compact_interval"},
 		},
 	},
+	"total_slow_log": {
+		Parser: &normalParser{},
+		MetricMeta: &MetaData{
+			Name:      "total_slow_log",
+			Help:      "pika serve instance total count of slow log",
+			Type:      metricTypeCounter,
+			Labels:    []string{LabelNameAddr, LabelNameAlias},
+			ValueName: "slow_logs_count",
+		},
+	},
 }

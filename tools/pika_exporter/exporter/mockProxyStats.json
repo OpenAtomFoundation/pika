@@ -1,0 +1,88 @@
+{
+    "online": true,
+    "closed": false,
+    "sentinels": {},
+    "ops": {
+        "total": 6,
+        "fails": 0,
+        "redis": {
+            "errors": 0
+        },
+        "qps": 0,
+        "cmd": [
+            {
+                "opstr": "GET",
+                "calls": 1,
+                "usecs": 1540,
+                "usecs_percall": 1540,
+                "fails": 0,
+                "redis_errtype": 0,
+                "max_delay": 0
+            },
+            {
+                "opstr": "PCONFIG",
+                "calls": 4,
+                "usecs": 435,
+                "usecs_percall": 108,
+                "fails": 0,
+                "redis_errtype": 0,
+                "max_delay": 0
+            },
+            {
+                "opstr": "SET",
+                "calls": 1,
+                "usecs": 4706,
+                "usecs_percall": 4706,
+                "fails": 0,
+                "redis_errtype": 0,
+                "max_delay": 0
+            }
+        ]
+    },
+    "sessions": {
+        "total": 1,
+        "alive": 1
+    },
+    "rusage": {
+        "now": "2023-12-19 13:34:12.039062 +0800 CST m=+743.815706668",
+        "cpu": 0.001923812544336962,
+        "mem": 0,
+        "raw": {
+            "utime": 936053000,
+            "stime": 559258000,
+            "max_rss": 126533632,
+            "ix_rss": 0,
+            "id_rss": 0,
+            "is_rss": 0
+        }
+    },
+    "backend": {
+        "primary_only": false
+    },
+    "runtime": {
+        "general": {
+            "alloc": 288695704,
+            "sys": 389611864,
+            "lookups": 0,
+            "mallocs": 180635,
+            "frees": 174876
+        },
+        "heap": {
+            "alloc": 288695704,
+            "sys": 376864768,
+            "idle": 86532096,
+            "inuse": 290332672,
+            "objects": 5759
+        },
+        "gc": {
+            "num": 7,
+            "cpu_fraction": 0.000007142915997134459,
+            "total_pausems": 2
+        },
+        "num_procs": 4,
+        "num_goroutines": 21,
+        "num_cgo_call": 2979,
+        "mem_offheap": 458752
+    },
+    "slow_cmd_count": 0
+}
