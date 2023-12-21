@@ -337,11 +337,7 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
 }
 
 Status Storage::SPop(const Slice& key, std::vector<std::string>* members, int64_t count) {
-  bool need_compact = false;
-  Status status = sets_db_->SPop(key, members, &need_compact, count);
-  if (need_compact) {
-    AddBGTask({kSets, kCompactRange, {key.ToString(), key.ToString()}});
-  }
+  Status status = sets_db_->SPop(key, members, count);
   return status;
 }
 
@@ -1657,6 +1653,14 @@ Status Storage::SetSmallCompactionThreshold(uint32_t small_compaction_threshold)
   std::vector<Redis*> dbs = {sets_db_.get(), zsets_db_.get(), hashes_db_.get(), lists_db_.get()};
   for (const auto& db : dbs) {
     db->SetSmallCompactionThreshold(small_compaction_threshold);
+  }
+  return Status::OK();
+}
+
+Status Storage::SetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
+  std::vector<Redis*> dbs = {sets_db_.get(), zsets_db_.get(), hashes_db_.get(), lists_db_.get()};
+  for (const auto& db : dbs) {
+    db->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
   }
   return Status::OK();
 }

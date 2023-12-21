@@ -44,8 +44,16 @@ func TestNewCodisDiscovery(t *testing.T) {
 		"password1",
 		"password2",
 	}
+	expectedAddrsForProxy := []string{
+		"1.2.3.4:1234",
+		"1.2.3.4:4321",
+	}
 
 	if len(discovery.instances) != len(expectedAddrs) {
+		t.Errorf("expected %d instances but got %d", len(expectedAddrs), len(discovery.instances))
+	}
+
+	if len(discovery.instanceProxy) != len(expectedAddrsForProxy) {
 		t.Errorf("expected %d instances but got %d", len(expectedAddrs), len(discovery.instances))
 	}
 
@@ -55,6 +63,12 @@ func TestNewCodisDiscovery(t *testing.T) {
 		}
 		if discovery.instances[i].Password != expectedPasswords[i] {
 			t.Errorf("instance %d password: expected %s but got %s", i, expectedPasswords[i], discovery.instances[i].Password)
+		}
+	}
+
+	for i := range expectedAddrsForProxy {
+		if expectedAddrsForProxy[i] != discovery.instanceProxy[i].Addr {
+			t.Errorf("instance %d address: expected %s but got %s", i, expectedAddrs[i], discovery.instances[i].Addr)
 		}
 	}
 }

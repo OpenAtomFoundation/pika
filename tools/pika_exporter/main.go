@@ -9,6 +9,7 @@ import (
 
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter"
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -108,6 +109,12 @@ func main() {
 	}
 	defer e.Close()
 
+	ep, err := exporter.NewProxyExporter(dis, exporter.NamespaceProxy)
+	if err != nil {
+		log.Fatalln("exporter init failed. err:", err)
+	}
+	defer ep.Close()
+
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "pika_exporter_build_info",
 		Help: "pika exporter build_info",
@@ -118,7 +125,7 @@ func main() {
 	updatechan := make(chan int)
 	defer close(updatechan)
 
-	var exptr_regis ExporterInterface = NewExporterRegistry(dis, e, buildInfo, registry, updatechan)
+	var exptr_regis ExporterInterface = NewExporterRegistry(dis, e, ep, buildInfo, registry, updatechan)
 	exptr_regis.Start()
 	defer exptr_regis.Stop()
 
@@ -136,6 +143,9 @@ func main() {
 	log.Printf("Providing metrics on %s%s", *listenAddress, *metricPath)
 	for _, instance := range dis.GetInstances() {
 		log.Println("Connecting to Pika:", instance.Addr, "Alias:", instance.Alias)
+	}
+	for _, instance := range dis.GetInstancesProxy() {
+		log.Println("connecting to Proxy:", instance.Addr, " ID:", instance.ID, " ProductName:", instance.ProductName)
 	}
 	if *codisaddr != "" {
 		go func() {
@@ -170,15 +180,17 @@ type ExporterInterface interface {
 type ExporterRegistry struct {
 	dis        discovery.Discovery
 	expt       prometheus.Collector
+	exptProxy  prometheus.Collector
 	regis      *prometheus.Registry
 	bif        prometheus.Collector
 	updatechan chan int
 }
 
-func NewExporterRegistry(dis discovery.Discovery, e, buildInfo prometheus.Collector, registry *prometheus.Registry, updatechan chan int) *ExporterRegistry {
+func NewExporterRegistry(dis discovery.Discovery, e, ep, buildInfo prometheus.Collector, registry *prometheus.Registry, updatechan chan int) *ExporterRegistry {
 	return &ExporterRegistry{
 		dis:        dis,
 		expt:       e,
+		exptProxy:  ep,
 		regis:      registry,
 		bif:        buildInfo,
 		updatechan: updatechan,
@@ -191,11 +203,13 @@ func (exptr_regis *ExporterRegistry) Getregis() *prometheus.Registry {
 
 func (exptr_regis *ExporterRegistry) Start() {
 	exptr_regis.regis.MustRegister(exptr_regis.expt)
+	exptr_regis.regis.MustRegister(exptr_regis.exptProxy)
 	exptr_regis.regis.MustRegister(exptr_regis.bif)
 }
 
 func (exptr_regis *ExporterRegistry) Stop() {
 	exptr_regis.regis.Unregister(exptr_regis.expt)
+	exptr_regis.regis.Unregister(exptr_regis.exptProxy)
 	exptr_regis.regis.Unregister(exptr_regis.bif)
 }
 
@@ -206,9 +220,10 @@ func (exptr_regis *ExporterRegistry) Update() {
 			log.Fatalln("exporter get NewCodisDiscovery failed. err:", err)
 		}
 
-		exptr_regis.regis.Unregister(exptr_regis.expt)
 		exptr_regis.Stop()
 
+		metrics.MetricConfigs = make(map[string]metrics.MetricConfig)
+		metrics.MetricConfigsProxy = make(map[string]metrics.MetricConfig)
 		new_e, err := exporter.NewPikaExporter(newdis, *namespace, *checkKeyPatterns, *checkKeys, *checkScanCount, *keySpaceStatsClock)
 		if err != nil {
 			log.Fatalln("exporter init failed. err:", err)
@@ -216,9 +231,21 @@ func (exptr_regis *ExporterRegistry) Update() {
 			exptr_regis.dis = newdis
 			exptr_regis.expt = new_e
 		}
+
+		new_ep, err := exporter.NewProxyExporter(newdis, exporter.NamespaceProxy)
+		if err != nil {
+			log.Fatalln("exporter init failed. err:", err)
+		} else {
+			exptr_regis.exptProxy = new_ep
+		}
+
 		exptr_regis.Start()
 		for _, instance := range exptr_regis.dis.GetInstances() {
 			log.Println("Reconnecting to Pika:", instance.Addr, "Alias:", instance.Alias)
+		}
+
+		for _, instance := range exptr_regis.dis.GetInstancesProxy() {
+			log.Println("Reconnecting to Proxy:", instance.Addr, " ID:", instance.ID, " ProductName:", instance.ProductName)
 		}
 	}
 }

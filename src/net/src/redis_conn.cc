@@ -87,7 +87,6 @@ ReadStatus RedisConn::GetRequest() {
   }
 
   nread = read(fd(), rbuf_ + next_read_pos, remain);
-  g_network_statistic->IncrRedisInputBytes(nread);
   if (nread == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       nread = 0;
@@ -100,6 +99,7 @@ ReadStatus RedisConn::GetRequest() {
     // client closed, close client
     return kReadClose;
   }
+  g_network_statistic->IncrRedisInputBytes(nread);
   // assert(nread > 0);
   last_read_pos_ += static_cast<int32_t>(nread);
   msg_peak_ = last_read_pos_;

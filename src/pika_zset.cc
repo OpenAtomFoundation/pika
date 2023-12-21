@@ -163,7 +163,7 @@ void ZIncrbyCmd::DoInitial() {
 }
 
 void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0;
+  double score = 0.0;
   rocksdb::Status s = slot->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     score_ = score;
@@ -220,7 +220,7 @@ void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
-      int64_t len;
+      int64_t len = 0;
       res_.AppendArrayLenUint64(score_members.size() * 2);
       for (const auto& sm : score_members) {
         res_.AppendStringLenUint64(sm.member.size());
@@ -296,7 +296,7 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
-      int64_t len;
+      int64_t len = 0;
       res_.AppendArrayLenUint64(score_members.size() * 2);
       for (const auto& sm : score_members) {
         res_.AppendStringLenUint64(sm.member.size());
@@ -525,12 +525,12 @@ void ZRevrangebyscoreCmd::DoInitial() {
     return;
   }
   ZsetRangebyscoreParentCmd::DoInitial();
-  double tmp_score;
+  double tmp_score = 0.0;
   tmp_score = min_score_;
   min_score_ = max_score_;
   max_score_ = tmp_score;
 
-  bool tmp_close;
+  bool tmp_close = false;
   tmp_close = left_close_;
   left_close_ = right_close_;
   right_close_ = tmp_close;
@@ -552,7 +552,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t end = offset_ + count_;
   if (with_scores_) {
     char buf[32];
-    int64_t len;
+    int64_t len = 0;
     res_.AppendArrayLen(count_ * 2);
     for (; index < end; index++) {
       res_.AppendStringLenUint64(score_members[index].member.size());
@@ -683,12 +683,11 @@ void ZRemCmd::DoInitial() {
 
 void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->ZRem(key_, members_, &count);
-  if (s.ok() || s.IsNotFound()) {
-    AddSlotKey("z", key_, slot);
+  s_ = slot->db()->ZRem(key_, members_, &count);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -822,8 +821,8 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& zadd_argv = zadd_cmd_->argv();
   size_t data_size = d_len + zadd_argv[3].size();
   constexpr size_t kDataSize = 131072; //128KB
-  for(const auto& it : value_to_dest_){
-    if(data_size >= kDataSize) {
+  for (const auto& it : value_to_dest_) {
+    if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       zadd_cmd_->DoBinlog(slot);
       zadd_argv.clear();
@@ -878,7 +877,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
 
-  if(value_to_dest_.size() == 0){
+  if (value_to_dest_.size() == 0) {
     //The inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
     return;
   }
@@ -897,8 +896,8 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& zadd_argv = zadd_cmd_->argv();
   size_t data_size = d_len + value_to_dest_[0].member.size();
   constexpr size_t kDataSize = 131072; //128KB
-  for(int i = 1; i < value_to_dest_.size(); i++){
-    if(data_size >= kDataSize){
+  for (size_t i = 1; i < value_to_dest_.size(); i++) {
+    if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       zadd_cmd_->DoBinlog(slot);
       zadd_argv.clear();
@@ -1015,7 +1014,7 @@ void ZScoreCmd::DoInitial() {
 }
 
 void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
-  double score = 0;
+  double score = 0.0;
   s_ = slot->db()->ZScore(key_, member_, &score);
   if (s_.ok()) {
     char buf[32];
@@ -1030,7 +1029,7 @@ void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void ZScoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
-  double score = 0;
+  double score = 0.0;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
   auto s = slot->cache()->ZScore(CachePrefixKeyZ, member_, &score, slot);
   if (s.ok()) {
@@ -1189,7 +1188,7 @@ void ZRevrangebylexCmd::DoInitial() {
   min_member_ = max_member_;
   max_member_ = tmp_s;
 
-  bool tmp_b;
+  bool tmp_b = false;
   tmp_b = left_close_;
   left_close_ = right_close_;
   right_close_ = tmp_b;
@@ -1201,9 +1200,9 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
-  if (!s.ok() && !s.IsNotFound()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  s_ = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  if (!s_.ok() && !s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
   FitLimit(count_, offset_, static_cast<int32_t>(members.size()));
@@ -1425,13 +1424,13 @@ void ZPopmaxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmax);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 
@@ -1440,7 +1439,7 @@ void ZPopmaxCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->ZPopMax(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
-    int64_t len;
+    int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);
@@ -1459,13 +1458,13 @@ void ZPopminCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 
@@ -1474,7 +1473,7 @@ void ZPopminCmd::Do(std::shared_ptr<Slot> slot) {
   rocksdb::Status s = slot->db()->ZPopMin(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
-    int64_t len;
+    int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);

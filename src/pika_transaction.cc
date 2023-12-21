@@ -44,7 +44,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
   std::vector<std::shared_ptr<std::string>> resp_strs;
-  for (int i = 0; i < cmds_.size(); ++i) {
+  for (size_t i = 0; i < cmds_.size(); ++i) {
     resp_strs.emplace_back(std::make_shared<std::string>());
   }
   auto resp_strs_iter = resp_strs.begin();
@@ -246,9 +246,8 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void WatchCmd::Execute() {
-    std::shared_ptr<Slot> slot;
-    slot = g_pika_server->GetSlotByDBName(db_name_);
-    Do(slot);
+  std::shared_ptr<Slot> slot = g_pika_server->GetSlotByDBName(db_name_);
+  Do(slot);
 }
 
 void WatchCmd::DoInitial() {

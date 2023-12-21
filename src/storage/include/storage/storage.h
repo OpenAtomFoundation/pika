@@ -66,6 +66,7 @@ struct StorageOptions {
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
+  size_t small_compaction_duration_threshold = 10000;
   Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
 };
 
@@ -1034,6 +1035,7 @@ class Storage {
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  Status SetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
 
   std::string GetCurrentTaskType();
   Status GetUsage(const std::string& property, uint64_t* result);

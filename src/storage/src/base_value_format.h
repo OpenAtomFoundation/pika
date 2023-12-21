@@ -34,7 +34,6 @@ class InternalValue {
     }
     return Status::OK();
   }
-  void set_version(int32_t version = 0) { version_ = version; }
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2;
   virtual rocksdb::Slice Encode() {
     size_t usize = user_value_.size();

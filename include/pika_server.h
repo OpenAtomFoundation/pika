@@ -195,6 +195,7 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBExist(const std::string& db_name);
   bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
+  std::set<std::string> GetAllDBName();
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;
@@ -218,6 +219,7 @@ class PikaServer : public pstd::noncopyable {
   void PrepareSlotTrySync();
   void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  void SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
   bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
   std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
@@ -328,6 +330,7 @@ class PikaServer : public pstd::noncopyable {
   uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
   void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
+  uint64_t SlowlogCount();
 
   /*
    * Statistic used
@@ -565,6 +568,12 @@ class PikaServer : public pstd::noncopyable {
   void ClearHitRatio(void);
   void ProcessCronTask();
   double HitRatio();
+
+  /*
+   * lastsave used
+   */
+  int64_t GetLastSave() const {return lastsave_;}
+  void UpdateLastSave(int64_t lastsave) {lastsave_ = lastsave;}
  private:
   /*
    * TimingTask use
@@ -577,6 +586,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  int64_t GetLastSaveTime(const std::string& dump_dir);
   
   std::string host_;
   int port_ = 0;
@@ -682,6 +692,7 @@ class PikaServer : public pstd::noncopyable {
    * Slowlog used
    */
   uint64_t slowlog_entry_id_ = 0;
+  uint64_t slowlog_counter_ = 0;
   std::shared_mutex slowlog_protector_;
   std::list<SlowlogEntry> slowlog_list_;
 
@@ -702,6 +713,11 @@ class PikaServer : public pstd::noncopyable {
    */
   std::shared_mutex mu_;
   std::shared_mutex cache_info_rwlock_;
+
+  /*
+   * lastsave used
+   */
+  int64_t lastsave_ = 0;
 };
 
 #endif

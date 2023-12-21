@@ -262,6 +262,7 @@ void LPushCmd::DoInitial() {
     values_.push_back(argv_[pos++]);
   }
 }
+
 void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   uint64_t llen = 0;
   s_ = slot->db()->LPush(key_, values_, &llen);
@@ -334,7 +335,7 @@ void BLPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -401,10 +402,11 @@ void LPopCmd::DoInitial() {
   }
   key_ = argv_[1];
   size_t argc = argv_.size();
-  size_t index = 2;
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameLPop);
       return;
     }
     if (count_ < 0) {
@@ -692,7 +694,7 @@ void BRPopCmd::DoInitial() {
   // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
   keys_.assign(++argv_.begin(), --argv_.end());
   removeDuplicates(keys_);
-  int64_t timeout;
+  int64_t timeout = 0;
   if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -728,10 +730,11 @@ void RPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  size_t index = 2;
-  if (index < argv_.size()) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameRPop);
       return;
     }
     if (count_ < 0) {

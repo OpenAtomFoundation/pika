@@ -320,6 +320,12 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 		return redis.NewBulkBytes([]byte(p.config.SlowCmdList))
 	case "quick_slow_cmd":
 		return getCmdFlag()
+	case "max_delay_refresh_time_interval":
+		if text, err := p.config.MaxDelayRefreshTimeInterval.MarshalText(); err != nil {
+			return redis.NewErrorf("cant get max_delay_refresh_time_interval value.")
+		} else {
+			return redis.NewBulkBytes(text)
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -396,6 +402,18 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		} else {
 			p.config.BackendPrimaryQuick = n
 			p.router.SetPrimaryQuickConn(p.config.BackendPrimaryQuick)
+			return redis.NewString([]byte("OK"))
+		}
+	case "max_delay_refresh_time_interval":
+		s := &(p.config.MaxDelayRefreshTimeInterval)
+		err := s.UnmarshalText([]byte(value))
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if d := p.config.MaxDelayRefreshTimeInterval.Duration(); d <= 0 {
+			return redis.NewErrorf("max_delay_refresh_time_interval must be greater than 0")
+		} else {
+			RefreshPeriod.Set(int64(d))
 			return redis.NewString([]byte("OK"))
 		}
 	default:
@@ -621,7 +639,8 @@ type Stats struct {
 		PrimaryOnly bool `json:"primary_only"`
 	} `json:"backend"`
 
-	Runtime *RuntimeStats `json:"runtime,omitempty"`
+	Runtime      *RuntimeStats `json:"runtime,omitempty"`
+	SlowCmdCount int64         `json:"slow_cmd_count"` // Cumulative count of slow log
 }
 
 type RuntimeStats struct {
@@ -730,5 +749,6 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
+	stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
 }

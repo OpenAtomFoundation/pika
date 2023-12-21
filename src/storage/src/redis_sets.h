@@ -10,14 +10,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "pstd/include/env.h"
-
 #include "src/custom_comparator.h"
 #include "src/lru_cache.h"
 #include "src/redis.h"
-
-#define SPOP_COMPACT_THRESHOLD_COUNT 500
-#define SPOP_COMPACT_THRESHOLD_DURATION (1000 * 1000)  // 1000ms
 
 namespace storage {
 
@@ -46,7 +41,7 @@ class RedisSets : public Redis {
   Status SMembers(const Slice& key, std::vector<std::string>* members);
   Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t* ttl);
   Status SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret);
-  Status SPop(const Slice& key, std::vector<std::string>* members, bool* need_compact, int64_t cnt);
+  Status SPop(const Slice& key, std::vector<std::string>* members, int64_t cnt);
   Status SRandmember(const Slice& key, int32_t count, std::vector<std::string>* members);
   Status SRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
   Status SUnion(const std::vector<std::string>& keys, std::vector<std::string>* members);
@@ -71,12 +66,6 @@ class RedisSets : public Redis {
 
   // Iterate all data
   void ScanDatabase();
-
- private:
-  // For compact in time after multiple spop
-  std::unique_ptr<LRUCache<std::string, size_t>> spop_counts_store_;
-  Status ResetSpopCount(const std::string& key);
-  Status AddAndGetSpopCount(const std::string& key, uint64_t* count);
 };
 
 }  //  namespace storage

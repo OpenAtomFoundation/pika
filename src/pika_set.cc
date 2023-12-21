@@ -46,17 +46,16 @@ void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 
 void SPopCmd::DoInitial() {
   size_t argc = argv_.size();
-  size_t index = 2;
   if (!CheckArg(argc)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
-
-  key_ = argv_[1];
   count_ = 1;
-
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+  key_ = argv_[1];
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -257,7 +256,11 @@ void SRemCmd::DoInitial() {
 
 void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   s_ = slot->db()->SRem(key_, members_, &deleted_);
-  res_.AppendInteger(deleted_);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendInteger(deleted_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
 }
 
 void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
@@ -282,11 +285,15 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SUnion(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SUnion(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -332,7 +339,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_cmd_->SetResp(resp_.lock());
   del_cmd_->DoBinlog(slot);
 
-  if(value_to_dest_.size() == 0){
+  if (value_to_dest_.size() == 0) {
     //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
     return;
   }
@@ -348,8 +355,8 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   auto& sadd_argv = sadd_cmd_->argv();
   size_t data_size = value_to_dest_[0].size();
 
-  for(int i = 1; i < value_to_dest_.size(); i++){
-    if(data_size >= 131072){
+  for (size_t i = 1; i < value_to_dest_.size(); i++) {
+    if (data_size >= 131072) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
       sadd_cmd_->DoBinlog(slot);
       sadd_argv.clear();
@@ -374,11 +381,15 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SInter(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SInter(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -395,11 +406,11 @@ void SInterstoreCmd::DoInitial() {
 
 void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
-  rocksdb::Status s = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
-  if (s.ok()) {
+  s_ = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -469,11 +480,15 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  slot->db()->SDiff(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = slot->db()->SDiff(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
 }
 
@@ -522,12 +537,12 @@ void SMoveCmd::DoInitial() {
 
 void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t res = 0;
-  rocksdb::Status s = slot->db()->SMove(src_key_, dest_key_, member_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SMove(src_key_, dest_key_, member_, &res);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -547,7 +562,7 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 }
 
 void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
-  if(!move_success_){
+  if (!move_success_) {
     //the member is not in the source set, nothing changed
     return;
   }
@@ -588,15 +603,14 @@ void SRandmemberCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
       reply_arr = true;
-      ;
     }
   }
 }
 
 void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
+  if (s_.ok() || s_.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
@@ -608,7 +622,7 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
       }
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
