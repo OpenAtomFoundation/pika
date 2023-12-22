@@ -48,11 +48,11 @@ class PfCountCmd : public Cmd {
 class PfMergeCmd : public Cmd {
  public:
   PfMergeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
   PfMergeCmd(const PfMergeCmd& other)
       : Cmd(other), keys_(other.keys_), value_to_dest_(other.value_to_dest_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
   std::vector<std::string> current_key() const override {
     return keys_;

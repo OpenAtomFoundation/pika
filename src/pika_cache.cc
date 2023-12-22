@@ -15,7 +15,7 @@
 #include "cache/include/cache.h"
 #include "cache/include/config.h"
 
-extern PikaServer *g_pika_server;
+extern PikaServer* g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
 using rocksdb::Status;
 
@@ -94,13 +94,13 @@ void PikaCache::Info(CacheInfo &info) {
   }
 }
 
-bool PikaCache::Exists(std::string &key) {
+bool PikaCache::Exists(std::string& key) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Exists(key);
 }
 
-void PikaCache::FlushSlot(void) {
+void PikaCache::FlushDB(void) {
   std::lock_guard l(rwlock_);
   for (uint32_t i = 0; i < caches_.size(); ++i) {
     std::lock_guard lm(*cache_mutexs_[i]);
@@ -118,31 +118,31 @@ Status PikaCache::Del(const std::vector<std::string> &keys) {
   return s;
 }
 
-Status PikaCache::Expire(std::string &key, int64_t ttl) {
+Status PikaCache::Expire(std::string& key, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Expire(key, ttl);
 }
 
-Status PikaCache::Expireat(std::string &key, int64_t ttl) {
+Status PikaCache::Expireat(std::string& key, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Expireat(key, ttl);
 }
 
-Status PikaCache::TTL(std::string &key, int64_t *ttl) {
+Status PikaCache::TTL(std::string& key, int64_t *ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->TTL(key, ttl);
 }
 
-Status PikaCache::Persist(std::string &key) {
+Status PikaCache::Persist(std::string& key) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Persist(key);
 }
 
-Status PikaCache::Type(std::string &key, std::string *value) {
+Status PikaCache::Type(std::string& key, std::string *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Type(key, value);
@@ -167,37 +167,37 @@ Status PikaCache::RandomKey(std::string *key) {
 /*-----------------------------------------------------------------------------
  * String Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::Set(std::string &key, std::string &value, int64_t ttl) {
+Status PikaCache::Set(std::string& key, std::string &value, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Set(key, value, ttl);
 }
 
-Status PikaCache::Setnx(std::string &key, std::string &value, int64_t ttl) {
+Status PikaCache::Setnx(std::string& key, std::string &value, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Setnx(key, value, ttl);
 }
 
-Status PikaCache::SetnxWithoutTTL(std::string &key, std::string &value) {
+Status PikaCache::SetnxWithoutTTL(std::string& key, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SetnxWithoutTTL(key, value);
 }
 
-Status PikaCache::Setxx(std::string &key, std::string &value, int64_t ttl) {
+Status PikaCache::Setxx(std::string& key, std::string &value, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Setxx(key, value, ttl);
 }
 
-Status PikaCache::SetxxWithoutTTL(std::string &key, std::string &value) {
+Status PikaCache::SetxxWithoutTTL(std::string& key, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SetxxWithoutTTL(key, value);
 }
 
-Status PikaCache::Get(std::string &key, std::string *value) {
+Status PikaCache::Get(std::string& key, std::string *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Get(key, value);
@@ -228,7 +228,7 @@ Status PikaCache::MGet(const std::vector<std::string> &keys, std::vector<storage
   return ret;
 }
 
-Status PikaCache::Incrxx(std::string &key) {
+Status PikaCache::Incrxx(std::string& key) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -237,7 +237,7 @@ Status PikaCache::Incrxx(std::string &key) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::Decrxx(std::string &key) {
+Status PikaCache::Decrxx(std::string& key) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -246,7 +246,7 @@ Status PikaCache::Decrxx(std::string &key) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::IncrByxx(std::string &key, uint64_t incr) {
+Status PikaCache::IncrByxx(std::string& key, uint64_t incr) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -255,7 +255,7 @@ Status PikaCache::IncrByxx(std::string &key, uint64_t incr) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::DecrByxx(std::string &key, uint64_t incr) {
+Status PikaCache::DecrByxx(std::string& key, uint64_t incr) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -264,7 +264,7 @@ Status PikaCache::DecrByxx(std::string &key, uint64_t incr) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::Incrbyfloatxx(std::string &key, long double incr) {
+Status PikaCache::Incrbyfloatxx(std::string& key, long double incr) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -273,7 +273,7 @@ Status PikaCache::Incrbyfloatxx(std::string &key, long double incr) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::Appendxx(std::string &key, std::string &value) {
+Status PikaCache::Appendxx(std::string& key, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -282,13 +282,13 @@ Status PikaCache::Appendxx(std::string &key, std::string &value) {
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::GetRange(std::string &key, int64_t start, int64_t end, std::string *value) {
+Status PikaCache::GetRange(std::string& key, int64_t start, int64_t end, std::string *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->GetRange(key, start, end, value);
 }
 
-Status PikaCache::SetRangexx(std::string &key, int64_t start, std::string &value) {
+Status PikaCache::SetRangexx(std::string& key, int64_t start, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -297,7 +297,7 @@ Status PikaCache::SetRangexx(std::string &key, int64_t start, std::string &value
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::Strlen(std::string &key, int32_t *len) {
+Status PikaCache::Strlen(std::string& key, int32_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->Strlen(key, len);
@@ -306,19 +306,19 @@ Status PikaCache::Strlen(std::string &key, int32_t *len) {
 /*-----------------------------------------------------------------------------
  * Hash Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::HDel(std::string &key, std::vector<std::string> &fields) {
+Status PikaCache::HDel(std::string& key, std::vector<std::string> &fields) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HDel(key, fields);
 }
 
-Status PikaCache::HSet(std::string &key, std::string &field, std::string &value) {
+Status PikaCache::HSet(std::string& key, std::string &field, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HSet(key, field, value);
 }
 
-Status PikaCache::HSetIfKeyExist(std::string &key, std::string &field, std::string &value) {
+Status PikaCache::HSetIfKeyExist(std::string& key, std::string &field, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -327,7 +327,7 @@ Status PikaCache::HSetIfKeyExist(std::string &key, std::string &field, std::stri
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::HSetIfKeyExistAndFieldNotExist(std::string &key, std::string &field, std::string &value) {
+Status PikaCache::HSetIfKeyExistAndFieldNotExist(std::string& key, std::string &field, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -336,13 +336,13 @@ Status PikaCache::HSetIfKeyExistAndFieldNotExist(std::string &key, std::string &
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::HMSet(std::string &key, std::vector<storage::FieldValue> &fvs) {
+Status PikaCache::HMSet(std::string& key, std::vector<storage::FieldValue> &fvs) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HMSet(key, fvs);
 }
 
-Status PikaCache::HMSetnx(std::string &key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
+Status PikaCache::HMSetnx(std::string& key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -354,7 +354,7 @@ Status PikaCache::HMSetnx(std::string &key, std::vector<storage::FieldValue> &fv
   }
 }
 
-Status PikaCache::HMSetnxWithoutTTL(std::string &key, std::vector<storage::FieldValue> &fvs) {
+Status PikaCache::HMSetnxWithoutTTL(std::string& key, std::vector<storage::FieldValue> &fvs) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -365,7 +365,7 @@ Status PikaCache::HMSetnxWithoutTTL(std::string &key, std::vector<storage::Field
   }
 }
 
-Status PikaCache::HMSetxx(std::string &key, std::vector<storage::FieldValue> &fvs) {
+Status PikaCache::HMSetxx(std::string& key, std::vector<storage::FieldValue> &fvs) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -375,44 +375,44 @@ Status PikaCache::HMSetxx(std::string &key, std::vector<storage::FieldValue> &fv
   }
 }
 
-Status PikaCache::HGet(std::string &key, std::string &field, std::string *value) {
+Status PikaCache::HGet(std::string& key, std::string &field, std::string *value) {
 
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HGet(key, field, value);
 }
 
-Status PikaCache::HMGet(std::string &key, std::vector<std::string> &fields, std::vector<storage::ValueStatus> *vss) {
+Status PikaCache::HMGet(std::string& key, std::vector<std::string> &fields, std::vector<storage::ValueStatus> *vss) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HMGet(key, fields, vss);
 }
 
-Status PikaCache::HGetall(std::string &key, std::vector<storage::FieldValue> *fvs) {
+Status PikaCache::HGetall(std::string& key, std::vector<storage::FieldValue> *fvs) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HGetall(key, fvs);
 }
 
-Status PikaCache::HKeys(std::string &key, std::vector<std::string> *fields) {
+Status PikaCache::HKeys(std::string& key, std::vector<std::string> *fields) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HKeys(key, fields);
 }
 
-Status PikaCache::HVals(std::string &key, std::vector<std::string> *values) {
+Status PikaCache::HVals(std::string& key, std::vector<std::string> *values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HVals(key, values);
 }
 
-Status PikaCache::HExists(std::string &key, std::string &field) {
+Status PikaCache::HExists(std::string& key, std::string &field) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HExists(key, field);
 }
 
-Status PikaCache::HIncrbyxx(std::string &key, std::string &field, int64_t value) {
+Status PikaCache::HIncrbyxx(std::string& key, std::string &field, int64_t value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -421,7 +421,7 @@ Status PikaCache::HIncrbyxx(std::string &key, std::string &field, int64_t value)
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::HIncrbyfloatxx(std::string &key, std::string &field, long double value) {
+Status PikaCache::HIncrbyfloatxx(std::string& key, std::string &field, long double value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -430,13 +430,13 @@ Status PikaCache::HIncrbyfloatxx(std::string &key, std::string &field, long doub
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::HLen(std::string &key, uint64_t *len) {
+Status PikaCache::HLen(std::string& key, uint64_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HLen(key, len);
 }
 
-Status PikaCache::HStrlen(std::string &key, std::string &field, uint64_t *len) {
+Status PikaCache::HStrlen(std::string& key, std::string &field, uint64_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HStrlen(key, field, len);
@@ -445,86 +445,86 @@ Status PikaCache::HStrlen(std::string &key, std::string &field, uint64_t *len) {
 /*-----------------------------------------------------------------------------
  * List Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::LIndex(std::string &key, int64_t index, std::string *element) {
+Status PikaCache::LIndex(std::string& key, int64_t index, std::string *element) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LIndex(key, index, element);
 }
 
-Status PikaCache::LInsert(std::string &key, storage::BeforeOrAfter &before_or_after, std::string &pivot,
+Status PikaCache::LInsert(std::string& key, storage::BeforeOrAfter &before_or_after, std::string &pivot,
                           std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LInsert(key, before_or_after, pivot, value);
 }
 
-Status PikaCache::LLen(std::string &key, uint64_t *len) {
+Status PikaCache::LLen(std::string& key, uint64_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LLen(key, len);
 }
 
-Status PikaCache::LPop(std::string &key, std::string *element) {
+Status PikaCache::LPop(std::string& key, std::string *element) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LPop(key, element);
 }
 
-Status PikaCache::LPush(std::string &key, std::vector<std::string> &values) {
+Status PikaCache::LPush(std::string& key, std::vector<std::string> &values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LPush(key, values);
 }
 
-Status PikaCache::LPushx(std::string &key, std::vector<std::string> &values) {
+Status PikaCache::LPushx(std::string& key, std::vector<std::string> &values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LPushx(key, values);
 }
 
-Status PikaCache::LRange(std::string &key, int64_t start, int64_t stop, std::vector<std::string> *values) {
+Status PikaCache::LRange(std::string& key, int64_t start, int64_t stop, std::vector<std::string> *values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LRange(key, start, stop, values);
 }
 
-Status PikaCache::LRem(std::string &key, int64_t count, std::string &value) {
+Status PikaCache::LRem(std::string& key, int64_t count, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LRem(key, count, value);
 }
 
-Status PikaCache::LSet(std::string &key, int64_t index, std::string &value) {
+Status PikaCache::LSet(std::string& key, int64_t index, std::string &value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LSet(key, index, value);
 }
 
-Status PikaCache::LTrim(std::string &key, int64_t start, int64_t stop) {
+Status PikaCache::LTrim(std::string& key, int64_t start, int64_t stop) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->LTrim(key, start, stop);
 }
 
-Status PikaCache::RPop(std::string &key, std::string *element) {
+Status PikaCache::RPop(std::string& key, std::string *element) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->RPop(key, element);
 }
 
-Status PikaCache::RPush(std::string &key, std::vector<std::string> &values) {
+Status PikaCache::RPush(std::string& key, std::vector<std::string> &values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->RPush(key, values);
 }
 
-Status PikaCache::RPushx(std::string &key, std::vector<std::string> &values) {
+Status PikaCache::RPushx(std::string& key, std::vector<std::string> &values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->RPushx(key, values);
 }
 
-Status PikaCache::RPushnx(std::string &key, std::vector<std::string> &values, int64_t ttl) {
+Status PikaCache::RPushnx(std::string& key, std::vector<std::string> &values, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -536,7 +536,7 @@ Status PikaCache::RPushnx(std::string &key, std::vector<std::string> &values, in
   }
 }
 
-Status PikaCache::RPushnxWithoutTTL(std::string &key, std::vector<std::string> &values) {
+Status PikaCache::RPushnxWithoutTTL(std::string& key, std::vector<std::string> &values) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -550,13 +550,13 @@ Status PikaCache::RPushnxWithoutTTL(std::string &key, std::vector<std::string> &
 /*-----------------------------------------------------------------------------
  * Set Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::SAdd(std::string &key, std::vector<std::string> &members) {
+Status PikaCache::SAdd(std::string& key, std::vector<std::string> &members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SAdd(key, members);
 }
 
-Status PikaCache::SAddIfKeyExist(std::string &key, std::vector<std::string> &members) {
+Status PikaCache::SAddIfKeyExist(std::string& key, std::vector<std::string> &members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -565,7 +565,7 @@ Status PikaCache::SAddIfKeyExist(std::string &key, std::vector<std::string> &mem
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::SAddnx(std::string &key, std::vector<std::string> &members, int64_t ttl) {
+Status PikaCache::SAddnx(std::string& key, std::vector<std::string> &members, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -577,7 +577,7 @@ Status PikaCache::SAddnx(std::string &key, std::vector<std::string> &members, in
   }
 }
 
-Status PikaCache::SAddnxWithoutTTL(std::string &key, std::vector<std::string> &members) {
+Status PikaCache::SAddnxWithoutTTL(std::string& key, std::vector<std::string> &members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -588,31 +588,31 @@ Status PikaCache::SAddnxWithoutTTL(std::string &key, std::vector<std::string> &m
   }
 }
 
-Status PikaCache::SCard(std::string &key, uint64_t *len) {
+Status PikaCache::SCard(std::string& key, uint64_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SCard(key, len);
 }
 
-Status PikaCache::SIsmember(std::string &key, std::string &member) {
+Status PikaCache::SIsmember(std::string& key, std::string &member) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SIsmember(key, member);
 }
 
-Status PikaCache::SMembers(std::string &key, std::vector<std::string> *members) {
+Status PikaCache::SMembers(std::string& key, std::vector<std::string> *members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SMembers(key, members);
 }
 
-Status PikaCache::SRem(std::string &key, std::vector<std::string> &members) {
+Status PikaCache::SRem(std::string& key, std::vector<std::string> &members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SRem(key, members);
 }
 
-Status PikaCache::SRandmember(std::string &key, int64_t count, std::vector<std::string> *members) {
+Status PikaCache::SRandmember(std::string& key, int64_t count, std::vector<std::string> *members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SRandmember(key, count, members);
@@ -621,7 +621,7 @@ Status PikaCache::SRandmember(std::string &key, int64_t count, std::vector<std::
 /*-----------------------------------------------------------------------------
  * ZSet Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::ZAdd(std::string &key, std::vector<storage::ScoreMember> &score_members) {
+Status PikaCache::ZAdd(std::string& key, std::vector<storage::ScoreMember> &score_members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->ZAdd(key, score_members);
@@ -642,7 +642,7 @@ void PikaCache::GetMinMaxScore(std::vector<storage::ScoreMember> &score_members,
   }
 }
 
-bool PikaCache::GetCacheMinMaxSM(cache::RedisCache *cache_obj, std::string &key, storage::ScoreMember &min_m,
+bool PikaCache::GetCacheMinMaxSM(cache::RedisCache *cache_obj, std::string& key, storage::ScoreMember &min_m,
                                  storage::ScoreMember &max_m) {
   if (cache_obj) {
     std::vector<storage::ScoreMember> score_members;
@@ -663,7 +663,7 @@ bool PikaCache::GetCacheMinMaxSM(cache::RedisCache *cache_obj, std::string &key,
   return false;
 }
 
-Status PikaCache::ZAddIfKeyExist(std::string &key, std::vector<storage::ScoreMember> &score_members) {
+Status PikaCache::ZAddIfKeyExist(std::string& key, std::vector<storage::ScoreMember> &score_members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto cache_obj = caches_[cache_index];
@@ -759,7 +759,7 @@ Status PikaCache::ZAddIfKeyExist(std::string &key, std::vector<storage::ScoreMem
   }
 }
 
-Status PikaCache::CleanCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key) {
+Status PikaCache::CleanCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string& key) {
   uint64_t cache_len = 0;
   cache_obj->ZCard(key, &cache_len);
   if (cache_len > (unsigned long)zset_cache_field_num_per_key_) {
@@ -779,7 +779,7 @@ Status PikaCache::CleanCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::strin
   return Status::OK();
 }
 
-Status PikaCache::ZAddnx(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
+Status PikaCache::ZAddnx(std::string& key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -791,7 +791,7 @@ Status PikaCache::ZAddnx(std::string &key, std::vector<storage::ScoreMember> &sc
   }
 }
 
-Status PikaCache::ZAddnxWithoutTTL(std::string &key, std::vector<storage::ScoreMember> &score_members) {
+Status PikaCache::ZAddnxWithoutTTL(std::string& key, std::vector<storage::ScoreMember> &score_members) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (!caches_[cache_index]->Exists(key)) {
@@ -802,14 +802,14 @@ Status PikaCache::ZAddnxWithoutTTL(std::string &key, std::vector<storage::ScoreM
   }
 }
 
-Status PikaCache::ZCard(std::string &key, uint32_t *len, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZCard(std::string& key, uint32_t *len, const std::shared_ptr<DB>& db) {
   int32_t db_len = 0;
   db->storage()->ZCard(key, &db_len);
   *len = db_len;
   return Status::OK();
 }
 
-Status PikaCache::CacheZCard(std::string &key, uint64_t *len) {
+Status PikaCache::CacheZCard(std::string& key, uint64_t *len) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
@@ -875,7 +875,7 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
   }
 }
 
-Status PikaCache::ZCount(std::string &key, std::string &min, std::string &max, uint64_t *len, ZCountCmd *cmd) {
+Status PikaCache::ZCount(std::string& key, std::string &min, std::string &max, uint64_t *len, ZCountCmd *cmd) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -903,13 +903,13 @@ Status PikaCache::ZCount(std::string &key, std::string &min, std::string &max, u
   }
 }
 
-Status PikaCache::ZIncrby(std::string &key, std::string &member, double increment) {
+Status PikaCache::ZIncrby(std::string& key, std::string &member, double increment) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->ZIncrby(key, member, increment);
 }
 
-bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string &key, int mem_len, int db_len,
+bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string& key, int mem_len, int db_len,
                                        const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   if (mem_len == -1) {
@@ -943,7 +943,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   }
 }
 
-Status PikaCache::ZIncrbyIfKeyExist(std::string &key, std::string &member, double increment, ZIncrbyCmd *cmd) {
+Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string &member, double increment, ZIncrbyCmd *cmd) {
   auto eps = std::numeric_limits<double>::epsilon();
   if (-eps < increment && increment < eps) {
     return Status::NotFound("icrement is 0, nothing to be done");
@@ -1074,7 +1074,7 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
   }
 }
 
-Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
+Status PikaCache::ZRange(std::string& key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                          const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
@@ -1106,7 +1106,7 @@ Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vec
   }
 }
 
-Status PikaCache::ZRangebyscore(std::string &key, std::string &min, std::string &max,
+Status PikaCache::ZRangebyscore(std::string& key, std::string &min, std::string &max,
                                 std::vector<storage::ScoreMember> *score_members, ZRangebyscoreCmd *cmd) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
@@ -1134,7 +1134,7 @@ Status PikaCache::ZRangebyscore(std::string &key, std::string &min, std::string 
   }
 }
 
-Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZRank(std::string& key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1159,7 +1159,7 @@ Status PikaCache::ZRank(std::string &key, std::string &member, int64_t *rank, co
   }
 }
 
-Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std::shared_ptr<DB> db) {
+Status PikaCache::ZRem(std::string& key, std::vector<std::string> &members, std::shared_ptr<DB> db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
@@ -1168,7 +1168,7 @@ Status PikaCache::ZRem(std::string &key, std::vector<std::string> &members, std:
   return s;
 }
 
-Status PikaCache::ZRemrangebyrank(std::string &key, std::string &min, std::string &max, int32_t ele_deleted,
+Status PikaCache::ZRemrangebyrank(std::string& key, std::string &min, std::string &max, int32_t ele_deleted,
                                   const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1225,7 +1225,7 @@ Status PikaCache::ZRemrangebyrank(std::string &key, std::string &min, std::strin
   }
 }
 
-Status PikaCache::ZRemrangebyscore(std::string &key, std::string &min, std::string &max,
+Status PikaCache::ZRemrangebyscore(std::string& key, std::string &min, std::string &max,
                                    const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1234,7 +1234,7 @@ Status PikaCache::ZRemrangebyscore(std::string &key, std::string &min, std::stri
   return s;
 }
 
-Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
+Status PikaCache::ZRevrange(std::string& key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
                             const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
@@ -1266,7 +1266,7 @@ Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::
   }
 }
 
-Status PikaCache::ZRevrangebyscore(std::string &key, std::string &min, std::string &max,
+Status PikaCache::ZRevrangebyscore(std::string& key, std::string &min, std::string &max,
                                    std::vector<storage::ScoreMember> *score_members, ZRevrangebyscoreCmd *cmd) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
@@ -1299,7 +1299,7 @@ Status PikaCache::ZRevrangebyscore(std::string &key, std::string &min, std::stri
   }
 }
 
-bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCache::CacheSizeEqsDB(std::string& key, const std::shared_ptr<DB>& db) {
   int32_t db_len = 0;
   db->storage()->ZCard(key, &db_len);
 
@@ -1312,7 +1312,7 @@ bool PikaCache::CacheSizeEqsDB(std::string &key, const std::shared_ptr<DB>& db) 
   return (db_len == (int32_t)cache_len) && cache_len;
 }
 
-Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string &max,
+Status PikaCache::ZRevrangebylex(std::string& key, std::string &min, std::string &max,
                                  std::vector<std::string> *members, const std::shared_ptr<DB>& db) {
   if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
@@ -1324,7 +1324,7 @@ Status PikaCache::ZRevrangebylex(std::string &key, std::string &min, std::string
   }
 }
 
-Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZRevrank(std::string& key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1347,7 +1347,7 @@ Status PikaCache::ZRevrank(std::string &key, std::string &member, int64_t *rank,
     }
   }
 }
-Status PikaCache::ZScore(std::string &key, std::string &member, double *score, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZScore(std::string& key, std::string &member, double *score, const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto s = caches_[cache_index]->ZScore(key, member, score);
@@ -1357,7 +1357,7 @@ Status PikaCache::ZScore(std::string &key, std::string &member, double *score, c
   return s;
 }
 
-Status PikaCache::ZRangebylex(std::string &key, std::string &min, std::string &max, std::vector<std::string> *members,
+Status PikaCache::ZRangebylex(std::string& key, std::string &min, std::string &max, std::vector<std::string> *members,
                               const std::shared_ptr<DB>& db) {
   if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
@@ -1369,7 +1369,7 @@ Status PikaCache::ZRangebylex(std::string &key, std::string &min, std::string &m
   }
 }
 
-Status PikaCache::ZLexcount(std::string &key, std::string &min, std::string &max, uint64_t *len,
+Status PikaCache::ZLexcount(std::string& key, std::string &min, std::string &max, uint64_t *len,
                             const std::shared_ptr<DB>& db) {
   if (CacheSizeEqsDB(key, db)) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
@@ -1382,7 +1382,7 @@ Status PikaCache::ZLexcount(std::string &key, std::string &min, std::string &max
   }
 }
 
-Status PikaCache::ZRemrangebylex(std::string &key, std::string &min, std::string &max,
+Status PikaCache::ZRemrangebylex(std::string& key, std::string &min, std::string &max,
                                  const std::shared_ptr<DB>& db) {
   if (CacheSizeEqsDB(key, db)) {
     int cache_index = CacheIndex(key);
@@ -1397,13 +1397,13 @@ Status PikaCache::ZRemrangebylex(std::string &key, std::string &min, std::string
 /*-----------------------------------------------------------------------------
  * Bit Commands
  *----------------------------------------------------------------------------*/
-Status PikaCache::SetBit(std::string &key, size_t offset, int64_t value) {
+Status PikaCache::SetBit(std::string& key, size_t offset, int64_t value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SetBit(key, offset, value);
 }
 
-Status PikaCache::SetBitIfKeyExist(std::string &key, size_t offset, int64_t value) {
+Status PikaCache::SetBitIfKeyExist(std::string& key, size_t offset, int64_t value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   if (caches_[cache_index]->Exists(key)) {
@@ -1412,31 +1412,31 @@ Status PikaCache::SetBitIfKeyExist(std::string &key, size_t offset, int64_t valu
   return Status::NotFound("key not exist");
 }
 
-Status PikaCache::GetBit(std::string &key, size_t offset, int64_t *value) {
+Status PikaCache::GetBit(std::string& key, size_t offset, int64_t *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->GetBit(key, offset, value);
 }
 
-Status PikaCache::BitCount(std::string &key, int64_t start, int64_t end, int64_t *value, bool have_offset) {
+Status PikaCache::BitCount(std::string& key, int64_t start, int64_t end, int64_t *value, bool have_offset) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->BitCount(key, start, end, value, have_offset);
 }
 
-Status PikaCache::BitPos(std::string &key, int64_t bit, int64_t *value) {
+Status PikaCache::BitPos(std::string& key, int64_t bit, int64_t *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->BitPos(key, bit, value);
 }
 
-Status PikaCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t *value) {
+Status PikaCache::BitPos(std::string& key, int64_t bit, int64_t start, int64_t *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->BitPos(key, bit, start, value);
 }
 
-Status PikaCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t end, int64_t *value) {
+Status PikaCache::BitPos(std::string& key, int64_t bit, int64_t start, int64_t end, int64_t *value) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->BitPos(key, bit, start, end, value);
@@ -1477,12 +1477,12 @@ void PikaCache::DestroyWithoutLock(void)
   cache_mutexs_.clear();
 }
 
-int PikaCache::CacheIndex(const std::string &key) {
+int PikaCache::CacheIndex(const std::string& key) {
   uint32_t crc = CRC32Update(0, key.data(), (int)key.size());
   return (int)(crc % caches_.size());
 }
 
-Status PikaCache::WriteKVToCache(std::string &key, std::string &value, int64_t ttl) {
+Status PikaCache::WriteKVToCache(std::string& key, std::string &value, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return SetnxWithoutTTL(key, value);
@@ -1495,7 +1495,7 @@ Status PikaCache::WriteKVToCache(std::string &key, std::string &value, int64_t t
   return Status::OK();
 }
 
-Status PikaCache::WriteHashToCache(std::string &key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
+Status PikaCache::WriteHashToCache(std::string& key, std::vector<storage::FieldValue> &fvs, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return HMSetnxWithoutTTL(key, fvs);
@@ -1508,7 +1508,7 @@ Status PikaCache::WriteHashToCache(std::string &key, std::vector<storage::FieldV
   return Status::OK();
 }
 
-Status PikaCache::WriteListToCache(std::string &key, std::vector<std::string> &values, int64_t ttl) {
+Status PikaCache::WriteListToCache(std::string& key, std::vector<std::string> &values, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return RPushnxWithoutTTL(key, values);
@@ -1521,7 +1521,7 @@ Status PikaCache::WriteListToCache(std::string &key, std::vector<std::string> &v
   return Status::OK();
 }
 
-Status PikaCache::WriteSetToCache(std::string &key, std::vector<std::string> &members, int64_t ttl) {
+Status PikaCache::WriteSetToCache(std::string& key, std::vector<std::string> &members, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return SAddnxWithoutTTL(key, members);
@@ -1534,7 +1534,7 @@ Status PikaCache::WriteSetToCache(std::string &key, std::vector<std::string> &me
   return Status::OK();
 }
 
-Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
+Status PikaCache::WriteZSetToCache(std::string& key, std::vector<storage::ScoreMember> &score_members, int64_t ttl) {
   if (0 >= ttl) {
     if (PIKA_TTL_NONE == ttl) {
       return ZAddnxWithoutTTL(key, score_members);
@@ -1547,7 +1547,7 @@ Status PikaCache::WriteZSetToCache(std::string &key, std::vector<storage::ScoreM
   return Status::OK();
 }
 
-void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string &key, const std::shared_ptr<DB>& db) {
+void PikaCache::PushKeyToAsyncLoadQueue(const char key_type, std::string& key, const std::shared_ptr<DB>& db) {
   cache_load_thread_->Push(key_type, key, db);
 }
 

@@ -2,11 +2,11 @@ name: Tools_go_build
 
 on:
   push:
-    branches: [ "unstable", "3.5" ]
+    branches: [ "unstable", "3.5.2", "*"]
     paths:
       - 'tools/**'
   pull_request:
-    branches: [ "unstable", "3.5" ]
+    branches: [ "unstable", "3.5.2", "*"]
     paths:
       - 'tools/**'
 

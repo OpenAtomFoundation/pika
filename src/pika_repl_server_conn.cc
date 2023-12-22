@@ -58,7 +58,6 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);
-        db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
       }
     }
   }
@@ -78,16 +77,16 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
-  const InnerMessage::Slot& slot_request = try_sync_request.slot();
+  const InnerMessage::Slot& db_request = try_sync_request.slot();
   const InnerMessage::BinlogOffset& slave_boffset = try_sync_request.binlog_offset();
   const InnerMessage::Node& node = try_sync_request.node();
-  std::string db_name = slot_request.db_name();
+  std::string db_name = db_request.db_name();
 
   InnerMessage::InnerResponse response;
   InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
   try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-  InnerMessage::Slot* slot_response = try_sync_response->mutable_slot();
-  slot_response->set_db_name(db_name);
+  InnerMessage::Slot* db_response = try_sync_response->mutable_slot();
+  db_response->set_db_name(db_name);
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
@@ -215,12 +214,12 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>&
                                             InnerMessage::InnerResponse::TrySync* try_sync_response) {
   const InnerMessage::Node& node = try_sync_request.node();
   const InnerMessage::BinlogOffset& slave_boffset = try_sync_request.binlog_offset();
-
+  std::string db_name = db->DBName();
   BinlogOffset boffset;
   Status s = db->Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
   if (!s.ok()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-    LOG(WARNING) << "Handle TrySync, DB:  Get binlog offset error, TrySync failed";
+    LOG(WARNING) << "Handle TrySync, DB: " << db_name << " Get binlog offset error, TrySync failed";
     return false;
   }
   InnerMessage::BinlogOffset* master_slot_boffset = try_sync_response->mutable_binlog_offset();
@@ -231,14 +230,14 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>&
       (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
     LOG(WARNING) << "Slave offset is larger than mine, Slave ip: " << node.ip() << ", Slave port: " << node.port()
-                 << ", DB: , slave filenum: " << slave_boffset.filenum()
+                 << ", DB: " << db_name << " , slave filenum: " << slave_boffset.filenum()
                  << ", slave pro_offset_: " << slave_boffset.offset() << ", local filenum: " << boffset.filenum << ", local pro_offset_: " << boffset.offset;
     return false;
   }
 
   std::string confile = NewFileName(db->Logger()->filename(), slave_boffset.filenum());
   if (!pstd::FileExists(confile)) {
-    LOG(INFO) << "DB: binlog has been purged, may need full sync";
+    LOG(INFO) << "DB: " << db_name << " binlog has been purged, may need full sync";
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
     return false;
   }
@@ -250,7 +249,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>&
   if (seeked_offset.filenum != slave_boffset.filenum() || seeked_offset.offset != slave_boffset.offset()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
     LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: " << node.ip()
-                 << ", Slave port: " << node.port() << ", DB:  closest start point, filenum: "
+                 << ", Slave port: " << node.port() << ", DB: " << db_name << " closest start point, filenum: "
                  << seeked_offset.filenum << ", offset: " << seeked_offset.offset;
     return false;
   }
@@ -280,19 +279,19 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
-  const InnerMessage::Slot& slot_request = db_sync_request.slot();
+  const InnerMessage::Slot& db_request = db_sync_request.slot();
   const InnerMessage::Node& node = db_sync_request.node();
   const InnerMessage::BinlogOffset& slave_boffset = db_sync_request.binlog_offset();
-  std::string db_name = slot_request.db_name();
+  std::string db_name = db_request.db_name();
 
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kDBSync);
   InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
-  InnerMessage::Slot* slot_response = db_sync_response->mutable_slot();
-  slot_response->set_db_name(db_name);
+  InnerMessage::Slot* db_response = db_sync_response->mutable_slot();
+  db_response->set_db_name(db_name);
 
-  LOG(INFO) << "Handle Slot DBSync Request";
+  LOG(INFO) << "Handle DBSync Request";
   bool prior_success = true;
   std::shared_ptr<SyncMasterDB> master_db =
       g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
@@ -359,7 +358,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
-    // conn->NotifyClose();
     return;
   }
   const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync();
@@ -399,7 +397,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 
   if (!master_db->CheckSessionId(node.ip(), node.port(), db_name, session_id)) {
     LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << db_name;
-    // conn->NotifyClose();
     return;
   }
 
@@ -408,8 +405,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 
   Status s = master_db->SetLastRecvTime(node.ip(), node.port(), pstd::NowMicros());
   if (!s.ok()) {
-    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << db_name << "_"
-                 << " " << s.ToString();
+    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << db_name << " " << s.ToString();
     conn->NotifyClose();
     return;
   }
@@ -459,18 +455,18 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   const InnerMessage::Slot& slot = remove_slave_node_req.slot();
 
   std::string db_name = slot.db_name();
-  std::shared_ptr<SyncMasterDB> master_slot =
+  std::shared_ptr<SyncMasterDB> master_db =
       g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
-  if (!master_slot) {
+  if (!master_db) {
     LOG(WARNING) << "Sync Master DB: " << db_name << " NotFound";
   }
-  Status s = master_slot->RemoveSlaveNode(node.ip(), node.port());
+  Status s = master_db->RemoveSlaveNode(node.ip(), node.port());
 
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kRemoveSlaveNode);
   InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.add_remove_slave_node();
-  InnerMessage::Slot* slot_response = remove_slave_node_response->mutable_slot();
+  InnerMessage::Slot* slot_response = remove_slave_node_response->mutable_slot ();
   slot_response->set_db_name(db_name);
   InnerMessage::Node* node_response = remove_slave_node_response->mutable_node();
   node_response->set_ip(g_pika_server->host());

@@ -44,16 +44,13 @@ const std::string kDefaultRsyncAuth = "default";
 const int kMaxRsyncParallelNum = 4;
 
 struct DBStruct {
-  DBStruct(std::string tn, const uint32_t pn, std::set<uint32_t> pi)
-      : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
+  DBStruct(std::string tn)
+      : db_name(std::move(tn)) {}
 
   bool operator==(const DBStruct& db_struct) const {
-    return db_name == db_struct.db_name && slot_num == db_struct.slot_num &&
-           slot_ids == db_struct.slot_ids;
+    return db_name == db_struct.db_name;
   }
   std::string db_name;
-  uint32_t slot_num = 0;
-  std::set<uint32_t> slot_ids;
 };
 
 struct WorkerCronTask {
@@ -92,7 +89,7 @@ enum ReplState {
 const std::string ReplStateMsg[] = {"kNoConnect", "kTryConnect", "kTryDBSync", "kWaitDBSync",
                                     "kWaitReply", "kConnected",  "kError",     "kDBNoConnect"};
 
-enum SlotState {
+enum DBState {
   INFREE = 0,
   INBUSY = 1,
 };
@@ -213,14 +210,13 @@ struct DBInfo {
     return db_name_ < other.db_name_ || (db_name_ == other.db_name_);
   }
 
-  std::string ToString() const { return "(" + db_name_ + ":" + std::to_string(slot_id_) + ")"; }
+  std::string ToString() const { return "(" + db_name_ + ")"; }
   std::string db_name_;
-  uint32_t slot_id_{0};
 };
 
-struct hash_slot_info {
+struct hash_db_info {
   size_t operator()(const DBInfo& n) const {
-    return std::hash<std::string>()(n.db_name_) ^ std::hash<uint32_t>()(n.slot_id_);
+    return std::hash<std::string>()(n.db_name_);
   }
 };
 
@@ -265,7 +261,7 @@ class RmNode : public Node {
   }
 
   const std::string& DBName() const { return db_info_.db_name_; }
-  const DBInfo& NodeSlotInfo() const { return db_info_; }
+  const DBInfo& NodeDBInfo() const { return db_info_; }
   void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {

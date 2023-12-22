@@ -87,7 +87,6 @@ private:
   std::string snapshot_uuid_;
   std::string dir_;
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
   NetThreadUPtr client_thread_;
   std::vector<std::thread> work_threads_;

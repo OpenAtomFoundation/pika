@@ -65,16 +65,16 @@ class PikaReplClient {
   pstd::Status Close(const std::string& ip, int port);
 
   void Schedule(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res, 
+  void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
 
   pstd::Status SendMetaSync();
-  pstd::Status SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
+  pstd::Status SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
                              const BinlogOffset& boffset, const std::string& local_ip);
-  pstd::Status SendSlotTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
+  pstd::Status SendTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
                                const BinlogOffset& boffset, const std::string& local_ip);
-  pstd::Status SendSlotBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
+  pstd::Status SendBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
                                   const LogOffset& ack_start, const LogOffset& ack_end,
                                  const std::string& local_ip, bool is_first_send);
   pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, const std::string& local_ip);

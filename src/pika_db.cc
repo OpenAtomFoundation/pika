@@ -11,6 +11,7 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "mutex_impl.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -23,16 +24,29 @@ std::string DBPath(const std::string& path, const std::string& db_name) {
   return path + buf;
 }
 
+std::string DbSyncPath(const std::string& sync_path, const std::string& db_name) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s/", db_name.data());
+  return sync_path + buf;
+}
+
 DB::DB(std::string db_name, const std::string& db_path,
              const std::string& log_path)
-    : db_name_(std::move(db_name)) {
+    : db_name_(std::move(db_name)), bgsave_engine_(nullptr) {
   db_path_ = DBPath(db_path, db_name_);
+  bgsave_sub_path_ = db_name;
+  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), db_name);
   log_path_ = DBPath(log_path, "log_" + db_name_);
-
+  storage_ = std::make_shared<storage::Storage>();
+  rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
-
+  lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
   binlog_io_error_.store(false);
+  opened_ = s.ok();
+  assert(storage_);
+  assert(s.ok());
+  LOG(INFO) << db_name_ << " DB Success";
 }
 
 DB::~DB() {
@@ -86,7 +100,7 @@ void DB::RunKeyScan() {
   std::vector<storage::KeyInfo> new_key_infos(5);
 
   InitKeyScan();
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   std::vector<storage::KeyInfo> tmp_key_infos;
   s = GetKeyNum(&tmp_key_infos);
   if (s.ok()) {
@@ -127,7 +141,7 @@ Status DB::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
 }
 
 void DB::StopKeyScan() {
-  std::shared_lock rwl(slots_rw_);
+  std::shared_lock rwl(dbs_rw_);
   std::lock_guard ml(key_scan_protector_);
 
   if (!key_scan_info_.key_scaning_) {
@@ -138,7 +152,7 @@ void DB::StopKeyScan() {
 }
 
 void DB::ScanDatabase(const storage::DataType& type) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   storage_->ScanDatabase(type);
 }
 
@@ -148,12 +162,18 @@ KeyScanInfo DB::GetKeyScanInfo() {
 }
 
 void DB::Compact(const storage::DataType& type) {
-  std::lock_guard rwl(slots_rw_);
+  std::lock_guard rwl(dbs_rw_);
+  if (!opened_) {
+    return;
+  }
   storage_->Compact(type);
 }
 
 void DB::CompactRange(const storage::DataType& type, const std::string& start, const std::string& end) {
-  std::lock_guard rwl(slots_rw_);
+  std::lock_guard rwl(dbs_rw_);
+  if (!opened_) {
+    return;
+  }
   storage_->CompactRange(type, start, end);
 }
 
@@ -372,11 +392,11 @@ void DB::Init() {
 }
 
 void DB::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
-  const std::string slotPath = bgsave_info().path;
+  const std::string dbPath = bgsave_info().path;
 
   std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
   for (const auto& type : types) {
-    std::string typePath = slotPath + ((slotPath.back() != '/') ? "/" : "") + type;
+    std::string typePath = dbPath + ((dbPath.back() != '/') ? "/" : "") + type;
     if (!pstd::FileExists(typePath)) {
       continue ;
     }
@@ -384,7 +404,7 @@ void DB::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* sna
     std::vector<std::string> tmpFileNames;
     int ret = pstd::GetChildren(typePath, tmpFileNames);
     if (ret) {
-      LOG(WARNING) << slotPath << " read dump meta files failed, path " << typePath;
+      LOG(WARNING) << dbPath << " read dump meta files failed, path " << typePath;
       return;
     }
 
@@ -433,14 +453,14 @@ bool DB::TryUpdateMasterOffset() {
   std::shared_ptr<SyncSlaveDB> slave_db =
       g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name_));
   if (!slave_db) {
-    LOG(WARNING) << "Slave Slot: " << db_name_ << " not exist";
+    LOG(WARNING) << "Slave DB: " << db_name_ << " not exist";
     return false;
   }
 
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Slot: " << db_name_ << ", Failed to open info file after db sync";
+    LOG(WARNING) << "DB: " << db_name_ << ", Failed to open info file after db sync";
     slave_db->SetReplState(ReplState::kError);
     return false;
   }
@@ -459,7 +479,7 @@ bool DB::TryUpdateMasterOffset() {
       master_ip = line;
     } else if (lineno > 2 && lineno < 8) {
       if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
-        LOG(WARNING) << "Slot: " << db_name_
+        LOG(WARNING) << "DB: " << db_name_
                      << ", Format of info file after db sync error, line : " << line;
         is.close();
         slave_db->SetReplState(ReplState::kError);
@@ -477,7 +497,7 @@ bool DB::TryUpdateMasterOffset() {
         index = tmp;
       }
     } else if (lineno > 8) {
-      LOG(WARNING) << "Slot: " << db_name_ << ", Format of info file after db sync error, line : " << line;
+      LOG(WARNING) << "DB: " << db_name_ << ", Format of info file after db sync error, line : " << line;
       is.close();
       slave_db->SetReplState(ReplState::kError);
       return false;
@@ -491,7 +511,7 @@ bool DB::TryUpdateMasterOffset() {
 
   pstd::DeleteFile(info_path);
   if (!ChangeDb(dbsync_path_)) {
-    LOG(WARNING) << "Slot: " << db_name_ << ", Failed to change db";
+    LOG(WARNING) << "DB: " << db_name_ << ", Failed to change db";
     slave_db->SetReplState(ReplState::kError);
     return false;
   }

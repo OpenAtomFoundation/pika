@@ -43,7 +43,7 @@ pika中存取的数据都是类key，value数据，不同key所对应的数据�
 ``` C++
 class RecordLock {
  public:
-  RecordLock(port::RecordMutex *mu, const std::string &key)
+  RecordLock(port::RecordMutex *mu, const std::string& key)
       : mu_(mu), key_(key) {
         mu_->Lock(key_);
       }
@@ -58,7 +58,7 @@ class RecordLock {
   void operator=(const RecordLock&);
 };
 
-void RecordMutex::Lock(const std::string &key) {
+void RecordMutex::Lock(const std::string& key) {
   mutex_.Lock();
   std::unordered_map<std::string, RefMutex *>::const_iterator it = records_.find(key);
 

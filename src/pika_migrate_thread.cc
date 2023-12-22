@@ -28,7 +28,7 @@ static int doMigrate(net::NetCli *cli, std::string send_str) {
   pstd::Status s;
   s = cli->Send(&send_str);
   if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate Send error: " << s.ToString();
+    LOG(WARNING) << "DB Migrate Send error: " << s.ToString();
     return -1;
   }
   return 1;
@@ -50,18 +50,18 @@ static int doAuth(net::NetCli *cli) {
   pstd::Status s;
   s = cli->Send(&wbuf_str);
   if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate auth Send error: " << s.ToString();
+    LOG(WARNING) << "DB Migrate auth Send error: " << s.ToString();
     return -1;
   }
   // Recv
   s = cli->Recv(&argv);
   if (!s.ok()) {
-    LOG(WARNING) << "Slot Migrate auth Recv error: " << s.ToString();
+    LOG(WARNING) << "DB Migrate auth Recv error: " << s.ToString();
     return -1;
   }
   pstd::StringToLower(argv[0]);
   if (argv[0] != "ok" && argv[0] != "pong" && argv[0].find("no password") == std::string::npos) {
-    LOG(WARNING) << "Slot Migrate auth error: " << argv[0];
+    LOG(WARNING) << "DB Migrate auth error: " << argv[0];
     return -1;
   }
   return 0;
@@ -421,7 +421,7 @@ void PikaParseSendThread::DelKeysAndWriteBinlog(std::deque<std::pair<const char,
 }
 
 // write del key to binlog for slave
-void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<DB>& db) {
+void WriteDelKeyToBinlog(const std::string& key, const std::shared_ptr<DB>& db) {
   std::shared_ptr<Cmd> cmd_ptr = g_pika_cmd_table_manager->GetCmd("del");
   std::unique_ptr<PikaCmdArgsType> args = std::make_unique<PikaCmdArgsType>();
   args->emplace_back("DEL");
@@ -526,8 +526,8 @@ PikaMigrateThread::PikaMigrateThread()
       dest_ip_("none"),
       dest_port_(-1),
       timeout_ms_(3000),
-      slot_id_(-1),
       keys_num_(-1),
+      slot_id_(-1),
       is_migrating_(false),
       should_exit_(false),
       is_task_success_(true),
@@ -550,7 +550,7 @@ PikaMigrateThread::~PikaMigrateThread() {
   }
 }
 
-bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out,
+bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,
                                         int64_t keys_num, const std::shared_ptr<DB>& db) {
   if (migrator_mutex_.try_lock()) {
     if (is_migrating_) {
@@ -571,6 +571,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
       dest_port_ = port;
       timeout_ms_ = time_out;
       keys_num_ = keys_num;
+      slot_id_ = slot_num;
       should_exit_ = false;
       db_ = db;
 
@@ -593,7 +594,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
   return false;
 }
 
-int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<DB>& db) {
+int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(key);
@@ -675,6 +676,7 @@ void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port, int64_t
   *port = dest_port_;
   *migrating = is_migrating_;
   *moved = moved_num_;
+  *slot = slot_id_;
   std::unique_lock lq(mgrtkeys_queue_mutex_);
   int64_t migrating_keys_num = static_cast<int32_t>(mgrtkeys_queue_.size());
   std::string slotKey = GetSlotKey(static_cast<int32_t>(slot_id_));

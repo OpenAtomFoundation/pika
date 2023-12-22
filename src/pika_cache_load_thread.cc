@@ -9,7 +9,7 @@
 #include "include/pika_cache.h"
 #include "pstd/include/scope_record_lock.h"
 
-extern PikaServer *g_pika_server;
+extern PikaServer* g_pika_server;
 
 PikaCacheLoadThread::PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key)
     : should_exit_(false)
@@ -32,7 +32,7 @@ PikaCacheLoadThread::~PikaCacheLoadThread() {
   StopThread();
 }
 
-void PikaCacheLoadThread::Push(const char key_type, std::string &key, const std::shared_ptr<DB>& db) {
+void PikaCacheLoadThread::Push(const char key_type, std::string& key, const std::shared_ptr<DB>& db) {
   std::unique_lock lq(loadkeys_mutex_);
   std::unique_lock lm(loadkeys_map_mutex_);
   if (CACHE_LOAD_QUEUE_MAX_SIZE < loadkeys_queue_.size()) {
@@ -53,7 +53,7 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key, const std:
   }
 }
 
-bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadKV(std::string& key, const std::shared_ptr<DB>& db) {
   std::string value;
   int64_t ttl = -1;
   rocksdb::Status s = db->storage()->GetWithTTL(key, &value, &ttl);
@@ -66,7 +66,7 @@ bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<DB>& db
   return true;
 }
 
-bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadHash(std::string& key, const std::shared_ptr<DB>& db) {
   int32_t len = 0;
   db->storage()->HLen(key, &len);
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -87,7 +87,7 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<DB>& 
   return true;
 }
 
-bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadList(std::string& key, const std::shared_ptr<DB>& db) {
   uint64_t len = 0;
   db->storage()->LLen(key, &len);
   if (len <= 0 || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -108,7 +108,7 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<DB>& 
   return true;
 }
 
-bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadSet(std::string& key, const std::shared_ptr<DB>& db) {
   int32_t len = 0;
   db->storage()->SCard(key, &len);
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -129,7 +129,7 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<DB>& d
   return true;
 }
 
-bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadZset(std::string& key, const std::shared_ptr<DB>& db) {
   int32_t len = 0;
   int start_index = 0;
   int stop_index = -1;
@@ -165,7 +165,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<DB>& 
   return true;
 }
 
-bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<DB>& db) {
+bool PikaCacheLoadThread::LoadKey(const char key_type, std::string& key, const std::shared_ptr<DB>& db) {
   pstd::lock::MultiRecordLock record_lock(db->LockMgr());
   switch (key_type) {
     case 'k':

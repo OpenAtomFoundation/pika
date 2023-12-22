@@ -202,7 +202,7 @@ class FlushdbCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
-  void FlushAllSlotsWithoutLock(std::shared_ptr<DB> db);
+  void FlushAllDBsWithoutLock(std::shared_ptr<DB> db);
   void Execute() override;
   std::string GetFlushDname() { return db_name_; }
 
@@ -289,7 +289,6 @@ class InfoCmd : public Cmd {
   void InfoStats(std::string& info);
   void InfoExecCount(std::string& info);
   void InfoCPU(std::string& info);
-  void InfoShardingReplication(std::string& info);
   void InfoReplication(std::string& info);
   void InfoKeyspace(std::string& info);
   void InfoData(std::string& info);

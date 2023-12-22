@@ -100,13 +100,7 @@ std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAll
   return slaves_;
 }
 
-std::unordered_map<std::string, LogOffset> SyncProgress::GetAllMatchIndex() {
-  std::shared_lock l(rwlock_);
-  return match_index_;
-}
-
-Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                                  int session_id) {
+Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id) {
   std::string slave_key = ip + std::to_string(port);
   std::shared_ptr<SlaveNode> exist_ptr = GetSlaveNode(ip, port);
   if (exist_ptr) {
@@ -200,16 +194,6 @@ void MemLog::Reset(const LogOffset& offset) {
   std::lock_guard l_logs(logs_mu_);
   logs_.erase(logs_.begin(), logs_.end());
   last_offset_ = offset;
-}
-
-Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
-  std::lock_guard l_logs(logs_mu_);
-  int log_size = static_cast<int>(logs_.size());
-  if (start > end || start >= log_size || end >= log_size) {
-    return Status::Corruption("Invalid index");
-  }
-  logs->assign(logs_.begin() + start, logs_.begin() + end + 1);
-  return Status::OK();
 }
 
 bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
@@ -353,8 +337,6 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
     return Status::OK();
   }
 
-  LogOffset log_offset;
-
   BinlogItem item;
   // make sure stable log and mem log consistent
   Status s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
@@ -367,7 +349,7 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
 }
 
 Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
-    return ProposeLog(cmd_ptr, nullptr, nullptr);
+  return ProposeLog(cmd_ptr, nullptr, nullptr);
 }
 
 Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
@@ -426,45 +408,8 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const 
   return Status::OK();
 }
 
-Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {
-  // logs from PurgeLogs goes to InternalApply in order
-  std::lock_guard l(order_mu_);
-  std::vector<MemLog::LogItem> logs;
-  Status s = mem_logger_->PurgeLogs(committed_index, &logs);
-  if (!s.ok()) {
-    return Status::NotFound("committed index not found " + committed_index.ToString());
-  }
-  for (const auto& log : logs) {
-    context_->PrepareUpdateAppliedIndex(log.offset);
-    InternalApply(log);
-  }
-  return Status::OK();
-}
-
-Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed_index) {
-  // logs from PurgeLogs goes to InternalApply in order
-  std::lock_guard l(order_mu_);
-  std::vector<MemLog::LogItem> logs;
-  Status s = mem_logger_->PurgeLogs(committed_index, &logs);
-  if (!s.ok()) {
-    return Status::NotFound("committed index not found " + committed_index.ToString());
-  }
-  for (const auto& log : logs) {
-    context_->PrepareUpdateAppliedIndex(log.offset);
-    InternalApplyFollower(log);
-  }
-  return Status::OK();
-}
-
-Status ConsensusCoordinator::CheckEnoughFollower() {
-  if (!MatchConsensusLevel()) {
-    return Status::Incomplete("Not enough follower");
-  }
-  return Status::OK();
-}
-
 Status ConsensusCoordinator::AddSlaveNode(const std::string& ip, int port, int session_id) {
-  Status s = sync_pros_.AddSlaveNode(ip, port, db_name_, slot_id_, session_id);
+  Status s = sync_pros_.AddSlaveNode(ip, port, db_name_, session_id);
   if (!s.ok()) {
     return s;
   }
@@ -490,21 +435,6 @@ void ConsensusCoordinator::UpdateTerm(uint32_t term) {
 uint32_t ConsensusCoordinator::term() {
   std::shared_lock l(term_rwlock_);
   return term_;
-}
-
-bool ConsensusCoordinator::MatchConsensusLevel() {
-  return sync_pros_.SlaveSize() >= static_cast<int>(g_pika_conf->consensus_level());
-}
-
-void ConsensusCoordinator::InternalApply(const MemLog::LogItem& log) {
-  auto arg = new PikaClientConn::BgTaskArg();
-  arg->cmd_ptr = log.cmd_ptr;
-  arg->conn_ptr = log.conn_ptr;
-  arg->resp_ptr = log.resp_ptr;
-  arg->offset = log.offset;
-  arg->db_name = db_name_;
-  arg->slot_id = slot_id_;
-  g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());
 }
 
 void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
@@ -613,7 +543,6 @@ Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, c
     }
     log_offset->push_back(offset);
   }
-  return Status::OK();
 }
 
 Status ConsensusCoordinator::FindBinlogFileNum(const std::map<uint32_t, std::string>& binlogs, uint64_t target_index,

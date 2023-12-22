@@ -228,10 +228,10 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     std::string pop_type;
     if (pop_arg.block_type == BlockKeyType::Blpop) {
       pop_type = kCmdNameLPop;
-      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
     } else if (pop_arg.block_type == BlockKeyType::Brpop) {
       pop_type = kCmdNameRPop;
-      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
     }
 
     PikaCmdArgsType args;
@@ -241,7 +241,7 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     std::shared_ptr<SyncMasterDB> sync_db =
         g_pika_rm->GetSyncMasterDBByName(DBInfo(pop_arg.db->GetDBName()));
     if (!sync_db) {
-      LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
+      LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterDB not found";
     } else {
       pop_cmd->SetConn(pop_arg.conn);
       auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
@@ -434,7 +434,7 @@ void LPopCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LPopCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LPopCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -469,7 +469,7 @@ void LPushxCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LPushxCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LPushxCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -531,7 +531,7 @@ void LRangeCmd::ReadCache(std::shared_ptr<DB> db) {
 
 void LRangeCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-   Do(db);
+  Do(db);
 }
 
 void LRangeCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -565,7 +565,7 @@ void LRemCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LRemCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -605,7 +605,7 @@ void LSetCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LSetCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LSetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -642,7 +642,7 @@ void LTrimCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LTrimCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LTrimCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -760,7 +760,7 @@ void RPopCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void RPopCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void RPopCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -861,7 +861,7 @@ void RPushCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void RPushCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void RPushCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -895,7 +895,7 @@ void RPushxCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void RPushxCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void RPushxCmd::DoUpdateCache(std::shared_ptr<DB> db) {

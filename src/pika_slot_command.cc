@@ -198,7 +198,7 @@ void PikaMigrate::KillAllMigrateClient() {
  *    -1 - error happens
  *   >=0 - # of success migration (0 or 1)
  * */
-int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout, const std::string &key,
+int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout, const std::string& key,
                             const char type, std::string &detail, const std::shared_ptr<DB>& db) {
   int send_command_num = -1;
 
@@ -221,7 +221,7 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
   return -1;
 }
 
-int PikaMigrate::MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
+int PikaMigrate::MigrateSend(net::NetCli* migrate_cli, const std::string& key, const char type, std::string& detail,
                              const std::shared_ptr<DB>& db) {
   std::string wbuf_str;
   pstd::Status s;
@@ -254,7 +254,7 @@ int PikaMigrate::MigrateSend(net::NetCli *migrate_cli, const std::string &key, c
   return command_num;
 }
 
-bool PikaMigrate::MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::string &detail) {
+bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::string& detail) {
   pstd::Status s;
   std::string reply;
   int64_t ret;
@@ -303,7 +303,7 @@ bool PikaMigrate::MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::s
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int command_num = -1;
   int64_t ttl = 0;
   rocksdb::Status s;
@@ -363,7 +363,7 @@ int PikaMigrate::ParseKey(const std::string &key, const char type, std::string &
   return command_num;
 }
 
-bool PikaMigrate::SetTTL(const std::string &key, std::string &wbuf_str, int64_t ttl) {
+bool PikaMigrate::SetTTL(const std::string& key, std::string& wbuf_str, int64_t ttl) {
   //-1 indicates the key is valid forever
   if (ttl == -1) {
     return false;
@@ -389,7 +389,7 @@ bool PikaMigrate::SetTTL(const std::string &key, std::string &wbuf_str, int64_t 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseKKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   net::RedisCmdArgsType argv;
   std::string cmd;
   std::string value;
@@ -430,7 +430,7 @@ int PikaMigrate::ParseKKey(const std::string &key, std::string &wbuf_str, const 
   return 1;
 }
 
-int64_t PikaMigrate::TTLByType(const char key_type, const std::string &key, const std::shared_ptr<DB>& db) {
+int64_t PikaMigrate::TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db) {
   std::map<storage::DataType, int64_t> type_timestamp;
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = db->storage()->TTL(key, &type_status);
@@ -456,7 +456,7 @@ int64_t PikaMigrate::TTLByType(const char key_type, const std::string &key, cons
   }
 }
 
-int PikaMigrate::ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int command_num = 0;
 
   int64_t next_cursor = 0;
@@ -495,7 +495,7 @@ int PikaMigrate::ParseZKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseHKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int64_t next_cursor = 0;
   int command_num = 0;
   std::vector<storage::FieldValue> field_values;
@@ -533,7 +533,7 @@ int PikaMigrate::ParseHKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseSKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int command_num = 0;
   int64_t next_cursor = 0;
   std::vector<std::string> members;
@@ -572,7 +572,7 @@ int PikaMigrate::ParseSKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<DB>& db) {
+int PikaMigrate::ParseLKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int64_t left = 0;
   int command_num = 0;
   std::vector<std::string> values;
@@ -633,8 +633,8 @@ int PikaMigrate::ParseLKey(const std::string &key, std::string &wbuf_str, const 
  *    -1 - error happens
  *   >=0 - # of success migration (0 or 1)
  * */
-static int SlotsMgrtOne(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                        std::string &detail, const std::shared_ptr<DB>& db) {
+static int SlotsMgrtOne(const std::string &host, const int port, int timeout, const std::string& key, const char type,
+                        std::string& detail, const std::shared_ptr<DB>& db) {
   int send_command_num = 0;
   rocksdb::Status s;
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -665,7 +665,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
   return -1;
 }
 
-void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<DB>& db) {
+void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   uint32_t crc;
   int hastag;
   int slotNum = GetSlotsID(key, &crc, &hastag);
@@ -697,8 +697,8 @@ void RemSlotKeyByType(const std::string &type, const std::string &key, const std
  *    -1 - error happens
  *   >=0 - # of success migration
  * */
-static int SlotsMgrtTag(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                        std::string &detail, const std::shared_ptr<DB>& db) {
+static int SlotsMgrtTag(const std::string& host, const int port, int timeout, const std::string& key, const char type,
+                        std::string& detail, const std::shared_ptr<DB>& db) {
   int count = 0;
   uint32_t crc;
   int hastag;
@@ -748,7 +748,7 @@ static int SlotsMgrtTag(const std::string &host, const int port, int timeout, co
 }
 
 // get slot tag
-static const char *GetSlotsTag(const std::string &str, int *plen) {
+static const char *GetSlotsTag(const std::string& str, int* plen) {
   const char *s = str.data();
   int i, j, n = static_cast<int32_t>(str.length());
   for (i = 0; i < n && s[i] != '{'; i++) {
@@ -773,7 +773,7 @@ std::string GetSlotKey(int db) {
 }
 
 // get slot number of the key
-int GetSlotID(const std::string &str) { return GetSlotsID(str, nullptr, nullptr); }
+int GetSlotID(const std::string& str) { return GetSlotsID(str, nullptr, nullptr); }
 
 // get the slot number by key
 int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
@@ -796,7 +796,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   return crc % g_pika_conf->default_slot_num();
 }
 
-uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
+uint32_t CRC32CheckSum(const char* buf, int len) { return CRC32Update(0, buf, len); }
 
 // add key to slotkey
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
@@ -850,7 +850,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
   }
 }
 
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db) {
+int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
   std::vector<std::string> type_str(1);
   rocksdb::Status s = db->storage()->GetType(key, true, type_str);
   if (!s.ok()) {

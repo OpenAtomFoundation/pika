@@ -113,8 +113,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
-  uint32_t slot_id = req->slot_id();
-  std::shared_ptr<DB> db = g_pika_server->GetDBSlotById(db_name);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
   if (!db || db->IsBgSaving()) {
     LOG(WARNING) << "waiting bgsave done...";
     return;
@@ -125,11 +124,10 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
-  response.set_slot_id(slot_id);
 
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
-  g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
+  g_pika_server->GetDumpMeta(db_name, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 
   LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
@@ -150,7 +148,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<RsyncServerConn> conn = task_arg->conn;
 
-  uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
   std::string filename = req->file_req().filename();
   size_t offset = req->file_req().offset();
@@ -161,10 +158,9 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
   response.set_db_name(db_name);
-  response.set_slot_id(slot_id);
 
   std::string snapshot_uuid;
-  Status s = g_pika_server->GetDumpUUID(db_name, slot_id, &snapshot_uuid);
+  Status s = g_pika_server->GetDumpUUID(db_name,  &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
   if (!s.ok()) {
     LOG(WARNING) << "rsyncserver get snapshotUUID failed";
@@ -173,10 +169,9 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     return;
   }
 
-  std::shared_ptr<DB> db = g_pika_server->GetDBSlotById(db_name);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
   if (!db) {
-   LOG(WARNING) << "cannot find slot for db_name: " << db_name
-                << " slot_id: " << slot_id;
+   LOG(WARNING) << "cannot find db for db_name: " << db_name;
    response.set_code(RsyncService::kErr);
    RsyncWriteResp(response, conn);
   }

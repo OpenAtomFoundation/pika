@@ -376,10 +376,10 @@ class DelvxCmd : public Cmd {
 class MsetCmd : public Cmd {
  public:
   MsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
   MsetCmd(const MsetCmd& other) : Cmd(other), kvs_(other.kvs_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
 
   void Do(std::shared_ptr<DB> db) override;
@@ -408,11 +408,11 @@ class MsetCmd : public Cmd {
 class MsetnxCmd : public Cmd {
  public:
   MsetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
   MsetnxCmd(const MsetnxCmd& other)
       : Cmd(other), kvs_(other.kvs_), success_(other.success_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;

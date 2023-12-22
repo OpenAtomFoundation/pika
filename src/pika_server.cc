@@ -13,7 +13,7 @@
 #include <fstream>
 #include <memory>
 #include <utility>
-
+#include <mach/mach_time.h>
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_interfaces.h"
@@ -24,7 +24,6 @@
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
@@ -52,7 +51,7 @@ void DoDBSync(void* arg) {
 
 PikaServer::PikaServer()
     : exit_(false),
-      slot_state_(INFREE),
+      db_state_(INFREE),
       last_check_compact_time_({0, 0}),
       last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
@@ -341,8 +340,9 @@ std::shared_ptr<DB> PikaServer::GetDB(const std::string& db_name) {
 bool PikaServer::IsBgSaving() {
   std::shared_lock l(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    std::lock_guard ml(bgsave_protector_);
-    return bgsave_info_.bgsaving;
+    if (db_item.second->IsBgSaving()) {
+      return true;
+    }
   }
   return false;
 }
@@ -433,7 +433,7 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
   return Status::OK();
 }
 
-void PikaServer::PrepareSlotTrySync() {
+void PikaServer::PrepareDBTrySync() {
   std::shared_lock rwl(dbs_rw_);
   ReplState state = force_full_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& db_item : dbs_) {
@@ -445,11 +445,11 @@ void PikaServer::PrepareSlotTrySync() {
     }
   }
   force_full_sync_ = false;
-  loop_slot_state_machine_ = true;
+  loop_db_state_machine_ = true;
   LOG(INFO) << "Mark try connect finish";
 }
 
-void PikaServer::SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
+void PikaServer::DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
     db_item.second->DbRWLockReader();
@@ -458,7 +458,7 @@ void PikaServer::SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys)
   }
 }
 
-void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
+void PikaServer::DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
     db_item.second->DbRWLockReader();
@@ -467,7 +467,7 @@ void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_thres
   }
 }
 
-bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, BinlogOffset* const boffset) {
+bool PikaServer::GetDBBinlogOffset(const std::string& db_name, BinlogOffset* const boffset) {
   std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
   if (!db) {
     return false;
@@ -476,12 +476,7 @@ bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, BinlogOffset*
   return s.ok();
 }
 
-std::shared_ptr<DB> PikaServer::GetSlotByDBName(const std::string& db_name) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db;
-}
-
-Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
+Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
   std::shared_lock rwl(dbs_rw_);
   std::shared_ptr<SyncSlaveDB> slave_db = nullptr;
   for (const auto& db_item : dbs_) {
@@ -556,31 +551,9 @@ void PikaServer::DeleteSlave(int fd) {
   }
 }
 
-std::shared_ptr<DB> PikaServer::GetDBSlotById(const std::string& db_name) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db;
-}
-
 int32_t PikaServer::CountSyncSlaves() {
   std::lock_guard ldb(db_sync_protector_);
   return static_cast<int32_t>(db_sync_slaves_.size());
-}
-
-int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
-  std::vector<std::string> complete_replica;
-  g_pika_rm->FindCompleteReplica(&complete_replica);
-  std::stringstream tmp_stream;
-  size_t index = 0;
-  for (const auto& replica : complete_replica) {
-    std::string ip;
-    int port;
-    if (!pstd::ParseIpPortString(replica, ip, port)) {
-      continue;
-    }
-    tmp_stream << "slave" << index++ << ":ip=" << ip << ",port=" << port << "\r\n";
-  }
-  slave_list_str.assign(tmp_stream.str());
-  return static_cast<int32_t>(index);
 }
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
@@ -668,7 +641,7 @@ void PikaServer::RemoveMaster() {
     if (!master_ip_.empty() && master_port_ != -1) {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
-      loop_slot_state_machine_ = false;
+      loop_db_state_machine_ = false;
       UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
@@ -676,7 +649,7 @@ void PikaServer::RemoveMaster() {
     master_ip_ = "";
     master_port_ = -1;
     master_run_id_ = "";
-    DoSameThingEverySlot(TaskType::kResetReplState);
+    DoSameThingEveryDB(TaskType::kResetReplState);
   }
 }
 
@@ -717,15 +690,15 @@ void PikaServer::ResetMetaSyncStatus() {
     // not change by slaveof no one, so set repl_state = PIKA_REPL_SHOULD_META_SYNC,
     // continue to connect master
     repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
-    loop_slot_state_machine_ = false;
-    DoSameThingEverySlot(TaskType::kResetReplState);
+    loop_db_state_machine_ = false;
+    DoSameThingEveryDB(TaskType::kResetReplState);
   }
 }
 
-void PikaServer::SetLoopSlotStateMachine(bool need_loop) {
+void PikaServer::SetLoopDBStateMachine(bool need_loop) {
   std::lock_guard sp_l(state_protector_);
   assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
-  loop_slot_state_machine_ = need_loop;
+  loop_db_state_machine_ = need_loop;
 }
 
 int PikaServer::GetMetaSyncTimestamp() {
@@ -808,21 +781,21 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_n
   bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
 }
 
-pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid) {
-  std::shared_ptr<DB> db = GetDBSlotById(db_name);
+pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid) {
+  std::shared_ptr<DB> db = GetDB(db_name);
   if (!db) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
-    return pstd::Status::NotFound("slot no found");
+    LOG(WARNING) << "cannot find db for db_name " << db_name;
+    return pstd::Status::NotFound("db no found");
   }
   db->GetBgSaveUUID(snapshot_uuid);
   return pstd::Status::OK();
 }
 
-pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
-  std::shared_ptr<DB> db = GetDBSlotById(db_name);
+pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
+  std::shared_ptr<DB> db = GetDB(db_name);
   if (!db) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
-    return pstd::Status::NotFound("slot no found");
+    LOG(WARNING) << "cannot find db for db_name " << db_name;
+    return pstd::Status::NotFound("db no found");
   }
   db->GetBgSaveMetaData(fileNames, snapshot_uuid);
   return pstd::Status::OK();
@@ -830,7 +803,7 @@ pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t 
 
 void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name,
                            int32_t top) {
-  std::shared_ptr<DB> db = GetDBSlotById(db_name);
+  std::shared_ptr<DB> db = GetDB(db_name);
   if (!db) {
     LOG(WARNING) << "can not find DB : " << db_name
                  << ", TryDBSync Failed";
@@ -851,12 +824,10 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     db->BgSaveDB();
   }
-  //TODO: temporarily disable rsync server
-  //DBSync(ip, port, db_name, slot_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name) {
-  std::shared_ptr<DB> db = GetDBSlotById(db_name);
+  std::shared_ptr<DB> db = GetDB(db_name);
   if (!db) {
     LOG(WARNING) << "can not find DB: " << db_name
                  << ", DbSync send file Failed";
@@ -1302,7 +1273,7 @@ void PikaServer::AutoCompactRange() {
 
     if (!have_scheduled_crontask_ && in_window) {
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
-        Status s = DoSameThingEverySlot(TaskType::kCompactAll);
+        Status s = DoSameThingEveryDB(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size / 1048576
                     << "MB, disksize: " << total_size / 1048576 << "MB";
@@ -1319,7 +1290,7 @@ void PikaServer::AutoCompactRange() {
   }
 }
 
-void PikaServer::AutoPurge() { DoSameThingEverySlot(TaskType::kPurgeLog); }
+void PikaServer::AutoPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
 
 void PikaServer::AutoDeleteExpiredDump() {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
@@ -1400,15 +1371,8 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 }
 
-void PikaServer::AutoKeepAliveRSync() {
-  if (!pika_rsync_service_->CheckRsyncAlive()) {
-    LOG(WARNING) << "The Rsync service is down, Try to restart";
-    pika_rsync_service_->StartRsync();
-  }
-}
-
 void PikaServer::AutoUpdateNetworkMetric() {
-  monotime current_time = getMonotonicUs();
+  uint64_t current_time = getMonotonicUs();
   size_t factor = 5e6; // us, 5s
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
                                      current_time, factor);
@@ -1418,6 +1382,15 @@ void PikaServer::AutoUpdateNetworkMetric() {
                                      factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
                                      current_time, factor);
+}
+
+uint64_t PikaServer::getMonotonicUs() {
+  static mach_timebase_info_data_t timebase;
+  if (timebase.denom == 0) {
+    mach_timebase_info(&timebase);
+  }
+  uint64_t nanos = mach_absolute_time() * timebase.numer / timebase.denom;
+  return nanos / 1000;
 }
 
 void PikaServer::PrintThreadPoolQueueStatus() {
@@ -1546,14 +1519,14 @@ void PikaServer::ServerStatus(std::string* info) {
 }
 
 bool PikaServer::SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, const std::shared_ptr<DB>& db) {
-  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, keys_num, db);
+  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, db);
 }
 
 void PikaServer::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained){
   return pika_migrate_thread_->GetMigrateStatus(ip, port, slot, migrating, moved, remained);
 }
 
-int PikaServer::SlotsMigrateOne(const std::string &key, const std::shared_ptr<DB>& db) {
+int PikaServer::SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
   return pika_migrate_thread_->ReqMigrateOne(key, db);
 }
 
@@ -1750,7 +1723,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
       LOG(INFO) << "clear cache start...";
       db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
       g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, db);
-      db->cache()->FlushSlot();
+      db->cache()->FlushDB();
       LOG(INFO) << "clear cache finish";
       break;
     case CACHE_BGTASK_RESET_NUM:

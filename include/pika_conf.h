@@ -610,20 +610,11 @@ class PikaConf : public pstd::BaseConf {
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
   int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
-  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                    bool is_add);
-  pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
-  pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
-  pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
-  pstd::Status AddDBSanityCheck(const std::string& db_name);
-  pstd::Status DelDB(const std::string& db_name);
-  pstd::Status DelDBSanityCheck(const std::string& db_name);
 
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
  private:
-  pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
   int port_ = 0;
   std::string slaveof_;

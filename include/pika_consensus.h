@@ -48,16 +48,13 @@ class SyncProgress {
   ~SyncProgress() = default;
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
-  std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
-  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                      int session_id);
+  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   pstd::Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
                 LogOffset* committed_index);
   int SlaveSize();
 
  private:
-
   std::shared_mutex rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
   std::unordered_map<std::string, LogOffset> match_index_;
@@ -83,7 +80,6 @@ class MemLog {
     last_offset_ = item.offset;
   }
   pstd::Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
-  pstd::Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   pstd::Status TruncateTo(const LogOffset& offset);
 
   void Reset(const LogOffset& offset);
@@ -123,7 +119,6 @@ class ConsensusCoordinator {
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   void UpdateTerm(uint32_t term);
   uint32_t term();
-  pstd::Status CheckEnoughFollower();
 
   // invoked by follower
   pstd::Status ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
@@ -179,15 +174,11 @@ class ConsensusCoordinator {
   }
 
  private:
-  pstd::Status ScheduleApplyLog(const LogOffset& committed_index);
-  pstd::Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
-  bool MatchConsensusLevel();
   pstd::Status TruncateTo(const LogOffset& offset);
 
   pstd::Status InternalAppendLog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
                            std::shared_ptr<PikaClientConn> conn_ptr, std::shared_ptr<std::string> resp_ptr);
   pstd::Status InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr, LogOffset* log_offset);
-  void InternalApply(const MemLog::LogItem& log);
   void InternalApplyFollower(const MemLog::LogItem& log);
 
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);

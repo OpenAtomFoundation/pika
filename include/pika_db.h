@@ -11,7 +11,6 @@
 #include "storage/storage.h"
 #include "include/pika_command.h"
 #include "lock_mgr.h"
-//#include "include/pika_cache.h"
 #include "pika_cache.h"
 #include "pika_define.h"
 #include "storage/backupable.h"
@@ -96,33 +95,25 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::shared_ptr<storage::Storage> storage() const;
   void GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid);
   void BgSaveDB();
-  void CompactDB(const storage::DataType& type);
-  bool FlushSlotDB();
-  bool FlushSlotSubDB(const std::string& db_name);
   void SetBinlogIoError();
   void SetBinlogIoErrorrelieve();
   bool IsBinlogIoError();
-  uint32_t SlotNum();
-  void GetAllSlots(std::set<uint32_t>& slot_ids);
   std::shared_ptr<PikaCache> cache() const;
-  std::shared_mutex& GetSlotLock() {
-    return slots_rw_;
+  std::shared_mutex& GetDBLock() {
+    return dbs_rw_;
   }
-  void SlotLock() {
-    slots_rw_.lock();
+  void DBLock() {
+    dbs_rw_.lock();
   }
-  void SlotLockShared() {
-    slots_rw_.lock_shared();
+  void DBLockShared() {
+    dbs_rw_.lock_shared();
   }
-  void SlotUnlock() {
-    slots_rw_.unlock();
+  void DBUnlock() {
+    dbs_rw_.unlock();
   }
-  void SlotUnlockShared() {
-    slots_rw_.unlock_shared();
+  void DBUnlockShared() {
+    dbs_rw_.unlock_shared();
   }
-  // Dynamic change slot
-  pstd::Status AddSlots(const std::set<uint32_t>& slot_ids);
-  pstd::Status RemoveSlots(const std::set<uint32_t>& slot_ids);
 
   // KeyScan use;
   void KeyScan();
@@ -174,22 +165,18 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::string dbsync_path_;
   std::shared_mutex slots_rw_;
   std::string db_name_;
-  uint32_t slot_num_ = 0;
   std::string db_path_;
   std::string snapshot_uuid_;
   std::string log_path_;
   std::string bgsave_sub_path_;
   pstd::Mutex key_info_protector_;
-  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_mutex db_rwlock_;
+  std::atomic<bool> binlog_io_error_;
+  std::shared_mutex dbs_rw_;
+  // class may be shared, using shared_ptr would be a better choice
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> storage_;
   std::shared_ptr<PikaCache> cache_;
-  std::atomic<bool> binlog_io_error_;
-  // lock order
-  // slots_rw_ > key_scan_protector_
-
-  std::shared_mutex dbs_rw_;
-
   /*
    * KeyScan use
    */

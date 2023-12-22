@@ -107,20 +107,16 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
-
+  uint64_t getMonotonicUs();
   /*
    * Table use
    */
   void InitDBStruct();
-  pstd::Status AddDBStruct(const std::string& db_name, uint32_t num);
-  pstd::Status DelDBStruct(const std::string& db_name);
   std::shared_ptr<DB> GetDB(const std::string& db_name);
-  std::set<uint32_t> GetDBSlotIds(const std::string& db_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsDBExist(const std::string& db_name);
-  bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
@@ -140,15 +136,13 @@ class PikaServer : public pstd::noncopyable {
   }
 
   /*
-   * Slot use
+   * DB use
    */
-  void PrepareSlotTrySync();
-  void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
-  void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetDBSlotBinlogOffset(const std::string& db_name, BinlogOffset* boffset);
-  std::shared_ptr<DB> GetSlotByDBName(const std::string& db_name);
-  std::shared_ptr<DB> GetDBSlotById(const std::string& db_name);
-  pstd::Status DoSameThingEverySlot(const TaskType& type);
+  void PrepareDBTrySync();
+  void DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
+  void DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  bool GetDBBinlogOffset(const std::string& db_name, BinlogOffset* boffset);
+  pstd::Status DoSameThingEveryDB(const TaskType& type);
 
   /*
    * Master use
@@ -157,7 +151,6 @@ class PikaServer : public pstd::noncopyable {
   void DeleteSlave(int fd);  // conn fd
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
-  int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& table_structs);
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
@@ -183,7 +176,7 @@ class PikaServer : public pstd::noncopyable {
   void ResetMetaSyncStatus();
   bool AllSlotConnectSuccess();
   bool LoopSlotStateMachine();
-  void SetLoopSlotStateMachine(bool need_loop);
+  void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
@@ -218,8 +211,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DBSync used
    */
-  pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
-  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
+  pstd::Status GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, std::vector<std::string>* files, std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name);
@@ -307,7 +300,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<DB> &db);
+  int SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB> &db);
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
@@ -412,10 +405,6 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cursor = cursor;
   }
-  int64_t GetSlotscleaningupCursor() {
-    std::lock_guard ml(bgsave_protector_);
-    return bgslots_cleanup_.cursor;
-  }
   void SetCleanupSlots(std::vector<int> cleanup_slots) {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
@@ -483,7 +472,6 @@ class PikaServer : public pstd::noncopyable {
   void UpdateCacheInfo(void);
   void ResetDisplayCacheInfo(int status, std::shared_ptr<DB> db);
   void CacheConfigInit(cache::CacheConfig &cache_cfg);
-  void ClearHitRatio(void);
   void ProcessCronTask();
   double HitRatio();
  private:
@@ -491,11 +479,9 @@ class PikaServer : public pstd::noncopyable {
    * TimingTask use
    */
   void DoTimingTask();
-  void AutoResumeDB();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
-  void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
   
@@ -513,7 +499,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Table used
    */
-  std::atomic<SlotState> slot_state_;
+  std::atomic<DBState> db_state_;
   std::shared_mutex dbs_rw_;
   std::map<std::string, std::shared_ptr<DB>> dbs_;
 
@@ -545,8 +531,8 @@ class PikaServer : public pstd::noncopyable {
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
-  bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;
+  bool loop_db_state_machine_ = false;
   bool leader_protected_mode_ = false;  // reject request after master slave sync done
   std::shared_mutex state_protector_;   // protect below, use for master-slave mode
 

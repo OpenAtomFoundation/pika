@@ -6,9 +6,9 @@
 #ifndef PIKA_ZSET_H_
 #define PIKA_ZSET_H_
 
-#include "storage/storage.h"
 #include "include/pika_command.h"
 #include "pika_kv.h"
+#include "storage/storage.h"
 
 /*
  * zset
@@ -284,8 +284,8 @@ class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {
-    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
+    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   ZsetUIstoreParentCmd(const ZsetUIstoreParentCmd& other)
       : Cmd(other),
@@ -294,8 +294,8 @@ class ZsetUIstoreParentCmd : public Cmd {
         aggregate_(other.aggregate_),
         keys_(other.keys_),
         weights_(other.weights_) {
-    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
+    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
   std::vector<std::string> current_key() const override {

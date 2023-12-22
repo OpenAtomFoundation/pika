@@ -166,12 +166,12 @@ class SUnionCmd : public Cmd {
 class SetOperationCmd : public Cmd {
  public:
   SetOperationCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
     del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   SetOperationCmd(const SetOperationCmd& other)
       : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_) {
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
     del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
@@ -286,8 +286,8 @@ class SDiffstoreCmd : public SetOperationCmd {
 class SMoveCmd : public Cmd {
  public:
   SMoveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
   }
   SMoveCmd(const SMoveCmd& other)
       : Cmd(other),
@@ -295,8 +295,8 @@ class SMoveCmd : public Cmd {
         dest_key_(other.dest_key_),
         member_(other.member_),
         move_success_(other.move_success_) {
-    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
   }
   std::vector<std::string> current_key() const override {
     return {src_key_, dest_key_};

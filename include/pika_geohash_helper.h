@@ -35,8 +35,6 @@
 #include "include/pika_geohash.h"
 
 #define GZERO(s) s.bits = (s).step = 0;
-#define GISZERO(s) (!(s).bits && !(s).step)
-#define GISNOTZERO(s) ((s).bits || (s).step)
 
 using GeoHashFix52Bits = uint64_t;
 

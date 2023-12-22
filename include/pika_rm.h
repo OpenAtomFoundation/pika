@@ -155,7 +155,7 @@ class SyncSlaveDB : public SyncDB {
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
-  pstd::Mutex slot_mu_;
+  pstd::Mutex db_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};
   std::string local_ip_;
@@ -178,9 +178,9 @@ class PikaReplicaManager {
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
   pstd::Status SendRemoveSlaveNodeRequest(const std::string& table);
-  pstd::Status SendSlotTrySyncRequest(const std::string& db_name);
-  pstd::Status SendSlotDBSyncRequest(const std::string& db_name);
-  pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, const LogOffset& ack_start,
+  pstd::Status SendTrySyncRequest(const std::string& db_name);
+  pstd::Status SendDBSyncRequest(const std::string& db_name);
+  pstd::Status SendBinlogSyncAckRequest(const std::string& table, const LogOffset& ack_start,
                                            const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
@@ -193,7 +193,7 @@ class PikaReplicaManager {
   // For SyncSlaveSlot
   std::shared_ptr<SyncSlaveDB> GetSyncSlaveDBByName(const DBInfo& p_info);
 
-  pstd::Status RunSyncSlaveSlotStateMachine();
+  pstd::Status RunSyncSlaveDBStateMachine();
 
   pstd::Status CheckSyncTimeout(uint64_t now);
 
@@ -202,11 +202,11 @@ class PikaReplicaManager {
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-  pstd::Status CheckSlotRole(const std::string& table, int* role);
+  pstd::Status CheckDBRole(const std::string& table, int* role);
 
   void RmStatus(std::string* debug_info);
 
-  static bool CheckSlaveSlotState(const std::string& ip, int port);
+  static bool CheckSlaveDBState(const std::string& ip, int port);
 
   pstd::Status LostConnection(const std::string& ip, int port);
 
@@ -216,7 +216,7 @@ class PikaReplicaManager {
   pstd::Status WakeUpBinlogSync();
 
   // write_queue related
-  void ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  void ProduceWriteQueue(const std::string& ip, int port, std::string db_name, const std::vector<WriteTask>& tasks);
   int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
 
@@ -231,32 +231,32 @@ class PikaReplicaManager {
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
-  std::shared_mutex& GetSlotLock() { return slots_rw_; }
-  void SlotLock() {
-    slots_rw_.lock();
+  std::shared_mutex& GetDBLock() { return dbs_rw_; }
+  void DBLock() {
+    dbs_rw_.lock();
   }
-  void SlotUnlock() {
-    slots_rw_.unlock();
+  void DBUnlock() {
+    dbs_rw_.unlock();
   }
 
-  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_slot_info>& GetSyncMasterDBs() {
+  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_db_info>& GetSyncMasterDBs() {
     return sync_master_dbs_;
   }
-  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_slot_info>& GetSyncSlaveDBs() {
+  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info>& GetSyncSlaveDBs() {
     return sync_slave_dbs_;
   }
 
  private:
-  void InitSlot();
+  void InitDB();
   pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);
 
-  std::shared_mutex slots_rw_;
-  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_slot_info> sync_master_dbs_;
-  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_slot_info> sync_slave_dbs_;
+  std::shared_mutex dbs_rw_;
+  std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_db_info> sync_master_dbs_;
+  std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info> sync_slave_dbs_;
 
   pstd::Mutex write_queue_mu_;
   // every host owns a queue, the key is "ip+port"
-  std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;
+  std::unordered_map<std::string, std::unordered_map<std::string, std::queue<WriteTask>>> write_queues_;
 
   std::unique_ptr<PikaReplClient> pika_repl_client_;
   std::unique_ptr<PikaReplServer> pika_repl_server_;

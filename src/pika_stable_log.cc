@@ -54,7 +54,7 @@ void StableLog::RemoveStableLogDir() {
   }
   g_pika_server->PurgeDir(logpath);
 
-  LOG(WARNING) << "Slot StableLog: " << db_name_ << ":" << slot_id_ << " move to trash success";
+  LOG(WARNING) << "DB StableLog: " << db_name_ << " move to trash success";
 }
 
 bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
@@ -101,7 +101,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       // We check this every time to avoid lock when we do file deletion
       master_db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
       if (!master_db) {
-        LOG(WARNING) << "Slot: " << db_name_ << ":" << slot_id_ << " Not Found";
+        LOG(WARNING) << "DB: " << db_name_ << "Not Found";
         return false;
       }
 

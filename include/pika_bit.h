@@ -138,7 +138,7 @@ class BitPosCmd : public Cmd {
 class BitOpCmd : public Cmd {
  public:
   BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   };
   BitOpCmd(const BitOpCmd& other)
       : Cmd(other),
@@ -146,7 +146,7 @@ class BitOpCmd : public Cmd {
         src_keys_(other.src_keys_),
         op_(other.op_),
         value_to_dest_(other.value_to_dest_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
 
   std::vector<std::string> current_key() const override {

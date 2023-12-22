@@ -222,7 +222,6 @@ void PikaClientConn::DoExecTask(void* arg) {
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
   LogOffset offset = bg_arg->offset;
   std::string db_name = bg_arg->db_name;
-  uint32_t slot_id = bg_arg->slot_id;
   bg_arg.reset();
 
   cmd_ptr->SetStage(Cmd::kExecuteStage);
@@ -233,7 +232,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 
   std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
   if (!db) {
-    LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
+    LOG(WARNING) << "Sync Master DB not exist " << db_name;
     return;
   }
   db->ConsensusUpdateAppliedIndex(offset);

@@ -77,7 +77,7 @@ Status SyncMasterDB::RemoveSlaveNode(const std::string& ip, int port) {
                  << ":" << port;
     return s;
   }
-  LOG(INFO) << "Remove Slave Node, Slot: " << SyncDBInfo().ToString() << ", ip_port: " << ip << ":" << port;
+  LOG(INFO) << "Remove Slave Node, DB: " << SyncDBInfo().ToString() << ", ip_port: " << ip << ":" << port;
   return Status::OK();
 }
 
@@ -182,7 +182,7 @@ Status SyncMasterDB::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_
   }
 
   if (!tasks.empty()) {
-    g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), tasks);
+    g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), db_info_.db_name_, tasks);
   }
   return Status::OK();
 }
@@ -465,7 +465,7 @@ void SyncMasterDB::ConsensusUpdateTerm(uint32_t term) {
 
 void SyncMasterDB::CommitPreviousLogs(const uint32_t& term) {
   // Append dummy cmd
-  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);
+  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleDB);
   PikaCmdArgsType args;
   args.push_back(kCmdDummy);
   dummy_ptr->Initial(args, SyncDBInfo().db_name_);
@@ -505,22 +505,22 @@ void SyncSlaveDB::SetReplState(const ReplState& repl_state) {
     Deactivate();
     return;
   }
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   repl_state_ = repl_state;
 }
 
 ReplState SyncSlaveDB::State() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   return repl_state_;
 }
 
 void SyncSlaveDB::SetLastRecvTime(uint64_t time) {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   m_info_.SetLastRecvTime(time);
 }
 
 Status SyncSlaveDB::CheckSyncTimeout(uint64_t now) {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   // no need to do session keepalive return ok
   if (repl_state_ != ReplState::kWaitDBSync && repl_state_ != ReplState::kConnected) {
     return Status::OK();
@@ -528,7 +528,7 @@ Status SyncSlaveDB::CheckSyncTimeout(uint64_t now) {
   if (m_info_.LastRecvTime() + kRecvKeepAliveTimeout < now) {
     // update slave state to kTryConnect, and try reconnect to master node
     repl_state_ = ReplState::kTryConnect;
-    g_pika_server->SetLoopSlotStateMachine(true);
+    g_pika_server->SetLoopDBStateMachine(true);
   }
   return Status::OK();
 }
@@ -542,14 +542,14 @@ Status SyncSlaveDB::GetInfo(std::string* info) {
 }
 
 void SyncSlaveDB::Activate(const RmNode& master, const ReplState& repl_state) {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   m_info_ = master;
   repl_state_ = repl_state;
   m_info_.SetLastRecvTime(pstd::NowMicros());
 }
 
 void SyncSlaveDB::Deactivate() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   m_info_ = RmNode();
   repl_state_ = ReplState::kNoConnect;
   rsync_cli_->Stop();
@@ -562,32 +562,32 @@ std::string SyncSlaveDB::ToStringStatus() {
 }
 
 const std::string& SyncSlaveDB::MasterIp() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   return m_info_.Ip();
 }
 
 int SyncSlaveDB::MasterPort() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   return m_info_.Port();
 }
 
 void SyncSlaveDB::SetMasterSessionId(int32_t session_id) {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   m_info_.SetSessionId(session_id);
 }
 
 int32_t SyncSlaveDB::MasterSessionId() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   return m_info_.SessionId();
 }
 
 void SyncSlaveDB::SetLocalIp(const std::string& local_ip) {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   local_ip_ = local_ip;
 }
 
 std::string SyncSlaveDB::LocalIp() {
-  std::lock_guard l(slot_mu_);
+  std::lock_guard l(db_mu_);
   return local_ip_;
 }
 
@@ -613,7 +613,7 @@ PikaReplicaManager::PikaReplicaManager() {
   int port = g_pika_conf->port() + kPortShiftReplServer;
   pika_repl_client_ = std::make_unique<PikaReplClient>(3000, 60);
   pika_repl_server_ = std::make_unique<PikaReplServer>(ips, port, 3000);
-  InitSlot();
+  InitDB();
 }
 
 void PikaReplicaManager::Start() {
@@ -638,10 +638,10 @@ void PikaReplicaManager::Stop() {
 
 bool PikaReplicaManager::CheckMasterSyncFinished() {
   for (auto& iter : sync_master_dbs_) {
-    std::shared_ptr<SyncMasterDB> slot = iter.second;
-    LogOffset commit = slot->ConsensusCommittedIndex();
+    std::shared_ptr<SyncMasterDB> db = iter.second;
+    LogOffset commit = db->ConsensusCommittedIndex();
     BinlogOffset binlog;
-    Status s = slot->StableLogger()->Logger()->GetProducerStatus(&binlog.filenum, &binlog.offset);
+    Status s = db->StableLogger()->Logger()->GetProducerStatus(&binlog.filenum, &binlog.offset);
     if (!s.ok()) {
       return false;
     }
@@ -652,28 +652,21 @@ bool PikaReplicaManager::CheckMasterSyncFinished() {
   return true;
 }
 
-void PikaReplicaManager::InitSlot() {
+void PikaReplicaManager::InitDB() {
   std::vector<DBStruct> db_structs = g_pika_conf->db_structs();
   for (const auto& db : db_structs) {
     const std::string& db_name = db.db_name;
-    for (const auto& slot_id : db.slot_ids) {
-      sync_master_dbs_[DBInfo(db_name)] =
-          std::make_shared<SyncMasterDB>(db_name);
-      sync_slave_dbs_[DBInfo(db_name)] =
-          std::make_shared<SyncSlaveDB>(db_name);
-    }
+    sync_master_dbs_[DBInfo(db_name)] = std::make_shared<SyncMasterDB>(db_name);
+    sync_slave_dbs_[DBInfo(db_name)] = std::make_shared<SyncSlaveDB>(db_name);
   }
 }
 
-void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port,
+void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, std::string db_name,
                                            const std::vector<WriteTask>& tasks) {
   std::lock_guard l(write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
   for (auto& task : tasks) {
-    /*
-     *
-     */
-    write_queues_[index][0].push(task);
+    write_queues_[index][db_name].push(task);
   }
 }
 
@@ -684,9 +677,9 @@ int PikaReplicaManager::ConsumeWriteQueue() {
     std::lock_guard l(write_queue_mu_);
     for (auto& iter : write_queues_) {
       const std::string& ip_port = iter.first;
-      std::unordered_map<uint32_t, std::queue<WriteTask>>& p_map = iter.second;
-      for (auto& slot_queue : p_map) {
-        std::queue<WriteTask>& queue = slot_queue.second;
+      std::unordered_map<std::string, std::queue<WriteTask>>& p_map = iter.second;
+      for (auto& db_queue : p_map) {
+        std::queue<WriteTask>& queue = db_queue.second;
         for (int i = 0; i < kBinlogSendPacketNum; ++i) {
           if (queue.empty()) {
             break;
@@ -756,10 +749,10 @@ void PikaReplicaManager::ScheduleReplClientBGTask(net::TaskFunc func, void* arg)
   pika_repl_client_->Schedule(func, arg);
 }
 
-void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db_slot,
+void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db,
                                                  const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                                  const std::shared_ptr<net::PbConn>& conn, void* res_private_data) {
-  pika_repl_client_->ScheduleWriteBinlogTask(db_slot, res, conn, res_private_data);
+  pika_repl_client_->ScheduleWriteBinlogTask(db, res, conn, res_private_data);
 }
 
 void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
@@ -775,29 +768,29 @@ void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_por
 
 Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start,
                                                   const LogOffset& offset_end) {
-  std::shared_lock l(slots_rw_);
-  if (sync_master_dbs_.find(slave.NodeSlotInfo()) == sync_master_dbs_.end()) {
+  std::shared_lock l(dbs_rw_);
+  if (sync_master_dbs_.find(slave.NodeDBInfo()) == sync_master_dbs_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
   }
-  std::shared_ptr<SyncMasterDB> slot = sync_master_dbs_[slave.NodeSlotInfo()];
-  Status s = slot->ConsensusUpdateSlave(slave.Ip(), slave.Port(), offset_start, offset_end);
+  std::shared_ptr<SyncMasterDB> db = sync_master_dbs_[slave.NodeDBInfo()];
+  Status s = db->ConsensusUpdateSlave(slave.Ip(), slave.Port(), offset_start, offset_end);
   if (!s.ok()) {
     return s;
   }
-  s = slot->SyncBinlogToWq(slave.Ip(), slave.Port());
+  s = db->SyncBinlogToWq(slave.Ip(), slave.Port());
   if (!s.ok()) {
     return s;
   }
   return Status::OK();
 }
 
-bool PikaReplicaManager::CheckSlaveSlotState(const std::string& ip, const int port) {
-  std::shared_ptr<SyncSlaveDB> slot = nullptr;
+bool PikaReplicaManager::CheckSlaveDBState(const std::string& ip, const int port) {
+  std::shared_ptr<SyncSlaveDB> db = nullptr;
   for (const auto& iter : g_pika_rm->sync_slave_dbs_) {
-    slot = iter.second;
-    if (slot->State() == ReplState::kDBNoConnect && slot->MasterIp() == ip &&
-        slot->MasterPort() + kPortShiftReplServer == port) {
-      LOG(INFO) << "DB: " << slot->SyncDBInfo().ToString()
+    db = iter.second;
+    if (db->State() == ReplState::kDBNoConnect && db->MasterIp() == ip &&
+        db->MasterPort() + kPortShiftReplServer == port) {
+      LOG(INFO) << "DB: " << db->SyncDBInfo().ToString()
                 << " has been dbslaveof no one, then will not try reconnect.";
       return false;
     }
@@ -806,29 +799,29 @@ bool PikaReplicaManager::CheckSlaveSlotState(const std::string& ip, const int po
 }
 
 Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   for (auto& iter : sync_master_dbs_) {
-    std::shared_ptr<SyncMasterDB> slot = iter.second;
-    Status s = slot->RemoveSlaveNode(ip, port);
+    std::shared_ptr<SyncMasterDB> db = iter.second;
+    Status s = db->RemoveSlaveNode(ip, port);
     if (!s.ok() && !s.IsNotFound()) {
       LOG(WARNING) << "Lost Connection failed " << s.ToString();
     }
   }
 
   for (auto& iter : sync_slave_dbs_) {
-    std::shared_ptr<SyncSlaveDB> slot = iter.second;
-    if (slot->MasterIp() == ip && slot->MasterPort() == port) {
-      slot->Deactivate();
+    std::shared_ptr<SyncSlaveDB> db = iter.second;
+    if (db->MasterIp() == ip && db->MasterPort() == port) {
+      db->Deactivate();
     }
   }
   return Status::OK();
 }
 
 Status PikaReplicaManager::WakeUpBinlogSync() {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   for (auto& iter : sync_master_dbs_) {
-    std::shared_ptr<SyncMasterDB> slot = iter.second;
-    Status s = slot->WakeUpSlaveBinlogSync();
+    std::shared_ptr<SyncMasterDB> db = iter.second;
+    Status s = db->WakeUpSlaveBinlogSync();
     if (!s.ok()) {
       return s;
     }
@@ -837,18 +830,18 @@ Status PikaReplicaManager::WakeUpBinlogSync() {
 }
 
 Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
 
   for (auto& iter : sync_master_dbs_) {
-    std::shared_ptr<SyncMasterDB> slot = iter.second;
-    Status s = slot->CheckSyncTimeout(now);
+    std::shared_ptr<SyncMasterDB> db = iter.second;
+    Status s = db->CheckSyncTimeout(now);
     if (!s.ok()) {
       LOG(WARNING) << "CheckSyncTimeout Failed " << s.ToString();
     }
   }
   for (auto& iter : sync_slave_dbs_) {
-    std::shared_ptr<SyncSlaveDB> slot = iter.second;
-    Status s = slot->CheckSyncTimeout(now);
+    std::shared_ptr<SyncSlaveDB> db = iter.second;
+    Status s = db->CheckSyncTimeout(now);
     if (!s.ok()) {
       LOG(WARNING) << "CheckSyncTimeout Failed " << s.ToString();
     }
@@ -856,8 +849,8 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::CheckSlotRole(const std::string& db, int* role) {
-  std::shared_lock l(slots_rw_);
+Status PikaReplicaManager::CheckDBRole(const std::string& db, int* role) {
+  std::shared_lock l(dbs_rw_);
   *role = 0;
   DBInfo p_info(db);
   if (sync_master_dbs_.find(p_info) == sync_master_dbs_.end()) {
@@ -897,14 +890,14 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int
 }
 
 Status PikaReplicaManager::ActivateSyncSlaveDB(const RmNode& node, const ReplState& repl_state) {
-  std::shared_lock l(slots_rw_);
-  const DBInfo& p_info = node.NodeSlotInfo();
+  std::shared_lock l(dbs_rw_);
+  const DBInfo& p_info = node.NodeDBInfo();
   if (sync_slave_dbs_.find(p_info) == sync_slave_dbs_.end()) {
-    return Status::NotFound("Sync Slave Slot " + node.ToString() + " not found");
+    return Status::NotFound("Sync Slave DB " + node.ToString() + " not found");
   }
   ReplState ssp_state = sync_slave_dbs_[p_info]->State();
   if (ssp_state != ReplState::kNoConnect && ssp_state != ReplState::kDBNoConnect) {
-    return Status::Corruption("Sync Slave Slot in " + ReplStateMsg[ssp_state]);
+    return Status::Corruption("Sync Slave DB in " + ReplStateMsg[ssp_state]);
   }
   std::string local_ip;
   Status s = SelectLocalIp(node.Ip(), node.Port(), &local_ip);
@@ -930,16 +923,16 @@ Status PikaReplicaManager::SendMetaSyncRequest() {
 
 Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& db) {
   pstd::Status s;
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   DBInfo p_info(db);
   if (sync_slave_dbs_.find(p_info) == sync_slave_dbs_.end()) {
-    return Status::NotFound("Sync Slave Slot " + p_info.ToString());
+    return Status::NotFound("Sync Slave DB " + p_info.ToString());
   } else {
-    std::shared_ptr<SyncSlaveDB> s_slot = sync_slave_dbs_[p_info];
-    s = pika_repl_client_->SendRemoveSlaveNode(s_slot->MasterIp(), s_slot->MasterPort(), db,
-                                               s_slot->LocalIp());
+    std::shared_ptr<SyncSlaveDB> s_db = sync_slave_dbs_[p_info];
+    s = pika_repl_client_->SendRemoveSlaveNode(s_db->MasterIp(), s_db->MasterPort(), db,
+                                               s_db->LocalIp());
     if (s.ok()) {
-      s_slot->SetReplState(ReplState::kDBNoConnect);
+      s_db->SetReplState(ReplState::kDBNoConnect);
     }
   }
 
@@ -951,11 +944,11 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& db) {
   return s;
 }
 
-Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& db_name) {
+Status PikaReplicaManager::SendTrySyncRequest(const std::string& db_name) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDBSlotBinlogOffset(db_name, &boffset)) {
-    LOG(WARNING) << "DB: " << db_name << " Get Slot binlog offset failed";
-    return Status::Corruption("Slot get binlog offset error");
+  if (!g_pika_server->GetDBBinlogOffset(db_name, &boffset)) {
+    LOG(WARNING) << "DB: " << db_name << " Get DB binlog offset failed";
+    return Status::Corruption("DB get binlog offset error");
   }
 
   std::shared_ptr<SyncSlaveDB> slave_db =
@@ -966,26 +959,26 @@ Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& db_name) {
   }
 
   Status status =
-      pika_repl_client_->SendSlotTrySync(slave_db->MasterIp(), slave_db->MasterPort(), db_name,
+      pika_repl_client_->SendTrySync(slave_db->MasterIp(), slave_db->MasterPort(), db_name,
                                               boffset, slave_db->LocalIp());
 
   if (status.ok()) {
     slave_db->SetReplState(ReplState::kWaitReply);
   } else {
     slave_db->SetReplState(ReplState::kError);
-    LOG(WARNING) << "SendSlotTrySyncRequest failed " << status.ToString();
+    LOG(WARNING) << "SendDBTrySyncRequest failed " << status.ToString();
   }
   return status;
 }
 
-Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name) {
+Status PikaReplicaManager::SendDBSyncRequest(const std::string& db_name) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDBSlotBinlogOffset(db_name, &boffset)) {
+  if (!g_pika_server->GetDBBinlogOffset(db_name, &boffset)) {
     LOG(WARNING) << "DB: " << db_name << " Get DB binlog offset failed";
-    return Status::Corruption("Slot get binlog offset error");
+    return Status::Corruption("DB get binlog offset error");
   }
 
-  std::shared_ptr<DB> db = g_pika_server->GetDBSlotById(db_name);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
   if (!db) {
     LOG(WARNING) << "DB: " << db_name << ": NotFound";
     return Status::Corruption("DB not found");
@@ -999,7 +992,7 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name) {
     return Status::Corruption("Slave DB not found");
   }
 
-  Status status = pika_repl_client_->SendSlotDBSync(slave_db->MasterIp(), slave_db->MasterPort(),
+  Status status = pika_repl_client_->SendDBSync(slave_db->MasterIp(), slave_db->MasterPort(),
                                                     db_name,  boffset, slave_db->LocalIp());
 
   Status s;
@@ -1007,7 +1000,7 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name) {
     slave_db->SetReplState(ReplState::kWaitReply);
   } else {
     slave_db->SetReplState(ReplState::kError);
-    LOG(WARNING) << "SendSlotDBSync failed " << status.ToString();
+    LOG(WARNING) << "SendDBSync failed " << status.ToString();
   }
   if (!s.ok()) {
     LOG(WARNING) << s.ToString();
@@ -1015,14 +1008,14 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name) {
   return status;
 }
 
-Status PikaReplicaManager::SendSlotBinlogSyncAckRequest(const std::string& db, const LogOffset& ack_start,
+Status PikaReplicaManager::SendBinlogSyncAckRequest(const std::string& db, const LogOffset& ack_start,
                                                         const LogOffset& ack_end, bool is_first_send) {
   std::shared_ptr<SyncSlaveDB> slave_db = GetSyncSlaveDBByName(DBInfo(db));
   if (!slave_db) {
     LOG(WARNING) << "Slave DB: " << db << ":, NotFound";
     return Status::Corruption("Slave DB not found");
   }
-  return pika_repl_client_->SendSlotBinlogSync(slave_db->MasterIp(), slave_db->MasterPort(), db,
+  return pika_repl_client_->SendBinlogSync(slave_db->MasterIp(), slave_db->MasterPort(), db,
                                                     ack_start, ack_end, slave_db->LocalIp(),
                                                     is_first_send);
 }
@@ -1037,7 +1030,7 @@ Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip, in
 }
 
 std::shared_ptr<SyncMasterDB> PikaReplicaManager::GetSyncMasterDBByName(const DBInfo& p_info) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   if (sync_master_dbs_.find(p_info) == sync_master_dbs_.end()) {
     return nullptr;
   }
@@ -1045,35 +1038,34 @@ std::shared_ptr<SyncMasterDB> PikaReplicaManager::GetSyncMasterDBByName(const DB
 }
 
 std::shared_ptr<SyncSlaveDB> PikaReplicaManager::GetSyncSlaveDBByName(const DBInfo& p_info) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   if (sync_slave_dbs_.find(p_info) == sync_slave_dbs_.end()) {
     return nullptr;
   }
   return sync_slave_dbs_[p_info];
 }
 
-Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
-  std::shared_lock l(slots_rw_);
+Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
+  std::shared_lock l(dbs_rw_);
   for (const auto& item : sync_slave_dbs_) {
     DBInfo p_info = item.first;
     std::shared_ptr<SyncSlaveDB> s_db = item.second;
     if (s_db->State() == ReplState::kTryConnect) {
-      SendSlotTrySyncRequest(p_info.db_name_);
+      SendTrySyncRequest(p_info.db_name_);
     } else if (s_db->State() == ReplState::kTryDBSync) {
-      SendSlotDBSyncRequest(p_info.db_name_);
+      SendDBSyncRequest(p_info.db_name_);
     } else if (s_db->State() == ReplState::kWaitReply) {
       continue;
     } else if (s_db->State() == ReplState::kWaitDBSync) {
       s_db->ActivateRsync();
       std::shared_ptr<DB> db =
-          g_pika_server->GetDBSlotById(p_info.db_name_);
+          g_pika_server->GetDB(p_info.db_name_);
       if (db) {
         if (!s_db->IsRsyncRunning()) {
           db->TryUpdateMasterOffset();
         }
       } else {
-        LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_
-                     << " Slot Id: " << p_info.slot_id_;
+        LOG(WARNING) << "DB not found, DB Name: " << p_info.db_name_;
       }
     } else if (s_db->State() == ReplState::kConnected || s_db->State() == ReplState::kNoConnect ||
                s_db->State() == ReplState::kDBNoConnect) {
@@ -1083,28 +1075,8 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
   return Status::OK();
 }
 
-void PikaReplicaManager::FindCompleteReplica(std::vector<std::string>* replica) {
-  std::unordered_map<std::string, size_t> replica_slotnum;
-  std::shared_lock l(slots_rw_);
-  for (auto& iter : sync_master_dbs_) {
-    std::vector<std::string> names;
-    iter.second->GetValidSlaveNames(&names);
-    for (auto& name : names) {
-      if (replica_slotnum.find(name) == replica_slotnum.end()) {
-        replica_slotnum[name] = 0;
-      }
-      replica_slotnum[name]++;
-    }
-  }
-  for (const auto& item : replica_slotnum) {
-    if (item.second == sync_master_dbs_.size()) {
-      replica->push_back(item.first);
-    }
-  }
-}
-
 void PikaReplicaManager::FindCommonMaster(std::string* master) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   std::string common_master_ip;
   int common_master_port = 0;
   for (auto& iter : sync_slave_dbs_) {
@@ -1127,18 +1099,18 @@ void PikaReplicaManager::FindCommonMaster(std::string* master) {
 }
 
 void PikaReplicaManager::RmStatus(std::string* info) {
-  std::shared_lock l(slots_rw_);
+  std::shared_lock l(dbs_rw_);
   std::stringstream tmp_stream;
-  tmp_stream << "Master Slot(" << sync_master_dbs_.size() << "):"
+  tmp_stream << "Master DB(" << sync_master_dbs_.size() << "):"
              << "\r\n";
   for (auto& iter : sync_master_dbs_) {
-    tmp_stream << " Slot " << iter.second->SyncDBInfo().ToString() << "\r\n"
+    tmp_stream << " DB " << iter.second->SyncDBInfo().ToString() << "\r\n"
                << iter.second->ToStringStatus() << "\r\n";
   }
-  tmp_stream << "Slave Slot(" << sync_slave_dbs_.size() << "):"
+  tmp_stream << "Slave DB(" << sync_slave_dbs_.size() << "):"
              << "\r\n";
   for (auto& iter : sync_slave_dbs_) {
-    tmp_stream << " Slot " << iter.second->SyncDBInfo().ToString() << "\r\n"
+    tmp_stream << " DB " << iter.second->SyncDBInfo().ToString() << "\r\n"
                << iter.second->ToStringStatus() << "\r\n";
   }
   info->append(tmp_stream.str());

@@ -332,8 +332,8 @@ class RPopCmd : public Cmd {
 class RPopLPushCmd : public BlockingBaseCmd {
  public:
   RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
       : BlockingBaseCmd(other),
@@ -341,8 +341,8 @@ class RPopLPushCmd : public BlockingBaseCmd {
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
         is_write_binlog_(other.is_write_binlog_) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;

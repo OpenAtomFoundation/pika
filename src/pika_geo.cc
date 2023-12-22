@@ -62,7 +62,7 @@ void GeoAddCmd::Do(std::shared_ptr<DB> db) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void GeoPosCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

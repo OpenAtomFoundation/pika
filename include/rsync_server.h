@@ -32,19 +32,19 @@ class RsyncReader;
 class RsyncServerThread;
 
 class RsyncServer {
-public:
+ public:
   RsyncServer(const std::set<std::string>& ips, const int port);
   ~RsyncServer();
   void Schedule(net::TaskFunc func, void* arg);
   int Start();
   int Stop();
-private:
+ private:
   std::unique_ptr<net::ThreadPool> work_thread_;
   std::unique_ptr<RsyncServerThread> rsync_server_thread_;
 };
 
 class RsyncServerConn : public net::PbConn {
-public:
+ public:
   RsyncServerConn(int connfd, const std::string& ip_port,
                   net::Thread* thread, void* worker_specific_data,
                   net::NetMultiplexer* mpx);
@@ -52,20 +52,20 @@ public:
   int DealMessage() override;
   static void HandleMetaRsyncRequest(void* arg);
   static void HandleFileRsyncRequest(void* arg);
-private:
+ private:
   std::vector<std::shared_ptr<RsyncReader> > readers_;
   std::mutex mu_;
   void* data_ = nullptr;
 };
 
 class RsyncServerThread : public net::HolyThread {
-public:
+ public:
   RsyncServerThread(const std::set<std::string>& ips, int port, int cron_internal, RsyncServer* arg);
   ~RsyncServerThread();
 
-private:
+ private:
   class RsyncServerConnFactory : public net::ConnFactory {
-  public:
+   public:
       explicit RsyncServerConnFactory(RsyncServer* sched) : scheduler_(sched) {}
 
       std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port,
@@ -74,23 +74,23 @@ private:
         return std::static_pointer_cast<net::NetConn>(
         std::make_shared<RsyncServerConn>(connfd, ip_port, thread, scheduler_, net));
       }
-  private:
+   private:
     RsyncServer* scheduler_ = nullptr;
   };
   class RsyncServerHandle : public net::ServerHandle {
-  public:
+   public:
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
     void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
     bool AccessHandle(int fd, std::string& ip) const override;
     void CronHandle() const override;
   };
-private:
+ private:
   RsyncServerConnFactory conn_factory_;
   RsyncServerHandle handle_;
 };
 
 class RsyncReader {
-public:
+ public:
   RsyncReader() {
     block_data_ = new char[kBlockSize];
   }
@@ -115,7 +115,7 @@ public:
     *is_eof = (offset + copy_count == total_size_);
     return pstd::Status::OK();
   }
-private:
+ private:
   pstd::Status Seek(const std::string filepath, const size_t offset) {
     if (filepath == filepath_ && offset >= start_offset_ && offset < end_offset_) {
       return pstd::Status::OK();
@@ -164,7 +164,7 @@ private:
     fd_ = -1;
   }
 
-private:
+ private:
   std::mutex mu_;
   const size_t kBlockSize = 16 << 20;
 

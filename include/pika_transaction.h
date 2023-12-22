@@ -48,9 +48,9 @@ class ExecCmd : public Cmd {
   void SetCmdsVec();
   void ServeToBLrPopWithKeys();
   std::unordered_set<std::shared_ptr<DB>> lock_db_{};
-  std::unordered_map<std::shared_ptr<DB>, std::vector<std::string>> lock_slot_keys_{};
+  std::unordered_map<std::shared_ptr<DB>, std::vector<std::string>> lock_db_keys_{};
   std::unordered_set<std::shared_ptr<DB>> r_lock_dbs_ {};
-  bool is_lock_rm_slots_{false};  // g_pika_rm->slots_rw_;
+  bool is_lock_rm_dbs_{false};  // g_pika_rm->dbs_rw_;
   std::vector<CmdInfo> cmds_;
   std::vector<CmdInfo> list_cmd_;
   std::vector<std::string> keys_;

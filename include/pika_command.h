@@ -18,7 +18,6 @@
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
 
-//#include "include/pika_db.h"
 #include "net/src/dispatch_thread.h"
 
 class SyncMasterDB;
@@ -265,7 +264,7 @@ enum CmdFlags {
   kCmdFlagsLocal = 32,
   kCmdFlagsSuspend = 64,
   kCmdFlagsAdminRequire = 256,
-  kCmdFlagsSingleSlot = 512,
+  kCmdFlagsSingleDB = 512,
   kCmdFlagsMultiSlot = 1024,
   kCmdFlagsReadCache = 128,
   kCmdFlagsUpdateCache = 2048,
@@ -463,7 +462,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessSingleSlotCmd();
+  virtual void ProcessDBCmd();
   virtual void Do(std::shared_ptr<DB> db) = 0;
   virtual void DoThroughDB(std::shared_ptr<DB> db) {}
   virtual void DoUpdateCache(std::shared_ptr<DB> db) {}

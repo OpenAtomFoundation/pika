@@ -168,7 +168,6 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
-      request.set_slot_id(slot_id_);
       FileRequest* file_req = request.mutable_file_req();
       file_req->set_filename(filename);
       file_req->set_offset(offset);
@@ -310,7 +309,7 @@ bool RsyncClient::Recover() {
   }
 
   state_ = RUNNING;
-  LOG(INFO) << "copy meta data done, slot_id: " << slot_id_
+  LOG(INFO) << "copy meta data done"
             << " snapshot_uuid: " << snapshot_uuid_
             << " file count: " << file_set_.size()
             << " expired file count: " << expired_files.size()
@@ -330,7 +329,6 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   RsyncRequest request;
   request.set_reader_index(0);
   request.set_db_name(db_name_);
-  request.set_slot_id(slot_id_);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);

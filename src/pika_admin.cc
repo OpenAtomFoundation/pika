@@ -226,14 +226,13 @@ void DbSlaveofCmd::Do(std::shared_ptr<DB> db) {
 
   Status s;
   if (is_none_) {
-    // In classic mode a db has only one slot
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_);
   } else {
     if (slave_db->State() == ReplState::kNoConnect || slave_db->State() == ReplState::kError ||
         slave_db->State() == ReplState::kDBNoConnect) {
       if (have_offset_) {
-        std::shared_ptr<SyncMasterDB> db_slot = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
-        db_slot->Logger()->SetProducerStatus(filenum_, offset_);
+        std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
+        db->Logger()->SetProducerStatus(filenum_, offset_);
       }
       ReplState state = force_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
       s = g_pika_rm->ActivateSyncSlaveDB(
@@ -504,7 +503,7 @@ void FlushallCmd::DoInitial() {
 }
 void FlushallCmd::Do(std::shared_ptr<DB> db) {
   if (!db) {
-    LOG(INFO) << "Flushall, but Slot not found";
+    LOG(INFO) << "Flushall, but DB not found";
   } else {
     db->FlushDB();
   }
@@ -521,7 +520,7 @@ void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-// flushall convert flushdb writes to every slot binlog
+// flushall convert flushdb writes to every db binlog
 std::string FlushallCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -542,15 +541,15 @@ void FlushallCmd::Execute() {
       return;
     }
   }
-  g_pika_rm->SlotLock();
+  g_pika_rm->DBLock();
   for (const auto& db_item : g_pika_server->GetDB()) {
-    db_item.second->SlotLock();
+    db_item.second->DBLock();
   }
   FlushAllWithoutLock();
   for (const auto& db_item : g_pika_server->GetDB()) {
-    db_item.second->SlotUnlock();
+    db_item.second->DBUnlock();
   }
-  g_pika_rm->SlotUnlock();
+  g_pika_rm->DBUnlock();
   if (res_.ok()) {
     res_.SetRes(CmdRes::kOk);
   }
@@ -574,7 +573,7 @@ void FlushallCmd::FlushAllWithoutLock() {
 
 void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
   if (!db) {
-    LOG(INFO) << "Flushall, but Slot not found";
+    LOG(INFO) << "Flushall, but DB not found";
   } else {
     db->FlushDBWithoutLock();
     DoUpdateCache(db);
@@ -608,7 +607,7 @@ void FlushdbCmd::DoInitial() {
 
 void FlushdbCmd::Do(std::shared_ptr<DB> db) {
   if (!db) {
-    LOG(INFO) << "Flushdb, but Slot not found";
+    LOG(INFO) << "Flushdb, but DB not found";
   } else {
     if (db_name_ == "all") {
       db->FlushDB();
@@ -630,7 +629,7 @@ void FlushdbCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   }
 }
 
-void FlushdbCmd::FlushAllSlotsWithoutLock(std::shared_ptr<DB> db) {
+void FlushdbCmd::FlushAllDBsWithoutLock(std::shared_ptr<DB> db) {
   DBInfo p_info(db->GetDBName());
   if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
     res_.SetRes(CmdRes::kErrOther, "DB not found");
@@ -661,9 +660,9 @@ void FlushdbCmd::Execute() {
     if (db->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db->GetSlotLock());
-      std::lock_guard s_prw(g_pika_rm->GetSlotLock());
-      FlushAllSlotsWithoutLock(db);
+      std::lock_guard l_prw(db->GetDBLock());
+      std::lock_guard s_prw(g_pika_rm->GetDBLock());
+      FlushAllDBsWithoutLock(db);
       res_.SetRes(CmdRes::kOk);
     }
   }
@@ -1092,61 +1091,6 @@ void InfoCmd::InfoCPU(std::string& info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoShardingReplication(std::string& info) {
-  int role = 0;
-  std::string slave_list_string;
-  uint32_t slave_num = g_pika_server->GetShardingSlaveListString(slave_list_string);
-  if (slave_num != 0U) {
-    role |= PIKA_ROLE_MASTER;
-  }
-  std::string common_master;
-  std::string master_ip;
-  int master_port = 0;
-  g_pika_rm->FindCommonMaster(&common_master);
-  if (!common_master.empty()) {
-    role |= PIKA_ROLE_SLAVE;
-    if (!pstd::ParseIpPortString(common_master, master_ip, master_port)) {
-      return;
-    }
-  }
-
-  std::stringstream tmp_stream;
-  tmp_stream << "# Replication(";
-  switch (role) {
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "MASTER)\r\nrole:master\r\n";
-      break;
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "SLAVE)\r\nrole:slave\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "Master && SLAVE)\r\nrole:master&&slave\r\n";
-      break;
-    default:
-      info.append("ERR: server role is error\r\n");
-      return;
-  }
-  switch (role) {
-    case PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
-      break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
-      tmp_stream << "master_host:" << master_ip << "\r\n";
-      tmp_stream << "master_port:" << master_port << "\r\n";
-      tmp_stream << "master_link_status:up"
-                 << "\r\n";
-    case PIKA_ROLE_SINGLE:
-    case PIKA_ROLE_MASTER:
-      tmp_stream << "connected_slaves:" << slave_num << "\r\n" << slave_list_string;
-  }
-  info.append(tmp_stream.str());
-}
-
 void InfoCmd::InfoReplication(std::string& info) {
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
@@ -1155,35 +1099,33 @@ void InfoCmd::InfoReplication(std::string& info) {
   bool all_slot_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->GetDB()) {
-    //for (const auto& slot_item : db_item.second->slots_) {
-      std::shared_ptr<SyncSlaveDB> slave_db =
-          g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_item.second->GetDBName()));
-      if (!slave_db) {
-        out_of_sync << "(" << db_item.first << ": InternalError)";
-        continue;
+    std::shared_ptr<SyncSlaveDB> slave_db =
+        g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_item.second->GetDBName()));
+    if (!slave_db) {
+      out_of_sync << "(" << db_item.first << ": InternalError)";
+      continue;
+    }
+    if (slave_db->State() != ReplState::kConnected) {
+      all_slot_sync = false;
+      out_of_sync << "(" << db_item.first << ":";
+      if (slave_db->State() == ReplState::kNoConnect) {
+        out_of_sync << "NoConnect)";
+      } else if (slave_db->State() == ReplState::kWaitDBSync) {
+        out_of_sync << "WaitDBSync)";
+      } else if (slave_db->State() == ReplState::kError) {
+        out_of_sync << "Error)";
+      } else if (slave_db->State() == ReplState::kWaitReply) {
+        out_of_sync << "kWaitReply)";
+      } else if (slave_db->State() == ReplState::kTryConnect) {
+        out_of_sync << "kTryConnect)";
+      } else if (slave_db->State() == ReplState::kTryDBSync) {
+        out_of_sync << "kTryDBSync)";
+      } else if (slave_db->State() == ReplState::kDBNoConnect) {
+        out_of_sync << "kDBNoConnect)";
+      } else {
+        out_of_sync << "Other)";
       }
-      if (slave_db->State() != ReplState::kConnected) {
-        all_slot_sync = false;
-        out_of_sync << "(" << db_item.first << ":";
-        if (slave_db->State() == ReplState::kNoConnect) {
-          out_of_sync << "NoConnect)";
-        } else if (slave_db->State() == ReplState::kWaitDBSync) {
-          out_of_sync << "WaitDBSync)";
-        } else if (slave_db->State() == ReplState::kError) {
-          out_of_sync << "Error)";
-        } else if (slave_db->State() == ReplState::kWaitReply) {
-          out_of_sync << "kWaitReply)";
-        } else if (slave_db->State() == ReplState::kTryConnect) {
-          out_of_sync << "kTryConnect)";
-        } else if (slave_db->State() == ReplState::kTryDBSync) {
-          out_of_sync << "kTryDBSync)";
-        } else if (slave_db->State() == ReplState::kDBNoConnect) {
-          out_of_sync << "kDBNoConnect)";
-        } else {
-          out_of_sync << "Other)";
-        }
-      }
-    //}
+    }
   }
 
   tmp_stream << "# Replication(";
@@ -1239,10 +1181,11 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::string safety_purge;
   std::shared_ptr<SyncMasterDB> master_db = nullptr;
   for (const auto& t_item : g_pika_server->dbs_) {
+    std::shared_lock db_rwl(t_item.second->dbs_rw_);
     std::string db_name = t_item.first;
     master_db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
     if (!master_db) {
-      LOG(WARNING) << "Sync Master Slot: " << db_name << " NotFound";
+      LOG(WARNING) << "Sync Master DB: " << db_name << " NotFound";
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
@@ -1345,22 +1288,23 @@ void InfoCmd::InfoData(std::string& info) {
     if (!db_item.second) {
       continue;
     }
-      background_errors.clear();
-      memtable_usage = table_reader_usage = 0;
-      db_item.second->DbRWLockReader();
-      db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
-      db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
-      db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
-      db_item.second->DbRWUnLock();
-      total_memtable_usage += memtable_usage;
-      total_table_reader_usage += table_reader_usage;
-      for (const auto& item : background_errors) {
-        if (item.second != 0) {
-          db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
-          db_fatal_msg_stream << db_item.first << "/" << item.first;
-          total_background_errors += item.second;
-        }
+    std::shared_lock db_rwl(db_item.second->dbs_rw_);
+    background_errors.clear();
+    memtable_usage = table_reader_usage = 0;
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
+    db_item.second->DbRWUnLock();
+    total_memtable_usage += memtable_usage;
+    total_table_reader_usage += table_reader_usage;
+    for (const auto& item : background_errors) {
+      if (item.second != 0) {
+        db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
+        db_fatal_msg_stream << db_item.first << "/" << item.first;
+        total_background_errors += item.second;
       }
+    }
   }
 
   tmp_stream << "used_memory:" << (total_memtable_usage + total_table_reader_usage) << "\r\n";
@@ -1379,7 +1323,7 @@ void InfoCmd::InfoRocksDB(std::string& info) {
   tmp_stream << "# RocksDB"
              << "\r\n";
 
-  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (!db_item.second) {
       continue;
@@ -2214,7 +2158,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetMaxCacheStatisticKeys(static_cast<int>(ival));
-    g_pika_server->SlotSetMaxCacheStatisticKeys(static_cast<int>(ival));
+    g_pika_server->DBSetMaxCacheStatisticKeys(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
@@ -2222,7 +2166,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
-    g_pika_server->SlotSetSmallCompactionThreshold(static_cast<int>(ival));
+    g_pika_server->DBSetSmallCompactionThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
@@ -2949,7 +2893,7 @@ void DiskRecoveryCmd::Do(std::shared_ptr<DB> db) {
     }
     db_item.second->SetBinlogIoErrorrelieve();
     std::shared_lock slot_rwl(slots_rw);
-    // loop every slot
+    // loop every db
     background_errors_.clear();
     db_item.second->DbRWLockReader();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
