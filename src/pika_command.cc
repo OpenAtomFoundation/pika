@@ -236,11 +236,11 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetnx, std::move(setnxptr)));
   ////SetexCmd
   std::unique_ptr<Cmd> setexptr =
-      std::make_unique<SetexCmd>(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+      std::make_unique<SetexCmd>(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetex, std::move(setexptr)));
   ////PsetexCmd
   std::unique_ptr<Cmd> psetexptr =
-      std::make_unique<PsetexCmd>(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<PsetexCmd>(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePsetex, std::move(psetexptr)));
   ////DelvxCmd
   std::unique_ptr<Cmd> delvxptr =
@@ -280,11 +280,11 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpire, std::move(pexpireptr)));
   ////ExpireatCmd
   std::unique_ptr<Cmd> expireatptr =
-      std::make_unique<ExpireatCmd>(kCmdNameExpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+      std::make_unique<ExpireatCmd>(kCmdNameExpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExpireat, std::move(expireatptr)));
   ////PexpireatCmd
   std::unique_ptr<Cmd> pexpireatptr =
-      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv |  kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpireat, std::move(pexpireatptr)));
   ////TtlCmd
   std::unique_ptr<Cmd> ttlptr =
