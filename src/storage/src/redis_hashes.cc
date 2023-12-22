@@ -25,6 +25,12 @@ Status RedisHashes::Open(const StorageOptions& storage_options, const std::strin
   small_compaction_duration_threshold_ = storage_options.small_compaction_duration_threshold;
 
   rocksdb::Options ops(storage_options.options);
+  if (ops.disable_auto_compactions == true) {
+    LOG(WARNING) << "ops.disable_auto_compactions is yes:" << ops.disable_auto_compactions;
+  } else {
+    LOG(WARNING) << "ops.disable_auto_compactions is no:" << ops.disable_auto_compactions;
+  }
+  
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
   if (s.ok()) {
     // create column family

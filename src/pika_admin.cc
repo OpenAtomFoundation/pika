@@ -1808,7 +1808,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "write-binlog");
     EncodeString(&config_body, g_pika_conf->write_binlog() ? "yes" : "no");
   }
-
   if (pstd::stringmatch(pattern.data(), "binlog-file-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "binlog-file-size");
@@ -1856,7 +1855,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "compact-interval");
     EncodeString(&config_body, g_pika_conf->compact_interval());
   }
-
+  if (pstd::stringmatch(pattern.data(), "disable_auto_compactions", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "disable_auto_compactions");
+    EncodeString(&config_body, g_pika_conf->disable_auto_compactions() ? "yes" : "no");
+  }
   if (pstd::stringmatch(pattern.data(), "network-interface", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "network-interface");
@@ -2082,6 +2085,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, "disable_auto_compactions");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
     // Options for storage engine
@@ -2218,6 +2222,15 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
     g_pika_server->SlotSetSmallCompactionDurationThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "disable_auto_compactions") {
+    int role = g_pika_server->role();
+    if (value != "yes" && value != "no") {
+      ret = "-ERR invalid disable_auto_compactions (yes or no)\r\n";
+      return;
+    } else {
+      g_pika_conf->SetDisableAutoCompaction(value);
+      ret = "+OK\r\n";
+    }
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n";
