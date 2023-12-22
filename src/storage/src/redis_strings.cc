@@ -686,6 +686,7 @@ Status RedisStrings::MGetWithTTL(const std::vector<std::string>& keys, std::vect
       return s;
     }
   }
+  return Status::OK();
 }
 
 Status RedisStrings::MSet(const std::vector<KeyValue>& kvs) {
