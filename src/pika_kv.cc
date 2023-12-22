@@ -515,7 +515,7 @@ void MgetCmd::DoInitial() {
 
 void MgetCmd::Do(std::shared_ptr<Slot> slot) {
   db_value_status_array_.clear();
-  s_ = slot->db()->MGetWithTTL(keys_, &db_value_status_array_);
+  s_ = slot->db()->MGet(keys_, &db_value_status_array_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(db_value_status_array_.size());
     for (const auto& vs : db_value_status_array_) {
@@ -578,7 +578,20 @@ void MgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
 
 void MgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
-  Do(slot);
+  s_ = slot->db()->MGetWithTTL(keys_, &db_value_status_array_);
+  if (s_.ok()) {
+    res_.AppendArrayLenUint64(db_value_status_array_.size());
+    for (const auto& vs : db_value_status_array_) {
+      if (vs.status.ok()) {
+        res_.AppendStringLenUint64(vs.value.size());
+        res_.AppendContent(vs.value);
+      } else {
+        res_.AppendContent("$-1");
+      }
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
 }
 
 void MgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {

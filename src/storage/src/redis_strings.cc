@@ -666,16 +666,19 @@ Status RedisStrings::MGetWithTTL(const std::vector<std::string>& keys, std::vect
     s = db_->Get(read_options, key, &value);
     if (s.ok()) {
       ParsedStringsValue parsed_strings_value(&value);
+      LOG(INFO) << "parsed_strings_value.timestamp()" << parsed_strings_value.timestamp();
       if (parsed_strings_value.IsStale()) {
         vss->push_back({std::string(), Status::NotFound("Stale"), -2});
       } else {
-        if(parsed_strings_value.timestamp() == 0){
-        vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(), -1});
-        }else{
-        int64_t curtime;
-        rocksdb::Env::Default()->GetCurrentTime(&curtime);
-        vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(),
-                        parsed_strings_value.timestamp() - curtime >= 0 ? parsed_strings_value.timestamp() - curtime : -2});
+        if (parsed_strings_value.timestamp() == 0) {
+          vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(), -1});
+        } else {
+          int64_t curtime;
+          rocksdb::Env::Default()->GetCurrentTime(&curtime);
+          LOG(INFO) << "curtime" << curtime << "ttl" << (parsed_strings_value.timestamp() - curtime >= 0 ? parsed_strings_value.timestamp() - curtime : -2);
+          vss->push_back(
+              {parsed_strings_value.user_value().ToString(), Status::OK(),
+               parsed_strings_value.timestamp() - curtime >= 0 ? parsed_strings_value.timestamp() - curtime : -2});
         }
       }
     } else if (s.IsNotFound()) {
