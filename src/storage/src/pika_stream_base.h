@@ -67,6 +67,14 @@ struct StreamScanArgs {
   bool is_reverse{false};  // scan in reverse order
 };
 
+struct StreamInfoResult {
+  uint64_t length{0};
+  std::string last_id_str;
+  std::string max_deleted_entry_id_str;
+  uint64_t entries_added{0};
+  std::string first_id_str;
+};
+
 // get next tree id thread safe
 class TreeIDGenerator {
  private:

@@ -32,6 +32,7 @@ class RedisStreams : public Redis {
   Status XLen(const Slice& key, size_t& len);
   Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
                std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult& result);
 
   //===--------------------------------------------------------------------===//
   // Common Commands

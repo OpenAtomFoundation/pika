@@ -63,6 +63,7 @@ struct StreamAddTrimArgs;
 struct StreamReadGroupReadArgs;
 struct StreamScanArgs;
 struct streamID;
+struct StreamInfoResult;
 
 template <typename T1, typename T2>
 class LRUCache;
@@ -933,6 +934,7 @@ class Storage {
   Status XLen(const Slice& key, uint64_t& len);
   Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
                std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult &result);
   // Keys Commands
 
   // Note:

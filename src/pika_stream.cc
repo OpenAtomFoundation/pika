@@ -497,22 +497,27 @@ void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
-  // 1 try to get stream meta
-  // StreamMetaValue stream_meta;
-  // TRY_CATCH_ERROR(StreamStorage::GetStreamMeta(stream_meta, key_, slot.get()), res_);
+  storage::StreamInfoResult info;
+  auto s = slot->db()->XInfo(key_, info);
+
+  if (!s.ok() && !s.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kNotFound);
+    return;
+  }
 
   // // 2 append the stream info
-  // res_.AppendArrayLen(10);
-  // res_.AppendString("length");
-  // res_.AppendInteger(static_cast<int64_t>(stream_meta.length()));
-  // res_.AppendString("last-generated-id");
-  // res_.AppendString(stream_meta.last_id().ToString());
-  // res_.AppendString("max-deleted-entry-id");
-  // res_.AppendString(stream_meta.max_deleted_entry_id().ToString());
-  // res_.AppendString("entries-added");
-  // res_.AppendInteger(static_cast<int64_t>(stream_meta.entries_added()));
-  // res_.AppendString("recorded-first-entry-id");
-  // res_.AppendString(stream_meta.first_id().ToString());
-
-  // Korpse TODO: add group info
+  res_.AppendArrayLen(10);
+  res_.AppendString("length");
+  res_.AppendInteger(static_cast<int64_t>(info.length));
+  res_.AppendString("last-generated-id");
+  res_.AppendString(info.last_id_str);
+  res_.AppendString("max-deleted-entry-id");
+  res_.AppendString(info.max_deleted_entry_id_str);
+  res_.AppendString("entries-added");
+  res_.AppendInteger(static_cast<int64_t>(info.entries_added));
+  res_.AppendString("recorded-first-entry-id");
+  res_.AppendString(info.first_id_str);
 }

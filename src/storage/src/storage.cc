@@ -564,6 +564,10 @@ Status Storage::XRead(const StreamReadGroupReadArgs& args, std::vector<std::vect
   return streams_db_->XRead(args, results, reserved_keys);
 }
 
+Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
+  return streams_db_->XInfo(key, result);
+}
+
 // Keys Commands
 int32_t Storage::Expire(const Slice& key, int32_t ttl, std::map<DataType, Status>* type_status) {
   int32_t ret = 0;
