@@ -3,15 +3,18 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef SRC_STREAM_TYPE_H_
-#define SRC_STREAM_TYPE_H_
+#pragma once
 
 #include <memory.h>
 #include <cassert>
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "src/storage/src/coding.h"
+#include "src/coding.h"
+
+namespace storage {
+
+#define kINVALID_TREE_ID 0
 
 using streamID = struct streamID {
   streamID(uint64_t _ms, uint64_t _seq) : ms(_ms), seq(_seq) {}
@@ -25,7 +28,7 @@ using streamID = struct streamID {
   // We must store the streamID in memory in big-endian format. This way, our comparison of the serialized streamID byte
   // code will be equivalent to the comparison of the uint64_t numbers.
   inline void EncodeUint64InBigEndian(char* buf, uint64_t value) const {
-    if (storage::kLittleEndian) {
+    if (kLittleEndian) {
       // little endian, reverse the bytes
       for (int i = 7; i >= 0; --i) {
         buf[i] = static_cast<char>(value & 0xff);
@@ -39,7 +42,7 @@ using streamID = struct streamID {
 
   inline uint64_t DecodeUint64OfBigEndian(const char* ptr) {
     uint64_t value;
-    if (storage::kLittleEndian) {
+    if (kLittleEndian) {
       // little endian, reverse the bytes
       value = 0;
       for (int i = 0; i < 8; ++i) {
@@ -59,6 +62,14 @@ using streamID = struct streamID {
     EncodeUint64InBigEndian(&dst[0] + sizeof(ms), seq);
   }
 
+  std::string Serialize() const {
+    std::string dst;
+    dst.resize(sizeof(ms) + sizeof(seq));
+    EncodeUint64InBigEndian(&dst[0], ms);
+    EncodeUint64InBigEndian(&dst[0] + sizeof(ms), seq);
+    return dst;
+  }
+
   void DeserializeFrom(std::string& src) {
     assert(src.size() == sizeof(ms) + sizeof(seq));
     ms = DecodeUint64OfBigEndian(&src[0]);
@@ -73,11 +84,10 @@ using streamID = struct streamID {
 static const streamID kSTREAMID_MAX = streamID(UINT64_MAX, UINT64_MAX);
 static const streamID kSTREAMID_MIN = streamID(0, 0);
 
-enum class StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
+enum StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
 
-using treeID = int32_t;
-static const treeID kINVALID_TREE_ID = -1;
+using treeID = uint32_t;
 
 using stream_ms_t = uint64_t;
 
-#endif  // SRC_STREAM_TYPE_H_
+}  // namespace storage

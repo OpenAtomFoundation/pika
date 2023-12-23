@@ -3,41 +3,66 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef SRC_STREAM_META_VALUE_FORMAT_H_
-#define SRC_STREAM_META_VALUE_FORMAT_H_
+#pragma once
 
+#include <cstdint>
 #include "glog/logging.h"
-#include "include/pika_stream_types.h"
+#include "pika_stream_types.h"
+#include "src/coding.h"
+#include "storage/storage.h"
+
+namespace storage {
 
 static const size_t kDefaultStreamValueLength =
-    sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t);
+    sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t) + sizeof(int32_t);
 class StreamMetaValue {
  public:
   explicit StreamMetaValue() = default;
   // used only when create a new stream
-  void Init() {
+  void InitMetaValue() {
+    groups_id_ = kINVALID_TREE_ID;
+    entries_added_ = 0;
+    first_id_ = streamID();
+    last_id_ = streamID();
+    max_deleted_entry_id_ = streamID();
+    length_ = 0;
+
+    // We do not reset version_ here, because we want to keep the version of the old stream meta.
+    // Each time we delete a stream, we will increase the version of the stream meta, so that the old stream date will
+    // not be seen by the new stream with the same key.
+    ++version_;
+
     size_t needed = kDefaultStreamValueLength;
-    assert(value_.size() == 0);
-    if (value_.size() != 0) {
-      LOG(ERROR) << "Init on a existed stream meta value!";
-      return;
-    }
     value_.resize(needed);
 
-    char* dst = value_.data();
+    char* dst = &value_[0];
 
     // Encode each member into the string
-    memcpy(dst, &groups_id_, sizeof(treeID));
+    EncodeFixed64(dst, groups_id_);
     dst += sizeof(treeID);
-    memcpy(dst, &entries_added_, sizeof(size_t));
+
+    EncodeFixed64(dst, entries_added_);
     dst += sizeof(size_t);
-    memcpy(dst, &first_id_, sizeof(streamID));
-    dst += sizeof(streamID);
-    memcpy(dst, &last_id_, sizeof(streamID));
-    dst += sizeof(streamID);
-    memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
-    dst += sizeof(streamID);
-    memcpy(dst, &length_, sizeof(size_t));
+
+    EncodeFixed64(dst, first_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, first_id_.seq);
+    dst += sizeof(uint64_t);
+
+    EncodeFixed64(dst, last_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, last_id_.seq);
+    dst += sizeof(uint64_t);
+
+    EncodeFixed64(dst, max_deleted_entry_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, max_deleted_entry_id_.seq);
+    dst += sizeof(uint64_t);
+
+    EncodeFixed64(dst, length_);
+    dst += sizeof(int64_t);
+
+    EncodeFixed32(dst, version_);
   }
 
   // used only when parse a existed stream meta
@@ -49,19 +74,35 @@ class StreamMetaValue {
       LOG(ERROR) << "Invalid stream meta value length: ";
       return;
     }
-    char* pos = value_.data();
-    memcpy(&groups_id_, pos, sizeof(treeID));
+    char* pos = &value_[0];
+    groups_id_ = DecodeFixed32(pos);
     pos += sizeof(treeID);
-    memcpy(&entries_added_, pos, sizeof(size_t));
+
+    entries_added_ = DecodeFixed64(pos);
     pos += sizeof(size_t);
-    memcpy(&first_id_, pos, sizeof(streamID));
-    pos += sizeof(streamID);
-    memcpy(&last_id_, pos, sizeof(streamID));
-    pos += sizeof(streamID);
-    memcpy(&max_deleted_entry_id_, pos, sizeof(streamID));
-    pos += sizeof(streamID);
-    memcpy(&length_, pos, sizeof(size_t));
+
+    first_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    first_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    last_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    last_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    max_deleted_entry_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    max_deleted_entry_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    length_ = DecodeFixed64(pos);
+    pos += sizeof(size_t);
+
+    version_ = static_cast<int32_t>(DecodeFixed32(pos));
   }
+
+  int32_t version() const { return version_; }
 
   treeID groups_id() const { return groups_id_; }
 
@@ -84,7 +125,7 @@ class StreamMetaValue {
            std::string(", entries_added: ") + std::to_string(entries_added_) + std::string(", first_id: ") +
            first_id_.ToString() + std::string(", last_id: ") + last_id_.ToString() +
            std::string(", max_deleted_entry_id: ") + max_deleted_entry_id_.ToString() + std::string(", length: ") +
-           std::to_string(length_);
+           std::to_string(length_) + std::string(", version: ") + std::to_string(version_);
   }
 
   void set_groups_id(treeID groups_id) {
@@ -129,6 +170,14 @@ class StreamMetaValue {
     memcpy(dst, &length_, sizeof(size_t));
   }
 
+  void set_version(int32_t version) {
+    assert(value_.size() == kDefaultStreamValueLength);
+    version_ = version;
+    char* dst =
+        const_cast<char*>(value_.data()) + sizeof(treeID) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(size_t);
+    EncodeFixed32(dst, version_);
+  }
+
  private:
   treeID groups_id_ = kINVALID_TREE_ID;
   size_t entries_added_{0};
@@ -136,8 +185,78 @@ class StreamMetaValue {
   streamID last_id_;
   streamID max_deleted_entry_id_;
   size_t length_{0};  // number of the messages in the stream
+  int32_t version_{0};
 
   std::string value_{};
+};
+
+// Used only for reading !
+class ParsedStreamMetaValue {
+ public:
+  ParsedStreamMetaValue(const Slice& value) {
+    assert(value.size() == kDefaultStreamValueLength);
+    if (value.size() != kDefaultStreamValueLength) {
+      LOG(ERROR) << "Invalid stream meta value length: ";
+      return;
+    }
+    char* pos = const_cast<char*>(value.data());
+    groups_id_ = DecodeFixed32(pos);
+    pos += sizeof(treeID);
+
+    entries_added_ = DecodeFixed64(pos);
+    pos += sizeof(size_t);
+
+    first_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    first_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    last_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    last_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    max_deleted_entry_id_.ms = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+    max_deleted_entry_id_.seq = DecodeFixed64(pos);
+    pos += sizeof(uint64_t);
+
+    length_ = DecodeFixed64(pos);
+    pos += sizeof(size_t);
+
+    version_ = static_cast<int32_t>(DecodeFixed32(pos));
+  }
+
+  int32_t version() const { return version_; }
+
+  treeID groups_id() const { return groups_id_; }
+
+  size_t entries_added() const { return entries_added_; }
+
+  streamID first_id() const { return first_id_; }
+
+  streamID last_id() const { return last_id_; }
+
+  streamID max_deleted_entry_id() const { return max_deleted_entry_id_; }
+
+  size_t length() const { return length_; }
+
+  std::string ToString() {
+    return "stream_meta: " + std::string("groups_id: ") + std::to_string(groups_id_) +
+           std::string(", entries_added: ") + std::to_string(entries_added_) + std::string(", first_id: ") +
+           first_id_.ToString() + std::string(", last_id: ") + last_id_.ToString() +
+           std::string(", max_deleted_entry_id: ") + max_deleted_entry_id_.ToString() + std::string(", length: ") +
+           std::to_string(length_) + std::string(", version: ") + std::to_string(version_);
+  }
+
+ private:
+  treeID groups_id_ = kINVALID_TREE_ID;
+  size_t entries_added_{0};
+  streamID first_id_;
+  streamID last_id_;
+  streamID max_deleted_entry_id_;
+  size_t length_{0};  // number of the messages in the stream
+  int32_t version_{0};
 };
 
 static const size_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(treeID);
@@ -157,7 +276,7 @@ class StreamCGroupMetaValue {
     }
     value_.resize(needed);
 
-    auto dst = value_.data();
+    char* dst = &value_[0];
 
     memcpy(dst, &last_id_, sizeof(streamID));
     dst += sizeof(uint64_t);
@@ -254,7 +373,7 @@ class StreamConsumerMetaValue {
     }
     size_t needed = kDefaultStreamConsumerValueLength;
     value_.resize(needed);
-    auto dst = value_.data();
+    char* dst = &value_[0];
 
     memcpy(dst, &seen_time_, sizeof(stream_ms_t));
     dst += sizeof(stream_ms_t);
@@ -310,7 +429,7 @@ class StreamPelMeta {
       return;
     }
     value_.resize(needed);
-    char* dst = value_.data();
+    char* dst = &value_[0];
 
     memcpy(dst, &delivery_time_, sizeof(stream_ms_t));
     dst += sizeof(stream_ms_t);
@@ -369,4 +488,4 @@ class StreamPelMeta {
   std::string consumer_;
 };
 
-#endif  //  SRC_STREAM_META_VALUE_FORMAT_H_
+}  // namespace storage

@@ -8,20 +8,20 @@
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
-#include "include/pika_stream_base.h"
-#include "include/pika_stream_meta_value.h"
-#include "include/pika_stream_types.h"
+#include "storage/src/pika_stream_base.h"
+// #include "include/pika_stream_meta_value.h"
+// #include "include/pika_stream_types.h"
 #include "storage/storage.h"
 
 /*
  * stream
  */
 
-inline void ParseAddOrTrimArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv, StreamAddTrimArgs& args, int* idpos,
-                                      bool is_xadd);
+inline void ParseAddOrTrimArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv, storage::StreamAddTrimArgs& args,
+                                      int* idpos, bool is_xadd);
 
-inline void ParseReadOrReadGroupArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv, StreamReadGroupReadArgs& args,
-                                            bool is_xreadgroup);
+inline void ParseReadOrReadGroupArgsOrReply(CmdRes& res, const PikaCmdArgsType& argv,
+                                            storage::StreamReadGroupReadArgs& args, bool is_xreadgroup);
 
 // @field_values is the result of ScanStream.
 // field is the serialized message id,
@@ -39,11 +39,10 @@ class XAddCmd : public Cmd {
 
  private:
   std::string key_;
-  StreamAddTrimArgs args_;
+  storage::StreamAddTrimArgs args_;
   int field_pos_{0};
 
   void DoInitial() override;
-  inline void GenerateStreamIDOrReply(const StreamMetaValue& stream_meta);
 };
 
 class XDelCmd : public Cmd {
@@ -57,13 +56,10 @@ class XDelCmd : public Cmd {
 
  private:
   std::string key_;
-  std::vector<streamID> ids_;
+  std::vector<storage::streamID> ids_;
 
   void DoInitial() override;
   void Clear() override { ids_.clear(); }
-  inline void SetFirstOrLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot, bool is_set_first);
-  inline void SetFirstIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
-  inline void SetLastIDOrReply(StreamMetaValue& stream_meta, const Slot* slot);
 };
 
 class XReadCmd : public Cmd {
@@ -75,7 +71,7 @@ class XReadCmd : public Cmd {
   Cmd* Clone() override { return new XReadCmd(*this); }
 
  private:
-  StreamReadGroupReadArgs args_;
+  storage::StreamReadGroupReadArgs args_;
 
   void DoInitial() override;
   void Clear() override {
@@ -94,11 +90,7 @@ class XRangeCmd : public Cmd {
 
  protected:
   std::string key_;
-  streamID start_sid;
-  streamID end_sid;
-  int32_t count_{INT32_MAX};
-  bool start_ex_{false};
-  bool end_ex_{false};
+  storage::StreamScanArgs args_;
 
   void DoInitial() override;
 };
@@ -137,7 +129,7 @@ class XTrimCmd : public Cmd {
 
  private:
   std::string key_;
-  StreamAddTrimArgs args_;
+  storage::StreamAddTrimArgs args_;
 
   void DoInitial() override;
 };
