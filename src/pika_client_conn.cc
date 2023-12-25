@@ -168,7 +168,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_duration) {
   if (time_stat_->total_time() > g_pika_conf->slowlog_slower_than()) {
-    g_pika_server->SlowlogPushEntry(argv, time_stat_->start_ts(), time_stat_->total_time());
+    g_pika_server->SlowlogPushEntry(argv, time_stat_->start_ts() / 1000000, time_stat_->total_time());
     if (g_pika_conf->slowlog_write_errorlog()) {
       bool trim = false;
       std::string slow_log;
