@@ -3011,7 +3011,7 @@ void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
 
 void CacheCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
     return;
   }
   if (!strcasecmp(argv_[1].data(), "clear")) {

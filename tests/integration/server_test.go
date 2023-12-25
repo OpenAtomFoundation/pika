@@ -615,7 +615,7 @@ var _ = Describe("Server", func() {
 		It("should pexpire", func() {
 			Expect(client.Set(ctx, "key_3000ms", "value", 0).Val()).To(Equal("OK"))
 			Expect(client.PExpire(ctx, "key_3000ms", 3000*time.Millisecond).Val()).To(Equal(true))
-			Expect(client.PTTL(ctx, "key").Val()).NotTo(Equal(int64(-2)))
+			Expect(client.PTTL(ctx, "key_3000ms").Val()).NotTo(Equal(time.Duration(-2)))
 
 			time.Sleep(4 * time.Second)
 			Expect(client.PTTL(ctx, "key_3000ms").Val()).To(Equal(time.Duration(-2)))

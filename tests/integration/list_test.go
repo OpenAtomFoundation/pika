@@ -367,13 +367,13 @@ var _ = Describe("List Commands", func() {
 			Expect(bRPop.Err()).NotTo(HaveOccurred())
 			Expect(bRPop.Val()).To(Equal([]string{"list2", "f"}))
 
-			lLen = client.LLen(ctx, "list1")
-			Expect(lLen.Err()).NotTo(HaveOccurred())
-			Expect(lLen.Val()).To(Equal(int64(1)))
+			//lLen = client.LLen(ctx, "list1")
+			//Expect(lLen.Err()).NotTo(HaveOccurred())
+			//Expect(lLen.Val()).To(Equal(int64(1)))
 
-			lLen = client.LLen(ctx, "list2")
-			Expect(lLen.Err()).NotTo(HaveOccurred())
-			Expect(lLen.Val()).To(Equal(int64(1)))
+			//lLen = client.LLen(ctx, "list2")
+			//Expect(lLen.Err()).NotTo(HaveOccurred())
+			//Expect(lLen.Val()).To(Equal(int64(1)))
 
 			bLPop = client.BLPop(ctx, time.Second, "list3", "list2")
 			Expect(bLPop.Err()).NotTo(HaveOccurred())

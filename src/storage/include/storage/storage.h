@@ -96,7 +96,8 @@ struct KeyInfo {
 struct ValueStatus {
   std::string value;
   Status status;
-  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status); }
+  int64_t  ttl;
+  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status && vs.ttl == ttl); }
 };
 
 struct FieldValue {
@@ -207,6 +208,11 @@ class Storage {
   // that does not hold a string value or does not exist, the
   // special value nil is returned
   Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
+
+  // Returns the values of all specified keyswithTTL. For every key
+  // that does not hold a string value or does not exist, the
+  // special value nil is returned
+  Status MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
 
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
