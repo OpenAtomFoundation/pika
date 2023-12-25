@@ -326,7 +326,6 @@ Status RedisStreams::Open(const StorageOptions& storage_options, const std::stri
   if (s.ok()) {
     // create column family
     rocksdb::ColumnFamilyHandle* cf;
-    // FIXME: Dose stream data need a comparater ?
     s = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(), "data_cf", &cf);
     if (!s.ok()) {
       return s;
@@ -484,8 +483,6 @@ Status RedisStreams::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
 }
 
 Status RedisStreams::Del(const Slice& key) {
-  // FIXME: Check the prefix of key
-  // stream TODO: Delete all the cgroup and consumers
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);

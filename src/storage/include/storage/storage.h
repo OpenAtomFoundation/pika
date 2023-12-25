@@ -7,7 +7,6 @@
 #define INCLUDE_STORAGE_STORAGE_H_
 
 #include <unistd.h>
-#include <cstddef>
 #include <list>
 #include <map>
 #include <queue>

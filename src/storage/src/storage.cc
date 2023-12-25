@@ -1763,6 +1763,7 @@ Status Storage::GetUsage(const std::string& property, std::map<std::string, uint
   (*type_result)[LISTS_DB] = GetProperty(LISTS_DB, property);
   (*type_result)[ZSETS_DB] = GetProperty(ZSETS_DB, property);
   (*type_result)[SETS_DB] = GetProperty(SETS_DB, property);
+  (*type_result)[STREAMS_DB] = GetProperty(STREAMS_DB, property);
   return Status::OK();
 }
 
@@ -1787,6 +1788,10 @@ uint64_t Storage::GetProperty(const std::string& db_type, const std::string& pro
   }
   if (db_type == ALL_DB || db_type == SETS_DB) {
     sets_db_->GetProperty(property, &out);
+    result += out;
+  }
+  if (db_type == ALL_DB || db_type == STREAMS_DB) {
+    streams_db_->GetProperty(property, &out);
     result += out;
   }
   return result;
@@ -1827,6 +1832,8 @@ rocksdb::DB* Storage::GetDBByType(const std::string& type) {
     return sets_db_->GetDB();
   } else if (type == ZSETS_DB) {
     return zsets_db_->GetDB();
+  } else if (type == STREAMS_DB) {
+    return streams_db_->GetDB();
   } else {
     return nullptr;
   }
@@ -1861,6 +1868,12 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   }
   if (db_type == ALL_DB || db_type == SETS_DB) {
     s = sets_db_->SetOptions(option_type, options);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == STREAMS_DB) {
+    s = streams_db_->SetOptions(option_type, options);
     if (!s.ok()) {
       return s;
     }
