@@ -113,7 +113,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }
-  } else if (c_ptr->is_read()) {
+  } else if (c_ptr->is_read() && c_ptr->flag_ == 0) {
     std::shared_ptr<DB> current_db = nullptr;
     for (const auto& db_item : g_pika_server->GetDB()) {
       if (db_item.second->GetDBName() == current_db_) {
