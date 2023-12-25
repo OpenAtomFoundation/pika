@@ -58,6 +58,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       for (const auto& db_struct : db_structs) {
         InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
         db_info->set_db_name(db_struct.db_name);
+        db_info->set_slot_num(1);
       }
     }
   }
@@ -87,6 +88,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
   InnerMessage::Slot* db_response = try_sync_response->mutable_slot();
   db_response->set_db_name(db_name);
+  db_response->set_slot_id(0);
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
@@ -290,6 +292,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
   InnerMessage::Slot* db_response = db_sync_response->mutable_slot();
   db_response->set_db_name(db_name);
+  db_response->set_slot_id(0);
 
   LOG(INFO) << "Handle DBSync Request";
   bool prior_success = true;
@@ -468,6 +471,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.add_remove_slave_node();
   InnerMessage::Slot* slot_response = remove_slave_node_response->mutable_slot ();
   slot_response->set_db_name(db_name);
+  slot_response->set_slot_id(0);
   InnerMessage::Node* node_response = remove_slave_node_response->mutable_node();
   node_response->set_ip(g_pika_server->host());
   node_response->set_port(g_pika_server->port());

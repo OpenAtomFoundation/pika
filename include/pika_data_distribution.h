@@ -17,14 +17,12 @@ class PikaDataDistribution {
   virtual ~PikaDataDistribution() = default;
   // Initialization
   virtual void Init() = 0;
-  virtual uint32_t Distribute(const std::string& str) = 0;
 };
 
 class HashModulo : public PikaDataDistribution {
  public:
   ~HashModulo() override = default;
   void Init() override;
-  uint32_t Distribute(const std::string& str) override;
 };
 
 #endif

@@ -109,7 +109,7 @@ public:
   // Set Commands
   Status SAdd(std::string& key, std::vector<std::string> &members);
   Status SCard(std::string& key, uint64_t *len);
-  Status SIsmember(std::string& key, std::string &member);
+  Status SIsmember(std::string& key, std::string& member);
   Status SMembers(std::string& key, std::vector<std::string> *members);
   Status SRem(std::string& key, std::vector<std::string> &members);
   Status SRandmember(std::string& key, int64_t count, std::vector<std::string> *members);
@@ -118,7 +118,7 @@ public:
   Status ZAdd(std::string& key, std::vector<storage::ScoreMember> &score_members);
   Status ZCard(std::string& key, uint64_t *len);
   Status ZCount(std::string& key, std::string &min, std::string &max, uint64_t *len);
-  Status ZIncrby(std::string& key, std::string &member, double increment);
+  Status ZIncrby(std::string& key, std::string& member, double increment);
   Status ZRange(std::string& key,
                 int64_t start, int64_t stop,
                 std::vector<storage::ScoreMember> *score_members);
@@ -126,7 +126,7 @@ public:
                        std::string &min, std::string &max,
                        std::vector<storage::ScoreMember> *score_members,
                        int64_t offset = 0, int64_t count = -1);
-  Status ZRank(std::string& key, std::string &member, int64_t *rank);
+  Status ZRank(std::string& key, std::string& member, int64_t *rank);
   Status ZRem(std::string& key, std::vector<std::string> &members);
   Status ZRemrangebyrank(std::string& key, std::string &min, std::string &max);
   Status ZRemrangebyscore(std::string& key, std::string &min, std::string &max);
@@ -140,8 +140,8 @@ public:
   Status ZRevrangebylex(std::string& key,
                         std::string &min, std::string &max,
                         std::vector<std::string> *members);
-  Status ZRevrank(std::string& key, std::string &member, int64_t *rank);
-  Status ZScore(std::string& key, std::string &member, double *score);
+  Status ZRevrank(std::string& key, std::string& member, int64_t *rank);
+  Status ZScore(std::string& key, std::string& member, double *score);
   Status ZRangebylex(std::string& key,
                      std::string &min, std::string &max,
                      std::vector<std::string> *members);

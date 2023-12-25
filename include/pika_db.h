@@ -91,7 +91,6 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   friend class PikaServer;
 
   std::string GetDBName();
-  bool FlushSubDB(const std::string& db_name);
   std::shared_ptr<storage::Storage> storage() const;
   void GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid);
   void BgSaveDB();
@@ -122,17 +121,11 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void StopKeyScan();
   void ScanDatabase(const storage::DataType& type);
   KeyScanInfo GetKeyScanInfo();
-  pstd::Status GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
 
   // Compact use;
   void Compact(const storage::DataType& type);
   void CompactRange(const storage::DataType& type, const std::string& start, const std::string& end);
 
-  void LeaveAllSlot();
-  std::set<uint32_t> GetSlotIDs();
-  bool DBIsEmpty();
-  pstd::Status MovetoToTrash(const std::string& path);
-  pstd::Status Leave();
   std::shared_ptr<pstd::lock::LockMgr> LockMgr();
   void DbRWLockWriter();
   void DbRWLockReader();
@@ -150,7 +143,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
    * FlushDB & FlushSubDB use
    */
   bool FlushDB();
-  //bool FlushSubDB(const std::string& db_name);
+  bool FlushSubDB(const std::string& db_name);
   bool FlushDBWithoutLock();
   bool FlushSubDBWithoutLock(const std::string& db_name);
   bool ChangeDb(const std::string& new_path);
@@ -158,12 +151,11 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void PrepareRsync();
   bool IsBgSaving();
   BgSaveInfo bgsave_info();
-
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
+
  private:
   bool opened_ = false;
   std::string dbsync_path_;
-  std::shared_mutex slots_rw_;
   std::string db_name_;
   std::string db_path_;
   std::string snapshot_uuid_;

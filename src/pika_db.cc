@@ -32,7 +32,7 @@ std::string DbSyncPath(const std::string& sync_path, const std::string& db_name)
 
 DB::DB(std::string db_name, const std::string& db_path,
              const std::string& log_path)
-    : db_name_(std::move(db_name)), bgsave_engine_(nullptr) {
+    : db_name_(db_name), bgsave_engine_(nullptr) {
   db_path_ = DBPath(db_path, db_name_);
   bgsave_sub_path_ = db_name;
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), db_name);
@@ -188,21 +188,6 @@ void DB::InitKeyScan() {
   size_t len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
-}
-
-Status DB::MovetoToTrash(const std::string& path) {
-  std::string path_tmp = path;
-  if (path_tmp[path_tmp.length() - 1] == '/') {
-    path_tmp.erase(path_tmp.length() - 1);
-  }
-  path_tmp += "_deleting/";
-  if (pstd::RenameFile(path, path_tmp) != 0) {
-    LOG(WARNING) << "Failed to move " << path << " to trash, error: " << strerror(errno);
-    return Status::Corruption("Failed to move %s to trash", path);
-  }
-  g_pika_server->PurgeDir(path_tmp);
-  LOG(WARNING) << path << " move to trash success";
-  return Status::OK();
 }
 
 void DB::DbRWLockWriter() { db_rwlock_.lock(); }

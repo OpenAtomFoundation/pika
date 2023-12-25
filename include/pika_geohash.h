@@ -43,7 +43,7 @@ extern "C" {
 #define RANGEISZERO(r) (!(r).max && !(r).min)
 #define RANGEPISZERO(r) ((r) == nullptr || RANGEISZERO(*(r)))
 
-#define GEO_STEP_MAX 26 /* 26*2 = 52 bits. */
+#define GEO_STEP_MAX 26 /* 26 * 2 = 52 bits. */
 
 /* Limits from EPSG:900913 / EPSG:3785 / OSGEO:41001 */
 constexpr double GEO_LAT_MIN{-85.05112878};

@@ -7,7 +7,5 @@
 
 void HashModulo::Init() {}
 
-uint32_t HashModulo::Distribute(const std::string& str) {
-  return std::hash<std::string>()(str);
-}
+
 

@@ -4,26 +4,22 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <arpa/inet.h>
-#include <ifaddrs.h>
 #include <netinet/in.h>
 #include <sys/resource.h>
-#include <sys/statvfs.h>
 #include <algorithm>
 #include <ctime>
 #include <fstream>
 #include <memory>
 #include <utility>
-#include <mach/mach_time.h>
-#include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_interfaces.h"
-#include "net/include/redis_cli.h"
 #include "net/include/net_stats.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
@@ -1129,8 +1125,6 @@ std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountDB() {
   return res;
 }
 
-QpsStatistic PikaServer::ServerDBStat(const std::string& db_name) { return statistic_.DBStat(db_name); }
-
 std::unordered_map<std::string, QpsStatistic> PikaServer::ServerAllDBStat() { return statistic_.AllDBStat(); }
 
 int PikaServer::SendToPeer() { return g_pika_rm->ConsumeWriteQueue(); }
@@ -1382,15 +1376,6 @@ void PikaServer::AutoUpdateNetworkMetric() {
                                      factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
                                      current_time, factor);
-}
-
-uint64_t PikaServer::getMonotonicUs() {
-  static mach_timebase_info_data_t timebase;
-  if (timebase.denom == 0) {
-    mach_timebase_info(&timebase);
-  }
-  uint64_t nanos = mach_absolute_time() * timebase.numer / timebase.denom;
-  return nanos / 1000;
 }
 
 void PikaServer::PrintThreadPoolQueueStatus() {

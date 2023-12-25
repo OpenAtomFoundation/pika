@@ -124,6 +124,7 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
+  response.set_slot_id(0);
 
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
@@ -158,9 +159,10 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
   response.set_db_name(db_name);
+  response.set_slot_id(0);
 
   std::string snapshot_uuid;
-  Status s = g_pika_server->GetDumpUUID(db_name,  &snapshot_uuid);
+  Status s = g_pika_server->GetDumpUUID(db_name, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
   if (!s.ok()) {
     LOG(WARNING) << "rsyncserver get snapshotUUID failed";

@@ -8,7 +8,6 @@
 
 #include "include/pika_command.h"
 #include "pika_kv.h"
-#include "storage/storage.h"
 
 /*
  * zset
@@ -160,13 +159,13 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
 class ZsetRangebyscoreParentCmd : public Cmd {
  public:
   ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-
   double MinScore() { return min_score_; }
   double MaxScore() { return max_score_; }
   bool LeftClose() { return left_close_; }
   bool RightClose() { return right_close_; }
   int64_t Offset() { return offset_; }
   int64_t Count() { return count_; }
+
  protected:
   std::string key_;
   std::string min_, max_;
@@ -285,7 +284,6 @@ class ZsetUIstoreParentCmd : public Cmd {
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {
     zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
-    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   ZsetUIstoreParentCmd(const ZsetUIstoreParentCmd& other)
       : Cmd(other),
@@ -295,12 +293,12 @@ class ZsetUIstoreParentCmd : public Cmd {
         keys_(other.keys_),
         weights_(other.weights_) {
     zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
-    //del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
   std::vector<std::string> current_key() const override {
     return {dest_key_};
   }
+
  protected:
   std::string dest_key_;
   int64_t num_keys_ = 0;
@@ -311,7 +309,6 @@ class ZsetUIstoreParentCmd : public Cmd {
   void Clear() override { aggregate_ = storage::SUM; }
   //used for write binlog
   std::shared_ptr<Cmd> zadd_cmd_;
-  std::shared_ptr<Cmd> del_cmd_;
 };
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {

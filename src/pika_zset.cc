@@ -796,10 +796,11 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(del_args, db_name_);
-  del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog(db);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  del_cmd->Initial(del_args, db_name_);
+  del_cmd->SetConn(GetConn());
+  del_cmd->SetResp(resp_.lock());
+  del_cmd->DoBinlog(db);
 
   if(value_to_dest_.empty()){
     // The union operation got an empty set, only use del to simulate overwrite the dest_key with empty set
@@ -873,10 +874,11 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(del_args, db_name_);
-  del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog(db);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  del_cmd->Initial(del_args, db_name_);
+  del_cmd->SetConn(GetConn());
+  del_cmd->SetResp(resp_.lock());
+  del_cmd->DoBinlog(db);
 
   if (value_to_dest_.size() == 0) {
     //The inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key

@@ -21,7 +21,6 @@ class Context : public pstd::noncopyable {
   pstd::Status Init();
   // RWLock should be held when access members.
   pstd::Status StableSave();
-  void PrepareUpdateAppliedIndex(const LogOffset& offset);
   void UpdateAppliedIndex(const LogOffset& offset);
   void Reset(const LogOffset& offset);
 
@@ -79,7 +78,6 @@ class MemLog {
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
-  pstd::Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   pstd::Status TruncateTo(const LogOffset& offset);
 
   void Reset(const LogOffset& offset);
@@ -134,11 +132,6 @@ class ConsensusCoordinator {
   LogOffset committed_index() {
     std::lock_guard lock(index_mu_);
     return committed_index_;
-  }
-
-  LogOffset applied_index() {
-    std::shared_lock lock(context_->rwlock_);
-    return context_->applied_index_;
   }
 
   std::shared_ptr<Context> context() { return context_; }
@@ -203,7 +196,6 @@ class ConsensusCoordinator {
   uint32_t term_ = 0;
 
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
   SyncProgress sync_pros_;
   std::shared_ptr<StableLog> stable_logger_;

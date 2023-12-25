@@ -22,13 +22,13 @@ extern uint32_t CRC32CheckSum(const char* buf, int len);
 
 int GetSlotID(const std::string &str);
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db);
+int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
+int GetSlotsID(const std::string& str, uint32_t* pcrc, int* phastag);
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
+void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
-int GetSlotsID(const std::string& str, uint32_t* pcrc, int* phastag);
-void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 
 class PikaMigrate {
  public:
@@ -53,16 +53,13 @@ class PikaMigrate {
  private:
   std::map<std::string, void*> migrate_clients_;
   pstd::Mutex mutex_;
-
   void KillMigrateClient(net::NetCli* migrate_cli);
   void KillAllMigrateClient();
-
+  int64_t TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db);
   int MigrateSend(net::NetCli* migrate_cli, const std::string& key, const char type, std::string& detail,
                   const std::shared_ptr<DB>& db);
   bool MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::string& detail);
-
   int ParseKey(const std::string& key, const char type, std::string& wbuf_str, const std::shared_ptr<DB>& db);
-  int64_t TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db);
   int ParseKKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseSKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
@@ -78,13 +75,13 @@ class SlotsMgrtTagSlotCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotCmd(*this); }
+
  private:
   std::string dest_ip_;
   int64_t dest_port_ = 0;
   int64_t timeout_ms_ = 60;
   int64_t slot_id_ = 0;
   std::basic_string<char, std::char_traits<char>, std::allocator<char>> key_;
-
   void DoInitial() override;
 };
 
@@ -95,6 +92,7 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagSlotAsyncCmd(*this); }
+
  private:
   std::string dest_ip_;
   int64_t dest_port_ = 0;
@@ -103,7 +101,6 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   int64_t max_bytes_ = 0;
   int64_t slot_id_ = 0;
   int64_t keys_num_ = 0;
-
   void DoInitial() override;
 };
 
@@ -114,6 +111,7 @@ class SlotsMgrtTagOneCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtTagOneCmd(*this); }
+
  private:
   std::string dest_ip_;
   int64_t dest_port_ = 0;
@@ -144,6 +142,7 @@ class SlotsInfoCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsInfoCmd(*this); }
+
  private:
   void DoInitial() override;
 
@@ -158,6 +157,7 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtAsyncCancelCmd(*this); }
+
  private:
   void DoInitial() override;
 };
@@ -169,6 +169,7 @@ class SlotsDelCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsDelCmd(*this); }
+
  private:
   std::vector<std::string> slots_;
   void DoInitial() override;
@@ -181,6 +182,7 @@ class SlotsHashKeyCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsHashKeyCmd(*this); }
+
  private:
   std::vector<std::string> keys_;
   void DoInitial() override;
@@ -193,6 +195,7 @@ class SlotsScanCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsScanCmd(*this); }
+
  private:
   std::string key_;
   std::string pattern_ = "*";
@@ -217,6 +220,7 @@ class SlotsMgrtExecWrapperCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsMgrtExecWrapperCmd(*this); }
+
  private:
   std::string key_;
   std::vector<std::string> args;
@@ -231,6 +235,7 @@ class SlotsReloadCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsReloadCmd(*this); }
+
  private:
   void DoInitial() override;
 };
@@ -242,6 +247,7 @@ class SlotsReloadOffCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsReloadOffCmd(*this); }
+
  private:
   void DoInitial() override;
 };
@@ -254,6 +260,7 @@ class SlotsCleanupCmd : public Cmd {
   void Merge() override {};
   Cmd* Clone() override { return new SlotsCleanupCmd(*this); }
   std::vector<int> cleanup_slots_;
+
  private:
   void DoInitial() override;
 };
@@ -265,6 +272,7 @@ class SlotsCleanupOffCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlotsCleanupOffCmd(*this); }
+
  private:
   void DoInitial() override;
 };

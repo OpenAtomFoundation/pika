@@ -168,6 +168,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
+      request.set_slot_id(0);
       FileRequest* file_req = request.mutable_file_req();
       file_req->set_filename(filename);
       file_req->set_offset(offset);
@@ -329,6 +330,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   RsyncRequest request;
   request.set_reader_index(0);
   request.set_db_name(db_name_);
+  request.set_slot_id(0);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);

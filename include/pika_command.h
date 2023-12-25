@@ -77,6 +77,7 @@ const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
 const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
 const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
+
 // Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
@@ -230,22 +231,19 @@ const std::string kCmdNameUnSubscribe = "unsubscribe";
 const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
-
 const std::string kClusterPrefix = "pkcluster";
+
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW = 1,
-  kCmdFlagsMaskType = 30,
   kCmdFlagsMaskLocal = 32,
   kCmdFlagsMaskSuspend = 64,
-  kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
   kCmdFlagsMaskDoThrouhDB = 4096,
   kCmdFlagsMaskReadCache = 128,
   kCmdFlagsMaskUpdateCache = 2048,
-  kCmdFlagsMaskSlot = 1536,
 };
 
 enum CmdFlags {

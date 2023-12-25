@@ -594,7 +594,7 @@ Status PikaCache::SCard(std::string& key, uint64_t *len) {
   return caches_[cache_index]->SCard(key, len);
 }
 
-Status PikaCache::SIsmember(std::string& key, std::string &member) {
+Status PikaCache::SIsmember(std::string& key, std::string& member) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->SIsmember(key, member);
@@ -903,7 +903,7 @@ Status PikaCache::ZCount(std::string& key, std::string &min, std::string &max, u
   }
 }
 
-Status PikaCache::ZIncrby(std::string& key, std::string &member, double increment) {
+Status PikaCache::ZIncrby(std::string& key, std::string& member, double increment) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->ZIncrby(key, member, increment);
@@ -943,7 +943,7 @@ bool PikaCache::ReloadCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::string
   }
 }
 
-Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string &member, double increment, ZIncrbyCmd *cmd) {
+Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string& member, double increment, ZIncrbyCmd *cmd) {
   auto eps = std::numeric_limits<double>::epsilon();
   if (-eps < increment && increment < eps) {
     return Status::NotFound("icrement is 0, nothing to be done");
@@ -971,7 +971,7 @@ Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string &member, doubl
     ReloadCacheKeyIfNeeded(cache_obj, key, cache_len);
     return s;
   };
-  auto RemCacheKeyMember = [this, cache_obj, &key, cache_len](const std::string &member, bool check = true) {
+  auto RemCacheKeyMember = [this, cache_obj, &key, cache_len](const std::string& member, bool check = true) {
     std::vector<std::string> member_rm = {member};
     auto s = cache_obj->ZRem(key, member_rm);
     if (check) {
@@ -1134,7 +1134,7 @@ Status PikaCache::ZRangebyscore(std::string& key, std::string &min, std::string 
   }
 }
 
-Status PikaCache::ZRank(std::string& key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZRank(std::string& key, std::string& member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1324,7 +1324,7 @@ Status PikaCache::ZRevrangebylex(std::string& key, std::string &min, std::string
   }
 }
 
-Status PikaCache::ZRevrank(std::string& key, std::string &member, int64_t *rank, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZRevrank(std::string& key, std::string& member, int64_t *rank, const std::shared_ptr<DB>& db) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1347,7 +1347,7 @@ Status PikaCache::ZRevrank(std::string& key, std::string &member, int64_t *rank,
     }
   }
 }
-Status PikaCache::ZScore(std::string& key, std::string &member, double *score, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZScore(std::string& key, std::string& member, double *score, const std::shared_ptr<DB>& db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   auto s = caches_[cache_index]->ZScore(key, member, score);

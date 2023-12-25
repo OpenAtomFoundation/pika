@@ -34,7 +34,6 @@ class PikaServer;
 /* Port shift */
 const int kPortShiftRSync = 1000;
 const int kPortShiftReplServer = 2000;
-//TODO: Temporarily used for rsync server port shift. will be deleted.
 const int kPortShiftRsync2 = 10001;
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
@@ -52,15 +51,6 @@ struct DBStruct {
   }
   std::string db_name;
 };
-
-struct WorkerCronTask {
-  int task;
-  std::string ip_port;
-};
-using MonitorCronTask = WorkerCronTask;
-// task define
-#define TASK_KILL 0
-#define TASK_KILLALL 1
 
 // slave item
 struct SlaveItem {
@@ -91,7 +81,6 @@ const std::string ReplStateMsg[] = {"kNoConnect", "kTryConnect", "kTryDBSync", "
 
 enum DBState {
   INFREE = 0,
-  INBUSY = 1,
 };
 
 struct LogicOffset {
@@ -265,7 +254,7 @@ class RmNode : public Node {
   void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "slot=" + DBName() + "_,ip_port=" + Ip() + ":" +
+    return "db=" + DBName() + "_,ip_port=" + Ip() + ":" +
            std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
@@ -328,12 +317,6 @@ constexpr int PIKA_CACHE_READ = 1;
 #define PIKA_CACHE_SIZE_MIN       536870912    // 512M
 #define PIKA_CACHE_SIZE_DEFAULT   10737418240  // 10G
 
-/*
- * The size of Binlogfile
- */
-// static uint64_t kBinlogSize = 128;
-// static const uint64_t kBinlogSize = 1024 * 1024 * 100;
-
 enum RecordType {
   kZeroType = 0,
   kFullType = 1,
@@ -371,13 +354,11 @@ const std::string kContext = "context";
 
 /*
  * define common character
- *
  */
 #define COMMA ','
 
 /*
  * define reply between master and slave
- *
  */
 const std::string kInnerReplOk = "ok";
 const std::string kInnerReplWait = "wait";
@@ -411,6 +392,7 @@ const int PIKA_CACHE_STATUS_DESTROY = 4;
 const int PIKA_CACHE_STATUS_CLEAR = 5;
 const int CACHE_START_FROM_BEGIN = 0;
 const int CACHE_START_FROM_END = -1;
+
 /*
  * key type
  */
@@ -419,7 +401,6 @@ const char PIKA_KEY_TYPE_HASH = 'h';
 const char PIKA_KEY_TYPE_LIST = 'l';
 const char PIKA_KEY_TYPE_SET = 's';
 const char PIKA_KEY_TYPE_ZSET = 'z';
-
 
 /*
  * cache task type

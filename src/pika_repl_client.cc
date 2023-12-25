@@ -149,6 +149,7 @@ Status PikaReplClient::SendDBSync(const std::string& ip, uint32_t port, const st
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* db = db_sync->mutable_slot();
   db->set_db_name(db_name);
+  db->set_slot_id(0);
 
   InnerMessage::BinlogOffset* binlog_offset = db_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -172,6 +173,7 @@ Status PikaReplClient::SendTrySync(const std::string& ip, uint32_t port, const s
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* db = try_sync->mutable_slot();
   db->set_db_name(db_name);
+  db->set_slot_id(0);
 
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -195,6 +197,7 @@ Status PikaReplClient::SendBinlogSync(const std::string& ip, uint32_t port, cons
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
   binlog_sync->set_db_name(db_name);
+  binlog_sync->set_slot_id(0);
   binlog_sync->set_first_send(is_first_send);
 
   InnerMessage::BinlogOffset* ack_range_start = binlog_sync->mutable_ack_range_start();
@@ -237,6 +240,7 @@ Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip, uint32_t port,
 
   InnerMessage::Slot* db = remove_slave_node->mutable_slot();
   db->set_db_name(db_name);
+  db->set_slot_id(0);
 
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {

@@ -85,7 +85,6 @@ class LLenCmd : public Cmd {
 class BlockingBaseCmd : public Cmd {
  public:
   BlockingBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-
   //blpop/brpop used start
   struct WriteBinlogOfPopArgs{
     BlockKeyType block_type;
@@ -300,6 +299,7 @@ class BRPopCmd final : public BlockingBaseCmd {
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
   void DoInitial() override;
   void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
+
  private:
   std::vector<std::string> keys_;
   int64_t expire_time_{0};

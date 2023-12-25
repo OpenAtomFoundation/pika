@@ -68,7 +68,7 @@ Status RedisCache::ZCount(std::string& key, std::string &min, std::string &max, 
   return Status::OK();
 }
 
-Status RedisCache::ZIncrby(std::string& key, std::string &member, double increment) {
+Status RedisCache::ZIncrby(std::string& key, std::string& member, double increment) {
   if (C_OK != RcFreeMemoryIfNeeded(cache_)) {
     return Status::Corruption("[error] Free memory faild !");
   }
@@ -145,7 +145,7 @@ Status RedisCache::ZRangebyscore(std::string& key, std::string &min, std::string
   return Status::OK();
 }
 
-Status RedisCache::ZRank(std::string& key, std::string &member, int64_t *rank) {
+Status RedisCache::ZRank(std::string& key, std::string& member, int64_t *rank) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
   DEFER {
@@ -305,7 +305,7 @@ Status RedisCache::ZRevrangebylex(std::string& key, std::string &min, std::strin
   return Status::OK();
 }
 
-Status RedisCache::ZRevrank(std::string& key, std::string &member, int64_t *rank) {
+Status RedisCache::ZRevrank(std::string& key, std::string& member, int64_t *rank) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
   DEFER {
@@ -324,7 +324,7 @@ Status RedisCache::ZRevrank(std::string& key, std::string &member, int64_t *rank
   return Status::OK();
 }
 
-Status RedisCache::ZScore(std::string& key, std::string &member, double *score) {
+Status RedisCache::ZScore(std::string& key, std::string& member, double *score) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));
   DEFER {

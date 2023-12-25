@@ -35,9 +35,7 @@ class SyncDB {
  public:
   SyncDB(const std::string& db_name);
   virtual ~SyncDB() = default;
-
   DBInfo& SyncDBInfo() { return db_info_; }
-
   std::string DBName();
 
  protected:
@@ -49,33 +47,25 @@ class SyncMasterDB : public SyncDB {
   SyncMasterDB(const std::string& db_name);
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
-
   pstd::Status ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset);
   pstd::Status ActivateSlaveDbSync(const std::string& ip, int port);
-
   pstd::Status SyncBinlogToWq(const std::string& ip, int port);
-
   pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
   pstd::Status GetSlaveState(const std::string& ip, int port, SlaveState* slave_state);
-
   pstd::Status SetLastRecvTime(const std::string& ip, int port, uint64_t time);
-
   pstd::Status GetSafetyPurgeBinlog(std::string* safety_purge);
-  bool BinlogCloudPurge(uint32_t index);
-
   pstd::Status WakeUpSlaveBinlogSync();
   pstd::Status CheckSyncTimeout(uint64_t now);
-
-  int GetNumberOfSlaveNode();
-  bool CheckSlaveNodeExist(const std::string& ip, int port);
   pstd::Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
-
   void GetValidSlaveNames(std::vector<std::string>* slavenames);
+  int GetNumberOfSlaveNode();
+  bool BinlogCloudPurge(uint32_t index);
+  bool CheckSlaveNodeExist(const std::string& ip, int port);
+
   // display use
   pstd::Status GetInfo(std::string* info);
   // debug use
   std::string ToStringStatus();
-
   int32_t GenSessionId();
   bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, int session_id);
 
@@ -112,45 +102,31 @@ class SyncMasterDB : public SyncDB {
 
   pstd::Mutex session_mu_;
   int32_t session_id_ = 0;
-
   ConsensusCoordinator coordinator_;
 };
 
 class SyncSlaveDB : public SyncDB {
  public:
   SyncSlaveDB(const std::string& db_name);
-
   void Activate(const RmNode& master, const ReplState& repl_state);
   void Deactivate();
-
   void SetLastRecvTime(uint64_t time);
-
   void SetReplState(const ReplState& repl_state);
   ReplState State();
-
   pstd::Status CheckSyncTimeout(uint64_t now);
 
   // For display
   pstd::Status GetInfo(std::string* info);
   // For debug
   std::string ToStringStatus();
-
-  const std::string& MasterIp();
-
-  int MasterPort();
-
-  void SetMasterSessionId(int32_t session_id);
-
-  int32_t MasterSessionId();
-
-  void SetLocalIp(const std::string& local_ip);
-
   std::string LocalIp();
-
+  int32_t MasterSessionId();
+  const std::string& MasterIp();
+  int MasterPort();
+  void SetMasterSessionId(int32_t session_id);
+  void SetLocalIp(const std::string& local_ip);
   void StopRsync();
-
   void ActivateRsync();
-
   bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
 
  private:
@@ -165,14 +141,10 @@ class PikaReplicaManager {
  public:
   PikaReplicaManager();
   ~PikaReplicaManager() = default;
-
   friend Cmd;
-
   void Start();
   void Stop();
-
   bool CheckMasterSyncFinished();
-
   pstd::Status ActivateSyncSlaveDB(const RmNode& node, const ReplState& repl_state);
 
   // For Pika Repl Client Thread
@@ -181,7 +153,7 @@ class PikaReplicaManager {
   pstd::Status SendTrySyncRequest(const std::string& db_name);
   pstd::Status SendDBSyncRequest(const std::string& db_name);
   pstd::Status SendBinlogSyncAckRequest(const std::string& table, const LogOffset& ack_start,
-                                           const LogOffset& ack_end, bool is_first_send = false);
+                                        const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
   // For Pika Repl Server Thread
@@ -199,26 +171,20 @@ class PikaReplicaManager {
 
   // To check slot info
   // For pkcluster info command
-
-  void FindCompleteReplica(std::vector<std::string>* replica);
-  void FindCommonMaster(std::string* master);
-  pstd::Status CheckDBRole(const std::string& table, int* role);
-
-  void RmStatus(std::string* debug_info);
-
   static bool CheckSlaveDBState(const std::string& ip, int port);
-
+  void FindCommonMaster(std::string* master);
+  void RmStatus(std::string* debug_info);
+  pstd::Status CheckDBRole(const std::string& table, int* role);
   pstd::Status LostConnection(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
   pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
-
   pstd::Status WakeUpBinlogSync();
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, std::string db_name, const std::vector<WriteTask>& tasks);
-  int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
+  int ConsumeWriteQueue();
 
   // Schedule Task
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
@@ -227,11 +193,11 @@ class PikaReplicaManager {
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
-
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
   std::shared_mutex& GetDBLock() { return dbs_rw_; }
+
   void DBLock() {
     dbs_rw_.lock();
   }
@@ -255,9 +221,9 @@ class PikaReplicaManager {
   std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info> sync_slave_dbs_;
 
   pstd::Mutex write_queue_mu_;
-  // every host owns a queue, the key is "ip+port"
-  std::unordered_map<std::string, std::unordered_map<std::string, std::queue<WriteTask>>> write_queues_;
 
+  // every host owns a queue, the key is "ip + port"
+  std::unordered_map<std::string, std::unordered_map<std::string, std::queue<WriteTask>>> write_queues_;
   std::unique_ptr<PikaReplClient> pika_repl_client_;
   std::unique_ptr<PikaReplServer> pika_repl_server_;
 };

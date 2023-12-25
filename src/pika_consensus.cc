@@ -62,11 +62,6 @@ Status Context::Init() {
   }
 }
 
-void Context::PrepareUpdateAppliedIndex(const LogOffset& offset) {
-  std::lock_guard l(rwlock_);
-  applied_win_.Push(SyncWinItem(offset));
-}
-
 void Context::UpdateAppliedIndex(const LogOffset& offset) {
   std::lock_guard l(rwlock_);
   LogOffset cur_offset;
@@ -165,18 +160,6 @@ int SyncProgress::SlaveSize() {
 MemLog::MemLog()  = default;
 
 int MemLog::Size() { return static_cast<int>(logs_.size()); }
-
-// purge [begin, offset]
-Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
-  std::lock_guard l_logs(logs_mu_);
-  int index = InternalFindLogByBinlogOffset(offset);
-  if (index < 0) {
-    return Status::NotFound("Cant find correct index");
-  }
-  logs->assign(logs_.begin(), logs_.begin() + index + 1);
-  logs_.erase(logs_.begin(), logs_.begin() + index + 1);
-  return Status::OK();
-}
 
 // keep mem_log [mem_log.begin, offset]
 Status MemLog::TruncateTo(const LogOffset& offset) {

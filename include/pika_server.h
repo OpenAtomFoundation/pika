@@ -86,7 +86,6 @@ class PikaServer : public pstd::noncopyable {
    * Server init info
    */
   bool ServerInit();
-
   void Start();
   void Exit();
 
@@ -107,17 +106,17 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
-  uint64_t getMonotonicUs();
+
   /*
-   * Table use
+   * DB use
    */
   void InitDBStruct();
-  std::shared_ptr<DB> GetDB(const std::string& db_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsDBExist(const std::string& db_name);
   bool IsDBBinlogIoError(const std::string& db_name);
+  std::shared_ptr<DB> GetDB(const std::string& db_name);
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;
@@ -174,8 +173,6 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  bool AllSlotConnectSuccess();
-  bool LoopSlotStateMachine();
   void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
@@ -242,22 +239,21 @@ class PikaServer : public pstd::noncopyable {
    */
   void SlowlogTrim();
   void SlowlogReset();
-  uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
   void SlowlogPushEntry(const std::vector<std::string>& argv, int64_t time, int64_t duration);
+  uint32_t SlowlogLen();
 
   /*
    * Statistic used
    */
-  void ResetStat();
   uint64_t ServerQueryNum();
   uint64_t ServerCurrentQps();
   uint64_t accumulative_connections();
+  void ResetStat();
   void incr_accumulative_connections();
   void ResetLastSecQuerynum();
   void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();
-  QpsStatistic ServerDBStat(const std::string& db_name);
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
 
   /*
@@ -291,25 +287,23 @@ class PikaServer : public pstd::noncopyable {
                  std::vector<std::pair<std::string, int>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
-
   pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 
   // info debug use
   void ServerStatus(std::string* info);
 
   /*
-   * * Async migrate used
+   * Async migrate used
    */
   int SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB> &db);
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
-
   std::shared_mutex bgsave_protector_;
   BgSaveInfo bgsave_info_;
 
   /*
- * BGSlotsReload used
+   * BGSlotsReload used
    */
   struct BGSlotsReload {
     bool reloading = false;
@@ -358,7 +352,6 @@ class PikaServer : public pstd::noncopyable {
   }
   void Bgslotsreload(const std::shared_ptr<DB>& db);
 
-
   /*
    * BGSlotsCleanup used
    */
@@ -387,7 +380,6 @@ class PikaServer : public pstd::noncopyable {
    */
   BGSlotsCleanup bgslots_cleanup_;
   net::BGThread bgslots_cleanup_thread_;
-
 
   BGSlotsCleanup bgslots_cleanup() {
     std::lock_guard ml(bgsave_protector_);
@@ -432,7 +424,6 @@ class PikaServer : public pstd::noncopyable {
   */
   std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
-
  /*
   * Instantaneous Metric used
   */
@@ -459,21 +450,23 @@ class PikaServer : public pstd::noncopyable {
     std::unique_ptr<PikaConf> conf;
     bool reenable_cache;
   };
+
   /*
    * Cache used
    */
+  static void DoCacheBGTask(void* arg);
   void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg = nullptr);
   void ClearCacheDbAsync(std::shared_ptr<DB> db);
   void ClearCacheDbAsyncV2(std::shared_ptr<DB> db);
   void ResetCacheConfig(std::shared_ptr<DB> db);
   void ClearHitRatio(std::shared_ptr<DB> db);
   void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db);
-  static void DoCacheBGTask(void* arg);
   void UpdateCacheInfo(void);
   void ResetDisplayCacheInfo(int status, std::shared_ptr<DB> db);
   void CacheConfigInit(cache::CacheConfig &cache_cfg);
   void ProcessCronTask();
   double HitRatio();
+
  private:
   /*
    * TimingTask use
@@ -497,7 +490,7 @@ class PikaServer : public pstd::noncopyable {
   std::timed_mutex  exit_mutex_;
 
   /*
-   * Table used
+   * DB used
    */
   std::atomic<DBState> db_state_;
   std::shared_mutex dbs_rw_;
@@ -597,10 +590,9 @@ class PikaServer : public pstd::noncopyable {
   Statistic statistic_;
 
   /*
-  * Info Commandstats used
-  */
+   * Info Commandstats used
+   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
-
   net::BGThread common_bg_thread_;
 
   /*

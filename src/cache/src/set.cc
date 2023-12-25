@@ -47,7 +47,7 @@ Status RedisCache::SCard(std::string& key, uint64_t *len) {
   return Status::OK();
 }
 
-Status RedisCache::SIsmember(std::string& key, std::string &member) {
+Status RedisCache::SIsmember(std::string& key, std::string& member) {
   int is_member = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *mobj = createObject(OBJ_STRING, sdsnewlen(member.data(), member.size()));

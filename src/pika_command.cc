@@ -24,7 +24,6 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
 #include "pstd_defer.h"
-#include "include/pika_cache.h"
 #include "src/pstd/include/scope_record_lock.h"
 
 using pstd::Status;

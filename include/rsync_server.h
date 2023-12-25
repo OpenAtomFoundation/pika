@@ -115,6 +115,7 @@ class RsyncReader {
     *is_eof = (offset + copy_count == total_size_);
     return pstd::Status::OK();
   }
+
  private:
   pstd::Status Seek(const std::string filepath, const size_t offset) {
     if (filepath == filepath_ && offset >= start_offset_ && offset < end_offset_) {
