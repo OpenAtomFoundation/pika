@@ -122,7 +122,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       }
     }
     if (current_db == nullptr) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Current db not found");
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Current DB not found");
       return c_ptr;
     }
     for (const auto& slot_id : current_db->GetSlotIDs()) {
