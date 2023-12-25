@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "pika_stream_base.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 #include "src/base_data_key_format.h"
@@ -55,10 +54,8 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
 
 #ifdef DEBUG
   // check the serialized current id is larger than last_id
-  std::string serialized_last_id;
-  std::string current_id;
-  stream_meta.last_id().SerializeTo(serialized_last_id);
-  args.id.SerializeTo(current_id);
+  std::string serialized_last_id = stream_meta.last_id().Serialize();
+  std::string current_id = args.id.Serialize();
   assert(current_id > serialized_last_id);
 #endif
 
@@ -385,20 +382,6 @@ Status RedisStreams::GetProperty(const std::string& property, uint64_t* out) {
   return Status::OK();
 }
 
-// Check if the key has prefix of STERAM_TREE_PREFIX.
-// That means the key-value is a virtual tree node, not a stream meta.
-bool IsVirtualTree(rocksdb::Slice key) {
-  if (key.size() < STERAM_TREE_PREFIX.size()) {
-    return false;
-  }
-
-  if (memcmp(key.data(), STERAM_TREE_PREFIX.data(), STERAM_TREE_PREFIX.size()) == 0) {
-    return true;
-  }
-
-  return false;
-}
-
 Status RedisStreams::ScanKeyNum(KeyInfo* key_info) {
   uint64_t keys = 0;
   uint64_t expires = 0;
@@ -416,9 +399,6 @@ Status RedisStreams::ScanKeyNum(KeyInfo* key_info) {
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    if (IsVirtualTree(iter->key())) {
-      continue;
-    }
     ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
     if (parsed_stream_meta_value.length() == 0) {
       invaild_keys++;
@@ -443,9 +423,6 @@ Status RedisStreams::ScanKeys(const std::string& pattern, std::vector<std::strin
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    if (IsVirtualTree(iter->key())) {
-      continue;
-    }
     ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
     if (parsed_stream_meta_value.length() != 0) {
       key = iter->key().ToString();
@@ -473,10 +450,6 @@ Status RedisStreams::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    if (IsVirtualTree(iter->key())) {
-      iter->Next();
-      continue;
-    }
     key = iter->key().ToString();
     meta_value = iter->value().ToString();
     StreamMetaValue stream_meta_value;
@@ -545,10 +518,6 @@ bool RedisStreams::Scan(const std::string& start_key, const std::string& pattern
 
   it->Seek(start_key);
   while (it->Valid() && (*count) > 0) {
-    if (IsVirtualTree(it->key())) {
-      it->Next();
-      continue;
-    }
     ParsedStreamMetaValue parsed_stream_meta_value(it->value());
     if (parsed_stream_meta_value.length() == 0) {
       it->Next();
@@ -839,13 +808,13 @@ Status RedisStreams::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta
 }
 
 Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                               const std::string& id_end, const Slice& pattern, int32_t limit,
+                               const std::string& id_end, const Slice& pattern, size_t limit,
                                std::vector<IdMessage>& id_messages, std::string& next_id,
                                rocksdb::ReadOptions& read_options) {
   next_id.clear();
   id_messages.clear();
 
-  int64_t remain = limit;
+  auto remain = limit;
   std::string meta_value;
 
   bool start_no_limit = id_start.compare("") == 0;
@@ -884,13 +853,13 @@ Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Sl
 }
 
 Status RedisStreams::ReScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                                 const std::string& id_end, const Slice& pattern, int32_t limit,
+                                 const std::string& id_end, const Slice& pattern, size_t limit,
                                  std::vector<IdMessage>& id_messages, std::string& next_id,
                                  rocksdb::ReadOptions& read_options) {
   next_id.clear();
   id_messages.clear();
 
-  int64_t remain = limit;
+  auto remain = limit;
   std::string meta_value;
 
   bool start_no_limit = id_start.compare("") == 0;
@@ -949,5 +918,223 @@ Status RedisStreams::DeleteStreamMessages(const rocksdb::Slice& key, const Strea
     batch.Delete(handles_[1], stream_data_key.Encode());
   }
   return db_->Write(default_write_options_, &batch);
+}
+
+inline Status RedisStreams::SetFirstID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
+                                       rocksdb::ReadOptions& read_options) {
+  return SetFirstOrLastID(key, stream_meta, true, read_options);
+}
+
+inline Status RedisStreams::SetLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
+                                      rocksdb::ReadOptions& read_options) {
+  return SetFirstOrLastID(key, stream_meta, false, read_options);
+}
+
+inline Status RedisStreams::SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
+                                             rocksdb::ReadOptions& read_options) {
+  if (stream_meta.length() == 0) {
+    stream_meta.set_first_id(kSTREAMID_MIN);
+    return Status::OK();
+  }
+
+  std::vector<storage::IdMessage> id_messages;
+  std::string next_field;
+
+  storage::Status s;
+  if (is_set_first) {
+    ScanStreamOptions option(key, stream_meta.version(), kSTREAMID_MIN, kSTREAMID_MAX, 1);
+    s = ScanStream(option, id_messages, next_field, read_options);
+  } else {
+    bool is_reverse = true;
+    ScanStreamOptions option(key, stream_meta.version(), kSTREAMID_MAX, kSTREAMID_MIN, 1, false, false, is_reverse);
+    s = ScanStream(option, id_messages, next_field, read_options);
+  }
+  (void)next_field;
+
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(ERROR) << "Internal error: scan stream failed: " << s.ToString();
+    return Status::Corruption("Internal error: scan stream failed: " + s.ToString());
+  }
+
+  if (id_messages.empty()) {
+    LOG(ERROR) << "Internal error: no messages found but stream length is not 0";
+    return Status::Corruption("Internal error: no messages found but stream length is not 0");
+  }
+
+  streamID id;
+  id.DeserializeFrom(id_messages[0].field);
+  stream_meta.set_first_id(id);
+  return Status::OK();
+}
+
+bool StreamUtils::StreamGenericParseID(const std::string& var, streamID& id, uint64_t missing_seq, bool strict,
+                                       bool* seq_given) {
+  char buf[128];
+  if (var.size() > sizeof(buf) - 1) {
+    return false;
+  }
+
+  memcpy(buf, var.data(), var.size());
+  buf[var.size()] = '\0';
+
+  if (strict && (buf[0] == '-' || buf[0] == '+') && buf[1] == '\0') {
+    // res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
+    return false;
+  }
+
+  if (seq_given != nullptr) {
+    *seq_given = true;
+  }
+
+  if (buf[0] == '-' && buf[1] == '\0') {
+    id.ms = 0;
+    id.seq = 0;
+    return true;
+  } else if (buf[0] == '+' && buf[1] == '\0') {
+    id.ms = UINT64_MAX;
+    id.seq = UINT64_MAX;
+    return true;
+  }
+
+  uint64_t ms;
+  uint64_t seq;
+  char* dot = strchr(buf, '-');
+  if (dot) {
+    *dot = '\0';
+  }
+  if (!StreamUtils::string2uint64(buf, ms)) {
+    return false;
+  };
+  if (dot) {
+    size_t seqlen = strlen(dot + 1);
+    if (seq_given != nullptr && seqlen == 1 && *(dot + 1) == '*') {
+      seq = 0;
+      *seq_given = false;
+    } else if (!StreamUtils::string2uint64(dot + 1, seq)) {
+      return false;
+    }
+  } else {
+    seq = missing_seq;
+  }
+  id.ms = ms;
+  id.seq = seq;
+  return true;
+}
+
+bool StreamUtils::StreamParseID(const std::string& var, streamID& id, uint64_t missing_seq) {
+  return StreamGenericParseID(var, id, missing_seq, false, nullptr);
+}
+
+bool StreamUtils::StreamParseStrictID(const std::string& var, streamID& id, uint64_t missing_seq, bool* seq_given) {
+  return StreamGenericParseID(var, id, missing_seq, true, seq_given);
+}
+
+bool StreamUtils::StreamParseIntervalId(const std::string& var, streamID& id, bool* exclude, uint64_t missing_seq) {
+  if (exclude != nullptr) {
+    *exclude = (var.size() > 1 && var[0] == '(');
+  }
+  if (exclude != nullptr && *exclude) {
+    return StreamParseStrictID(var.substr(1), id, missing_seq, nullptr);
+  } else {
+    return StreamParseID(var, id, missing_seq);
+  }
+}
+
+bool StreamUtils::string2uint64(const char* s, uint64_t& value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char* end;
+  errno = 0;
+  uint64_t tmp = strtoull(s, &end, 10);
+  if (*end || errno == ERANGE) {
+    // Conversion either didn't consume the entire string, or overflow occurred
+    return false;
+  }
+
+  value = tmp;
+  return true;
+}
+
+bool StreamUtils::string2int64(const char* s, int64_t& value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char* end;
+  errno = 0;
+  int64_t tmp = std::strtoll(s, &end, 10);
+  if (*end || errno == ERANGE) {
+    // Conversion either didn't consume the entire string, or overflow occurred
+    return false;
+  }
+
+  value = tmp;
+  return true;
+}
+
+bool StreamUtils::string2int32(const char* s, int32_t& value) {
+  if (!s || !*s) {
+    return false;
+  }
+
+  char* end;
+  errno = 0;
+  long tmp = strtol(s, &end, 10);
+  if (*end || errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX) {
+    // Conversion either didn't consume the entire string,
+    // or overflow or underflow occurred
+    return false;
+  }
+
+  value = static_cast<int32_t>(tmp);
+  return true;
+}
+
+bool StreamUtils::SerializeMessage(const std::vector<std::string>& field_values, std::string& message, int field_pos) {
+  assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
+  assert(message.empty());
+  // count the size of serizlized message
+  size_t size = 0;
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size += field_values[i].size() + sizeof(size_t);
+  }
+  message.reserve(size);
+
+  // serialize message
+  for (int i = field_pos; i < field_values.size(); i++) {
+    size_t len = field_values[i].size();
+    message.append(reinterpret_cast<const char*>(&len), sizeof(len));
+    message.append(field_values[i]);
+  }
+
+  return true;
+}
+
+bool StreamUtils::DeserializeMessage(const std::string& message, std::vector<std::string>& parsed_message) {
+  size_t pos = 0;
+  while (pos < message.size()) {
+    // Read the length of the next field value from the message
+    size_t len = *reinterpret_cast<const size_t*>(&message[pos]);
+    pos += sizeof(size_t);
+
+    // Check if the calculated end of the string is still within the message bounds
+    if (pos + len > message.size()) {
+      LOG(ERROR) << "Invalid message format, failed to parse message";
+      return false;  // Error: not enough data in the message string
+    }
+
+    // Extract the field value and add it to the vector
+    parsed_message.push_back(message.substr(pos, len));
+    pos += len;
+  }
+
+  return true;
+}
+
+uint64_t StreamUtils::GetCurrentTimeMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+      .count();
 }
 };  // namespace storage

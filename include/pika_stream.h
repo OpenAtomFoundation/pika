@@ -8,10 +8,8 @@
 
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
-#include "storage/src/pika_stream_base.h"
-// #include "include/pika_stream_meta_value.h"
-// #include "include/pika_stream_types.h"
 #include "storage/storage.h"
+#include "storage/src/redis_streams.h"
 
 /*
  * stream

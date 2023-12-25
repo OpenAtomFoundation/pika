@@ -56,12 +56,6 @@ using streamID = struct streamID {
     return value;
   }
 
-  void SerializeTo(std::string& dst) const {
-    dst.resize(sizeof(ms) + sizeof(seq));
-    EncodeUint64InBigEndian(&dst[0], ms);
-    EncodeUint64InBigEndian(&dst[0] + sizeof(ms), seq);
-  }
-
   std::string Serialize() const {
     std::string dst;
     dst.resize(sizeof(ms) + sizeof(seq));
@@ -86,7 +80,7 @@ static const streamID kSTREAMID_MIN = streamID(0, 0);
 
 enum StreamTrimStrategy { TRIM_STRATEGY_NONE, TRIM_STRATEGY_MAXLEN, TRIM_STRATEGY_MINID };
 
-using treeID = uint32_t;
+using tree_id_t = uint32_t;
 
 using stream_ms_t = uint64_t;
 
