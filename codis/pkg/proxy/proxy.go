@@ -361,19 +361,19 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		p.config.SlowlogLogSlowerThan = n
 		return redis.NewString([]byte("OK"))
 	case "quick_cmd_list":
-		err := setQuickCmdList(value)
+		err := setCmdListFlag(value, FlagQuick)
 		if err != nil {
 			log.Warnf("setQuickCmdList config[%s] failed, recover old config[%s].", value, p.config.QuickCmdList)
-			setQuickCmdList(p.config.QuickCmdList)
+			setCmdListFlag(p.config.QuickCmdList, FlagQuick)
 			return redis.NewErrorf("err：%s.", err)
 		}
 		p.config.QuickCmdList = value
 		return redis.NewString([]byte("OK"))
 	case "slow_cmd_list":
-		err := setSlowCmdList(value)
+		err := setCmdListFlag(value, FlagSlow)
 		if err != nil {
 			log.Warnf("setSlowCmdList config[%s] failed, recover old config[%s].", value, p.config.SlowCmdList)
-			setSlowCmdList(p.config.SlowCmdList)
+			setCmdListFlag(p.config.SlowCmdList, FlagSlow)
 			return redis.NewErrorf("err：%s.", err)
 		}
 		p.config.SlowCmdList = value
@@ -548,10 +548,10 @@ func (p *Proxy) serveProxy() {
 		go p.keepAlive(d)
 	}
 
-	if err := setQuickCmdList(p.config.QuickCmdList); err != nil {
+	if err := setCmdListFlag(p.config.QuickCmdList, FlagQuick); err != nil {
 		log.PanicErrorf(err, "setQuickCmdList [%s] failed", p.config.QuickCmdList)
 	}
-	if err := setSlowCmdList(p.config.SlowCmdList); err != nil {
+	if err := setCmdListFlag(p.config.SlowCmdList, FlagSlow); err != nil {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
