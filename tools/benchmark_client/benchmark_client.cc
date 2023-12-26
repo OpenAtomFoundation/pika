@@ -282,7 +282,7 @@ redisContext* Prepare(ThreadArg* arg) {
   return c;
 }
 
-Status RunGetCommand(redisContext* c, ThreadArg* arg) {
+Status RunGetCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::string> keys;
   PrepareKeys(arg->idx, &keys);
@@ -310,6 +310,11 @@ Status RunGetCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << key;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_STRING) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << key;
@@ -329,7 +334,7 @@ Status RunGetCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunSAddCommand(redisContext* c, ThreadArg* arg) {
+Status RunSAddCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -355,6 +360,11 @@ Status RunSAddCommand(redisContext* c, ThreadArg* arg) {
       if (!res) {
         LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
         arg->stat.timeout_cnt++;
+        redisFree(c);
+        c = Prepare(arg);
+        if (!c) {
+          return Status::InvalidArgument("reconnect failed");
+        }
       } else if (res->type != REDIS_REPLY_INTEGER) {
         LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                   << " key: " << pkey;
@@ -368,7 +378,7 @@ Status RunSAddCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunSMembersCommand(redisContext* c, ThreadArg* arg) {
+Status RunSMembersCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -396,6 +406,11 @@ Status RunSMembersCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_ARRAY) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << pkey;
@@ -414,7 +429,7 @@ Status RunSMembersCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunHGetAllCommand(redisContext* c, ThreadArg* arg) {
+Status RunHGetAllCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -448,6 +463,11 @@ Status RunHGetAllCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_ARRAY) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << pkey;
@@ -467,7 +487,7 @@ Status RunHGetAllCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunHSetCommand(redisContext* c, ThreadArg* arg) {
+Status RunHSetCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -500,6 +520,11 @@ Status RunHSetCommand(redisContext* c, ThreadArg* arg) {
       if (!res) {
         LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
         arg->stat.timeout_cnt++;
+        redisFree(c);
+        c = Prepare(arg);
+        if (!c) {
+          return Status::InvalidArgument("reconnect failed");
+        }
       } else if (res->type != REDIS_REPLY_INTEGER) {
         LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                   << " key: " << pkey;
@@ -513,7 +538,7 @@ Status RunHSetCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunSetCommand(redisContext* c, ThreadArg* arg) {
+Status RunSetCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::string> keys;
   PrepareKeys(arg->idx, &keys);
@@ -546,6 +571,11 @@ Status RunSetCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << key;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_STATUS) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << key;
@@ -558,7 +588,7 @@ Status RunSetCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunZAddCommand(redisContext* c, ThreadArg* arg) {
+Status RunZAddCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -588,6 +618,11 @@ Status RunZAddCommand(redisContext* c, ThreadArg* arg) {
       if (!res) {
         LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
         arg->stat.timeout_cnt++;
+        redisFree(c);
+        c = Prepare(arg);
+        if (!c) {
+          return Status::InvalidArgument("reconnect failed");
+        }
       } else if (res->type != REDIS_REPLY_INTEGER) {
         LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                   << " key: " << pkey;
@@ -602,7 +637,7 @@ Status RunZAddCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunZRangeCommand(redisContext* c, ThreadArg* arg) {
+Status RunZRangeCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -634,6 +669,11 @@ Status RunZRangeCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_ARRAY) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << pkey;
@@ -653,7 +693,7 @@ Status RunZRangeCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunLPushCommand(redisContext* c, ThreadArg* arg) {
+Status RunLPushCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -679,6 +719,11 @@ Status RunLPushCommand(redisContext* c, ThreadArg* arg) {
       if (!res) {
         LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
         arg->stat.timeout_cnt++;
+        redisFree(c);
+        c = Prepare(arg);
+        if (!c) {
+          return Status::InvalidArgument("reconnect failed");
+        }
       } else if (res->type != REDIS_REPLY_INTEGER) {
         LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                   << " key: " << pkey;
@@ -692,7 +737,7 @@ Status RunLPushCommand(redisContext* c, ThreadArg* arg) {
   return Status::OK();
 }
 
-Status RunLRangeCommand(redisContext* c, ThreadArg* arg) {
+Status RunLRangeCommand(redisContext*& c, ThreadArg* arg) {
   redisReply* res = nullptr;
   std::vector<std::pair<std::string, std::set<std::string>>> keys;
   PreparePkeyMembers(arg->idx, &keys);
@@ -724,6 +769,11 @@ Status RunLRangeCommand(redisContext* c, ThreadArg* arg) {
     if (!res) {
       LOG(INFO) << FLAGS_command << " timeout, key: " << pkey;
       arg->stat.timeout_cnt++;
+      redisFree(c);
+      c = Prepare(arg);
+      if (!c) {
+        return Status::InvalidArgument("reconnect failed");
+      }
     } else if (res->type != REDIS_REPLY_ARRAY) {
       LOG(INFO) << FLAGS_command << " invalid type: " << res->type
                 << " key: " << pkey;
