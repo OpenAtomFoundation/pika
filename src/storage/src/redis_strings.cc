@@ -653,6 +653,42 @@ Status RedisStrings::MGet(const std::vector<std::string>& keys, std::vector<Valu
   return Status::OK();
 }
 
+Status RedisStrings::MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss) {
+  vss->clear();
+
+  Status s;
+  std::string value;
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+  for (const auto& key : keys) {
+    s = db_->Get(read_options, key, &value);
+    if (s.ok()) {
+      ParsedStringsValue parsed_strings_value(&value);
+      if (parsed_strings_value.IsStale()) {
+        vss->push_back({std::string(), Status::NotFound("Stale"), -2});
+      } else {
+        if (parsed_strings_value.timestamp() == 0) {
+          vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(), -1});
+        } else {
+          int64_t curtime;
+          rocksdb::Env::Default()->GetCurrentTime(&curtime);
+          vss->push_back(
+              {parsed_strings_value.user_value().ToString(), Status::OK(),
+               parsed_strings_value.timestamp() - curtime >= 0 ? parsed_strings_value.timestamp() - curtime : -2});
+        }
+      }
+    } else if (s.IsNotFound()) {
+      vss->push_back({std::string(), Status::NotFound(), -2});
+    } else {
+      vss->clear();
+      return s;
+    }
+  }
+  return Status::OK();
+}
+
 Status RedisStrings::MSet(const std::vector<KeyValue>& kvs) {
   std::vector<std::string> keys;
   keys.reserve(kvs.size());

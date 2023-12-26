@@ -524,7 +524,6 @@ class ExistsCmd : public Cmd {
   std::vector<std::string> keys_;
   int64_t split_res_ = 0;
   void DoInitial() override;
-  rocksdb::Status s_;
 };
 
 class ExpireCmd : public Cmd {

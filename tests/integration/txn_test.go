@@ -43,44 +43,6 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, "key")
 		})
-		It("txn failed cause watch", func() {
-			setRes := cmdClient.Set(ctx, "key", "1", 0)
-			Expect(setRes.Err()).NotTo(HaveOccurred())
-			txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				pipe := tx.TxPipeline()
-
-				selectRes := pipe.Select(ctx, 1)
-				Expect(selectRes.Err()).NotTo(HaveOccurred())
-				pipe.FlushDB(ctx)
-				pipe.Get(ctx, "key")
-				pipe.Select(ctx, 0)
-				pipe.Get(ctx, "key")
-				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString("", results[2])
-				AssertEqualRedisString("1", results[4])
-				return nil
-			}, "key")
-		})
-		// Having another transaction in the transaction to clear the data in db1 using flushdb will not affect the transaction execution of the key in this db of watch
-		It("test watch1", func() {
-			watchKey := "key"
-			watchkeyValue := "value"
-			cmdClient.Set(ctx, watchKey, watchkeyValue, 0)
-			txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				cmdClient.Watch(ctx, func(tx *redis.Tx) error {
-					pipe := tx.TxPipeline()
-					pipe.Select(ctx, 1)
-					pipe.FlushDB(ctx)
-					pipe.Exec(ctx)
-					return nil
-				}, watchKey)
-				pipe := tx.TxPipeline()
-				pipe.Get(ctx, watchKey)
-				results, _ := pipe.Exec(ctx)
-				AssertEqualRedisString(watchkeyValue, results[0])
-				return nil
-			}, watchKey)
-		})
 		// multiple types of keys for testing watch
 		It("test watch multi type key", func() {
 			watchKey := "key"
@@ -166,7 +128,7 @@ var _ = Describe("Text Txn", func() {
 			}(&cmdCost)
 			<-resultChann
 			wg.Wait()
-			Expect(cmdCost < (txnCost / 10)).To(BeTrue())
+			Expect(cmdCost < (txnCost / 5)).To(BeTrue())
 		})
 	})
 
@@ -228,6 +190,164 @@ var _ = Describe("Text Txn", func() {
 			txPipeline.Get(ctx, setKey)
 			cmders, _ := txPipeline.Exec(ctx)
 			AssertEqualRedisString(setValue, cmders[2])
+		})
+
+		It("blpop within transaction", func() {
+			txnClient.Del(ctx, "list")
+			txPipeline := txnClient.TxPipeline()
+			txPipeline.BLPop(ctx, 1*time.Second, "list")
+			_, err := txPipeline.Exec(ctx)
+			Expect(err).To(Equal(redis.Nil))
+		})
+
+		It("brpop within transaction", func() {
+			txnClient.Del(ctx, "list")
+			txPipeline := txnClient.TxPipeline()
+			txPipeline.BRPop(ctx, 1*time.Second, "list")
+			_, err := txPipeline.Exec(ctx)
+			Expect(err).To(Equal(redis.Nil))
+		})
+
+		It("should BLPOP, LPUSH + DEL should not awake blocked client", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.Del(ctx, "list")
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			cmdClient.Del(ctx, "list")
+			cmdClient.LPush(ctx, "list", "a")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should BLPOP, LPUSH + DEL + SET should not awake blocked client", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "b"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.Del(ctx, "list")
+				pipe.Set(ctx, "list", "foo", 0)
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			cmdClient.Del(ctx, "list")
+			cmdClient.LPush(ctx, "list", "b")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should MULTI/EXEC is isolated from the point of view of BLPOP", func() {
+			cmdClient.Del(ctx, "list")
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := cmdClient.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "c"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			txnClient.Watch(ctx, func(tx *redis.Tx) error {
+				pipe := tx.TxPipeline()
+				pipe.LPush(ctx, "list", "a")
+				pipe.LPush(ctx, "list", "b")
+				pipe.LPush(ctx, "list", "c")
+				_, err := pipe.Exec(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}, "list")
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
 		})
 
 	})

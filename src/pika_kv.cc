@@ -6,11 +6,10 @@
 #include "include/pika_kv.h"
 #include <memory>
 
-#include "include/pika_client_conn.h"
 #include "include/pika_command.h"
+#include "include/pika_stream_base.h"
 #include "pstd/include/pstd_string.h"
 
-#include "include/pika_binlog_transverter.h"
 #include "include/pika_cache.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
@@ -26,7 +25,6 @@ void SetCmd::DoInitial() {
   value_ = argv_[2];
   condition_ = SetCmd::kNONE;
   sec_ = 0;
-  bool has_ttl_ = false;
   size_t index = 3;
   while (index != argv_.size()) {
     std::string opt = argv_[index];
@@ -205,6 +203,13 @@ void DelCmd::DoInitial() {
 void DelCmd::Do(std::shared_ptr<DB> db) {
   std::map<storage::DataType, storage::Status> type_status;
   int64_t count = db->storage()->Del(keys_, &type_status);
+  
+  // stream's destory need to be treated specially
+  auto s = StreamStorage::DestoryStreams(keys_, slot.get());
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, "stream delete error: " + s.ToString());
+    return;
+  }
   if (count >= 0) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
@@ -518,7 +523,7 @@ void MgetCmd::DoInitial() {
 
 void MgetCmd::Do(std::shared_ptr<DB> db) {
   db_value_status_array_.clear();
-  s_ = db->storage()->MGet(keys_, &db_value_status_array_);
+  s_ = db->storage()->MGetWithTTL(keys_, &db_value_status_array_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(db_value_status_array_.size());
     for (const auto& vs : db_value_status_array_) {
@@ -531,43 +536,6 @@ void MgetCmd::Do(std::shared_ptr<DB> db) {
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
-  }
-}
-
-void MgetCmd::ReadCache(std::shared_ptr<DB> db) {
-  std::vector<std::string> CachePrefixKeyK;
-  cache_value_status_array_.clear();
-  for (auto key : keys_) {
-    CachePrefixKeyK.push_back(PCacheKeyPrefixK + key);
-  }
-  auto s = db->cache()->MGet(CachePrefixKeyK, &cache_value_status_array_);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(cache_value_status_array_.size());
-    for (const auto& vs : cache_value_status_array_) {
-      if (vs.status.ok()) {
-        res_.AppendStringLenUint64(vs.value.size());
-        res_.AppendContent(vs.value);
-      } else {
-        res_.AppendContent("$-1");
-      }
-    }
-  } else {
-    res_.SetRes(CmdRes::kCacheMiss);
-  }
-}
-
-void MgetCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  res_.clear();
-  Do(db);
-}
-
-void MgetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
-  for (size_t i = 0; i < keys_.size(); i++) {
-    if (db_value_status_array_[i].status.ok()) {
-      std::string CachePrefixKeyK;
-      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
-      db->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, ttl_);
-    }
   }
 }
 
@@ -596,6 +564,37 @@ void MgetCmd::Merge() {
       res_.AppendContent(vs.value);
     } else {
       res_.AppendContent("$-1");
+    }
+  }
+}
+
+void MgetCmd::ReadCache(std::shared_ptr<DB> db) {
+  if (1 < keys_.size()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+    return;
+  }
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
+  auto s = db->cache()->Get(CachePrefixKeyK, &value_);
+  if (s.ok()) {
+    res_.AppendArrayLen(1);
+    res_.AppendStringLen(value_.size());
+    res_.AppendContent(value_);
+  } else {
+    res_.SetRes(CmdRes::kCacheMiss);
+  }
+}
+
+void MgetCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  res_.clear();
+  Do(db);
+}
+
+void MgetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+  for (size_t i = 0; i < keys_.size(); i++) {
+    if (db_value_status_array_[i].status.ok()) {
+      std::string CachePrefixKeyK;
+      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
+      db->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, db_value_status_array_[i].ttl);
     }
   }
 }
@@ -1132,17 +1131,25 @@ void ExistsCmd::Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) {
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache(std::shared_ptr<DB> db) {
-  int result = keys_.size();
-  std::string CachePrefixKeyK;
-  for (auto key : keys_) {
-    CachePrefixKeyK = PCacheKeyPrefixK + key;
-    bool exit = db->cache()->Exists(CachePrefixKeyK);
-    if (!exit){
-      result--;
+  if (1 < keys_.size()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+    return;
+  }
+  uint32_t nums = 0;
+  std::vector<std::string> v;
+  v.emplace_back(PCacheKeyPrefixK + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixL + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixZ + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixS + keys_[0]);
+  v.emplace_back(PCacheKeyPrefixH + keys_[0]);
+  for (auto key : v) {
+    bool exist = slot->cache()->Exists(key);
+    if (exist) {
+      nums++;
     }
   }
-  if (result > 0) {
-    res_.AppendInteger(result);
+  if (nums > 0) {
+    res_.AppendInteger(nums);
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
@@ -1205,8 +1212,15 @@ void ExpireCmd::DoThroughDB(std::shared_ptr<DB> db) {
 
 void ExpireCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db->cache()->Expire(CachePrefixKeyK, sec_);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      db->cache()->Expire(key, sec_);
+    }
   }
 }
 
@@ -1262,8 +1276,15 @@ void PexpireCmd::DoThroughDB(std::shared_ptr<DB> db){
 
 void PexpireCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db->cache()->Expire(CachePrefixKeyK, msec_/1000);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v){
+      db->cache()->Expire(key, msec_/1000);
+    }
   }
 }
 
@@ -1298,8 +1319,15 @@ void ExpireatCmd::DoThroughDB(std::shared_ptr<DB> db) {
 
 void ExpireatCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db->cache()->Expireat(CachePrefixKeyK, time_stamp_);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      db->cache()->Expireat(key, time_stamp_);
+    }
   }
 }
 
@@ -1355,8 +1383,15 @@ void PexpireatCmd::DoThroughDB(std::shared_ptr<DB> db) {
 
 void PexpireatCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db->cache()->Expireat(CachePrefixKeyK, time_stamp_ms_/1000);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      db->cache()->Expireat(key, time_stamp_ms_ / 1000);
+    }
   }
 }
 
@@ -1396,12 +1431,29 @@ void TtlCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void TtlCmd::ReadCache(std::shared_ptr<DB> db) {
-  int64_t ttl = -1;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db->cache()->TTL(CachePrefixKeyK, &ttl);
-  if (s.ok()) {
-    res_.AppendInteger(ttl);
+  rocksdb::Status s;
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  type_timestamp = db->cache()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
+  }
+  if (type_timestamp[storage::kStrings] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kStrings]);
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kHashes]);
+  } else if (type_timestamp[storage::kLists] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kLists]);
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kZSets]);
+  } else if (type_timestamp[storage::kSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kSets]);
   } else {
+    // mean this key not exist
     res_.SetRes(CmdRes::kCacheMiss);
   }
 }
@@ -1467,12 +1519,48 @@ void PttlCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void PttlCmd::ReadCache(std::shared_ptr<DB> db) {
-  int64_t ttl = -1;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db->cache()->TTL(CachePrefixKeyK, &ttl);
-  if (s.ok()) {
-    res_.AppendInteger(ttl * 1000);
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
+  type_timestamp = db->cache()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
+  }
+  if (type_timestamp[storage::kStrings] != -2) {
+    if (type_timestamp[storage::kStrings] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kStrings] * 1000);
+    }
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    if (type_timestamp[storage::kHashes] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kHashes] * 1000);
+    }
+  } else if (type_timestamp[storage::kLists] != -2) {
+    if (type_timestamp[storage::kLists] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kLists] * 1000);
+    }
+  } else if (type_timestamp[storage::kSets] != -2) {
+    if (type_timestamp[storage::kSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kSets] * 1000);
+    }
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    if (type_timestamp[storage::kZSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[storage::kZSets] * 1000);
+    }
   } else {
+    // mean this key not exist
     res_.SetRes(CmdRes::kCacheMiss);
   }
 }
@@ -1508,8 +1596,15 @@ void PersistCmd::DoThroughDB(std::shared_ptr<DB> db) {
 
 void PersistCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db->cache()->Persist(CachePrefixKeyK);
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + key_);
+    v.emplace_back(PCacheKeyPrefixL + key_);
+    v.emplace_back(PCacheKeyPrefixZ + key_);
+    v.emplace_back(PCacheKeyPrefixS + key_);
+    v.emplace_back(PCacheKeyPrefixH + key_);
+    for (auto key : v) {
+      db->cache()->Persist(key);
+    }
   }
 }
 
@@ -1532,13 +1627,12 @@ void TypeCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void TypeCmd::ReadCache(std::shared_ptr<DB> db) {
-  std::string type;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db->cache()->Type(CachePrefixKeyK, &type);
+  std::vector<std::string> types(1);
+  rocksdb::Status s = slot->db()->GetType(key_, true, types);
   if (s.ok()) {
-    res_.AppendContent("+" + type);
+    res_.AppendContent("+" + types[0]);
   } else {
-    res_.SetRes(CmdRes::kCacheMiss);
+    res_.SetRes(CmdRes::kCacheMiss, s.ToString());
   }
 }
 

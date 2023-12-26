@@ -356,8 +356,8 @@ void BLPopCmd::DoInitial() {
 void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    s_ = slot->db()->LPop(this_key, 1, &values);
-    if (s_.ok()) {
+    rocksdb::Status s  = slot->db()->LPop(this_key, 1, &values);
+    if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(values[0]);
@@ -368,10 +368,10 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
-    } else if (s_.IsNotFound()) {
+    } else if (s.IsNotFound()) {
       continue;
     } else {
-      res_.SetRes(CmdRes::kErrOther, s_.ToString());
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
@@ -401,10 +401,11 @@ void LPopCmd::DoInitial() {
   }
   key_ = argv_[1];
   size_t argc = argv_.size();
-  size_t index = 2;
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameLPop);
       return;
     }
     if (count_ < 0) {
@@ -728,10 +729,11 @@ void RPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  size_t index = 2;
-  if (index < argv_.size()) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameRPop);
       return;
     }
     if (count_ < 0) {

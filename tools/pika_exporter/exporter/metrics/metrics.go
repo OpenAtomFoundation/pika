@@ -16,6 +16,9 @@ const (
 	LabelNameAlias      = "alias"
 	LabelInstanceMode   = "instance-mode"
 	LabelConsensusLevel = "consensus-level"
+	LabelID             = "proxy_id"
+	LabelProductName    = "product_name"
+	LabelOpstr          = "opstr"
 )
 
 type Describer interface {
@@ -96,6 +99,7 @@ type MetricConfig struct {
 }
 
 var MetricConfigs = make(map[string]MetricConfig)
+var MetricConfigsProxy = make(map[string]MetricConfig)
 
 func Register(mcs map[string]MetricConfig) {
 	for k, mc := range mcs {
@@ -103,5 +107,14 @@ func Register(mcs map[string]MetricConfig) {
 			panic(fmt.Sprintf("register metrics config error. metricConfigName:%s existed", k))
 		}
 		MetricConfigs[k] = mc
+	}
+}
+
+func RegisterProxy(mcs map[string]MetricConfig) {
+	for k, mc := range mcs {
+		if _, ok := MetricConfigsProxy[k]; ok {
+			panic(fmt.Sprintf("register metrics config error. metricConfigProxyName:%s existed", k))
+		}
+		MetricConfigsProxy[k] = mc
 	}
 }

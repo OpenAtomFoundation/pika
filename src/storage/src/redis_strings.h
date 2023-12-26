@@ -42,6 +42,7 @@ class RedisStrings : public Redis {
   Status Incrby(const Slice& key, int64_t value, int64_t* ret);
   Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);
   Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
+  Status MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
