@@ -174,8 +174,7 @@ Status SyncMasterDB::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_
 
     slave_ptr->sync_win.Push(SyncWinItem(sent_offset, msg.size()));
     slave_ptr->SetLastSendTime(pstd::NowMicros());
-    RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(),
-                   slave_ptr->SessionId());
+    RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SessionId());
     WriteTask task(rm_node, BinlogChip(sent_offset, msg), slave_ptr->sent_offset);
     tasks.push_back(task);
     slave_ptr->sent_offset = sent_offset;
@@ -187,8 +186,7 @@ Status SyncMasterDB::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_
   return Status::OK();
 }
 
-Status SyncMasterDB::ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start,
-                                                 const LogOffset& end) {
+Status SyncMasterDB::ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end) {
   Status s = coordinator_.UpdateSlave(ip, port, start, end);
   if (!s.ok()) {
     LOG(WARNING) << SyncDBInfo().ToString() << s.ToString();
@@ -209,7 +207,7 @@ Status SyncMasterDB::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
 
 
 Status SyncMasterDB::GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset,
-                                                   BinlogOffset* acked_offset) {
+                                            BinlogOffset* acked_offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -334,8 +332,7 @@ Status SyncMasterDB::CheckSyncTimeout(uint64_t now) {
     } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now &&
                slave_ptr->sent_offset == slave_ptr->acked_offset) {
       std::vector<WriteTask> task;
-      RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(),
-                     slave_ptr->SessionId());
+      RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->DBName(), slave_ptr->SessionId());
       WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""), LogOffset());
       task.push_back(empty_task);
       Status s = g_pika_rm->SendSlaveBinlogChipsRequest(slave_ptr->Ip(), slave_ptr->Port(), task);
@@ -420,7 +417,7 @@ int32_t SyncMasterDB::GenSessionId() {
 }
 
 bool SyncMasterDB::CheckSessionId(const std::string& ip, int port, const std::string& db_name,
-                                         int session_id) {
+                                  int session_id) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << db_name;
@@ -437,7 +434,7 @@ bool SyncMasterDB::CheckSessionId(const std::string& ip, int port, const std::st
 }
 
 Status SyncMasterDB::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                                                std::shared_ptr<std::string> resp_ptr) {
+                                         std::shared_ptr<std::string> resp_ptr) {
   return coordinator_.ProposeLog(cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
 }
 
@@ -483,7 +480,7 @@ std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncMasterDB::GetAll
 }
 
 Status SyncMasterDB::ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject,
-                                                     std::vector<LogOffset>* hints) {
+                                              std::vector<LogOffset>* hints) {
   return coordinator_.LeaderNegotiate(f_last_offset, reject, hints);
 }
 
@@ -929,8 +926,7 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& db) {
     return Status::NotFound("Sync Slave DB " + p_info.ToString());
   } else {
     std::shared_ptr<SyncSlaveDB> s_db = sync_slave_dbs_[p_info];
-    s = pika_repl_client_->SendRemoveSlaveNode(s_db->MasterIp(), s_db->MasterPort(), db,
-                                               s_db->LocalIp());
+    s = pika_repl_client_->SendRemoveSlaveNode(s_db->MasterIp(), s_db->MasterPort(), db, s_db->LocalIp());
     if (s.ok()) {
       s_db->SetReplState(ReplState::kDBNoConnect);
     }
@@ -947,12 +943,11 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& db) {
 Status PikaReplicaManager::SendTrySyncRequest(const std::string& db_name) {
   BinlogOffset boffset;
   if (!g_pika_server->GetDBBinlogOffset(db_name, &boffset)) {
-    LOG(WARNING) << "DB: " << db_name << " Get DB binlog offset failed";
+    LOG(WARNING) << "DB: " << db_name << ", Get DB binlog offset failed";
     return Status::Corruption("DB get binlog offset error");
   }
 
-  std::shared_ptr<SyncSlaveDB> slave_db =
-      GetSyncSlaveDBByName(DBInfo(db_name));
+  std::shared_ptr<SyncSlaveDB> slave_db = GetSyncSlaveDBByName(DBInfo(db_name));
   if (!slave_db) {
     LOG(WARNING) << "Slave DB: " << db_name << ", NotFound";
     return Status::Corruption("Slave DB not found");
@@ -960,7 +955,7 @@ Status PikaReplicaManager::SendTrySyncRequest(const std::string& db_name) {
 
   Status status =
       pika_repl_client_->SendTrySync(slave_db->MasterIp(), slave_db->MasterPort(), db_name,
-                                              boffset, slave_db->LocalIp());
+                                     boffset, slave_db->LocalIp());
 
   if (status.ok()) {
     slave_db->SetReplState(ReplState::kWaitReply);
@@ -974,26 +969,25 @@ Status PikaReplicaManager::SendTrySyncRequest(const std::string& db_name) {
 Status PikaReplicaManager::SendDBSyncRequest(const std::string& db_name) {
   BinlogOffset boffset;
   if (!g_pika_server->GetDBBinlogOffset(db_name, &boffset)) {
-    LOG(WARNING) << "DB: " << db_name << " Get DB binlog offset failed";
+    LOG(WARNING) << "DB: " << db_name << ", Get DB binlog offset failed";
     return Status::Corruption("DB get binlog offset error");
   }
 
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
   if (!db) {
-    LOG(WARNING) << "DB: " << db_name << ": NotFound";
+    LOG(WARNING) << "DB: " << db_name << " NotFound";
     return Status::Corruption("DB not found");
   }
   db->PrepareRsync();
 
-  std::shared_ptr<SyncSlaveDB> slave_db =
-      GetSyncSlaveDBByName(DBInfo(db_name));
+  std::shared_ptr<SyncSlaveDB> slave_db = GetSyncSlaveDBByName(DBInfo(db_name));
   if (!slave_db) {
     LOG(WARNING) << "Slave DB: " << db_name << ", NotFound";
     return Status::Corruption("Slave DB not found");
   }
 
   Status status = pika_repl_client_->SendDBSync(slave_db->MasterIp(), slave_db->MasterPort(),
-                                                    db_name,  boffset, slave_db->LocalIp());
+                                                    db_name, boffset, slave_db->LocalIp());
 
   Status s;
   if (status.ok()) {
@@ -1009,15 +1003,14 @@ Status PikaReplicaManager::SendDBSyncRequest(const std::string& db_name) {
 }
 
 Status PikaReplicaManager::SendBinlogSyncAckRequest(const std::string& db, const LogOffset& ack_start,
-                                                        const LogOffset& ack_end, bool is_first_send) {
+                                                    const LogOffset& ack_end, bool is_first_send) {
   std::shared_ptr<SyncSlaveDB> slave_db = GetSyncSlaveDBByName(DBInfo(db));
   if (!slave_db) {
     LOG(WARNING) << "Slave DB: " << db << ":, NotFound";
     return Status::Corruption("Slave DB not found");
   }
   return pika_repl_client_->SendBinlogSync(slave_db->MasterIp(), slave_db->MasterPort(), db,
-                                                    ack_start, ack_end, slave_db->LocalIp(),
-                                                    is_first_send);
+                                           ack_start, ack_end, slave_db->LocalIp(), is_first_send);
 }
 
 Status PikaReplicaManager::CloseReplClientConn(const std::string& ip, int32_t port) {

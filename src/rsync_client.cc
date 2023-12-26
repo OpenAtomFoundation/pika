@@ -139,7 +139,8 @@ void* RsyncClient::ThreadMain() {
 }
 
 Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
-    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
+    const std::string filepath = dir_ + "/" + filename;
+    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(filepath));
     Status s = Status::OK();
     size_t offset = 0;
     int retries = 0;
@@ -150,7 +151,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         writer.reset();
       }
       if (!s.ok()) {
-        DeleteFile(filename);
+        DeleteFile(filepath);
       }
     };
 
@@ -168,6 +169,11 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
+      /*
+       * Since the slot field is written in protobuffer,
+       * slot_id is set to the default value 0 for compatibility
+       * with older versions, but slot_id is not used
+       */
       request.set_slot_id(0);
       FileRequest* file_req = request.mutable_file_req();
       file_req->set_filename(filename);
@@ -183,12 +189,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         continue;
       }
 
-      RsyncResponse* resp = nullptr;
-      DEFER {
-        if (resp) {
-          delete resp;
-        }
-      };
+      std::shared_ptr<RsyncResponse> resp = nullptr;
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
         LOG(WARNING) << "rsync request timeout";
@@ -310,7 +311,7 @@ bool RsyncClient::Recover() {
   }
 
   state_ = RUNNING;
-  LOG(INFO) << "copy meta data done"
+  LOG(INFO) << "copy meta data done, db name: " << db_name_
             << " snapshot_uuid: " << snapshot_uuid_
             << " file count: " << file_set_.size()
             << " expired file count: " << expired_files.size()
@@ -330,24 +331,24 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   RsyncRequest request;
   request.set_reader_index(0);
   request.set_db_name(db_name_);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   request.set_slot_id(0);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);
   while (retries < max_retries_) {
-    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, 0xFFFFFFFF);
+    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, kInvalidOffset);
     s = client_thread_->Write(master_ip_, master_port_, to_send);
     if (!s.ok()) {
       retries++;
     }
-    RsyncResponse* resp = nullptr;
-    DEFER {
-      if (resp) {
-        delete resp;
-      }
-    };
+    std::shared_ptr<RsyncResponse> resp;
     s = wo->Wait(resp);
-    if (s.IsTimeout() || resp == nullptr) {
+    if (s.IsTimeout() || resp.get() == nullptr) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
                    << "retry times: " << retries;
       retries++;

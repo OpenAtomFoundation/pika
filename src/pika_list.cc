@@ -55,7 +55,7 @@ void LIndexCmd::ReadCache(std::shared_ptr<DB> db) {
 
 void LIndexCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-   Do(db);
+  Do(db);
 }
 
 void LIndexCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -95,7 +95,7 @@ void LInsertCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LInsertCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LInsertCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -138,7 +138,7 @@ void LLenCmd::ReadCache(std::shared_ptr<DB> db) {
 
 void LLenCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-   Do(db);
+  Do(db);
 }
 
 void LLenCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -281,7 +281,7 @@ void LPushCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void LPushCmd::DoThroughDB(std::shared_ptr<DB> db) {
-   Do(db);
+  Do(db);
 }
 
 void LPushCmd::DoUpdateCache(std::shared_ptr<DB> db) {
@@ -357,22 +357,22 @@ void BLPopCmd::DoInitial() {
 void BLPopCmd::Do(std::shared_ptr<DB> db) {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    s_ = db->storage()->LPop(this_key, 1, &values);
-    if (s_.ok()) {
+    rocksdb::Status s  = db->storage()->LPop(this_key, 1, &values);
+    if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(values[0]);
-      // write an binlog of lpop
+      // write a binlog of lpop
       binlog_args_.block_type = BlockKeyType::Blpop;
       binlog_args_.key = this_key;
       binlog_args_.db = db;
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
-    } else if (s_.IsNotFound()) {
+    } else if (s.IsNotFound()) {
       continue;
     } else {
-      res_.SetRes(CmdRes::kErrOther, s_.ToString());
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
@@ -402,10 +402,11 @@ void LPopCmd::DoInitial() {
   }
   key_ = argv_[1];
   size_t argc = argv_.size();
-  size_t index = 2;
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameLPop);
       return;
     }
     if (count_ < 0) {
@@ -729,10 +730,11 @@ void RPopCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  size_t index = 2;
-  if (index < argv_.size()) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameRPop);
       return;
     }
     if (count_ < 0) {

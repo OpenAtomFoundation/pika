@@ -550,13 +550,13 @@ PikaMigrateThread::~PikaMigrateThread() {
   }
 }
 
-bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,
+bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_id,
                                         int64_t keys_num, const std::shared_ptr<DB>& db) {
   if (migrator_mutex_.try_lock()) {
     if (is_migrating_) {
-      if (dest_ip_ != ip || dest_port_ != port) {
-        LOG(INFO) << "PikaMigrateThread::ReqMigrate current: " << dest_ip_ << ":" << dest_port_
-                  << "request: " << ip << ":" << port;
+      if (dest_ip_ != ip || dest_port_ != port || slot_id != slot_id_) {
+        LOG(INFO) << "PikaMigrateThread::ReqMigrate current: " << dest_ip_ << ":" << dest_port_ << " slot[" << slot_id_
+                  << "] request: " << ip << ":" << port << "db[" << db << "]";;
         migrator_mutex_.unlock();
         return false;
       }
@@ -571,7 +571,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
       dest_port_ = port;
       timeout_ms_ = time_out;
       keys_num_ = keys_num;
-      slot_id_ = slot_num;
+      slot_id_ = slot_id;
       should_exit_ = false;
       db_ = db;
 
@@ -583,7 +583,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
         is_migrating_ = false;
         StopThread();
       } else {
-        LOG(INFO) << "PikaMigrateThread::ReqMigrateBatch DB";
+        LOG(INFO) << "PikaMigrateThread::ReqMigrateBatch DB" << db;
         is_migrating_ = true;
         NotifyRequestMigrate();
       }
@@ -663,7 +663,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   return 1;
 }
 
-void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
+void PikaMigrateThread::GetMigrateStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved,
                                          int64_t *remained) {
   std::unique_lock lm(migrator_mutex_);
   // todo for sure

@@ -48,13 +48,15 @@ int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start rsync Server Thread Error: " << res;
+    LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "
+               << (res == net::kBindError ? ": bind port conflict" : ": other error");
   }
   res = work_thread_->start_thread_pool();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res
+    LOG(FATAL) << "Start rsync Server ThreadPool Error, ret_code: " << res << " message: "
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
+  LOG(INFO) << "RsyncServer started ...";
   return res;
 }
 
@@ -124,6 +126,11 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   response.set_slot_id(0);
 
   std::vector<std::string> filenames;
@@ -159,6 +166,11 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
   response.set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   response.set_slot_id(0);
 
   std::string snapshot_uuid;
@@ -209,20 +221,20 @@ RsyncServerThread::RsyncServerThread(const std::set<std::string>& ips, int port,
     : HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true), conn_factory_(arg) {}
 
 RsyncServerThread::~RsyncServerThread() {
-    LOG(WARNING) << "RsyncServerThread destroyed";
+  LOG(WARNING) << "RsyncServerThread destroyed";
 }
 
 void RsyncServerThread::RsyncServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
 }
 
 void RsyncServerThread::RsyncServerHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
 }
 
 bool RsyncServerThread::RsyncServerHandle::AccessHandle(int fd, std::string& ip_port) const {
-    LOG(WARNING) << "fd: "<< fd << " ip_port: " << ip_port << " connection accepted";
-    return true;
+  LOG(WARNING) << "fd: "<< fd << " ip_port: " << ip_port << " connection accepted";
+  return true;
 }
 
 void RsyncServerThread::RsyncServerHandle::CronHandle() const {

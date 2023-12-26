@@ -9,6 +9,7 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_stream_base.h"
 #include "include/pika_cache.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
@@ -53,6 +54,13 @@ void HSetCmd::DoInitial() {
   key_ = argv_[1];
   field_ = argv_[2];
   value_ = argv_[3];
+
+  // check the conflict of stream used prefix, see details in defination of STREAM_TREE_PREFIX
+  if (key_.compare(0, STERAM_TREE_PREFIX.size(), STERAM_TREE_PREFIX) == 0 ||
+      key_.compare(0, STREAM_DATA_HASH_PREFIX.size(), STREAM_DATA_HASH_PREFIX) == 0) {
+    res_.SetRes(CmdRes::kErrOther, "hash key can't start with " + STERAM_TREE_PREFIX + " or " + STREAM_META_HASH_KEY);
+    return;
+  }
 }
 
 void HSetCmd::Do(std::shared_ptr<DB> db) {

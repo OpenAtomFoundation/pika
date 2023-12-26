@@ -10,8 +10,6 @@
 #include "storage/storage.h"
 #include "strings.h"
 
-class DB;
-
 void WriteDelKeyToBinlog(const std::string& key, const std::shared_ptr<DB>& db);
 
 class PikaMigrateThread;
@@ -46,10 +44,10 @@ class PikaMigrateThread : public net::Thread {
  public:
   PikaMigrateThread();
   ~PikaMigrateThread() override;
-  bool ReqMigrateBatch(const std::string& ip, int64_t port, int64_t time_out, int64_t keys_num, int64_t slot_num,
+  bool ReqMigrateBatch(const std::string& ip, int64_t port, int64_t time_out, int64_t keys_num, int64_t slot_id,
                        const std::shared_ptr<DB>& db);
   int ReqMigrateOne(const std::string& key, const std::shared_ptr<DB>& db);
-  void GetMigrateStatus(std::string* ip, int64_t *port, int64_t* slot, bool* migrating, int64_t* moved,
+  void GetMigrateStatus(std::string* ip, int64_t* port, int64_t* slot, bool* migrating, int64_t* moved,
                         int64_t* remained);
   void CancelMigrate(void);
   void IncWorkingThreadNum(void);

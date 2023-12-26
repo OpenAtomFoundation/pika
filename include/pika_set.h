@@ -118,7 +118,6 @@ class SScanCmd : public Cmd {
   std::string key_, pattern_ = "*";
   int64_t cursor_ = 0;
   int64_t count_ = 10;
-  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     pattern_ = "*";
@@ -167,12 +166,12 @@ class SetOperationCmd : public Cmd {
  public:
   SetOperationCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
-    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   SetOperationCmd(const SetOperationCmd& other)
       : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_) {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsSet);
-    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiDB | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
   std::vector<std::string> current_key() const override {
@@ -230,6 +229,7 @@ class SInterstoreCmd : public SetOperationCmd {
 
  private:
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class SIsmemberCmd : public Cmd {
@@ -338,6 +338,7 @@ class SRandmemberCmd : public Cmd {
   std::string key_;
   int64_t count_ = 1;
   bool reply_arr = false;
+  rocksdb::Status s_;
   void DoInitial() override;
   void Clear() override {
     count_ = 1;

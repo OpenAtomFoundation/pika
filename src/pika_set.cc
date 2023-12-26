@@ -46,17 +46,16 @@ void SAddCmd::DoUpdateCache(std::shared_ptr<DB> db) {
 
 void SPopCmd::DoInitial() {
   size_t argc = argv_.size();
-  size_t index = 2;
   if (!CheckArg(argc)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
-
-  key_ = argv_[1];
   count_ = 1;
-
-  if (index < argc) {
-    if (pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) {
+  key_ = argv_[1];
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
+  } else if (argc == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &count_) == 0) {
       res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
       return;
     }
@@ -257,7 +256,11 @@ void SRemCmd::DoInitial() {
 
 void SRemCmd::Do(std::shared_ptr<DB> db) {
   s_ = db->storage()->SRem(key_, members_, &deleted_);
-  res_.AppendInteger(deleted_);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendInteger(deleted_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
 }
 
 void SRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
@@ -282,11 +285,15 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  db->storage()->SUnion(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = db->storage()->SUnion(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -374,11 +381,15 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  db->storage()->SInter(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = db->storage()->SInter(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -395,11 +406,11 @@ void SInterstoreCmd::DoInitial() {
 
 void SInterstoreCmd::Do(std::shared_ptr<DB> db) {
   int32_t count = 0;
-  rocksdb::Status s = db->storage()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
-  if (s.ok()) {
+  s_ = db->storage()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
+  if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -469,11 +480,15 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  db->storage()->SDiff(keys_, &members);
-  res_.AppendArrayLenUint64(members.size());
-  for (const auto& member : members) {
-    res_.AppendStringLenUint64(member.size());
-    res_.AppendContent(member);
+  s_ = db->storage()->SDiff(keys_, &members);
+  if (s_.ok() || s_.IsNotFound()) {
+    res_.AppendArrayLenUint64(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLenUint64(member.size());
+      res_.AppendContent(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
 }
 
@@ -522,12 +537,12 @@ void SMoveCmd::DoInitial() {
 
 void SMoveCmd::Do(std::shared_ptr<DB> db) {
   int32_t res = 0;
-  rocksdb::Status s = db->storage()->SMove(src_key_, dest_key_, member_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = db->storage()->SMove(src_key_, dest_key_, member_, &res);
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -594,8 +609,8 @@ void SRandmemberCmd::DoInitial() {
 
 void SRandmemberCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  rocksdb::Status s = db->storage()->SRandmember(key_, static_cast<int32_t>(count_), &members);
-  if (s.ok() || s.IsNotFound()) {
+  s_ = db->storage()->SRandmember(key_, static_cast<int32_t>(count_), &members);
+  if (s_.ok() || s_.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
@@ -607,7 +622,7 @@ void SRandmemberCmd::Do(std::shared_ptr<DB> db) {
       }
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 

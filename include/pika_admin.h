@@ -261,7 +261,9 @@ class InfoCmd : public Cmd {
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
   std::set<std::string> keyspace_scan_dbs_;
-
+  time_t db_size_last_time_ = 0;
+  uint64_t db_size_ = 0;
+  uint64_t log_size_ = 0;
   const static std::string kInfoSection;
   const static std::string kAllSection;
   const static std::string kServerSection;
@@ -362,6 +364,18 @@ class TimeCmd : public Cmd {
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new TimeCmd(*this); }
+
+ private:
+  void DoInitial() override;
+};
+
+class LastsaveCmd : public Cmd {
+ public:
+  LastsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new LastsaveCmd(*this); }
 
  private:
   void DoInitial() override;

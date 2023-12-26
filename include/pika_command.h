@@ -56,6 +56,7 @@ const std::string kCmdNameCommand = "command";
 const std::string kCmdNameDiskRecovery = "diskrecovery";
 const std::string kCmdNameClearReplicationID = "clearreplicationid";
 const std::string kCmdNameDisableWal = "disablewal";
+const std::string kCmdNameLastSave = "lastsave";
 const std::string kCmdNameCache = "cache";
 const std::string kCmdNameClearCache = "clearcache";
 
@@ -231,6 +232,16 @@ const std::string kCmdNameUnSubscribe = "unsubscribe";
 const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
+
+// Stream
+const std::string kCmdNameXAdd = "xadd";
+const std::string kCmdNameXDel = "xdel";
+const std::string kCmdNameXRead = "xread";
+const std::string kCmdNameXLen = "xlen";
+const std::string kCmdNameXRange = "xrange";
+const std::string kCmdNameXRevrange = "xrevrange";
+const std::string kCmdNameXTrim = "xtrim";
+const std::string kCmdNameXInfo = "xinfo";
 const std::string kClusterPrefix = "pkcluster";
 
 using PikaCmdArgsType = net::RedisCmdArgsType;
@@ -263,7 +274,9 @@ enum CmdFlags {
   kCmdFlagsSuspend = 64,
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsSingleDB = 512,
-  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsMultiDB = 1024,
+  kCmdFlagsPreDo = 2048,
+  kCmdFlagsStream = 1536,
   kCmdFlagsReadCache = 128,
   kCmdFlagsUpdateCache = 2048,
   kCmdFlagsDoThroughDB = 4096,
@@ -314,6 +327,7 @@ class CmdRes {
 
   bool none() const { return ret_ == kNone && message_.empty(); }
   bool ok() const { return ret_ == kOk || ret_ == kNone; }
+  CmdRet ret() const { return ret_; }
   void clear() {
     message_.clear();
     ret_ = kNone;

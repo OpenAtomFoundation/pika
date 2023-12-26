@@ -159,17 +159,17 @@ class PikaReplicaManager {
   // For Pika Repl Server Thread
   pstd::Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
 
-  // For SyncMasterSlot
+  // For SyncMasterDB
   std::shared_ptr<SyncMasterDB> GetSyncMasterDBByName(const DBInfo& p_info);
 
-  // For SyncSlaveSlot
+  // For SyncSlaveDB
   std::shared_ptr<SyncSlaveDB> GetSyncSlaveDBByName(const DBInfo& p_info);
 
   pstd::Status RunSyncSlaveDBStateMachine();
 
   pstd::Status CheckSyncTimeout(uint64_t now);
 
-  // To check slot info
+  // To check db info
   // For pkcluster info command
   static bool CheckSlaveDBState(const std::string& ip, int port);
   void FindCommonMaster(std::string* master);
@@ -189,7 +189,7 @@ class PikaReplicaManager {
   // Schedule Task
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot,
+  void ScheduleWriteBinlogTask(const std::string& db_name,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);

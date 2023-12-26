@@ -117,6 +117,7 @@ class PikaServer : public pstd::noncopyable {
   bool IsDBExist(const std::string& db_name);
   bool IsDBBinlogIoError(const std::string& db_name);
   std::shared_ptr<DB> GetDB(const std::string& db_name);
+  std::set<std::string> GetAllDBName();
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;
@@ -140,6 +141,7 @@ class PikaServer : public pstd::noncopyable {
   void PrepareDBTrySync();
   void DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  void DBSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
   bool GetDBBinlogOffset(const std::string& db_name, BinlogOffset* boffset);
   pstd::Status DoSameThingEveryDB(const TaskType& type);
 
@@ -242,6 +244,7 @@ class PikaServer : public pstd::noncopyable {
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
   void SlowlogPushEntry(const std::vector<std::string>& argv, int64_t time, int64_t duration);
   uint32_t SlowlogLen();
+  uint64_t SlowlogCount();
 
   /*
    * Statistic used
@@ -297,7 +300,7 @@ class PikaServer : public pstd::noncopyable {
    */
   int SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB> &db);
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
   std::shared_mutex bgsave_protector_;
   BgSaveInfo bgsave_info_;
@@ -467,6 +470,11 @@ class PikaServer : public pstd::noncopyable {
   void ProcessCronTask();
   double HitRatio();
 
+  /*
+   * lastsave used
+   */
+  int64_t GetLastSave() const {return lastsave_;}
+  void UpdateLastSave(int64_t lastsave) {lastsave_ = lastsave;}
  private:
   /*
    * TimingTask use
@@ -477,6 +485,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoDeleteExpiredDump();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  int64_t GetLastSaveTime(const std::string& dump_dir);
   
   std::string host_;
   int port_ = 0;
@@ -581,6 +590,7 @@ class PikaServer : public pstd::noncopyable {
    * Slowlog used
    */
   uint64_t slowlog_entry_id_ = 0;
+  uint64_t slowlog_counter_ = 0;
   std::shared_mutex slowlog_protector_;
   std::list<SlowlogEntry> slowlog_list_;
 
@@ -600,6 +610,11 @@ class PikaServer : public pstd::noncopyable {
    */
   std::shared_mutex mu_;
   std::shared_mutex cache_info_rwlock_;
+
+  /*
+   * lastsave used
+   */
+  int64_t lastsave_ = 0;
 };
 
 #endif

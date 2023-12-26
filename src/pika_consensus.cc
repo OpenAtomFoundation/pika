@@ -526,6 +526,7 @@ Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, c
     }
     log_offset->push_back(offset);
   }
+  return Status::OK();
 }
 
 Status ConsensusCoordinator::FindBinlogFileNum(const std::map<uint32_t, std::string>& binlogs, uint64_t target_index,

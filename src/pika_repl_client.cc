@@ -140,7 +140,7 @@ Status PikaReplClient::SendMetaSync() {
 }
 
 Status PikaReplClient::SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                      const BinlogOffset& boffset, const std::string& local_ip) {
+                                  const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kDBSync);
   InnerMessage::InnerRequest::DBSync* db_sync = request.mutable_db_sync();
@@ -149,6 +149,11 @@ Status PikaReplClient::SendDBSync(const std::string& ip, uint32_t port, const st
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* db = db_sync->mutable_slot();
   db->set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   db->set_slot_id(0);
 
   InnerMessage::BinlogOffset* binlog_offset = db_sync->mutable_binlog_offset();
@@ -164,7 +169,7 @@ Status PikaReplClient::SendDBSync(const std::string& ip, uint32_t port, const st
 }
 
 Status PikaReplClient::SendTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                       const BinlogOffset& boffset, const std::string& local_ip) {
+                                   const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
@@ -173,6 +178,11 @@ Status PikaReplClient::SendTrySync(const std::string& ip, uint32_t port, const s
   node->set_port(g_pika_server->port());
   InnerMessage::Slot* db = try_sync->mutable_slot();
   db->set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   db->set_slot_id(0);
 
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
@@ -188,8 +198,8 @@ Status PikaReplClient::SendTrySync(const std::string& ip, uint32_t port, const s
 }
 
 Status PikaReplClient::SendBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                          const LogOffset& ack_start, const LogOffset& ack_end,
-                                          const std::string& local_ip, bool is_first_send) {
+                                      const LogOffset& ack_start, const LogOffset& ack_end,
+                                      const std::string& local_ip, bool is_first_send) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
@@ -197,6 +207,11 @@ Status PikaReplClient::SendBinlogSync(const std::string& ip, uint32_t port, cons
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
   binlog_sync->set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   binlog_sync->set_slot_id(0);
   binlog_sync->set_first_send(is_first_send);
 
@@ -240,6 +255,11 @@ Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip, uint32_t port,
 
   InnerMessage::Slot* db = remove_slave_node->mutable_slot();
   db->set_db_name(db_name);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
   db->set_slot_id(0);
 
   std::string to_send;

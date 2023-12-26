@@ -299,6 +299,8 @@ void BgsaveCmd::DoInitial() {
         bgsave_dbs_.insert(db);
       }
     }
+  } else {
+    bgsave_dbs_ = g_pika_server->GetAllDBName();
   }
 }
 
@@ -321,8 +323,10 @@ void CompactCmd::DoInitial() {
 
   if (argv_.size() == 1) {
     struct_type_ = "all";
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 2) {
     struct_type_ = argv_[1];
+    compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 3) {
     std::vector<std::string> dbs;
     pstd::StringSplit(argv_[1], COMMA, dbs);
@@ -859,6 +863,8 @@ void InfoCmd::DoInitial() {
           keyspace_scan_dbs_.insert(db);
         }
       }
+    } else {
+      keyspace_scan_dbs_ = g_pika_server->GetAllDBName();
     }
     LogCommand();
     return;
@@ -1049,7 +1055,7 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_slots_migrating:" << (is_migrating ? "Yes, " : "No, ") << start_migration_time_str << ", "
              << (is_migrating ? (current_time_s - start_migration_time) : (end_migration_time - start_migration_time))
              << "\r\n";
-
+  tmp_stream << "slow_logs_count:" << g_pika_server->SlowlogCount() << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -1095,7 +1101,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
 
-  bool all_slot_sync = true;
+  bool all_db_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_ptr<SyncSlaveDB> slave_db =
@@ -1105,7 +1111,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     if (slave_db->State() != ReplState::kConnected) {
-      all_slot_sync = false;
+      all_db_sync = false;
       out_of_sync << "(" << db_item.first << ":";
       if (slave_db->State() == ReplState::kNoConnect) {
         out_of_sync << "NoConnect)";
@@ -1150,11 +1156,11 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:"
-                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_slot_sync) ? "up" : "down")
+                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_db_sync) ? "up" : "down")
                  << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
-      if (!all_slot_sync) {
+      if (!all_db_sync) {
         tmp_stream << "db_repl_state:" << out_of_sync.str() << "\r\n";
       }
       break;
@@ -1162,10 +1168,10 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:"
-                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_slot_sync) ? "up" : "down")
+                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_db_sync) ? "up" : "down")
                  << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
-      if (!all_slot_sync) {
+      if (!all_db_sync) {
         tmp_stream << "db_repl_state:" << out_of_sync.str() << "\r\n";
       }
     case PIKA_ROLE_SINGLE:
@@ -1221,7 +1227,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
-    if (keyspace_scan_dbs_.empty() || keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
+    if (keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
       db_name = db_item.second->GetDBName();
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
@@ -1264,13 +1270,24 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
+  uint64_t db_size = 0;
+  time_t current_time_s = time(nullptr);
+  uint64_t log_size = 0;
 
-  uint64_t db_size = pstd::Du(g_pika_conf->db_path());
+  if (current_time_s - 60 >= db_size_last_time_) {
+    db_size_last_time_ = current_time_s;
+    db_size = pstd::Du(g_pika_conf->db_path());
+    db_size_ = db_size;
+    log_size = pstd::Du(g_pika_conf->log_path());
+    log_size_ = log_size;
+  } else {
+    db_size = db_size_;
+    log_size = log_size_;
+  }
   tmp_stream << "# Data"
              << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
-  uint64_t log_size = pstd::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -1279,8 +1296,8 @@ void InfoCmd::InfoData(std::string& info) {
   std::map<std::string, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
-  uint64_t memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
+  uint64_t memtable_usage = 0;
   uint64_t table_reader_usage = 0;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
@@ -2174,6 +2191,14 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     g_pika_conf->SetSmallCompactionThreshold(static_cast<int>(ival));
     g_pika_server->DBSetSmallCompactionThreshold(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "small-compaction-duration-threshold") {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-duration-threshold'\r\n";
+      return;
+    }
+    g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    g_pika_server->DBSetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n";
@@ -2565,6 +2590,17 @@ void TimeCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
+void LastsaveCmd::DoInitial() {
+  if (argv_.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameLastSave);
+    return;
+  }
+}
+
+void LastsaveCmd::Do(std::shared_ptr<DB> db) {
+  res_.AppendInteger(g_pika_server->GetLastSave());
+}
+
 void DelbackupCmd::DoInitial() {
   if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelbackup);
@@ -2889,7 +2925,6 @@ void DiskRecoveryCmd::Do(std::shared_ptr<DB> db) {
     res_.SetRes(CmdRes::kErrOther, "The available disk capacity is insufficient");
     return;
   }
-  std::shared_mutex slots_rw;
   std::shared_mutex dbs_rw;
   std::shared_lock db_rwl(dbs_rw);
   // loop every db
@@ -2898,8 +2933,6 @@ void DiskRecoveryCmd::Do(std::shared_ptr<DB> db) {
       continue;
     }
     db_item.second->SetBinlogIoErrorrelieve();
-    std::shared_lock slot_rwl(slots_rw);
-    // loop every db
     background_errors_.clear();
     db_item.second->DbRWLockReader();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
@@ -2953,7 +2986,7 @@ void DisableWalCmd::Do(std::shared_ptr<DB> db) {
 
 void CacheCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
     return;
   }
   if (!strcasecmp(argv_[1].data(), "clear")) {
@@ -3180,7 +3213,7 @@ void CommandCmd::DoInitial() {
 
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-void CommandCmd::Do(std::shared_ptr<Slot> slots) {
+void CommandCmd::Do(std::shared_ptr<DB> dbs) {
   std::unordered_map<std::string, CommandCmd::EncodablePtr> cmds;
   std::unordered_map<std::string, CommandCmd::EncodablePtr> specializations;
   if (cmds_begin_ == cmds_end_) {

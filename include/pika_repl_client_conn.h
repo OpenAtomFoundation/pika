@@ -36,7 +36,7 @@ class PikaReplClientConn : public net::PbConn {
   int DealMessage() override;
 
  private:
-  // dispatch binlog by its table_name + slot
+  // dispatch binlog by its db_name
   void DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& response);
 };
 

@@ -283,9 +283,11 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
 }
 
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
+  // db to a bunch of binlog chips
   std::unordered_map<DBInfo, std::vector<int>*, hash_db_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
+    // hash key: db
     DBInfo p_info(binlog_res.slot().db_name());
     if (par_binlog.find(p_info) == par_binlog.end()) {
       par_binlog[p_info] = new std::vector<int>();
@@ -299,13 +301,12 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
     slave_db = g_pika_rm->GetSyncSlaveDBByName(
         DBInfo(binlog_nums.first.db_name_));
     if (!slave_db) {
-      LOG(WARNING) << "Slave DB: " << binlog_nums.first.db_name_
-                   << " not exist";
+      LOG(WARNING) << "Slave DB: " << binlog_nums.first.db_name_ << " not exist";
       break;
     }
     slave_db->SetLastRecvTime(pstd::NowMicros());
-    g_pika_rm->ScheduleWriteBinlogTask(binlog_nums.first.db_name_,
-                                       res, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
+    g_pika_rm->ScheduleWriteBinlogTask(binlog_nums.first.db_name_, res,
+                                       std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
                                        reinterpret_cast<void*>(binlog_nums.second));
   }
 }

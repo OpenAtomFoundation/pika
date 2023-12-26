@@ -33,7 +33,6 @@ class PikaReplBgWorker {
   net::RedisParser redis_parser_;
   std::string ip_port_;
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
  private:
   net::BGThread bg_thread_;

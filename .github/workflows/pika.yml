@@ -2,9 +2,9 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable", "3.5.2", "*"]
+    branches: [ "unstable", "3.5" ]
   pull_request:
-    branches: [ "unstable", "3.5.2", "*"]
+    branches: [ "unstable", "3.5" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -84,8 +84,10 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          cd ../tests/integration/
-          chmod +x integrate_test.sh 
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
           sh integrate_test.sh
 
   build_on_centos:
@@ -152,8 +154,10 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          cd ../tests/integration/
-          chmod +x integrate_test.sh 
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
           sh integrate_test.sh
 
   build_on_macos:
@@ -210,8 +214,10 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          cd ../tests/integration/
-          chmod +x integrate_test.sh 
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
           sh integrate_test.sh
 
   build_pika_image:
