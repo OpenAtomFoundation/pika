@@ -37,7 +37,6 @@ ReadStatus PbConn::GetRequest() {
     switch (connStatus_) {
       case kHeader: {
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
-        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -47,6 +46,7 @@ ReadStatus PbConn::GetRequest() {
         } else if (nread == 0) {
           return kReadClose;
         } else {
+          g_network_statistic->IncrReplInputBytes(nread);
           cur_pos_ += nread;
           if (cur_pos_ == COMMAND_HEADER_LENGTH) {
             uint32_t integer = 0;
@@ -75,7 +75,6 @@ ReadStatus PbConn::GetRequest() {
         }
         // read msg body
         ssize_t nread = read(fd(), rbuf_ + cur_pos_, remain_packet_len_);
-        g_network_statistic->IncrReplInputBytes(nread);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -85,6 +84,7 @@ ReadStatus PbConn::GetRequest() {
         } else if (nread == 0) {
           return kReadClose;
         }
+        g_network_statistic->IncrReplInputBytes(nread);
         cur_pos_ += static_cast<uint32_t>(nread);
         remain_packet_len_ -= static_cast<int32_t>(nread);
         if (remain_packet_len_ == 0) {
@@ -122,10 +122,10 @@ WriteStatus PbConn::SendReply() {
     item_len = item.size();
     while (item_len - write_buf_.item_pos_ > 0) {
       nwritten = write(fd(), item.data() + write_buf_.item_pos_, item_len - write_buf_.item_pos_);
-      g_network_statistic->IncrReplOutputBytes(nwritten);
       if (nwritten <= 0) {
         break;
       }
+      g_network_statistic->IncrReplOutputBytes(nwritten);
       write_buf_.item_pos_ += nwritten;
       if (write_buf_.item_pos_ == item_len) {
         write_buf_.queue_.pop();

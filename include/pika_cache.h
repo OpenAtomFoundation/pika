@@ -50,6 +50,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
 
   rocksdb::Status Init(uint32_t cache_num, cache::CacheConfig *cache_cfg);
   rocksdb::Status Reset(uint32_t cache_num, cache::CacheConfig *cache_cfg = nullptr);
+  std::map<storage::DataType, int64_t> TTL(std::string &key, std::map<storage::DataType, rocksdb::Status>* type_status);
   void ResetConfig(cache::CacheConfig *cache_cfg);
   void Destroy(void);
   void SetCacheStatus(int status);
@@ -70,6 +71,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status Persist(std::string &key);
   rocksdb::Status Type(std::string &key, std::string *value);
   rocksdb::Status RandomKey(std::string *key);
+  rocksdb::Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
 
   // String Commands
   rocksdb::Status Set(std::string &key, std::string &value, int64_t ttl);

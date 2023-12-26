@@ -231,6 +231,17 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
+// Stream
+const std::string kCmdNameXAdd = "xadd";
+const std::string kCmdNameXDel = "xdel";
+const std::string kCmdNameXRead = "xread";
+const std::string kCmdNameXLen = "xlen";
+const std::string kCmdNameXRange = "xrange";
+const std::string kCmdNameXRevrange = "xrevrange";
+const std::string kCmdNameXTrim = "xtrim";
+const std::string kCmdNameXInfo = "xinfo";
+
+
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -258,6 +269,8 @@ enum CmdFlags {
   kCmdFlagsUpdateCache = (1 << 19),
   kCmdFlagsDoThroughDB = (1 << 20),
   kCmdFlagsOperateKey = (1 << 21),  // redis keySpace
+  kCmdFlagsPreDo = (1 << 22),
+  kCmdFlagsStream = (1 << 23),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -305,6 +318,7 @@ class CmdRes {
 
   bool none() const { return ret_ == kNone && message_.empty(); }
   bool ok() const { return ret_ == kOk || ret_ == kNone; }
+  CmdRet ret() const { return ret_; }
   void clear() {
     message_.clear();
     ret_ = kNone;

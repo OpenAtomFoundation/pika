@@ -1062,7 +1062,7 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "is_slots_migrating:" << (is_migrating ? "Yes, " : "No, ") << start_migration_time_str << ", "
              << (is_migrating ? (current_time_s - start_migration_time) : (end_migration_time - start_migration_time))
              << "\r\n";
-
+  tmp_stream << "slow_logs_count:" << g_pika_server->SlowlogCount() << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -3011,7 +3011,7 @@ void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
 
 void CacheCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameDisableWal);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
     return;
   }
   if (!strcasecmp(argv_[1].data(), "clear")) {

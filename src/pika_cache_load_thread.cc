@@ -166,7 +166,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
 }
 
 bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot>& slot) {
-  pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
+  pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);
   switch (key_type) {
     case 'k':
       return LoadKV(key, slot);
