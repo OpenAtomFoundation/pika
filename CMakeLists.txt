@@ -632,9 +632,9 @@ ExternalProject_Add(rocksdb
 
 ExternalProject_Add(rediscache
   URL
-  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.5.tar.gz
+  https://github.com/pikiwidb/rediscache/archive/refs/tags/v1.0.7.tar.gz
   URL_HASH
-  MD5=99e4d0bde20811a6058a6aa482c18711
+  MD5=02c8aadc018dd8d4d3803cc420d1d75b
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -649,7 +649,7 @@ ExternalProject_Add(rediscache
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   -DCMAKE_INSTALL_INCLUDEDIR=${INSTALL_INCLUDEDIR}
   -DCMAKE_INSTALL_LIBDIR=${INSTALL_LIBDIR}
-  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  -DCMAKE_BUILD_TYPE=Debug
   BUILD_ALWAYS
   1
   BUILD_COMMAND
