@@ -376,15 +376,16 @@ var _ = Describe("should replication ", func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 		})
 		AfterEach(func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
+			log.Println("Replication test case done")
 		})
 
 		It("Let The slave become a replica of The master ", func() {
