@@ -24,7 +24,7 @@ int PikaClientProcessor::Start() {
   if (res != net::kSuccess) {
     return res;
   }
-  for (auto & bg_thread : bg_threads_) {
+  for (auto& bg_thread : bg_threads_) {
     res = bg_thread->StartThread();
     if (res != net::kSuccess) {
       return res;

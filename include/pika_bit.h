@@ -9,7 +9,6 @@
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "include/pika_kv.h"
 
 /*
@@ -23,11 +22,11 @@ class BitGetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitGetCmd(*this); }
 
@@ -50,10 +49,10 @@ class BitSetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitSetCmd(*this); }
 
@@ -78,11 +77,11 @@ class BitCountCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitCountCmd(*this); }
 
@@ -109,11 +108,11 @@ class BitPosCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitPosCmd(*this); }
 
@@ -139,7 +138,7 @@ class BitPosCmd : public Cmd {
 class BitOpCmd : public Cmd {
  public:
   BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   };
   BitOpCmd(const BitOpCmd& other)
       : Cmd(other),
@@ -147,19 +146,19 @@ class BitOpCmd : public Cmd {
         src_keys_(other.src_keys_),
         op_(other.op_),
         value_to_dest_(other.value_to_dest_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsKv);
   }
 
   std::vector<std::string> current_key() const override {
     return {dest_key_};
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new BitOpCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  private:
   std::string dest_key_;

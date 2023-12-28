@@ -13,11 +13,12 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_transaction.h"
+#include "src/pstd/include/scope_record_lock.h"
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-void MultiCmd::Do(std::shared_ptr<Slot> partition) {
+void MultiCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (conn == nullptr || client_conn == nullptr) {
@@ -39,7 +40,7 @@ void MultiCmd::DoInitial() {
   }
 }
 
-void ExecCmd::Do(std::shared_ptr<Slot> slot) {
+void ExecCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
@@ -51,8 +52,8 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec, &resp_strs_iter](CmdInfo& each_cmd_info) {
     each_cmd_info.cmd_->SetResp(*resp_strs_iter++);
     auto& cmd = each_cmd_info.cmd_;
-    auto& slot = each_cmd_info.slot_;
-    auto sync_slot = each_cmd_info.sync_slot_;
+    auto& db = each_cmd_info.db_;
+    auto sync_db = each_cmd_info.sync_db_;
     cmd->res() = {};
     if (cmd->name() == kCmdNameFlushall) {
       auto flushall = std::dynamic_pointer_cast<FlushallCmd>(cmd);
@@ -60,15 +61,15 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
       client_conn->SetAllTxnFailed();
     } else if (cmd->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
-      flushdb->FlushAllSlotsWithoutLock(each_cmd_info.db_);
+      flushdb->FlushAllDBsWithoutLock(each_cmd_info.db_);
       if (cmd->res().ok()) {
         cmd->res().SetRes(CmdRes::kOk);
       }
       client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
     } else {
-      cmd->Do(slot);
+      cmd->Do(db);
       if (cmd->res().ok() && cmd->is_write()) {
-        cmd->DoBinlog(sync_slot);
+        cmd->DoBinlog(sync_db);
         auto db_keys = cmd->current_key();
         for (auto& item : db_keys) {
           item = cmd->db_name().append(item);
@@ -88,6 +89,8 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
 void ExecCmd::Execute() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  auto cmd_db = client_conn->GetCurrentTable();
+  auto db = g_pika_server->GetDB(cmd_db);
   if (client_conn == nullptr) {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
@@ -102,7 +105,7 @@ void ExecCmd::Execute() {
   }
   SetCmdsVec();
   Lock();
-  Do();
+  Do(db);
   Unlock();
   ServeToBLrPopWithKeys();
   list_cmd_.clear();
@@ -139,34 +142,34 @@ bool ExecCmd::IsTxnFailedAndSetState() {
 void ExecCmd::Lock() {
   g_pika_server->DBLockShared();
   std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->SlotLock();
+    need_lock_db->DBLock();
   });
-  if (is_lock_rm_slots_) {
-    g_pika_rm->SlotLock();
+  if (is_lock_rm_dbs_) {
+    g_pika_rm->DBLock();
   }
 
-  std::for_each(r_lock_slots_.begin(), r_lock_slots_.end(), [this](auto& need_lock_slot) {
-    if (lock_slot_keys_.count(need_lock_slot) != 0) {
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
+    if (lock_db_keys_.count(need_lock_slot) != 0) {
       pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Lock(lock_slot_keys_[need_lock_slot]);
+      record_lock.Lock(lock_db_keys_[need_lock_slot]);
     }
     need_lock_slot->DbRWLockReader();
   });
 }
 
 void ExecCmd::Unlock() {
-  std::for_each(r_lock_slots_.begin(), r_lock_slots_.end(), [this](auto& need_lock_slot) {
-    if (lock_slot_keys_.count(need_lock_slot) != 0) {
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
+    if (lock_db_keys_.count(need_lock_slot) != 0) {
       pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Unlock(lock_slot_keys_[need_lock_slot]);
+      record_lock.Unlock(lock_db_keys_[need_lock_slot]);
     }
     need_lock_slot->DbRWUnLock();
   });
-  if (is_lock_rm_slots_) {
-    g_pika_rm->SlotUnlock();
+  if (is_lock_rm_dbs_) {
+    g_pika_rm->DBUnlock();
   }
   std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->SlotUnlock();
+    need_lock_db->DBUnlock();
   });
   g_pika_server->DBUnlockShared();
 }
@@ -178,26 +181,26 @@ void ExecCmd::SetCmdsVec() {
   while (!cmd_que.empty()) {
     auto cmd = cmd_que.front();
     auto cmd_db = client_conn->GetCurrentTable();
-    auto cmd_slot = g_pika_server->GetSlotByDBName(cmd_db);
-    auto sync_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(cmd->db_name(), cmd_slot->GetSlotID()));
-    cmds_.emplace_back(cmd, g_pika_server->GetDB(cmd_db), cmd_slot, sync_slot);
+    auto db = g_pika_server->GetDB(cmd_db);
+    auto sync_db = g_pika_rm->GetSyncMasterDBByName(DBInfo(cmd->db_name()));
+    cmds_.emplace_back(cmd, db, sync_db);
     if (cmd->name() == kCmdNameSelect) {
-      cmd->Do(cmd_slot);
+      cmd->Do(db);
     } else if (cmd->name() == kCmdNameFlushdb) {
-      is_lock_rm_slots_ = true;
+      is_lock_rm_dbs_ = true;
       lock_db_.emplace(g_pika_server->GetDB(cmd_db));
     } else if (cmd->name() == kCmdNameFlushall) {
-      is_lock_rm_slots_ = true;
+      is_lock_rm_dbs_ = true;
       for (const auto& db_item : g_pika_server->GetDB()) {
         lock_db_.emplace(db_item.second);
       }
     } else {
-      r_lock_slots_.emplace(cmd_slot);
-      if (lock_slot_keys_.count(cmd_slot) == 0) {
-        lock_slot_keys_.emplace(cmd_slot, std::vector<std::string>{});
+      r_lock_dbs_.emplace(db);
+      if (lock_db_keys_.count(db) == 0) {
+        lock_db_keys_.emplace(db, std::vector<std::string>{});
       }
       auto cmd_keys = cmd->current_key();
-      lock_slot_keys_[cmd_slot].insert(lock_slot_keys_[cmd_slot].end(), cmd_keys.begin(), cmd_keys.end());
+      lock_db_keys_[db].insert(lock_db_keys_[db].end(), cmd_keys.begin(), cmd_keys.end());
       if (cmd->name() == kCmdNameLPush || cmd->name() == kCmdNameRPush) {
         list_cmd_.insert(list_cmd_.end(), cmds_.back());
       }
@@ -214,15 +217,15 @@ void ExecCmd::ServeToBLrPopWithKeys() {
     auto push_key = push_keys[0];
     if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_);
         push_list_cmd != nullptr) {
-      push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.slot_);
+      push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.db_);
     }
   }
 }
 
-void WatchCmd::Do(std::shared_ptr<Slot> slot) {
+void WatchCmd::Do(std::shared_ptr<DB> db) {
   auto mp = std::map<storage::DataType, storage::Status>{};
   for (const auto& key : keys_) {
-    auto type_count = slot->db()->IsExist(key, &mp);
+    auto type_count = db->storage()->IsExist(key, &mp);
     if (type_count > 1) {
       res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
       return;
@@ -246,8 +249,8 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void WatchCmd::Execute() {
-  std::shared_ptr<Slot> slot = g_pika_server->GetSlotByDBName(db_name_);
-  Do(slot);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  Do(db);
 }
 
 void WatchCmd::DoInitial() {
@@ -262,7 +265,7 @@ void WatchCmd::DoInitial() {
   }
 }
 
-void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
+void UnwatchCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
@@ -294,7 +297,7 @@ void DiscardCmd::DoInitial() {
   }
 }
 
-void DiscardCmd::Do(std::shared_ptr<Slot> partition) {
+void DiscardCmd::Do(std::shared_ptr<DB> db) {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {

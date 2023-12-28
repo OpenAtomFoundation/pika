@@ -12,16 +12,17 @@
 #include <unordered_set>
 #include <utility>
 
+#include "rocksdb/status.h"
+
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
 
-#include "include/pika_slot.h"
 #include "net/src/dispatch_thread.h"
 
-class SyncMasterSlot;
-class SyncSlaveSlot;
-
+class SyncMasterDB;
+class SyncSlaveDB;
+class DB;
 // Constant for command name
 // Admin
 const std::string kCmdNameSlaveof = "slaveof";
@@ -77,6 +78,7 @@ const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
 const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
 const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
+
 // Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
@@ -240,23 +242,19 @@ const std::string kCmdNameXRange = "xrange";
 const std::string kCmdNameXRevrange = "xrevrange";
 const std::string kCmdNameXTrim = "xtrim";
 const std::string kCmdNameXInfo = "xinfo";
-
-
 const std::string kClusterPrefix = "pkcluster";
+
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW = 1,
-  kCmdFlagsMaskType = 30,
   kCmdFlagsMaskLocal = 32,
   kCmdFlagsMaskSuspend = 64,
-  kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
   kCmdFlagsMaskDoThrouhDB = 4096,
   kCmdFlagsMaskReadCache = 128,
   kCmdFlagsMaskUpdateCache = 2048,
-  kCmdFlagsMaskSlot = 1536,
 };
 
 enum CmdFlags {
@@ -272,17 +270,11 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog = 14,
   kCmdFlagsGeo = 16,
   kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
   kCmdFlagsLocal = 32,
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
   kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
-  kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
-  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
-  kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024,
+  kCmdFlagsSingleDB = 512,
+  kCmdFlagsMultiDB = 1024,
   kCmdFlagsPreDo = 2048,
   kCmdFlagsStream = 1536,
   kCmdFlagsReadCache = 128,
@@ -449,9 +441,7 @@ class CmdRes {
       message_ = content;
     }
   }
-  CmdRet GetCmdRet() const {
-    return ret_;
-  }
+
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -463,10 +453,10 @@ class CmdRes {
  */
 struct UnblockTaskArgs {
   std::string key;
-  std::shared_ptr<Slot> slot;
+  std::shared_ptr<DB> db;
   net::DispatchThread* dispatchThread{ nullptr };
-  UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+  UnblockTaskArgs(std::string key_, std::shared_ptr<DB> db_, net::DispatchThread* dispatchThread_)
+      : key(std::move(key_)), db(db_), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -474,37 +464,24 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
-    void Push(const std::string& key, int hint) {
-      keys.push_back(key);
-      hints.push_back(hint);
-    }
+
     bool empty() const { return keys.empty() && hints.empty(); }
     std::vector<std::string> keys;
     std::vector<int> hints;
-  };
-  struct ProcessArg {
-    ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot, HintKeys _hint_keys)
-        : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
-    std::shared_ptr<Slot> slot;
-    std::shared_ptr<SyncMasterSlot> sync_slot;
-    HintKeys hint_keys;
   };
   Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessSingleSlotCmd();
-  virtual void ProcessMultiSlotCmd();
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
-  virtual void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) {}
-  virtual void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) {}
-  virtual void ReadCache(std::shared_ptr<Slot> slot = nullptr) {}
-  rocksdb::Status CmdStatus() { return s_; };
+  virtual void ProcessDBCmd();
+  virtual void Do(std::shared_ptr<DB> db) = 0;
+  virtual void DoThroughDB(std::shared_ptr<DB> db) {}
+  virtual void DoUpdateCache(std::shared_ptr<DB> db) {}
+  virtual void ReadCache(std::shared_ptr<DB> db) {}
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
+  virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
@@ -515,21 +492,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsLocal() const;
   bool IsSuspend() const;
   bool IsAdminRequire() const;
-  bool is_single_slot() const;
-  bool is_multi_slot() const;
   bool IsNeedUpdateCache() const;
-  bool is_only_from_cache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
-  void SetDbName(const std::string& db_name) { db_name_ = db_name; }
   std::string GetDBName() { return db_name_; }
 
   std::string name() const;
   CmdRes& res();
   std::string db_name() const;
-  BinlogOffset binlog_offset() const;
   PikaCmdArgsType& argv();
   virtual std::string ToRedisProtocol();
 
@@ -541,16 +513,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
-  virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
+  virtual void DoBinlog(const std::shared_ptr<SyncMasterDB>& db);
 
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
+  void InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
                               const HintKeys& hint_key);
-  void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
+  void DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_key);
   bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 
@@ -594,7 +566,5 @@ void RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix) {
   str.append(buf);
   str.append(kNewLine);
 }
-
-void TryAliasChange(std::vector<std::string>* argv);
 
 #endif

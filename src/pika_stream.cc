@@ -7,7 +7,6 @@
 #include <cassert>
 
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "include/pika_stream_base.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
@@ -179,8 +178,8 @@ void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, S
   }
 }
 
-void AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values, const Slot *slot) {
-  assert(slot);
+void AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values, const DB* db) {
+  assert(db);
   res.AppendArrayLenUint64(field_values.size());
   for (auto &fv : field_values) {
     std::vector<std::string> message;
@@ -232,11 +231,11 @@ void XAddCmd::DoInitial() {
   }
 }
 
-void XAddCmd::Do(std::shared_ptr<Slot> slot) {
+void XAddCmd::Do(std::shared_ptr<DB> db) {
   // 1 get stream meta
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
   if (s.IsNotFound() && args_.no_mkstream) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -277,7 +276,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   assert(field > serialized_last_id);
 #endif  // DEBUG
 
-  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, slot.get());
+  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, db.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, "error from XADD, insert stream message failed 1: " + s.ToString());
     return;
@@ -294,12 +293,12 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
   // 4 trim the stream if needed
   if (args_.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
     int32_t count;
-    TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, slot.get()), res_);
+    TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db.get()), res_);
     (void)count;
   }
 
   // 5 update stream meta
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get());
+  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed 2: " + s.ToString());
     return;
@@ -386,13 +385,13 @@ void XRangeCmd::DoInitial() {
   }
 }
 
-void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void XRangeCmd::Do(std::shared_ptr<DB> db) {
   std::vector<storage::FieldValue> field_values;
 
   if (start_sid <= end_sid) {
     StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, false);
     std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -400,16 +399,16 @@ void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 
-  AppendMessagesToRes(res_, field_values, slot.get());
+  AppendMessagesToRes(res_, field_values, db.get());
 }
 
-void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
+void XRevrangeCmd::Do(std::shared_ptr<DB> db) {
   std::vector<storage::FieldValue> field_values;
 
   if (start_sid >= end_sid) {
     StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, true);
     std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -417,21 +416,21 @@ void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
     }
   }
 
-  AppendMessagesToRes(res_, field_values, slot.get());
+  AppendMessagesToRes(res_, field_values, db.get());
 }
 
-inline void XDelCmd::SetFirstIDOrReply(StreamMetaValue &stream_meta, const Slot *slot) {
-  assert(slot);
-  return SetFirstOrLastIDOrReply(stream_meta, slot, true);
+inline void XDelCmd::SetFirstIDOrReply(StreamMetaValue &stream_meta, const DB* db) {
+  assert(db);
+  return SetFirstOrLastIDOrReply(stream_meta, db, true);
 }
 
-inline void XDelCmd::SetLastIDOrReply(StreamMetaValue &stream_meta, const Slot *slot) {
-  assert(slot);
-  return SetFirstOrLastIDOrReply(stream_meta, slot, false);
+inline void XDelCmd::SetLastIDOrReply(StreamMetaValue &stream_meta, const DB* db) {
+  assert(db);
+  return SetFirstOrLastIDOrReply(stream_meta, db, false);
 }
 
-inline void XDelCmd::SetFirstOrLastIDOrReply(StreamMetaValue &stream_meta, const Slot *slot, bool is_set_first) {
-  assert(slot);
+inline void XDelCmd::SetFirstOrLastIDOrReply(StreamMetaValue &stream_meta, const DB* db, bool is_set_first) {
+  assert(db);
   if (stream_meta.length() == 0) {
     stream_meta.set_first_id(kSTREAMID_MIN);
     return;
@@ -443,11 +442,11 @@ inline void XDelCmd::SetFirstOrLastIDOrReply(StreamMetaValue &stream_meta, const
   storage::Status s;
   if (is_set_first) {
     StreamStorage::ScanStreamOptions option(key_, kSTREAMID_MIN, kSTREAMID_MAX, 1);
-    s = StreamStorage::ScanStream(option, field_values, next_field, slot);
+    s = StreamStorage::ScanStream(option, field_values, next_field, db);
   } else {
     bool is_reverse = true;
     StreamStorage::ScanStreamOptions option(key_, kSTREAMID_MAX, kSTREAMID_MIN, 1, false, false, is_reverse);
-    s = StreamStorage::ScanStream(option, field_values, next_field, slot);
+    s = StreamStorage::ScanStream(option, field_values, next_field, db);
   }
   (void)next_field;
 
@@ -488,10 +487,10 @@ void XDelCmd::DoInitial() {
   }
 }
 
-void XDelCmd::Do(std::shared_ptr<Slot> slot) {
+void XDelCmd::Do(std::shared_ptr<DB> db) {
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -502,7 +501,7 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 2 do the delete
   int32_t count{0};
-  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, slot.get());
+  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, db.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -515,13 +514,13 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
       stream_meta.set_max_deleted_entry_id(id);
     }
     if (id == stream_meta.first_id()) {
-      SetFirstIDOrReply(stream_meta, slot.get());
+      SetFirstIDOrReply(stream_meta, db.get());
     } else if (id == stream_meta.last_id()) {
-      SetLastIDOrReply(stream_meta, slot.get());
+      SetLastIDOrReply(stream_meta, db.get());
     }
   }
 
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get());
+  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -538,10 +537,10 @@ void XLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void XLenCmd::Do(std::shared_ptr<Slot> slot) {
+void XLenCmd::Do(std::shared_ptr<DB> db) {
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -567,7 +566,7 @@ void XReadCmd::DoInitial() {
   ParseReadOrReadGroupArgsOrReply(res_, argv_, args_, false);
 }
 
-void XReadCmd::Do(std::shared_ptr<Slot> slot) {
+void XReadCmd::Do(std::shared_ptr<DB> db) {
   rocksdb::Status s;
 
   // 1 prepare stream_metas
@@ -577,7 +576,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
     const auto &unparsed_id = args_.unparsed_ids[i];
 
     StreamMetaValue stream_meta;
-    auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot.get());
+    auto s = StreamStorage::GetStreamMeta(stream_meta, key, db.get());
     if (s.IsNotFound()) {
       continue;
     } else if (!s.ok()) {
@@ -622,7 +621,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
     std::vector<storage::FieldValue> field_values;
     std::string next_field;
     StreamStorage::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count, true);
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -631,7 +630,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
 
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    AppendMessagesToRes(res_, field_values, slot.get());
+    AppendMessagesToRes(res_, field_values, db.get());
   }
 }
 
@@ -648,10 +647,10 @@ void XTrimCmd::DoInitial() {
   }
 }
 
-void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
+void XTrimCmd::Do(std::shared_ptr<DB> db) {
   // 1 try to get stream meta, if not found, return error
   StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -662,10 +661,10 @@ void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
 
   // 2 do the trim
   int32_t count{0};
-  TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, slot.get()), res_);
+  TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db.get()), res_);
 
   // 3 update stream meta
-  TRY_CATCH_ERROR(StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get()), res_);
+  TRY_CATCH_ERROR(StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get()), res_);
 
   res_.AppendInteger(count);
   return;
@@ -711,9 +710,9 @@ void XInfoCmd::DoInitial() {
   }
 }
 
-void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
+void XInfoCmd::Do(std::shared_ptr<DB> db) {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
-    this->StreamInfo(slot);
+    this->StreamInfo(db);
   } else if (!strcasecmp(subcmd_.c_str(), "GROUPS")) {
     // Korpse: TODO:
     // this->GroupsInfo(slot);
@@ -726,10 +725,10 @@ void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
+void XInfoCmd::StreamInfo(std::shared_ptr<DB>& db) {
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
-  TRY_CATCH_ERROR(StreamStorage::GetStreamMeta(stream_meta, key_, slot.get()), res_);
+  TRY_CATCH_ERROR(StreamStorage::GetStreamMeta(stream_meta, key_, db.get()), res_);
 
   // 2 append the stream info
   res_.AppendArrayLen(10);

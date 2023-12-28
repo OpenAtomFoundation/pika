@@ -6,10 +6,7 @@
 #ifndef PIKA_ZSET_H_
 #define PIKA_ZSET_H_
 
-#include "storage/storage.h"
-
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "pika_kv.h"
 
 /*
@@ -23,10 +20,10 @@ class ZAddCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZAddCmd(*this); }
 
@@ -45,11 +42,11 @@ class ZCardCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZCardCmd(*this); }
 
@@ -66,8 +63,8 @@ class ZScanCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZScanCmd(*this); }
 
@@ -89,10 +86,10 @@ class ZIncrbyCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
   double Score() { return score_; }
@@ -125,11 +122,11 @@ class ZRangeCmd : public ZsetRangeParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangeCmd(*this); }
 
@@ -146,11 +143,11 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangeCmd(*this); }
 
@@ -162,13 +159,13 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
 class ZsetRangebyscoreParentCmd : public Cmd {
  public:
   ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-
   double MinScore() { return min_score_; }
   double MaxScore() { return max_score_; }
   bool LeftClose() { return left_close_; }
   bool RightClose() { return right_close_; }
   int64_t Offset() { return offset_; }
   int64_t Count() { return count_; }
+
  protected:
   std::string key_;
   std::string min_, max_;
@@ -192,11 +189,11 @@ class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangebyscoreCmd(*this); }
 
@@ -214,11 +211,11 @@ class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangebyscoreCmd(*this); }
 
@@ -235,11 +232,11 @@ class ZCountCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZCountCmd(*this); }
   double MinScore() { return min_score_; }
@@ -268,10 +265,10 @@ class ZRemCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemCmd(*this); }
 
@@ -287,8 +284,7 @@ class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {
-    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
   }
   ZsetUIstoreParentCmd(const ZsetUIstoreParentCmd& other)
       : Cmd(other),
@@ -297,13 +293,13 @@ class ZsetUIstoreParentCmd : public Cmd {
         aggregate_(other.aggregate_),
         keys_(other.keys_),
         weights_(other.weights_) {
-    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
-    del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
+    zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsZset);
   }
 
   std::vector<std::string> current_key() const override {
     return {dest_key_};
   }
+
  protected:
   std::string dest_key_;
   int64_t num_keys_ = 0;
@@ -314,16 +310,15 @@ class ZsetUIstoreParentCmd : public Cmd {
   void Clear() override { aggregate_ = storage::SUM; }
   //used for write binlog
   std::shared_ptr<Cmd> zadd_cmd_;
-  std::shared_ptr<Cmd> del_cmd_;
 };
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZUnionstoreCmd(*this); }
 
@@ -332,19 +327,19 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
   //used for write binlog
   std::map<std::string, double> value_to_dest_;
   rocksdb::Status s_;
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 };
 
 class ZInterstoreCmd : public ZsetUIstoreParentCmd {
  public:
   ZInterstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZInterstoreCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  private:
   void DoInitial() override;
@@ -370,11 +365,11 @@ class ZRankCmd : public ZsetRankParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRankCmd(*this); }
 
@@ -391,11 +386,11 @@ class ZRevrankCmd : public ZsetRankParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrankCmd(*this); }
 
@@ -412,11 +407,11 @@ class ZScoreCmd : public ZsetRankParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZScoreCmd(*this); }
 
@@ -451,11 +446,11 @@ class ZRangebylexCmd : public ZsetRangebylexParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRangebylexCmd(*this); }
 
@@ -472,11 +467,11 @@ class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRevrangebylexCmd(*this); }
 
@@ -493,11 +488,11 @@ class ZLexcountCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void ReadCache(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZLexcountCmd(*this); }
 
@@ -518,10 +513,10 @@ class ZRemrangebyrankCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
 
@@ -541,10 +536,10 @@ class ZRemrangebyscoreCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
 
@@ -565,10 +560,10 @@ class ZRemrangebylexCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do(std::shared_ptr<DB> db) override;
+  void DoUpdateCache(std::shared_ptr<DB> db) override;
+  void DoThroughDB(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
 
@@ -589,8 +584,8 @@ class ZPopmaxCmd : public Cmd {
     res.emplace_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
 
@@ -608,8 +603,8 @@ class ZPopminCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<DB> db) override;
+  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopminCmd(*this); }
 

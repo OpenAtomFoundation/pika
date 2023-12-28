@@ -49,14 +49,4 @@ void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
   thread_distribution_map_.emplace(tid, std::move(distribution));
 }
 
-uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t slot_num) {
-  auto tid = std::this_thread::get_id();
-  if (!CheckCurrentThreadDistributionMapExist(tid)) {
-    InsertCurrentThreadDistributionMap();
-  }
-
-  std::shared_lock l(map_protector_);
-  return thread_distribution_map_[tid]->Distribute(key, slot_num);
-}
-
 bool PikaCmdTableManager::CmdExist(const std::string& cmd) const { return cmds_->find(cmd) != cmds_->end(); }

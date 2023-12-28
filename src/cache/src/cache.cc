@@ -82,7 +82,7 @@ int32_t RedisCache::ActiveExpireCycle(void) { return RcActiveExpireCycle(cache_)
 /*-----------------------------------------------------------------------------
  * Normal Commands
  *----------------------------------------------------------------------------*/
-bool RedisCache::Exists(std::string &key) {
+bool RedisCache::Exists(std::string& key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     decrRefCount(kobj);
@@ -100,7 +100,7 @@ int64_t RedisCache::DbSize(void) {
 
 void RedisCache::FlushDb(void) { RcFlushCache(cache_); }
 
-Status RedisCache::Del(const std::string &key) {
+Status RedisCache::Del(const std::string& key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     decrRefCount(kobj);
@@ -117,7 +117,7 @@ Status RedisCache::Del(const std::string &key) {
   return Status::OK();
 }
 
-Status RedisCache::Expire(std::string &key, int64_t ttl) {
+Status RedisCache::Expire(std::string& key, int64_t ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
   DEFER {
@@ -135,7 +135,7 @@ Status RedisCache::Expire(std::string &key, int64_t ttl) {
   return Status::OK();
 }
 
-Status RedisCache::Expireat(std::string &key, int64_t ttl) {
+Status RedisCache::Expireat(std::string& key, int64_t ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
   DEFER {
@@ -152,7 +152,7 @@ Status RedisCache::Expireat(std::string &key, int64_t ttl) {
   return Status::OK();
 }
 
-Status RedisCache::TTL(std::string &key, int64_t *ttl) {
+Status RedisCache::TTL(std::string& key, int64_t *ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -168,7 +168,7 @@ Status RedisCache::TTL(std::string &key, int64_t *ttl) {
   return Status::OK();
 }
 
-Status RedisCache::Persist(std::string &key) {
+Status RedisCache::Persist(std::string& key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -184,7 +184,7 @@ Status RedisCache::Persist(std::string &key) {
   return Status::OK();
 }
 
-Status RedisCache::Type(std::string &key, std::string *value) {
+Status RedisCache::Type(std::string& key, std::string *value) {
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {

@@ -19,7 +19,6 @@
 #include "include/pika_define.h"
 #include "include/pika_repl_bgworker.h"
 #include "include/pika_repl_client_thread.h"
-#include "include/pika_slot.h"
 
 #include "net/include/thread_pool.h"
 #include "pika_inner_message.pb.h"
@@ -37,7 +36,7 @@ struct ReplClientWriteBinlogTaskArg {
   std::shared_ptr<net::PbConn> conn;
   void* res_private_data;
   PikaReplBgWorker* worker;
-  ReplClientWriteBinlogTaskArg(const std::shared_ptr<InnerMessage::InnerResponse>&  _res,
+  ReplClientWriteBinlogTaskArg(const std::shared_ptr<InnerMessage::InnerResponse>& _res,
                                const std::shared_ptr<net::PbConn>& _conn,
                                void* _res_private_data, PikaReplBgWorker* _worker)
       : res(_res), conn(_conn), res_private_data(_res_private_data), worker(_worker) {}
@@ -47,13 +46,10 @@ struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
   LogOffset offset;
   std::string db_name;
-  uint32_t slot_id;
-  ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, const LogOffset& _offset, std::string _db_name,
-                           uint32_t _slot_id)
+  ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, const LogOffset& _offset, std::string _db_name)
       : cmd_ptr(std::move(_cmd_ptr)),
         offset(_offset),
-        db_name(std::move(_db_name)),
-        slot_id(_slot_id) {}
+        db_name(std::move(_db_name)) {}
   ~ReplClientWriteDBTaskArg() = default;
 };
 
@@ -69,21 +65,19 @@ class PikaReplClient {
   pstd::Status Close(const std::string& ip, int port);
 
   void Schedule(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res, 
+  void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
-                           uint32_t slot_id);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
 
   pstd::Status SendMetaSync();
-  pstd::Status SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& db_name, uint32_t slot_id,
+  pstd::Status SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
                              const BinlogOffset& boffset, const std::string& local_ip);
-  pstd::Status SendSlotTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
-                              uint32_t slot_id, const BinlogOffset& boffset, const std::string& local_ip);
-  pstd::Status SendSlotBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                 uint32_t slot_id, const LogOffset& ack_start, const LogOffset& ack_end,
+  pstd::Status SendTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
+                               const BinlogOffset& boffset, const std::string& local_ip);
+  pstd::Status SendBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
+                                  const LogOffset& ack_start, const LogOffset& ack_end,
                                  const std::string& local_ip, bool is_first_send);
-  pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, uint32_t slot_id,
-                             const std::string& local_ip);
+  pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, const std::string& local_ip);
 
  private:
   size_t GetHashIndex(const std::string& key, bool upper_half);

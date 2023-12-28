@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "include/pika_cache.h"
-#include "include/pika_slot.h"
 #include "include/pika_define.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
@@ -25,20 +24,20 @@ class PikaCacheLoadThread : public net::Thread {
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
   uint32_t WaittingLoadKeysNum(void) { return waitting_load_keys_num_; }
-  void Push(const char key_type, std::string& key, const std::shared_ptr<Slot> &slot);
+  void Push(const char key_type, std::string& key, const std::shared_ptr<DB>& db);
 
  private:
-  bool LoadKV(std::string& key, const std::shared_ptr<Slot>& slot);
-  bool LoadHash(std::string& key, const std::shared_ptr<Slot>& slot);
-  bool LoadList(std::string& key, const std::shared_ptr<Slot>& slot);
-  bool LoadSet(std::string& key, const std::shared_ptr<Slot>& slot);
-  bool LoadZset(std::string& key, const std::shared_ptr<Slot>& slot);
-  bool LoadKey(const char key_type, std::string& key, const std::shared_ptr<Slot>& slot);
+  bool LoadKV(std::string& key, const std::shared_ptr<DB>& db);
+  bool LoadHash(std::string& key, const std::shared_ptr<DB>& db);
+  bool LoadList(std::string& key, const std::shared_ptr<DB>& db);
+  bool LoadSet(std::string& key, const std::shared_ptr<DB>& db);
+  bool LoadZset(std::string& key, const std::shared_ptr<DB>& db);
+  bool LoadKey(const char key_type, std::string& key, const std::shared_ptr<DB>& db);
   virtual void* ThreadMain();
 
  private:
   std::atomic_bool should_exit_;
-  std::deque<std::tuple<const char, std::string, const std::shared_ptr<Slot>>> loadkeys_queue_;
+  std::deque<std::tuple<const char, std::string, const std::shared_ptr<DB>>> loadkeys_queue_;
   
   pstd::CondVar loadkeys_cond_;
   pstd::Mutex loadkeys_mutex_;

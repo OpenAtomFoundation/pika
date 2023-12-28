@@ -26,8 +26,8 @@ void HDelCmd::DoInitial() {
   fields_.assign(iter, argv_.end());
 }
 
-void HDelCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->HDel(key_, fields_, &deleted_);
+void HDelCmd::Do(std::shared_ptr<DB> db) {
+  s_ = db->storage()->HDel(key_, fields_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
   } else {
@@ -35,14 +35,14 @@ void HDelCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HDelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HDelCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HDelCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HDelCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    slot->cache()->HDel(CachePrefixKeyH, fields_);
+    db->cache()->HDel(CachePrefixKeyH, fields_);
   }
 }
 
@@ -63,25 +63,25 @@ void HSetCmd::DoInitial() {
   }
 }
 
-void HSetCmd::Do(std::shared_ptr<Slot> slot) {
+void HSetCmd::Do(std::shared_ptr<DB> db) {
   int32_t ret = 0;
-  s_ = slot->db()->HSet(key_, field_, value_, &ret);
+  s_ = db->storage()->HSet(key_, field_, value_, &ret);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
-    AddSlotKey("h", key_, slot);
+    AddSlotKey("h", key_, db);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void HSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HSetCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HSetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    slot->cache()->HSetIfKeyExist(CachePrefixKeyH, field_, value_);
+    db->cache()->HSetIfKeyExist(CachePrefixKeyH, field_, value_);
   }
 }
 
@@ -94,9 +94,9 @@ void HGetCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HGetCmd::Do(std::shared_ptr<Slot> slot) {
+void HGetCmd::Do(std::shared_ptr<DB> db) {
   std::string value;
-  s_ = slot->db()->HGet(key_, field_, &value);
+  s_ = db->storage()->HGet(key_, field_, &value);
   if (s_.ok()) {
     res_.AppendStringLenUint64(value.size());
     res_.AppendContent(value);
@@ -107,10 +107,10 @@ void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HGetCmd::ReadCache(std::shared_ptr<DB> db) {
   std::string value;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HGet(CachePrefixKeyH, field_, &value);
+  auto s = db->cache()->HGet(CachePrefixKeyH, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -121,14 +121,14 @@ void HGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HGetCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HGetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -140,7 +140,7 @@ void HGetallCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
+void HGetallCmd::Do(std::shared_ptr<DB> db) {
   int64_t total_fv = 0;
   int64_t cursor = 0;
   int64_t next_cursor = 0;
@@ -150,7 +150,7 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
 
   do {
     fvs.clear();
-    s_ = slot->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
+    s_ = db->storage()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
     if (!s_.ok()) {
       raw.clear();
       total_fv = 0;
@@ -179,10 +179,10 @@ void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetallCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HGetallCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<storage::FieldValue> fvs;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HGetall(CachePrefixKeyH, &fvs);
+  auto s = db->cache()->HGetall(CachePrefixKeyH, &fvs);
   if (s.ok()) {
     res_.AppendArrayLen(fvs.size() * 2);
     for (const auto& fv : fvs) {
@@ -198,14 +198,14 @@ void HGetallCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HGetallCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HGetallCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HGetallCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HGetallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -218,8 +218,8 @@ void HExistsCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->HExists(key_, field_);
+void HExistsCmd::Do(std::shared_ptr<DB> db) {
+  s_ = db->storage()->HExists(key_, field_);
   if (s_.ok()) {
     res_.AppendContent(":1");
   } else if (s_.IsNotFound()) {
@@ -229,9 +229,9 @@ void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HExistsCmd::ReadCache(std::shared_ptr<DB> db) {
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HExists(CachePrefixKeyH, field_);
+  auto s = db->cache()->HExists(CachePrefixKeyH, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -241,14 +241,14 @@ void HExistsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HExistsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HExistsCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HExistsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HExistsCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -265,12 +265,12 @@ void HIncrbyCmd::DoInitial() {
   }
 }
 
-void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
+void HIncrbyCmd::Do(std::shared_ptr<DB> db) {
   int64_t new_value = 0;
-  s_ = slot->db()->HIncrby(key_, field_, by_, &new_value);
+  s_ = db->storage()->HIncrby(key_, field_, by_, &new_value);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
-    AddSlotKey("h", key_, slot);
+    AddSlotKey("h", key_, db);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s_.IsInvalidArgument()) {
@@ -280,14 +280,14 @@ void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HIncrbyCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HIncrbyCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    slot->cache()->HIncrbyxx(CachePrefixKeyH, field_, by_);
+    db->cache()->HIncrbyxx(CachePrefixKeyH, field_, by_);
   }
 }
 
@@ -301,13 +301,13 @@ void HIncrbyfloatCmd::DoInitial() {
   by_ = argv_[3];
 }
 
-void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
+void HIncrbyfloatCmd::Do(std::shared_ptr<DB> db) {
   std::string new_value;
-  s_ = slot->db()->HIncrbyfloat(key_, field_, by_, &new_value);
+  s_ = db->storage()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s_.ok()) {
     res_.AppendStringLenUint64(new_value.size());
     res_.AppendContent(new_value);
-    AddSlotKey("h", key_, slot);
+    AddSlotKey("h", key_, db);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s_.IsInvalidArgument()) {
@@ -317,16 +317,16 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HIncrbyfloatCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HIncrbyfloatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HIncrbyfloatCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     long double long_double_by;
     if (storage::StrToLongDouble(by_.data(), by_.size(), &long_double_by) != -1) {
       std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-      slot->cache()->HIncrbyfloatxx(CachePrefixKeyH, field_, long_double_by);
+      db->cache()->HIncrbyfloatxx(CachePrefixKeyH, field_, long_double_by);
     }
   }
 }
@@ -339,9 +339,9 @@ void HKeysCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
+void HKeysCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> fields;
-  s_ = slot->db()->HKeys(key_, &fields);
+  s_ = db->storage()->HKeys(key_, &fields);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(fields.size());
     for (const auto& field : fields) {
@@ -352,10 +352,10 @@ void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HKeysCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HKeysCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<std::string> fields;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HKeys(CachePrefixKeyH, &fields);
+  auto s = db->cache()->HKeys(CachePrefixKeyH, &fields);
   if (s.ok()) {
     res_.AppendArrayLen(fields.size());
     for (const auto& field : fields) {
@@ -368,14 +368,14 @@ void HKeysCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HKeysCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HKeysCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HKeysCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HKeysCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -387,9 +387,9 @@ void HLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HLenCmd::Do(std::shared_ptr<Slot> slot) {
+void HLenCmd::Do(std::shared_ptr<DB> db) {
   int32_t len = 0;
-  s_ = slot->db()->HLen(key_, &len);
+  s_ = db->storage()->HLen(key_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -397,10 +397,10 @@ void HLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HLenCmd::ReadCache(std::shared_ptr<DB> db) {
   uint64_t len = 0;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HLen(CachePrefixKeyH, &len);
+  auto s = db->cache()->HLen(CachePrefixKeyH, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -410,14 +410,14 @@ void HLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HLenCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HLenCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -433,9 +433,9 @@ void HMgetCmd::DoInitial() {
   fields_.assign(iter, argv_.end());
 }
 
-void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
+void HMgetCmd::Do(std::shared_ptr<DB> db) {
   std::vector<storage::ValueStatus> vss;
-  s_ = slot->db()->HMGet(key_, fields_, &vss);
+  s_ = db->storage()->HMGet(key_, fields_, &vss);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(vss.size());
     for (const auto& vs : vss) {
@@ -451,10 +451,10 @@ void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HMgetCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<storage::ValueStatus> vss;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HMGet(CachePrefixKeyH, fields_, &vss);
+  auto s = db->cache()->HMGet(CachePrefixKeyH, fields_, &vss);
   if (s.ok()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -472,14 +472,14 @@ void HMgetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMgetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HMgetCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HMgetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HMgetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -501,24 +501,24 @@ void HMsetCmd::DoInitial() {
   }
 }
 
-void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->HMSet(key_, fvs_);
+void HMsetCmd::Do(std::shared_ptr<DB> db) {
+  s_ = db->storage()->HMSet(key_, fvs_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
-    AddSlotKey("h", key_, slot);
+    AddSlotKey("h", key_, db);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void HMsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HMsetCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HMsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HMsetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    slot->cache()->HMSetxx(CachePrefixKeyH, fvs_);
+    db->cache()->HMSetxx(CachePrefixKeyH, fvs_);
   }
 }
 
@@ -532,25 +532,25 @@ void HSetnxCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
+void HSetnxCmd::Do(std::shared_ptr<DB> db) {
   int32_t ret = 0;
-  s_ = slot->db()->HSetnx(key_, field_, value_, &ret);
+  s_ = db->storage()->HSetnx(key_, field_, value_, &ret);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
-    AddSlotKey("h", key_, slot);
+    AddSlotKey("h", key_, db);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void HSetnxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void HSetnxCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void HSetnxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HSetnxCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    slot->cache()->HSetIfKeyExistAndFieldNotExist(CachePrefixKeyH, field_, value_);
+    db->cache()->HSetIfKeyExistAndFieldNotExist(CachePrefixKeyH, field_, value_);
   }
 }
 
@@ -563,9 +563,9 @@ void HStrlenCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::Do(std::shared_ptr<DB> db) {
   int32_t len = 0;
-  s_ = slot->db()->HStrlen(key_, field_, &len);
+  s_ = db->storage()->HStrlen(key_, field_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -573,10 +573,10 @@ void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HStrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::ReadCache(std::shared_ptr<DB> db) {
   uint64_t len = 0;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HStrlen(CachePrefixKeyH, field_, &len);
+  auto s = db->cache()->HStrlen(CachePrefixKeyH, field_, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -587,14 +587,14 @@ void HStrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   return;
 }
 
-void HStrlenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HStrlenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HStrlenCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -606,9 +606,9 @@ void HValsCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HValsCmd::Do(std::shared_ptr<Slot> slot) {
+void HValsCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> values;
-  s_ = slot->db()->HVals(key_, &values);
+  s_ = db->storage()->HVals(key_, &values);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(values.size());
     for (const auto& value : values) {
@@ -620,10 +620,10 @@ void HValsCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HValsCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void HValsCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<std::string> values;
   std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = slot->cache()->HVals(CachePrefixKeyH, &values);
+  auto s = db->cache()->HVals(CachePrefixKeyH, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -637,14 +637,14 @@ void HValsCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HValsCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void HValsCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void HValsCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void HValsCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_HASH, key_, db);
   }
 }
 
@@ -687,10 +687,10 @@ void HScanCmd::DoInitial() {
   }
 }
 
-void HScanCmd::Do(std::shared_ptr<Slot> slot) {
+void HScanCmd::Do(std::shared_ptr<DB> db) {
   int64_t next_cursor = 0;
   std::vector<storage::FieldValue> field_values;
-  auto s = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
+  auto s = db->storage()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -745,10 +745,10 @@ void HScanxCmd::DoInitial() {
   }
 }
 
-void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
+void HScanxCmd::Do(std::shared_ptr<DB> db) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+  rocksdb::Status s = db->storage()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -798,11 +798,11 @@ void PKHScanRangeCmd::DoInitial() {
   }
 }
 
-void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void PKHScanRangeCmd::Do(std::shared_ptr<DB> db) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+      db->storage()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -851,11 +851,11 @@ void PKHRScanRangeCmd::DoInitial() {
   }
 }
 
-void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void PKHRScanRangeCmd::Do(std::shared_ptr<DB> db) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+      db->storage()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
 
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLen(2);

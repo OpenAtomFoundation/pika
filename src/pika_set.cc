@@ -22,25 +22,25 @@ void SAddCmd::DoInitial() {
   members_.assign(iter, argv_.end());
 }
 
-void SAddCmd::Do(std::shared_ptr<Slot> slot) {
+void SAddCmd::Do(std::shared_ptr<DB> db) {
   int32_t count = 0;
-  s_ = slot->db()->SAdd(key_, members_, &count);
+  s_ = db->storage()->SAdd(key_, members_, &count);
   if (!s_.ok()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
-  AddSlotKey("s", key_, slot);
+  AddSlotKey("s", key_, db);
   res_.AppendInteger(count);
 }
 
-void SAddCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SAddCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SAddCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SAddIfKeyExist(CachePrefixKeyS, members_);
+    db->cache()->SAddIfKeyExist(CachePrefixKeyS, members_);
   }
 }
 
@@ -66,8 +66,8 @@ void SPopCmd::DoInitial() {
   }
 }
 
-void SPopCmd::Do(std::shared_ptr<Slot> slot) {
-   s_ = slot->db()->SPop(key_, &members_, count_);
+void SPopCmd::Do(std::shared_ptr<DB> db) {
+   s_ = db->storage()->SPop(key_, &members_, count_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(members_.size());
     for (const auto& member : members_) {
@@ -81,14 +81,14 @@ void SPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SPopCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SPopCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SRem(CachePrefixKeyS, members_);
+    db->cache()->SRem(CachePrefixKeyS, members_);
   }
 }
 
@@ -100,9 +100,9 @@ void SCardCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void SCardCmd::Do(std::shared_ptr<Slot> slot) {
+void SCardCmd::Do(std::shared_ptr<DB> db) {
   int32_t card = 0;
-  s_ = slot->db()->SCard(key_, &card);
+  s_ = db->storage()->SCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -110,10 +110,10 @@ void SCardCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SCardCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void SCardCmd::ReadCache(std::shared_ptr<DB> db) {
   uint64_t card = 0;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = slot->cache()->SCard(CachePrefixKeyS, &card);
+  auto s = db->cache()->SCard(CachePrefixKeyS, &card);
   if (s.ok()) {
     res_.AppendInteger(card);
   } else if (s.IsNotFound()) {
@@ -123,14 +123,14 @@ void SCardCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SCardCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void SCardCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void SCardCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SCardCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, db);
   }
 }
 
@@ -142,9 +142,9 @@ void SMembersCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
+void SMembersCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  s_ = slot->db()->SMembers(key_, &members);
+  s_ = db->storage()->SMembers(key_, &members);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
@@ -156,10 +156,10 @@ void SMembersCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMembersCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void SMembersCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = slot->cache()->SMembers(CachePrefixKeyS, &members);
+  auto s = db->cache()->SMembers(CachePrefixKeyS, &members);
   if (s.ok()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -173,14 +173,14 @@ void SMembersCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMembersCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void SMembersCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void SMembersCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SMembersCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, db);
   }
 }
 
@@ -222,10 +222,10 @@ void SScanCmd::DoInitial() {
   }
 }
 
-void SScanCmd::Do(std::shared_ptr<Slot> slot) {
+void SScanCmd::Do(std::shared_ptr<DB> db) {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  rocksdb::Status s = slot->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = db->storage()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -254,8 +254,8 @@ void SRemCmd::DoInitial() {
   members_.assign(++iter, argv_.end());
 }
 
-void SRemCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->SRem(key_, members_, &deleted_);
+void SRemCmd::Do(std::shared_ptr<DB> db) {
+  s_ = db->storage()->SRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
   } else {
@@ -263,14 +263,14 @@ void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SRemCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    slot->cache()->SRem(CachePrefixKeyS, members_);
+    db->cache()->SRem(CachePrefixKeyS, members_);
   }
 }
 
@@ -283,9 +283,9 @@ void SUnionCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SUnionCmd::Do(std::shared_ptr<Slot> slot) {
+void SUnionCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  s_ = slot->db()->SUnion(keys_, &members);
+  s_ = db->storage()->SUnion(keys_, &members);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
@@ -308,9 +308,9 @@ void SUnionstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
+void SUnionstoreCmd::Do(std::shared_ptr<DB> db) {
   int32_t count = 0;
-  s_ = slot->db()->SUnionstore(dest_key_, keys_, value_to_dest_, &count);
+  s_ = db->storage()->SUnionstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -318,26 +318,26 @@ void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SUnionstoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SUnionstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixS + dest_key_);
-    slot->cache()->Del(v);
+    db->cache()->Del(v);
   }
 }
 
-void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
   del_cmd_->Initial(del_args, db_name_);
   del_cmd_->SetConn(GetConn());
   del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog(slot);
+  del_cmd_->DoBinlog(db);
 
   if (value_to_dest_.size() == 0) {
     //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
@@ -358,7 +358,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   for (size_t i = 1; i < value_to_dest_.size(); i++) {
     if (data_size >= 131072) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      sadd_cmd_->DoBinlog(slot);
+      sadd_cmd_->DoBinlog(db);
       sadd_argv.clear();
       sadd_argv.emplace_back("sadd");
       sadd_argv.emplace_back(dest_key_);
@@ -367,7 +367,7 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     sadd_argv.emplace_back(value_to_dest_[i]);
     data_size += value_to_dest_[i].size();
   }
-  sadd_cmd_->DoBinlog(slot);
+  sadd_cmd_->DoBinlog(db);
 }
 
 void SInterCmd::DoInitial() {
@@ -379,9 +379,9 @@ void SInterCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SInterCmd::Do(std::shared_ptr<Slot> slot) {
+void SInterCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  s_ = slot->db()->SInter(keys_, &members);
+  s_ = db->storage()->SInter(keys_, &members);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
@@ -404,9 +404,9 @@ void SInterstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
+void SInterstoreCmd::Do(std::shared_ptr<DB> db) {
   int32_t count = 0;
-  s_ = slot->db()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
+  s_ = db->storage()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -414,15 +414,15 @@ void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SInterstoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SInterstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixS + dest_key_);
-    slot->cache()->Del(v);
+    db->cache()->Del(v);
   }
 }
 
@@ -435,9 +435,9 @@ void SIsmemberCmd::DoInitial() {
   member_ = argv_[2];
 }
 
-void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::Do(std::shared_ptr<DB> db) {
   int32_t is_member = 0;
-  s_ = slot->db()->SIsmember(key_, member_, &is_member);
+  s_ = db->storage()->SIsmember(key_, member_, &is_member);
   if (is_member != 0) {
     res_.AppendContent(":1");
   } else {
@@ -445,9 +445,9 @@ void SIsmemberCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SIsmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::ReadCache(std::shared_ptr<DB> db) {
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = slot->cache()->SIsmember(CachePrefixKeyS, member_);
+  auto s = db->cache()->SIsmember(CachePrefixKeyS, member_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -458,14 +458,14 @@ void SIsmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
 }
 
 
-void SIsmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void SIsmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SIsmemberCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, db);
   }
 }
 
@@ -478,9 +478,9 @@ void SDiffCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
+void SDiffCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  s_ = slot->db()->SDiff(keys_, &members);
+  s_ = db->storage()->SDiff(keys_, &members);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
@@ -503,9 +503,9 @@ void SDiffstoreCmd::DoInitial() {
   keys_.assign(++iter, argv_.end());
 }
 
-void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
+void SDiffstoreCmd::Do(std::shared_ptr<DB> db) {
   int32_t count = 0;
-  s_ = slot->db()->SDiffstore(dest_key_, keys_, value_to_dest_, &count);
+  s_ = db->storage()->SDiffstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -513,15 +513,15 @@ void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SDiffstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SDiffstoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SDiffstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SDiffstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixS + dest_key_);
-    slot->cache()->Del(v);
+    db->cache()->Del(v);
   }
 }
 
@@ -535,9 +535,9 @@ void SMoveCmd::DoInitial() {
   member_ = argv_[3];
 }
 
-void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
+void SMoveCmd::Do(std::shared_ptr<DB> db) {
   int32_t res = 0;
-  s_ = slot->db()->SMove(src_key_, dest_key_, member_, &res);
+  s_ = db->storage()->SMove(src_key_, dest_key_, member_, &res);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
@@ -546,22 +546,22 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void SMoveCmd::DoThroughDB(std::shared_ptr<DB> db) {
+  Do(db);
 }
 
-void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SMoveCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
     std::vector<std::string> members;
     members.emplace_back(member_);
     std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
     std::string CachePrefixKeyD = PCacheKeyPrefixS + dest_key_;
-    slot->cache()->SRem(CachePrefixKeyS, members);
-    slot->cache()->SAddIfKeyExist(CachePrefixKeyD, members);
+    db->cache()->SRem(CachePrefixKeyS, members);
+    db->cache()->SAddIfKeyExist(CachePrefixKeyD, members);
   }
 }
 
-void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   if (!move_success_) {
     //the member is not in the source set, nothing changed
     return;
@@ -585,8 +585,8 @@ void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   sadd_cmd_->SetConn(GetConn());
   sadd_cmd_->SetResp(resp_.lock());
 
-  srem_cmd_->DoBinlog(slot);
-  sadd_cmd_->DoBinlog(slot);
+  srem_cmd_->DoBinlog(db);
+  sadd_cmd_->DoBinlog(db);
 }
 
 void SRandmemberCmd::DoInitial() {
@@ -607,9 +607,9 @@ void SRandmemberCmd::DoInitial() {
   }
 }
 
-void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::Do(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
-  s_ = slot->db()->SRandmember(key_, static_cast<int32_t>(count_), &members);
+  s_ = db->storage()->SRandmember(key_, static_cast<int32_t>(count_), &members);
   if (s_.ok() || s_.IsNotFound()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
@@ -626,10 +626,10 @@ void SRandmemberCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRandmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<std::string> members;
   std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = slot->cache()->SRandmember(CachePrefixKeyS, count_, &members);
+  auto s = db->cache()->SRandmember(CachePrefixKeyS, count_, &members);
   if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());
@@ -648,14 +648,14 @@ void SRandmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRandmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::DoThroughDB(std::shared_ptr<DB> db) {
   res_.clear();
-  Do(slot);
+  Do(db);
 }
 
-void SRandmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void SRandmemberCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
+    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, db);
   }
 }
 

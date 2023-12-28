@@ -43,25 +43,13 @@ extern "C" {
 #define RANGEISZERO(r) (!(r).max && !(r).min)
 #define RANGEPISZERO(r) ((r) == nullptr || RANGEISZERO(*(r)))
 
-#define GEO_STEP_MAX 26 /* 26*2 = 52 bits. */
+#define GEO_STEP_MAX 26 /* 26 * 2 = 52 bits. */
 
 /* Limits from EPSG:900913 / EPSG:3785 / OSGEO:41001 */
 constexpr double GEO_LAT_MIN{-85.05112878};
 constexpr double GEO_LAT_MAX{85.05112878};
 constexpr int64_t GEO_LONG_MIN{-180};
 constexpr int64_t GEO_LONG_MAX{180};
-
-
-enum GeoDirection {
-  GEOHASH_NORTH = 0,
-  GEOHASH_EAST,
-  GEOHASH_WEST,
-  GEOHASH_SOUTH,
-  GEOHASH_SOUTH_WEST,
-  GEOHASH_SOUTH_EAST,
-  GEOHASH_NORT_WEST,
-  GEOHASH_NORT_EAST
-};
 
 struct GeoHashBits {
   uint64_t bits;
@@ -102,11 +90,9 @@ int geohashEncodeWGS84(double longitude, double latitude, uint8_t step, GeoHashB
 int geohashDecode(GeoHashRange long_range, GeoHashRange lat_range, GeoHashBits hash,
                   GeoHashArea* area);
 int geohashDecodeType(GeoHashBits hash, GeoHashArea* area);
-int geohashDecodeWGS84(GeoHashBits hash, GeoHashArea* area);
 int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy);
 int geohashDecodeToLongLatType(GeoHashBits hash, double* xy);
 int geohashDecodeToLongLatWGS84(GeoHashBits hash, double* xy);
-int geohashDecodeToLongLatMercator(GeoHashBits hash, double* xy);
 void geohashNeighbors(const GeoHashBits* hash, GeoHashNeighbors* neighbors);
 
 #if defined(__cplusplus)
