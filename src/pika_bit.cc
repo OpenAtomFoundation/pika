@@ -58,8 +58,8 @@ void BitSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 
 void BitSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
-    std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-    slot->cache()->SetBitIfKeyExist(CachePrefixKeyB, bit_offset_, on_);
+    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+    slot->cache()->SetBitIfKeyExist(CachePrefixKeyK, bit_offset_, on_);
   }
 }
 
@@ -92,8 +92,8 @@ void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
 
 void BitGetCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t bit_val = 0;
-  std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
-  auto s = slot->cache()->GetBit(CachePrefixKeyB, bit_offset_, &bit_val);
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+  auto s = slot->cache()->GetBit(CachePrefixKeyK, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(bit_val);
   } else if (s.IsNotFound()) {
@@ -157,11 +157,11 @@ void BitCountCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);
   rocksdb::Status s;
-  std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
   if (count_all_) {
-    s = slot->cache()->BitCount(CachePrefixKeyB, start, end, &count, 0);
+    s = slot->cache()->BitCount(CachePrefixKeyK, start, end, &count, 0);
   } else {
-    s = slot->cache()->BitCount(CachePrefixKeyB, start, end, &count, 1);
+    s = slot->cache()->BitCount(CachePrefixKeyK, start, end, &count, 1);
   }
 
   if (s.ok()) {
@@ -247,13 +247,13 @@ void BitPosCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int64_t bit = static_cast<long>(bit_val_);
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);\
-  std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
   if (pos_all_) {
-    s = slot->cache()->BitPos(CachePrefixKeyB, bit, &pos);
+    s = slot->cache()->BitPos(CachePrefixKeyK, bit, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = slot->cache()->BitPos(CachePrefixKeyB, bit, start, &pos);
+    s = slot->cache()->BitPos(CachePrefixKeyK, bit, start, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = slot->cache()->BitPos(CachePrefixKeyB, bit, start, end, &pos);
+    s = slot->cache()->BitPos(CachePrefixKeyK, bit, start, end, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger(pos);
@@ -327,7 +327,7 @@ void BitOpCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void BitOpCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixB + dest_key_);
+    v.emplace_back(PCacheKeyPrefixK + dest_key_);
     slot->cache()->Del(v);
   }
 }

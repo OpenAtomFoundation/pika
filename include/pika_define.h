@@ -406,12 +406,12 @@ const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
 
+// prefix of pika cache
 const std::string PCacheKeyPrefixK = "K";
 const std::string PCacheKeyPrefixH = "H";
 const std::string PCacheKeyPrefixS = "S";
 const std::string PCacheKeyPrefixZ = "Z";
 const std::string PCacheKeyPrefixL = "L";
-const std::string PCacheKeyPrefixB = "B";
 
 
 /*
