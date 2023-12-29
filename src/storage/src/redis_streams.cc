@@ -4,6 +4,7 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include "src/redis_streams.h"
+#include <sys/types.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -80,7 +81,7 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
 
   // 4 trim the stream if needed
   if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
-    size_t count{0};
+    int32_t count{0};
     s = TrimStream(count, stream_meta, key, args, default_read_options_);
     if (!s.ok()) {
       return Status::Corruption("error from XADD, trim stream failed: " + s.ToString());
@@ -97,7 +98,7 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
   return Status::OK();
 }
 
-Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, size_t& count) {
+Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
   ScopeRecordLock l(lock_mgr_, key);
 
   // 1 get stream meta
@@ -124,7 +125,7 @@ Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, size_t& co
   return Status::OK();
 }
 
-Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, size_t& count) {
+Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count) {
   ScopeRecordLock l(lock_mgr_, key);
 
   // 1 try to get stream meta
@@ -135,7 +136,10 @@ Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, si
   }
 
   // 2 do the delete
-  count = ids.size();
+  if (ids.size() > INT32_MAX) {
+    return Status::InvalidArgument("Too many IDs specified");
+  }
+  count = static_cast<int32_t>(ids.size());
   std::string unused;
   for (auto id : ids) {
     StreamDataKey stream_data_key(key, stream_meta.version(), id.Serialize());
@@ -219,7 +223,7 @@ Status RedisStreams::XRevrange(const Slice& key, const StreamScanArgs& args, std
   return s;
 }
 
-Status RedisStreams::XLen(const Slice& key, size_t& len) {
+Status RedisStreams::XLen(const Slice& key, int32_t& len) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -582,7 +586,7 @@ Status RedisStreams::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::
   return s;
 }
 
-Status RedisStreams::TrimStream(size_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+Status RedisStreams::TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
                                 StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
   count = 0;
   // 1 do the trim
@@ -810,7 +814,7 @@ Status RedisStreams::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta
 }
 
 Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                               const std::string& id_end, const Slice& pattern, size_t limit,
+                               const std::string& id_end, const Slice& pattern, int32_t limit,
                                std::vector<IdMessage>& id_messages, std::string& next_id,
                                rocksdb::ReadOptions& read_options) {
   next_id.clear();
@@ -855,7 +859,7 @@ Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Sl
 }
 
 Status RedisStreams::ReScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                                 const std::string& id_end, const Slice& pattern, size_t limit,
+                                 const std::string& id_end, const Slice& pattern, int32_t limit,
                                  std::vector<IdMessage>& id_messages, std::string& next_id,
                                  rocksdb::ReadOptions& read_options) {
   next_id.clear();
@@ -1008,7 +1012,7 @@ bool StreamUtils::StreamGenericParseID(const std::string& var, streamID& id, uin
     return false;
   };
   if (dot) {
-    size_t seqlen = strlen(dot + 1);
+    auto seqlen = strlen(dot + 1);
     if (seq_given != nullptr && seqlen == 1 && *(dot + 1) == '*') {
       seq = 0;
       *seq_given = false;
@@ -1098,15 +1102,15 @@ bool StreamUtils::SerializeMessage(const std::vector<std::string>& field_values,
   assert(field_values.size() - field_pos >= 2 && (field_values.size() - field_pos) % 2 == 0);
   assert(message.empty());
   // count the size of serizlized message
-  size_t size = 0;
+  uint32_t size = 0;
   for (int i = field_pos; i < field_values.size(); i++) {
-    size += field_values[i].size() + sizeof(size_t);
+    size += field_values[i].size() + sizeof(uint32_t);
   }
   message.reserve(size);
 
   // serialize message
   for (int i = field_pos; i < field_values.size(); i++) {
-    size_t len = field_values[i].size();
+    uint32_t len = field_values[i].size();
     message.append(reinterpret_cast<const char*>(&len), sizeof(len));
     message.append(field_values[i]);
   }
@@ -1115,11 +1119,11 @@ bool StreamUtils::SerializeMessage(const std::vector<std::string>& field_values,
 }
 
 bool StreamUtils::DeserializeMessage(const std::string& message, std::vector<std::string>& parsed_message) {
-  size_t pos = 0;
+  uint32_t pos = 0;
   while (pos < message.size()) {
     // Read the length of the next field value from the message
-    size_t len = *reinterpret_cast<const size_t*>(&message[pos]);
-    pos += sizeof(size_t);
+    uint32_t len = *reinterpret_cast<const uint32_t*>(&message[pos]);
+    pos += sizeof(uint32_t);
 
     // Check if the calculated end of the string is still within the message bounds
     if (pos + len > message.size()) {

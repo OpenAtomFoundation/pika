@@ -56,14 +56,14 @@ struct StreamReadGroupReadArgs {
 struct StreamScanArgs {
   streamID start_sid;
   streamID end_sid;
-  size_t limit{INT32_MAX};
+  int32_t limit{INT32_MAX};
   bool start_ex{false};    // exclude first message
   bool end_ex{false};      // exclude last message
   bool is_reverse{false};  // scan in reverse order
 };
 
 struct StreamInfoResult {
-  uint64_t length{0};
+  int32_t length{0};
   std::string last_id_str;
   std::string max_deleted_entry_id_str;
   uint64_t entries_added{0};
@@ -131,11 +131,11 @@ class RedisStreams : public Redis {
   // Commands
   //===--------------------------------------------------------------------===//
   Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
-  Status XDel(const Slice& key, const std::vector<streamID>& ids, size_t& count);
-  Status XTrim(const Slice& key, StreamAddTrimArgs& args, size_t& count);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
   Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
   Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
-  Status XLen(const Slice& key, size_t& len);
+  Status XLen(const Slice& key, int32_t& len);
   Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
                std::vector<std::string>& reserved_keys);
   Status XInfo(const Slice& key, StreamInfoResult& result);
@@ -176,11 +176,11 @@ class RedisStreams : public Redis {
     int32_t version;           // the version of the stream
     streamID start_sid;
     streamID end_sid;
-    size_t limit;
+    int32_t limit;
     bool start_ex;    // exclude first message
     bool end_ex;      // exclude last message
     bool is_reverse;  // scan in reverse order
-    ScanStreamOptions(const rocksdb::Slice skey, int32_t version, streamID start_sid, streamID end_sid, size_t count,
+    ScanStreamOptions(const rocksdb::Slice skey, int32_t version, streamID start_sid, streamID end_sid, int32_t count,
                       bool start_ex = false, bool end_ex = false, bool is_reverse = false)
         : key(skey),
           version(version),
@@ -206,22 +206,22 @@ class RedisStreams : public Redis {
   Status DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
                               const std::vector<std::string>& serialized_ids, rocksdb::ReadOptions& read_options);
 
-  Status TrimStream(size_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key, StreamAddTrimArgs& args,
+  Status TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key, StreamAddTrimArgs& args,
                     rocksdb::ReadOptions& read_options);
 
  private:
   Status GenerateStreamID(const StreamMetaValue& stream_meta, StreamAddTrimArgs& args);
 
   Status ScanRange(const Slice& key, const int32_t version, const Slice& id_start, const std::string& id_end,
-                   const Slice& pattern, size_t limit, std::vector<IdMessage>& id_messages, std::string& next_id,
+                   const Slice& pattern, int32_t limit, std::vector<IdMessage>& id_messages, std::string& next_id,
                    rocksdb::ReadOptions& read_options);
   Status ReScanRange(const Slice& key, const int32_t version, const Slice& id_start, const std::string& id_end,
-                     const Slice& pattern, size_t limit, std::vector<IdMessage>& id_values, std::string& next_id,
+                     const Slice& pattern, int32_t limit, std::vector<IdMessage>& id_values, std::string& next_id,
                      rocksdb::ReadOptions& read_options);
 
   struct TrimRet {
     // the count of deleted messages
-    size_t count{0};
+    int32_t count{0};
     // the next field after trim
     std::string next_field;
     // the max deleted field, will be empty if no message is deleted

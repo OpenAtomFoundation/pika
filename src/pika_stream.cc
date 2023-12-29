@@ -6,8 +6,10 @@
 #include "include/pika_stream.h"
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
+#include "glog/logging.h"
 #include "include/pika_command.h"
 #include "include/pika_define.h"
 #include "include/pika_slot.h"
@@ -270,9 +272,7 @@ void XRangeCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 6) {
-    // pika's PKHScanRange() only sopport max count of INT32_MAX
-    // but redis supports max count of UINT64_MAX
-    if (!storage::StreamUtils::string2uint64(argv_[5].c_str(), args_.limit)) {
+    if (!storage::StreamUtils::string2int32(argv_[5].c_str(), args_.limit)) {
       res_.SetRes(CmdRes::kInvalidParameter, "COUNT should be a integer greater than 0 and not bigger than INT32_MAX");
       return;
     }
@@ -328,7 +328,7 @@ void XDelCmd::DoInitial() {
 }
 
 void XDelCmd::Do(std::shared_ptr<Slot> slot) {
-  size_t count{0};
+  int32_t count{0};
   auto s = slot->db()->XDel(key_, ids_, count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -338,7 +338,7 @@ void XDelCmd::Do(std::shared_ptr<Slot> slot) {
     return res_.SetRes(CmdRes::kErrOther, "count is larger than INT_MAX");
   }
 
-  res_.AppendInteger(static_cast<int32_t>(count));
+  res_.AppendInteger(count);
 }
 
 void XLenCmd::DoInitial() {
@@ -350,7 +350,7 @@ void XLenCmd::DoInitial() {
 }
 
 void XLenCmd::Do(std::shared_ptr<Slot> slot) {
-  size_t len{0};
+  int32_t len{0};
   auto s = slot->db()->XLen(key_, len);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
@@ -364,7 +364,7 @@ void XLenCmd::Do(std::shared_ptr<Slot> slot) {
     return res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
   }
 
-  res_.AppendInteger(static_cast<int32_t>(len));
+  res_.AppendInteger(len);
   return;
 }
 
@@ -423,7 +423,7 @@ void XTrimCmd::DoInitial() {
 }
 
 void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
-  size_t count{0};
+  int32_t count{0};
   auto s = slot->db()->XTrim(key_, args_, count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -434,7 +434,7 @@ void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
     return res_.SetRes(CmdRes::kErrOther, "count is larger than INT_MAX");
   }
 
-  res_.AppendInteger(static_cast<int32_t>(count));
+  res_.AppendInteger(count);
   return;
 }
 

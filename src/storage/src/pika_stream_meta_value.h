@@ -13,8 +13,8 @@
 
 namespace storage {
 
-static const size_t kDefaultStreamValueLength =
-    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(uint64_t) + sizeof(int32_t);
+static const uint64_t kDefaultStreamValueLength =
+    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(int32_t);
 class StreamMetaValue {
  public:
   explicit StreamMetaValue() = default;
@@ -32,7 +32,7 @@ class StreamMetaValue {
     // not be seen by the new stream with the same key.
     ++version_;
 
-    size_t needed = kDefaultStreamValueLength;
+    uint64_t needed = kDefaultStreamValueLength;
     value_.resize(needed);
 
     char* dst = &value_[0];
@@ -42,7 +42,7 @@ class StreamMetaValue {
     dst += sizeof(tree_id_t);
 
     EncodeFixed64(dst, entries_added_);
-    dst += sizeof(size_t);
+    dst += sizeof(uint64_t);
 
     EncodeFixed64(dst, first_id_.ms);
     dst += sizeof(uint64_t);
@@ -59,8 +59,8 @@ class StreamMetaValue {
     EncodeFixed64(dst, max_deleted_entry_id_.seq);
     dst += sizeof(uint64_t);
 
-    EncodeFixed64(dst, length_);
-    dst += sizeof(int64_t);
+    EncodeFixed32(dst, length_);
+    dst += sizeof(length_);
 
     EncodeFixed32(dst, version_);
   }
@@ -79,7 +79,7 @@ class StreamMetaValue {
     pos += sizeof(tree_id_t);
 
     entries_added_ = DecodeFixed64(pos);
-    pos += sizeof(size_t);
+    pos += sizeof(uint64_t);
 
     first_id_.ms = DecodeFixed64(pos);
     pos += sizeof(uint64_t);
@@ -96,8 +96,8 @@ class StreamMetaValue {
     max_deleted_entry_id_.seq = DecodeFixed64(pos);
     pos += sizeof(uint64_t);
 
-    length_ = DecodeFixed64(pos);
-    pos += sizeof(size_t);
+    length_ = static_cast<int32_t>(DecodeFixed32(pos));
+    pos += sizeof(length_);
 
     version_ = static_cast<int32_t>(DecodeFixed32(pos));
   }
@@ -106,9 +106,9 @@ class StreamMetaValue {
 
   tree_id_t groups_id() const { return groups_id_; }
 
-  size_t entries_added() const { return entries_added_; }
+  uint64_t entries_added() const { return entries_added_; }
 
-  void ModifyEntriesAdded(size_t delta) { set_entries_added(entries_added_ + delta); }
+  void ModifyEntriesAdded(uint64_t delta) { set_entries_added(entries_added_ + delta); }
 
   streamID first_id() const { return first_id_; }
 
@@ -116,7 +116,7 @@ class StreamMetaValue {
 
   streamID max_deleted_entry_id() const { return max_deleted_entry_id_; }
 
-  size_t length() const { return length_; }
+  int32_t length() const { return length_; }
 
   std::string& value() { return value_; }
 
@@ -132,59 +132,65 @@ class StreamMetaValue {
     assert(value_.size() == kDefaultStreamValueLength);
     groups_id_ = groups_id;
     char* dst = const_cast<char*>(value_.data());
-    memcpy(dst, &groups_id_, sizeof(tree_id_t));
+    EncodeFixed32(dst, groups_id_);
   }
 
   void set_entries_added(uint64_t entries_added) {
     assert(value_.size() == kDefaultStreamValueLength);
     entries_added_ = entries_added;
     char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t);
-    memcpy(dst, &entries_added_, sizeof(uint64_t));
+    EncodeFixed64(dst, entries_added_);
   }
 
   void set_first_id(streamID first_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     first_id_ = first_id;
     char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t);
-    memcpy(dst, &first_id_, sizeof(uint64_t));
+    EncodeFixed64(dst, first_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, first_id_.seq);
   }
 
   void set_last_id(streamID last_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     last_id_ = last_id;
     char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + sizeof(streamID);
-    memcpy(dst, &last_id_, sizeof(streamID));
+    EncodeFixed64(dst, last_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, last_id_.seq);
   }
 
   void set_max_deleted_entry_id(streamID max_deleted_entry_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     max_deleted_entry_id_ = max_deleted_entry_id;
     char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 2 * sizeof(streamID);
-    memcpy(dst, &max_deleted_entry_id_, sizeof(streamID));
+    EncodeFixed64(dst, max_deleted_entry_id_.ms);
+    dst += sizeof(uint64_t);
+    EncodeFixed64(dst, max_deleted_entry_id_.seq);
   }
 
-  void set_length(size_t length) {
+  void set_length(int32_t length) {
     assert(value_.size() == kDefaultStreamValueLength);
     length_ = length;
     char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID);
-    memcpy(dst, &length_, sizeof(size_t));
+    EncodeFixed32(dst, length_);
   }
 
   void set_version(int32_t version) {
     assert(value_.size() == kDefaultStreamValueLength);
     version_ = version;
     char* dst =
-        const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(size_t);
+        const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(length_);
     EncodeFixed32(dst, version_);
   }
 
  private:
   tree_id_t groups_id_ = kINVALID_TREE_ID;
-  size_t entries_added_{0};
+  uint64_t entries_added_{0};
   streamID first_id_;
   streamID last_id_;
   streamID max_deleted_entry_id_;
-  size_t length_{0};  // number of the messages in the stream
+  int32_t length_{0};  // number of the messages in the stream
   int32_t version_{0};
 
   std::string value_{};
@@ -204,7 +210,7 @@ class ParsedStreamMetaValue {
     pos += sizeof(tree_id_t);
 
     entries_added_ = DecodeFixed64(pos);
-    pos += sizeof(size_t);
+    pos += sizeof(uint64_t);
 
     first_id_.ms = DecodeFixed64(pos);
     pos += sizeof(uint64_t);
@@ -221,8 +227,8 @@ class ParsedStreamMetaValue {
     max_deleted_entry_id_.seq = DecodeFixed64(pos);
     pos += sizeof(uint64_t);
 
-    length_ = DecodeFixed64(pos);
-    pos += sizeof(size_t);
+    length_ = static_cast<int32_t>(DecodeFixed32(pos));
+    pos += sizeof(length_);
 
     version_ = static_cast<int32_t>(DecodeFixed32(pos));
   }
@@ -231,7 +237,7 @@ class ParsedStreamMetaValue {
 
   tree_id_t groups_id() const { return groups_id_; }
 
-  size_t entries_added() const { return entries_added_; }
+  uint64_t entries_added() const { return entries_added_; }
 
   streamID first_id() const { return first_id_; }
 
@@ -239,7 +245,7 @@ class ParsedStreamMetaValue {
 
   streamID max_deleted_entry_id() const { return max_deleted_entry_id_; }
 
-  size_t length() const { return length_; }
+  int32_t length() const { return length_; }
 
   std::string ToString() {
     return "stream_meta: " + std::string("groups_id: ") + std::to_string(groups_id_) +
@@ -251,15 +257,15 @@ class ParsedStreamMetaValue {
 
  private:
   tree_id_t groups_id_ = kINVALID_TREE_ID;
-  size_t entries_added_{0};
+  uint64_t entries_added_{0};
   streamID first_id_;
   streamID last_id_;
   streamID max_deleted_entry_id_;
-  size_t length_{0};  // number of the messages in the stream
+  int32_t length_{0};  // number of the messages in the stream
   int32_t version_{0};
 };
 
-static const size_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t);
+static const uint64_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t);
 class StreamCGroupMetaValue {
  public:
   explicit StreamCGroupMetaValue() = default;
@@ -268,7 +274,7 @@ class StreamCGroupMetaValue {
   void Init(tree_id_t tid, tree_id_t consumers) {
     pel_ = tid;
     consumers_ = consumers;
-    size_t needed = kDefaultStreamCGroupValueLength;
+    uint64_t needed = kDefaultStreamCGroupValueLength;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
       LOG(FATAL) << "Init on a existed stream cgroup meta value!";
@@ -340,7 +346,7 @@ class StreamCGroupMetaValue {
   tree_id_t consumers_ = 0;
 };
 
-static const size_t kDefaultStreamConsumerValueLength = sizeof(stream_ms_t) * 2 + sizeof(tree_id_t);
+static const uint64_t kDefaultStreamConsumerValueLength = sizeof(stream_ms_t) * 2 + sizeof(tree_id_t);
 class StreamConsumerMetaValue {
  public:
   // pel must been set at beginning
@@ -371,7 +377,7 @@ class StreamConsumerMetaValue {
       LOG(FATAL) << "Invalid stream consumer meta value length: " << value_.size() << " expected: 0";
       return;
     }
-    size_t needed = kDefaultStreamConsumerValueLength;
+    uint64_t needed = kDefaultStreamConsumerValueLength;
     value_.resize(needed);
     char* dst = &value_[0];
 
@@ -413,7 +419,7 @@ class StreamConsumerMetaValue {
   tree_id_t pel_ = 0;
 };
 
-static const size_t kDefaultStreamPelMetaValueLength = sizeof(stream_ms_t) + sizeof(uint64_t) + sizeof(tree_id_t);
+static const uint64_t kDefaultStreamPelMetaValueLength = sizeof(stream_ms_t) + sizeof(uint64_t) + sizeof(tree_id_t);
 class StreamPelMeta {
  public:
   // consumer must been set at beginning
@@ -422,7 +428,7 @@ class StreamPelMeta {
   void Init(std::string consumer, stream_ms_t delivery_time) {
     consumer_ = std::move(consumer);
     delivery_time_ = delivery_time;
-    size_t needed = kDefaultStreamPelMetaValueLength;
+    uint64_t needed = kDefaultStreamPelMetaValueLength;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
       LOG(ERROR) << "Init on a existed stream pel meta value!";
@@ -435,8 +441,8 @@ class StreamPelMeta {
     dst += sizeof(stream_ms_t);
     memcpy(dst, &delivery_count_, sizeof(uint64_t));
     dst += sizeof(uint64_t);
-    memcpy(dst, &cname_len_, sizeof(size_t));
-    dst += sizeof(size_t);
+    memcpy(dst, &cname_len_, sizeof(uint64_t));
+    dst += sizeof(uint64_t);
     memcpy(dst, consumer_.data(), cname_len_);
   }
 
@@ -452,8 +458,8 @@ class StreamPelMeta {
     pos += sizeof(stream_ms_t);
     memcpy(&delivery_count_, pos, sizeof(uint64_t));
     pos += sizeof(uint64_t);
-    memcpy(&cname_len_, pos, sizeof(size_t));
-    pos += sizeof(size_t);
+    memcpy(&cname_len_, pos, sizeof(uint64_t));
+    pos += sizeof(uint64_t);
     consumer_.assign(pos, cname_len_);
   }
 
@@ -484,7 +490,7 @@ class StreamPelMeta {
 
   stream_ms_t delivery_time_ = 0;
   uint64_t delivery_count_ = 1;
-  size_t cname_len_ = 0;
+  uint64_t cname_len_ = 0;
   std::string consumer_;
 };
 

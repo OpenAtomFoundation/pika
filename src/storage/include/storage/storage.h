@@ -932,11 +932,11 @@ class Storage {
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
 
   Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
-  Status XDel(const Slice& key, const std::vector<streamID>& ids, size_t& ret);
-  Status XTrim(const Slice& key, StreamAddTrimArgs& args, size_t& count);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
   Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
   Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
-  Status XLen(const Slice& key, uint64_t& len);
+  Status XLen(const Slice& key, int32_t& len);
   Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
                std::vector<std::string>& reserved_keys);
   Status XInfo(const Slice& key, StreamInfoResult &result);

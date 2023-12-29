@@ -543,11 +543,11 @@ Status Storage::XAdd(const Slice& key, const std::string& serialized_message, St
   return streams_db_->XAdd(key, serialized_message, args);
 }
 
-Status Storage::XDel(const Slice& key, const std::vector<streamID>& ids, size_t& ret) {
+Status Storage::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret) {
   return streams_db_->XDel(key, ids, ret);
 }
 
-Status Storage::XTrim(const Slice& key, StreamAddTrimArgs& args, size_t& count) {
+Status Storage::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
   return streams_db_->XTrim(key, args, count);
 }
 
@@ -559,7 +559,7 @@ Status Storage::XRevrange(const Slice& key, const StreamScanArgs& args, std::vec
   return streams_db_->XRevrange(key, args, id_messages);
 }
 
-Status Storage::XLen(const Slice& key, uint64_t& len) {
+Status Storage::XLen(const Slice& key, int32_t& len) {
   return streams_db_->XLen(key, len);
 }
 
