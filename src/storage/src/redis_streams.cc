@@ -219,7 +219,7 @@ Status RedisStreams::XRevrange(const Slice& key, const StreamScanArgs& args, std
   return s;
 }
 
-Status RedisStreams::XLen(const Slice& key, uint64_t& len) {
+Status RedisStreams::XLen(const Slice& key, size_t& len) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
