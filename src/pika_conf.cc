@@ -757,6 +757,15 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
+  // cache config
+  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
+  SetConfInt("block-size", block_size_);
+  SetConfInt("block-cache", block_cache_);
+  SetConfStr("cache-type", scache_type());
+  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
+  SetConfInt("cache-model", cache_model_);
+  SetConfInt("zset_cache_start_pos", zset_cache_start_pos_);
+  SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;

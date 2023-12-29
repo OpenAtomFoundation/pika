@@ -2049,6 +2049,59 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->replication_id());
   }
 
+  if (pstd::stringmatch(pattern.data(), "cache-num", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-num");
+    EncodeNumber(&config_body, g_pika_conf->GetCacheNum());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-model", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-model");
+    EncodeNumber(&config_body, g_pika_conf->cache_model());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-type", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-type");
+    EncodeString(&config_body, g_pika_conf->scache_type());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-start-direction", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-start-direction");
+    EncodeNumber(&config_body, g_pika_conf->zset_cache_start_pos());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-items-per-key", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-items-per-key");
+    EncodeNumber(&config_body, g_pika_conf->zset_cache_field_num_per_key());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory-policy", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory-policy");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory_policy());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory-samples", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory-samples");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory_samples());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-lfu-decay-time", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-lfu-decay-time");
+    EncodeNumber(&config_body, g_pika_conf->cache_lfu_decay_time());
+  }
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -2095,6 +2148,16 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "arena-block-size");
     EncodeString(&ret, "throttle-bytes-per-second");
     EncodeString(&ret, "max-rsync-parallel-num");
+    EncodeString(&ret, "cache-num");
+    EncodeString(&ret, "cache-model");
+    EncodeString(&ret, "cache-type");
+    EncodeString(&ret, "zset-cache-start-direction");
+    EncodeString(&ret, "zset-cache-items-per-key");
+    EncodeString(&ret, "cache-maxmemory");
+    EncodeString(&ret, "cache-maxmemory-policy");
+    EncodeString(&ret, "cache-maxmemory-samples");
+    EncodeString(&ret, "cache-lfu-decay-time");
+    EncodeString(&ret, "disable-auto-compactions");
     return;
   }
   long int ival = 0;
