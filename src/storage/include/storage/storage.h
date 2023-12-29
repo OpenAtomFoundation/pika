@@ -1049,6 +1049,10 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
+  Status EnableDymayticOptions(const OptionType& option_type, 
+                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
+  Status EnableAutoCompaction(const OptionType& option_type, 
+                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
  private:
