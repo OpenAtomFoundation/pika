@@ -17,7 +17,7 @@
  */
 class ZAddCmd : public Cmd {
  public:
-  ZAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZAddCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -39,7 +39,7 @@ class ZAddCmd : public Cmd {
 
 class ZCardCmd : public Cmd {
  public:
-  ZCardCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZCardCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -60,7 +60,7 @@ class ZCardCmd : public Cmd {
 
 class ZScanCmd : public Cmd {
  public:
-  ZScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  ZScanCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -83,7 +83,7 @@ class ZScanCmd : public Cmd {
 
 class ZIncrbyCmd : public Cmd {
  public:
-  ZIncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZIncrbyCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -106,7 +106,7 @@ class ZIncrbyCmd : public Cmd {
 
 class ZsetRangeParentCmd : public Cmd {
  public:
-  ZsetRangeParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZsetRangeParentCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
 
  protected:
   std::string key_;
@@ -119,7 +119,7 @@ class ZsetRangeParentCmd : public Cmd {
 
 class ZRangeCmd : public ZsetRangeParentCmd {
  public:
-  ZRangeCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
+  ZRangeCmd(const std::string& name, int arity, uint32_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -140,7 +140,7 @@ class ZRangeCmd : public ZsetRangeParentCmd {
 
 class ZRevrangeCmd : public ZsetRangeParentCmd {
  public:
-  ZRevrangeCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
+  ZRevrangeCmd(const std::string& name, int arity, uint32_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -161,7 +161,7 @@ class ZRevrangeCmd : public ZsetRangeParentCmd {
 
 class ZsetRangebyscoreParentCmd : public Cmd {
  public:
-  ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
 
   double MinScore() { return min_score_; }
   double MaxScore() { return max_score_; }
@@ -186,7 +186,7 @@ class ZsetRangebyscoreParentCmd : public Cmd {
 
 class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
  public:
-  ZRangebyscoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebyscoreParentCmd(name, arity, flag) {}
+  ZRangebyscoreCmd(const std::string& name, int arity, uint32_t flag) : ZsetRangebyscoreParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -207,7 +207,7 @@ class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
 
 class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
  public:
-  ZRevrangebyscoreCmd(const std::string& name, int arity, uint16_t flag)
+  ZRevrangebyscoreCmd(const std::string& name, int arity, uint32_t flag)
       : ZsetRangebyscoreParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -229,7 +229,7 @@ class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
 
 class ZCountCmd : public Cmd {
  public:
-  ZCountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZCountCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -262,7 +262,7 @@ class ZCountCmd : public Cmd {
 
 class ZRemCmd : public Cmd {
  public:
-  ZRemCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZRemCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -285,7 +285,7 @@ class ZRemCmd : public Cmd {
 
 class ZsetUIstoreParentCmd : public Cmd {
  public:
-  ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
+  ZsetUIstoreParentCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag) {
     zadd_cmd_ = std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset);
     del_cmd_ = std::make_shared<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv);
@@ -319,7 +319,7 @@ class ZsetUIstoreParentCmd : public Cmd {
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
  public:
-  ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
+  ZUnionstoreCmd(const std::string& name, int arity, uint32_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
@@ -337,7 +337,7 @@ class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
 
 class ZInterstoreCmd : public ZsetUIstoreParentCmd {
  public:
-  ZInterstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
+  ZInterstoreCmd(const std::string& name, int arity, uint32_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
@@ -355,7 +355,7 @@ class ZInterstoreCmd : public ZsetUIstoreParentCmd {
 
 class ZsetRankParentCmd : public Cmd {
  public:
-  ZsetRankParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZsetRankParentCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
 
  protected:
   std::string key_, member_;
@@ -364,7 +364,7 @@ class ZsetRankParentCmd : public Cmd {
 
 class ZRankCmd : public ZsetRankParentCmd {
  public:
-  ZRankCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
+  ZRankCmd(const std::string& name, int arity, uint32_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -385,7 +385,7 @@ class ZRankCmd : public ZsetRankParentCmd {
 
 class ZRevrankCmd : public ZsetRankParentCmd {
  public:
-  ZRevrankCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
+  ZRevrankCmd(const std::string& name, int arity, uint32_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -406,7 +406,7 @@ class ZRevrankCmd : public ZsetRankParentCmd {
 
 class ZScoreCmd : public ZsetRankParentCmd {
  public:
-  ZScoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
+  ZScoreCmd(const std::string& name, int arity, uint32_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -428,7 +428,7 @@ class ZScoreCmd : public ZsetRankParentCmd {
 
 class ZsetRangebylexParentCmd : public Cmd {
  public:
-  ZsetRangebylexParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZsetRangebylexParentCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
 
  protected:
   std::string key_, min_member_, max_member_;
@@ -445,7 +445,7 @@ class ZsetRangebylexParentCmd : public Cmd {
 
 class ZRangebylexCmd : public ZsetRangebylexParentCmd {
  public:
-  ZRangebylexCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
+  ZRangebylexCmd(const std::string& name, int arity, uint32_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -466,7 +466,7 @@ class ZRangebylexCmd : public ZsetRangebylexParentCmd {
 
 class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
  public:
-  ZRevrangebylexCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
+  ZRevrangebylexCmd(const std::string& name, int arity, uint32_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -487,7 +487,7 @@ class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
 
 class ZLexcountCmd : public Cmd {
  public:
-  ZLexcountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZLexcountCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -512,7 +512,7 @@ class ZLexcountCmd : public Cmd {
 
 class ZRemrangebyrankCmd : public Cmd {
  public:
-  ZRemrangebyrankCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZRemrangebyrankCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -535,7 +535,7 @@ class ZRemrangebyrankCmd : public Cmd {
 
 class ZRemrangebyscoreCmd : public Cmd {
  public:
-  ZRemrangebyscoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZRemrangebyscoreCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -559,7 +559,7 @@ class ZRemrangebyscoreCmd : public Cmd {
 
 class ZRemrangebylexCmd : public Cmd {
  public:
-  ZRemrangebylexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZRemrangebylexCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -583,7 +583,7 @@ class ZRemrangebylexCmd : public Cmd {
 
 class ZPopmaxCmd : public Cmd {
  public:
-  ZPopmaxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZPopmaxCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.emplace_back(key_);
@@ -602,7 +602,7 @@ class ZPopmaxCmd : public Cmd {
 
 class ZPopminCmd : public Cmd {
  public:
-  ZPopminCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ZPopminCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);

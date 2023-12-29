@@ -14,7 +14,7 @@
  */
 class PfAddCmd : public Cmd {
  public:
-  PfAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PfAddCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -34,7 +34,7 @@ class PfAddCmd : public Cmd {
 
 class PfCountCmd : public Cmd {
  public:
-  PfCountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PfCountCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -48,7 +48,7 @@ class PfCountCmd : public Cmd {
 
 class PfMergeCmd : public Cmd {
  public:
-  PfMergeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {
+  PfMergeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   PfMergeCmd(const PfMergeCmd& other)
