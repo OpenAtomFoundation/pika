@@ -430,7 +430,8 @@ class MsetnxCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STRING)) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
-  MsetnxCmd(const MsetnxCmd& other) : Cmd(other), kvs_(other.kvs_), success_(other.success_) {
+  MsetnxCmd(const MsetnxCmd& other)
+      : Cmd(other), kvs_(other.kvs_), success_(other.success_) {
     set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
   }
   std::vector<std::string> current_key() const override {
@@ -546,7 +547,6 @@ class ExistsCmd : public Cmd {
   std::vector<std::string> keys_;
   int64_t split_res_ = 0;
   void DoInitial() override;
-  rocksdb::Status s_;
 };
 
 class ExpireCmd : public Cmd {
@@ -742,8 +742,8 @@ class PTypeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new PTypeCmd(*this); }
 
  private:

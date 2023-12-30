@@ -160,6 +160,10 @@ Status Storage::MGet(const std::vector<std::string>& keys, std::vector<ValueStat
   return strings_db_->MGet(keys, vss);
 }
 
+Status Storage::MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss) {
+  return strings_db_->MGetWithTTL(keys, vss);
+}
+
 Status Storage::Setnx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl) {
   return strings_db_->Setnx(key, value, ret, ttl);
 }

@@ -390,6 +390,7 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
+  
   return true;
 }
 
@@ -468,7 +469,6 @@ bool Slot::FlushDB() {
 }
 
 bool Slot::FlushDBWithoutLock() {
-  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -538,7 +538,7 @@ KeyScanInfo Slot::GetKeyScanInfo() {
 }
 
 DisplayCacheInfo Slot::GetCacheInfo() {
-  std::lock_guard l(key_info_protector_);
+  std::lock_guard l(cache_info_rwlock_);
   return cache_info_;
 }
 

@@ -388,7 +388,7 @@ class TimeCmd : public Cmd {
 
 class LastsaveCmd : public Cmd {
  public:
-  LastsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  LastsaveCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

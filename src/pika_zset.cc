@@ -184,7 +184,7 @@ void ZIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this);
+    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this, slot);
   }
 }
 
@@ -395,6 +395,8 @@ static void FitLimit(int64_t& count, int64_t& offset, const int64_t size) {
 
 void ZsetRangebyscoreParentCmd::DoInitial() {
   key_ = argv_[1];
+  min_ = argv_[2];
+  max_ = argv_[3];
   int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
@@ -480,6 +482,8 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 
   std::vector<storage::ScoreMember> score_members;
+  min_ = std::to_string(min_score_);
+  max_ = std::to_string(max_score_);
   auto s = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();
@@ -577,7 +581,7 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this);
+  auto s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this, slot);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -622,6 +626,8 @@ void ZCountCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  min_= argv_[2];
+  max_ = argv_[3];
   int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
@@ -682,10 +688,9 @@ void ZRemCmd::DoInitial() {
 }
 
 void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
-  int32_t count = 0;
-  s_ = slot->db()->ZRem(key_, members_, &count);
+  s_ = slot->db()->ZRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
-    res_.AppendInteger(count);
+    res_.AppendInteger(deleted_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -698,7 +703,7 @@ void ZRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void ZRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZRem(CachePrefixKeyZ, members_);
+    slot->cache()->ZRem(CachePrefixKeyZ, members_, slot);
   }
 }
 
@@ -786,7 +791,7 @@ void ZUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void ZUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(dest_key_);
+    v.emplace_back(PCacheKeyPrefixZ+dest_key_);
     slot->cache()->Del(v);
   }
 }
@@ -1089,6 +1094,8 @@ static int32_t DoMemberRange(const std::string& raw_min_member, const std::strin
 
 void ZsetRangebylexParentCmd::DoInitial() {
   key_ = argv_[1];
+  min_ = argv_[2];
+  max_ = argv_[3];
   int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
@@ -1224,13 +1231,10 @@ void ZRevrangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<std::string> members;
   auto s = slot->cache()->ZRevrangebylex(key_, min_, max_, &members, slot);
   if (s.ok()) {
-    FitLimit(count_, offset_, members.size());
-
-    res_.AppendArrayLen(count_);
-    int64_t index = members.size() - 1 - offset_, end = index - count_;
-    for (; index > end; index--) {
-      res_.AppendStringLen(members[index].size());
-      res_.AppendContent(members[index]);
+    auto size = count_ < members.size() ? count_ : members.size();
+    res_.AppendArrayLen(static_cast<int64_t >(size));
+    for (int i = 0; i < size; ++i) {
+      res_.AppendString(members[i]);
     }
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
@@ -1256,6 +1260,8 @@ void ZLexcountCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  min_ = argv_[2];
+  max_ = argv_[3];
   int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
@@ -1424,13 +1430,13 @@ void ZPopmaxCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmax);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 
@@ -1458,13 +1464,13 @@ void ZPopminCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (argv_.size() == 2) {
-    count_ = 1;
-    return;
-  }
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  count_ = 1;
+  if (argv_.size() > 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
+  } else if (argv_.size() == 3) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    }
   }
 }
 

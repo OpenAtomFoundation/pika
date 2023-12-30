@@ -157,8 +157,6 @@ class LPopCmd : public Cmd {
 class LPushCmd : public BlockingBaseCmd {
  public:
   LPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
-  //  LPushCmd(const std::string& name, int arity, uint32_t flag)
-  //      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
