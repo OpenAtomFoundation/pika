@@ -156,7 +156,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCache, std::move(cacheptr)));
   std::unique_ptr<Cmd> clearcacheptr = std::make_unique<ClearCacheCmd>(kCmdNameClearCache, 1, kCmdFlagsAdmin | kCmdFlagsWrite);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameClearCache, std::move(clearcacheptr)));
-  std::unique_ptr<Cmd> lastsaveptr = std::make_unique<LastsaveCmd>(kCmdNameLastSave, 1, kCmdFlagsAdmin | kCmdFlagsRead);
+  std::unique_ptr<Cmd> lastsaveptr = std::make_unique<LastsaveCmd>(kCmdNameLastSave, 1, kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLastSave, std::move(lastsaveptr)));
 
 #ifdef WITH_COMMAND_DOCS
@@ -485,7 +485,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPush, std::move(lpushptr)));
 
-      std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> lpushxptr = std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPushx, std::move(lpushxptr)));
 
   std::unique_ptr<Cmd> lrangeptr = std::make_unique<LRangeCmd>(
@@ -1018,6 +1018,7 @@ void Cmd::ProcessMultiSlotCmd() {
   }
 }
 
+uint32_t Cmd::flag() const { return flag_; }
 bool Cmd::hasFlag(uint32_t flag) const { return (flag_ & flag); }
 bool Cmd::is_read() const { return (flag_ & kCmdFlagsRead); }
 bool Cmd::is_write() const { return (flag_ & kCmdFlagsWrite); }
@@ -1041,6 +1042,8 @@ bool Cmd::IsSuspend() const { return (flag_ & kCmdFlagsSuspend); }
 bool Cmd::is_single_slot() const { return (flag_ & kCmdFlagsSingleSlot); }
 bool Cmd::is_multi_slot() const { return (flag_ & kCmdFlagsMultiSlot); }
 // std::string Cmd::CurrentSubCommand() const { return ""; };
+bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
+std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 bool Cmd::IsAdminRequire() const { return (flag_ & kCmdFlagsAdminRequire); }
 bool Cmd::IsNeedUpdateCache() const { return (flag_ & kCmdFlagsUpdateCache); }
 bool Cmd::IsNeedCacheDo() const {

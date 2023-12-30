@@ -1046,8 +1046,8 @@ void AclSelector::InsertKeyPattern(const std::string& str, uint32_t flags) {
 }
 
 void AclSelector::InsertChannel(const std::string& str) {
-  for (const auto& item : patterns_) {
-    if (item->pattern == str) {
+  for (const auto& item : channels_) {
+    if (item == str) {
       return;
     }
   }

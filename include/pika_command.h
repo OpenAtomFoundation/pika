@@ -560,6 +560,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
 
   uint32_t GetCmdId() const { return cmdId_; };
+  bool CheckArg(uint64_t num) const;
 
  protected:
   // enable copy, used default copy
@@ -569,7 +570,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 
   std::string name_;

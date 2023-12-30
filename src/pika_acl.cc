@@ -132,6 +132,10 @@ void PikaAclCmd::DryRun() {
   if (argv_.size() > 4) {
     args = PikaCmdArgsType(argv_.begin() + 3, argv_.end());
   }
+  if (!cmd->CheckArg(args.size())) {
+    res().SetRes(CmdRes::kWrongNum, cmd->name());
+    return;
+  }
 
   int8_t subCmdIndex = -1;
   AclDeniedCmd checkRes = user->CheckUserPermission(cmd, args, subCmdIndex, nullptr);

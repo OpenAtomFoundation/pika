@@ -51,14 +51,8 @@ void PikaDispatchThread::UnAuthUserAndKillClient(const std::set<std::string>& us
   if (dispatchThread) {
     dispatchThread->AllConn([&](const std::shared_ptr<net::NetConn>& conn) {
       auto pikaClientConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-      bool doClose = false;
-      if (users.count(pikaClientConn->UserName())) {
-        doClose = true;
-      }
-      if (doClose && pikaClientConn) {
+      if (pikaClientConn && users.count(pikaClientConn->UserName())) {
         pikaClientConn->UnAuth(defaultUser);
-      }
-      if (doClose) {
         conn->SetClose(true);
       }
     });
