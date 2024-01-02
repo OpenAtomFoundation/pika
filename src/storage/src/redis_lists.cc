@@ -15,6 +15,7 @@
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
 #include "storage/util.h"
+#include "src/debug.h"
 
 namespace storage {
 Status Redis::ScanListsKeyNum(KeyInfo* key_info) {
@@ -161,7 +162,7 @@ Status Redis::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, co
       for (iter->Seek(start_data_key.Encode()); iter->Valid() && current_index < parsed_lists_meta_value.RightIndex();
            iter->Next(), current_index++) {
         ParsedBaseDataValue parsed_value(iter->value());
-        if (strcmp(parsed_value.UserValue().data(), pivot.data()) == 0) {
+        if (pivot.compare(parsed_value.UserValue().ToString()) == 0) {
           find_pivot = true;
           pivot_index = current_index;
           break;
@@ -532,7 +533,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
              iter->Valid() && current_index <= stop_index && ((count == 0) || rest != 0);
              iter->Next(), current_index++) {
           ParsedBaseDataValue parsed_value(iter->value());
-          if (strcmp(parsed_value.UserValue().ToString().data(), value.data()) == 0) {
+          if (value.compare(parsed_value.UserValue()) == 0) {
             target_index.push_back(current_index);
             if (count != 0) {
               rest--;
@@ -547,7 +548,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
              iter->Valid() && current_index >= start_index && ((count == 0) || rest != 0);
              iter->Prev(), current_index--) {
           ParsedBaseDataValue parsed_value(iter->value());
-          if (strcmp(parsed_value.UserValue().ToString().data(), value.data()) == 0) {
+          if (value.compare(parsed_value.UserValue()) == 0) {
             target_index.push_back(current_index);
             if (count != 0) {
               rest--;
@@ -573,7 +574,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
           for (iter->Seek(sublist_right_key.Encode()); iter->Valid() && current_index >= start_index;
                iter->Prev(), current_index--) {
             ParsedBaseDataValue parsed_value(iter->value());
-            if ((strcmp(parsed_value.UserValue().ToString().data(), value.data()) == 0) && rest > 0) {
+            if (value.compare(parsed_value.UserValue()) == 0 && rest > 0) {
               rest--;
             } else {
               ListsDataKey lists_data_key(key, version, left--);
@@ -594,7 +595,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
           for (iter->Seek(sublist_left_key.Encode()); iter->Valid() && current_index <= stop_index;
                iter->Next(), current_index++) {
             ParsedBaseDataValue parsed_value(iter->value());
-            if ((strcmp(iter->value().ToString().data(), value.data()) == 0) && rest > 0) {
+            if ((value.compare(parsed_value.UserValue()) == 0) && rest > 0) {
               rest--;
             } else {
               ListsDataKey lists_data_key(key, version, right++);
