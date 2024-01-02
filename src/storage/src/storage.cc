@@ -1810,7 +1810,8 @@ Status Storage::EnableDymayticOptions(const OptionType& option_type,
   auto it = options.find("disable_auto_compactions");
   if (it != options.end() && it->second == "false") {
     s = EnableAutoCompaction(option_type,db_type,options);
-    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") << " when Options get disable_auto_compactions: " << it->second;
+    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") 
+                 << " when Options get disable_auto_compactions: " << it->second << ",db_type:" << db_type;
   }
   return s;
 }
