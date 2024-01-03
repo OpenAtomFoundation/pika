@@ -295,7 +295,6 @@ func randomXaddThread(ctx *context.Context, clientMaster *redis.Client, wg *sync
 	}
 }
 
-
 func execute(ctx *context.Context, clientMaster *redis.Client, num_thread int, f command_func) {
 	var wg sync.WaitGroup
 	wg.Add(num_thread)
@@ -362,7 +361,7 @@ func issuePushPopFrequency(ctx *context.Context, clientMaster *redis.Client, wg 
 	clientMaster.BLPop(*ctx, 1 * time.Second, "blist0")
 }
 
-var _ = Describe("shuould replication ", func() {
+var _ = Describe("should replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
 		var clientSlave *redis.Client
@@ -514,7 +513,7 @@ var _ = Describe("shuould replication ", func() {
 			slave_unionstore_set := clientSlave.SMembers(ctx, "set_out")
 			Expect(slave_unionstore_set.Err()).NotTo(HaveOccurred())
 			Expect(master_unionstore_set.Val()).To(Equal(slave_unionstore_set.Val()))
-			
+
 			// Stream replication test
 			clientMaster.Del(ctx, "mystream")
 			execute(&ctx, clientMaster, 4, randomXaddThread)

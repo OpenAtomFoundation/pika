@@ -1804,6 +1804,63 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
       return s;
     }
   }
+  s = EnableDymayticOptions(option_type,db_type,options);
+  return s;
+}
+
+Status Storage::EnableDymayticOptions(const OptionType& option_type, 
+                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
+  Status s;
+  auto it = options.find("disable_auto_compactions");
+  if (it != options.end() && it->second == "false") {
+    s = EnableAutoCompaction(option_type,db_type,options);
+    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") 
+                 << " when Options get disable_auto_compactions: " << it->second << ",db_type:" << db_type;
+  }
+  return s;
+}
+
+Status Storage::EnableAutoCompaction(const OptionType& option_type, 
+                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options){
+  Status s;
+  std::vector<std::string> cfs;
+  std::vector<rocksdb::ColumnFamilyHandle*> cfhds;
+
+  if (db_type == ALL_DB || db_type == STRINGS_DB) {
+    cfhds = strings_db_->GetHandles();
+    s = strings_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == HASHES_DB) {
+    cfhds = hashes_db_->GetHandles();
+    s = hashes_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == LISTS_DB) {
+    cfhds = lists_db_->GetHandles();
+    s = lists_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == ZSETS_DB) {
+    cfhds = zsets_db_->GetHandles();
+    s = zsets_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == SETS_DB) {
+    cfhds = sets_db_->GetHandles();
+    s = sets_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+    if (!s.ok()) {
+      return s;
+    }
+  }
   return s;
 }
 
