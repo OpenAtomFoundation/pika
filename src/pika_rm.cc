@@ -462,7 +462,7 @@ void SyncMasterDB::ConsensusUpdateTerm(uint32_t term) {
 
 void SyncMasterDB::CommitPreviousLogs(const uint32_t& term) {
   // Append dummy cmd
-  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleDB);
+  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);
   PikaCmdArgsType args;
   args.push_back(kCmdDummy);
   dummy_ptr->Initial(args, SyncDBInfo().db_name_);

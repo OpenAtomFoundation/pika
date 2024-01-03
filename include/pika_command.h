@@ -6,8 +6,8 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -258,28 +258,30 @@ enum CmdFlagsMask {
 };
 
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
-  kCmdFlagsWrite = 1,
-  kCmdFlagsAdmin = 0,  // default type
-  kCmdFlagsKv = 2,
-  kCmdFlagsHash = 4,
-  kCmdFlagsList = 6,
-  kCmdFlagsSet = 8,
-  kCmdFlagsZset = 10,
-  kCmdFlagsBit = 12,
-  kCmdFlagsHyperLogLog = 14,
-  kCmdFlagsGeo = 16,
-  kCmdFlagsPubSub = 18,
-  kCmdFlagsLocal = 32,
-  kCmdFlagsSuspend = 64,
-  kCmdFlagsAdminRequire = 256,
-  kCmdFlagsSingleDB = 512,
-  kCmdFlagsMultiDB = 1024,
-  kCmdFlagsPreDo = 2048,
-  kCmdFlagsStream = 1536,
-  kCmdFlagsReadCache = 128,
-  kCmdFlagsUpdateCache = 2048,
-  kCmdFlagsDoThroughDB = 4096,
+  kCmdFlagsRead = 1,  // default rw
+  kCmdFlagsWrite = (1 << 1),
+  kCmdFlagsAdmin = (1 << 2),  // default type
+  kCmdFlagsKv = (1 << 3),
+  kCmdFlagsHash = (1 << 4),
+  kCmdFlagsList = (1 << 5),
+  kCmdFlagsSet = (1 << 6),
+  kCmdFlagsZset = (1 << 7),
+  kCmdFlagsBit = (1 << 8),
+  kCmdFlagsHyperLogLog = (1 << 9),
+  kCmdFlagsGeo = (1 << 10),
+  kCmdFlagsPubSub = (1 << 11),
+  kCmdFlagsLocal = (1 << 12),
+  kCmdFlagsSuspend = (1 << 13),
+  kCmdFlagsAdminRequire = (1 << 14),
+  kCmdFlagsSingleSlot = (1 << 15),
+  kCmdFlagsMultiSlot = (1 << 16),
+  kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
+  kCmdFlagsReadCache = (1 << 18),
+  kCmdFlagsUpdateCache = (1 << 19),
+  kCmdFlagsDoThroughDB = (1 << 20),
+  kCmdFlagsOperateKey = (1 << 21),  // redis keySpace
+  kCmdFlagsPreDo = (1 << 22),
+  kCmdFlagsStream = (1 << 23),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -332,9 +334,7 @@ class CmdRes {
     message_.clear();
     ret_ = kNone;
   }
-  bool CacheMiss() const {
-    return ret_ == kCacheMiss;
-  }
+  bool CacheMiss() const { return ret_ == kCacheMiss; }
   std::string raw_message() const { return message_; }
   std::string message() const {
     std::string result;
@@ -469,7 +469,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::vector<std::string> keys;
     std::vector<int> hints;
   };
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  Cmd(std::string name, int arity, uint32_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -485,7 +485,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Merge() = 0;
 
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
-
+  bool is_single_slot() const;
+  bool is_multi_slot() const;
+  uint32_t flag() const;
+  bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
 
@@ -528,7 +531,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   std::string name_;
   int arity_ = -2;
-  uint16_t flag_ = 0;
+  uint32_t flag_ = 0;
+
 
  protected:
   CmdRes res_;

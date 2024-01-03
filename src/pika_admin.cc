@@ -1789,7 +1789,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "write-binlog");
     EncodeString(&config_body, g_pika_conf->write_binlog() ? "yes" : "no");
   }
-
   if (pstd::stringmatch(pattern.data(), "binlog-file-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "binlog-file-size");
@@ -1837,7 +1836,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "compact-interval");
     EncodeString(&config_body, g_pika_conf->compact_interval());
   }
-
+  if (pstd::stringmatch(pattern.data(), "disable_auto_compactions", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "disable_auto_compactions");
+    EncodeString(&config_body, g_pika_conf->disable_auto_compactions() ? "true" : "false");
+  }
   if (pstd::stringmatch(pattern.data(), "network-interface", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "network-interface");
@@ -2063,6 +2066,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, "disable_auto_compactions");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
     // Options for storage engine
@@ -2198,6 +2202,19 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     }
     g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
     g_pika_server->DBSetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "disable_auto_compactions") {
+    if (value != "true" && value != "false") {
+      ret = "-ERR invalid disable_auto_compactions (true or false)\r\n";
+      return;
+    } 
+    std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set storage::OptionType::kColumnFamily disable_auto_compactions wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetDisableAutoCompaction(value);
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

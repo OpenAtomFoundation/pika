@@ -1423,6 +1423,7 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
   storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
   storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
+  storage_options_.options.disable_auto_compactions = g_pika_conf->disable_auto_compactions();
   storage_options_.options.max_background_jobs = g_pika_conf->max_background_jobs();
   storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
   storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();

@@ -334,6 +334,9 @@ int PikaConf::Load() {
   if (max_cache_statistic_keys_ <= 0) {
     max_cache_statistic_keys_ = 0;
   }
+  
+  // disable_auto_compactions
+  GetConfBool("disable_auto_compactions", &disable_auto_compactions_);
 
   small_compaction_threshold_ = 5000;
   GetConfInt("small-compaction-threshold", &small_compaction_threshold_);
@@ -625,6 +628,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
+  SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);
   SetConfInt64("manually-resume-interval", resume_check_interval_);
   SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);

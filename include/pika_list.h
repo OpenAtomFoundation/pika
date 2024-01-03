@@ -14,7 +14,7 @@
  */
 class LIndexCmd : public Cmd {
  public:
-  LIndexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LIndexCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -38,7 +38,7 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
  public:
-  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
+  LInsertCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -62,7 +62,7 @@ class LInsertCmd : public Cmd {
 
 class LLenCmd : public Cmd {
  public:
-  LLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LLenCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -84,7 +84,7 @@ class LLenCmd : public Cmd {
 
 class BlockingBaseCmd : public Cmd {
  public:
-  BlockingBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  BlockingBaseCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   //blpop/brpop used start
   struct WriteBinlogOfPopArgs{
     BlockKeyType block_type;
@@ -106,7 +106,7 @@ class BlockingBaseCmd : public Cmd {
 
 class BLPopCmd final : public BlockingBaseCmd {
  public:
-  BLPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  BLPopCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
@@ -127,7 +127,7 @@ class BLPopCmd final : public BlockingBaseCmd {
 
 class LPopCmd : public Cmd {
  public:
-  LPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPopCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -150,7 +150,7 @@ class LPopCmd : public Cmd {
 
 class LPushCmd : public BlockingBaseCmd {
  public:
-  LPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  LPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -173,7 +173,7 @@ class LPushCmd : public BlockingBaseCmd {
 
 class LPushxCmd : public Cmd {
  public:
-  LPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPushxCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -196,7 +196,7 @@ class LPushxCmd : public Cmd {
 
 class LRangeCmd : public Cmd {
  public:
-  LRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRangeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -220,7 +220,7 @@ class LRangeCmd : public Cmd {
 
 class LRemCmd : public Cmd {
  public:
-  LRemCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRemCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -243,7 +243,7 @@ class LRemCmd : public Cmd {
 
 class LSetCmd : public Cmd {
  public:
-  LSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LSetCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -266,7 +266,7 @@ class LSetCmd : public Cmd {
 
 class LTrimCmd : public Cmd {
  public:
-  LTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LTrimCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -289,7 +289,7 @@ class LTrimCmd : public Cmd {
 
 class BRPopCmd final : public BlockingBaseCmd {
  public:
-  BRPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  BRPopCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const override {
     return { keys_ };
   }
@@ -309,7 +309,7 @@ class BRPopCmd final : public BlockingBaseCmd {
 
 class RPopCmd : public Cmd {
  public:
-  RPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPopCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -331,9 +331,9 @@ class RPopCmd : public Cmd {
 
 class RPopLPushCmd : public BlockingBaseCmd {
  public:
-  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+  RPopLPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag) {
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
       : BlockingBaseCmd(other),
@@ -341,8 +341,8 @@ class RPopLPushCmd : public BlockingBaseCmd {
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
         is_write_binlog_(other.is_write_binlog_) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -371,7 +371,7 @@ class RPopLPushCmd : public BlockingBaseCmd {
 
 class RPushCmd : public BlockingBaseCmd {
  public:
-  RPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  RPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -395,7 +395,7 @@ class RPushCmd : public BlockingBaseCmd {
 
 class RPushxCmd : public Cmd {
  public:
-  RPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPushxCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);

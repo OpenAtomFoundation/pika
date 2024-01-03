@@ -228,10 +228,10 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     std::string pop_type;
     if (pop_arg.block_type == BlockKeyType::Blpop) {
       pop_type = kCmdNameLPop;
-      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
     } else if (pop_arg.block_type == BlockKeyType::Brpop) {
       pop_type = kCmdNameRPop;
-      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleDB | kCmdFlagsList);
+      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
     }
 
     PikaCmdArgsType args;
