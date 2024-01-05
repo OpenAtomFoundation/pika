@@ -109,7 +109,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
 * #### 2.2 依赖的库软件
 
-  * gcc g++ 支持C++17 （version>=7）
+  * gcc g++ 支持C++17 （version>=9）
   * make
   * cmake（version>=3.18）
   * autoconf
@@ -132,12 +132,12 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
   * 2.3.3. 执行编译
 
-    > 如果在 CentOS6、CentOS7 等 gcc 版本小于 7 的机器上，需要先升级 gcc 版本，执行如下命令：
+    > 如果在 CentOS6、CentOS7 等 gcc 版本小于 9 的机器上，需要先升级 gcc 版本，执行如下命令：
     >
     > ```bash
     >   sudo yum -y install centos-release-scl
-    >   sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
-    >   scl enable devtoolset-7 bash
+    >   sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+    >   scl enable devtoolset-9 bash
     > ```
 
     第一次编译时，建议使用构建脚本 `build.sh`，该脚本会检查本机上是否有编译所需的软件。
