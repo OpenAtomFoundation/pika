@@ -151,10 +151,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return run_id_;
   }
-  std::string master_run_id() {
-    std::shared_lock l(rwlock_);
-    return master_run_id_;
-  }
   std::string replication_id() {
     std::shared_lock l(rwlock_);
     return replication_id_;
@@ -402,11 +398,6 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
-  }
-  void SetMasterRunID(const std::string& value) {
-    std::lock_guard l(rwlock_);
-    TryPushDiffCommands("master-run-id", value);
-    master_run_id_ = value;
   }
   void SetReplicationID(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -672,7 +663,6 @@ class PikaConf : public pstd::BaseConf {
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
-  std::string master_run_id_;
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;

@@ -17,6 +17,15 @@ PikaCmdTableManager::PikaCmdTableManager() {
   cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
   InitCmdTable(cmds_.get());
+
+  CommandStatistics statistics;
+  for (auto& iter : *cmds_) {
+    cmdstat_map_.emplace(iter.first, statistics);
+  }
+}
+
+std::unordered_map<std::string, CommandStatistics>* PikaCmdTableManager::GetCommandStatMap() {
+  return &cmdstat_map_;
 }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {

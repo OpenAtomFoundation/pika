@@ -572,13 +572,7 @@ int PikaConf::Load() {
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
-  if (slaveof_ != "") {
-    std::string master_run_id;
-    GetConfStr("master-run-id", &master_run_id);
-    if (master_run_id.length() == configRunIDSize) {
-      master_run_id_ = master_run_id;
-    }
-  }
+  
   int cache_num = 16;
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
@@ -732,7 +726,6 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfStr("run-id", run_id_);
-  SetConfStr("master-run-id", master_run_id_);
   SetConfStr("replication-id", replication_id_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);

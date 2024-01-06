@@ -31,6 +31,11 @@ class PikaCmdTableManager {
   bool CmdExist(const std::string& cmd) const;
   CmdTable* GetCmdTable();
 
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
+
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
 
@@ -41,5 +46,10 @@ class PikaCmdTableManager {
 
   std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 #endif

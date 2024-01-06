@@ -25,6 +25,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -160,7 +161,6 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kOk);
     g_pika_server->ClearCacheDbAsync(slot);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
-    g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
@@ -1393,7 +1393,8 @@ void InfoCmd::InfoCommandStats(std::string& info) {
   tmp_stream.precision(2);
   tmp_stream.setf(std::ios::fixed);
   tmp_stream << "# Commandstats" << "\r\n";
-  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+  auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+  for (auto iter : *cmdstat_map) {
     if (iter.second.cmd_count != 0) {
       tmp_stream << iter.first << ":"
                  << "calls=" << iter.second.cmd_count << ", usec="
@@ -1942,12 +1943,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "run-id");
     EncodeString(&config_body, g_pika_conf->run_id());
-  }
-
-  if (pstd::stringmatch(pattern.data(), "master-run-id", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "master-run-id");
-    EncodeString(&config_body, g_pika_conf->master_run_id());
   }
 
   if (pstd::stringmatch(pattern.data(), "blob-cache", 1) != 0) {
