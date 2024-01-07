@@ -180,18 +180,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return bgsave_prefix_;
   }
-  //  std::string userpass() {
-  //    std::shared_lock l(rwlock_);
-  //    return userpass_;
-  //  }
-  //  std::string suser_blacklist() {
-  //    std::shared_lock l(rwlock_);
-  //    return pstd::StringConcat(user_blacklist_, COMMA);
-  //  }
-  //  const std::vector<std::string>& vuser_blacklist() {
-  //    std::shared_lock l(rwlock_);
-  //    return user_blacklist_;
-  //  }
   bool classic_mode() { return classic_mode_.load(); }
   int databases() {
     std::shared_lock l(rwlock_);
@@ -482,19 +470,6 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
-  //  void SetUserPass(const std::string& value) {
-  //    std::lock_guard l(rwlock_);
-  //    TryPushDiffCommands("userpass", value);
-  //    userpass_ = value;
-  //  }
-  //  void SetUserBlackList(const std::string& value) {
-  //    std::lock_guard l(rwlock_);
-  //    TryPushDiffCommands("userblacklist", value);
-  //    pstd::StringSplit(value, COMMA, user_blacklist_);
-  //    for (auto& item : user_blacklist_) {
-  //      pstd::StringToLower(item);
-  //    }
-  //  }
   void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
@@ -661,6 +636,7 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
+
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
@@ -697,8 +673,6 @@ class PikaConf : public pstd::BaseConf {
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
-  //  std::string userpass_;
-  //  std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;

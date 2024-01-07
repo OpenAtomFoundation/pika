@@ -61,10 +61,6 @@ void SubscribeCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-//  std::vector<std::string> channels;
-//  for (size_t i = 1; i < argv_.size(); i++) {
-//    channels.push_back(argv_[i]);
-//  }
   if (!cli_conn->IsPubSub()) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
     cli_conn->SetIsPubSub(true);
@@ -93,11 +89,6 @@ void UnSubscribeCmd::DoInitial() {
 }
 
 void UnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
-//  std::vector<std::string> channels;
-//  for (size_t i = 1; i < argv_.size(); i++) {
-//    channels.push_back(argv_[i]);
-//  }
-
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameUnSubscribe);
@@ -156,10 +147,6 @@ void PSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
       g_pika_server->EnablePublish(cli_conn->fd());
     });
   }
-//  std::vector<std::string> channels;
-//  for (size_t i = 1; i < argv_.size(); i++) {
-//    channels.push_back(argv_[i]);
-//  }
   std::vector<std::pair<std::string, int>> result;
   g_pika_server->Subscribe(conn, channels_, name_ == kCmdNamePSubscribe, &result);
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
@@ -177,11 +164,6 @@ void PUnSubscribeCmd::DoInitial() {
 }
 
 void PUnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
-//  std::vector<std::string> channels;
-//  for (size_t i = 1; i < argv_.size(); i++) {
-//    channels.push_back(argv_[i]);
-//  }
-
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePUnSubscribe);

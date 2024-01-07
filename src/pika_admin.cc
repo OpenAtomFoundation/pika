@@ -1625,18 +1625,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->masterauth());
   }
 
-  //  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
-  //    elements += 2;
-  //    EncodeString(&config_body, "userpass");
-  //    EncodeString(&config_body, g_pika_conf->userpass());
-  //  }
-
-  //  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
-  //    elements += 2;
-  //    EncodeString(&config_body, "userblacklist");
-  //    EncodeString(&config_body, g_pika_conf->suser_blacklist());
-  //  }
-
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "instance-mode");
@@ -2138,15 +2126,9 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
     ret = "+OK\r\n";
-    //  } else if (set_item == "userpass") {
-    //    g_pika_conf->SetUserPass(value);
-    //    ret = "+OK\r\n";
   } else if (set_item == "slotmigrate") {
     g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
-    //  } else if (set_item == "userblacklist") {
-    //    g_pika_conf->SetUserBlackList(value);
-    //    ret = "+OK\r\n";
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";

@@ -197,12 +197,7 @@ int PikaConf::Load() {
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
   }
-  std::string user_blacklist;
-  GetConfStr("userblacklist", &user_blacklist);
-  //  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
-  //  for (auto& item : user_blacklist_) {
-  //    pstd::StringToLower(item);
-  //  }
+
   GetConfInt("default-slot-num", &default_slot_num_);
   if (default_slot_num_ <= 0) {
     LOG(FATAL) << "config default-slot-num error,"

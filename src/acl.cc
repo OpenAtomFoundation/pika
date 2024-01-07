@@ -258,9 +258,6 @@ AclDeniedCmd User::CheckUserPermission(std::shared_ptr<Cmd>& cmd, const PikaCmdA
                                        std::string* errKey) {
   std::shared_lock l(mutex_);
 
-  //  if (HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) {
-  //    return AclDeniedCmd::NO_AUTH;
-  //  }
   subCmdIndex = -1;
   if (cmd->HasSubCommand()) {
     subCmdIndex = cmd->SubCmdIndex(argv[1]);
@@ -840,7 +837,6 @@ void ACLLogEntry::GetReplyInfo(std::vector<std::string>* vector) {
   }
 
   vector->emplace_back("context");
-  //  vector->emplace_back(std::to_string(context_));
   switch (context_) {
     case static_cast<int32_t>(AclLogCtx::TOPLEVEL):
       vector->emplace_back("toplevel");

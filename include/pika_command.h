@@ -244,7 +244,6 @@ const std::string kCmdNameXRevrange = "xrevrange";
 const std::string kCmdNameXTrim = "xtrim";
 const std::string kCmdNameXInfo = "xinfo";
 
-
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -530,7 +529,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_multi_slot() const;
   bool HasSubCommand() const;                   // The command is there a sub command
   std::vector<std::string> SubCommand() const;  // Get command is there a sub command
-  //  virtual std::string CurrentSubCommand() const;  // Get command is there a sub command
   bool IsNeedUpdateCache() const;
   bool is_only_from_cache() const;
   bool IsNeedReadCache() const;
