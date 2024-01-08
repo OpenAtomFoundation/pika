@@ -25,6 +25,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -160,7 +161,6 @@ void SlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kOk);
     g_pika_server->ClearCacheDbAsync(slot);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
-    g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
@@ -1393,7 +1393,8 @@ void InfoCmd::InfoCommandStats(std::string& info) {
   tmp_stream.precision(2);
   tmp_stream.setf(std::ios::fixed);
   tmp_stream << "# Commandstats" << "\r\n";
-  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+  auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+  for (auto iter : *cmdstat_map) {
     if (iter.second.cmd_count != 0) {
       tmp_stream << iter.first << ":"
                  << "calls=" << iter.second.cmd_count << ", usec="
@@ -1808,7 +1809,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "write-binlog");
     EncodeString(&config_body, g_pika_conf->write_binlog() ? "yes" : "no");
   }
-
   if (pstd::stringmatch(pattern.data(), "binlog-file-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "binlog-file-size");
@@ -1856,7 +1856,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "compact-interval");
     EncodeString(&config_body, g_pika_conf->compact_interval());
   }
-
+  if (pstd::stringmatch(pattern.data(), "disable_auto_compactions", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "disable_auto_compactions");
+    EncodeString(&config_body, g_pika_conf->disable_auto_compactions() ? "true" : "false");
+  }
   if (pstd::stringmatch(pattern.data(), "network-interface", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "network-interface");
@@ -1939,12 +1943,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "run-id");
     EncodeString(&config_body, g_pika_conf->run_id());
-  }
-
-  if (pstd::stringmatch(pattern.data(), "master-run-id", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "master-run-id");
-    EncodeString(&config_body, g_pika_conf->master_run_id());
   }
 
   if (pstd::stringmatch(pattern.data(), "blob-cache", 1) != 0) {
@@ -2135,6 +2133,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, "disable_auto_compactions");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
     // Options for storage engine
@@ -2280,6 +2279,19 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
     g_pika_conf->SetSmallCompactionDurationThreshold(static_cast<int>(ival));
     g_pika_server->SlotSetSmallCompactionDurationThreshold(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "disable_auto_compactions") {
+    if (value != "true" && value != "false") {
+      ret = "-ERR invalid disable_auto_compactions (true or false)\r\n";
+      return;
+    } 
+    std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set storage::OptionType::kColumnFamily disable_auto_compactions wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetDisableAutoCompaction(value);
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

@@ -87,6 +87,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  bool disable_auto_compactions() {
+    std::shared_lock l(rwlock_);
+    return disable_auto_compactions_;
+  }
   int64_t least_resume_free_disk_size() {
     std::shared_lock l(rwlock_);
     return least_free_disk_to_resume_;
@@ -146,10 +150,6 @@ class PikaConf : public pstd::BaseConf {
   std::string run_id() {
     std::shared_lock l(rwlock_);
     return run_id_;
-  }
-  std::string master_run_id() {
-    std::shared_lock l(rwlock_);
-    return master_run_id_;
   }
   std::string replication_id() {
     std::shared_lock l(rwlock_);
@@ -402,11 +402,6 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
   }
-  void SetMasterRunID(const std::string& value) {
-    std::lock_guard l(rwlock_);
-    TryPushDiffCommands("master-run-id", value);
-    master_run_id_ = value;
-  }
   void SetReplicationID(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("replication-id", value);
@@ -541,6 +536,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
+  void SetDisableAutoCompaction(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("disable_auto_compactions", value);
+    disable_auto_compactions_ = value == "true";
+  }
   void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
@@ -656,6 +656,7 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
+  bool disable_auto_compactions_ = false;
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
   double min_check_resume_ratio_ = 0.7;
@@ -670,7 +671,6 @@ class PikaConf : public pstd::BaseConf {
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
-  std::string master_run_id_;
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;

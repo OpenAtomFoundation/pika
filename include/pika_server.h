@@ -167,8 +167,6 @@ class PikaServer : public pstd::noncopyable {
   int port();
   time_t start_time_s();
   std::string master_ip();
-  std::string master_run_id();
-  void set_master_run_id(const std::string& master_run_id);
   int master_port();
   int role();
   bool leader_protected_mode();
@@ -518,11 +516,6 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
- /*
-  * Info Commandstats used
-  */
-  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
-
 
  /*
   * Instantaneous Metric used
@@ -627,7 +620,6 @@ class PikaServer : public pstd::noncopyable {
    */
   std::string master_ip_;
   int master_port_ = 0;
-  std::string master_run_id_;
   int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
@@ -697,11 +689,6 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
-
-  /*
-  * Info Commandstats used
-  */
-  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 
   net::BGThread common_bg_thread_;
 

@@ -93,6 +93,19 @@ PikaServer::PikaServer()
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
+
+  // init role
+  std::string slaveof = g_pika_conf->slaveof();
+  if (!slaveof.empty()) {
+    auto sep = static_cast<int32_t>(slaveof.find(':'));
+    std::string master_ip = slaveof.substr(0, sep);
+    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
+    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
+      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
+    } else {
+      SetMaster(master_ip, master_port);
+    }
+  }
 }
 
 PikaServer::~PikaServer() {
@@ -180,26 +193,6 @@ void PikaServer::Start() {
   }
 
   time(&start_time_s_);
-
-  std::string master_run_id = g_pika_conf->master_run_id();
-  set_master_run_id(master_run_id);
-  std::string slaveof = g_pika_conf->slaveof();
-  if (!slaveof.empty()) {
-    auto sep = static_cast<int32_t>(slaveof.find(':'));
-    std::string master_ip = slaveof.substr(0, sep);
-    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
-    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
-      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
-    } else {
-      g_pika_server->set_master_run_id(g_pika_conf->master_run_id());
-      SetMaster(master_ip, master_port);
-    }
-  }
-  CommandStatistics statistics;
-  auto cmdstat_map = g_pika_server->GetCommandStatMap();
-  for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
-    cmdstat_map->emplace(iter.first, statistics);
-  }
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
@@ -231,16 +224,6 @@ std::string PikaServer::master_ip() {
 int PikaServer::master_port() {
   std::shared_lock l(state_protector_);
   return master_port_;
-}
-
-std::string PikaServer::master_run_id() {
-  std::shared_lock l(state_protector_);
-  return master_run_id_;
-}
-
-void PikaServer::set_master_run_id(const std::string& master_run_id) {
-  std::lock_guard l(state_protector_);
-  master_run_id_ = master_run_id;
 }
 
 int PikaServer::role() {
@@ -769,7 +752,6 @@ void PikaServer::RemoveMaster() {
 
     master_ip_ = "";
     master_port_ = -1;
-    master_run_id_ = "";
     DoSameThingEverySlot(TaskType::kResetReplState);
   }
 }
@@ -1571,6 +1553,7 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
   storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
   storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
+  storage_options_.options.disable_auto_compactions = g_pika_conf->disable_auto_compactions();
   storage_options_.options.max_background_jobs = g_pika_conf->max_background_jobs();
   storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
   storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
@@ -1713,10 +1696,6 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   // Start new thread if needed
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
-}
-
-std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() {
-  return &cmdstat_map_;
 }
 
 void DoBgslotsreload(void* arg) {

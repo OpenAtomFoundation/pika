@@ -115,7 +115,7 @@ Users can directly download the latest binary version package from [releases](ht
   
 * #### 2.2 Required Library Software
 
-  * gcc g++ supporting C++17 (version >= 7)
+  * gcc g++ supporting C++17 (version >= 9)
   * make
   * cmake (version >= 3.18)
   * autoconf
@@ -138,12 +138,12 @@ Users can directly download the latest binary version package from [releases](ht
   
   * 2.3.3. Execute compilation
 
-    > If the machine's gcc version is less than 7, especially on CentOS6 or CentOS7, you need to upgrade the gcc version first. Execute the following commands:
+    > If the machine's gcc version is less than 9, especially on CentOS6 or CentOS7, you need to upgrade the gcc version first. Execute the following commands:
     >
     > ```bash
     >   sudo yum -y install centos-release-scl
-    >   sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
-    >   scl enable devtoolset-7 bash
+    >   sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+    >   scl enable devtoolset-9 bash
     > ```
 
     For the initial compilation, it is recommended to use the build script build.sh, which checks if the required software is available on the local machine.
