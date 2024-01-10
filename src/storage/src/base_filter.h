@@ -28,7 +28,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
     auto cur_time = static_cast<int32_t>(unix_time);
     ParsedBaseMetaValue parsed_base_meta_value(value);
     TRACE("==========================START==========================");
-    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
+    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %ld, cur_time: %ld, version: %ld", key.ToString().c_str(),
           parsed_base_meta_value.Count(), parsed_base_meta_value.timestamp(), cur_time,
           parsed_base_meta_value.Version());
 
@@ -74,7 +74,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
     UNUSED(value_changed);
     ParsedBaseDataKey parsed_base_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.Key().ToString().c_str(),
+    TRACE("[DataFilter], key: %s, data = %s, version = %ld", parsed_base_data_key.Key().ToString().c_str(),
           parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.Version());
 
     const char* ptr = key.data();
@@ -112,7 +112,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<int32_t>(unix_time)) {
+    if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<uint64_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;
     }
@@ -160,7 +160,7 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), meta_cf_index_(meta_cf_index) {}
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
-    return std::unique_ptr<rocksdb::CompactionFilter>(new BaseDataFilter(*db_ptr_, cf_handles_ptr_, meta_cf_index_));
+    return std::make_unique<rocksdb::CompactionFilter>(BaseDataFilter(*db_ptr_, cf_handles_ptr_, meta_cf_index_));
   }
   const char* Name() const override { return "BaseDataFilterFactory"; }
 
