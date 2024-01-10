@@ -6,10 +6,7 @@
 #include <dirent.h>
 #include <utility>
 
-#include "pstd/include/pika_conf.h"
 #include "storage/backupable.h"
-
-extern std::unique_ptr<PikaConf> g_pika_conf;
 
 namespace storage {
 
@@ -29,17 +26,16 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, int index) {
   return s;
 }
 
-Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngine>& backup_engine_ret) {
+Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngine>& backup_engine_ret, int inst_count) {
   // BackupEngine() is private, can't use make_shared
   backup_engine_ret = std::shared_ptr<BackupEngine>(new BackupEngine());
   if (!backup_engine_ret) {
     return Status::Corruption("New BackupEngine failed!");
   }
 
-  // Create BackupEngine for each rocksdb instance 
+  // Create BackupEngine for each rocksdb instance
   rocksdb::Status s;
   rocksdb::DB* rocksdb_db;
-  int inst_count = g_pika_conf->db_instance_num();
   for (int index = 0; index < inst_count; index++) {
     if (!(rocksdb_db = storage->GetDBByIndex(index))) {
       s = Status::Corruption("Invalid db index");

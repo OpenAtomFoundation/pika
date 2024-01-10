@@ -160,7 +160,7 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), meta_cf_index_(meta_cf_index) {}
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
-    return std::make_unique<rocksdb::CompactionFilter>(BaseDataFilter(*db_ptr_, cf_handles_ptr_, meta_cf_index_));
+    return std::make_unique<BaseDataFilter>(BaseDataFilter(*db_ptr_, cf_handles_ptr_, meta_cf_index_));
   }
   const char* Name() const override { return "BaseDataFilterFactory"; }
 
