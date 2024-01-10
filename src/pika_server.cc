@@ -1701,8 +1701,6 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
 
-std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() { return &cmdstat_map_; }
-
 void DoBgslotsreload(void* arg) {
   auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsReload reload = p->bgslots_reload();
