@@ -237,7 +237,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
   return s;
 }
 
-Status Redis::SetSmallCompactionThreshold(size_t small_compaction_threshold) {
+Status Redis::SetSmallCompactionThreshold(uint64_t small_compaction_threshold) {
   small_compaction_threshold_ = small_compaction_threshold;
   return Status::OK();
 }
@@ -247,7 +247,7 @@ Status Redis::SetSmallCompactionDurationThreshold(uint64_t small_compaction_dura
   return Status::OK();
 }
 
-Status Redis::UpdateSpecificKeyStatistics(const DataType& dtype, const std::string& key, size_t count) {
+Status Redis::UpdateSpecificKeyStatistics(const DataType& dtype, const std::string& key, uint64_t count) {
   if ((statistics_store_->Capacity() != 0U) && (count != 0U) && (small_compaction_threshold_ != 0U)) {
     KeyStatistics data;
     std::string lkp_key;
