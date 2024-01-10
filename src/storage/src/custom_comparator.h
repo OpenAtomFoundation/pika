@@ -101,26 +101,22 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     auto a_size = static_cast<int32_t>(a.size());
     auto b_size = static_cast<int32_t>(b.size());
 
-    // compare reserve, current always equal
-    int ret = memcmp(ptr_a, ptr_b, kPrefixReserveLength);
-    if (ret) return ret;
-
     ptr_a += kPrefixReserveLength;
     ptr_b += kPrefixReserveLength;
-    std::string user_key_a, user_key_b;
-    ptr_a = DecodeUserKey(ptr_a, a_size - kPrefixReserveLength, &user_key_a);
-    ptr_b = DecodeUserKey(ptr_b, b_size - kPrefixReserveLength, &user_key_b);
-    // compare user key
-    ret = user_key_a.compare(user_key_b);
-    if (ret) return ret;
+    const char* p_a = SeekUserkeyDelim(ptr_a, a_size - kPrefixReserveLength);
+    p_a += kVersionLength;
+    const char* p_b = SeekUserkeyDelim(ptr_b, b_size - kPrefixReserveLength);
+    p_b += kVersionLength;
+    rocksdb::Slice p_a_prefix = Slice(ptr_a, std::distance(ptr_a, p_a));
+    rocksdb::Slice p_b_prefix = Slice(ptr_b, std::distance(ptr_b, p_b));
+    int ret = p_a_prefix.compare(p_b_prefix);
+    if (ret != 0) {
+      return ret;
+    }
 
-    // compare version
-    ret = memcmp(ptr_a, ptr_b, kVersionLength);
-    if (ret) return ret;
-
+    ptr_a = p_a;
+    ptr_b = p_b;
     // compare score
-    ptr_a += kVersionLength;
-    ptr_b += kVersionLength;
     uint64_t a_i = DecodeFixed64(ptr_a);
     uint64_t b_i = DecodeFixed64(ptr_b);
     const void* ptr_a_score = reinterpret_cast<const void*>(&a_i);

@@ -171,6 +171,26 @@ set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(GTEST_MAIN_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(GMOCK_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
+ExternalProject_Add(concurrentqueue
+  URL
+  https://github.com/cameron314/concurrentqueue/archive/refs/tags/v1.0.4.tar.gz
+  URL_HASH
+  MD5=5a07b19398f578e8626ca48764b336b1
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  BUILD_ALWAYS
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  BUILD_COMMAND
+  make
+)
 
 ExternalProject_Add(gflags
   URL
