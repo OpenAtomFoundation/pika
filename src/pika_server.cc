@@ -14,15 +14,16 @@
 #include "net/include/net_cli.h"
 #include "net/include/net_interfaces.h"
 #include "net/include/net_stats.h"
+#include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
-#include "include/pika_server.h"
+#include "include/pika_monotonic_time.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -72,11 +73,12 @@ PikaServer::PikaServer()
   // We estimate the queue size
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
-  for_each(ips.begin(), ips.end(), [](auto& ip) {LOG(WARNING) << ip;});
-  pika_dispatch_thread_ =
-      std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
-  pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
-  //TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
+  for_each(ips.begin(), ips.end(), [](auto& ip) { LOG(WARNING) << ip; });
+  pika_dispatch_thread_ = std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit,
+                                                               g_pika_conf->max_conn_rbuf_size());
+  pika_rsync_service_ =
+      std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  // TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
   rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
@@ -88,6 +90,21 @@ PikaServer::PikaServer()
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
+  
+  // init role
+  std::string slaveof = g_pika_conf->slaveof();
+  if (!slaveof.empty()) {
+    auto sep = static_cast<int32_t>(slaveof.find(':'));
+    std::string master_ip = slaveof.substr(0, sep);
+    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
+    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
+      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
+    } else {
+      SetMaster(master_ip, master_port);
+    }
+  }
+        
+  acl_ = std::make_unique<::Acl>();
 }
 
 PikaServer::~PikaServer() {
@@ -175,26 +192,6 @@ void PikaServer::Start() {
   }
 
   time(&start_time_s_);
-
-  std::string master_run_id = g_pika_conf->master_run_id();
-  set_master_run_id(master_run_id);
-  std::string slaveof = g_pika_conf->slaveof();
-  if (!slaveof.empty()) {
-    auto sep = static_cast<int32_t>(slaveof.find(':'));
-    std::string master_ip = slaveof.substr(0, sep);
-    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
-    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
-      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
-    } else {
-      g_pika_server->set_master_run_id(g_pika_conf->master_run_id());
-      SetMaster(master_ip, master_port);
-    }
-  }
-  CommandStatistics statistics;
-  auto cmdstat_map = g_pika_server->GetCommandStatMap();
-  for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
-    cmdstat_map->emplace(iter.first, statistics);
-  }
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
@@ -228,16 +225,6 @@ int PikaServer::master_port() {
   return master_port_;
 }
 
-std::string PikaServer::master_run_id() {
-  std::shared_lock l(state_protector_);
-  return master_run_id_;
-}
-
-void PikaServer::set_master_run_id(const std::string& master_run_id) {
-  std::lock_guard l(state_protector_);
-  master_run_id_ = master_run_id;
-}
-
 int PikaServer::role() {
   std::shared_lock l(state_protector_);
   return role_;
@@ -260,7 +247,7 @@ void PikaServer::CheckLeaderProtectedMode() {
   }
 }
 
-bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
+bool PikaServer::readonly(const std::string& db_name) {
   std::shared_lock l(state_protector_);
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }
@@ -612,8 +599,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
 
 // Try add Slave, return true if success,
 // return false when slave already exist
-bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
-                             const std::vector<DBStruct>& db_structs) {
+bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& db_structs) {
   std::string ip_port = pstd::IpPortString(ip, static_cast<int32_t>(port));
 
   std::lock_guard l(slave_mutex_);
@@ -662,7 +648,6 @@ void PikaServer::RemoveMaster() {
 
     master_ip_ = "";
     master_port_ = -1;
-    master_run_id_ = "";
     DoSameThingEveryDB(TaskType::kResetReplState);
   }
 }
@@ -984,6 +969,10 @@ bool PikaServer::HasMonitorClients() const {
   std::unique_lock lock(monitor_mutex_protector_);
   return !pika_monitor_clients_.empty();
 }
+bool PikaServer::ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const {
+  std::unique_lock lock(monitor_mutex_protector_);
+  return pika_monitor_clients_.count(client_ptr) != 0;
+}
 
 void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
   const std::string msg = "+" + monitor_message + "\r\n";
@@ -1005,7 +994,7 @@ void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
     cli->WriteResp(msg);
     cli->SendReply();
   }
-  lock.unlock(); // SendReply without lock
+  lock.unlock();  // SendReply without lock
 }
 
 void PikaServer::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
@@ -1101,29 +1090,20 @@ void PikaServer::ResetLastSecQuerynum() {
   statistic_.ResetDBLastSecQuerynum();
 }
 
-void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command,
-                                              bool is_write) {
+void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write) {
   std::string cmd(command);
   statistic_.server_stat.qps.querynum++;
   statistic_.server_stat.exec_count_db[pstd::StringToUpper(cmd)]++;
   statistic_.UpdateDBQps(db_name, command, is_write);
 }
 
-size_t PikaServer::NetInputBytes() {
-  return g_network_statistic->NetInputBytes();
-}
+size_t PikaServer::NetInputBytes() { return g_network_statistic->NetInputBytes(); }
 
-size_t PikaServer::NetOutputBytes() {
-  return g_network_statistic->NetOutputBytes();
-}
+size_t PikaServer::NetOutputBytes() { return g_network_statistic->NetOutputBytes(); }
 
-size_t PikaServer::NetReplInputBytes() {
-  return g_network_statistic->NetReplInputBytes();
-}
+size_t PikaServer::NetReplInputBytes() { return g_network_statistic->NetReplInputBytes(); }
 
-size_t PikaServer::NetReplOutputBytes() {
-  return g_network_statistic->NetReplOutputBytes();
-}
+size_t PikaServer::NetReplOutputBytes() { return g_network_statistic->NetReplOutputBytes(); }
 
 float PikaServer::InstantaneousInputKbps() {
   return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT)) / 1024.0f;
@@ -1134,11 +1114,13 @@ float PikaServer::InstantaneousOutputKbps() {
 }
 
 float PikaServer::InstantaneousInputReplKbps() {
-  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION)) / 1024.0f;
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION)) /
+         1024.0f;
 }
 
 float PikaServer::InstantaneousOutputReplKbps() {
-  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION)) / 1024.0f;
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION)) /
+         1024.0f;
 }
 
 std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountDB() {
@@ -1168,14 +1150,14 @@ void PikaServer::EnablePublish(int fd) {
   pika_pubsub_thread_->UpdateConnReadyState(fd, net::PubSubThread::ReadyState::kReady);
 }
 
-int PikaServer::UnSubscribe(const std::shared_ptr<net::NetConn> &conn, const std::vector<std::string>& channels, bool pattern,
-                            std::vector<std::pair<std::string, int>>* result) {
+int PikaServer::UnSubscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels,
+                            bool pattern, std::vector<std::pair<std::string, int>>* result) {
   int subscribed = pika_pubsub_thread_->UnSubscribe(conn, channels, pattern, result);
   return subscribed;
 }
 
-void PikaServer::Subscribe(const std::shared_ptr<net::NetConn> &conn, const std::vector<std::string>& channels, bool pattern,
-                           std::vector<std::pair<std::string, int>>* result) {
+void PikaServer::Subscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels,
+                           bool pattern, std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->Subscribe(conn, channels, pattern, result);
 }
 
@@ -1188,6 +1170,14 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
   pika_pubsub_thread_->PubSubNumSub(channels, result);
 }
 
+int PikaServer::ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelSize(conn);
+}
+
+int PikaServer::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelPatternSize(conn);
+}
+
 /******************************* PRIVATE *******************************/
 
 void PikaServer::DoTimingTask() {
@@ -1198,8 +1188,8 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
-  //TODO: temporarily disable rsync
-  //AutoKeepAliveRSync();
+  // TODO: temporarily disable rsync
+  // AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
@@ -1325,9 +1315,8 @@ void PikaServer::AutoDeleteExpiredDump() {
     return;
   }
   // Handle dump directory
-  for (auto & i : dump_dir) {
-    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix ||
-        i.size() != (db_sync_prefix.size() + 8)) {
+  for (auto& i : dump_dir) {
+    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
     }
 
@@ -1385,13 +1374,15 @@ void PikaServer::AutoDeleteExpiredDump() {
 
 void PikaServer::AutoUpdateNetworkMetric() {
   monotime current_time = getMonotonicUs();
-  size_t factor = 5e6; // us, 5s
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
-                                     current_time, factor);
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT, g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
-                                     current_time, factor);
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(), current_time,
+  size_t factor = 5e6;  // us, 5s
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT,
+                                     g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(), current_time,
                                      factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT,
+                                     g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
+                                     current_time, factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(),
+                                     current_time, factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
                                      current_time, factor);
 }
@@ -1566,10 +1557,6 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
 
-std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() {
-  return &cmdstat_map_;
-}
-
 void DoBgslotsreload(void* arg) {
   auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsReload reload = p->bgslots_reload();
@@ -1582,9 +1569,8 @@ void DoBgslotsreload(void* arg) {
     cursor_ret = reload.db->storage()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
 
     std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
+    for (iter = keys.begin(); iter != keys.end(); iter++) {
       std::string key_type;
-
       int s = GetKeyType(*iter, key_type, reload.db);
       //if key is slotkey, can't add to SlotKey
       if (s > 0){
@@ -1604,7 +1590,7 @@ void DoBgslotsreload(void* arg) {
 
   if (cursor_ret == 0) {
     LOG(INFO) << "Finish slot reloading";
-  } else{
+  } else {
     LOG(INFO) << "Stop slot reloading";
   }
 }
@@ -1655,6 +1641,20 @@ int64_t PikaServer::GetLastSaveTime(const std::string& dir_path) {
   return 0;
 }
 
+void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {
+  pika_dispatch_thread_->UnAuthUserAndKillClient(users, acl_->GetUserLock(Acl::DefaultUser));
+}
+
+void PikaServer::CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel) {
+  pika_pubsub_thread_->ConnCanSubscribe(allChannel, [&](const std::shared_ptr<net::NetConn>& conn) -> bool {
+    auto pikaConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+    if (pikaConn && pikaConn->UserName() == userName) {
+      return true;
+    }
+    return false;
+  });
+}
+
 void DoBgslotscleanup(void* arg) {
   auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
@@ -1668,16 +1668,15 @@ void DoBgslotscleanup(void* arg) {
 
     std::string key_type;
     std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
-      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos){
+    for (iter = keys.begin(); iter != keys.end(); iter++) {
+      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
       if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
         if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
           LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
-          continue ;
+          continue;
         }
-
         if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
           LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
         }

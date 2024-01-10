@@ -800,7 +800,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB);
   del_cmd->Initial(del_args, db_name_);
   del_cmd->SetConn(GetConn());
   del_cmd->SetResp(resp_.lock());
@@ -878,7 +878,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB);
   del_cmd->Initial(del_args, db_name_);
   del_cmd->SetConn(GetConn());
   del_cmd->SetResp(resp_.lock());

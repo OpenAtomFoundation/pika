@@ -6,6 +6,7 @@
 #ifndef PIKA_SET_H_
 #define PIKA_SET_H_
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "pika_kv.h"
 
@@ -14,7 +15,8 @@
  */
 class SAddCmd : public Cmd {
  public:
-  SAddCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SAddCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -36,7 +38,8 @@ class SAddCmd : public Cmd {
 
 class SPopCmd : public Cmd {
  public:
-  SPopCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SPopCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -59,7 +62,8 @@ class SPopCmd : public Cmd {
 
 class SCardCmd : public Cmd {
  public:
-  SCardCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SCardCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -81,7 +85,8 @@ class SCardCmd : public Cmd {
 
 class SMembersCmd : public Cmd {
  public:
-  SMembersCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SMembersCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -103,7 +108,8 @@ class SMembersCmd : public Cmd {
 
 class SScanCmd : public Cmd {
  public:
-  SScanCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  SScanCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -127,7 +133,8 @@ class SScanCmd : public Cmd {
 
 class SRemCmd : public Cmd {
  public:
-  SRemCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SRemCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -150,7 +157,8 @@ class SRemCmd : public Cmd {
 
 class SUnionCmd : public Cmd {
  public:
-  SUnionCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SUnionCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -161,28 +169,26 @@ class SUnionCmd : public Cmd {
   void DoInitial() override;
 };
 
-
 class SetOperationCmd : public Cmd {
  public:
-  SetOperationCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+  SetOperationCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
   SetOperationCmd(const SetOperationCmd& other)
       : Cmd(other), dest_key_(other.dest_key_), value_to_dest_(other.value_to_dest_) {
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet);
+    del_cmd_ = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   }
 
-  std::vector<std::string> current_key() const override {
-    return {dest_key_};
-  }
+  std::vector<std::string> current_key() const override { return {dest_key_}; }
   void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
 
  protected:
   std::string dest_key_;
   std::vector<std::string> keys_;
-  //used for write binlog
+  // used for write binlog
   std::shared_ptr<Cmd> sadd_cmd_;
   std::shared_ptr<Cmd> del_cmd_;
   std::vector<std::string> value_to_dest_;
@@ -206,7 +212,8 @@ class SUnionstoreCmd : public SetOperationCmd {
 
 class SInterCmd : public Cmd {
  public:
-  SInterCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SInterCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -234,7 +241,8 @@ class SInterstoreCmd : public SetOperationCmd {
 
 class SIsmemberCmd : public Cmd {
  public:
-  SIsmemberCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SIsmemberCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -257,7 +265,8 @@ class SIsmemberCmd : public Cmd {
 
 class SDiffCmd : public Cmd {
  public:
-  SDiffCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SDiffCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -285,9 +294,10 @@ class SDiffstoreCmd : public SetOperationCmd {
 
 class SMoveCmd : public Cmd {
  public:
-  SMoveCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
-    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+  SMoveCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite |  kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet);
   }
   SMoveCmd(const SMoveCmd& other)
       : Cmd(other),
@@ -295,12 +305,10 @@ class SMoveCmd : public Cmd {
         dest_key_(other.dest_key_),
         member_(other.member_),
         move_success_(other.move_success_) {
-    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
-    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet);
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite |  kCmdFlagsSet);
+    sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet);
   }
-  std::vector<std::string> current_key() const override {
-    return {src_key_, dest_key_};
-  }
+  std::vector<std::string> current_key() const override { return {src_key_, dest_key_}; }
   void Do(std::shared_ptr<DB> db) override;
   void DoUpdateCache(std::shared_ptr<DB> db) override;
   void DoThroughDB(std::shared_ptr<DB> db) override;
@@ -320,7 +328,8 @@ class SMoveCmd : public Cmd {
 
 class SRandmemberCmd : public Cmd {
  public:
-  SRandmemberCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  SRandmemberCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);

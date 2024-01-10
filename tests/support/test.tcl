@@ -13,6 +13,28 @@ proc assert {condition} {
     }
 }
 
+proc assert_no_match {pattern value} {
+    if {[string match $pattern $value]} {
+        set context "(context: [info frame -1])"
+        error "assertion:Expected '$value' to not match '$pattern' $context"
+    }
+}
+
+proc assert_failed {expected_err detail} {
+     if {$detail ne ""} {
+        set detail "(detail: $detail)"
+     } else {
+        set detail "(context: [info frame -2])"
+     }
+     error "assertion:$expected_err $detail"
+}
+
+proc assert_not_equal {value expected {detail ""}} {
+    if {!($expected ne $value)} {
+        assert_failed "Expected '$value' not equal to '$expected'" $detail
+    }
+}
+
 proc assert_match {pattern value} {
     if {![string match $pattern $value]} {
         error "assertion:Expected '$value' to match '$pattern'"

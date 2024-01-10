@@ -29,7 +29,8 @@ inline void AppendMessagesToRes(CmdRes& res, std::vector<storage::FieldValue>& f
 
 class XAddCmd : public Cmd {
  public:
-  XAddCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  XAddCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<DB> db = nullptr) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
@@ -47,7 +48,8 @@ class XAddCmd : public Cmd {
 
 class XDelCmd : public Cmd {
  public:
-  XDelCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  XDelCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<DB> db = nullptr) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
@@ -67,8 +69,9 @@ class XDelCmd : public Cmd {
 
 class XReadCmd : public Cmd {
  public:
-  XReadCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  XReadCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XReadCmd(*this); }
@@ -85,8 +88,9 @@ class XReadCmd : public Cmd {
 
 class XRangeCmd : public Cmd {
  public:
-  XRangeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  XRangeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRangeCmd(*this); }
@@ -105,7 +109,7 @@ class XRangeCmd : public Cmd {
 class XRevrangeCmd : public XRangeCmd {
  public:
   XRevrangeCmd(const std::string& name, int arity, uint32_t flag) : XRangeCmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRevrangeCmd(*this); }
@@ -113,8 +117,9 @@ class XRevrangeCmd : public XRangeCmd {
 
 class XLenCmd : public Cmd {
  public:
-  XLenCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  XLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XLenCmd(*this); }
@@ -143,8 +148,9 @@ class XTrimCmd : public Cmd {
 
 class XInfoCmd : public Cmd {
  public:
-  XInfoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  XInfoCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XInfoCmd(*this); }

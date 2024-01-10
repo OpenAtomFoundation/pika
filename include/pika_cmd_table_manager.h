@@ -9,6 +9,7 @@
 #include <shared_mutex>
 #include <thread>
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 
@@ -23,12 +24,23 @@ struct CommandStatistics {
 };
 
 class PikaCmdTableManager {
+  friend AclSelector;
+
  public:
   PikaCmdTableManager();
   virtual ~PikaCmdTableManager() = default;
+  void InitCmdTable(void);
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   bool CmdExist(const std::string& cmd) const;
   CmdTable* GetCmdTable();
+  uint32_t GetCmdId();
+
+  std::vector<std::string> GetAclCategoryCmdNames(uint32_t flag);
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
@@ -38,7 +50,14 @@ class PikaCmdTableManager {
 
   std::unique_ptr<CmdTable> cmds_;
 
+  uint32_t cmdId_ = 0;
+
   std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 #endif

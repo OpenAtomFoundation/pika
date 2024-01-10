@@ -6,6 +6,7 @@
 #ifndef PIKA_TRANSACTION_H_
 #define PIKA_TRANSACTION_H_
 
+#include "acl.h"
 #include "include/pika_command.h"
 #include "net/include/redis_conn.h"
 #include "pika_db.h"
@@ -13,7 +14,8 @@
 
 class MultiCmd : public Cmd {
  public:
-  MultiCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  MultiCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<DB> db) override;
   Cmd* Clone() override { return new MultiCmd(*this); }
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
@@ -25,7 +27,8 @@ class MultiCmd : public Cmd {
 
 class ExecCmd : public Cmd {
  public:
-  ExecCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  ExecCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<DB> db) override;
   Cmd* Clone() override { return new ExecCmd(*this); }
   void Execute() override;
@@ -59,7 +62,8 @@ class ExecCmd : public Cmd {
 
 class DiscardCmd : public Cmd {
  public:
-  DiscardCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  DiscardCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do(std::shared_ptr<DB> db) override;
   Cmd* Clone() override { return new DiscardCmd(*this); }
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
@@ -71,7 +75,9 @@ class DiscardCmd : public Cmd {
 
 class WatchCmd : public Cmd {
  public:
-  WatchCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  WatchCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
+
   void Do(std::shared_ptr<DB> db) override;
   void Execute() override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
@@ -87,7 +93,9 @@ class WatchCmd : public Cmd {
 
 class UnwatchCmd : public Cmd {
  public:
-  UnwatchCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  UnwatchCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
+
   void Do(std::shared_ptr<DB> db) override;
   Cmd* Clone() override { return new UnwatchCmd(*this); }
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}

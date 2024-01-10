@@ -5,9 +5,9 @@
 
 #include "include/pika_admin.h"
 
+#include <sys/statvfs.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
-#include <sys/statvfs.h>
 
 #include <algorithm>
 #include <unordered_map>
@@ -25,6 +25,7 @@ using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -58,21 +59,24 @@ enum AuthResult {
   INVALID_CONN,
 };
 
-static AuthResult AuthenticateUser(const std::string& pwd, const std::shared_ptr<net::NetConn>& conn,
-                                   std::string& msg_role) {
-  std::string root_password(g_pika_conf->requirepass());
-  std::string user_password(g_pika_conf->userpass());
-  if (user_password.empty() && root_password.empty()) {
-    return AuthResult::NO_REQUIRE_PASS;
+static AuthResult AuthenticateUser(const std::string& cmdName, const std::string& userName, const std::string& pwd,
+                                   const std::shared_ptr<net::NetConn>& conn, bool defaultAuth) {
+  if (defaultAuth) {
+    auto defaultUser = g_pika_server->Acl()->GetUserLock(Acl::DefaultUser);
+    if (defaultUser->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {
+      return AuthResult::NO_REQUIRE_PASS;
+    }
   }
 
-  if (pwd == user_password) {
-    msg_role = "USER";
-  }
-  if (pwd == root_password) {
-    msg_role = "ROOT";
-  }
-  if (msg_role.empty()) {
+  auto user = g_pika_server->Acl()->Auth(userName, pwd);
+
+  if (!user) {
+    std::string cInfo;
+    if (auto ptr = std::dynamic_pointer_cast<PikaClientConn>(conn); ptr) {
+      ptr->ClientInfoToString(&cInfo, cmdName);
+    }
+    g_pika_server->Acl()->AddLogEntry(static_cast<int32_t>(AclDeniedCmd::NO_AUTH),
+                                      static_cast<int32_t>(AclLogCtx::TOPLEVEL), userName, "AUTH", cInfo);
     return AuthResult::INVALID_PASSWORD;
   }
 
@@ -81,7 +85,8 @@ static AuthResult AuthenticateUser(const std::string& pwd, const std::shared_ptr
     return AuthResult::INVALID_CONN;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  cli_conn->auth_stat().ChecknUpdate(msg_role);
+
+  cli_conn->DoAuth(user);
 
   return AuthResult::OK;
 }
@@ -159,7 +164,6 @@ void SlaveofCmd::Do(std::shared_ptr<DB> db) {
     res_.SetRes(CmdRes::kOk);
     g_pika_server->ClearCacheDbAsync(db);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
-    g_pika_conf->SetMasterRunID("");
     g_pika_server->SetFirstMetaSync(true);
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
@@ -251,36 +255,44 @@ void AuthCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
     return;
   }
-  pwd_ = argv_[1];
 }
 
 void AuthCmd::Do(std::shared_ptr<DB> db) {
-  std::string root_password(g_pika_conf->requirepass());
-  std::string user_password(g_pika_conf->userpass());
-  if (user_password.empty() && root_password.empty()) {
-    res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
-    return;
-  }
-
-  if (pwd_ == user_password) {
-    res_.SetRes(CmdRes::kOk, "USER");
-  }
-  if (pwd_ == root_password) {
-    res_.SetRes(CmdRes::kOk, "ROOT");
-  }
-  if (res_.none()) {
-    res_.SetRes(CmdRes::kInvalidPwd);
-    return;
-  }
-
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  cli_conn->auth_stat().ChecknUpdate(res().raw_message());
+
+  std::string userName = "";
+  std::string pwd = "";
+  bool defaultAuth = false;
+  if (argv_.size() == 2) {
+    userName = Acl::DefaultUser;
+    pwd = argv_[1];
+    defaultAuth = true;
+  } else {
+    userName = argv_[1];
+    pwd = argv_[2];
+  }
+
+  auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+
+  switch (authResult) {
+    case AuthResult::INVALID_CONN:
+      res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
+      return;
+    case AuthResult::INVALID_PASSWORD:
+      res_.AppendContent("-WRONGPASS invalid username-password pair or user is disabled.");
+      return;
+    case AuthResult::NO_REQUIRE_PASS:
+      res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
+      return;
+    case AuthResult::OK:
+      break;
+  }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void BgsaveCmd::DoInitial() {
@@ -471,7 +483,7 @@ void SelectCmd::DoInitial() {
   }
   db_name_ = "db" + argv_[1];
   select_db_ = g_pika_server->GetDB(db_name_);
-  return ;
+  return;
 }
 
 void SelectCmd::Do(std::shared_ptr<DB> db) {
@@ -1021,8 +1033,10 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
 
   // Network stats
-  tmp_stream << "total_net_input_bytes:" << g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes() << "\r\n";
-  tmp_stream << "total_net_output_bytes:" << g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes() << "\r\n";
+  tmp_stream << "total_net_input_bytes:" << g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes()
+             << "\r\n";
+  tmp_stream << "total_net_output_bytes:" << g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes()
+             << "\r\n";
   tmp_stream << "total_net_repl_input_bytes:" << g_pika_server->NetReplInputBytes() << "\r\n";
   tmp_stream << "total_net_repl_output_bytes:" << g_pika_server->NetReplOutputBytes() << "\r\n";
   tmp_stream << "instantaneous_input_kbps:" << g_pika_server->InstantaneousInputKbps() << "\r\n";
@@ -1374,7 +1388,8 @@ void InfoCmd::InfoCommandStats(std::string& info) {
   tmp_stream.precision(2);
   tmp_stream.setf(std::ios::fixed);
   tmp_stream << "# Commandstats" << "\r\n";
-  for (auto iter : *g_pika_server->GetCommandStatMap()) {
+  auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+  for (auto iter : *cmdstat_map) {
     if (iter.second.cmd_count != 0) {
       tmp_stream << iter.first << ":"
                  << "calls=" << iter.second.cmd_count << ", usec="
@@ -1499,7 +1514,7 @@ static void EncodeString(std::string* dst, const std::string& value) {
   dst->append(kNewLine);
 }
 
-template<class T>
+template <class T>
 static void EncodeNumber(std::string* dst, const T v) {
   std::string vstr = std::to_string(v);
   dst->append("$");
@@ -1590,18 +1605,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "masterauth");
     EncodeString(&config_body, g_pika_conf->masterauth());
-  }
-
-  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "userpass");
-    EncodeString(&config_body, g_pika_conf->userpass());
-  }
-
-  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "userblacklist");
-    EncodeString(&config_body, g_pika_conf->suser_blacklist());
   }
 
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1) != 0) {
@@ -1925,12 +1928,6 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->run_id());
   }
 
-  if (pstd::stringmatch(pattern.data(), "master-run-id", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "master-run-id");
-    EncodeString(&config_body, g_pika_conf->master_run_id());
-  }
-
   if (pstd::stringmatch(pattern.data(), "blob-cache", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "blob-cache");
@@ -2033,6 +2030,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->replication_id());
   }
 
+  if (pstd::stringmatch(pattern.data(), "acl-pubsub-default", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "acl-pubsub-default");
+    g_pika_conf->acl_pubsub_default() ? EncodeString(&config_body, "allchannels")
+                                      : EncodeString(&config_body, "resetchannels");
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -2093,18 +2097,13 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
+    g_pika_server->Acl()->UpdateDefaultUserPassword(value);
     ret = "+OK\r\n";
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
     ret = "+OK\r\n";
-  } else if (set_item == "userpass") {
-    g_pika_conf->SetUserPass(value);
-    ret = "+OK\r\n";
   } else if (set_item == "slotmigrate") {
     g_pika_conf->SetSlotMigrate(value);
-    ret = "+OK\r\n";
-  } else if (set_item == "userblacklist") {
-    g_pika_conf->SetUserBlackList(value);
     ret = "+OK\r\n";
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
@@ -2441,7 +2440,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     std::set<std::string> available_types = {"string", "set", "zset", "list", "hash", "bit"};
     std::string type_str = value;
     std::vector<std::string> types;
-    type_str.erase(remove_if(type_str.begin(), type_str.end(), isspace), type_str.end());
+    type_str.erase(remove_if(type_str.begin(), type_str.end(), ::isspace), type_str.end());
     pstd::StringSplit(type_str, COMMA, types);
     for (auto& type : types) {
       if (available_types.find(type) == available_types.end()) {
@@ -2510,6 +2509,22 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     g_pika_conf->SetCacheLFUDecayTime(cache_lfu_decay_time);
     g_pika_server->ResetCacheConfig(db);
     ret = "+OK\r\n";
+  } else if (set_item == "acl-pubsub-default") {
+    std::string v(value);
+    pstd::StringToLower(v);
+    if (v != "allchannels" && v != "resetchannels") {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'acl-pubsub-default'\r\n";
+      return;
+    }
+    g_pika_conf->SetAclPubsubDefault(v);
+    ret = "+OK\r\n";
+  } else if (set_item == "acllog-max-len") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'acllog-max-len'\r\n";
+      return;
+    }
+    g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
@@ -2523,7 +2538,7 @@ void ConfigCmd::ConfigRewrite(std::string& ret) {
   }
 }
 
-void ConfigCmd::ConfigRewriteReplicationID(std::string &ret) {
+void ConfigCmd::ConfigRewriteReplicationID(std::string& ret) {
   if (g_pika_conf->ConfigRewriteReplicationID() != 0) {
     ret = "+OK\r\n";
   } else {
@@ -2838,7 +2853,7 @@ void HelloCmd::Do(std::shared_ptr<DB> db) {
     next_arg++;
 
     if (ver < 2 || ver > 3) {
-      res_.SetRes(CmdRes::kErrOther, "-NOPROTO unsupported protocol version");
+      res_.AppendContent("-NOPROTO unsupported protocol version");
       return;
     }
   }
@@ -2849,29 +2864,36 @@ void HelloCmd::Do(std::shared_ptr<DB> db) {
     return;
   }
 
-  for (; next_arg < argv_.size(); ++next_arg) {
+  for (; next_arg < argv_.size(); next_arg++) {
     size_t more_args = argv_.size() - next_arg - 1;
     const std::string opt = argv_[next_arg];
-    if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args != 0U)) {
-      const std::string pwd = argv_[next_arg + 1];
-      std::string msg_role;
-      auto authResult = AuthenticateUser(pwd, conn, msg_role);
+    if ((strcasecmp(opt.data(), "AUTH") == 0) && (more_args >= 2)) {
+      const std::string userName = argv_[next_arg + 1];
+      const std::string pwd = argv_[next_arg + 2];
+      bool defaultAuth = false;
+      if (userName == Acl::DefaultUser) {
+        defaultAuth = true;
+      }
+      auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
       switch (authResult) {
         case AuthResult::INVALID_CONN:
           res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
           return;
         case AuthResult::INVALID_PASSWORD:
-          res_.SetRes(CmdRes::kInvalidPwd);
+          res_.AppendContent("-WRONGPASS invalid username-password pair or user is disabled.");
           return;
         case AuthResult::NO_REQUIRE_PASS:
           res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
-          return;
-        case AuthResult::OK:
+        default:
           break;
       }
-      next_arg++;
+      next_arg += 2;
     } else if ((strcasecmp(opt.data(), "SETNAME") == 0) && (more_args != 0U)) {
       const std::string name = argv_[next_arg + 1];
+      if (pstd::isspace(name)) {
+        res_.SetRes(CmdRes::kErrOther, "Client names cannot contain spaces, newlines or special characters.");
+        return;
+      }
       conn->set_name(name);
       next_arg++;
     } else {

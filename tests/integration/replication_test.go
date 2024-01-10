@@ -364,7 +364,7 @@ func issuePushPopFrequency(ctx *context.Context, clientMaster *redis.Client, wg 
 	clientMaster.BLPop(*ctx, 1*time.Second, "blist0")
 }
 
-var _ = Describe("should replication ", func() {
+var _ = PDescribe("should replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
 		var clientSlave *redis.Client

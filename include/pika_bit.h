@@ -8,6 +8,7 @@
 
 #include "storage/storage.h"
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "include/pika_kv.h"
 
@@ -16,7 +17,8 @@
  */
 class BitGetCmd : public Cmd {
  public:
-  BitGetCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  BitGetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -43,7 +45,8 @@ class BitGetCmd : public Cmd {
 
 class BitSetCmd : public Cmd {
  public:
-  BitSetCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  BitSetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -71,7 +74,8 @@ class BitSetCmd : public Cmd {
 
 class BitCountCmd : public Cmd {
  public:
-  BitCountCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  BitCountCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -102,7 +106,8 @@ class BitCountCmd : public Cmd {
 
 class BitPosCmd : public Cmd {
  public:
-  BitPosCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
+  BitPosCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -137,8 +142,9 @@ class BitPosCmd : public Cmd {
 
 class BitOpCmd : public Cmd {
  public:
-  BitOpCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+  BitOpCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BITMAP)) {
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite |  kCmdFlagsKv);
   };
   BitOpCmd(const BitOpCmd& other)
       : Cmd(other),
@@ -146,12 +152,10 @@ class BitOpCmd : public Cmd {
         src_keys_(other.src_keys_),
         op_(other.op_),
         value_to_dest_(other.value_to_dest_) {
-    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv);
+    set_cmd_ = std::make_shared<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite |  kCmdFlagsKv);
   }
 
-  std::vector<std::string> current_key() const override {
-    return {dest_key_};
-  }
+  std::vector<std::string> current_key() const override { return {dest_key_}; }
   void Do(std::shared_ptr<DB> db) override;
   void DoUpdateCache(std::shared_ptr<DB> db) override;
   void DoThroughDB(std::shared_ptr<DB> db) override;

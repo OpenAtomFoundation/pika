@@ -433,15 +433,9 @@ bool SyncMasterDB::CheckSessionId(const std::string& ip, int port, const std::st
   return true;
 }
 
-Status SyncMasterDB::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                                         std::shared_ptr<std::string> resp_ptr) {
-  return coordinator_.ProposeLog(cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
-}
-
 Status SyncMasterDB::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
   return coordinator_.ProposeLog(cmd_ptr);
 }
-
 
 Status SyncMasterDB::ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute) {
   return coordinator_.ProcessLeaderLog(cmd_ptr, attribute);
@@ -462,7 +456,7 @@ void SyncMasterDB::ConsensusUpdateTerm(uint32_t term) {
 
 void SyncMasterDB::CommitPreviousLogs(const uint32_t& term) {
   // Append dummy cmd
-  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);
+  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
   PikaCmdArgsType args;
   args.push_back(kCmdDummy);
   dummy_ptr->Initial(args, SyncDBInfo().db_name_);

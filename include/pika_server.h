@@ -26,6 +26,7 @@
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
+#include "acl.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
 #include "include/pika_cache.h"
@@ -93,13 +94,11 @@ class PikaServer : public pstd::noncopyable {
   int port();
   time_t start_time_s();
   std::string master_ip();
-  std::string master_run_id();
-  void set_master_run_id(const std::string& master_run_id);
   int master_port();
   int role();
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
-  bool readonly(const std::string& table, const std::string& key);
+  bool readonly(const std::string& table);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -233,6 +232,7 @@ class PikaServer : public pstd::noncopyable {
    * Monitor used
    */
   bool HasMonitorClients() const;
+  bool ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const;
   void AddMonitorMessage(const std::string& monitor_message);
   void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
 
@@ -290,6 +290,9 @@ class PikaServer : public pstd::noncopyable {
                  std::vector<std::pair<std::string, int>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
+  int ClientPubSubChannelSize(const std::shared_ptr<net::NetConn>& conn);
+  int ClientPubSubChannelPatternSize(const std::shared_ptr<net::NetConn>& conn);
+
   pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 
   // info debug use
@@ -354,6 +357,12 @@ class PikaServer : public pstd::noncopyable {
     bgslots_reload_.end_time = time(nullptr);
   }
   void Bgslotsreload(const std::shared_ptr<DB>& db);
+
+  // Revoke the authorization of the specified account, when handle Cmd deleteUser
+  void AllClientUnAuth(const std::set<std::string>& users);
+
+  // Determine whether the user's conn can continue to subscribe to the channel
+  void CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel);
 
   /*
    * BGSlotsCleanup used
@@ -422,10 +431,6 @@ class PikaServer : public pstd::noncopyable {
    */
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
- /*
-  * Info Commandstats used
-  */
-  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
  /*
   * Instantaneous Metric used
@@ -438,6 +443,13 @@ class PikaServer : public pstd::noncopyable {
   std::map<std::string, std::shared_ptr<DB>> GetDB() {
     return dbs_;
   }
+
+  /*
+   * acl init
+   */
+  pstd::Status InitAcl() { return acl_->Initialization(); }
+
+  std::unique_ptr<::Acl>& Acl() { return acl_; }
 
   friend class Cmd;
   friend class InfoCmd;
@@ -486,7 +498,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
   int64_t GetLastSaveTime(const std::string& dump_dir);
-  
+
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
@@ -496,7 +508,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
-  std::timed_mutex  exit_mutex_;
+  std::timed_mutex exit_mutex_;
 
   /*
    * DB used
@@ -528,7 +540,6 @@ class PikaServer : public pstd::noncopyable {
    */
   std::string master_ip_;
   int master_port_ = 0;
-  std::string master_run_id_;
   int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
@@ -599,10 +610,6 @@ class PikaServer : public pstd::noncopyable {
    */
   Statistic statistic_;
 
-  /*
-   * Info Commandstats used
-   */
-  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
   net::BGThread common_bg_thread_;
 
   /*
@@ -615,6 +622,11 @@ class PikaServer : public pstd::noncopyable {
    * lastsave used
    */
   int64_t lastsave_ = 0;
+
+  /*
+   * acl
+   */
+  std::unique_ptr<::Acl> acl_ = nullptr;
 };
 
 #endif
