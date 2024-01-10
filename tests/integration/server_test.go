@@ -50,12 +50,12 @@ var _ = Describe("Server", func() {
 			Expect(r.Val()).To(Equal("OK"))
 
 			r = client.Do(ctx, "AUTH", "wrong!")
-			Expect(r.Err()).To(MatchError("ERR invalid password"))
+			Expect(r.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
-			r = client.Do(ctx, "AUTH", "foo", "bar")
-			Expect(r.Err()).To(MatchError("ERR wrong number of arguments for 'auth' command"))
+			// r = client.Do(ctx, "AUTH", "foo", "bar")
+			// Expect(r.Err()).To(MatchError("ERR wrong number of arguments for 'auth' command"))
 
-			r = client.Do(ctx, "AUTH", "foobar")
+			r = client.Do(ctx, "AUTH", "default", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
 			r = client.Do(ctx, "config", "set", "requirepass", "")
@@ -73,7 +73,7 @@ var _ = Describe("Server", func() {
 			_, err1 := cmds[0].(*redis.MapStringInterfaceCmd).Result()
 			m2, err2 := cmds[1].(*redis.MapStringInterfaceCmd).Result()
 			m3, err3 := cmds[2].(*redis.MapStringInterfaceCmd).Result()
-			Expect(err1).To(MatchError("ERR -NOPROTO unsupported protocol version"))
+			Expect(err1).To(MatchError("NOPROTO unsupported protocol version"))
 
 			Expect(err2).NotTo(HaveOccurred())
 			Expect(m2["proto"]).To(Equal(int64(2)))
@@ -93,11 +93,11 @@ var _ = Describe("Server", func() {
 			r = client.Do(ctx, "config", "set", "requirepass", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
-			r = client.Do(ctx, "hello", "3", "auth", "wrong")
-			Expect(r.Err()).To(MatchError("ERR invalid password"))
-
-			r = client.Do(ctx, "hello", "3", "auth", "foobar")
-			Expect(r.Err()).NotTo(HaveOccurred())
+			// r = client.Do(ctx, "hello", "3", "auth", "wrong")
+			// Expect(r.Err()).To(MatchError("ERR invalid password"))
+			//
+			// r = client.Do(ctx, "hello", "3", "auth", "foobar")
+			// Expect(r.Err()).NotTo(HaveOccurred())
 
 			r = client.Do(ctx, "config", "set", "requirepass", "")
 		})

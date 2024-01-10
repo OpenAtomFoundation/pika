@@ -12,5 +12,9 @@ int main() {
   std::cout << "sha256('" << input << "'): " << output1 << std::endl;
   std::cout << "md5('" << input << "'): " << output2 << std::endl;
 
+  std::cout << "input is Sha256 " << isSha256(input) << std::endl;
+
+  std::cout << "output1 is Sha256 " << isSha256(output1) << std::endl;
+
   return 0;
 }
