@@ -943,8 +943,7 @@ void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
       return;
     }
 
-    Status s =
-        slot->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
+    Status s = slot->ConsensusProposeLog(shared_from_this());
     if (!s.ok()) {
       LOG(WARNING) << slot->SyncSlotInfo().ToString() << " Writing binlog failed, maybe no space left on device "
                    << s.ToString();
