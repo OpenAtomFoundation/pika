@@ -38,6 +38,11 @@ class PikaCmdTableManager {
 
   std::vector<std::string> GetAclCategoryCmdNames(uint32_t flag);
 
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
+
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
 
@@ -50,5 +55,10 @@ class PikaCmdTableManager {
 
   std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
+
+  /*
+  * Info Commandstats used
+  */
+  std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 #endif

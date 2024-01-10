@@ -169,7 +169,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   // Process Command
   c_ptr->Execute();
   time_stat_->process_done_ts_ = pstd::NowMicros();
-  auto cmdstat_map = g_pika_server->GetCommandStatMap();
+  auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
 
