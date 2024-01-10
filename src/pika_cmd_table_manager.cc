@@ -8,6 +8,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#include "include/acl.h"
 #include "include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
 
@@ -16,7 +17,33 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 PikaCmdTableManager::PikaCmdTableManager() {
   cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
-  InitCmdTable(cmds_.get());
+}
+
+void PikaCmdTableManager::InitCmdTable(void) {
+  ::InitCmdTable(cmds_.get());
+  
+  for (const auto& cmd : *cmds_) {
+    if (cmd.second->flag() & kCmdFlagsWrite) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::WRITE));
+    }
+    if (cmd.second->flag() & kCmdFlagsRead &&
+        !(cmd.second->AclCategory() & static_cast<uint32_t>(AclCategory::SCRIPTING))) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::READ));
+    }
+    if (cmd.second->flag() & kCmdFlagsAdmin) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::ADMIN) |
+                                 static_cast<uint32_t>(AclCategory::DANGEROUS));
+    }
+    if (cmd.second->flag() & kCmdFlagsPubSub) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::PUBSUB));
+    }
+    if (cmd.second->flag() & kCmdFlagsFast) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::FAST));
+    }
+    if (cmd.second->flag() & kCmdFlagsSlow) {
+      cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::SLOW));
+    }
+  }
 
   CommandStatistics statistics;
   for (auto& iter : *cmds_) {
@@ -41,9 +68,9 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
-CmdTable* PikaCmdTableManager::GetCmdTable() {
-  return cmds_.get();
-}
+CmdTable* PikaCmdTableManager::GetCmdTable() { return cmds_.get(); }
+
+uint32_t PikaCmdTableManager::GetCmdId() { return ++cmdId_; }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);
@@ -69,3 +96,13 @@ uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t slo
 }
 
 bool PikaCmdTableManager::CmdExist(const std::string& cmd) const { return cmds_->find(cmd) != cmds_->end(); }
+
+std::vector<std::string> PikaCmdTableManager::GetAclCategoryCmdNames(uint32_t flag) {
+  std::vector<std::string> result;
+  for (const auto& item : (*cmds_)) {
+    if (item.second->AclCategory() & flag) {
+      result.emplace_back(item.first);
+    }
+  }
+  return result;
+}

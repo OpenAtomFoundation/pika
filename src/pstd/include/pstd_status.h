@@ -23,9 +23,7 @@ class Status {
   static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotFound, msg, msg2); }
   static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kCorruption, msg, msg2); }
   static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotSupported, msg, msg2); }
-  static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
-    return {kInvalidArgument, msg, msg2};
-  }
+  static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) { return {kInvalidArgument, msg, msg2}; }
   static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIOError, msg, msg2); }
   static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kEndFile, msg, msg2); }
 
@@ -40,6 +38,8 @@ class Status {
   static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
   static Status ItemNotExist(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kItemNotExist, msg, msg2); }
+
+  static Status Error(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kError, msg, msg2); }
 
   // Returns true if the status indicates success.
   bool ok() const { return !state_; }
@@ -77,6 +77,8 @@ class Status {
   // Return true if the status is Busy
   bool IsBusy() const { return code() == kBusy; }
 
+  bool IsError() const { return code() == kError; }
+
   // Return a string representation of this status suitable for printing.
   // Returns the string "OK" for success.
   std::string ToString() const;
@@ -102,7 +104,8 @@ class Status {
     kTimeout = 9,
     kAuthFailed = 10,
     kBusy = 11,
-    kItemNotExist = 12
+    kItemNotExist = 12,
+    kError = 13
   };
 
   Code code() const { return !state_ ? kOk : static_cast<Code>(state_[4]); }

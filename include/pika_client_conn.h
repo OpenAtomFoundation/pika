@@ -9,6 +9,7 @@
 #include <bitset>
 #include <utility>
 
+#include "acl.h"
 #include "include/pika_command.h"
 
 
@@ -63,28 +64,11 @@ class PikaClientConn : public net::RedisConn {
     static constexpr uint8_t Execing = 3;
   };
 
-  // Auth related
-  class AuthStat {
-   public:
-    void Init();
-    bool IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr);
-    bool ChecknUpdate(const std::string& message);
-
-   private:
-    enum StatType {
-      kNoAuthed = 0,
-      kAdminAuthed,
-      kLimitAuthed,
-    };
-    StatType stat_;
-  };
-
   PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
   ~PikaClientConn() = default;
 
-  void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
-                                std::string* response) override;
+  void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
@@ -96,6 +80,16 @@ class PikaClientConn : public net::RedisConn {
   void SetCurrentDb(const std::string& db_name) { current_db_ = db_name; }
   const std::string& GetCurrentTable() override { return current_db_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
+
+  void DoAuth(const std::shared_ptr<User>& user);
+
+  void UnAuth(const std::shared_ptr<User>& user);
+
+  bool IsAuthed() const;
+
+  bool AuthRequired() const;
+
+  std::string UserName() const;
 
   // Txn
   void PushCmdToQue(std::shared_ptr<Cmd> cmd);
@@ -118,8 +112,7 @@ class PikaClientConn : public net::RedisConn {
   void ExitTxn();
 
   net::ServerThread* server_thread() { return server_thread_; }
-
-  AuthStat& auth_stat() { return auth_stat_; }
+  void ClientInfoToString(std::string* info, const std::string& cmdName);
 
   std::atomic<int> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;
@@ -135,6 +128,9 @@ class PikaClientConn : public net::RedisConn {
   std::unordered_set<std::string> watched_db_keys_;
   std::mutex txn_state_mu_;
 
+  bool authenticated_ = false;
+  std::shared_ptr<User> user_;
+
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);
 
@@ -143,8 +139,6 @@ class PikaClientConn : public net::RedisConn {
 
   void ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr);
   void TryWriteResp();
-
-  AuthStat auth_stat_;
 };
 
 struct ClientInfo {

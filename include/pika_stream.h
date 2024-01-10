@@ -30,7 +30,8 @@ inline void AppendMessagesToRes(CmdRes& res, std::vector<storage::FieldValue>& f
 
 class XAddCmd : public Cmd {
  public:
-  XAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XAddCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -48,7 +49,8 @@ class XAddCmd : public Cmd {
 
 class XDelCmd : public Cmd {
  public:
-  XDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XDelCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -68,7 +70,8 @@ class XDelCmd : public Cmd {
 
 class XReadCmd : public Cmd {
  public:
-  XReadCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XReadCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -86,7 +89,8 @@ class XReadCmd : public Cmd {
 
 class XRangeCmd : public Cmd {
  public:
-  XRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XRangeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -105,7 +109,7 @@ class XRangeCmd : public Cmd {
 
 class XRevrangeCmd : public XRangeCmd {
  public:
-  XRevrangeCmd(const std::string& name, int arity, uint16_t flag) : XRangeCmd(name, arity, flag){};
+  XRevrangeCmd(const std::string& name, int arity, uint32_t flag) : XRangeCmd(name, arity, flag){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -114,7 +118,8 @@ class XRevrangeCmd : public XRangeCmd {
 
 class XLenCmd : public Cmd {
  public:
-  XLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -128,7 +133,7 @@ class XLenCmd : public Cmd {
 
 class XTrimCmd : public Cmd {
  public:
-  XTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XTrimCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override { return {key_}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
@@ -144,7 +149,8 @@ class XTrimCmd : public Cmd {
 
 class XInfoCmd : public Cmd {
  public:
-  XInfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  XInfoCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};

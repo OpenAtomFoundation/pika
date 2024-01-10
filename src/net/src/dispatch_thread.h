@@ -89,6 +89,8 @@ class DispatchThread : public ServerThread {
 
   void SetQueueLimit(int queue_limit) override;
 
+  void AllConn(const std::function<void(const std::shared_ptr<NetConn>&)>& func);
+
   /**
    * BlPop/BrPop used start
    */
