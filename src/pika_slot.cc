@@ -389,7 +389,7 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
-  
+
   return true;
 }
 
@@ -419,7 +419,7 @@ bool Slot::InitBgsaveEnv() {
 // Prepare bgsave env, need bgsave_protector protect
 bool Slot::InitBgsaveEngine() {
   bgsave_engine_.reset();
-  rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_);
+  rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_, g_pika_conf->db_instance_num());
   if (!s.ok()) {
     LOG(WARNING) << slot_name_ << " open backup engine failed " << s.ToString();
     return false;

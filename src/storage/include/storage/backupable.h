@@ -42,7 +42,7 @@ struct BackupContent {
 class BackupEngine {
  public:
   ~BackupEngine();
-  static Status Open(Storage* db, std::shared_ptr<BackupEngine>& backup_engine_ret);
+  static Status Open(Storage* db, std::shared_ptr<BackupEngine>& backup_engine_ret, int inst_count);
 
   Status SetBackupContent();
 
