@@ -86,35 +86,6 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
 
     LOG(INFO) << "GetMigrateClient: new  migrate_cli[" << ip_port.c_str() << "]";
 
-    std::string userpass = g_pika_conf->userpass();
-    if (userpass != "") {
-      net::RedisCmdArgsType argv;
-      std::string wbuf_str;
-      argv.emplace_back("auth");
-      argv.emplace_back(userpass);
-      net::SerializeRedisCommand(argv, &wbuf_str);
-
-      s = migrate_cli->Send(&wbuf_str);
-      if (!s.ok()) {
-        LOG(ERROR) << "GetMigrateClient: new  migrate_cli Send, error: " << s.ToString();
-        delete migrate_cli;
-        return nullptr;
-      }
-
-      s = migrate_cli->Recv(&argv);
-      if (!s.ok()) {
-        LOG(ERROR) << "GetMigrateClient: new  migrate_cli Recv, error: " << s.ToString();
-        delete migrate_cli;
-        return nullptr;
-      }
-
-      if (strcasecmp(argv[0].data(), kInnerReplOk.data()) != 0) {
-        LOG(ERROR) << "GetMigrateClient: new  migrate_cli auth error";
-        delete migrate_cli;
-        return nullptr;
-      }
-    }
-
     // add a new migrate client to the map
     migrate_clients_[ip_port] = migrate_cli;
   } else {

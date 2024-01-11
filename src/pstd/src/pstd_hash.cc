@@ -249,6 +249,17 @@ std::string sha256(const std::string& input, bool raw) {
   return {buf};
 }
 
+bool isSha256(const std::string& input) {
+  if (input.size() != SHA256::DIGEST_SIZE * 2) {
+    return false;
+  }
+  for (const auto& item : input) {
+    if ((item < 'a' || item > 'f') && (item < '0' || item > '9')) {
+      return false;
+    }
+  }
+  return true;
+}
 // MD5 hash function
 
 // Constants for MD5Transform routine.

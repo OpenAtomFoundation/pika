@@ -21,7 +21,7 @@
 class PikaCacheLoadThread : public net::Thread {
  public:
   PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key);
-  ~PikaCacheLoadThread();
+  ~PikaCacheLoadThread() override;
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
   uint32_t WaittingLoadKeysNum(void) { return waitting_load_keys_num_; }
@@ -34,7 +34,7 @@ class PikaCacheLoadThread : public net::Thread {
   bool LoadSet(std::string& key, const std::shared_ptr<Slot>& slot);
   bool LoadZset(std::string& key, const std::shared_ptr<Slot>& slot);
   bool LoadKey(const char key_type, std::string& key, const std::shared_ptr<Slot>& slot);
-  virtual void* ThreadMain();
+  virtual void* ThreadMain() override;
 
  private:
   std::atomic_bool should_exit_;

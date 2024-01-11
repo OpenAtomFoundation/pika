@@ -469,7 +469,6 @@ bool Slot::FlushDB() {
 }
 
 bool Slot::FlushDBWithoutLock() {
-  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }

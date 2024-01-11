@@ -15,6 +15,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
 
+#include "acl.h"
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
 #include "rocksdb/compression_type.h"
@@ -87,6 +88,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  bool disable_auto_compactions() {
+    std::shared_lock l(rwlock_);
+    return disable_auto_compactions_;
+  }
   int64_t least_resume_free_disk_size() {
     std::shared_lock l(rwlock_);
     return least_free_disk_to_resume_;
@@ -147,10 +152,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return run_id_;
   }
-  std::string master_run_id() {
-    std::shared_lock l(rwlock_);
-    return master_run_id_;
-  }
   std::string replication_id() {
     std::shared_lock l(rwlock_);
     return replication_id_;
@@ -174,18 +175,6 @@ class PikaConf : public pstd::BaseConf {
   std::string bgsave_prefix() {
     std::shared_lock l(rwlock_);
     return bgsave_prefix_;
-  }
-  std::string userpass() {
-    std::shared_lock l(rwlock_);
-    return userpass_;
-  }
-  std::string suser_blacklist() {
-    std::shared_lock l(rwlock_);
-    return pstd::StringConcat(user_blacklist_, COMMA);
-  }
-  const std::vector<std::string>& vuser_blacklist() {
-    std::shared_lock l(rwlock_);
-    return user_blacklist_;
   }
   bool classic_mode() { return classic_mode_.load(); }
   int databases() {
@@ -376,6 +365,12 @@ class PikaConf : public pstd::BaseConf {
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
 
+  std::vector<std::string>& users() { return users_; };
+  std::string acl_file() { return aclFile_; };
+
+  uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(); }
+  uint32_t acl_log_max_len() { return acl_Log_max_len_.load(); }
+
   // Setter
   void SetPort(const int value) {
     std::lock_guard l(rwlock_);
@@ -398,11 +393,6 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
-  }
-  void SetMasterRunID(const std::string& value) {
-    std::lock_guard l(rwlock_);
-    TryPushDiffCommands("master-run-id", value);
-    master_run_id_ = value;
   }
   void SetReplicationID(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -471,20 +461,7 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
-  void SetUserPass(const std::string& value) {
-    std::lock_guard l(rwlock_);
-    TryPushDiffCommands("userpass", value);
-    userpass_ = value;
-  }
-  void SetUserBlackList(const std::string& value) {
-    std::lock_guard l(rwlock_);
-    TryPushDiffCommands("userblacklist", value);
-    pstd::StringSplit(value, COMMA, user_blacklist_);
-    for (auto& item : user_blacklist_) {
-      pstd::StringToLower(item);
-    }
-  }
-  void SetSlotMigrate(const std::string &value) {
+  void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes") ? true : false;
   }
@@ -537,6 +514,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
+  }
+  void SetDisableAutoCompaction(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("disable_auto_compactions", value);
+    disable_auto_compactions_ = value == "true";
   }
   void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
@@ -610,6 +592,20 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
     max_rsync_parallel_num_ = value;
   }
+  void SetAclPubsubDefault(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("acl-pubsub-default", value);
+    if (value == "resetchannels") {
+      acl_pubsub_default_ = 0;
+    } else {
+      acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+    }
+  }
+  void SetAclLogMaxLen(const int value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("acllog-max-len", std::to_string(value));
+    acl_Log_max_len_ = value;
+  }
 
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
@@ -631,6 +627,7 @@ class PikaConf : public pstd::BaseConf {
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
+
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
@@ -648,6 +645,7 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
+  bool disable_auto_compactions_ = false;
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
   double min_check_resume_ratio_ = 0.7;
@@ -662,12 +660,9 @@ class PikaConf : public pstd::BaseConf {
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
-  std::string master_run_id_;
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
-  std::string userpass_;
-  std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;
@@ -718,6 +713,13 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<int> replication_num_;
 
   std::string network_interface_;
+
+  std::vector<std::string> users_;  // acl user rules
+
+  std::string aclFile_;
+
+  std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
+  std::atomic<uint32_t> acl_Log_max_len_ = 0;      // default acl log max len
 
   // diff commands between cached commands and config file commands
   std::map<std::string, std::string> diff_commands_;

@@ -15,9 +15,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "storage/storage.h"
-
+#include "include/acl.h"
 #include "include/pika_command.h"
+#include "storage/storage.h"
 #include "pika_db.h"
 
 /*
@@ -25,7 +25,8 @@
  */
 class SlaveofCmd : public Cmd {
  public:
-  SlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlaveofCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -45,7 +46,8 @@ class SlaveofCmd : public Cmd {
 
 class DbSlaveofCmd : public Cmd {
  public:
-  DbSlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DbSlaveofCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -69,20 +71,20 @@ class DbSlaveofCmd : public Cmd {
 
 class AuthCmd : public Cmd {
  public:
-  AuthCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  AuthCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new AuthCmd(*this); }
 
  private:
-  std::string pwd_;
   void DoInitial() override;
 };
 
 class BgsaveCmd : public Cmd {
  public:
-  BgsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  BgsaveCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -96,7 +98,8 @@ class BgsaveCmd : public Cmd {
 
 class CompactCmd : public Cmd {
  public:
-  CompactCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CompactCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -115,7 +118,7 @@ class CompactCmd : public Cmd {
 // we can use pika/tests/helpers/test_queue.py to test this command
 class CompactRangeCmd : public Cmd {
  public:
-  CompactRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CompactRangeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -137,7 +140,8 @@ class CompactRangeCmd : public Cmd {
 
 class PurgelogstoCmd : public Cmd {
  public:
-  PurgelogstoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PurgelogstoCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -151,7 +155,7 @@ class PurgelogstoCmd : public Cmd {
 
 class PingCmd : public Cmd {
  public:
-  PingCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PingCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -163,7 +167,7 @@ class PingCmd : public Cmd {
 
 class SelectCmd : public Cmd {
  public:
-  SelectCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SelectCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -178,7 +182,8 @@ class SelectCmd : public Cmd {
 
 class FlushallCmd : public Cmd {
  public:
-  FlushallCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  FlushallCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
@@ -195,7 +200,10 @@ class FlushallCmd : public Cmd {
 
 class FlushdbCmd : public Cmd {
  public:
-  FlushdbCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  FlushdbCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
+  // The flush command belongs to the write categories, so the key cannot be empty
+  std::vector<std::string> current_key() const override { return {""}; }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
   void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
@@ -215,7 +223,9 @@ class FlushdbCmd : public Cmd {
 
 class ClientCmd : public Cmd {
  public:
-  ClientCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ClientCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
+    subCmdName_ = {"getname", "setname", "list", "addr", "kill"};
+  }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;
@@ -249,7 +259,7 @@ class InfoCmd : public Cmd {
     kInfoCache
   };
 
-  InfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  InfoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -305,7 +315,8 @@ class InfoCmd : public Cmd {
 
 class ShutdownCmd : public Cmd {
  public:
-  ShutdownCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ShutdownCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -317,7 +328,10 @@ class ShutdownCmd : public Cmd {
 
 class ConfigCmd : public Cmd {
  public:
-  ConfigCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ConfigCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {
+    subCmdName_ = {"get", "set", "rewrite", "resetstat"};
+  }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -336,7 +350,8 @@ class ConfigCmd : public Cmd {
 
 class MonitorCmd : public Cmd {
  public:
-  MonitorCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  MonitorCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -348,7 +363,8 @@ class MonitorCmd : public Cmd {
 
 class DbsizeCmd : public Cmd {
  public:
-  DbsizeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DbsizeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -360,7 +376,7 @@ class DbsizeCmd : public Cmd {
 
 class TimeCmd : public Cmd {
  public:
-  TimeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  TimeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -372,7 +388,7 @@ class TimeCmd : public Cmd {
 
 class LastsaveCmd : public Cmd {
  public:
-  LastsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  LastsaveCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -384,7 +400,8 @@ class LastsaveCmd : public Cmd {
 
 class DelbackupCmd : public Cmd {
  public:
-  DelbackupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DelbackupCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -396,8 +413,8 @@ class DelbackupCmd : public Cmd {
 
 class EchoCmd : public Cmd {
  public:
-  EchoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Merge() override {};
+  EchoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  void Merge() override{};
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   Cmd* Clone() override { return new EchoCmd(*this); }
@@ -409,7 +426,7 @@ class EchoCmd : public Cmd {
 
 class ScandbCmd : public Cmd {
  public:
-  ScandbCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ScandbCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -424,7 +441,8 @@ class ScandbCmd : public Cmd {
 class SlowlogCmd : public Cmd {
  public:
   enum SlowlogCondition { kGET, kLEN, kRESET };
-  SlowlogCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  SlowlogCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -442,7 +460,8 @@ class SlowlogCmd : public Cmd {
 
 class PaddingCmd : public Cmd {
  public:
-  PaddingCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PaddingCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -455,7 +474,8 @@ class PaddingCmd : public Cmd {
 
 class PKPatternMatchDelCmd : public Cmd {
  public:
-  PKPatternMatchDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  PKPatternMatchDelCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -470,7 +490,8 @@ class PKPatternMatchDelCmd : public Cmd {
 class DummyCmd : public Cmd {
  public:
   DummyCmd() : Cmd("", 0, 0) {}
-  DummyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DummyCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -482,7 +503,7 @@ class DummyCmd : public Cmd {
 
 class QuitCmd : public Cmd {
  public:
-  QuitCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  QuitCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -494,7 +515,7 @@ class QuitCmd : public Cmd {
 
 class HelloCmd : public Cmd {
  public:
-  HelloCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HelloCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -506,7 +527,8 @@ class HelloCmd : public Cmd {
 
 class DiskRecoveryCmd : public Cmd {
  public:
-  DiskRecoveryCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DiskRecoveryCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -519,7 +541,8 @@ class DiskRecoveryCmd : public Cmd {
 
 class ClearReplicationIDCmd : public Cmd {
  public:
-  ClearReplicationIDCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ClearReplicationIDCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -532,7 +555,7 @@ class ClearReplicationIDCmd : public Cmd {
 
 class DisableWalCmd : public Cmd {
  public:
-  DisableWalCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  DisableWalCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
@@ -545,7 +568,7 @@ class DisableWalCmd : public Cmd {
 class CacheCmd : public Cmd {
  public:
   enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
-  CacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -563,7 +586,7 @@ class CacheCmd : public Cmd {
 
 class ClearCacheCmd : public Cmd {
  public:
-  ClearCacheCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  ClearCacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
   void Merge() override{};
@@ -576,7 +599,7 @@ class ClearCacheCmd : public Cmd {
 #ifdef WITH_COMMAND_DOCS
 class CommandCmd : public Cmd {
  public:
-  CommandCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  CommandCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
   void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};

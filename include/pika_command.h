@@ -6,8 +6,8 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -231,6 +231,9 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
+// ACL
+const std::string KCmdNameAcl = "acl";
+
 // Stream
 const std::string kCmdNameXAdd = "xadd";
 const std::string kCmdNameXDel = "xdel";
@@ -241,53 +244,37 @@ const std::string kCmdNameXRevrange = "xrevrange";
 const std::string kCmdNameXTrim = "xtrim";
 const std::string kCmdNameXInfo = "xinfo";
 
-
 const std::string kClusterPrefix = "pkcluster";
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
-enum CmdFlagsMask {
-  kCmdFlagsMaskRW = 1,
-  kCmdFlagsMaskType = 30,
-  kCmdFlagsMaskLocal = 32,
-  kCmdFlagsMaskSuspend = 64,
-  kCmdFlagsMaskPrior = 128,
-  kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskDoThrouhDB = 4096,
-  kCmdFlagsMaskReadCache = 128,
-  kCmdFlagsMaskUpdateCache = 2048,
-  kCmdFlagsMaskSlot = 1536,
-};
-
 enum CmdFlags {
-  kCmdFlagsRead = 0,  // default rw
-  kCmdFlagsWrite = 1,
-  kCmdFlagsAdmin = 0,  // default type
-  kCmdFlagsKv = 2,
-  kCmdFlagsHash = 4,
-  kCmdFlagsList = 6,
-  kCmdFlagsSet = 8,
-  kCmdFlagsZset = 10,
-  kCmdFlagsBit = 12,
-  kCmdFlagsHyperLogLog = 14,
-  kCmdFlagsGeo = 16,
-  kCmdFlagsPubSub = 18,
-  kCmdFlagsNoLocal = 0,  // default nolocal
-  kCmdFlagsLocal = 32,
-  kCmdFlagsNoSuspend = 0,  // default nosuspend
-  kCmdFlagsSuspend = 64,
-  kCmdFlagsNoPrior = 0,  // default noprior
-  kCmdFlagsPrior = 128,
-  kCmdFlagsNoAdminRequire = 0,  // default no need admin
-  kCmdFlagsAdminRequire = 256,
-  kCmdFlagsDoNotSpecifySlot = 0,  // default do not specify slot
-  kCmdFlagsSingleSlot = 512,
-  kCmdFlagsMultiSlot = 1024,
-  kCmdFlagsPreDo = 2048,
-  kCmdFlagsStream = 1536,
-  kCmdFlagsReadCache = 128,
-  kCmdFlagsUpdateCache = 2048,
-  kCmdFlagsDoThroughDB = 4096,
+  kCmdFlagsRead = 1,  // default rw
+  kCmdFlagsWrite = (1 << 1),
+  kCmdFlagsAdmin = (1 << 2),  // default type
+  kCmdFlagsKv = (1 << 3),
+  kCmdFlagsHash = (1 << 4),
+  kCmdFlagsList = (1 << 5),
+  kCmdFlagsSet = (1 << 6),
+  kCmdFlagsZset = (1 << 7),
+  kCmdFlagsBit = (1 << 8),
+  kCmdFlagsHyperLogLog = (1 << 9),
+  kCmdFlagsGeo = (1 << 10),
+  kCmdFlagsPubSub = (1 << 11),
+  kCmdFlagsLocal = (1 << 12),
+  kCmdFlagsSuspend = (1 << 13),
+  kCmdFlagsAdminRequire = (1 << 14),
+  kCmdFlagsSingleSlot = (1 << 15),
+  kCmdFlagsMultiSlot = (1 << 16),
+  kCmdFlagsNoAuth = (1 << 17),  // command no auth can also be executed
+  kCmdFlagsReadCache = (1 << 18),
+  kCmdFlagsUpdateCache = (1 << 19),
+  kCmdFlagsDoThroughDB = (1 << 20),
+  kCmdFlagsOperateKey = (1 << 21),  // redis keySpace
+  kCmdFlagsPreDo = (1 << 22),
+  kCmdFlagsStream = (1 << 23),
+  kCmdFlagsFast = (1 << 24),
+  kCmdFlagsSlow = (1 << 25),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -340,9 +327,7 @@ class CmdRes {
     message_.clear();
     ret_ = kNone;
   }
-  bool CacheMiss() const {
-    return ret_ == kCacheMiss;
-  }
+  bool CacheMiss() const { return ret_ == kCacheMiss; }
   std::string raw_message() const { return message_; }
   std::string message() const {
     std::string result;
@@ -443,15 +428,26 @@ class CmdRes {
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
+
+  void AppendStringVector(const std::vector<std::string>& strArray) {
+    if (strArray.empty()) {
+      AppendArrayLen(-1);
+      return;
+    }
+    AppendArrayLen(strArray.size());
+    for (const auto& item : strArray) {
+      AppendString(item);
+    }
+  }
+
   void SetRes(CmdRet _ret, const std::string& content = "") {
     ret_ = _ret;
     if (!content.empty()) {
       message_ = content;
     }
   }
-  CmdRet GetCmdRet() const {
-    return ret_;
-  }
+  CmdRet GetCmdRet() const { return ret_; }
+
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -464,9 +460,9 @@ class CmdRes {
 struct UnblockTaskArgs {
   std::string key;
   std::shared_ptr<Slot> slot;
-  net::DispatchThread* dispatchThread{ nullptr };
+  net::DispatchThread* dispatchThread{nullptr};
   UnblockTaskArgs(std::string key_, std::shared_ptr<Slot> slot_, net::DispatchThread* dispatchThread_)
-      : key(std::move(key_)), slot(slot_), dispatchThread(dispatchThread_) {}
+      : key(std::move(key_)), slot(std::move(slot_)), dispatchThread(dispatchThread_) {}
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
@@ -490,7 +486,17 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
-  Cmd(std::string name, int arity, uint16_t flag) : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  struct CommandStatistics {
+    CommandStatistics() = default;
+    CommandStatistics(const CommandStatistics& other) {
+      cmd_time_consuming.store(other.cmd_time_consuming.load());
+      cmd_count.store(other.cmd_count.load());
+    }
+    std::atomic<int32_t> cmd_count = {0};
+    std::atomic<int32_t> cmd_time_consuming = {0};
+  };
+  CommandStatistics state;
+  Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory = 0);
   virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
@@ -507,8 +513,12 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
+  int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
+
   void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
+  uint32_t flag() const;
+  bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
 
@@ -517,12 +527,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsAdminRequire() const;
   bool is_single_slot() const;
   bool is_multi_slot() const;
+  bool HasSubCommand() const;                   // The command is there a sub command
+  std::vector<std::string> SubCommand() const;  // Get command is there a sub command
   bool IsNeedUpdateCache() const;
   bool is_only_from_cache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  uint32_t AclCategory() const;
+  void AddAclCategory(uint32_t aclCategory);
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
   std::string GetDBName() { return db_name_; }
 
@@ -543,6 +557,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
 
+  uint32_t GetCmdId() const { return cmdId_; };
+  bool CheckArg(uint64_t num) const;
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -551,12 +568,13 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  bool CheckArg(uint64_t num) const;
   void LogCommand() const;
 
   std::string name_;
   int arity_ = -2;
-  uint16_t flag_ = 0;
+  uint32_t flag_ = 0;
+
+  std::vector<std::string> subCmdName_;  // sub command name, may be empty
 
  protected:
   CmdRes res_;
@@ -568,6 +586,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::weak_ptr<std::string> resp_;
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
+  uint32_t cmdId_ = 0;
+  uint32_t aclCategory_ = 0;
 
  private:
   virtual void DoInitial() = 0;

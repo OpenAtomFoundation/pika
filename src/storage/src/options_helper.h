@@ -18,6 +18,7 @@ enum class MemberType {
   kUint64T,
   kSizeT,
   kUnknown,
+  kBool,
 };
 
 struct MemberTypeInfo {
@@ -65,6 +66,8 @@ static std::unordered_map<std::string, MemberTypeInfo> mutable_cf_options_member
      {offset_of(&rocksdb::ColumnFamilyOptions::soft_pending_compaction_bytes_limit), MemberType::kUint64T}},
     {"hard_pending_compaction_bytes_limit",
      {offset_of(&rocksdb::ColumnFamilyOptions::hard_pending_compaction_bytes_limit), MemberType::kUint64T}},
+    {"disable_auto_compactions",
+     {offset_of(&rocksdb::ColumnFamilyOptions::disable_auto_compactions), MemberType::kBool}},
 };
 
 extern bool ParseOptionMember(const MemberType& member_type, const std::string& value, char* member_address);
