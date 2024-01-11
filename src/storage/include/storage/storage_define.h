@@ -112,5 +112,10 @@ inline const char* SeekUserkeyDelim(const char* ptr, int length) {
     return ptr;
 }
 
+union DoubleToCharArray {
+  double score;
+  char arr[8];
+};
+
 } // end namespace storage
 #endif

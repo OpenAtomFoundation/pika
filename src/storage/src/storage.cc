@@ -220,6 +220,7 @@ Status Storage::Setnx(const Slice& key, const Slice& value, int32_t* ret, const 
 }
 
 // disallowed in codis, only runs in pika classic mode
+// TODO: Not concurrent safe now, merge wuxianrong's bugfix after floyd's PR review finishes.
 Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   assert(g_pika_conf->classic_mode());
   Status s;
@@ -227,10 +228,7 @@ Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
     auto inst = GetDBInstance(kv.key);
     std::string value;
     s = inst->Get(Slice(kv.key), &value);
-    if (s.ok()) {
-      return s;
-    }
-    if (!s.IsNotFound()) {
+    if (s.ok() || !s.IsNotFound()) {
       return s;
     }
   }

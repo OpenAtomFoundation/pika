@@ -119,12 +119,11 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     // compare score
     uint64_t a_i = DecodeFixed64(ptr_a);
     uint64_t b_i = DecodeFixed64(ptr_b);
-    const void* ptr_a_score = reinterpret_cast<const void*>(&a_i);
-    const void* ptr_b_score = reinterpret_cast<const void*>(&b_i);
-    double a_score = *reinterpret_cast<const double*>(ptr_a_score);
-    double b_score = *reinterpret_cast<const double*>(ptr_b_score);
-    if (a_score != b_score) {
-      return a_score < b_score ? -1 : 1;
+    DoubleToCharArray convert_a, convert_b;
+    memcpy(convert_a.arr, ptr_a, sizeof(double));
+    memcpy(convert_b.arr, ptr_b, sizeof(double));
+    if (convert_a.score != convert_b.score) {
+      return convert_a.score < convert_b.score ? -1 : 1;
     }
 
     // compare rest of the key, including: member and reserve
