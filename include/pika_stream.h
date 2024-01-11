@@ -6,10 +6,11 @@
 #ifndef PIKA_STREAM_H_
 #define PIKA_STREAM_H_
 
+#include "include/acl.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
-#include "storage/storage.h"
 #include "storage/src/redis_streams.h"
+#include "storage/storage.h"
 
 /*
  * stream

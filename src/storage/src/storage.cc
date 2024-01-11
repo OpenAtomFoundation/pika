@@ -929,6 +929,22 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
         }
       }
       start_key = prefix;
+    case 'x':
+      is_finish = streams_db_->Scan(start_key, pattern, keys, &leftover_visits, &next_key);
+      if ((leftover_visits == 0) && !is_finish) {
+        cursor_ret = cursor + step_length;
+        StoreCursorStartKey(DataType::kStreams, cursor_ret, std::string("x") + next_key);
+        break;
+      } else if (is_finish) {
+        if (DataType::kStreams == dtype) {
+          cursor_ret = 0;
+          break;
+        } else if (leftover_visits == 0) {
+          cursor_ret = cursor + step_length;
+          StoreCursorStartKey(DataType::kStreams, cursor_ret, std::string("k") + prefix);
+          break;
+        }
+      }
     case 'z':
       is_finish = zsets_db_->Scan(start_key, pattern, keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
@@ -1079,6 +1095,9 @@ Status Storage::PKScanRange(const DataType& data_type, const Slice& key_start, c
     case DataType::kSets:
       s = sets_db_->PKScanRange(key_start, key_end, pattern, limit, keys, next_key);
       break;
+    case DataType::kStreams:
+      s = streams_db_->PKScanRange(key_start, key_end, pattern, limit, keys, next_key);
+      break;
     default:
       s = Status::Corruption("Unsupported data types");
       break;
@@ -1107,6 +1126,9 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
       break;
     case DataType::kSets:
       s = sets_db_->PKRScanRange(key_start, key_end, pattern, limit, keys, next_key);
+      break;
+    case DataType::kStreams:
+      s = streams_db_->PKRScanRange(key_start, key_end, pattern, limit, keys, next_key);
       break;
     default:
       s = Status::Corruption("Unsupported data types");
@@ -1160,6 +1182,9 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
       break;
     case DataType::kSets:
       sets_db_->Scan(start_key, pattern, keys, &count, next_key);
+      break;
+    case DataType::kStreams:
+      streams_db_->Scan(start_key, pattern, keys, &count, next_key);
       break;
     default:
       Status::Corruption("Unsupported data types");
@@ -1407,6 +1432,11 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
     if (!s.ok()) {
       return s;
     }
+  } else if (data_type == DataType::kStreams) {
+    s = streams_db_->ScanKeys(pattern, keys);
+    if (!s.ok()) {
+      return s;
+    }
   } else {
     s = strings_db_->ScanKeys(pattern, keys);
     if (!s.ok()) {
@@ -1425,6 +1455,10 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
       return s;
     }
     s = lists_db_->ScanKeys(pattern, keys);
+    if (!s.ok()) {
+      return s;
+    }
+    s = streams_db_->ScanKeys(pattern, keys);
     if (!s.ok()) {
       return s;
     }
@@ -1648,6 +1682,9 @@ Status Storage::DoCompact(const DataType& type) {
   } else if (type == kLists) {
     current_task_type_ = Operation::kCleanLists;
     s = lists_db_->CompactRange(nullptr, nullptr);
+  } else if (type == kStreams) {
+    current_task_type_ = Operation::kCleanStreams;
+    s = streams_db_->CompactRange(nullptr, nullptr);
   } else {
     current_task_type_ = Operation::kCleanAll;
     s = strings_db_->CompactRange(nullptr, nullptr);
@@ -1655,6 +1692,7 @@ Status Storage::DoCompact(const DataType& type) {
     s = sets_db_->CompactRange(nullptr, nullptr);
     s = zsets_db_->CompactRange(nullptr, nullptr);
     s = lists_db_->CompactRange(nullptr, nullptr);
+    s = streams_db_->CompactRange(nullptr, nullptr);
   }
   current_task_type_ = Operation::kNone;
   return s;
@@ -1702,6 +1740,9 @@ Status Storage::DoCompactRange(const DataType& type, const std::string& start, c
   } else if (type == kLists) {
     s = lists_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
     s = lists_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+  } else if (type == kStreams) {
+    s = streams_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = streams_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   }
   return s;
 }
@@ -1745,6 +1786,8 @@ std::string Storage::GetCurrentTaskType() {
       return "Set";
     case kCleanLists:
       return "List";
+    case kCleanStreams:
+      return "Stream";
     case kNone:
     default:
       return "No";

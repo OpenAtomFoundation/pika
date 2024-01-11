@@ -611,6 +611,8 @@ void KeysCmd::DoInitial() {
       type_ = storage::DataType::kLists;
     } else if (strcasecmp(opt.data(), "hash") == 0) {
       type_ = storage::DataType::kHashes;
+    } else if (strcasecmp(opt.data(), "stream") == 0) {
+      type_ = storage::DataType::kStreams;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }

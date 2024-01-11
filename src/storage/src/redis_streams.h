@@ -150,6 +150,10 @@ class RedisStreams : public Redis {
   Status ScanKeyNum(KeyInfo* keyinfo) override;
   Status ScanKeys(const std::string& pattern, std::vector<std::string>* keys) override;
   Status PKPatternMatchDel(const std::string& pattern, int32_t* ret) override;
+  Status PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
+                     std::vector<std::string>* keys, std::string* next_key);
+  Status PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
+                      std::vector<std::string>* keys, std::string* next_key);
 
   //===--------------------------------------------------------------------===//
   // Keys Commands

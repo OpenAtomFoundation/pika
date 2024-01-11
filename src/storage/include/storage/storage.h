@@ -148,6 +148,7 @@ enum Operation {
   kCleanZSets,
   kCleanSets,
   kCleanLists,
+  kCleanStreams,
   kCompactRange
 };
 
