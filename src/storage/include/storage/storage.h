@@ -109,7 +109,7 @@ struct KeyVersion {
 };
 
 struct ScoreMember {
-  ScoreMember() = default;
+  ScoreMember() : score(0.0), member("") {}
   ScoreMember(double t_score, const std::string& t_member) : score(t_score), member(t_member) {}
   double score;
   std::string member;

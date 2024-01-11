@@ -55,9 +55,9 @@ class ZSetsScoreKey {
     pstd::EncodeFixed64(dst, version_);
     dst += sizeof(version_);
     // score
-    const void* addr_score = reinterpret_cast<const void*>(&score_);
-    pstd::EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
-    dst += sizeof(uint64_t);
+    DoubleToCharArray convert = {.score = score_};
+    memcpy(dst, convert.arr, sizeof(score_));
+    dst += sizeof(score_);
     // member
     memcpy(dst, member_.data(), member_.size());
     dst += member_.size();
@@ -101,9 +101,9 @@ class ParsedZSetsScoreKey {
     ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
     version_ = pstd::DecodeFixed64(ptr);
     ptr += sizeof(version_);
-    uint64_t tmp = pstd::DecodeFixed64(ptr);
-    const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
-    score_ = *reinterpret_cast<const double*>(ptr_tmp);
+    DoubleToCharArray convert;
+    memcpy(convert.arr, ptr, sizeof(score_));
+    score_ = convert.score;
     ptr += sizeof(uint64_t);
     member_ = Slice(ptr, std::distance(ptr, end_ptr));
   }
