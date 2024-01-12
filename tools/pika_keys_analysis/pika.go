@@ -57,7 +57,6 @@ func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitG
 			defer func() {
 				<-goroutineCh
 			}()
-			fmt.Println("当前游标：" + fmt.Sprintf("%d", curCursor))
 			keys, _, err := client.Scan(ctx, uint64(curCursor), "*", int64(ScanSize)).Result()
 			if err != nil {
 				_ = fmt.Errorf("scan error: %s", err)
@@ -94,7 +93,6 @@ func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitG
 							usedSize += int64(len(v.Member.(string)) + 8)
 						}
 					}
-					fmt.Println("localHeapMap发生变化，此时的游标为：" + fmt.Sprintf("%d", curCursor))
 					localHeapMap[dataType].Add(KeyWithMemory{
 						Key:      key,
 						UsedSize: usedSize,
