@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
@@ -104,7 +106,7 @@ public:
                     const size_t count, char* data, size_t* bytes_read,
                     std::string* checksum, bool* is_eof) {
     std::lock_guard<std::mutex> guard(mu_);
-    pstd::Status s = Seek(filepath, offset);
+    pstd::Status s = readAhead(filepath, offset);
     if (!s.ok()) {
       return s;
     }
@@ -116,7 +118,7 @@ public:
     return pstd::Status::OK();
   }
 private:
-  pstd::Status Seek(const std::string filepath, const size_t offset) {
+  pstd::Status readAhead(const std::string filepath, const size_t offset) {
     if (filepath == filepath_ && offset >= start_offset_ && offset < end_offset_) {
       return pstd::Status::OK();
     }
@@ -124,7 +126,8 @@ private:
       Reset();
       fd_ = open(filepath.c_str(), O_RDONLY);
       if (fd_ < 0) {
-        return pstd::Status::IOError("fd open failed");
+        LOG(ERROR) << "open file [" << filepath <<  "] failed! error: " << strerror(errno);
+        return pstd::Status::IOError("open file [" + filepath +  "] failed! error: " + strerror(errno));
       }
       filepath_ = filepath;
       struct stat buf;
@@ -146,9 +149,9 @@ private:
       }
     }
     if (bytesin < 0) {
-      LOG(ERROR) << "unable to read from " << filepath_;
+      LOG(ERROR) << "unable to read from " << filepath << ". error: " << strerror(errno);
       Reset();
-      return pstd::Status::IOError("unable to read from " + filepath);
+      return pstd::Status::IOError("unable to read from " + filepath + ". error: " + strerror(errno));
     }
     end_offset_ = start_offset_ + (ptr - block_data_);
     return pstd::Status::OK();
