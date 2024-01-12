@@ -934,15 +934,15 @@ pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t 
   return pstd::Status::OK();
 }
 
-void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top) {
+void PikaServer::DoBgSaveSlot(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top) {
   std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
   if (!slot) {
-    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name << ", TryDBSync Failed";
+    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name << ", DoBgSaveSlot Failed";
     return;
   }
   std::shared_ptr<SyncMasterSlot> sync_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!sync_slot) {
-    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name << ", TryDBSync Failed";
+    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name << ", DoBgSaveSlot Failed";
     return;
   }
   BgSaveInfo bgsave_info = slot->bgsave_info();
@@ -953,8 +953,6 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     slot->BgSaveSlot();
   }
-  // TODO: temporarily disable rsync server
-  // DBSync(ip, port, db_name, slot_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
