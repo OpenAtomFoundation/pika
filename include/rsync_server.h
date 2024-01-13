@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <zlib.h>
 
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
@@ -115,6 +116,8 @@ public:
     memcpy(data, block_data_ + offset_in_block, copy_count);
     *bytes_read = copy_count;
     *is_eof = (offset + copy_count == total_size_);
+    auto crc = crc32(0L, (const Bytef*)data, copy_count);
+    *checksum = std::to_string(crc);
     return pstd::Status::OK();
   }
 private:

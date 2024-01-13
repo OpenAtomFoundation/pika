@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <fstream>
+#include <zlib.h>
 
 #include "rocksdb/env.h"
 #include "pstd/include/pstd_defer.h"
@@ -208,7 +209,17 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         return s;
       }
 
-      s = writer->Write((uint64_t)offset, ret_count, resp->file_resp().data().c_str());
+      // validate crc 
+      std::string respChecksum = resp->file_resp().checksum();
+      auto c_data = resp->file_resp().data().c_str();
+      size_t crc = crc32(0L, (const Bytef*)c_data, ret_count);
+      std::string crc_s = std::to_string(crc);
+      if (crc_s.compare(respChecksum) != 0) {
+        s = Status::IOError("check remote file crc failed!, crc:" + crc_s + ", remote crc:" + respChecksum);
+        break;
+      }
+
+      s = writer->Write((uint64_t)offset, ret_count, c_data);
       if (!s.ok()) {
         LOG(WARNING) << "rsync client write file error";
         break;
@@ -220,11 +231,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         if (!s.ok()) {
             return s;
         }
-        s = writer->Close();
-        if (!s.ok()) {
-            return s;
-        }
-        writer.reset();
+       
         mu_.lock();
         meta_table_[filename] = "";
         mu_.unlock();
