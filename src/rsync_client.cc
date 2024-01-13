@@ -265,7 +265,7 @@ bool RsyncClient::Recover() {
 
   Status s = CopyRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
   if (!s.ok()) {
-    LOG(WARNING) << "copy remote meta failed";
+    LOG(WARNING) << "copy remote meta failed! error:" << s.ToString();
     return false;
   }
 
@@ -338,15 +338,15 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
     std::shared_ptr<RsyncResponse> resp;
     s = wo->Wait(resp);
-    if (s.IsTimeout() || resp.get() == nullptr) {
+    if (s.IsTimeout()) {
       LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
                    << "retry times: " << retries;
       retries++;
       continue;
     }
 
-    if (resp->code() != RsyncService::kOk) {
-      //TODO: handle different error
+    if (resp.get() == nullptr || resp->code() != RsyncService::kOk) {
+      s = Status::IOError("kRsyncMeta request failed! unknown reason");
       continue;
     }
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()
@@ -356,6 +356,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
 
     *snapshot_uuid = resp->snapshot_uuid();
+    s = Status::OK();
     break;
   }
   return s;
