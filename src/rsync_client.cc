@@ -95,6 +95,14 @@ void* RsyncClient::ThreadMain() {
   std::string meta_file_path = GetLocalMetaFilePath();
   std::ofstream outfile;
   outfile.open(meta_file_path, std::ios_base::app);
+  if (!outfile.is_open()) {
+    LOG(FATAL) << "unable to open meta file " << meta_file_path << ", error:"  << strerror(errno);
+    return 
+  }
+  DEFER {
+    outfile.close();
+  };
+
   std::string meta_rep;
   uint64_t start_time = pstd::NowMicros();
 
