@@ -37,29 +37,24 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   } else {
     LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:" << node.port();
     std::vector<DBStruct> db_structs = g_pika_conf->db_structs();
-    bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), db_structs);
+    g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), db_structs);
     const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
-    if (!success) {
-      response.set_code(InnerMessage::kOther);
-      response.set_reply("Slave AlreadyExist");
-    } else {
-      g_pika_server->BecomeMaster();
-      response.set_code(InnerMessage::kOk);
-      InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-      if (g_pika_conf->replication_id() == "") {
-        std::string replication_id = pstd::getRandomHexChars(configReplicationIDSize);
-        g_pika_conf->SetReplicationID(replication_id);
-        g_pika_conf->ConfigRewriteReplicationID();
-      }
-      meta_sync->set_classic_mode(g_pika_conf->classic_mode());
-      meta_sync->set_run_id(g_pika_conf->run_id());
-      meta_sync->set_replication_id(g_pika_conf->replication_id());
-      for (const auto& db_struct : db_structs) {
-        InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
-        db_info->set_db_name(db_struct.db_name);
-        db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
-      }
+    g_pika_server->BecomeMaster();
+    response.set_code(InnerMessage::kOk);
+    InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
+    if (g_pika_conf->replication_id() == "") {
+      std::string replication_id = pstd::getRandomHexChars(configReplicationIDSize);
+      g_pika_conf->SetReplicationID(replication_id);
+      g_pika_conf->ConfigRewriteReplicationID();
+    }
+    meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+    meta_sync->set_run_id(g_pika_conf->run_id());
+    meta_sync->set_replication_id(g_pika_conf->replication_id());
+    for (const auto& db_struct : db_structs) {
+      InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
+      db_info->set_db_name(db_struct.db_name);
+      db_info->set_slot_num(static_cast<int32_t>(db_struct.slot_num));
     }
   }
 
