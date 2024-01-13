@@ -447,6 +447,10 @@ Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, const std::set<std
 
 Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std::set<std::string>& expired_files,
                                     std::map<std::string, std::string>* localFileMap) {
+  if (localFileMap->empty()) {
+    return Status::OK();
+  }
+  
   for (const auto& item : expired_files) {
     localFileMap->erase(item);
   }
