@@ -97,7 +97,7 @@ void* RsyncClient::ThreadMain() {
   outfile.open(meta_file_path, std::ios_base::app);
   if (!outfile.is_open()) {
     LOG(FATAL) << "unable to open meta file " << meta_file_path << ", error:"  << strerror(errno);
-    return 
+    return nullptr;
   }
   DEFER {
     outfile.close();
