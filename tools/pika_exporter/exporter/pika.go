@@ -241,7 +241,6 @@ func (e *exporter) collectInfo(c *client, ch chan<- prometheus.Metric) error {
 	if err != nil {
 		return err
 	}
-
 	collector := metrics.CollectFunc(func(m metrics.Metric) error {
 		promMetric, err := prometheus.NewConstMetric(
 			prometheus.NewDesc(prometheus.BuildFQName(e.namespace, "", m.Name), m.Help, m.Labels, nil),
@@ -327,6 +326,9 @@ func (e *exporter) registerMetrics() {
 	}
 	if config.Rocksdb {
 		metrics.RegisterRocksDB()
+	}
+	if config.Cache {
+		metrics.RegisterCache()
 	}
 	metrics.RegisterBinlog()
 }
