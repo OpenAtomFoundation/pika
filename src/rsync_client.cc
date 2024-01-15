@@ -489,7 +489,7 @@ Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std:
     std::string line = item.first + ":" + item.second + "\n";
     file->Append(line);
   }
-  s = file->Flush();
+  s = file->Close();
   if (!s.ok()) {
     LOG(WARNING) << "flush meta file failed, meta_file_path: " << meta_file_path;
     return s;

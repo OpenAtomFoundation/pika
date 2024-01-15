@@ -1485,8 +1485,8 @@ void PikaServer::InitStorageOptions() {
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
                                                   const std::unordered_map<std::string, std::string>& options_map) {
   storage::Status s;
+  std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    std::lock_guard db_rwl(db_item.second->dbs_rw_);
     db_item.second->DbRWLockWriter();
     s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
     db_item.second->DbRWUnLock();

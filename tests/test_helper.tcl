@@ -51,7 +51,7 @@ set ::all_tests {
     # unit/hyperloglog
     # unit/command
     unit/type
-    # unit/acl
+    unit/acl
 }
 
 # because the comment not works in tcl list, use regsub to ignore the item starting with '#'

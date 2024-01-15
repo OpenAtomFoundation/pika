@@ -1318,7 +1318,6 @@ void InfoCmd::InfoData(std::string& info) {
     if (!db_item.second) {
       continue;
     }
-    std::shared_lock db_rwl(db_item.second->dbs_rw_);
     background_errors.clear();
     memtable_usage = table_reader_usage = 0;
     db_item.second->DbRWLockReader();
