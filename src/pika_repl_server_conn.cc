@@ -316,6 +316,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   if (!master_db) {
     LOG(WARNING) << "Sync Master DB: " << db_name << ", NotFound";
     prior_success = false;
+    response.set_code(InnerMessage::kError);
   }
   if (prior_success) {
     if (!master_db->CheckSlaveNodeExist(node.ip(), node.port())) {

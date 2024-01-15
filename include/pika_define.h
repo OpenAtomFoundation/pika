@@ -203,6 +203,9 @@ struct DBInfo {
   std::string db_name_;
 };
 
+/*
+ * Used to define the sorting rule of the db in the map
+ */
 struct hash_db_info {
   size_t operator()(const DBInfo& n) const {
     return std::hash<std::string>()(n.db_name_);
