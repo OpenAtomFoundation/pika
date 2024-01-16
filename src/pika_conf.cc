@@ -14,6 +14,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "cache/include/config.h"
+#include "include/acl.h"
 #include "include/pika_define.h"
 
 using pstd::Status;
@@ -161,7 +162,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  GetConfStr("userpass", &userpass_);
+  //  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -196,12 +197,7 @@ int PikaConf::Load() {
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
   }
-  std::string user_blacklist;
-  GetConfStr("userblacklist", &user_blacklist);
-  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
-  for (auto& item : user_blacklist_) {
-    pstd::StringToLower(item);
-  }
+
   GetConfInt("default-slot-num", &default_slot_num_);
   if (default_slot_num_ <= 0) {
     LOG(FATAL) << "config default-slot-num error,"
@@ -569,6 +565,24 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // acl users
+  GetConfStrMulti("user", &users_);
+
+  GetConfStr("aclfile", &aclFile_);
+
+  std::string acl_pubsub_default;
+  GetConfStr("acl-pubsub-default", &acl_pubsub_default);
+  if (acl_pubsub_default == "allchannels") {
+    acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+  }
+
+  int tmp_acllog_max_len = 128;
+  GetConfInt("acllog-max-len", &tmp_acllog_max_len);
+  if (tmp_acllog_max_len < 0) {
+    tmp_acllog_max_len = 128;
+  }
+  acl_Log_max_len_ = tmp_acllog_max_len;
+
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
@@ -706,15 +720,15 @@ void PikaConf::SetCacheType(const std::string& value) {
 }
 
 int PikaConf::ConfigRewrite() {
-  std::string userblacklist = suser_blacklist();
+  //  std::string userblacklist = suser_blacklist();
 
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  SetConfStr("userpass", userpass_);
-  SetConfStr("userblacklist", userblacklist);
+  //  SetConfStr("userpass", userpass_);
+  //  SetConfStr("userblacklist", userblacklist);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);

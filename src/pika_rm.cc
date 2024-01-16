@@ -477,15 +477,9 @@ bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::
   return true;
 }
 
-Status SyncMasterSlot::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                                                std::shared_ptr<std::string> resp_ptr) {
-  return coordinator_.ProposeLog(cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
-}
-
 Status SyncMasterSlot::ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
   return coordinator_.ProposeLog(cmd_ptr);
 }
-
 
 Status SyncMasterSlot::ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute) {
   return coordinator_.ProcessLeaderLog(cmd_ptr, attribute);
@@ -650,6 +644,8 @@ void SyncSlaveSlot::ActivateRsync() {
   LOG(WARNING) << "ActivateRsync ...";
   if (rsync_cli_->Init()) {
     rsync_cli_->Start();
+  } else {
+    SetReplState(ReplState::kError);
   }
 }
 

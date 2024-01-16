@@ -59,6 +59,8 @@ bool ParseIpPortString(const std::string& ip_port, std::string& ip, int& port);
 std::string StringTrim(const std::string& ori, const std::string& charlist = " ");
 std::string getRandomHexChars(size_t len);
 
+bool isspace(const std::string& str);
+
 }  // namespace pstd
 
 #endif  // __PSTD_STRING_H__

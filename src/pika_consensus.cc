@@ -344,8 +344,7 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
   return Status::OK();
 }
 
-Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                                        std::shared_ptr<std::string> resp_ptr) {
+Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
   std::vector<std::string> keys = cmd_ptr->current_key();
   // slotkey shouldn't add binlog
   if (cmd_ptr->name() == kCmdNameSAdd && !keys.empty() &&
@@ -353,11 +352,8 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
     return Status::OK();
   }
 
-  LogOffset log_offset;
-
-  BinlogItem item;
   // make sure stable log and mem log consistent
-  Status s = InternalAppendLog(item, cmd_ptr, std::move(conn_ptr), std::move(resp_ptr));
+  Status s = InternalAppendLog(cmd_ptr);
   if (!s.ok()) {
     return s;
   }
@@ -366,19 +362,8 @@ Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std
   return Status::OK();
 }
 
-Status ConsensusCoordinator::ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr) {
-    return ProposeLog(cmd_ptr, nullptr, nullptr);
-}
-
-Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
-                                               std::shared_ptr<PikaClientConn> conn_ptr,
-                                               std::shared_ptr<std::string> resp_ptr) {
-  LogOffset log_offset;
-  Status s = InternalAppendBinlog(item, cmd_ptr, &log_offset);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
+Status ConsensusCoordinator::InternalAppendLog(const std::shared_ptr<Cmd>& cmd_ptr) {
+  return InternalAppendBinlog(cmd_ptr);
 }
 
 // precheck if prev_offset match && drop this log if this log exist
@@ -390,7 +375,7 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     return Status::OK();
   }
 
-  Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
+  Status s = InternalAppendLog(cmd_ptr);
 
   InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
   return Status::OK();
@@ -407,8 +392,7 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const 
   return Status::OK();
 }
 
-Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
-                                                  LogOffset* log_offset) {
+Status ConsensusCoordinator::InternalAppendBinlog(const std::shared_ptr<Cmd>& cmd_ptr) {
   std::string content = cmd_ptr->ToRedisProtocol();
   Status s = stable_logger_->Logger()->Put(content);
   if (!s.ok()) {
@@ -419,11 +403,9 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const 
     }
     return s;
   }
-  uint32_t filenum;
-  uint64_t offset;
-  stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
-  *log_offset = LogOffset(BinlogOffset(filenum, offset), LogicOffset(item.term_id(), item.logic_id()));
-  return Status::OK();
+  uint32_t filenum = 0;
+  uint64_t offset = 0;
+  return stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
 }
 
 Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {

@@ -376,3 +376,25 @@ proc populate {size} {
         r set "key:$counter" "key:$counter"
     }
 }
+
+proc wait_for_blocked_client {{idx 0}} {
+    wait_for_condition 50 100 {
+        [s $idx blocked_clients] ne 0
+    } else {
+        fail "no blocked clients"
+    }
+}
+
+# Shuffle a list with Fisher-Yates algorithm.
+proc lshuffle {list} {
+    set n [llength $list]
+    while {$n>1} {
+        set j [expr {int(rand()*$n)}]
+        incr n -1
+        if {$n==$j} continue
+        set v [lindex $list $j]
+        lset list $j [lindex $list $n]
+        lset list $n $v
+    }
+    return $list
+}

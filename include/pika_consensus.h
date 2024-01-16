@@ -115,8 +115,6 @@ class ConsensusCoordinator {
   // invoked by dbsync process
   pstd::Status Reset(const LogOffset& offset);
 
-  pstd::Status ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-                    std::shared_ptr<std::string> resp_ptr);
   pstd::Status ProposeLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status UpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
@@ -184,9 +182,8 @@ class ConsensusCoordinator {
   bool MatchConsensusLevel();
   pstd::Status TruncateTo(const LogOffset& offset);
 
-  pstd::Status InternalAppendLog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr,
-                           std::shared_ptr<PikaClientConn> conn_ptr, std::shared_ptr<std::string> resp_ptr);
-  pstd::Status InternalAppendBinlog(const BinlogItem& item, const std::shared_ptr<Cmd>& cmd_ptr, LogOffset* log_offset);
+  pstd::Status InternalAppendLog(const std::shared_ptr<Cmd>& cmd_ptr);
+  pstd::Status InternalAppendBinlog(const std::shared_ptr<Cmd>& cmd_ptr);
   void InternalApply(const MemLog::LogItem& log);
   void InternalApplyFollower(const MemLog::LogItem& log);
 

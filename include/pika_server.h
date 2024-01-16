@@ -26,27 +26,29 @@
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
+#include "acl.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
 #include "include/pika_client_processor.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_instant.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
-#include "include/pika_migrate_thread.h"
-#include "include/rsync_server.h"
-#include "include/pika_statistic.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_statistic.h"
 #include "include/pika_transaction.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_cache.h"
 #include "include/pika_slot.h"
 
 
+#include "include/rsync_server.h"
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -171,7 +173,7 @@ class PikaServer : public pstd::noncopyable {
   int role();
   bool leader_protected_mode();
   void CheckLeaderProtectedMode();
-  bool readonly(const std::string& table, const std::string& key);
+  bool readonly(const std::string& table);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -293,9 +295,10 @@ class PikaServer : public pstd::noncopyable {
    * DBSync used
    */
   pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
-  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files,
+                           std::string* snapshot_uuid);
   void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
+  void DoBgSaveSlot(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
   void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
   std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
 
@@ -315,6 +318,7 @@ class PikaServer : public pstd::noncopyable {
    * Monitor used
    */
   bool HasMonitorClients() const;
+  bool ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const;
   void AddMonitorMessage(const std::string& monitor_message);
   void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
 
@@ -374,6 +378,9 @@ class PikaServer : public pstd::noncopyable {
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
 
+  int ClientPubSubChannelSize(const std::shared_ptr<net::NetConn>& conn);
+  int ClientPubSubChannelPatternSize(const std::shared_ptr<net::NetConn>& conn);
+
   pstd::Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local);
 
   // info debug use
@@ -382,16 +389,18 @@ class PikaServer : public pstd::noncopyable {
   /*
    * * Async migrate used
    */
-  int SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<Slot> &slot);
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+  int SlotsMigrateOne(const std::string& key, const std::shared_ptr<Slot>& slot);
+  bool SlotsMigrateBatch(const std::string& ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num,
+                         const std::shared_ptr<Slot>& slot);
+  void GetSlotsMgrtSenderStatus(std::string* ip, int64_t* port, int64_t* slot, bool* migrating, int64_t* moved,
+                                int64_t* remained);
   bool SlotsMigrateAsyncCancel();
 
   std::shared_mutex bgsave_protector_;
   BgSaveInfo bgsave_info_;
 
   /*
- * BGSlotsReload used
+   * BGSlotsReload used
    */
   struct BGSlotsReload {
     bool reloading = false;
@@ -440,6 +449,11 @@ class PikaServer : public pstd::noncopyable {
   }
   void Bgslotsreload(const std::shared_ptr<Slot>& slot);
 
+  // Revoke the authorization of the specified account, when handle Cmd deleteUser
+  void AllClientUnAuth(const std::set<std::string>& users);
+
+  // Determine whether the user's conn can continue to subscribe to the channel
+  void CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel);
 
   /*
    * BGSlotsCleanup used
@@ -469,7 +483,6 @@ class PikaServer : public pstd::noncopyable {
    */
   BGSlotsCleanup bgslots_cleanup_;
   net::BGThread bgslots_cleanup_thread_;
-
 
   BGSlotsCleanup bgslots_cleanup() {
     std::lock_guard ml(bgsave_protector_);
@@ -529,6 +542,13 @@ class PikaServer : public pstd::noncopyable {
     return dbs_;
   }
 
+  /*
+   * acl init
+   */
+  pstd::Status InitAcl() { return acl_->Initialization(); }
+
+  std::unique_ptr<::Acl>& Acl() { return acl_; }
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
@@ -578,7 +598,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
   int64_t GetLastSaveTime(const std::string& dump_dir);
-  
+
   std::string host_;
   int port_ = 0;
   time_t start_time_s_ = 0;
@@ -588,7 +608,7 @@ class PikaServer : public pstd::noncopyable {
   void InitStorageOptions();
 
   std::atomic<bool> exit_;
-  std::timed_mutex  exit_mutex_;
+  std::timed_mutex exit_mutex_;
 
   /*
    * Table used
@@ -702,6 +722,11 @@ class PikaServer : public pstd::noncopyable {
    * lastsave used
    */
   int64_t lastsave_ = 0;
+
+  /*
+   * acl
+   */
+  std::unique_ptr<::Acl> acl_ = nullptr;
 };
 
 #endif

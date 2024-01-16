@@ -8,8 +8,6 @@
 #include <glog/logging.h>
 
 #include "net/src/dispatch_thread.h"
-#include "net/src/net_item.h"
-#include "net/src/net_multiplexer.h"
 #include "net/src/worker_thread.h"
 
 namespace net {
@@ -19,7 +17,7 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
     : ServerThread::ServerThread(port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit){
+      queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -30,7 +28,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
     : ServerThread::ServerThread(ip, port, cron_interval, handle),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit){
+      queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
     worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
@@ -66,9 +64,8 @@ int DispatchThread::StartThread() {
   }
 
   // Adding timer tasks and run timertaskThread
-  timerTaskThread_.AddTimerTask(
-      "blrpop_blocking_info_scan", 250, true, [this] { this->ScanExpiredBlockedConnsOfBlrpop();});
-
+  timerTaskThread_.AddTimerTask("blrpop_blocking_info_scan", 250, true,
+                                [this] { this->ScanExpiredBlockedConnsOfBlrpop(); });
 
   timerTaskThread_.StartThread();
   return ServerThread::StartThread();
@@ -261,12 +258,23 @@ void DispatchThread::ScanExpiredBlockedConnsOfBlrpop() {
 
 void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
+void DispatchThread::AllConn(const std::function<void(const std::shared_ptr<NetConn>&)>& func) {
+  std::unique_lock l(block_mtx_);
+  for (const auto& item : worker_thread_) {
+    std::unique_lock wl(item->rwlock_);
+    for (const auto& conn : item->conns_) {
+      func(conn.second);
+    }
+  }
+}
+
 /**
  * @param keys format: tablename + key,because can watch the key of different db
  */
-void DispatchThread::AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn) {
+void DispatchThread::AddWatchKeys(const std::unordered_set<std::string>& keys,
+                                  const std::shared_ptr<NetConn>& client_conn) {
   std::lock_guard lg(watch_keys_mu_);
-  for (const auto &key : keys) {
+  for (const auto& key : keys) {
     if (key_conns_map_.count(key) == 0) {
       key_conns_map_.emplace();
     }
@@ -277,8 +285,8 @@ void DispatchThread::AddWatchKeys(const std::unordered_set<std::string> &keys, c
 
 void DispatchThread::RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn) {
   std::lock_guard lg(watch_keys_mu_);
-  auto &keys = conn_keys_map_[client_conn];
-  for (const auto &key : keys) {
+  auto& keys = conn_keys_map_[client_conn];
+  for (const auto& key : keys) {
     if (key_conns_map_.count(key) == 0 || key_conns_map_[key].count(client_conn) == 0) {
       continue;
     }
@@ -290,14 +298,14 @@ void DispatchThread::RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn
   conn_keys_map_.erase(client_conn);
 }
 
-std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::vector<std::string> &keys) {
+std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::vector<std::string>& keys) {
   std::lock_guard lg(watch_keys_mu_);
   auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
-  for (const auto &key : keys) {
+  for (const auto& key : keys) {
     if (key_conns_map_.count(key) == 0 || key_conns_map_[key].empty()) {
       continue;
     }
-    for(auto &client_conn : key_conns_map_[key]) {
+    for (auto& client_conn : key_conns_map_[key]) {
       involved_conns.emplace_back(client_conn);
     }
   }
@@ -307,7 +315,7 @@ std::vector<std::shared_ptr<NetConn>> DispatchThread::GetInvolvedTxn(const std::
 std::vector<std::shared_ptr<NetConn>> DispatchThread::GetAllTxns() {
   std::lock_guard lg(watch_keys_mu_);
   auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
-  for(auto &[client_conn, _] : conn_keys_map_) {
+  for (auto& [client_conn, _] : conn_keys_map_) {
     involved_conns.emplace_back(client_conn);
   }
   return involved_conns;
@@ -316,7 +324,7 @@ std::vector<std::shared_ptr<NetConn>> DispatchThread::GetAllTxns() {
 std::vector<std::shared_ptr<NetConn>> DispatchThread::GetDBTxns(std::string db_name) {
   std::lock_guard lg(watch_keys_mu_);
   auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
-  for(auto &[db_key, client_conns] : key_conns_map_) {
+  for (auto& [db_key, client_conns] : key_conns_map_) {
     if (db_key.find(db_name) == 0) {
       involved_conns.insert(involved_conns.end(), client_conns.begin(), client_conns.end());
     }
