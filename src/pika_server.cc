@@ -1869,6 +1869,8 @@ void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot,
 }
 
 void PikaServer::ClearCacheDbAsync(std::shared_ptr<Slot> slot) {
+  // disable cache temporarily, and restore it after cache cleared
+  g_pika_conf->SetCacheDisableFlag();
   if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
     LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
     return;
@@ -1912,7 +1914,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
       break;
   }
   slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
-  if (pCacheTaskArg->reenable_cache && pCacheTaskArg->conf) {
+  if (pCacheTaskArg->reenable_cache) {
     pCacheTaskArg->conf->UnsetCacheDisableFlag();
   }
 }
@@ -1936,7 +1938,7 @@ void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_pt
   // disable cache temporarily, and restore it after cache cleared
   g_pika_conf->SetCacheDisableFlag();
   ResetCacheConfig(slot);
-  ClearCacheDbAsyncV2(slot);
+  ClearCacheDbAsync(slot);
 }
 
 void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
@@ -1949,7 +1951,6 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->slot = slot;
   arg->task_type = CACHE_BGTASK_CLEAR;
-  arg->conf = std::move(g_pika_conf);
   arg->reenable_cache = true;
   common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
 }

@@ -27,7 +27,7 @@ Status RedisCache::SetBit(std::string &key, size_t offset, int64_t value) {
     return Status::Corruption("RcSetBit failed");
   }
 
-  return Status::OK();
+  return Status::Corruption("RcBitPos failed");
 }
 
 Status RedisCache::GetBit(std::string &key, size_t offset, int64_t *value) {

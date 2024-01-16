@@ -778,7 +778,7 @@ void PsetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void PsetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    slot->cache()->WriteKVToCache(CachePrefixKeyK, value_, static_cast<int32_t>(usec_ / 1000));
+    slot->cache()->Setxx(CachePrefixKeyK, value_,  static_cast<int32_t>(usec_ / 1000));
   }
 }
 
