@@ -644,6 +644,8 @@ void SyncSlaveSlot::ActivateRsync() {
   LOG(WARNING) << "ActivateRsync ...";
   if (rsync_cli_->Init()) {
     rsync_cli_->Start();
+  } else {
+    SetReplState(ReplState::kError);
   }
 }
 

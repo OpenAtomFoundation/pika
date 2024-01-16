@@ -5,11 +5,13 @@
 
 #include <fmt/format.h>
 #include <cstring>
+#include <fstream>
 #include <shared_mutex>
 
 #include "include/acl.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_server.h"
+#include "pstd_defer.h"
 #include "pstd_hash.h"
 
 extern PikaServer* g_pika_server;
@@ -370,6 +372,8 @@ pstd::Status Acl::LoadUserConfigured(std::vector<std::string>& users) {
 }
 
 pstd::Status Acl::LoadUserFromFile(std::set<std::string>* toUnAuthUsers) {
+  std::unique_lock wl(mutex_);
+
   for (const auto& item : users_) {
     if (item.first != DefaultUser) {
       toUnAuthUsers->insert(item.first);
@@ -389,30 +393,27 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
     return pstd::Status::OK();
   }
 
-  std::unique_lock wl(mutex_);
-
-  std::unique_ptr<pstd::SequentialFile> sequentialFile;
-  auto status = NewSequentialFile(fileName, sequentialFile);
-  if (!status.ok()) {
-    return status;
-  }
-
   std::map<std::string, std::shared_ptr<User>> users;
   std::vector<std::string> rules;
-  const int lineLength = 1024 * 1024;
-  char line[lineLength];
 
   bool hasDefaultUser = false;
 
+  std::ifstream ruleFile(fileName);
+  if (!ruleFile) {
+    return pstd::Status::IOError(fmt::format("open file {} fail"), fileName);
+  }
+
+  DEFER { ruleFile.close(); };
+
   int lineNum = 0;
-  while (sequentialFile->ReadLine(line, lineLength) != nullptr) {
+  std::string lineContent;
+  while (std::getline(ruleFile, lineContent)) {
     ++lineNum;
-    size_t lineLen = strlen(line);
-    if (lineLen == 0) {
+    if (lineContent.empty()) {
       continue;
     }
 
-    std::string lineContent = pstd::StringTrim(line, "\r\n ");
+    lineContent = pstd::StringTrim(lineContent, "\r\n ");
     rules.clear();
     pstd::StringSplit(lineContent, ' ', rules);
     if (rules.empty()) {
@@ -438,7 +439,7 @@ pstd::Status Acl::LoadUserFromFile(const std::string& fileName) {
 
     auto u = CreatedUser(rules[1]);
     for (const auto& item : aclArgc) {
-      status = u->SetUser(item);
+      auto status = u->SetUser(item);
       if (!status.ok()) {
         LOG(ERROR) << "load user from acl file error," << status.ToString();
         return status;
