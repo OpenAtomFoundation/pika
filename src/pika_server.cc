@@ -1935,8 +1935,6 @@ void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
 }
 
 void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot) {
-  // disable cache temporarily, and restore it after cache cleared
-  g_pika_conf->SetCacheDisableFlag();
   ResetCacheConfig(slot);
   ClearCacheDbAsync(slot);
 }
