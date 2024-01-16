@@ -309,6 +309,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   if (!master_slot) {
     LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
     prior_success = false;
+    response.set_code(InnerMessage::kError);
   }
   if (prior_success) {
     if (!master_slot->CheckSlaveNodeExist(node.ip(), node.port())) {
@@ -348,11 +349,13 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     }
   }
 
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id,
+  g_pika_server->DoBgSaveSlot(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id,
                            static_cast<int32_t>(slave_boffset.filenum()));
   // Change slave node's state to kSlaveDbSync so that the binlog will perserved.
   // See details in SyncMasterSlot::BinlogCloudPurge.
-  master_slot->ActivateSlaveDbSync(node.ip(), node.port());
+  if (master_slot) {
+    master_slot->ActivateSlaveDbSync(node.ip(), node.port());
+  }
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
