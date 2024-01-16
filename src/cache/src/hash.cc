@@ -3,7 +3,6 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-
 #include "cache/include/cache.h"
 #include "pstd_defer.h"
 
@@ -40,9 +39,7 @@ Status RedisCache::HSet(std::string &key, std::string &field, std::string &value
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj, vobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj, vobj); };
   int ret = RcHSet(cache_, kobj, fobj, vobj);
   if (C_OK != ret) {
     return Status::Corruption("RcHSet failed");
@@ -59,9 +56,7 @@ Status RedisCache::HSetnx(std::string &key, std::string &field, std::string &val
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj, vobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj, vobj); };
   if (C_OK != RcHSetnx(cache_, kobj, fobj, vobj)) {
     return Status::Corruption("RcHSetnx failed");
   }
@@ -97,9 +92,7 @@ Status RedisCache::HGet(std::string &key, std::string &field, std::string *value
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj); };
   int ret = RcHGet(cache_, kobj, fobj, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -152,9 +145,7 @@ Status RedisCache::HGetall(std::string &key, std::vector<storage::FieldValue> *f
   hitem *items = nullptr;
   unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcHGetAll(cache_, kobj, &items, &items_size);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -178,9 +169,7 @@ Status RedisCache::HKeys(std::string &key, std::vector<std::string> *fields) {
   hitem *items = nullptr;
   unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcHKeys(cache_, kobj, &items, &items_size);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -201,9 +190,7 @@ Status RedisCache::HVals(std::string &key, std::vector<std::string> *values) {
   hitem *items = nullptr;
   unsigned long items_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcHVals(cache_, kobj, &items, &items_size);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -224,9 +211,7 @@ Status RedisCache::HExists(std::string &key, std::string &field) {
   int is_exist = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj); };
   int ret = RcHExists(cache_, kobj, fobj, &is_exist);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -242,10 +227,8 @@ Status RedisCache::HIncrby(std::string &key, std::string &field, int64_t value) 
   int64_t result = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj);
-  };
-  int ret = RcHIncrby(cache_, kobj, fobj, value, (long long int*)&result);
+  DEFER { DecrObjectsRefCount(kobj, fobj); };
+  int ret = RcHIncrby(cache_, kobj, fobj, value, (long long int *)&result);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
@@ -260,9 +243,7 @@ Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, double val
   long double result = .0f;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj); };
   int ret = RcHIncrbyfloat(cache_, kobj, fobj, value, &result);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -276,9 +257,7 @@ Status RedisCache::HIncrbyfloat(std::string &key, std::string &field, double val
 
 Status RedisCache::HLen(std::string &key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcHlen(cache_, kobj, reinterpret_cast<unsigned long *>(len));
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -293,9 +272,7 @@ Status RedisCache::HLen(std::string &key, uint64_t *len) {
 Status RedisCache::HStrlen(std::string &key, std::string &field, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *fobj = createObject(OBJ_STRING, sdsnewlen(field.data(), field.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, fobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, fobj); };
   int ret = RcHStrlen(cache_, kobj, fobj, reinterpret_cast<unsigned long *>(len));
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {

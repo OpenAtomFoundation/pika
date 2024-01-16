@@ -7,7 +7,13 @@
 #include "pstd/include/xdebug.h"
 
 PikaSender::PikaSender(std::string ip, int64_t port, std::string password)
-    : cli_(nullptr), ip_(std::move(ip)), port_(port), password_(std::move(password)), should_exit_(false), cnt_(0), elements_(0) {}
+    : cli_(nullptr),
+      ip_(std::move(ip)),
+      port_(port),
+      password_(std::move(password)),
+      should_exit_(false),
+      cnt_(0),
+      elements_(0) {}
 
 PikaSender::~PikaSender() = default;
 
@@ -138,8 +144,7 @@ void* PikaSender::ThreadMain() {
   while (!should_exit_ || QueueSize() != 0) {
     {
       std::unique_lock lock(keys_mutex_);
-      signal_.wait_for(lock, std::chrono::milliseconds(200),
-                       [this]() { return !keys_queue_.empty() || should_exit_; });
+      signal_.wait_for(lock, std::chrono::milliseconds(200), [this]() { return !keys_queue_.empty() || should_exit_; });
     }
 
     if (QueueSize() == 0 && should_exit_) {

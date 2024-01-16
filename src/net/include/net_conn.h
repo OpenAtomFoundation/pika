@@ -18,8 +18,8 @@
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
-#include "pstd/include/testutil.h"
 #include "pstd/include/noncopyable.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
@@ -27,7 +27,7 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::noncopyable {
  public:
-  NetConn(int fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+  NetConn(int fd, std::string ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
 #ifdef __ENABLE_SSL
   virtual ~NetConn();
 #else
@@ -75,7 +75,9 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 
   void set_last_interaction(const struct timeval& now) { last_interaction_ = now; }
 
-  struct timeval last_interaction() const { return last_interaction_; }
+  struct timeval last_interaction() const {
+    return last_interaction_;
+  }
 
   Thread* thread() const { return thread_; }
 
@@ -85,7 +87,8 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
 
   std::string String() const {
     std::stringstream ss;
-    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_;
+    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_
+       << ", close: " << close_;
     return ss.str();
   }
 
@@ -113,7 +116,6 @@ class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::nonco
   Thread* thread_ = nullptr;
   // the net epoll this conn belong to
   NetMultiplexer* net_multiplexer_ = nullptr;
-
 };
 
 /*

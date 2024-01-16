@@ -1,8 +1,8 @@
+#include <glog/logging.h>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
-#include <memory>
-#include <glog/logging.h>
 
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"

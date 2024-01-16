@@ -17,8 +17,7 @@
 namespace net {
 
 WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
-    :
-      server_thread_(server_thread),
+    : server_thread_(server_thread),
       conn_factory_(conn_factory),
       cron_interval_(cron_interval),
       keepalive_timeout_(kDefaultKeepAliveTime) {
@@ -107,7 +106,7 @@ void* WorkerThread::ThreadMain() {
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       if (!pfe) {
-          continue;
+        continue;
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if ((pfe->mask & kReadable) != 0) {
@@ -200,8 +199,9 @@ void* WorkerThread::ThreadMain() {
         }
 
         if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
-          //check if this conn disconnected from being blocked by blpop/brpop
-          dynamic_cast<net::DispatchThread*>(server_thread_)->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(in_conn));
+          // check if this conn disconnected from being blocked by blpop/brpop
+          dynamic_cast<net::DispatchThread*>(server_thread_)
+              ->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(in_conn));
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = nullptr;
@@ -255,9 +255,8 @@ void WorkerThread::DoCronTask() {
         auto dispatchThread = dynamic_cast<net::DispatchThread*>(server_thread_);
         std::shared_lock blrpop_map_latch(dispatchThread->GetBlockMtx());
         // check if this conn is blocked by blpop/brpop
-        if (dispatchThread->GetMapFromConnToKeys().find(conn->fd()) !=
-            dispatchThread->GetMapFromConnToKeys().end()) {
-          //this conn is blocked, prolong it's life time.
+        if (dispatchThread->GetMapFromConnToKeys().find(conn->fd()) != dispatchThread->GetMapFromConnToKeys().end()) {
+          // this conn is blocked, prolong it's life time.
           conn->set_last_interaction(now);
         } else {
           to_timeout.push_back(conn);
@@ -303,7 +302,7 @@ bool WorkerThread::TryKillConn(const std::string& ip_port) {
 
 void WorkerThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
-  if (auto dispatcher = dynamic_cast<DispatchThread *>(server_thread_); dispatcher != nullptr ) {
+  if (auto dispatcher = dynamic_cast<DispatchThread*>(server_thread_); dispatcher != nullptr) {
     dispatcher->RemoveWatchKeys(conn);
   }
   server_thread_->handle_->FdClosedHandle(conn->fd(), conn->ip_port());

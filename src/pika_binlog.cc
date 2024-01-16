@@ -26,9 +26,7 @@ std::string NewFileName(const std::string& name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(const std::shared_ptr<pstd::RWFile>& save) :  save_(save) {
-  assert(save_ != nullptr);
-}
+Version::Version(const std::shared_ptr<pstd::RWFile>& save) : save_(save) { assert(save_ != nullptr); }
 
 Version::~Version() { StableSave(); }
 
@@ -60,11 +58,8 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(std::string  binlog_path, const int file_size)
-    : opened_(false),
-      binlog_path_(std::move(binlog_path)),
-      file_size_(file_size),
-      binlog_io_error_(false) {
+Binlog::Binlog(std::string binlog_path, const int file_size)
+    : opened_(false), binlog_path_(std::move(binlog_path)), file_size_(file_size), binlog_io_error_(false) {
   // To intergrate with old version, we don't set mmap file size to 100M;
   // pstd::SetMmapBoundSize(file_size);
   // pstd::kMmapBoundSize = 1024 * 1024 * 100;
@@ -175,17 +170,15 @@ Status Binlog::Put(const std::string& item) {
   uint64_t logic_id = 0;
 
   Lock();
-  DEFER {
-    Unlock();
-  };
+  DEFER { Unlock(); };
 
   Status s = GetProducerStatus(&filenum, &offset, &term, &logic_id);
   if (!s.ok()) {
     return s;
   }
   logic_id++;
-  std::string data = PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-      time(nullptr), term, logic_id, filenum, offset, item, {});
+  std::string data = PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, time(nullptr), term, logic_id, filenum,
+                                                         offset, item, {});
 
   s = Put(data.c_str(), static_cast<int>(data.size()));
   if (!s.ok()) {

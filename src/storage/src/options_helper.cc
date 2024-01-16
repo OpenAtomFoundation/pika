@@ -40,8 +40,8 @@ static bool strToUint32(const std::string& value, uint32_t* num, int base = 10) 
 // strToBool may throw exception
 static bool strToBool(const std::string& value, bool* boolVal, int base = 10) {
   if (value != "true" && value != "false") {
-      throw std::invalid_argument(value);
-  } 
+    throw std::invalid_argument(value);
+  }
   *boolVal = value == "true";
   return true;
 }

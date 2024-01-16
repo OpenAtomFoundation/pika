@@ -11,8 +11,8 @@
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd/include/pstd_string.h"
 #include "pika_inner_message.pb.h"
+#include "pstd/include/pstd_string.h"
 
 using pstd::Status;
 
@@ -24,7 +24,7 @@ PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port, net::
     : net::PbConn(fd, ip_port, thread, mpx) {}
 
 bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
-                                                 const std::vector<DBStruct>& expect_dbs) {
+                                              const std::vector<DBStruct>& expect_dbs) {
   if (current_dbs.size() != expect_dbs.size()) {
     return false;
   }
@@ -138,8 +138,8 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
   // First synchronization between the master and slave
   if (g_pika_conf->replication_id() != meta_sync.replication_id()) {
-    LOG(INFO) << "New node is added to the cluster and requires full replication, remote replication id: " << meta_sync.replication_id()
-              << ", local replication id: " << g_pika_conf->replication_id();
+    LOG(INFO) << "New node is added to the cluster and requires full replication, remote replication id: "
+              << meta_sync.replication_id() << ", local replication id: " << g_pika_conf->replication_id();
     g_pika_server->force_full_sync_ = true;
     g_pika_conf->SetReplicationID(meta_sync.replication_id());
     g_pika_conf->ConfigRewriteReplicationID();
@@ -162,8 +162,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   const std::string& db_name = slot_response.db_name();
   uint32_t slot_id = slot_response.slot_id();
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << " Not Found";
     return;
@@ -199,15 +198,13 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   const InnerMessage::Slot& slot_response = try_sync_response.slot();
   std::string db_name = slot_response.db_name();
   uint32_t slot_id = slot_response.slot_id();
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     LOG(WARNING) << "Slot: " << db_name << ":" << slot_id << " Not Found";
     return;
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << " Not Found";
     return;
@@ -217,12 +214,12 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   if (response->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
     if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
+      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << slot->ConsensusTerm() << " to "
+                << meta.term();
       slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated trysync response " << db_name << ":" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
+      LOG(WARNING) << "Drop outdated trysync response " << db_name << ":" << slot_id << " recv term: " << meta.term()
+                   << " local term: " << slot->ConsensusTerm();
       return;
     }
 
@@ -302,16 +299,14 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   std::shared_ptr<SyncSlaveSlot> slave_slot = nullptr;
   for (auto& binlog_nums : par_binlog) {
     RmNode node(binlog_nums.first.db_name_, binlog_nums.first.slot_id_);
-    slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-        SlotInfo(binlog_nums.first.db_name_, binlog_nums.first.slot_id_));
+    slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(binlog_nums.first.db_name_, binlog_nums.first.slot_id_));
     if (!slave_slot) {
-      LOG(WARNING) << "Slave Slot: " << binlog_nums.first.db_name_ << "_" << binlog_nums.first.slot_id_
-                   << " not exist";
+      LOG(WARNING) << "Slave Slot: " << binlog_nums.first.db_name_ << "_" << binlog_nums.first.slot_id_ << " not exist";
       break;
     }
     slave_slot->SetLastRecvTime(pstd::NowMicros());
-    g_pika_rm->ScheduleWriteBinlogTask(binlog_nums.first.db_name_ + std::to_string(binlog_nums.first.slot_id_),
-                                       res, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
+    g_pika_rm->ScheduleWriteBinlogTask(binlog_nums.first.db_name_ + std::to_string(binlog_nums.first.slot_id_), res,
+                                       std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
                                        reinterpret_cast<void*>(binlog_nums.second));
   }
 }

@@ -123,7 +123,7 @@ class LRUCache {
 };
 
 template <typename T1, typename T2>
-LRUCache<T1, T2>::LRUCache()  {
+LRUCache<T1, T2>::LRUCache() {
   // Make empty circular linked lists.
   lru_.next = &lru_;
   lru_.prev = &lru_;

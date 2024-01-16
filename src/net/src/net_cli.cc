@@ -33,7 +33,7 @@ struct NetCli::Rep {
 
   Rep() = default;
 
-  Rep(std::string  ip, int port) : peer_ip(std::move(ip)),peer_port(port) {}
+  Rep(std::string ip, int port) : peer_ip(std::move(ip)), peer_port(port) {}
 };
 
 NetCli::NetCli(const std::string& ip, const int port) : rep_(std::make_unique<Rep>(ip, port)) {}
@@ -50,8 +50,8 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
   int rv;
   char cport[6];
   struct addrinfo hints;
-  struct addrinfo *servinfo;
-  struct addrinfo *p;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   snprintf(cport, sizeof(cport), "%d", port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;

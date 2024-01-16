@@ -186,8 +186,8 @@ Status Storage::Getrange(const Slice& key, int64_t start_offset, int64_t end_off
   return strings_db_->Getrange(key, start_offset, end_offset, ret);
 }
 
-Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
-                                     std::string* ret, std::string* value, int64_t* ttl) {
+Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret,
+                                  std::string* value, int64_t* ttl) {
   return strings_db_->GetrangeWithValue(key, start_offset, end_offset, ret, value, ttl);
 }
 
@@ -200,7 +200,7 @@ Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_off
 }
 
 Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
-                      std::string &value_to_dest, int64_t* ret) {
+                      std::string& value_to_dest, int64_t* ret) {
   return strings_db_->BitOp(op, dest_key, src_keys, value_to_dest, ret);
 }
 
@@ -312,7 +312,8 @@ Status Storage::SDiff(const std::vector<std::string>& keys, std::vector<std::str
   return sets_db_->SDiff(keys, members);
 }
 
-Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+Status Storage::SDiffstore(const Slice& destination, const std::vector<std::string>& keys,
+                           std::vector<std::string>& value_to_dest, int32_t* ret) {
   return sets_db_->SDiffstore(destination, keys, value_to_dest, ret);
 }
 
@@ -320,7 +321,8 @@ Status Storage::SInter(const std::vector<std::string>& keys, std::vector<std::st
   return sets_db_->SInter(keys, members);
 }
 
-Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+Status Storage::SInterstore(const Slice& destination, const std::vector<std::string>& keys,
+                            std::vector<std::string>& value_to_dest, int32_t* ret) {
   return sets_db_->SInterstore(destination, keys, value_to_dest, ret);
 }
 
@@ -332,7 +334,7 @@ Status Storage::SMembers(const Slice& key, std::vector<std::string>* members) {
   return sets_db_->SMembers(key, members);
 }
 
-Status Storage::SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl) {
+Status Storage::SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t* ttl) {
   return sets_db_->SMembersWithTTL(key, members, ttl);
 }
 
@@ -357,7 +359,8 @@ Status Storage::SUnion(const std::vector<std::string>& keys, std::vector<std::st
   return sets_db_->SUnion(keys, members);
 }
 
-Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret) {
+Status Storage::SUnionstore(const Slice& destination, const std::vector<std::string>& keys,
+                            std::vector<std::string>& value_to_dest, int32_t* ret) {
   return sets_db_->SUnionstore(destination, keys, value_to_dest, ret);
 }
 
@@ -378,7 +381,8 @@ Status Storage::LRange(const Slice& key, int64_t start, int64_t stop, std::vecto
   return lists_db_->LRange(key, start, stop, ret);
 }
 
-Status Storage::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl) {
+Status Storage::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret,
+                              int64_t* ttl) {
   return lists_db_->LRangeWithTTL(key, start, stop, ret, ttl);
 }
 
@@ -386,9 +390,13 @@ Status Storage::LTrim(const Slice& key, int64_t start, int64_t stop) { return li
 
 Status Storage::LLen(const Slice& key, uint64_t* len) { return lists_db_->LLen(key, len); }
 
-Status Storage::LPop(const Slice& key, int64_t count, std::vector<std::string>* elements) { return lists_db_->LPop(key, count, elements); }
+Status Storage::LPop(const Slice& key, int64_t count, std::vector<std::string>* elements) {
+  return lists_db_->LPop(key, count, elements);
+}
 
-Status Storage::RPop(const Slice& key, int64_t count, std::vector<std::string>* elements) { return lists_db_->RPop(key, count, elements); }
+Status Storage::RPop(const Slice& key, int64_t count, std::vector<std::string>* elements) {
+  return lists_db_->RPop(key, count, elements);
+}
 
 Status Storage::LIndex(const Slice& key, int64_t index, std::string* element) {
   return lists_db_->LIndex(key, index, element);
@@ -443,7 +451,7 @@ Status Storage::ZRange(const Slice& key, int32_t start, int32_t stop, std::vecto
   return zsets_db_->ZRange(key, start, stop, score_members);
 }
 Status Storage::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
-                                 int64_t *ttl) {
+                              int64_t* ttl) {
   return zsets_db_->ZRangeWithTTL(key, start, stop, score_members, ttl);
 }
 
@@ -501,12 +509,14 @@ Status Storage::ZScore(const Slice& key, const Slice& member, double* ret) {
 }
 
 Status Storage::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
+                            const std::vector<double>& weights, const AGGREGATE agg,
+                            std::map<std::string, double>& value_to_dest, int32_t* ret) {
   return zsets_db_->ZUnionstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
 Status Storage::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                            const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
+                            const std::vector<double>& weights, const AGGREGATE agg,
+                            std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
   return zsets_db_->ZInterstore(destination, keys, weights, agg, value_to_dest, ret);
 }
 
@@ -1804,24 +1814,24 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
       return s;
     }
   }
-  s = EnableDymayticOptions(option_type,db_type,options);
+  s = EnableDymayticOptions(option_type, db_type, options);
   return s;
 }
 
-Status Storage::EnableDymayticOptions(const OptionType& option_type, 
-                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
+Status Storage::EnableDymayticOptions(const OptionType& option_type, const std::string& db_type,
+                                      const std::unordered_map<std::string, std::string>& options) {
   Status s;
   auto it = options.find("disable_auto_compactions");
   if (it != options.end() && it->second == "false") {
-    s = EnableAutoCompaction(option_type,db_type,options);
-    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") 
+    s = EnableAutoCompaction(option_type, db_type, options);
+    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed")
                  << " when Options get disable_auto_compactions: " << it->second << ",db_type:" << db_type;
   }
   return s;
 }
 
-Status Storage::EnableAutoCompaction(const OptionType& option_type, 
-                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options){
+Status Storage::EnableAutoCompaction(const OptionType& option_type, const std::string& db_type,
+                                     const std::unordered_map<std::string, std::string>& options) {
   Status s;
   std::vector<std::string> cfs;
   std::vector<rocksdb::ColumnFamilyHandle*> cfhds;
@@ -1905,8 +1915,7 @@ int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_stat
   }
   return type_count;
 }
-  
-  
+
 void Storage::DisableWal(const bool is_wal_disable) {
   strings_db_->SetWriteWalOptions(is_wal_disable);
   hashes_db_->SetWriteWalOptions(is_wal_disable);

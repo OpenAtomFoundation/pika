@@ -36,8 +36,8 @@ class BinlogReceiverThread {
     explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
     virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
-                                     void* worker_specific_data, 
-                                     net::NetMultiplexer* net_mpx = nullptr) const override {
+                                                     void* worker_specific_data,
+                                                     net::NetMultiplexer* net_mpx = nullptr) const override {
       return std::static_pointer_cast<net::NetConn>(std::make_shared<MasterConn>(connfd, ip_port, binlog_receiver_));
     }
 

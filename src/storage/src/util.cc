@@ -28,20 +28,17 @@ namespace storage {
  *
  * Modified in order to handle signed integers since the original code was
  * designed for unsigned integers. */
-int Int64ToStr(char* dst, size_t dstlen, int64_t svalue) {
-  return pstd::ll2string(dst, dstlen, svalue);
-}
+int Int64ToStr(char* dst, size_t dstlen, int64_t svalue) { return pstd::ll2string(dst, dstlen, svalue); }
 
 /* Convert a string into a long long. Returns 1 if the string could be parsed
  * into a (non-overflowing) long long, 0 otherwise. The value will be set to
  * the parsed value when appropriate. */
-int StrToInt64(const char* s, size_t slen, int64_t* value) {
-  return pstd::string2int(s, slen, value);
-}
+int StrToInt64(const char* s, size_t slen, int64_t* value) { return pstd::string2int(s, slen, value); }
 
 /* Glob-style pattern matching. */
 int StringMatch(const char* pattern, uint64_t pattern_len, const char* str, uint64_t string_len, int nocase) {
-  return pstd::stringmatchlen(pattern, static_cast<int32_t>(pattern_len), str, static_cast<int32_t>(string_len), nocase);
+  return pstd::stringmatchlen(pattern, static_cast<int32_t>(pattern_len), str, static_cast<int32_t>(string_len),
+                              nocase);
 }
 
 int StrToLongDouble(const char* s, size_t slen, long double* ldval) {

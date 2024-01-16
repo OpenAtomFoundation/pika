@@ -5,7 +5,6 @@
 
 #include <memory>
 
-#include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
@@ -80,7 +79,7 @@ void ExecCmd::Do(std::shared_ptr<Slot> slot) {
   });
 
   res_.AppendArrayLen(res_vec.size());
-  for (auto &r : res_vec) {
+  for (auto& r : res_vec) {
     res_.AppendStringRaw(r.message());
   }
 }
@@ -138,9 +137,7 @@ bool ExecCmd::IsTxnFailedAndSetState() {
 
 void ExecCmd::Lock() {
   g_pika_server->DBLockShared();
-  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->SlotLock();
-  });
+  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) { need_lock_db->SlotLock(); });
   if (is_lock_rm_slots_) {
     g_pika_rm->SlotLock();
   }
@@ -165,9 +162,7 @@ void ExecCmd::Unlock() {
   if (is_lock_rm_slots_) {
     g_pika_rm->SlotUnlock();
   }
-  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) {
-    need_lock_db->SlotUnlock();
-  });
+  std::for_each(lock_db_.begin(), lock_db_.end(), [](auto& need_lock_db) { need_lock_db->SlotUnlock(); });
   g_pika_server->DBUnlockShared();
 }
 
@@ -209,11 +204,11 @@ void ExecCmd::SetCmdsVec() {
 void ExecCmd::ServeToBLrPopWithKeys() {
   for (auto each_list_cmd : list_cmd_) {
     auto push_keys = each_list_cmd.cmd_->current_key();
-    //PS: currently, except for blpop/brpop, there are three cmds inherited from BlockingBaseCmd: lpush, rpush, rpoplpush
-    //For rpoplpush which has 2 keys（source and receiver), push_keys[0] fetchs the receiver, push_keys[1] fetchs the source.(see RpopLpushCmd::current_key()
+    // PS: currently, except for blpop/brpop, there are three cmds inherited from BlockingBaseCmd: lpush, rpush,
+    // rpoplpush For rpoplpush which has 2 keys（source and receiver), push_keys[0] fetchs the receiver, push_keys[1]
+    // fetchs the source.(see RpopLpushCmd::current_key()
     auto push_key = push_keys[0];
-    if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_);
-        push_list_cmd != nullptr) {
+    if (auto push_list_cmd = std::dynamic_pointer_cast<BlockingBaseCmd>(each_list_cmd.cmd_); push_list_cmd != nullptr) {
       push_list_cmd->TryToServeBLrPopWithThisKey(push_key, each_list_cmd.slot_);
     }
   }
@@ -229,7 +224,6 @@ void WatchCmd::Do(std::shared_ptr<Slot> slot) {
     }
     mp.clear();
   }
-
 
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -271,7 +265,7 @@ void UnwatchCmd::Do(std::shared_ptr<Slot> slot) {
   }
   if (client_conn->IsTxnExecing()) {
     res_.SetRes(CmdRes::CmdRet::kOk);
-    return ;
+    return;
   }
   client_conn->RemoveWatchedKeys();
   if (client_conn->IsTxnWatchFailed()) {

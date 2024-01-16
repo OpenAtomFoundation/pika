@@ -46,9 +46,7 @@ void CRC32TableInit(uint32_t poly) {
   }
 }
 
-void InitCRC32Table() {
-  CRC32TableInit(IEEE_POLY);
-}
+void InitCRC32Table() { CRC32TableInit(IEEE_POLY); }
 
 uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
   int i;
@@ -170,7 +168,7 @@ void PikaMigrate::KillAllMigrateClient() {
  *   >=0 - # of success migration (0 or 1)
  * */
 int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout, const std::string &key,
-                            const char type, std::string &detail, const std::shared_ptr<Slot>& slot) {
+                            const char type, std::string &detail, const std::shared_ptr<Slot> &slot) {
   int send_command_num = -1;
 
   net::NetCli *migrate_cli = GetMigrateClient(host, port, timeout);
@@ -193,7 +191,7 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
 }
 
 int PikaMigrate::MigrateSend(net::NetCli *migrate_cli, const std::string &key, const char type, std::string &detail,
-                             const std::shared_ptr<Slot>& slot) {
+                             const std::shared_ptr<Slot> &slot) {
   std::string wbuf_str;
   pstd::Status s;
   int command_num = -1;
@@ -274,7 +272,8 @@ bool PikaMigrate::MigrateRecv(net::NetCli *migrate_cli, int need_receive, std::s
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseKey(const std::string &key, const char type, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseKey(const std::string &key, const char type, std::string &wbuf_str,
+                          const std::shared_ptr<Slot> &slot) {
   int command_num = -1;
   int64_t ttl = 0;
   rocksdb::Status s;
@@ -360,7 +359,7 @@ bool PikaMigrate::SetTTL(const std::string &key, std::string &wbuf_str, int64_t 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseKKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot> &slot) {
   net::RedisCmdArgsType argv;
   std::string cmd;
   std::string value;
@@ -401,7 +400,7 @@ int PikaMigrate::ParseKKey(const std::string &key, std::string &wbuf_str, const 
   return 1;
 }
 
-int64_t PikaMigrate::TTLByType(const char key_type, const std::string &key, const std::shared_ptr<Slot>& slot) {
+int64_t PikaMigrate::TTLByType(const char key_type, const std::string &key, const std::shared_ptr<Slot> &slot) {
   std::map<storage::DataType, int64_t> type_timestamp;
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = slot->db()->TTL(key, &type_status);
@@ -427,7 +426,7 @@ int64_t PikaMigrate::TTLByType(const char key_type, const std::string &key, cons
   }
 }
 
-int PikaMigrate::ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseZKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot> &slot) {
   int command_num = 0;
 
   int64_t next_cursor = 0;
@@ -466,7 +465,7 @@ int PikaMigrate::ParseZKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseHKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot> &slot) {
   int64_t next_cursor = 0;
   int command_num = 0;
   std::vector<storage::FieldValue> field_values;
@@ -504,7 +503,7 @@ int PikaMigrate::ParseHKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseSKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot> &slot) {
   int command_num = 0;
   int64_t next_cursor = 0;
   std::vector<std::string> members;
@@ -543,7 +542,7 @@ int PikaMigrate::ParseSKey(const std::string &key, std::string &wbuf_str, const 
 }
 
 // return -1 is error; 0 don't migrate; >0 the number of commond
-int PikaMigrate::ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot>& slot) {
+int PikaMigrate::ParseLKey(const std::string &key, std::string &wbuf_str, const std::shared_ptr<Slot> &slot) {
   int64_t left = 0;
   int command_num = 0;
   std::vector<std::string> values;
@@ -605,7 +604,7 @@ int PikaMigrate::ParseLKey(const std::string &key, std::string &wbuf_str, const 
  *   >=0 - # of success migration (0 or 1)
  * */
 static int SlotsMgrtOne(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                        std::string &detail, const std::shared_ptr<Slot>& slot) {
+                        std::string &detail, const std::shared_ptr<Slot> &slot) {
   int send_command_num = 0;
   rocksdb::Status s;
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -636,7 +635,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
   return -1;
 }
 
-void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot>& slot) {
+void RemSlotKeyByType(const std::string &type, const std::string &key, const std::shared_ptr<Slot> &slot) {
   uint32_t crc;
   int hastag;
   int slotNum = GetSlotsID(key, &crc, &hastag);
@@ -669,7 +668,7 @@ void RemSlotKeyByType(const std::string &type, const std::string &key, const std
  *   >=0 - # of success migration
  * */
 static int SlotsMgrtTag(const std::string &host, const int port, int timeout, const std::string &key, const char type,
-                        std::string &detail, const std::shared_ptr<Slot>& slot) {
+                        std::string &detail, const std::shared_ptr<Slot> &slot) {
   int count = 0;
   uint32_t crc;
   int hastag;
@@ -739,9 +738,7 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
   return s + i;
 }
 
-std::string GetSlotKey(int slot) {
-  return SlotKeyPrefix + std::to_string(slot);
-}
+std::string GetSlotKey(int slot) { return SlotKeyPrefix + std::to_string(slot); }
 
 // get slot number of the key
 int GetSlotID(const std::string &str) { return GetSlotsID(str, nullptr, nullptr); }
@@ -770,7 +767,7 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
 uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
 
 // add key to slotkey
-void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot) {
+void AddSlotKey(const std::string &type, const std::string &key, const std::shared_ptr<Slot> &slot) {
   if (g_pika_conf->slotmigrate() != true) {
     return;
   }
@@ -802,7 +799,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
 }
 
 // del key from slotkey
-void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot) {
+void RemSlotKey(const std::string &key, const std::shared_ptr<Slot> &slot) {
   if (g_pika_conf->slotmigrate() != true) {
     return;
   }
@@ -821,7 +818,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot) {
   }
 }
 
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot) {
+int GetKeyType(const std::string &key, std::string &key_type, const std::shared_ptr<Slot> &slot) {
   std::vector<std::string> type_str(1);
   rocksdb::Status s = slot->db()->GetType(key, true, type_str);
   if (!s.ok()) {
@@ -848,12 +845,10 @@ int GetKeyType(const std::string& key, std::string &key_type, const std::shared_
 }
 
 // get slotstagkey by key
-std::string GetSlotsTagKey(uint32_t crc) {
-  return SlotTagPrefix + std::to_string(crc);
-}
+std::string GetSlotsTagKey(uint32_t crc) { return SlotTagPrefix + std::to_string(crc); }
 
 // delete key from db
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot) {
+int DeleteKey(const std::string &key, const char key_type, const std::shared_ptr<Slot> &slot) {
   LOG(INFO) << "Del key Srem key " << key;
   int32_t res = 0;
   std::string slotKey = GetSlotKey(GetSlotID(key));
@@ -969,7 +964,8 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
         std::string key = member;
         char type = key.at(0);
         key.erase(key.begin());
-        ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key, type, detail, slot);
+        ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key, type,
+                           detail, slot);
       }
     }
     // unlock
@@ -994,7 +990,7 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 // check key type
-int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot>& slot) {
+int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<Slot> &slot) {
   std::vector<std::string> type_str(1);
   rocksdb::Status s = slot->db()->GetType(key_, true, type_str);
   if (!s.ok()) {
@@ -1145,11 +1141,13 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) {
       detail = "cont get the key type.";
       ret = -1;
     } else {
-      ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, key_type_, detail, slot);
+      ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, key_type_,
+                         detail, slot);
     }
   } else {
     // key maybe doesn't exist, the key is tag key, migrate the same tag key
-    ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, 0, detail, slot);
+    ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, 0, detail,
+                       slot);
   }
 
   // unlock the record lock

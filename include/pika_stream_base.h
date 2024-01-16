@@ -100,8 +100,8 @@ class StreamStorage {
     bool start_ex;    // exclude first message
     bool end_ex;      // exclude last message
     bool is_reverse;  // scan in reverse order
-    ScanStreamOptions(std::string skey, streamID start_sid, streamID end_sid, int32_t count,
-                      bool start_ex = false, bool end_ex = false, bool is_reverse = false)
+    ScanStreamOptions(std::string skey, streamID start_sid, streamID end_sid, int32_t count, bool start_ex = false,
+                      bool end_ex = false, bool is_reverse = false)
         : key(skey),
           start_sid(start_sid),
           end_sid(end_sid),

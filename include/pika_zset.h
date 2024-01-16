@@ -71,8 +71,8 @@ class ZScanCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ZScanCmd(*this); }
 
  private:
@@ -176,6 +176,7 @@ class ZsetRangebyscoreParentCmd : public Cmd {
   bool RightClose() { return right_close_; }
   int64_t Offset() { return offset_; }
   int64_t Count() { return count_; }
+
  protected:
   std::string key_;
   std::string min_, max_;
@@ -257,7 +258,7 @@ class ZCountCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string min_ , max_;
+  std::string min_, max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
@@ -605,8 +606,8 @@ class ZPopmaxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
 
  private:
@@ -625,8 +626,8 @@ class ZPopminCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new ZPopminCmd(*this); }
 
  private:

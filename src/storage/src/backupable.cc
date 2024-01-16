@@ -146,4 +146,3 @@ void BackupEngine::StopBackup() {
 }
 
 }  // namespace storage
-

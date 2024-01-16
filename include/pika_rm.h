@@ -30,7 +30,6 @@
 #define kSendKeepAliveTimeout (2 * 1000000)
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
-
 class SyncSlot {
  public:
   SyncSlot(const std::string& db_name, uint32_t slot_id);
@@ -55,7 +54,8 @@ class SyncMasterSlot : public SyncSlot {
 
   pstd::Status SyncBinlogToWq(const std::string& ip, int port);
 
-  pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
+  pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset,
+                                      BinlogOffset* acked_offset);
   pstd::Status GetSlaveState(const std::string& ip, int port, SlaveState* slave_state);
 
   pstd::Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
@@ -81,8 +81,7 @@ class SyncMasterSlot : public SyncSlot {
   std::string ToStringStatus();
 
   int32_t GenSessionId();
-  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id,
-                      int session_id);
+  bool CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id, int session_id);
 
   // consensus use
   pstd::Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
@@ -159,7 +158,7 @@ class SyncSlaveSlot : public SyncSlot {
 
   void ActivateRsync();
 
-  bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
+  bool IsRsyncRunning() { return rsync_cli_->IsRunning(); }
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
@@ -196,7 +195,7 @@ class PikaReplicaManager {
   pstd::Status SendSlotTrySyncRequest(const std::string& db_name, size_t slot_id);
   pstd::Status SendSlotDBSyncRequest(const std::string& db_name, size_t slot_id);
   pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id, const LogOffset& ack_start,
-                                           const LogOffset& ack_end, bool is_first_send = false);
+                                            const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
   // For Pika Repl Server Thread
@@ -239,8 +238,7 @@ class PikaReplicaManager {
   // Schedule Task
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& db_slot,
-                               const std::shared_ptr<InnerMessage::InnerResponse>& res,
+  void ScheduleWriteBinlogTask(const std::string& db_slot, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name,
                            uint32_t slot_id);
@@ -249,18 +247,10 @@ class PikaReplicaManager {
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
   std::shared_mutex& GetSlotLock() { return slots_rw_; }
-  void SlotLock() {
-    slots_rw_.lock();
-  }
-  void SlotLockShared() {
-    slots_rw_.lock_shared();
-  }
-  void SlotUnlock() {
-    slots_rw_.unlock();
-  }
-  void SlotUnlockShared() {
-    slots_rw_.unlock_shared();
-  }
+  void SlotLock() { slots_rw_.lock(); }
+  void SlotLockShared() { slots_rw_.lock_shared(); }
+  void SlotUnlock() { slots_rw_.unlock(); }
+  void SlotUnlockShared() { slots_rw_.unlock_shared(); }
 
   std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_slot_info>& GetSyncMasterSlots() {
     return sync_master_slots_;

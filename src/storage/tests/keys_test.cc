@@ -58,7 +58,8 @@ static bool set_timeout(storage::Storage* const db, const Slice& key, int32_t tt
   return !((ret == 0) || !type_status[storage::DataType::kStrings].ok());
 }
 
-static bool key_value_match(const std::vector<storage::KeyValue>& key_value_out, const std::vector<storage::KeyValue>& expect_key_value) {
+static bool key_value_match(const std::vector<storage::KeyValue>& key_value_out,
+                            const std::vector<storage::KeyValue>& expect_key_value) {
   if (key_value_out.size() != expect_key_value.size()) {
     return false;
   }
@@ -101,7 +102,7 @@ TEST_F(KeysTest, PKScanRangeTest) {  // NOLINT
                                      {"PKSCANRANGE_M", "VALUE"}, {"PKSCANRANGE_O", "VALUE"}, {"PKSCANRANGE_Q", "VALUE"},
                                      {"PKSCANRANGE_S", "VALUE"}};
   keys_del.reserve(kvs.size());
-for (const auto& kv : kvs) {
+  for (const auto& kv : kvs) {
     keys_del.push_back(kv.key);
   }
 
@@ -1051,7 +1052,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {  // NOLINT
                                      {"PKRSCANRANGE_M", "VALUE"}, {"PKRSCANRANGE_O", "VALUE"},
                                      {"PKRSCANRANGE_Q", "VALUE"}, {"PKRSCANRANGE_S", "VALUE"}};
   keys_del.reserve(kvs.size());
-for (const auto& kv : kvs) {
+  for (const auto& kv : kvs) {
     keys_del.push_back(kv.key);
   }
 
@@ -2006,7 +2007,7 @@ for (const auto& kv : kvs) {
   expect_keys.clear();
   std::string element;
   std::vector<std::string> elements;
-  s = db.LPop("PKRSCANRANGE_I",1, &elements);
+  s = db.LPop("PKRSCANRANGE_I", 1, &elements);
   ASSERT_TRUE(s.ok());
   s = db.PKRScanRange(DataType::kLists, "PKRSCANRANGE_Q", "PKRSCANRANGE_C", "*", 4, &keys_out, &kvs_out, &next_key);
   ASSERT_TRUE(s.ok());
@@ -7721,7 +7722,7 @@ TEST_F(KeysTest, ExpireTest) {
   s = db.RPush("GP3_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
   ASSERT_TRUE(s.ok());
   std::vector<std::string> elements;
-  s = db.LPop("GP3_EXPIRE_LISTS_KEY", 1,&elements);
+  s = db.LPop("GP3_EXPIRE_LISTS_KEY", 1, &elements);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();

@@ -170,8 +170,7 @@ int RedisParser::GetNextNum(int pos, long* value) {
   return -1;  // Failed
 }
 
-RedisParser::RedisParser()
-    : redis_type_(0), bulk_len_(-1), redis_parser_type_(REDIS_PARSER_REQUEST) {}
+RedisParser::RedisParser() : redis_type_(0), bulk_len_(-1), redis_parser_type_(REDIS_PARSER_REQUEST) {}
 
 void RedisParser::SetParserStatus(RedisParserStatus status, RedisParserError error) {
   if (status == kRedisParserHalf) {
@@ -295,8 +294,9 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
 }
 
 void RedisParser::PrintCurrentStatus() {
-  LOG(INFO) << "status_code " << status_code_ << " error_code " <<  error_code_;
-  LOG(INFO) << "multibulk_len_ " << multibulk_len_ << "bulk_len " << bulk_len_ << " redis_type " << redis_type_ << " redis_parser_type " << redis_parser_type_;
+  LOG(INFO) << "status_code " << status_code_ << " error_code " << error_code_;
+  LOG(INFO) << "multibulk_len_ " << multibulk_len_ << "bulk_len " << bulk_len_ << " redis_type " << redis_type_
+            << " redis_parser_type " << redis_parser_type_;
   // for (auto& i : argv_) {
   //   UNUSED(i);
   //   log_info("parsed arguments: %s", i.c_str());

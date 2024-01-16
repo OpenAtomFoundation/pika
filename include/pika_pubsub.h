@@ -84,6 +84,7 @@ class PSubscribeCmd : public Cmd {
   std::vector<std::string> current_key() const override { return {channels_}; }
 
   std::vector<std::string> channels_;
+
  private:
   void DoInitial() override;
 };

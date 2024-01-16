@@ -9,8 +9,8 @@
 #include <memory>
 #include <string>
 
-#include "pstd/include/pstd_status.h"
 #include "pstd/include/noncopyable.h"
+#include "pstd/include/pstd_status.h"
 
 namespace net {
 
@@ -51,7 +51,6 @@ class NetCli : public pstd::noncopyable {
   struct Rep;
   std::unique_ptr<Rep> rep_;
   int set_tcp_nodelay();
-
 };
 
 extern NetCli* NewPbCli(const std::string& peer_ip = "", int peer_port = 0);

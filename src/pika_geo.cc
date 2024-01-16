@@ -62,7 +62,7 @@ void GeoAddCmd::Do(std::shared_ptr<Slot> slot) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void GeoPosCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -122,9 +122,7 @@ static double length_converter(double meters, const std::string& unit) {
   }
 }
 
-static bool check_unit(const std::string& unit) {
-  return unit == "m" || unit == "km" || unit == "ft" || unit == "mi";
-}
+static bool check_unit(const std::string& unit) { return unit == "m" || unit == "km" || unit == "ft" || unit == "mi"; }
 
 void GeoDistCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -305,7 +303,7 @@ static void GetAllNeighbors(const std::shared_ptr<Slot>& slot, std::string& key,
       return;
     }
     // Insert into result only if the point is within the search area.
-    for (auto & score_member : score_members) {
+    for (auto& score_member : score_members) {
       double xy[2];
       double real_distance = 0.0;
       GeoHashBits hash = {.bits = static_cast<uint64_t>(score_member.score), .step = GEO_STEP_MAX};

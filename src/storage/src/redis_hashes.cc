@@ -169,7 +169,7 @@ Status RedisHashes::PKPatternMatchDel(const std::string& pattern, int32_t* ret) 
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
       if (s.ok()) {
-        total_delete += static_cast<int32_t>( batch.Count());
+        total_delete += static_cast<int32_t>(batch.Count());
         batch.Clear();
       } else {
         *ret = total_delete;
@@ -194,7 +194,7 @@ Status RedisHashes::HDel(const Slice& key, const std::vector<std::string>& field
   uint32_t statistic = 0;
   std::vector<std::string> filtered_fields;
   std::unordered_set<std::string> field_set;
-  for (const auto & iter : fields) {
+  for (const auto& iter : fields) {
     const std::string& field = iter;
     if (field_set.find(field) == field_set.end()) {
       field_set.insert(field);
@@ -235,7 +235,7 @@ Status RedisHashes::HDel(const Slice& key, const std::vector<std::string>& field
         }
       }
       *ret = del_cnt;
-      if (!parsed_hashes_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_hashes_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("hash size overflow");
       }
       parsed_hashes_meta_value.ModifyCount(-del_cnt);
@@ -341,12 +341,9 @@ Status RedisHashes::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fv
       HashesDataKey hashes_data_key(key, version, "");
       Slice prefix = hashes_data_key.Encode();
       auto iter = db_->NewIterator(read_options, handles_[1]);
-      for (iter->Seek(prefix);
-           iter->Valid() && iter->key().starts_with(prefix);
-           iter->Next()) {
+      for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
-        fvs->push_back({parsed_hashes_data_key.field().ToString(),
-                        iter->value().ToString()});
+        fvs->push_back({parsed_hashes_data_key.field().ToString(), iter->value().ToString()});
       }
       delete iter;
     }
@@ -396,7 +393,7 @@ Status RedisHashes::HIncrby(const Slice& key, const Slice& field, int64_t value,
         statistic++;
       } else if (s.IsNotFound()) {
         Int64ToStr(value_buf, 32, value);
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
@@ -472,7 +469,7 @@ Status RedisHashes::HIncrbyfloat(const Slice& key, const Slice& field, const Sli
         statistic++;
       } else if (s.IsNotFound()) {
         LongDoubleToStr(long_double_by, new_value);
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
@@ -642,7 +639,7 @@ Status RedisHashes::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) 
           return s;
         }
       }
-      if (!parsed_hashes_meta_value.CheckModifyCount(count)){
+      if (!parsed_hashes_meta_value.CheckModifyCount(count)) {
         return Status::InvalidArgument("hash size overflow");
       }
       parsed_hashes_meta_value.ModifyCount(count);
@@ -695,7 +692,7 @@ Status RedisHashes::HSet(const Slice& key, const Slice& field, const Slice& valu
           statistic++;
         }
       } else if (s.IsNotFound()) {
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
@@ -747,7 +744,7 @@ Status RedisHashes::HSetnx(const Slice& key, const Slice& field, const Slice& va
       if (s.ok()) {
         *ret = 0;
       } else if (s.IsNotFound()) {
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);

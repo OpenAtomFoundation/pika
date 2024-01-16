@@ -61,16 +61,15 @@ class ListsMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
   ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
-      : db_(db),
-        cf_handles_ptr_(cf_handles_ptr)
-        {}
+      : db_(db), cf_handles_ptr_(cf_handles_ptr) {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedListsDataKey parsed_lists_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
-          parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.version());
+    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d",
+          parsed_lists_data_key.key().ToString().c_str(), parsed_lists_data_key.index(), value.ToString().c_str(),
+          parsed_lists_data_key.version());
 
     if (parsed_lists_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_lists_data_key.key().ToString();

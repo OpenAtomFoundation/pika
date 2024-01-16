@@ -19,7 +19,7 @@ namespace net {
 HolyThread::HolyThread(int port, ConnFactory* conn_factory, int cron_interval, const ServerHandle* handle, bool async)
     : ServerThread::ServerThread(port, cron_interval, handle),
       conn_factory_(conn_factory),
-      
+
       keepalive_timeout_(kDefaultKeepAliveTime),
       async_(async) {}
 

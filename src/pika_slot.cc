@@ -6,11 +6,11 @@
 #include <fstream>
 #include <memory>
 
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
-#include "include/pika_command.h"
 
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
@@ -58,9 +58,7 @@ Slot::Slot(const std::string& db_name, uint32_t slot_id, const std::string& tabl
   LOG(INFO) << slot_name_ << " DB Success";
 }
 
-Slot::~Slot() {
-  Close();
-}
+Slot::~Slot() { Close(); }
 
 void Slot::Leave() {
   Close();
@@ -108,7 +106,8 @@ std::shared_ptr<storage::Storage> Slot::db() const { return db_; }
 std::shared_ptr<PikaCache> Slot::cache() const { return cache_; }
 
 void Slot::Init() {
-  cache_ = std::make_shared<PikaCache>(g_pika_conf->zset_cache_start_pos(), g_pika_conf->zset_cache_field_num_per_key());
+  cache_ =
+      std::make_shared<PikaCache>(g_pika_conf->zset_cache_start_pos(), g_pika_conf->zset_cache_field_num_per_key());
   // Create cache
   cache::CacheConfig cache_cfg;
   g_pika_server->CacheConfigInit(cache_cfg);
@@ -159,8 +158,7 @@ bool Slot::TryUpdateMasterOffset() {
     return false;
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, slot_id_));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, slot_id_));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << slot_name_ << " not exist";
     return false;
@@ -188,8 +186,7 @@ bool Slot::TryUpdateMasterOffset() {
       master_ip = line;
     } else if (lineno > 2 && lineno < 8) {
       if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
-        LOG(WARNING) << "Slot: " << slot_name_
-                     << ", Format of info file after db sync error, line : " << line;
+        LOG(WARNING) << "Slot: " << slot_name_ << ", Format of info file after db sync error, line : " << line;
         is.close();
         slave_slot->SetReplState(ReplState::kError);
         return false;
@@ -226,8 +223,7 @@ bool Slot::TryUpdateMasterOffset() {
   }
 
   // Update master offset
-  std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
+  std::shared_ptr<SyncMasterSlot> master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
   if (!master_slot) {
     LOG(WARNING) << "Master Slot: " << slot_name_ << " not exist";
     return false;
@@ -255,8 +251,7 @@ bool Slot::ChangeDb(const std::string& new_path) {
   db_.reset();
 
   if (0 != pstd::RenameFile(db_path_, tmp_path)) {
-    LOG(WARNING) << "Slot: " << slot_name_
-                 << ", Failed to rename db path when change db, error: " << strerror(errno);
+    LOG(WARNING) << "Slot: " << slot_name_ << ", Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
 
@@ -299,11 +294,12 @@ BgSaveInfo Slot::bgsave_info() {
 void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
   const std::string slotPath = bgsave_info().path;
 
-  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
+  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB,
+                         storage::SETS_DB};
   for (const auto& type : types) {
     std::string typePath = slotPath + ((slotPath.back() != '/') ? "/" : "") + type;
     if (!pstd::FileExists(typePath)) {
-      continue ;
+      continue;
     }
 
     std::vector<std::string> tmpFileNames;
@@ -314,14 +310,14 @@ void Slot::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* s
     }
 
     for (const std::string fileName : tmpFileNames) {
-      fileNames -> push_back(type + "/" + fileName);
+      fileNames->push_back(type + "/" + fileName);
     }
   }
   fileNames->push_back(kBgsaveInfoFile);
   pstd::Status s = GetBgSaveUUID(snapshot_uuid);
   if (!s.ok()) {
-      LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
-      return;
+    LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
+    return;
   }
 }
 
@@ -329,7 +325,7 @@ Status Slot::GetBgSaveUUID(std::string* snapshot_uuid) {
   if (snapshot_uuid_.empty()) {
     std::string info_data;
     const std::string infoPath = bgsave_info().path + "/info";
-    //TODO: using file read function to replace rocksdb::ReadFileToString
+    // TODO: using file read function to replace rocksdb::ReadFileToString
     rocksdb::Status s = rocksdb::ReadFileToString(rocksdb::Env::Default(), infoPath, &info_data);
     if (!s.ok()) {
       LOG(WARNING) << "read dump meta info failed! error:" << s.ToString();
@@ -390,7 +386,7 @@ bool Slot::RunBgsaveEngine() {
     return false;
   }
   LOG(INFO) << slot_name_ << " create new backup finished.";
-  
+
   return true;
 }
 
@@ -426,8 +422,7 @@ bool Slot::InitBgsaveEngine() {
     return false;
   }
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
   if (!slot) {
     LOG(WARNING) << slot_name_ << " not found";
     return false;
@@ -527,7 +522,8 @@ bool Slot::FlushSubDBWithoutLock(const std::string& db_name) {
 void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
-  int len = static_cast<int32_t>(strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time)));
+  int len = static_cast<int32_t>(
+      strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time)));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
@@ -561,7 +557,6 @@ Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   key_scan_info_.duration = static_cast<int32_t>(time(nullptr) - key_scan_info_.start_time);
   return Status::OK();
 }
-
 
 void Slot::UpdateCacheInfo(CacheInfo& cache_info) {
   std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);

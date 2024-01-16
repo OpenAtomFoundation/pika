@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaMonitorThread::PikaMonitorThread()  {
+PikaMonitorThread::PikaMonitorThread() {
   set_thread_name("MonitorThread");
   has_monitor_clients_.store(false);
 }
@@ -18,7 +18,7 @@ PikaMonitorThread::~PikaMonitorThread() {
     monitor_cond_.notify_all();
     StopThread();
   }
-  for (auto & monitor_client : monitor_clients_) {
+  for (auto& monitor_client : monitor_clients_) {
     close(monitor_client.fd);
   }
   LOG(INFO) << "PikaMonitorThread " << pthread_self() << " exit!!!";
@@ -63,7 +63,7 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
   if (clients_ptr) {
-    for (auto & monitor_client : monitor_clients_) {
+    for (auto& monitor_client : monitor_clients_) {
       clients_ptr->push_back(monitor_client);
     }
   }
@@ -82,7 +82,7 @@ void PikaMonitorThread::AddCronTask(const MonitorCronTask& task) {
 
 bool PikaMonitorThread::FindClient(const std::string& ip_port) {
   std::lock_guard lm(monitor_mutex_protector_);
-  for (auto & monitor_client : monitor_clients_) {
+  for (auto& monitor_client : monitor_clients_) {
     if (monitor_client.ip_port == ip_port) {
       return true;
     }
@@ -178,11 +178,11 @@ void* PikaMonitorThread::ThreadMain() {
       continue;
     }
 
-    messages_transfer.pop_back(); // no space follow last param
+    messages_transfer.pop_back();  // no space follow last param
     messages_transfer.append("\r\n", 2);
 
     std::lock_guard lm(monitor_mutex_protector_);
-    for (auto & monitor_client : monitor_clients_) {
+    for (auto& monitor_client : monitor_clients_) {
       write_status = SendMessage(monitor_client.fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, monitor_client.ip_port});

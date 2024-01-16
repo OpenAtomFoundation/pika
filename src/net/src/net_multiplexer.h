@@ -40,9 +40,8 @@ class NetMultiplexer {
 
   static const int kUnlimitedQueue = -1;
 
-  int GetMultiplexer(){
-    return multiplexer_;
-  }
+  int GetMultiplexer() { return multiplexer_; }
+
  protected:
   int multiplexer_ = -1;
   /*

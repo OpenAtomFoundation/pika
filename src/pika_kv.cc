@@ -101,9 +101,7 @@ void SetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (SetCmd::kNX == condition_) {
@@ -204,7 +202,7 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   std::map<storage::DataType, storage::Status> type_status;
 
   int64_t count = slot->db()->Del(keys_, &type_status);
-  
+
   // stream's destory need to be treated specially
   auto s = StreamStorage::DestoryStreams(keys_, slot.get());
   if (!s.ok()) {
@@ -225,9 +223,7 @@ void DelCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void DelCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void DelCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -257,7 +253,7 @@ void DelCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void DelCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   std::string opt = argv_.at(0);
-  for(auto& key: keys_) {
+  for (auto& key : keys_) {
     argv_.clear();
     argv_.emplace_back(opt);
     argv_.emplace_back(key);
@@ -287,9 +283,7 @@ void IncrCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void IncrCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void IncrCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -324,9 +318,7 @@ void IncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void IncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void IncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -363,9 +355,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void IncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void IncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void IncrbyfloatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -386,7 +376,7 @@ void DecrCmd::DoInitial() {
 }
 
 void DecrCmd::Do(std::shared_ptr<Slot> slot) {
-  s_= slot->db()->Decrby(key_, 1, &new_value_);
+  s_ = slot->db()->Decrby(key_, 1, &new_value_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
@@ -398,9 +388,7 @@ void DecrCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DecrCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void DecrCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void DecrCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -435,9 +423,7 @@ void DecrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void DecrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void DecrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void DecrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -471,9 +457,7 @@ void GetsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void GetsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void GetsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void GetsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -502,9 +486,7 @@ void AppendCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void AppendCmd::DoThroughDB(std::shared_ptr<Slot> slot){
-  Do(slot);
-}
+void AppendCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void AppendCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -713,9 +695,7 @@ void SetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -771,9 +751,7 @@ void PsetexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PsetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void PsetexCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void PsetexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -854,9 +832,7 @@ void MsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void MsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void MsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void MsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -897,11 +873,11 @@ void MsetCmd::Merge() {}
 void MsetCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
-  //used "set" instead of "SET" to distinguish the binlog of Set
+  // used "set" instead of "SET" to distinguish the binlog of Set
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  for(auto& kv: kvs_){
+  for (auto& kv : kvs_) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
@@ -941,16 +917,16 @@ void MsetnxCmd::Do(std::shared_ptr<Slot> slot) {
 
 void MsetnxCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   if (!success_) {
-    //some keys already exist, set operations aborted, no need of binlog
+    // some keys already exist, set operations aborted, no need of binlog
     return;
   }
   PikaCmdArgsType set_argv;
   set_argv.resize(3);
-  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  // used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  for (auto& kv: kvs_) {
+  for (auto& kv : kvs_) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
@@ -976,7 +952,7 @@ void GetrangeCmd::DoInitial() {
 
 void GetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string substr;
-  s_= slot->db()->Getrange(key_, start_, end_, &substr);
+  s_ = slot->db()->Getrange(key_, start_, end_, &substr);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendStringLenUint64(substr.size());
     res_.AppendContent(substr);
@@ -1043,9 +1019,7 @@ void SetrangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SetrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SetrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SetrangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1076,7 +1050,7 @@ void StrlenCmd::Do(std::shared_ptr<Slot> slot) {
 void StrlenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
   std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s= slot->cache()->Strlen(CachePrefixKeyK, &len);
+  auto s = slot->cache()->Strlen(CachePrefixKeyK, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else {
@@ -1208,9 +1182,7 @@ std::string ExpireCmd::ToRedisProtocol() {
   return content;
 }
 
-void ExpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void ExpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void ExpireCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1272,9 +1244,7 @@ std::string PexpireCmd::ToRedisProtocol() {
   return content;
 }
 
-void PexpireCmd::DoThroughDB(std::shared_ptr<Slot> slot){
-  Do(slot);
-}
+void PexpireCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void PexpireCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1284,8 +1254,8 @@ void PexpireCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     v.emplace_back(PCacheKeyPrefixZ + key_);
     v.emplace_back(PCacheKeyPrefixS + key_);
     v.emplace_back(PCacheKeyPrefixH + key_);
-    for (auto key : v){
-      slot->cache()->Expire(key, msec_/1000);
+    for (auto key : v) {
+      slot->cache()->Expire(key, msec_ / 1000);
     }
   }
 }
@@ -1315,9 +1285,7 @@ void ExpireatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ExpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void ExpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void ExpireatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1379,9 +1347,7 @@ void PexpireatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PexpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void PexpireatCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void PexpireatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1592,9 +1558,7 @@ void PersistCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void PersistCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void PersistCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void PersistCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -1897,7 +1861,8 @@ void PKScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  s_ = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_), &keys, &kvs, &next_key);
+  s_ = slot->db()->PKScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_), &keys, &kvs,
+                               &next_key);
 
   if (s_.ok()) {
     res_.AppendArrayLen(2);
@@ -1981,8 +1946,8 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  s_ = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_),
-                                &keys, &kvs, &next_key);
+  s_ = slot->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, static_cast<int32_t>(limit_), &keys, &kvs,
+                                &next_key);
 
   if (s_.ok()) {
     res_.AppendArrayLen(2);

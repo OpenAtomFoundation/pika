@@ -3,7 +3,6 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-
 #ifndef PIKA_CACHE_LOAD_THREAD_H_
 #define PIKA_CACHE_LOAD_THREAD_H_
 
@@ -13,8 +12,8 @@
 #include <vector>
 
 #include "include/pika_cache.h"
-#include "include/pika_slot.h"
 #include "include/pika_define.h"
+#include "include/pika_slot.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
 
@@ -25,7 +24,7 @@ class PikaCacheLoadThread : public net::Thread {
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
   uint32_t WaittingLoadKeysNum(void) { return waitting_load_keys_num_; }
-  void Push(const char key_type, std::string& key, const std::shared_ptr<Slot> &slot);
+  void Push(const char key_type, std::string& key, const std::shared_ptr<Slot>& slot);
 
  private:
   bool LoadKV(std::string& key, const std::shared_ptr<Slot>& slot);
@@ -39,7 +38,7 @@ class PikaCacheLoadThread : public net::Thread {
  private:
   std::atomic_bool should_exit_;
   std::deque<std::tuple<const char, std::string, const std::shared_ptr<Slot>>> loadkeys_queue_;
-  
+
   pstd::CondVar loadkeys_cond_;
   pstd::Mutex loadkeys_mutex_;
 

@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
+#include "pstd/include/noncopyable.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
-#include "pstd/include/noncopyable.h"
 
 #include "net/include/net_conn.h"
 #include "net/include/net_define.h"

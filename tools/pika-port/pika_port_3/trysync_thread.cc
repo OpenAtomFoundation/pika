@@ -18,13 +18,12 @@
 #include <csignal>
 #include <fstream>
 
-#include "pstd/include/rsync.h"
 #include "pstd/include/pstd_status.h"
+#include "pstd/include/rsync.h"
 #include "slaveping_thread.h"
 
-#include "storage/storage.h"
 #include "pika_define.h"
-
+#include "storage/storage.h"
 
 extern PikaPort* g_pika_port;
 

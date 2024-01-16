@@ -21,7 +21,7 @@ void* ScanThread::ThreadMain() {
 
   do {
     storage_db_->PKScanRange(storage::DataType::kStrings, key_start, key_end, "*", scan_batch_limit, &keys, &kvs,
-                                &next_key);
+                             &next_key);
     if (!kvs.empty()) {
       scan_number_ += kvs.size();
       std::string data;

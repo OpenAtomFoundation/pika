@@ -9,24 +9,23 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <list>
 #include <atomic>
+#include <condition_variable>
+#include <list>
 #include <memory>
 #include <thread>
-#include <condition_variable>
 
 #include <glog/logging.h>
 
-#include "net/include/bg_thread.h"
-#include "net/include/net_cli.h"
-#include "pstd/include/env.h"
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/pstd_hash.h"
-#include "pstd/include/pstd_string.h"
-#include "pstd/include/pstd_status.h"
 #include "include/pika_define.h"
 #include "include/rsync_client_thread.h"
 #include "include/throttle.h"
+#include "net/include/bg_thread.h"
+#include "net/include/net_cli.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_hash.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
 #include "rsync_service.pb.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
@@ -47,9 +46,9 @@ using ResponseSPtr = std::shared_ptr<RsyncService::RsyncResponse>;
 class RsyncClient : public net::Thread {
  public:
   enum State {
-      IDLE,
-      RUNNING,
-      STOP,
+    IDLE,
+    RUNNING,
+    STOP,
   };
   RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
   void* ThreadMain() override;
@@ -58,16 +57,12 @@ class RsyncClient : public net::Thread {
   int GetParallelNum();
   Status Start();
   Status Stop();
-  bool IsRunning() {
-    return state_.load() == RUNNING;
-  }
-  bool IsStop() {
-    return state_.load() == STOP;
-  }
-  bool IsIdle() { return state_.load() == IDLE;}
+  bool IsRunning() { return state_.load() == RUNNING; }
+  bool IsStop() { return state_.load() == STOP; }
+  bool IsIdle() { return state_.load() == IDLE; }
   void OnReceive(RsyncService::RsyncResponse* resp);
 
-private:
+ private:
   bool Recover();
   Status CopyRemoteFile(const std::string& filename, int index);
   Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
@@ -79,7 +74,7 @@ private:
                          std::map<std::string, std::string>* localFileMap);
   void HandleRsyncMetaResponse(RsyncService::RsyncResponse* response);
 
-private:
+ private:
   typedef std::unique_ptr<RsyncClientThread> NetThreadUPtr;
 
   std::map<std::string, std::string> meta_table_;
@@ -105,7 +100,7 @@ private:
 };
 
 class RsyncWriter {
-public:
+ public:
   RsyncWriter(const std::string& filepath) {
     filepath_ = filepath;
     fd_ = open(filepath.c_str(), O_RDWR | O_APPEND | O_CREAT, 0644);
@@ -139,13 +134,13 @@ public:
     return Status::OK();
   }
 
-private:
+ private:
   std::string filepath_;
   int fd_ = -1;
 };
 
 class WaitObject {
-public:
+ public:
   WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
   ~WaitObject() {}
 
@@ -161,9 +156,7 @@ public:
     pstd::Status s = Status::Timeout("rsync timeout", "timeout");
     {
       std::unique_lock<std::mutex> lock(mu_);
-      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
-          return resp_.get() != nullptr;
-      });
+      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] { return resp_.get() != nullptr; });
       if (!cv_s) {
         return s;
       }
@@ -180,10 +173,11 @@ public:
     cond_.notify_all();
   }
 
-  std::string Filename() {return filename_;}
-  RsyncService::Type Type() {return type_;}
-  size_t Offset() {return offset_;}
-private:
+  std::string Filename() { return filename_; }
+  RsyncService::Type Type() { return type_; }
+  size_t Offset() { return offset_; }
+
+ private:
   std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = kInvalidOffset;
@@ -193,7 +187,7 @@ private:
 };
 
 class WaitObjectManager {
-public:
+ public:
   WaitObjectManager() {
     wo_vec_.resize(kMaxRsyncParallelNum);
     for (int i = 0; i < kMaxRsyncParallelNum; i++) {
@@ -207,8 +201,7 @@ public:
     }
   }
 
-  WaitObject* UpdateWaitObject(int worker_index, const std::string& filename,
-                               RsyncService::Type type, size_t offset) {
+  WaitObject* UpdateWaitObject(int worker_index, const std::string& filename, RsyncService::Type type, size_t offset) {
     std::lock_guard<std::mutex> guard(mu_);
     wo_vec_[worker_index]->Reset(filename, type, offset);
     return wo_vec_[worker_index];
@@ -221,20 +214,18 @@ public:
       delete resp;
       return;
     }
-    if (resp->type() == RsyncService::kRsyncFile &&
-        ((resp->file_resp().filename() != wo_vec_[index]->Filename()) ||
-	 (resp->file_resp().offset() != wo_vec_[index]->Offset()))) {
+    if (resp->type() == RsyncService::kRsyncFile && ((resp->file_resp().filename() != wo_vec_[index]->Filename()) ||
+                                                     (resp->file_resp().offset() != wo_vec_[index]->Offset()))) {
       delete resp;
       return;
     }
     wo_vec_[index]->WakeUp(resp);
   }
 
-private:
+ private:
   std::vector<WaitObject*> wo_vec_;
   std::mutex mu_;
 };
 
-} // end namespace rsync
+}  // end namespace rsync
 #endif
-

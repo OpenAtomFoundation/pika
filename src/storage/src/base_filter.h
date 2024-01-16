@@ -60,9 +60,7 @@ class BaseMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 class BaseDataFilter : public rocksdb::CompactionFilter {
  public:
   BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
-      : db_(db),
-        cf_handles_ptr_(cf_handles_ptr)
-        {}
+      : db_(db), cf_handles_ptr_(cf_handles_ptr) {}
 
   bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {

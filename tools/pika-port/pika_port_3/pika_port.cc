@@ -17,8 +17,8 @@
 #include "const.h"
 #include "pika_port.h"
 #include "pstd/include/env.h"
-#include "pstd/include/rsync.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd/include/rsync.h"
 
 PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
     : ping_thread_(nullptr),
@@ -38,7 +38,8 @@ PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
   // Create redis sender
   size_t thread_num = g_conf.forward_thread_num;
   for (size_t i = 0; i < thread_num; i++) {
-    senders_.emplace_back(new RedisSender(static_cast<int>(i), g_conf.forward_ip, g_conf.forward_port, g_conf.forward_passwd));
+    senders_.emplace_back(
+        new RedisSender(static_cast<int>(i), g_conf.forward_ip, g_conf.forward_port, g_conf.forward_passwd));
   }
 
   // Create thread

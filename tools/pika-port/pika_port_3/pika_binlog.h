@@ -31,7 +31,7 @@ class Version;
 
 class Binlog {
  public:
-  Binlog(std::string  Binlog_path, const int file_size = 100 * 1024 * 1024);
+  Binlog(std::string Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   Status Put(const std::string& item);

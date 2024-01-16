@@ -14,8 +14,8 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplServerConn::PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
-                                       net::NetMultiplexer* mpx)
+PikaReplServerConn::PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread,
+                                       void* worker_specific_data, net::NetMultiplexer* mpx)
     : PbConn(fd, ip_port, thread, mpx) {}
 
 PikaReplServerConn::~PikaReplServerConn() = default;
@@ -94,8 +94,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Slot not found");
@@ -103,9 +102,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     pre_success = false;
   } else {
     slot_name = slot->SlotName();
-    LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:" << node.port()
-              << ", Slot: " << slot_name << ", filenum: " << slave_boffset.filenum()
-              << ", pro_offset: " << slave_boffset.offset();
+    LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:" << node.port() << ", Slot: " << slot_name
+              << ", filenum: " << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
     response.set_code(InnerMessage::kOk);
   }
 
@@ -120,8 +118,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
       const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
       // need to response to outdated pb, new follower count on this response to update term
       if (meta.term() > slot->ConsensusTerm()) {
-        LOG(INFO) << "Update " << slot_name << " term from " << slot->ConsensusTerm() << " to "
-                  << meta.term();
+        LOG(INFO) << "Update " << slot_name << " term from " << slot->ConsensusTerm() << " to " << meta.term();
         slot->ConsensusUpdateTerm(meta.term());
       }
     }
@@ -239,7 +236,8 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
     LOG(WARNING) << "Slave offset is larger than mine, Slave ip: " << node.ip() << ", Slave port: " << node.port()
                  << ", Slot: " << slot_name << ", slave filenum: " << slave_boffset.filenum()
-                 << ", slave pro_offset_: " << slave_boffset.offset() << ", local filenum: " << boffset.filenum << ", local pro_offset_: " << boffset.offset;
+                 << ", slave pro_offset_: " << slave_boffset.offset() << ", local filenum: " << boffset.filenum
+                 << ", local pro_offset_: " << boffset.offset;
     return false;
   }
 
@@ -304,8 +302,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 
   LOG(INFO) << "Handle Slot DBSync Request";
   bool prior_success = true;
-  std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
     LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
     prior_success = false;
@@ -350,7 +347,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   }
 
   g_pika_server->DoBgSaveSlot(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id,
-                           static_cast<int32_t>(slave_boffset.filenum()));
+                              static_cast<int32_t>(slave_boffset.filenum()));
   // Change slave node's state to kSlaveDbSync so that the binlog will perserved.
   // See details in SyncMasterSlot::BinlogCloudPurge.
   if (master_slot) {
@@ -391,8 +388,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   LogOffset range_start(b_range_start, l_range_start);
   LogOffset range_end(b_range_end, l_range_end);
 
-  std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
     LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
     return;
@@ -401,19 +397,18 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   if (req->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
     if (meta.term() > master_slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << master_slot->ConsensusTerm()
-                << " to " << meta.term();
+      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << master_slot->ConsensusTerm() << " to "
+                << meta.term();
       master_slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < master_slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync req " << db_name << ":" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << master_slot->ConsensusTerm();
+      LOG(WARNING) << "Drop outdated binlog sync req " << db_name << ":" << slot_id << " recv term: " << meta.term()
+                   << " local term: " << master_slot->ConsensusTerm();
       return;
     }
   }
 
   if (!master_slot->CheckSessionId(node.ip(), node.port(), db_name, slot_id, session_id)) {
-    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << db_name << "_"
-                 << slot_id;
+    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << db_name << "_" << slot_id;
     // conn->NotifyClose();
     return;
   }
@@ -475,8 +470,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
 
   std::string db_name = slot.db_name();
   uint32_t slot_id = slot.slot_id();
-  std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
     LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
   }
@@ -511,32 +505,27 @@ int PikaReplServerConn::DealMessage() {
   }
   switch (req->type()) {
     case InnerMessage::kMetaSync: {
-      auto task_arg =
-          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      auto task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleMetaSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kTrySync: {
-      auto task_arg =
-          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      auto task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleTrySyncRequest, task_arg);
       break;
     }
     case InnerMessage::kDBSync: {
-      auto task_arg =
-          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      auto task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleDBSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kBinlogSync: {
-      auto task_arg =
-          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      auto task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleBinlogSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto task_arg =
-          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      auto task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleRemoveSlaveNodeRequest, task_arg);
       break;
     }

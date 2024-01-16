@@ -18,5 +18,3 @@ typedef uint64_t monotime;
 monotime getMonotonicUs();
 
 #endif  // PIKA_MONOTONIC_TIME_H
-
-

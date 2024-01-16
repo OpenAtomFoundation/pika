@@ -133,8 +133,8 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
   int rv;
   char cport[6];
   struct addrinfo hints;
-  struct addrinfo *servinfo;
-  struct addrinfo *p;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   snprintf(cport, sizeof(cport), "%d", dst_port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -348,8 +348,7 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           }
           std::lock_guard l(mu_);
           if (!send_failed_msgs.empty()) {
-            send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(),
-                                    to_send_[ip_port].end());
+            send_failed_msgs.insert(send_failed_msgs.end(), to_send_[ip_port].begin(), to_send_[ip_port].end());
             send_failed_msgs.swap(to_send_[ip_port]);
             NotifyWrite(ip_port);
           }

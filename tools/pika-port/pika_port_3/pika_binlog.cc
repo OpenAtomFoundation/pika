@@ -26,7 +26,9 @@ std::string NewFileName(const std::string& name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(std::shared_ptr<pstd::RWFile> save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) { assert(save_); }
+Version::Version(std::shared_ptr<pstd::RWFile> save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
+  assert(save_);
+}
 
 Version::~Version() { StableSave(); }
 
@@ -62,7 +64,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(std::string  binlog_path, const int file_size)
+Binlog::Binlog(std::string binlog_path, const int file_size)
     : consumer_num_(0),
       version_(nullptr),
       queue_(nullptr),

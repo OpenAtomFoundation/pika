@@ -15,9 +15,9 @@
 #include <utility>
 #include <vector>
 
-#include "pstd/include/noncopyable.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
+#include "pstd/include/noncopyable.h"
 
 using pstd::Status;
 
@@ -54,7 +54,6 @@ class RedisCli : public NetCli {
   ssize_t BufferRead();
   char* ReadBytes(unsigned int bytes);
   char* ReadLine(int* _len);
-
 };
 
 enum REDIS_STATUS {
@@ -73,9 +72,7 @@ enum REDIS_STATUS {
   REDIS_REPLY_ERROR
 };
 
-RedisCli::RedisCli()  {
-  rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * rbuf_size_));
-}
+RedisCli::RedisCli() { rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * rbuf_size_)); }
 
 RedisCli::~RedisCli() { free(rbuf_); }
 
@@ -244,8 +241,8 @@ int RedisCli::ProcessLineItem() {
 }
 
 int RedisCli::ProcessBulkItem() {
-  char *p;
-  char *s;
+  char* p;
+  char* s;
   int len;
   int bytelen;
 
@@ -319,8 +316,8 @@ char* RedisCli::ReadBytes(unsigned int bytes) {
 }
 
 char* RedisCli::ReadLine(int* _len) {
-  char *p;
-  char *s;
+  char* p;
+  char* s;
   int len;
 
   p = rbuf_ + rbuf_pos_;
@@ -582,7 +579,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
   cmd->append(1, '*');
   cmd->append(std::to_string(args.size()));
   cmd->append("\r\n");
-  for (auto & arg : args) {
+  for (auto& arg : args) {
     cmd->append(1, '$');
     cmd->append(std::to_string(arg.size()));
     cmd->append("\r\n");
@@ -636,6 +633,8 @@ int SerializeRedisCommand(std::string* cmd, const char* format, ...) {
   return result;
 }
 
-int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd) { return redisFormatCommandArgv(std::move(argv), cmd); }
+int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd) {
+  return redisFormatCommandArgv(std::move(argv), cmd);
+}
 
 };  // namespace net

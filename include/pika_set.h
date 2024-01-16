@@ -117,8 +117,8 @@ class SScanCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SScanCmd(*this); }
 
  private:
@@ -161,8 +161,8 @@ class SUnionCmd : public Cmd {
   SUnionCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SUnionCmd(*this); }
 
  private:
@@ -216,8 +216,8 @@ class SInterCmd : public Cmd {
   SInterCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SInterCmd(*this); }
 
  private:
@@ -258,8 +258,8 @@ class SIsmemberCmd : public Cmd {
   Cmd* Clone() override { return new SIsmemberCmd(*this); }
 
  private:
-   std::string key_;
-   std::string member_;
+  std::string key_;
+  std::string member_;
   rocksdb::Status s_;
   void DoInitial() override;
 };
@@ -269,8 +269,8 @@ class SDiffCmd : public Cmd {
   SDiffCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  void Merge() override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Merge() override{};
   Cmd* Clone() override { return new SDiffCmd(*this); }
 
  private:

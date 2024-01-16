@@ -83,11 +83,11 @@ class ListsMetaValue : public InternalValue {
 class ParsedListsMetaValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
-  explicit ParsedListsMetaValue(std::string* internal_value_str)
-      : ParsedInternalValue(internal_value_str) {
+  explicit ParsedListsMetaValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
     assert(internal_value_str->size() >= kListsMetaValueSuffixLength);
     if (internal_value_str->size() >= kListsMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kListsMetaValueSuffixLength);
+      user_value_ =
+          rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kListsMetaValueSuffixLength);
       version_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t) * 2 -
                                sizeof(int64_t) * 2);
       timestamp_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t) -
@@ -103,7 +103,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kListsMetaValueSuffixLength);
+      user_value_ =
+          rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kListsMetaValueSuffixLength);
       version_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t) * 2 -
                                sizeof(int64_t) * 2);
       timestamp_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t) -

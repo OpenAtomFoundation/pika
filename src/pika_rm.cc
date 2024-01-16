@@ -27,17 +27,14 @@ extern PikaServer* g_pika_server;
 
 /* SyncSlot */
 
-SyncSlot::SyncSlot(const std::string& db_name, uint32_t slot_id)
-    : slot_info_(db_name, slot_id) {}
+SyncSlot::SyncSlot(const std::string& db_name, uint32_t slot_id) : slot_info_(db_name, slot_id) {}
 
-std::string SyncSlot::SlotName() {
-  return slot_info_.db_name_;
-}
+std::string SyncSlot::SlotName() { return slot_info_.db_name_; }
 
 /* SyncMasterSlot*/
 
 SyncMasterSlot::SyncMasterSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id),  coordinator_(db_name, slot_id) {}
+    : SyncSlot(db_name, slot_id), coordinator_(db_name, slot_id) {}
 
 int SyncMasterSlot::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
@@ -62,8 +59,7 @@ Status SyncMasterSlot::GetSlaveNodeSession(const std::string& ip, int port, int3
 Status SyncMasterSlot::AddSlaveNode(const std::string& ip, int port, int session_id) {
   Status s = coordinator_.AddSlaveNode(ip, port, session_id);
   if (!s.ok()) {
-    LOG(WARNING) << "Add Slave Node Failed, slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":"
-                 << port;
+    LOG(WARNING) << "Add Slave Node Failed, slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":" << port;
     return s;
   }
   LOG(INFO) << "Add Slave Node, slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":" << port;
@@ -73,8 +69,8 @@ Status SyncMasterSlot::AddSlaveNode(const std::string& ip, int port, int session
 Status SyncMasterSlot::RemoveSlaveNode(const std::string& ip, int port) {
   Status s = coordinator_.RemoveSlaveNode(ip, port);
   if (!s.ok()) {
-    LOG(WARNING) << "Remove Slave Node Failed, Slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip
-                 << ":" << port;
+    LOG(WARNING) << "Remove Slave Node Failed, Slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":"
+                 << port;
     return s;
   }
   LOG(INFO) << "Remove Slave Node, Slot: " << SyncSlotInfo().ToString() << ", ip_port: " << ip << ":" << port;
@@ -97,8 +93,8 @@ Status SyncMasterSlot::ActivateSlaveBinlogSync(const std::string& ip, int port, 
     if (!s.ok()) {
       return Status::Corruption("Init binlog file reader failed" + s.ToString());
     }
-    //Since we init a new reader, we should drop items in write queue and reset sync_window.
-    //Or the sent_offset and acked_offset will not match
+    // Since we init a new reader, we should drop items in write queue and reset sync_window.
+    // Or the sent_offset and acked_offset will not match
     g_pika_rm->DropItemInWriteQueue(ip, port);
     slave_ptr->sync_win.Reset();
     slave_ptr->b_state = kReadFromFile;
@@ -188,7 +184,7 @@ Status SyncMasterSlot::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slav
 }
 
 Status SyncMasterSlot::ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start,
-                                                 const LogOffset& end) {
+                                            const LogOffset& end) {
   Status s = coordinator_.UpdateSlave(ip, port, start, end);
   if (!s.ok()) {
     LOG(WARNING) << SyncSlotInfo().ToString() << s.ToString();
@@ -210,7 +206,7 @@ Status SyncMasterSlot::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
 LogOffset SyncMasterSlot::ConsensusAppliedIndex() { return coordinator_.applied_index(); }
 
 Status SyncMasterSlot::GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset,
-                                                   BinlogOffset* acked_offset) {
+                                              BinlogOffset* acked_offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip + " port " + std::to_string(port));
@@ -459,12 +455,11 @@ int32_t SyncMasterSlot::GenSessionId() {
   return session_id_++;
 }
 
-bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::string& db_name,
-                                         uint64_t slot_id, int session_id) {
+bool SyncMasterSlot::CheckSessionId(const std::string& ip, int port, const std::string& db_name, uint64_t slot_id,
+                                    int session_id) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
-    LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << db_name << "_"
-                 << slot_id;
+    LOG(WARNING) << "Check SessionId Get Slave Node Error: " << ip << ":" << port << "," << db_name << "_" << slot_id;
     return false;
   }
 
@@ -518,7 +513,7 @@ std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncMasterSlot::GetA
 }
 
 Status SyncMasterSlot::ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject,
-                                                     std::vector<LogOffset>* hints) {
+                                                std::vector<LogOffset>* hints) {
   return coordinator_.LeaderNegotiate(f_last_offset, reject, hints);
 }
 
@@ -529,8 +524,7 @@ Status SyncMasterSlot::ConsensusFollowerNegotiate(const std::vector<LogOffset>& 
 Status SyncMasterSlot::ConsensusReset(const LogOffset& applied_offset) { return coordinator_.Reset(applied_offset); }
 
 /* SyncSlaveSlot */
-SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id)
-    : SyncSlot(db_name, slot_id) {
+SyncSlaveSlot::SyncSlaveSlot(const std::string& db_name, uint32_t slot_id) : SyncSlot(db_name, slot_id) {
   std::string dbsync_path = g_pika_conf->db_sync_path() + "/" + db_name;
   rsync_cli_.reset(new rsync::RsyncClient(dbsync_path, db_name, slot_id));
   m_info_.SetLastRecvTime(pstd::NowMicros());
@@ -633,9 +627,7 @@ std::string SyncSlaveSlot::LocalIp() {
   return local_ip_;
 }
 
-void SyncSlaveSlot::StopRsync() {
-  rsync_cli_->Stop();
-}
+void SyncSlaveSlot::StopRsync() { rsync_cli_->Stop(); }
 
 void SyncSlaveSlot::ActivateRsync() {
   if (!rsync_cli_->IsIdle()) {
@@ -701,10 +693,8 @@ void PikaReplicaManager::InitSlot() {
   for (const auto& db : db_structs) {
     const std::string& db_name = db.db_name;
     for (const auto& slot_id : db.slot_ids) {
-      sync_master_slots_[SlotInfo(db_name, slot_id)] =
-          std::make_shared<SyncMasterSlot>(db_name, slot_id);
-      sync_slave_slots_[SlotInfo(db_name, slot_id)] =
-          std::make_shared<SyncSlaveSlot>(db_name, slot_id);
+      sync_master_slots_[SlotInfo(db_name, slot_id)] = std::make_shared<SyncMasterSlot>(db_name, slot_id);
+      sync_slave_slots_[SlotInfo(db_name, slot_id)] = std::make_shared<SyncSlaveSlot>(db_name, slot_id);
     }
   }
 }
@@ -908,8 +898,7 @@ Status PikaReplicaManager::CheckSlotRole(const std::string& db, uint32_t slot_id
     return Status::NotFound(db + std::to_string(slot_id) + " not found");
   }
   if (sync_master_slots_[p_info]->GetNumberOfSlaveNode() != 0 ||
-      (sync_master_slots_[p_info]->GetNumberOfSlaveNode() == 0 &&
-       sync_slave_slots_[p_info]->State() == kNoConnect)) {
+      (sync_master_slots_[p_info]->GetNumberOfSlaveNode() == 0 && sync_slave_slots_[p_info]->State() == kNoConnect)) {
     *role |= PIKA_ROLE_MASTER;
   }
   if (sync_slave_slots_[p_info]->State() != ReplState::kNoConnect) {
@@ -1044,16 +1033,14 @@ Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& db_name, si
     return Status::Corruption("Slot get binlog offset error");
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
 
-  Status status =
-      pika_repl_client_->SendSlotTrySync(slave_slot->MasterIp(), slave_slot->MasterPort(), db_name,
-                                              slot_id, boffset, slave_slot->LocalIp());
+  Status status = pika_repl_client_->SendSlotTrySync(slave_slot->MasterIp(), slave_slot->MasterPort(), db_name, slot_id,
+                                                     boffset, slave_slot->LocalIp());
 
   if (status.ok()) {
     slave_slot->SetReplState(ReplState::kWaitReply);
@@ -1078,15 +1065,14 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name, siz
   }
   slot->PrepareRsync();
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db_name << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
 
-  Status status = pika_repl_client_->SendSlotDBSync(slave_slot->MasterIp(), slave_slot->MasterPort(),
-                                                    db_name, slot_id, boffset, slave_slot->LocalIp());
+  Status status = pika_repl_client_->SendSlotDBSync(slave_slot->MasterIp(), slave_slot->MasterPort(), db_name, slot_id,
+                                                    boffset, slave_slot->LocalIp());
 
   Status s;
   if (status.ok()) {
@@ -1102,16 +1088,15 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& db_name, siz
 }
 
 Status PikaReplicaManager::SendSlotBinlogSyncAckRequest(const std::string& db, uint32_t slot_id,
-                                                             const LogOffset& ack_start, const LogOffset& ack_end,
-                                                             bool is_first_send) {
+                                                        const LogOffset& ack_start, const LogOffset& ack_end,
+                                                        bool is_first_send) {
   std::shared_ptr<SyncSlaveSlot> slave_slot = GetSyncSlaveSlotByName(SlotInfo(db, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db << ":" << slot_id << ", NotFound";
     return Status::Corruption("Slave Slot not found");
   }
-  return pika_repl_client_->SendSlotBinlogSync(slave_slot->MasterIp(), slave_slot->MasterPort(), db,
-                                                    slot_id, ack_start, ack_end, slave_slot->LocalIp(),
-                                                    is_first_send);
+  return pika_repl_client_->SendSlotBinlogSync(slave_slot->MasterIp(), slave_slot->MasterPort(), db, slot_id, ack_start,
+                                               ack_end, slave_slot->LocalIp(), is_first_send);
 }
 
 Status PikaReplicaManager::CloseReplClientConn(const std::string& ip, int32_t port) {
@@ -1152,15 +1137,13 @@ Status PikaReplicaManager::RunSyncSlaveSlotStateMachine() {
       continue;
     } else if (s_slot->State() == ReplState::kWaitDBSync) {
       s_slot->ActivateRsync();
-      std::shared_ptr<Slot> slot =
-          g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
+      std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(p_info.db_name_, p_info.slot_id_);
       if (slot) {
         if (!s_slot->IsRsyncRunning()) {
           slot->TryUpdateMasterOffset();
         }
       } else {
-        LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_
-                     << " Slot Id: " << p_info.slot_id_;
+        LOG(WARNING) << "Slot not found, DB Name: " << p_info.db_name_ << " Slot Id: " << p_info.slot_id_;
       }
     } else if (s_slot->State() == ReplState::kConnected || s_slot->State() == ReplState::kNoConnect ||
                s_slot->State() == ReplState::kDBNoConnect) {

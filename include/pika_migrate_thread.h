@@ -1,30 +1,31 @@
 #ifndef PIKA_MIGRATE_THREAD_H_
-#define PIKA_MIGRATE_THREAD_H_
+#  define PIKA_MIGRATE_THREAD_H_
 
-#include "include/pika_client_conn.h"
-#include "include/pika_command.h"
-#include "include/pika_slot.h"
-#include "net/include/net_cli.h"
-#include "net/include/net_thread.h"
-#include "pika_client_conn.h"
-#include "storage/storage.h"
-#include "strings.h"
+#  include "include/pika_client_conn.h"
+#  include "include/pika_command.h"
+#  include "include/pika_slot.h"
+#  include "net/include/net_cli.h"
+#  include "net/include/net_thread.h"
+#  include "pika_client_conn.h"
+#  include "storage/storage.h"
+#  include "strings.h"
 
-void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot>& slot);
+void WriteDelKeyToBinlog(const std::string &key, const std::shared_ptr<Slot> &slot);
 static int DoMigrate(net::NetCli *cli, std::string send_str);
 
 class PikaMigrateThread;
 class PikaParseSendThread : public net::Thread {
  public:
-  PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot>& slot_);
+  PikaParseSendThread(PikaMigrateThread *migrate_thread, const std::shared_ptr<Slot> &slot_);
   ~PikaParseSendThread() override;
 
   bool Init(const std::string &ip, int64_t port, int64_t timeout_ms, int64_t mgrtkeys_num);
   void ExitThread(void);
 
  private:
-  int MigrateOneKey(net::NetCli *cli, const std::string& key, const char key_type, bool async);
-  void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys, const std::shared_ptr<Slot>& slot);
+  int MigrateOneKey(net::NetCli *cli, const std::string &key, const char key_type, bool async);
+  void DelKeysAndWriteBinlog(std::deque<std::pair<const char, std::string>> &send_keys,
+                             const std::shared_ptr<Slot> &slot);
   bool CheckMigrateRecv(int64_t need_receive_num);
   void *ThreadMain() override;
 
@@ -45,8 +46,8 @@ class PikaMigrateThread : public net::Thread {
   PikaMigrateThread();
   ~PikaMigrateThread() override;
   bool ReqMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num, int64_t keys_num,
-                       const std::shared_ptr<Slot>& slot);
-  int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot);
+                       const std::shared_ptr<Slot> &slot);
+  int ReqMigrateOne(const std::string &key, const std::shared_ptr<Slot> &slot);
   void GetMigrateStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved,
                         int64_t *remained);
   void CancelMigrate(void);
@@ -54,10 +55,10 @@ class PikaMigrateThread : public net::Thread {
   void DecWorkingThreadNum(void);
   void OnTaskFailed(void);
   void AddResponseNum(int32_t response_num);
-  bool IsMigrating(void) {return is_migrating_.load();}
-  time_t GetStartTime(void) {return start_time_;}
-  time_t GetEndTime(void) {return end_time_;}
-  std::string GetStartTimeStr(void) {return s_start_time_;}
+  bool IsMigrating(void) { return is_migrating_.load(); }
+  time_t GetStartTime(void) { return start_time_; }
+  time_t GetEndTime(void) { return end_time_; }
+  std::string GetStartTimeStr(void) { return s_start_time_; }
 
  private:
   void ResetThread(void);

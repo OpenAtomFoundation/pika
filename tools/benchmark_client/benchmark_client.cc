@@ -7,18 +7,18 @@
 #include <ctime>
 #include <functional>
 #include <iostream>
-#include <set>
 #include <random>
+#include <set>
 #include <vector>
 
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include "monitoring/histogram.h"
 #include "hiredis/hiredis.h"
+#include "monitoring/histogram.h"
 
+#include "pstd/include/env.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
-#include "pstd/include/env.h"
 
 DEFINE_string(command, "generate", "command to execute, eg: generate/get/set/zadd");
 DEFINE_bool(pipeline, false, "whether to enable pipeline");
@@ -34,8 +34,8 @@ DEFINE_string(dbs, "0", "dbs name, eg: 0,1,2");
 DEFINE_int32(element_count, 1, "elements number in hash/list/set/zset");
 DEFINE_bool(compare_value, false, "whether compare result or not");
 
-using std::default_random_engine;
 using pstd::Status;
+using std::default_random_engine;
 
 struct RequestStat {
   int success_cnt = 0;
@@ -51,8 +51,7 @@ struct RequestStat {
 };
 
 struct ThreadArg {
-  ThreadArg(pthread_t t, const std::string& tn, int i)
-      : idx(i), tid(t), table_name(tn), stat() {}
+  ThreadArg(pthread_t t, const std::string& tn, int i) : idx(i), tid(t), table_name(tn), stat() {}
   int idx;
   pthread_t tid;
   std::string table_name;
@@ -69,9 +68,7 @@ bool CompareValue(std::set<std::string> expect, const redisReply* reply) {
   if (!FLAGS_compare_value) {
     return true;
   }
-  if (reply == nullptr ||
-      reply->type != REDIS_REPLY_ARRAY ||
-      reply->elements != expect.size()) {
+  if (reply == nullptr || reply->type != REDIS_REPLY_ARRAY || reply->elements != expect.size()) {
     return false;
   }
   for (size_t i = 0; i < reply->elements; i++) {
@@ -90,9 +87,7 @@ bool CompareValue(std::map<std::string, std::string> expect, const redisReply* r
   if (!FLAGS_compare_value) {
     return true;
   }
-  if (reply == nullptr ||
-      reply->type != REDIS_REPLY_ARRAY ||
-      reply->elements != expect.size() * 2) {
+  if (reply == nullptr || reply->type != REDIS_REPLY_ARRAY || reply->elements != expect.size() * 2) {
     return false;
   }
   std::unordered_map<std::string, std::string> actual;
@@ -100,8 +95,7 @@ bool CompareValue(std::map<std::string, std::string> expect, const redisReply* r
     std::string key = reply->element[i]->str;
     std::string value = reply->element[++i]->str;
     auto it = expect.find(key);
-    if (it == expect.end() ||
-        it->second != value) {
+    if (it == expect.end() || it->second != value) {
       return false;
     }
     expect.erase(key);
@@ -126,7 +120,7 @@ void PrepareKeys(int suffix, std::vector<std::string>* keys) {
     fgets(key, FLAGS_key_size + 2, fp);
     key[FLAGS_key_size] = '\0';
     (*keys)[idx] = std::string(key);
-    delete []key;
+    delete[] key;
   }
   fclose(fp);
 }
@@ -146,10 +140,10 @@ void PreparePkeyMembers(int suffix, std::vector<std::pair<std::string, std::set<
       fgets(element, FLAGS_key_size + 2, fp);
       element[FLAGS_key_size] = '\0';
       elements.insert(std::string(element));
-      delete []element;
+      delete[] element;
     }
     (*keys)[idx] = std::make_pair(std::string(key), elements);
-    delete []key;
+    delete[] key;
   }
   fclose(fp);
 }
@@ -224,12 +218,13 @@ redisContext* Prepare(ThreadArg* arg) {
   redisContext* c = redisConnectWithTimeout(FLAGS_host.data(), FLAGS_port, timeout);
   if (!c || c->err) {
     if (c) {
-      printf("Table: %s Thread %d, Connection error: %s\n",
-             table.c_str(), index, c->errstr);
+      printf("Table: %s Thread %d, Connection error: %s\n", table.c_str(), index, c->errstr);
       redisFree(c);
     } else {
-      printf("Table %s Thread %d, Connection error: "
-             "can't allocate redis context\n", table.c_str(), index);
+      printf(
+          "Table %s Thread %d, Connection error: "
+          "can't allocate redis context\n",
+          table.c_str(), index);
     }
     return nullptr;
   }
@@ -237,9 +232,8 @@ redisContext* Prepare(ThreadArg* arg) {
   if (!FLAGS_password.empty()) {
     const char* auth_argv[2] = {"AUTH", FLAGS_password.data()};
     size_t auth_argv_len[2] = {4, FLAGS_password.size()};
-    auto res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 2, reinterpret_cast<const char**>(auth_argv),
-                         reinterpret_cast<const size_t*>(auth_argv_len)));
+    auto res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(auth_argv),
+                                                              reinterpret_cast<const size_t*>(auth_argv_len)));
     if (!res) {
       printf("Table %s Thread %d Auth Failed: Get reply Error\n", table.c_str(), index);
       freeReplyObject(res);
@@ -259,9 +253,8 @@ redisContext* Prepare(ThreadArg* arg) {
 
   const char* select_argv[2] = {"SELECT", arg->table_name.data()};
   size_t select_argv_len[2] = {6, arg->table_name.size()};
-  auto res = reinterpret_cast<redisReply*>(
-      redisCommandArgv(c, 2, reinterpret_cast<const char**>(select_argv),
-                       reinterpret_cast<const size_t*>(select_argv_len)));
+  auto res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(select_argv),
+                                                            reinterpret_cast<const size_t*>(select_argv_len)));
   if (!res) {
     printf("Thread %d Select Table %s Failed, Get reply Error\n", index, table.c_str());
     freeReplyObject(res);
@@ -269,11 +262,9 @@ redisContext* Prepare(ThreadArg* arg) {
     return nullptr;
   } else {
     if (!strcasecmp(res->str, "OK")) {
-      printf("Table %s Thread %d Select DB Success, start to write data...\n",
-             table.c_str(), index);
+      printf("Table %s Thread %d Select DB Success, start to write data...\n", table.c_str(), index);
     } else {
-      printf("Table %s Thread %d Select DB Failed: %s, thread exit...\n",
-             table.c_str(), index, res->str);
+      printf("Table %s Thread %d Select DB Failed: %s, thread exit...\n", table.c_str(), index, res->str);
       freeReplyObject(res);
       redisFree(c);
       return nullptr;
@@ -303,8 +294,7 @@ Status RunGetCommand(redisContext*& c, ThreadArg* arg) {
 
     uint64_t begin = pstd::NowMicros();
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv),
-                         reinterpret_cast<const size_t*>(argvlen)));
+        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -316,15 +306,13 @@ Status RunGetCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_STRING) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << key;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << key;
       arg->stat.error_cnt++;
     } else {
       if (CompareValue(value, std::string(res->str))) {
         arg->stat.success_cnt++;
       } else {
-        LOG(INFO) << FLAGS_command << " key: " << key
-                  << " compare value failed";
+        LOG(INFO) << FLAGS_command << " key: " << key << " compare value failed";
         arg->stat.error_cnt++;
       }
     }
@@ -353,8 +341,7 @@ Status RunSAddCommand(redisContext*& c, ThreadArg* arg) {
 
       uint64_t begin = pstd::NowMicros();
       res = reinterpret_cast<redisReply*>(
-          redisCommandArgv(c, 3, reinterpret_cast<const char**>(argv),
-                           reinterpret_cast<const size_t*>(argvlen)));
+          redisCommandArgv(c, 3, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
       hist->Add(pstd::NowMicros() - begin);
 
       if (!res) {
@@ -366,8 +353,7 @@ Status RunSAddCommand(redisContext*& c, ThreadArg* arg) {
           return Status::InvalidArgument("reconnect failed");
         }
       } else if (res->type != REDIS_REPLY_INTEGER) {
-        LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                  << " key: " << pkey;
+        LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
         arg->stat.error_cnt++;
       } else {
         arg->stat.success_cnt++;
@@ -399,8 +385,7 @@ Status RunSMembersCommand(redisContext*& c, ThreadArg* arg) {
 
     uint64_t begin = pstd::NowMicros();
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv),
-                         reinterpret_cast<const size_t*>(argvlen)));
+        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -412,15 +397,13 @@ Status RunSMembersCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_ARRAY) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << pkey;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
       arg->stat.error_cnt++;
     } else {
       if (CompareValue(elements, res)) {
         arg->stat.success_cnt++;
       } else {
-        LOG(INFO) << FLAGS_command << " key: " << pkey
-                  << " compare value failed";
+        LOG(INFO) << FLAGS_command << " key: " << pkey << " compare value failed";
         arg->stat.error_cnt++;
       }
     }
@@ -456,8 +439,7 @@ Status RunHGetAllCommand(redisContext*& c, ThreadArg* arg) {
 
     uint64_t begin = pstd::NowMicros();
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv),
-                         reinterpret_cast<const size_t*>(argvlen)));
+        redisCommandArgv(c, 2, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -469,15 +451,13 @@ Status RunHGetAllCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_ARRAY) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << pkey;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
       arg->stat.error_cnt++;
     } else {
       if (CompareValue(m, res)) {
         arg->stat.success_cnt++;
       } else {
-        LOG(INFO) << FLAGS_command << " key: " << pkey
-                  << " compare value failed";
+        LOG(INFO) << FLAGS_command << " key: " << pkey << " compare value failed";
         arg->stat.error_cnt++;
       }
     }
@@ -512,9 +492,8 @@ Status RunHSetCommand(redisContext*& c, ThreadArg* arg) {
       set_argvlen[3] = value.size();
 
       uint64_t begin = pstd::NowMicros();
-      res = reinterpret_cast<redisReply*>(
-          redisCommandArgv(c, 4, reinterpret_cast<const char**>(set_argv),
-                           reinterpret_cast<const size_t*>(set_argvlen)));
+      res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 4, reinterpret_cast<const char**>(set_argv),
+                                                           reinterpret_cast<const size_t*>(set_argvlen)));
       hist->Add(pstd::NowMicros() - begin);
 
       if (!res) {
@@ -526,8 +505,7 @@ Status RunHSetCommand(redisContext*& c, ThreadArg* arg) {
           return Status::InvalidArgument("reconnect failed");
         }
       } else if (res->type != REDIS_REPLY_INTEGER) {
-        LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                  << " key: " << pkey;
+        LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
         arg->stat.error_cnt++;
       } else {
         arg->stat.success_cnt++;
@@ -564,8 +542,7 @@ Status RunSetCommand(redisContext*& c, ThreadArg* arg) {
     uint64_t begin = pstd::NowMicros();
 
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 3, reinterpret_cast<const char**>(set_argv),
-                         reinterpret_cast<const size_t*>(set_argvlen)));
+        redisCommandArgv(c, 3, reinterpret_cast<const char**>(set_argv), reinterpret_cast<const size_t*>(set_argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -577,8 +554,7 @@ Status RunSetCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_STATUS) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << key;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << key;
       arg->stat.error_cnt++;
     } else {
       arg->stat.success_cnt++;
@@ -611,8 +587,7 @@ Status RunZAddCommand(redisContext*& c, ThreadArg* arg) {
 
       uint64_t begin = pstd::NowMicros();
       res = reinterpret_cast<redisReply*>(
-          redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv),
-                           reinterpret_cast<const size_t*>(argvlen)));
+          redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
       hist->Add(pstd::NowMicros() - begin);
 
       if (!res) {
@@ -624,8 +599,7 @@ Status RunZAddCommand(redisContext*& c, ThreadArg* arg) {
           return Status::InvalidArgument("reconnect failed");
         }
       } else if (res->type != REDIS_REPLY_INTEGER) {
-        LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                  << " key: " << pkey;
+        LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
         arg->stat.error_cnt++;
       } else {
         arg->stat.success_cnt++;
@@ -662,8 +636,7 @@ Status RunZRangeCommand(redisContext*& c, ThreadArg* arg) {
 
     uint64_t begin = pstd::NowMicros();
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv),
-                         reinterpret_cast<const size_t*>(argvlen)));
+        redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -675,15 +648,13 @@ Status RunZRangeCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_ARRAY) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << pkey;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
       arg->stat.error_cnt++;
     } else {
       if (CompareValue(elements, res)) {
         arg->stat.success_cnt++;
       } else {
-        LOG(INFO) << FLAGS_command << " key: " << pkey
-                  << " compare value failed";
+        LOG(INFO) << FLAGS_command << " key: " << pkey << " compare value failed";
         arg->stat.error_cnt++;
       }
     }
@@ -712,8 +683,7 @@ Status RunLPushCommand(redisContext*& c, ThreadArg* arg) {
 
       uint64_t begin = pstd::NowMicros();
       res = reinterpret_cast<redisReply*>(
-          redisCommandArgv(c, 3, reinterpret_cast<const char**>(argv),
-                           reinterpret_cast<const size_t*>(argvlen)));
+          redisCommandArgv(c, 3, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
       hist->Add(pstd::NowMicros() - begin);
 
       if (!res) {
@@ -725,8 +695,7 @@ Status RunLPushCommand(redisContext*& c, ThreadArg* arg) {
           return Status::InvalidArgument("reconnect failed");
         }
       } else if (res->type != REDIS_REPLY_INTEGER) {
-        LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                  << " key: " << pkey;
+        LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
         arg->stat.error_cnt++;
       } else {
         arg->stat.success_cnt++;
@@ -762,8 +731,7 @@ Status RunLRangeCommand(redisContext*& c, ThreadArg* arg) {
 
     uint64_t begin = pstd::NowMicros();
     res = reinterpret_cast<redisReply*>(
-        redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv),
-                         reinterpret_cast<const size_t*>(argvlen)));
+        redisCommandArgv(c, 4, reinterpret_cast<const char**>(argv), reinterpret_cast<const size_t*>(argvlen)));
     hist->Add(pstd::NowMicros() - begin);
 
     if (!res) {
@@ -775,15 +743,13 @@ Status RunLRangeCommand(redisContext*& c, ThreadArg* arg) {
         return Status::InvalidArgument("reconnect failed");
       }
     } else if (res->type != REDIS_REPLY_ARRAY) {
-      LOG(INFO) << FLAGS_command << " invalid type: " << res->type
-                << " key: " << pkey;
+      LOG(INFO) << FLAGS_command << " invalid type: " << res->type << " key: " << pkey;
       arg->stat.error_cnt++;
     } else {
       if (CompareValue(elements, res)) {
         arg->stat.success_cnt++;
       } else {
-        LOG(INFO) << FLAGS_command << " key: " << pkey
-                  << " compare value failed";
+        LOG(INFO) << FLAGS_command << " key: " << pkey << " compare value failed";
         arg->stat.error_cnt++;
       }
     }
@@ -815,19 +781,19 @@ void* ThreadMain(void* arg) {
   } else if (FLAGS_command == "hset") {
     s = RunHSetCommand(c, ta);
   } else if (FLAGS_command == "hgetall") {
-    s = RunHGetAllCommand(c,ta);
+    s = RunHGetAllCommand(c, ta);
   } else if (FLAGS_command == "sadd") {
     s = RunSAddCommand(c, ta);
   } else if (FLAGS_command == "smembers") {
-    s = RunSMembersCommand(c,ta);
+    s = RunSMembersCommand(c, ta);
   } else if (FLAGS_command == "zadd") {
     s = RunZAddCommand(c, ta);
   } else if (FLAGS_command == "zrange") {
-    s = RunZRangeCommand(c,ta);
+    s = RunZRangeCommand(c, ta);
   } else if (FLAGS_command == "lpush") {
     s = RunLPushCommand(c, ta);
   } else if (FLAGS_command == "lrange") {
-    s = RunLRangeCommand(c,ta);
+    s = RunLRangeCommand(c, ta);
   }
 
   if (!s.ok()) {
@@ -878,7 +844,6 @@ int main(int argc, char* argv[]) {
   auto hours = std::chrono::duration_cast<std::chrono::hours>(end_time - start_time).count();
   auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
-
 
   std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
             << std::endl;

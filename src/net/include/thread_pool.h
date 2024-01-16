@@ -16,7 +16,7 @@
 
 namespace net {
 
-using TaskFunc = void (*)(void *);
+using TaskFunc = void (*)(void*);
 
 struct Task {
   TaskFunc func;
@@ -49,7 +49,7 @@ class ThreadPool : public pstd::noncopyable {
     std::string worker_name_;
   };
 
-  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();
@@ -80,7 +80,6 @@ class ThreadPool : public pstd::noncopyable {
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
-
 };
 
 }  // namespace net

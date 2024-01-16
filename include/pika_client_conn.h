@@ -12,7 +12,6 @@
 #include "acl.h"
 #include "include/pika_command.h"
 
-
 // TODO: stat time costing in write out data to connfd
 struct TimeStat {
   TimeStat() = default;
@@ -21,21 +20,13 @@ struct TimeStat {
     process_done_ts_ = 0;
   }
 
-  uint64_t start_ts() const {
-    return enqueue_ts_;
-  }
+  uint64_t start_ts() const { return enqueue_ts_; }
 
-  uint64_t total_time() const {
-    return process_done_ts_ > enqueue_ts_ ? process_done_ts_ - enqueue_ts_ : 0;
-  }
+  uint64_t total_time() const { return process_done_ts_ > enqueue_ts_ ? process_done_ts_ - enqueue_ts_ : 0; }
 
-  uint64_t queue_time() const {
-    return dequeue_ts_ > enqueue_ts_ ? dequeue_ts_ - enqueue_ts_ : 0;
-  }
+  uint64_t queue_time() const { return dequeue_ts_ > enqueue_ts_ ? dequeue_ts_ - enqueue_ts_ : 0; }
 
-  uint64_t process_time() const {
-    return process_done_ts_ > dequeue_ts_ ? process_done_ts_ - dequeue_ts_ : 0;
-  }
+  uint64_t process_time() const { return process_done_ts_ > dequeue_ts_ ? process_done_ts_ - dequeue_ts_ : 0; }
 
   uint64_t enqueue_ts_;
   uint64_t dequeue_ts_;
@@ -104,9 +95,9 @@ class PikaClientConn : public net::RedisConn {
   void SetTxnInitFailState(bool is_failed);
   void SetTxnStartState(bool is_start);
 
-  void AddKeysToWatch(const std::vector<std::string> &db_keys);
+  void AddKeysToWatch(const std::vector<std::string>& db_keys);
   void RemoveWatchedKeys();
-  void SetTxnFailedFromKeys(const std::vector<std::string> &db_keys);
+  void SetTxnFailedFromKeys(const std::vector<std::string>& db_keys);
   void SetAllTxnFailed();
   void SetTxnFailedFromDBs(std::string db_name);
   void ExitTxn();
@@ -118,6 +109,7 @@ class PikaClientConn : public net::RedisConn {
   std::vector<std::shared_ptr<std::string>> resp_array;
 
   std::shared_ptr<TimeStat> time_stat_;
+
  private:
   net::ServerThread* const server_thread_;
   std::string current_db_;

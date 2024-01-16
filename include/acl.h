@@ -138,7 +138,7 @@ class AclSelector {
   inline bool HasFlags(uint32_t flag) const { return flags_ & flag; };
   inline void AddFlags(uint32_t flag) { flags_ |= flag; };
   inline void DecFlags(uint32_t flag) { flags_ &= ~flag; };
-  bool EqualChannel(const std::vector<std::string> &allChannel);
+  bool EqualChannel(const std::vector<std::string>& allChannel);
 
  private:
   pstd::Status SetSelector(const std::string& op);

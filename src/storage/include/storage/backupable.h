@@ -29,7 +29,7 @@ struct BackupSaveArgs {
   const std::string key_type;
   Status res;
 
-  BackupSaveArgs(void* _p_engine, std::string  _backup_dir, std::string  _key_type)
+  BackupSaveArgs(void* _p_engine, std::string _backup_dir, std::string _key_type)
       : p_engine(_p_engine), backup_dir(std::move(_backup_dir)), key_type(std::move(_key_type)) {}
 };
 
@@ -70,4 +70,3 @@ class BackupEngine {
 
 }  //  namespace storage
 #endif  //  SRC_BACKUPABLE_H_
-

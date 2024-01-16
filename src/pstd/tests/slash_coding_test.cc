@@ -128,7 +128,7 @@ TEST_F(Coding, Varint64) {
 
   const char* p = s.data();
   const char* limit = p + s.size();
-  for (auto & value : values) {
+  for (auto& value : values) {
     ASSERT_TRUE(p < limit);
     uint64_t actual;
     const char* start = p;

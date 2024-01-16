@@ -15,7 +15,7 @@
 
 class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
  public:
-  DB(std::string  db_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
+  DB(std::string db_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
   virtual ~DB();
 
   friend class Cmd;
@@ -33,21 +33,11 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool IsBinlogIoError();
   uint32_t SlotNum();
   void GetAllSlots(std::set<uint32_t>& slot_ids);
-  std::shared_mutex& GetSlotLock() {
-    return slots_rw_;
-  }
-  void SlotLock() {
-    slots_rw_.lock();
-  }
-  void SlotLockShared() {
-    slots_rw_.lock_shared();
-  }
-  void SlotUnlock() {
-    slots_rw_.unlock();
-  }
-  void SlotUnlockShared() {
-    slots_rw_.unlock_shared();
-  }
+  std::shared_mutex& GetSlotLock() { return slots_rw_; }
+  void SlotLock() { slots_rw_.lock(); }
+  void SlotLockShared() { slots_rw_.lock_shared(); }
+  void SlotUnlock() { slots_rw_.unlock(); }
+  void SlotUnlockShared() { slots_rw_.unlock_shared(); }
 
   // Dynamic change slot
   pstd::Status AddSlots(const std::set<uint32_t>& slot_ids);
@@ -73,9 +63,8 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool DBIsEmpty();
   pstd::Status MovetoToTrash(const std::string& path);
   pstd::Status Leave();
-  std::map<uint32_t, std::shared_ptr<Slot>> GetSlots() {
-    return slots_;
-  }
+  std::map<uint32_t, std::shared_ptr<Slot>> GetSlots() { return slots_; }
+
  private:
   std::string db_name_;
   uint32_t slot_num_ = 0;

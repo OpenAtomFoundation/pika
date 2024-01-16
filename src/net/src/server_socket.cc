@@ -20,7 +20,7 @@ namespace net {
 
 ServerSocket::ServerSocket(int port, bool is_block)
     : port_(port),
-      
+
       is_block_(is_block) {}
 
 ServerSocket::~ServerSocket() { Close(); }

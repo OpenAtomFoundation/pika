@@ -20,9 +20,8 @@ namespace net {
 
 PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
     : NetConn(fd, ip_port, thread, mpx),
-      
-      write_buf_(0)
-      {
+
+      write_buf_(0) {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * PB_IOBUF_LEN));
   rbuf_len_ = PB_IOBUF_LEN;
 }

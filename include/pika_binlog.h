@@ -9,12 +9,11 @@
 #include <atomic>
 
 #include "pstd/include/env.h"
+#include "pstd/include/noncopyable.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
-#include "pstd/include/noncopyable.h"
 
 #include "include/pika_define.h"
-
 
 std::string NewFileName(const std::string& name, uint32_t current);
 
@@ -47,7 +46,7 @@ class Version final : public pstd::noncopyable {
 
 class Binlog : public pstd::noncopyable {
  public:
-  Binlog(std::string  Binlog_path, int file_size = 100 * 1024 * 1024);
+  Binlog(std::string Binlog_path, int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   void Lock() { mutex_.lock(); }
@@ -55,7 +54,8 @@ class Binlog : public pstd::noncopyable {
 
   pstd::Status Put(const std::string& item);
 
-  pstd::Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr, uint64_t* logic_id = nullptr);
+  pstd::Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr,
+                                 uint64_t* logic_id = nullptr);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
@@ -100,7 +100,8 @@ class Binlog : public pstd::noncopyable {
 
   std::unique_ptr<Version> version_;
   std::unique_ptr<pstd::WritableFile> queue_;
-  // versionfile_ can only be used as a shared_ptr, and it will be used as a variable version_ in the ~Version() function.
+  // versionfile_ can only be used as a shared_ptr, and it will be used as a variable version_ in the ~Version()
+  // function.
   std::shared_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;

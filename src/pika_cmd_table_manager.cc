@@ -21,7 +21,7 @@ PikaCmdTableManager::PikaCmdTableManager() {
 
 void PikaCmdTableManager::InitCmdTable(void) {
   ::InitCmdTable(cmds_.get());
-  
+
   for (const auto& cmd : *cmds_) {
     if (cmd.second->flag() & kCmdFlagsWrite) {
       cmd.second->AddAclCategory(static_cast<uint32_t>(AclCategory::WRITE));
@@ -51,9 +51,7 @@ void PikaCmdTableManager::InitCmdTable(void) {
   }
 }
 
-std::unordered_map<std::string, CommandStatistics>* PikaCmdTableManager::GetCommandStatMap() {
-  return &cmdstat_map_;
-}
+std::unordered_map<std::string, CommandStatistics>* PikaCmdTableManager::GetCommandStatMap() { return &cmdstat_map_; }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   const std::string& internal_opt = opt;

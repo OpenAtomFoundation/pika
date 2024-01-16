@@ -9,7 +9,7 @@
 #include "pstd/include/env.h"
 
 DEFINE_uint64(raft_minimal_throttle_threshold_mb, 0, "minimal throttle throughput threshold per second");
-namespace rsync{
+namespace rsync {
 
 Throttle::Throttle(size_t throttle_throughput_bytes, size_t check_cycle)
     : throttle_throughput_bytes_(throttle_throughput_bytes),
@@ -57,5 +57,4 @@ void Throttle::ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t e
   }
   cur_throughput_bytes_ = std::max(cur_throughput_bytes_ - (acquired - consumed), size_t(0));
 }
-}
-
+}  // namespace rsync

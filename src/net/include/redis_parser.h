@@ -18,9 +18,9 @@ namespace net {
 class RedisParser;
 
 using RedisCmdArgsType = std::vector<std::string>;
-using RedisParserDataCb = int (*)(RedisParser *, const RedisCmdArgsType &);
-using RedisParserMultiDataCb = int (*)(RedisParser *, const std::vector<RedisCmdArgsType> &);
-using RedisParserCb = int (*)(RedisParser *);
+using RedisParserDataCb = int (*)(RedisParser*, const RedisCmdArgsType&);
+using RedisParserMultiDataCb = int (*)(RedisParser*, const std::vector<RedisCmdArgsType>&);
+using RedisParserCb = int (*)(RedisParser*);
 using RedisParserType = int;
 
 enum RedisParserStatus {

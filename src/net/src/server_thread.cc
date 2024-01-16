@@ -198,7 +198,6 @@ void* ServerThread::ThreadMain() {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;

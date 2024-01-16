@@ -5,24 +5,24 @@
 
 #ifndef NET_SRC_NET_UTIL_H_
 #define NET_SRC_NET_UTIL_H_
+#include <glog/logging.h>
 #include <unistd.h>
 #include <cassert>
 #include <chrono>
 #include <functional>
-#include<memory>
+#include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <glog/logging.h>
-#include "net/src/net_multiplexer.h"
 #include "net/include/net_thread.h"
+#include "net/src/net_multiplexer.h"
 
 namespace net {
 
 int Setnonblocking(int sockfd);
 
-struct TimedTask{
+struct TimedTask {
   uint32_t task_id;
   std::string task_name;
   int interval_ms;
@@ -31,20 +31,18 @@ struct TimedTask{
 };
 
 struct ExecTsWithId {
-  //the next exec time of the task, unit in ms
+  // the next exec time of the task, unit in ms
   int64_t exec_ts;
-  //id of the task to be exec
+  // id of the task to be exec
   uint32_t id;
 
-  bool operator<(const ExecTsWithId& other) const{
-    if(exec_ts == other.exec_ts){
+  bool operator<(const ExecTsWithId& other) const {
+    if (exec_ts == other.exec_ts) {
       return id < other.id;
     }
     return exec_ts < other.exec_ts;
   }
-  bool operator==(const ExecTsWithId& other) const {
-    return exec_ts == other.exec_ts && id == other.id;
-  }
+  bool operator==(const ExecTsWithId& other) const { return exec_ts == other.exec_ts && id == other.id; }
 };
 
 class TimerTaskManager {
@@ -52,28 +50,27 @@ class TimerTaskManager {
   TimerTaskManager() = default;
   ~TimerTaskManager() = default;
 
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
-  //return the newest min_minterval_ms
+  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec,
+                        const std::function<void()>& task);
+  // return the newest min_minterval_ms
   int ExecTimerTask();
   bool DelTimerTaskByTaskId(uint32_t task_id);
   int GetMinIntervalMs() const { return min_interval_ms_; }
   int64_t NowInMs();
   void RenewMinIntervalMs();
-  bool Empty(){ return 0 == last_task_id_; }
+  bool Empty() { return 0 == last_task_id_; }
 
  private:
-  //items stored in std::set are ascending ordered, we regard it as an auto sorted queue
+  // items stored in std::set are ascending ordered, we regard it as an auto sorted queue
   std::set<ExecTsWithId> exec_queue_;
   std::unordered_map<uint32_t, TimedTask> id_to_task_;
   uint32_t last_task_id_{0};
   int min_interval_ms_{-1};
 };
 
-
-
 class TimerTaskThread : public Thread {
  public:
-  TimerTaskThread(){
+  TimerTaskThread() {
     net_multiplexer_.reset(CreateNetMultiplexer());
     net_multiplexer_->Initialize();
   }
@@ -81,13 +78,12 @@ class TimerTaskThread : public Thread {
   int StartThread() override;
   int StopThread() override;
 
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
-      return timer_task_manager_.AddTimerTask(task_name, interval_ms, repeat_exec, task);
+  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec,
+                        const std::function<void()>& task) {
+    return timer_task_manager_.AddTimerTask(task_name, interval_ms, repeat_exec, task);
   };
 
-  bool DelTimerTaskByTaskId(uint32_t task_id){
-    return timer_task_manager_.DelTimerTaskByTaskId(task_id);
-};
+  bool DelTimerTaskByTaskId(uint32_t task_id) { return timer_task_manager_.DelTimerTaskByTaskId(task_id); };
 
  private:
   void* ThreadMain() override;

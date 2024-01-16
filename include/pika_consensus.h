@@ -50,14 +50,13 @@ class SyncProgress {
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
   std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
   pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                      int session_id);
+                            int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   pstd::Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
-                LogOffset* committed_index);
+                      LogOffset* committed_index);
   int SlaveSize();
 
  private:
-
   std::shared_mutex rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
   std::unordered_map<std::string, LogOffset> match_index_;
@@ -68,7 +67,10 @@ class MemLog {
   struct LogItem {
     LogItem(const LogOffset& _offset, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr,
             std::shared_ptr<std::string> _resp_ptr)
-        : offset(_offset), cmd_ptr(std::move(_cmd_ptr)), conn_ptr(std::move(_conn_ptr)), resp_ptr(std::move(_resp_ptr)) {}
+        : offset(_offset),
+          cmd_ptr(std::move(_cmd_ptr)),
+          conn_ptr(std::move(_conn_ptr)),
+          resp_ptr(std::move(_resp_ptr)) {}
     LogOffset offset;
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
@@ -189,11 +191,11 @@ class ConsensusCoordinator {
 
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, const BinlogOffset& end_offset,
-                         std::vector<LogOffset>* log_offset);
-  pstd::Status FindBinlogFileNum(const std::map<uint32_t, std::string>& binlogs, uint64_t target_index, uint32_t start_filenum,
-                           uint32_t* founded_filenum);
+                               std::vector<LogOffset>* log_offset);
+  pstd::Status FindBinlogFileNum(const std::map<uint32_t, std::string>& binlogs, uint64_t target_index,
+                                 uint32_t start_filenum, uint32_t* founded_filenum);
   pstd::Status FindLogicOffsetBySearchingBinlog(const BinlogOffset& hint_offset, uint64_t target_index,
-                                          LogOffset* found_offset);
+                                                LogOffset* found_offset);
   pstd::Status FindLogicOffset(const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
   pstd::Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
 

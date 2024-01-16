@@ -26,7 +26,8 @@ static atomic<int> num(0);
 
 class PingConn : public PbConn {
  public:
-  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = nullptr) : PbConn(fd, ip_port, pself_thread) {}
+  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = nullptr)
+      : PbConn(fd, ip_port, pself_thread) {}
   virtual ~PingConn() {}
 
   int DealMessage() {

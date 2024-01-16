@@ -277,8 +277,7 @@ void Response::SetStatusCode(int code) {
 }
 
 SimpleHTTPConn::SimpleHTTPConn(const int fd, const std::string& ip_port, Thread* thread)
-    : NetConn(fd, ip_port, thread)
-      {
+    : NetConn(fd, ip_port, thread) {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kHTTPMaxMessage));
   wbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kHTTPMaxMessage));
   request_ = new Request();
@@ -358,7 +357,7 @@ ReadStatus SimpleHTTPConn::GetRequest() {
             response_->SetStatusCode(100);
             set_is_reply(true);
             conn_status_ = kPacket;
-            if (remain_packet_len_ > 0) { 
+            if (remain_packet_len_ > 0) {
               return kReadHalf;
             }
           }

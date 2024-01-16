@@ -67,7 +67,7 @@ void Setpgid(pid_t pid, pid_t pgid);
 pid_t Getpgrp();
 
 /* Signal wrappers */
-using handler_t = void (int);
+using handler_t = void(int);
 handler_t* Signal(int signum, handler_t* handler);
 void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset);
 void Sigemptyset(sigset_t* set);

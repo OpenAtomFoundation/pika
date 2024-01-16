@@ -143,7 +143,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
   int ret = pstd::GetChildren(log_path_, children);
-   if (ret) {
+  if (ret) {
     LOG(WARNING) << log_path_ << " Get all files in log path failed! error:" << ret;
     return false;
   }

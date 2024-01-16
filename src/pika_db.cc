@@ -22,8 +22,7 @@ std::string DBPath(const std::string& path, const std::string& db_name) {
   return path + buf;
 }
 
-DB::DB(std::string  db_name, uint32_t slot_num, const std::string& db_path,
-             const std::string& log_path)
+DB::DB(std::string db_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path)
     : db_name_(std::move(db_name)), slot_num_(slot_num) {
   db_path_ = DBPath(db_path, db_name_);
   log_path_ = DBPath(log_path, "log_" + db_name_);
@@ -98,7 +97,6 @@ Status DB::AddSlots(const std::set<uint32_t>& slot_ids) {
   for (const uint32_t& id : slot_ids) {
     slots_.emplace(id, std::make_shared<Slot>(db_name_, id, db_path_));
     slots_[id]->Init();
-
   }
   return Status::OK();
 }
@@ -222,7 +220,7 @@ void DB::CompactRange(const storage::DataType& type, const std::string& start, c
 }
 
 void DB::DoKeyScan(void* arg) {
-  std::unique_ptr <BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
+  std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
   bg_task_arg->db->RunKeyScan();
 }
 

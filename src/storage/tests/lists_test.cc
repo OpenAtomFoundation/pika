@@ -2104,7 +2104,7 @@ TEST_F(ListsTest, RPopTest) {  // NOLINT
 TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
-  //std::string element;
+  // std::string element;
   std::string target;
   std::map<DataType, int64_t> type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -2232,7 +2232,7 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   ASSERT_EQ(gp4_nodes1.size(), num);
   ASSERT_TRUE(len_match(&db, "GP4_RPOPLPUSH_SOURCE_KEY", gp4_nodes1.size()));
   ASSERT_TRUE(elements_match(&db, "GP4_RPOPLPUSH_SOURCE_KEY", {"o"}));
-  s = db.RPop("GP4_RPOPLPUSH_SOURCE_KEY",1, &elements);
+  s = db.RPop("GP4_RPOPLPUSH_SOURCE_KEY", 1, &elements);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(elements, {"o"}));
   ASSERT_TRUE(elements_match(&db, "GP4_RPOPLPUSH_SOURCE_KEY", {}));
@@ -2271,7 +2271,7 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   ASSERT_EQ(gp5_nodes2.size(), num);
   ASSERT_TRUE(len_match(&db, "GP5_RPOPLPUSH_DESTINATION_KEY", gp5_nodes2.size()));
   ASSERT_TRUE(elements_match(&db, "GP5_RPOPLPUSH_DESTINATION_KEY", {"o"}));
-  s = db.RPop("GP5_RPOPLPUSH_DESTINATION_KEY",1, &elements);
+  s = db.RPop("GP5_RPOPLPUSH_DESTINATION_KEY", 1, &elements);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(elements, {"o"}));
   ASSERT_TRUE(len_match(&db, "GP5_RPOPLPUSH_DESTINATION_KEY", 0));
@@ -2430,11 +2430,11 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
-  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY",1, &elements);
+  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"x"}));
-  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY", 1,&elements);
+  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"y"}));
-  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY", 1,&elements);
+  s = db.LPop("GP11_RPOPLPUSH_DESTINATION_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"z"}));
   ASSERT_TRUE(len_match(&db, "GP11_RPOPLPUSH_DESTINATION_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP11_RPOPLPUSH_DESTINATION_KEY", {}));
@@ -2565,13 +2565,13 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   ASSERT_LE(type_ttl[kLists], 100);
   ASSERT_GE(type_ttl[kLists], 0);
 
-  s = db.LPop("GP6_RPUSH_KEY", 1,&elements);
+  s = db.LPop("GP6_RPUSH_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"b"}));
-  s = db.LPop("GP6_RPUSH_KEY", 1,&elements);
+  s = db.LPop("GP6_RPUSH_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"l"}));
-  s = db.LPop("GP6_RPUSH_KEY", 1,&elements);
+  s = db.LPop("GP6_RPUSH_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"u"}));
-  s = db.LPop("GP6_RPUSH_KEY", 1,&elements);
+  s = db.LPop("GP6_RPUSH_KEY", 1, &elements);
   ASSERT_TRUE(elements_match(elements, {"e"}));
   ASSERT_TRUE(len_match(&db, "GP6_RPUSH_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP6_RPUSH_KEY", {}));

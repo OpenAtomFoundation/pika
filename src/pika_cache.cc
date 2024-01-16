@@ -5,15 +5,15 @@
 
 #include <glog/logging.h>
 #include <ctime>
-#include <unordered_set>
 #include <thread>
+#include <unordered_set>
 
+#include "cache/include/cache.h"
+#include "cache/include/config.h"
 #include "include/pika_cache.h"
 #include "include/pika_cache_load_thread.h"
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
-#include "cache/include/cache.h"
-#include "cache/include/config.h"
 
 extern PikaServer *g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
@@ -24,7 +24,7 @@ PikaCache::PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key)
       cache_num_(0),
       zset_cache_start_pos_(zset_cache_start_pos),
       zset_cache_field_num_per_key_(EXTEND_CACHE_SIZE(zset_cache_field_num_per_key)) {
-  cache_load_thread_ = std::make_unique<PikaCacheLoadThread> (zset_cache_start_pos_, zset_cache_field_num_per_key_);
+  cache_load_thread_ = std::make_unique<PikaCacheLoadThread>(zset_cache_start_pos_, zset_cache_field_num_per_key_);
   cache_load_thread_->StartThread();
 }
 
@@ -63,7 +63,8 @@ void PikaCache::ResetConfig(cache::CacheConfig *cache_cfg) {
   std::lock_guard l(rwlock_);
   zset_cache_start_pos_ = cache_cfg->zset_cache_start_pos;
   zset_cache_field_num_per_key_ = EXTEND_CACHE_SIZE(cache_cfg->zset_cache_field_num_per_key);
-  LOG(WARNING) << "zset_cache_start_pos: " << zset_cache_start_pos_ << ", zset_cache_field_num_per_key: " << zset_cache_field_num_per_key_;
+  LOG(WARNING) << "zset_cache_start_pos: " << zset_cache_start_pos_
+               << ", zset_cache_field_num_per_key: " << zset_cache_field_num_per_key_;
   cache::RedisCache::SetConfig(cache_cfg);
 }
 
@@ -136,7 +137,8 @@ Status PikaCache::TTL(std::string &key, int64_t *ttl) {
   return caches_[cache_index]->TTL(key, ttl);
 }
 
-std::map<storage::DataType, int64_t> PikaCache::TTL(std::string &key, std::map<storage::DataType, Status>* type_status) {
+std::map<storage::DataType, int64_t> PikaCache::TTL(std::string &key,
+                                                    std::map<storage::DataType, Status> *type_status) {
   Status s;
   std::map<storage::DataType, int64_t> ret;
   int64_t timestamp = 0;
@@ -221,7 +223,7 @@ Status PikaCache::RandomKey(std::string *key) {
   return s;
 }
 
-Status PikaCache::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
+Status PikaCache::GetType(const std::string &key, bool single, std::vector<std::string> &types) {
   types.clear();
 
   Status s;
@@ -504,7 +506,6 @@ Status PikaCache::HMSetxx(std::string &key, std::vector<storage::FieldValue> &fv
 }
 
 Status PikaCache::HGet(std::string &key, std::string &field, std::string *value) {
-
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
   return caches_[cache_index]->HGet(key, field, value);
@@ -1139,8 +1140,8 @@ Status PikaCache::ZIncrbyIfKeyExist(std::string &key, std::string &member, doubl
   return Status::NotFound("key not exist");
 }
 
-RangeStatus PikaCache::CheckCacheRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop, int64_t &out_start,
-                                       int64_t &out_stop) {
+RangeStatus PikaCache::CheckCacheRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop,
+                                       int64_t &out_start, int64_t &out_stop) {
   out_start = start >= 0 ? start : db_len + start;
   out_stop = stop >= 0 ? stop : db_len + stop;
   out_start = out_start <= 0 ? 0 : out_start;
@@ -1168,8 +1169,8 @@ RangeStatus PikaCache::CheckCacheRange(int32_t cache_len, int32_t db_len, int64_
   }
 }
 
-RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop, int64_t &out_start,
-                                          int64_t &out_stop) {
+RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int64_t start, int64_t stop,
+                                          int64_t &out_start, int64_t &out_stop) {
   int64_t start_index = stop >= 0 ? db_len - stop - 1 : -stop - 1;
   int64_t stop_index = start >= 0 ? db_len - start - 1 : -start - 1;
   start_index = start_index <= 0 ? 0 : start_index;
@@ -1203,8 +1204,8 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
   }
 }
 
-Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                         const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZRange(std::string &key, int64_t start, int64_t stop,
+                         std::vector<storage::ScoreMember> *score_members, const std::shared_ptr<Slot> &slot) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1363,8 +1364,8 @@ Status PikaCache::ZRemrangebyscore(std::string &key, std::string &min, std::stri
   return s;
 }
 
-Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop, std::vector<storage::ScoreMember> *score_members,
-                            const std::shared_ptr<Slot> &slot) {
+Status PikaCache::ZRevrange(std::string &key, int64_t start, int64_t stop,
+                            std::vector<storage::ScoreMember> *score_members, const std::shared_ptr<Slot> &slot) {
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key;
   int cache_index = CacheIndex(CachePrefixKeyZ);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
@@ -1596,8 +1597,7 @@ Status PikaCache::InitWithoutLock(uint32_t cache_num, cache::CacheConfig *cache_
   return Status::OK();
 }
 
-void PikaCache::DestroyWithoutLock(void)
-{
+void PikaCache::DestroyWithoutLock(void) {
   cache_status_ = PIKA_CACHE_STATUS_DESTROY;
 
   for (auto iter = caches_.begin(); iter != caches_.end(); ++iter) {

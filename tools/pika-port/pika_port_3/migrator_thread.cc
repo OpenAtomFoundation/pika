@@ -7,7 +7,6 @@
 #include <functional>
 #include <vector>
 
-#include "storage/storage.h"
 #include "src/redis_hashes.h"
 #include "src/redis_lists.h"
 #include "src/redis_sets.h"
@@ -15,6 +14,7 @@
 #include "src/redis_zsets.h"
 #include "src/scope_snapshot.h"
 #include "src/strings_value_format.h"
+#include "storage/storage.h"
 
 const int64_t MAX_BATCH_NUM = 30000;
 

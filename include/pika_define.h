@@ -34,7 +34,7 @@ class PikaServer;
 /* Port shift */
 const int kPortShiftRSync = 1000;
 const int kPortShiftReplServer = 2000;
-//TODO: Temporarily used for rsync server port shift. will be deleted.
+// TODO: Temporarily used for rsync server port shift. will be deleted.
 const int kPortShiftRsync2 = 10001;
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
@@ -48,8 +48,7 @@ struct DBStruct {
       : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
 
   bool operator==(const DBStruct& db_struct) const {
-    return db_name == db_struct.db_name && slot_num == db_struct.slot_num &&
-           slot_ids == db_struct.slot_ids;
+    return db_name == db_struct.db_name && slot_num == db_struct.slot_num && slot_ids == db_struct.slot_ids;
   }
   std::string db_name;
   uint32_t slot_num = 0;
@@ -122,12 +121,8 @@ struct BinlogOffset {
     offset = other.offset;
   }
   std::string ToString() const { return "filenum: " + std::to_string(filenum) + " offset: " + std::to_string(offset); }
-  bool operator==(const BinlogOffset& other) const {
-    return filenum == other.filenum && offset == other.offset;
-  }
-  bool operator!=(const BinlogOffset& other) const {
-    return filenum != other.filenum || offset != other.offset;
-  }
+  bool operator==(const BinlogOffset& other) const { return filenum == other.filenum && offset == other.offset; }
+  bool operator!=(const BinlogOffset& other) const { return filenum != other.filenum || offset != other.offset; }
 
   bool operator>(const BinlogOffset& other) const {
     return filenum > other.filenum || (filenum == other.filenum && offset > other.offset);
@@ -167,8 +162,7 @@ struct DBSyncArg {
   int port;
   std::string db_name;
   uint32_t slot_id;
-  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name,
-            uint32_t _slot_id)
+  DBSyncArg(PikaServer* const _p, std::string _ip, int _port, std::string _db_name, uint32_t _slot_id)
       : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
 };
 
@@ -202,14 +196,11 @@ struct BinlogChip {
 };
 
 struct SlotInfo {
-  SlotInfo(std::string db_name, uint32_t slot_id)
-      : db_name_(std::move(db_name)), slot_id_(slot_id) {}
+  SlotInfo(std::string db_name, uint32_t slot_id) : db_name_(std::move(db_name)), slot_id_(slot_id) {}
 
   SlotInfo() = default;
 
-  bool operator==(const SlotInfo& other) const {
-    return db_name_ == other.db_name_ && slot_id_ == other.slot_id_;
-  }
+  bool operator==(const SlotInfo& other) const { return db_name_ == other.db_name_ && slot_id_ == other.slot_id_; }
 
   bool operator<(const SlotInfo& other) const {
     return db_name_ < other.db_name_ || (db_name_ == other.db_name_ && slot_id_ < other.slot_id_);
@@ -228,7 +219,7 @@ struct hash_slot_info {
 
 class Node {
  public:
-  Node(std::string  ip, int port) : ip_(std::move(ip)), port_(port) {}
+  Node(std::string ip, int port) : ip_(std::move(ip)), port_(port) {}
   virtual ~Node() = default;
   Node() = default;
   const std::string& Ip() const { return ip_; }
@@ -242,28 +233,21 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, SlotInfo  slot_info)
-      : Node(ip, port), slot_info_(std::move(slot_info)) {}
+  RmNode(const std::string& ip, int port, SlotInfo slot_info) : Node(ip, port), slot_info_(std::move(slot_info)) {}
 
   RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
-      : Node(ip, port),
-        slot_info_(db_name, slot_id)
-        {}
+      : Node(ip, port), slot_info_(db_name, slot_id) {}
 
   RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
-      : Node(ip, port),
-        slot_info_(db_name, slot_id),
-        session_id_(session_id)
-        {}
+      : Node(ip, port), slot_info_(db_name, slot_id), session_id_(session_id) {}
 
-  RmNode(const std::string& db_name, uint32_t slot_id)
-      :  slot_info_(db_name, slot_id) {}
+  RmNode(const std::string& db_name, uint32_t slot_id) : slot_info_(db_name, slot_id) {}
   RmNode() = default;
 
   ~RmNode() override = default;
   bool operator==(const RmNode& other) const {
-    return slot_info_.db_name_ == other.DBName() && slot_info_.slot_id_ == other.SlotId() &&
-        Ip() == other.Ip() && Port() == other.Port();
+    return slot_info_.db_name_ == other.DBName() && slot_info_.slot_id_ == other.SlotId() && Ip() == other.Ip() &&
+           Port() == other.Port();
   }
 
   const std::string& DBName() const { return slot_info_.db_name_; }
@@ -272,8 +256,8 @@ class RmNode : public Node {
   void SetSessionId(int32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
-           std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
+    return "slot=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" + std::to_string(Port()) +
+           ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
   uint64_t LastSendTime() const { return last_send_time_; }
@@ -289,8 +273,8 @@ class RmNode : public Node {
 
 struct hash_rm_node {
   size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^
-           std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
+    return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^ std::hash<std::string>()(n.Ip()) ^
+           std::hash<int>()(n.Port());
   }
 };
 
@@ -339,8 +323,8 @@ constexpr int PIKA_CACHE_READ = 1;
 /*
  * cache size
  */
-#define PIKA_CACHE_SIZE_MIN       536870912    // 512M
-#define PIKA_CACHE_SIZE_DEFAULT   10737418240  // 10G
+#define PIKA_CACHE_SIZE_MIN 536870912        // 512M
+#define PIKA_CACHE_SIZE_DEFAULT 10737418240  // 10G
 
 /*
  * The size of Binlogfile
@@ -413,7 +397,6 @@ const std::string PCacheKeyPrefixZ = "Z";
 const std::string PCacheKeyPrefixL = "L";
 const std::string PCacheKeyPrefixB = "B";
 
-
 /*
  * cache status
  */
@@ -434,15 +417,10 @@ const char PIKA_KEY_TYPE_LIST = 'l';
 const char PIKA_KEY_TYPE_SET = 's';
 const char PIKA_KEY_TYPE_ZSET = 'z';
 
-
 /*
  * cache task type
  */
-enum CacheBgTask {
-  CACHE_BGTASK_CLEAR = 0,
-  CACHE_BGTASK_RESET_NUM = 1,
-  CACHE_BGTASK_RESET_CFG = 2
-};
+enum CacheBgTask { CACHE_BGTASK_CLEAR = 0, CACHE_BGTASK_RESET_NUM = 1, CACHE_BGTASK_RESET_CFG = 2 };
 
 const int64_t CACHE_LOAD_QUEUE_MAX_SIZE = 2048;
 const int64_t CACHE_VALUE_ITEM_MAX_SIZE = 2048;

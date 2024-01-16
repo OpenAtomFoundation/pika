@@ -16,8 +16,8 @@ inline const std::string STATS_METRIC_NET_INPUT_REPLICATION = "stats_metric_net_
 inline const std::string STATS_METRIC_NET_OUTPUT_REPLICATION = "stats_metric_net_output_replication";
 
 /* The following two are used to track instantaneous metrics, like
-* number of operations per second, network traffic. */
-struct InstMetric{
+ * number of operations per second, network traffic. */
+struct InstMetric {
   size_t last_sample_base;  /* The divisor of last sample window */
   size_t last_sample_value; /* The dividend of last sample window */
   double samples[STATS_METRIC_SAMPLES];
@@ -25,15 +25,15 @@ struct InstMetric{
 };
 
 class Instant {
-  public:
-   Instant() = default;
-   ~Instant() = default;
+ public:
+  Instant() = default;
+  ~Instant() = default;
 
-   void trackInstantaneousMetric(std::string metric, size_t current_value, size_t current_base, size_t factor);
-   double getInstantaneousMetric(std::string metric);
+  void trackInstantaneousMetric(std::string metric, size_t current_value, size_t current_base, size_t factor);
+  double getInstantaneousMetric(std::string metric);
 
-   private:
-    std::unordered_map<std::string, InstMetric> inst_metrics_;
+ private:
+  std::unordered_map<std::string, InstMetric> inst_metrics_;
 };
 
 #endif  // PIKA_PIKA_INSTANT_H

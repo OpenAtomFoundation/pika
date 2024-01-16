@@ -12,8 +12,8 @@
 #include <queue>
 #include <set>
 #include <string>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
@@ -54,7 +54,6 @@ class BlockedConnNode {
   std::shared_ptr<RedisConn> conn_blocked_;
   BlockKeyType block_type_;
 };
-
 
 class DispatchThread : public ServerThread {
  public:
@@ -101,7 +100,6 @@ class DispatchThread : public ServerThread {
   // if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
   void ClosingConnCheckForBlrPop(std::shared_ptr<net::RedisConn> conn_to_close);
 
-
   void ScanExpiredBlockedConnsOfBlrpop();
 
   std::unordered_map<BlockKey, std::unique_ptr<std::list<BlockedConnNode>>, BlockKeyHash>& GetMapFromKeyToConns() {
@@ -113,11 +111,11 @@ class DispatchThread : public ServerThread {
   std::shared_mutex& GetBlockMtx() { return block_mtx_; };
   // BlPop/BrPop used end
 
-  void AddWatchKeys(const std::unordered_set<std::string> &keys, const std::shared_ptr<NetConn>& client_conn);
+  void AddWatchKeys(const std::unordered_set<std::string>& keys, const std::shared_ptr<NetConn>& client_conn);
 
   void RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn);
 
-  std::vector<std::shared_ptr<NetConn>> GetInvolvedTxn(const std::vector<std::string> &keys);
+  std::vector<std::shared_ptr<NetConn>> GetInvolvedTxn(const std::vector<std::string>& keys);
   std::vector<std::shared_ptr<NetConn>> GetAllTxns();
   std::vector<std::shared_ptr<NetConn>> GetDBTxns(std::string db_name);
 

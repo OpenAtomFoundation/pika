@@ -1,14 +1,13 @@
 #ifndef __PSTD_ENV_H__
 #define __PSTD_ENV_H__
 
-
 #include <unistd.h>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
-#include "pstd/include/pstd_status.h"
 #include "pstd/include/noncopyable.h"
+#include "pstd/include/pstd_status.h"
 
 namespace pstd {
 
@@ -52,7 +51,8 @@ int RenameFile(const std::string& oldname, const std::string& newname);
 class FileLock : public pstd::noncopyable {
  public:
   FileLock() = default;
-  virtual ~FileLock()= default;;
+  virtual ~FileLock() = default;
+  ;
 
   int fd_ = -1;
   std::string name_;
@@ -95,7 +95,8 @@ class WritableFile : public pstd::noncopyable {
 // A abstract for the sequential readable file
 class SequentialFile {
  public:
-  SequentialFile()= default;;
+  SequentialFile() = default;
+  ;
   virtual ~SequentialFile();
   // virtual Status Read(size_t n, char *&result, char *scratch) = 0;
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;

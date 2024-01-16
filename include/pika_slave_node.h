@@ -23,13 +23,14 @@ struct SyncWinItem {
   explicit SyncWinItem(const LogOffset& offset, std::size_t binlog_size = 0)
       : offset_(offset), binlog_size_(binlog_size) {}
   std::string ToString() const {
-    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) + " acked: " + std::to_string(static_cast<int>(acked_));
+    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) +
+           " acked: " + std::to_string(static_cast<int>(acked_));
   }
 };
 
 class SyncWindow {
  public:
-  SyncWindow()  = default;
+  SyncWindow() = default;
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset);
   int Remaining();

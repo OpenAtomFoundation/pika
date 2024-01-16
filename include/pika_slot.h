@@ -10,9 +10,9 @@
 
 #include "pstd/include/scope_record_lock.h"
 
+#include "include/pika_binlog.h"
 #include "storage/backupable.h"
 #include "storage/storage.h"
-#include "include/pika_binlog.h"
 
 class Cmd;
 class PikaCache;
@@ -27,10 +27,8 @@ struct KeyScanInfo {
   int32_t duration = -3;
   std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_ = false;
-  KeyScanInfo() :
-        s_start_time("0"),
-        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
-        {}
+  KeyScanInfo()
+      : s_start_time("0"), key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}) {}
 };
 
 struct BgSaveInfo {
@@ -62,7 +60,7 @@ struct DisplayCacheInfo {
   uint64_t last_time_us = 0;
   uint64_t last_load_keys_num = 0;
   uint32_t waitting_load_keys_num = 0;
-  DisplayCacheInfo& operator=(const DisplayCacheInfo &obj) {
+  DisplayCacheInfo& operator=(const DisplayCacheInfo& obj) {
     status = obj.status;
     cache_num = obj.cache_num;
     keys_num = obj.keys_num;
@@ -81,7 +79,7 @@ struct DisplayCacheInfo {
   }
 };
 
-class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
+class Slot : public std::enable_shared_from_this<Slot>, public pstd::noncopyable {
  public:
   Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path);
   virtual ~Slot();
@@ -182,4 +180,3 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
 };
 
 #endif
-

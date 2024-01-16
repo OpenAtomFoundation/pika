@@ -15,16 +15,14 @@ PikaClientProcessor::PikaClientProcessor(size_t worker_num, size_t max_queue_siz
   }
 }
 
-PikaClientProcessor::~PikaClientProcessor() {
-  LOG(INFO) << "PikaClientProcessor exit!!!";
-}
+PikaClientProcessor::~PikaClientProcessor() { LOG(INFO) << "PikaClientProcessor exit!!!"; }
 
 int PikaClientProcessor::Start() {
   int res = pool_->start_thread_pool();
   if (res != net::kSuccess) {
     return res;
   }
-  for (auto & bg_thread : bg_threads_) {
+  for (auto& bg_thread : bg_threads_) {
     res = bg_thread->StartThread();
     if (res != net::kSuccess) {
       return res;
@@ -35,7 +33,7 @@ int PikaClientProcessor::Start() {
 
 void PikaClientProcessor::Stop() {
   pool_->stop_thread_pool();
-  for (auto & bg_thread : bg_threads_) {
+  for (auto& bg_thread : bg_threads_) {
     bg_thread->StopThread();
   }
 }

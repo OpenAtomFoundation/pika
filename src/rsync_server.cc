@@ -8,10 +8,10 @@
 #include <glog/logging.h>
 #include <google/protobuf/map.h>
 
-#include "pstd_hash.h"
 #include "include/pika_server.h"
 #include "include/rsync_server.h"
 #include "pstd/include/pstd_defer.h"
+#include "pstd_hash.h"
 
 extern PikaServer* g_pika_server;
 namespace rsync {
@@ -36,25 +36,23 @@ RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
 }
 
 RsyncServer::~RsyncServer() {
-  //TODO: handle destory
+  // TODO: handle destory
   LOG(INFO) << "Rsync server destroyed";
 }
 
-void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
-  work_thread_->Schedule(func, arg);
-}
+void RsyncServer::Schedule(net::TaskFunc func, void* arg) { work_thread_->Schedule(func, arg); }
 
 int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "
-               << (res == net::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res
+               << " message: " << (res == net::kBindError ? ": bind port conflict" : ": other error");
   }
   res = work_thread_->start_thread_pool();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start rsync Server ThreadPool Error, ret_code: " << res << " message: "
-               << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
+    LOG(FATAL) << "Start rsync Server ThreadPool Error, ret_code: " << res
+               << " message: " << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   LOG(INFO) << "RsyncServer started ...";
   return res;
@@ -67,8 +65,8 @@ int RsyncServer::Stop() {
   return 0;
 }
 
-RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread,
-                                 void* worker_specific_data, NetMultiplexer* mpx)
+RsyncServerConn::RsyncServerConn(int connfd, const std::string& ip_port, Thread* thread, void* worker_specific_data,
+                                 NetMultiplexer* mpx)
     : PbConn(connfd, ip_port, thread, mpx), data_(worker_specific_data) {
   readers_.resize(kMaxRsyncParallelNum);
   for (int i = 0; i < kMaxRsyncParallelNum; i++) {
@@ -92,22 +90,20 @@ int RsyncServerConn::DealMessage() {
   }
   switch (req->type()) {
     case RsyncService::kRsyncMeta: {
-      auto task_arg =
-          new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
-          ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleMetaRsyncRequest, task_arg);
-          break;
-      }
-      case RsyncService::kRsyncFile: {
-        auto task_arg =
-            new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
-            ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleFileRsyncRequest, task_arg);
-            break;
-      }
-      default: {
-        LOG(WARNING) << "Invalid RsyncRequest type";
-      }
+      auto task_arg = new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
+      ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleMetaRsyncRequest, task_arg);
+      break;
     }
-    return 0;
+    case RsyncService::kRsyncFile: {
+      auto task_arg = new RsyncServerTaskArg(req, std::dynamic_pointer_cast<RsyncServerConn>(shared_from_this()));
+      ((RsyncServer*)(data_))->Schedule(&RsyncServerConn::HandleFileRsyncRequest, task_arg);
+      break;
+    }
+    default: {
+      LOG(WARNING) << "Invalid RsyncRequest type";
+    }
+  }
+  return 0;
 }
 
 void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
@@ -134,15 +130,13 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 
-  LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
-            << " files count: " << filenames.size() << " file list: ";
-  std::for_each(filenames.begin(), filenames.end(), [](auto& file) {
-    LOG(INFO) << "rsync snapshot file: " << file;
-  });
+  LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid << " files count: " << filenames.size()
+            << " file list: ";
+  std::for_each(filenames.begin(), filenames.end(), [](auto& file) { LOG(INFO) << "rsync snapshot file: " << file; });
 
   RsyncService::MetaResponse* meta_resp = response.mutable_meta_resp();
   for (const auto& filename : filenames) {
-        meta_resp->add_filenames(filename);
+    meta_resp->add_filenames(filename);
   }
   RsyncWriteResp(response, conn);
 }
@@ -177,10 +171,9 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
 
   std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   if (!slot) {
-   LOG(WARNING) << "cannot find slot for db_name: " << db_name
-                << " slot_id: " << slot_id;
-   response.set_code(RsyncService::kErr);
-   RsyncWriteResp(response, conn);
+    LOG(WARNING) << "cannot find slot for db_name: " << db_name << " slot_id: " << slot_id;
+    response.set_code(RsyncService::kErr);
+    RsyncWriteResp(response, conn);
   }
 
   const std::string filepath = slot->bgsave_info().path + "/" + filename;
@@ -189,12 +182,11 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   std::string checksum = "";
   bool is_eof = false;
   std::shared_ptr<RsyncReader> reader = conn->readers_[req->reader_index()];
-  s = reader->Read(filepath, offset, count, buffer,
-                   &bytes_read, &checksum, &is_eof);
+  s = reader->Read(filepath, offset, count, buffer, &bytes_read, &checksum, &is_eof);
   if (!s.ok()) {
     response.set_code(RsyncService::kErr);
     RsyncWriteResp(response, conn);
-    delete []buffer;
+    delete[] buffer;
     return;
   }
 
@@ -207,31 +199,27 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   file_resp->set_offset(offset);
 
   RsyncWriteResp(response, conn);
-  delete []buffer;
+  delete[] buffer;
 }
 
 RsyncServerThread::RsyncServerThread(const std::set<std::string>& ips, int port, int cron_interval, RsyncServer* arg)
     : HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true), conn_factory_(arg) {}
 
-RsyncServerThread::~RsyncServerThread() {
-    LOG(WARNING) << "RsyncServerThread destroyed";
-}
+RsyncServerThread::~RsyncServerThread() { LOG(WARNING) << "RsyncServerThread destroyed"; }
 
 void RsyncServerThread::RsyncServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
 }
 
 void RsyncServerThread::RsyncServerHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
 }
 
 bool RsyncServerThread::RsyncServerHandle::AccessHandle(int fd, std::string& ip_port) const {
-    LOG(WARNING) << "fd: "<< fd << " ip_port: " << ip_port << " connection accepted";
-    return true;
+  LOG(WARNING) << "fd: " << fd << " ip_port: " << ip_port << " connection accepted";
+  return true;
 }
 
-void RsyncServerThread::RsyncServerHandle::CronHandle() const {
-}
+void RsyncServerThread::RsyncServerHandle::CronHandle() const {}
 
-} // end namespace rsync
-
+}  // end namespace rsync

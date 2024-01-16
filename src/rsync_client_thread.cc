@@ -4,8 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/rsync_client_thread.h"
-#include "include/rsync_client.h"
 #include "include/pika_define.h"
+#include "include/rsync_client.h"
 
 using namespace pstd;
 using namespace net;
@@ -13,8 +13,8 @@ using namespace RsyncService;
 
 namespace rsync {
 class RsyncClient;
-RsyncClientConn::RsyncClientConn(int fd, const std::string& ip_port,
-    net::Thread* thread, void* worker_specific_data, NetMultiplexer* mpx)
+RsyncClientConn::RsyncClientConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
+                                 NetMultiplexer* mpx)
     : PbConn(fd, ip_port, thread, mpx), cb_handler_(worker_specific_data) {}
 
 RsyncClientConn::~RsyncClientConn() {}
@@ -37,9 +37,7 @@ int RsyncClientConn::DealMessage() {
 }
 
 RsyncClientThread::RsyncClientThread(int cron_interval, int keepalive_timeout, void* scheduler)
-    : ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, nullptr),
-      conn_factory_(scheduler) {}
+    : ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, nullptr), conn_factory_(scheduler) {}
 
 RsyncClientThread::~RsyncClientThread() {}
-} //end namespace rsync
-
+}  // end namespace rsync

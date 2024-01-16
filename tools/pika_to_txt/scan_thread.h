@@ -9,9 +9,9 @@
 #include "iostream"
 #include "vector"
 
-#include "storage/storage.h"
 #include "net/include/net_thread.h"
 #include "pstd/include/pstd_coding.h"
+#include "storage/storage.h"
 
 #include "write_thread.h"
 

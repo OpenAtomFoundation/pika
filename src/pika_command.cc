@@ -10,6 +10,7 @@
 #include "include/pika_acl.h"
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
+#include "include/pika_cache.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
@@ -26,7 +27,6 @@
 #include "include/pika_transaction.h"
 #include "include/pika_zset.h"
 #include "pstd_defer.h"
-#include "include/pika_cache.h"
 
 using pstd::Status;
 
@@ -57,7 +57,8 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<CompactCmd>(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompact, std::move(compactptr)));
 
-  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  std::unique_ptr<Cmd> compactrangeptr =
+      std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompactRange, std::move(compactrangeptr)));
   std::unique_ptr<Cmd> purgelogsto =
       std::make_unique<PurgelogstoCmd>(kCmdNamePurgelogsto, -2, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -76,11 +77,13 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSelect, std::move(selectptr)));
 
   std::unique_ptr<Cmd> flushallptr = std::make_unique<FlushallCmd>(
-      kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin  | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsSlow);
+      kCmdNameFlushall, 1,
+      kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushall, std::move(flushallptr)));
 
   std::unique_ptr<Cmd> flushdbptr = std::make_unique<FlushdbCmd>(
-      kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin  | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsSlow);
+      kCmdNameFlushdb, -1,
+      kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameFlushdb, std::move(flushdbptr)));
 
   std::unique_ptr<Cmd> clientptr =
@@ -154,9 +157,11 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDisableWal, std::move(disablewalptr)));
   std::unique_ptr<Cmd> cacheptr = std::make_unique<CacheCmd>(kCmdNameCache, -2, kCmdFlagsAdmin | kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCache, std::move(cacheptr)));
-  std::unique_ptr<Cmd> clearcacheptr = std::make_unique<ClearCacheCmd>(kCmdNameClearCache, 1, kCmdFlagsAdmin | kCmdFlagsWrite);
+  std::unique_ptr<Cmd> clearcacheptr =
+      std::make_unique<ClearCacheCmd>(kCmdNameClearCache, 1, kCmdFlagsAdmin | kCmdFlagsWrite);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameClearCache, std::move(clearcacheptr)));
-  std::unique_ptr<Cmd> lastsaveptr = std::make_unique<LastsaveCmd>(kCmdNameLastSave, 1, kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> lastsaveptr =
+      std::make_unique<LastsaveCmd>(kCmdNameLastSave, 1, kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLastSave, std::move(lastsaveptr)));
 
 #ifdef WITH_COMMAND_DOCS
@@ -240,139 +245,178 @@ void InitCmdTable(CmdTable* cmd_table) {
 
   // Kv
   ////SetCmd
-  std::unique_ptr<Cmd> setptr =
-      std::make_unique<SetCmd>(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> setptr = std::make_unique<SetCmd>(
+      kCmdNameSet, -3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSet, std::move(setptr)));
   ////GetCmd
   std::unique_ptr<Cmd> getptr =
-      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
+      std::make_unique<GetCmd>(kCmdNameGet, 2,
+                               kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB |
+                                   kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
-      std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsOperateKey  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<DelCmd>(kCmdNameDel, -2,
+                               kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                   kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDel, std::move(delptr)));
-  std::unique_ptr<Cmd> Unlinkptr =
-      std::make_unique<DelCmd>(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsFast);
+  std::unique_ptr<Cmd> Unlinkptr = std::make_unique<DelCmd>(
+      kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnlink, std::move(Unlinkptr)));
   ////IncrCmd
-  std::unique_ptr<Cmd> incrptr =
-      std::make_unique<IncrCmd>(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> incrptr = std::make_unique<IncrCmd>(
+      kCmdNameIncr, 2,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncr, std::move(incrptr)));
   ////IncrbyCmd
   std::unique_ptr<Cmd> incrbyptr = std::make_unique<IncrbyCmd>(
-      kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      kCmdNameIncrby, 3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrby, std::move(incrbyptr)));
   ////IncrbyfloatCmd
   std::unique_ptr<Cmd> incrbyfloatptr = std::make_unique<IncrbyfloatCmd>(
-      kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      kCmdNameIncrbyfloat, 3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameIncrbyfloat, std::move(incrbyfloatptr)));
   ////DecrCmd
-  std::unique_ptr<Cmd> decrptr =
-      std::make_unique<DecrCmd>(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> decrptr = std::make_unique<DecrCmd>(
+      kCmdNameDecr, 2,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecr, std::move(decrptr)));
   ////DecrbyCmd
   std::unique_ptr<Cmd> decrbyptr = std::make_unique<DecrbyCmd>(
-      kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      kCmdNameDecrby, 3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDecrby, std::move(decrbyptr)));
   ////GetsetCmd
   std::unique_ptr<Cmd> getsetptr = std::make_unique<GetsetCmd>(
-      kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      kCmdNameGetset, 3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGetset, std::move(getsetptr)));
   ////AppendCmd
   std::unique_ptr<Cmd> appendptr = std::make_unique<AppendCmd>(
-      kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      kCmdNameAppend, 3,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameAppend, std::move(appendptr)));
   ////MgetCmd
   std::unique_ptr<Cmd> mgetptr =
-      std::make_unique<MgetCmd>(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<MgetCmd>(kCmdNameMget, -2,
+                                kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMget, std::move(mgetptr)));
   ////KeysCmd
-  std::unique_ptr<Cmd> keysptr =
-      std::make_unique<KeysCmd>(kCmdNameKeys, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> keysptr = std::make_unique<KeysCmd>(
+      kCmdNameKeys, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameKeys, std::move(keysptr)));
   ////SetnxCmd
   std::unique_ptr<Cmd> setnxptr =
       std::make_unique<SetnxCmd>(kCmdNameSetnx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetnx, std::move(setnxptr)));
   ////SetexCmd
-  std::unique_ptr<Cmd> setexptr =
-      std::make_unique<SetexCmd>(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> setexptr = std::make_unique<SetexCmd>(
+      kCmdNameSetex, 4,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetex, std::move(setexptr)));
   ////PsetexCmd
-  std::unique_ptr<Cmd> psetexptr =
-      std::make_unique<PsetexCmd>(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> psetexptr = std::make_unique<PsetexCmd>(
+      kCmdNamePsetex, 4,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePsetex, std::move(psetexptr)));
   ////DelvxCmd
   std::unique_ptr<Cmd> delvxptr =
       std::make_unique<DelvxCmd>(kCmdNameDelvx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDelvx, std::move(delvxptr)));
   ////MSetCmd
-  std::unique_ptr<Cmd> msetptr =
-      std::make_unique<MsetCmd>(kCmdNameMset, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> msetptr = std::make_unique<MsetCmd>(
+      kCmdNameMset, -3,
+      kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMset, std::move(msetptr)));
   ////MSetnxCmd
   std::unique_ptr<Cmd> msetnxptr = std::make_unique<MsetnxCmd>(
       kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsKv | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMsetnx, std::move(msetnxptr)));
   ////GetrangeCmd
-  std::unique_ptr<Cmd> getrangeptr = std::make_unique<GetrangeCmd>(
-      kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> getrangeptr =
+      std::make_unique<GetrangeCmd>(kCmdNameGetrange, 4,
+                                    kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB |
+                                        kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGetrange, std::move(getrangeptr)));
   ////SetrangeCmd
   std::unique_ptr<Cmd> setrangeptr = std::make_unique<SetrangeCmd>(
-      kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      kCmdNameSetrange, 4,
+      kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSetrange, std::move(setrangeptr)));
   ////StrlenCmd
   std::unique_ptr<Cmd> strlenptr =
-      std::make_unique<StrlenCmd>(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<StrlenCmd>(kCmdNameStrlen, 2,
+                                  kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsKv | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameStrlen, std::move(strlenptr)));
   ////ExistsCmd
   std::unique_ptr<Cmd> existsptr =
-      std::make_unique<ExistsCmd>(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<ExistsCmd>(kCmdNameExists, -2,
+                                  kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExists, std::move(existsptr)));
   ////ExpireCmd
-  std::unique_ptr<Cmd> expireptr = std::make_unique<ExpireCmd>(
-      kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> expireptr =
+      std::make_unique<ExpireCmd>(kCmdNameExpire, 3,
+                                  kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExpire, std::move(expireptr)));
   ////PexpireCmd
-  std::unique_ptr<Cmd> pexpireptr = std::make_unique<PexpireCmd>(
-      kCmdNamePexpire, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> pexpireptr =
+      std::make_unique<PexpireCmd>(kCmdNamePexpire, 3,
+                                   kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                       kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpire, std::move(pexpireptr)));
   ////ExpireatCmd
   std::unique_ptr<Cmd> expireatptr =
-      std::make_unique<ExpireatCmd>(kCmdNameExpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ExpireatCmd>(kCmdNameExpireat, 3,
+                                    kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                        kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExpireat, std::move(expireatptr)));
   ////PexpireatCmd
   std::unique_ptr<Cmd> pexpireatptr =
-      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<PexpireatCmd>(kCmdNamePexpireat, 3,
+                                     kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                         kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePexpireat, std::move(pexpireatptr)));
   ////TtlCmd
-  std::unique_ptr<Cmd> ttlptr =
-      std::make_unique<TtlCmd>(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> ttlptr = std::make_unique<TtlCmd>(kCmdNameTtl, 2,
+                                                         kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey |
+                                                             kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameTtl, std::move(ttlptr)));
   ////PttlCmd
   std::unique_ptr<Cmd> pttlptr =
-      std::make_unique<PttlCmd>(kCmdNamePttl, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<PttlCmd>(kCmdNamePttl, 2,
+                                kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePttl, std::move(pttlptr)));
   ////PersistCmd
   std::unique_ptr<Cmd> persistptr =
-      std::make_unique<PersistCmd>(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<PersistCmd>(kCmdNamePersist, 2,
+                                   kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                       kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePersist, std::move(persistptr)));
   ////TypeCmd
   std::unique_ptr<Cmd> typeptr =
-      std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey  | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<TypeCmd>(kCmdNameType, 2,
+                                kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
   ////PTypeCmd
-  std::unique_ptr<Cmd> pTypeptr =
-      std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsFast);
+  std::unique_ptr<Cmd> pTypeptr = std::make_unique<PTypeCmd>(
+      kCmdNamePType, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsOperateKey | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePType, std::move(pTypeptr)));
   ////ScanCmd
-  std::unique_ptr<Cmd> scanptr =
-      std::make_unique<ScanCmd>(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> scanptr = std::make_unique<ScanCmd>(
+      kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScan, std::move(scanptr)));
   ////ScanxCmd
-  std::unique_ptr<Cmd> scanxptr =
-      std::make_unique<ScanxCmd>(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> scanxptr = std::make_unique<ScanxCmd>(
+      kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsOperateKey | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScanx, std::move(scanxptr)));
   ////PKSetexAtCmd
   std::unique_ptr<Cmd> pksetexatptr = std::make_unique<PKSetexAtCmd>(
@@ -390,55 +434,79 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Hash
   ////HDelCmd
   std::unique_ptr<Cmd> hdelptr =
-      std::make_unique<HDelCmd>(kCmdNameHDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HDelCmd>(kCmdNameHDel, -3,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                    kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHDel, std::move(hdelptr)));
   ////HSetCmd
   std::unique_ptr<Cmd> hsetptr =
-      std::make_unique<HSetCmd>(kCmdNameHSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HSetCmd>(kCmdNameHSet, 4,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                    kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSet, std::move(hsetptr)));
   ////HGetCmd
   std::unique_ptr<Cmd> hgetptr =
-      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HGetCmd>(kCmdNameHGet, 3,
+                                kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                    kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGet, std::move(hgetptr)));
   ////HGetallCmd
-  std::unique_ptr<Cmd> hgetallptr =
-      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> hgetallptr = std::make_unique<HGetallCmd>(
+      kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGetall, std::move(hgetallptr)));
   ////HExistsCmd
   std::unique_ptr<Cmd> hexistsptr =
-      std::make_unique<HExistsCmd>(kCmdNameHExists, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HExistsCmd>(kCmdNameHExists, 3,
+                                   kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                       kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHExists, std::move(hexistsptr)));
   ////HIncrbyCmd
   std::unique_ptr<Cmd> hincrbyptr =
-      std::make_unique<HIncrbyCmd>(kCmdNameHIncrby, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HIncrbyCmd>(kCmdNameHIncrby, 4,
+                                   kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                       kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHIncrby, std::move(hincrbyptr)));
   ////HIncrbyfloatCmd
   std::unique_ptr<Cmd> hincrbyfloatptr =
-      std::make_unique<HIncrbyfloatCmd>(kCmdNameHIncrbyfloat, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HIncrbyfloatCmd>(kCmdNameHIncrbyfloat, 4,
+                                        kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                            kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHIncrbyfloat, std::move(hincrbyfloatptr)));
   ////HKeysCmd
   std::unique_ptr<Cmd> hkeysptr =
-      std::make_unique<HKeysCmd>(kCmdNameHKeys, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HKeysCmd>(kCmdNameHKeys, 2,
+                                 kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                     kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHKeys, std::move(hkeysptr)));
   ////HLenCmd
   std::unique_ptr<Cmd> hlenptr =
-      std::make_unique<HLenCmd>(kCmdNameHLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HLenCmd>(kCmdNameHLen, 2,
+                                kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                    kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHLen, std::move(hlenptr)));
   ////HMgetCmd
   std::unique_ptr<Cmd> hmgetptr =
-      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HMgetCmd>(kCmdNameHMget, -3,
+                                 kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                     kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMget, std::move(hmgetptr)));
   ////HMsetCmd
   std::unique_ptr<Cmd> hmsetptr =
-      std::make_unique<HMsetCmd>(kCmdNameHMset, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HMsetCmd>(kCmdNameHMset, -4,
+                                 kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                     kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMset, std::move(hmsetptr)));
   ////HSetnxCmd
   std::unique_ptr<Cmd> hsetnxptr =
-      std::make_unique<HSetnxCmd>(kCmdNameHSetnx, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+      std::make_unique<HSetnxCmd>(kCmdNameHSetnx, 4,
+                                  kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                      kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSetnx, std::move(hsetnxptr)));
   ////HStrlenCmd
   std::unique_ptr<Cmd> hstrlenptr =
-      std::make_unique<HStrlenCmd>(kCmdNameHStrlen, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HStrlenCmd>(kCmdNameHStrlen, 3,
+                                   kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsHash | kCmdFlagsUpdateCache |
+                                       kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHStrlen, std::move(hstrlenptr)));
   ////HValsCmd
   std::unique_ptr<Cmd> hvalsptr =
@@ -463,14 +531,20 @@ void InitCmdTable(CmdTable* cmd_table) {
 
   // List
   std::unique_ptr<Cmd> lindexptr =
-      std::make_unique<LIndexCmd>(kCmdNameLIndex, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<LIndexCmd>(kCmdNameLIndex, 3,
+                                  kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLIndex, std::move(lindexptr)));
   std::unique_ptr<Cmd> linsertptr =
-      std::make_unique<LInsertCmd>(kCmdNameLInsert, 5, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<LInsertCmd>(kCmdNameLInsert, 5,
+                                   kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                       kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLInsert, std::move(linsertptr)));
 
   std::unique_ptr<Cmd> llenptr =
-      std::make_unique<LLenCmd>(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<LLenCmd>(kCmdNameLLen, 2,
+                                kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLLen, std::move(llenptr)));
 
   std::unique_ptr<Cmd> blpopptr = std::make_unique<BLPopCmd>(
@@ -478,55 +552,79 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBLPop, std::move(blpopptr)));
 
   std::unique_ptr<Cmd> lpopptr =
-      std::make_unique<LPopCmd>(kCmdNameLPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<LPopCmd>(kCmdNameLPop, -2,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
 
-  std::unique_ptr<Cmd> lpushptr = std::make_unique<LPushCmd>(
-      kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> lpushptr =
+      std::make_unique<LPushCmd>(kCmdNameLPush, -3,
+                                 kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                     kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPush, std::move(lpushptr)));
 
-  std::unique_ptr<Cmd> lpushxptr = std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> lpushxptr =
+      std::make_unique<LPushxCmd>(kCmdNameLPushx, -3,
+                                  kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPushx, std::move(lpushxptr)));
 
-  std::unique_ptr<Cmd> lrangeptr = std::make_unique<LRangeCmd>(
-      kCmdNameLRange, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> lrangeptr =
+      std::make_unique<LRangeCmd>(kCmdNameLRange, 4,
+                                  kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLRange, std::move(lrangeptr)));
   std::unique_ptr<Cmd> lremptr =
-      std::make_unique<LRemCmd>(kCmdNameLRem, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<LRemCmd>(kCmdNameLRem, 4,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLRem, std::move(lremptr)));
   std::unique_ptr<Cmd> lsetptr =
-      std::make_unique<LSetCmd>(kCmdNameLSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<LSetCmd>(kCmdNameLSet, 4,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLSet, std::move(lsetptr)));
   std::unique_ptr<Cmd> ltrimptr =
-      std::make_unique<LTrimCmd>(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<LTrimCmd>(kCmdNameLTrim, 4,
+                                 kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                     kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLTrim, std::move(ltrimptr)));
 
   std::unique_ptr<Cmd> brpopptr = std::make_unique<BRPopCmd>(
       kCmdNameBRpop, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBRpop, std::move(brpopptr)));
   std::unique_ptr<Cmd> rpopptr =
-      std::make_unique<RPopCmd>(kCmdNameRPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<RPopCmd>(kCmdNameRPop, -2,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPop, std::move(rpopptr)));
 
   std::unique_ptr<Cmd> rpoplpushptr = std::make_unique<RPopLPushCmd>(
       kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPopLPush, std::move(rpoplpushptr)));
   std::unique_ptr<Cmd> rpushptr =
-      std::make_unique<RPushCmd>(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot |kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<RPushCmd>(kCmdNameRPush, -3,
+                                 kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                     kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPush, std::move(rpushptr)));
   std::unique_ptr<Cmd> rpushxptr =
       std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-  std::make_unique<RPushxCmd>(kCmdNameRPushx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::make_unique<RPushxCmd>(kCmdNameRPushx, 3,
+                              kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList | kCmdFlagsDoThroughDB |
+                                  kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPushx, std::move(rpushxptr)));
 
   // Zset
   ////ZAddCmd
   std::unique_ptr<Cmd> zaddptr =
-      std::make_unique<ZAddCmd>(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ZAddCmd>(kCmdNameZAdd, -4,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZAdd, std::move(zaddptr)));
   ////ZCardCmd
-  std::unique_ptr<Cmd> zcardptr =
-      std::make_unique<ZCardCmd>(kCmdNameZCard, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> zcardptr = std::make_unique<ZCardCmd>(
+      kCmdNameZCard, 2,
+      kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZCard, std::move(zcardptr)));
   ////ZScanCmd
   std::unique_ptr<Cmd> zscanptr = std::make_unique<ZScanCmd>(
@@ -534,15 +632,21 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZScan, std::move(zscanptr)));
   ////ZIncrbyCmd
   std::unique_ptr<Cmd> zincrbyptr =
-      std::make_unique<ZIncrbyCmd>(kCmdNameZIncrby, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast) ;
+      std::make_unique<ZIncrbyCmd>(kCmdNameZIncrby, 4,
+                                   kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                       kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZIncrby, std::move(zincrbyptr)));
   ////ZRangeCmd
   std::unique_ptr<Cmd> zrangeptr =
-      std::make_unique<ZRangeCmd>(kCmdNameZRange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<ZRangeCmd>(kCmdNameZRange, -4,
+                                  kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRange, std::move(zrangeptr)));
   ////ZRevrangeCmd
   std::unique_ptr<Cmd> zrevrangeptr =
-      std::make_unique<ZRevrangeCmd>(kCmdNameZRevrange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<ZRevrangeCmd>(kCmdNameZRevrange, -4,
+                                     kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                         kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRevrange, std::move(zrevrangeptr)));
   ////ZRangebyscoreCmd
   std::unique_ptr<Cmd> zrangebyscoreptr = std::make_unique<ZRangebyscoreCmd>(
@@ -555,57 +659,76 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRevrangebyscore, std::move(zrevrangebyscoreptr)));
   ////ZCountCmd
   std::unique_ptr<Cmd> zcountptr =
-      std::make_unique<ZCountCmd>(kCmdNameZCount, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ZCountCmd>(kCmdNameZCount, 4,
+                                  kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                      kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZCount, std::move(zcountptr)));
   ////ZRemCmd
   std::unique_ptr<Cmd> zremptr =
-      std::make_unique<ZRemCmd>(kCmdNameZRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ZRemCmd>(kCmdNameZRem, -3,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRem, std::move(zremptr)));
   ////ZUnionstoreCmd
   std::unique_ptr<Cmd> zunionstoreptr =
-      std::make_unique<ZUnionstoreCmd>(kCmdNameZUnionstore, -4, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<ZUnionstoreCmd>(kCmdNameZUnionstore, -4,
+                                       kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                           kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZUnionstore, std::move(zunionstoreptr)));
   ////ZInterstoreCmd
   std::unique_ptr<Cmd> zinterstoreptr =
-      std::make_unique<ZInterstoreCmd>(kCmdNameZInterstore, -4, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<ZInterstoreCmd>(kCmdNameZInterstore, -4,
+                                       kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                           kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZInterstore, std::move(zinterstoreptr)));
   ////ZRankCmd
   std::unique_ptr<Cmd> zrankptr =
-      std::make_unique<ZRankCmd>(kCmdNameZRank, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ZRankCmd>(kCmdNameZRank, 3,
+                                 kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                     kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRank, std::move(zrankptr)));
   ////ZRevrankCmd
   std::unique_ptr<Cmd> zrevrankptr =
-      std::make_unique<ZRevrankCmd>(kCmdNameZRevrank, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<ZRevrankCmd>(kCmdNameZRevrank, 3,
+                                    kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                        kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRevrank, std::move(zrevrankptr)));
   ////ZScoreCmd
-  std::unique_ptr<Cmd> zscoreptr =
-      std::make_unique<ZScoreCmd>(kCmdNameZScore, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> zscoreptr = std::make_unique<ZScoreCmd>(
+      kCmdNameZScore, 3,
+      kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZScore, std::move(zscoreptr)));
   ////ZRangebylexCmd
-  std::unique_ptr<Cmd> zrangebylexptr =
-      std::make_unique<ZRangebylexCmd>(kCmdNameZRangebylex, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> zrangebylexptr = std::make_unique<ZRangebylexCmd>(
+      kCmdNameZRangebylex, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRangebylex, std::move(zrangebylexptr)));
   ////ZRevrangebylexCmd
   std::unique_ptr<Cmd> zrevrangebylexptr = std::make_unique<ZRevrangebylexCmd>(
       kCmdNameZRevrangebylex, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRevrangebylex, std::move(zrevrangebylexptr)));
   ////ZLexcountCmd
-  std::unique_ptr<Cmd> zlexcountptr =
-      std::make_unique<ZLexcountCmd>(kCmdNameZLexcount, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsFast);
+  std::unique_ptr<Cmd> zlexcountptr = std::make_unique<ZLexcountCmd>(
+      kCmdNameZLexcount, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZLexcount, std::move(zlexcountptr)));
   ////ZRemrangebyrankCmd
-  std::unique_ptr<Cmd> zremrangebyrankptr = std::make_unique<ZRemrangebyrankCmd>(
-      kCmdNameZRemrangebyrank, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> zremrangebyrankptr =
+      std::make_unique<ZRemrangebyrankCmd>(kCmdNameZRemrangebyrank, 4,
+                                           kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                               kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRemrangebyrank, std::move(zremrangebyrankptr)));
   ////ZRemrangebyscoreCmd
-  std::unique_ptr<Cmd> zremrangebyscoreptr = std::make_unique<ZRemrangebyscoreCmd>(
-      kCmdNameZRemrangebyscore, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> zremrangebyscoreptr =
+      std::make_unique<ZRemrangebyscoreCmd>(kCmdNameZRemrangebyscore, 4,
+                                            kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset |
+                                                kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRemrangebyscore, std::move(zremrangebyscoreptr)));
   ////ZRemrangebylexCmd
-  std::unique_ptr<Cmd> zremrangebylexptr = std::make_unique<ZRemrangebylexCmd>(
-      kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> zremrangebylexptr =
+      std::make_unique<ZRemrangebylexCmd>(kCmdNameZRemrangebylex, 4,
+                                          kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsZset | kCmdFlagsDoThroughDB |
+                                              kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZRemrangebylex, std::move(zremrangebylexptr)));
   ////ZPopmax
   std::unique_ptr<Cmd> zpopmaxptr = std::make_unique<ZPopmaxCmd>(
@@ -619,19 +742,27 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Set
   ////SAddCmd
   std::unique_ptr<Cmd> saddptr =
-      std::make_unique<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<SAddCmd>(kCmdNameSAdd, -3,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSAdd, std::move(saddptr)));
   ////SPopCmd
   std::unique_ptr<Cmd> spopptr =
-      std::make_unique<SPopCmd>(kCmdNameSPop, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<SPopCmd>(kCmdNameSPop, -2,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSPop, std::move(spopptr)));
   ////SCardCmd
   std::unique_ptr<Cmd> scardptr =
-      std::make_unique<SCardCmd>(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<SCardCmd>(kCmdNameSCard, 2,
+                                 kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                     kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSCard, std::move(scardptr)));
   ////SMembersCmd
   std::unique_ptr<Cmd> smembersptr =
-      std::make_unique<SMembersCmd>(kCmdNameSMembers, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<SMembersCmd>(kCmdNameSMembers, 2,
+                                    kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                        kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSMembers, std::move(smembersptr)));
   ////SScanCmd
   std::unique_ptr<Cmd> sscanptr =
@@ -639,61 +770,71 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSScan, std::move(sscanptr)));
   ////SRemCmd
   std::unique_ptr<Cmd> sremptr =
-      std::make_unique<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<SRemCmd>(kCmdNameSRem, -3,
+                                kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                    kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSRem, std::move(sremptr)));
   ////SUnionCmd
   std::unique_ptr<Cmd> sunionptr = std::make_unique<SUnionCmd>(
       kCmdNameSUnion, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSUnion, std::move(sunionptr)));
   ////SUnionstoreCmd
-  std::unique_ptr<Cmd> sunionstoreptr =
-      std::make_unique<SUnionstoreCmd>(kCmdNameSUnionstore, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> sunionstoreptr = std::make_unique<SUnionstoreCmd>(
+      kCmdNameSUnionstore, -3,
+      kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSUnionstore, std::move(sunionstoreptr)));
   ////SInterCmd
   std::unique_ptr<Cmd> sinterptr = std::make_unique<SInterCmd>(
       kCmdNameSInter, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSInter, std::move(sinterptr)));
   ////SInterstoreCmd
-  std::unique_ptr<Cmd> sinterstoreptr =
-      std::make_unique<SInterstoreCmd>(kCmdNameSInterstore, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> sinterstoreptr = std::make_unique<SInterstoreCmd>(
+      kCmdNameSInterstore, -3,
+      kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSInterstore, std::move(sinterstoreptr)));
   ////SIsmemberCmd
   std::unique_ptr<Cmd> sismemberptr =
-      std::make_unique<SIsmemberCmd>(kCmdNameSIsmember, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<SIsmemberCmd>(kCmdNameSIsmember, 3,
+                                     kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                         kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSIsmember, std::move(sismemberptr)));
   ////SDiffCmd
   std::unique_ptr<Cmd> sdiffptr =
       std::make_unique<SDiffCmd>(kCmdNameSDiff, -2, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSDiff, std::move(sdiffptr)));
   ////SDiffstoreCmd
-  std::unique_ptr<Cmd> sdiffstoreptr =
-      std::make_unique<SDiffstoreCmd>(kCmdNameSDiffstore, -3, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> sdiffstoreptr = std::make_unique<SDiffstoreCmd>(
+      kCmdNameSDiffstore, -3,
+      kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSDiffstore, std::move(sdiffstoreptr)));
   ////SMoveCmd
-  std::unique_ptr<Cmd> smoveptr =
-      std::make_unique<SMoveCmd>(kCmdNameSMove, 4, kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  std::unique_ptr<Cmd> smoveptr = std::make_unique<SMoveCmd>(
+      kCmdNameSMove, 4,
+      kCmdFlagsWrite | kCmdFlagsMultiSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSMove, std::move(smoveptr)));
   ////SRandmemberCmd
   std::unique_ptr<Cmd> srandmemberptr =
-      std::make_unique<SRandmemberCmd>(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet|kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<SRandmemberCmd>(kCmdNameSRandmember, -2,
+                                       kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsSet | kCmdFlagsDoThroughDB |
+                                           kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSRandmember, std::move(srandmemberptr)));
 
   // BitMap
   ////bitsetCmd
-  std::unique_ptr<Cmd> bitsetptr =
-      std::make_unique<BitSetCmd>(kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> bitsetptr = std::make_unique<BitSetCmd>(
+      kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitSet, std::move(bitsetptr)));
   ////bitgetCmd
-  std::unique_ptr<Cmd> bitgetptr =
-      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> bitgetptr = std::make_unique<BitGetCmd>(
+      kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitGet, std::move(bitgetptr)));
   ////bitcountCmd
-  std::unique_ptr<Cmd> bitcountptr =
-      std::make_unique<BitCountCmd>(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> bitcountptr = std::make_unique<BitCountCmd>(
+      kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitCount, std::move(bitcountptr)));
   ////bitposCmd
-  std::unique_ptr<Cmd> bitposptr =
-      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> bitposptr = std::make_unique<BitPosCmd>(
+      kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitPos, std::move(bitposptr)));
   ////bitopCmd
   std::unique_ptr<Cmd> bitopptr =
@@ -792,37 +933,37 @@ void InitCmdTable(CmdTable* cmd_table) {
 
   // Stream
   ////XAdd
-  std::unique_ptr<Cmd> xaddptr =
-      std::make_unique<XAddCmd>(kCmdNameXAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsFast);
+  std::unique_ptr<Cmd> xaddptr = std::make_unique<XAddCmd>(
+      kCmdNameXAdd, -4, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXAdd, std::move(xaddptr)));
   ////XLen
   std::unique_ptr<Cmd> xlenptr =
       std::make_unique<XLenCmd>(kCmdNameXLen, 2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXLen, std::move(xlenptr)));
   ////XRead
-  std::unique_ptr<Cmd> xreadptr =
-      std::make_unique<XReadCmd>(kCmdNameXRead, -3, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsStream | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> xreadptr = std::make_unique<XReadCmd>(
+      kCmdNameXRead, -3, kCmdFlagsRead | kCmdFlagsMultiSlot | kCmdFlagsStream | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXRead, std::move(xreadptr)));
   ////XRange
-  std::unique_ptr<Cmd> xrangeptr =
-      std::make_unique<XRangeCmd>(kCmdNameXRange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> xrangeptr = std::make_unique<XRangeCmd>(
+      kCmdNameXRange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXRange, std::move(xrangeptr)));
   ////XRerange
-  std::unique_ptr<Cmd> xrerverangeptr =
-        std::make_unique<XRevrangeCmd>(kCmdNameXRevrange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> xrerverangeptr = std::make_unique<XRevrangeCmd>(
+      kCmdNameXRevrange, -4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXRevrange, std::move(xrerverangeptr)));
   ////XTrim
-  std::unique_ptr<Cmd> xtrimptr =
-      std::make_unique<XTrimCmd>(kCmdNameXTrim, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> xtrimptr = std::make_unique<XTrimCmd>(
+      kCmdNameXTrim, -2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXTrim, std::move(xtrimptr)));
   ////XDel
-  std::unique_ptr<Cmd> xdelptr =
-      std::make_unique<XDelCmd>(kCmdNameXDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsFast);
+  std::unique_ptr<Cmd> xdelptr = std::make_unique<XDelCmd>(
+      kCmdNameXDel, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXDel, std::move(xdelptr)));
   ////XINFO
-    std::unique_ptr<Cmd> xinfoptr =
-        std::make_unique<XInfoCmd>(kCmdNameXInfo, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
-    cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXInfo, std::move(xinfoptr)));
+  std::unique_ptr<Cmd> xinfoptr = std::make_unique<XInfoCmd>(
+      kCmdNameXInfo, -2, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsStream | kCmdFlagsSlow);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameXInfo, std::move(xinfoptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
@@ -914,9 +1055,8 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
       slot->DbRWUnLock();
     }
   };
-  if (IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+  if (IsNeedCacheDo() && PIKA_CACHE_NONE != g_pika_conf->cache_model() &&
+      slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (IsNeedReadCache()) {
       ReadCache(slot);
     }

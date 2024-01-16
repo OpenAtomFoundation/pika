@@ -17,7 +17,7 @@ struct RsyncRemote {
   int port;
   std::string module;
   int kbps;  // speed limit
-  RsyncRemote(std::string  _host, const int _port, std::string  _module, const int _kbps)
+  RsyncRemote(std::string _host, const int _port, std::string _module, const int _kbps)
       : host(std::move(_host)), port(_port), module(std::move(_module)), kbps(_kbps) {}
 };
 

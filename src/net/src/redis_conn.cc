@@ -22,9 +22,8 @@ RedisConn::RedisConn(const int fd, const std::string& ip_port, Thread* thread, N
                      const HandleType& handle_type, const int rbuf_max_len)
     : NetConn(fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
-      
-      rbuf_max_len_(rbuf_max_len)
-      {
+
+      rbuf_max_len_(rbuf_max_len) {
   RedisParserSettings settings;
   settings.DealMessage = ParserDealMessageCb;
   settings.Complete = ParserCompleteCb;
@@ -103,14 +102,15 @@ ReadStatus RedisConn::GetRequest() {
   // assert(nread > 0);
   last_read_pos_ += static_cast<int32_t>(nread);
   msg_peak_ = last_read_pos_;
-  command_len_ += static_cast<int32_t> (nread);
+  command_len_ += static_cast<int32_t>(nread);
   if (command_len_ >= rbuf_max_len_) {
     LOG(INFO) << "close conn command_len " << command_len_ << ", rbuf_max_len " << rbuf_max_len_;
     return kFullError;
   }
 
   int processed_len = 0;
-  RedisParserStatus ret = redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, static_cast<int32_t>(nread), &processed_len);
+  RedisParserStatus ret =
+      redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, static_cast<int32_t>(nread), &processed_len);
   ReadStatus read_status = ParseRedisParserStatus(ret);
   if (read_status == kReadAll || read_status == kReadHalf) {
     if (read_status == kReadAll) {

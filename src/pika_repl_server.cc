@@ -22,9 +22,7 @@ PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int c
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
 }
 
-PikaReplServer::~PikaReplServer() {
-  LOG(INFO) << "PikaReplServer exit!!!";
-}
+PikaReplServer::~PikaReplServer() { LOG(INFO) << "PikaReplServer exit!!!"; }
 
 int PikaReplServer::Start() {
   int res = pika_repl_server_thread_->StartThread();

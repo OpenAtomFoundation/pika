@@ -7,10 +7,10 @@
 
 #include "pstd/include/pstd_string.h"
 
+#include "include/pika_cache.h"
 #include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_stream_base.h"
-#include "include/pika_cache.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -35,9 +35,7 @@ void HDelCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HDelCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HDelCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HDelCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
@@ -74,9 +72,7 @@ void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -280,9 +276,7 @@ void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -317,9 +311,7 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HIncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HIncrbyfloatCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HIncrbyfloatCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -511,9 +503,7 @@ void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HMsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HMsetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HMsetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -543,9 +533,7 @@ void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void HSetnxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void HSetnxCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void HSetnxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -801,8 +789,8 @@ void PKHScanRangeCmd::DoInitial() {
 void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s =
-      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+  rocksdb::Status s = slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_),
+                                               &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -854,8 +842,8 @@ void PKHRScanRangeCmd::DoInitial() {
 void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s =
-      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_), &field_values, &next_field);
+  rocksdb::Status s = slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, static_cast<int32_t>(limit_),
+                                                &field_values, &next_field);
 
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLen(2);

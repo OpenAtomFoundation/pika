@@ -607,7 +607,7 @@ class PikaConf : public pstd::BaseConf {
     acl_Log_max_len_ = value;
   }
 
-  void SetCacheType(const std::string &value);
+  void SetCacheType(const std::string& value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_pos() { return zset_cache_start_pos_; }
   int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
@@ -615,8 +615,7 @@ class PikaConf : public pstd::BaseConf {
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
   int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
-  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                    bool is_add);
+  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add);
   pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
   pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
@@ -646,8 +645,8 @@ class PikaConf : public pstd::BaseConf {
   std::string compact_cron_;
   std::string compact_interval_;
   bool disable_auto_compactions_ = false;
-  int64_t resume_check_interval_ = 60; // seconds
-  int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
+  int64_t resume_check_interval_ = 60;             // seconds
+  int64_t least_free_disk_to_resume_ = 268435456;  // 256 MB
   double min_check_resume_ratio_ = 0.7;
   int64_t write_buffer_size_ = 0;
   int64_t arena_block_size_ = 0;
@@ -719,7 +718,7 @@ class PikaConf : public pstd::BaseConf {
   std::string aclFile_;
 
   std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
-  std::atomic<uint32_t> acl_Log_max_len_ = 0;      // default acl log max len
+  std::atomic<uint32_t> acl_Log_max_len_ = 0;     // default acl log max len
 
   // diff commands between cached commands and config file commands
   std::map<std::string, std::string> diff_commands_;
@@ -749,7 +748,6 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_int cache_maxmemory_policy_;
   std::atomic_int cache_maxmemory_samples_;
   std::atomic_int cache_lfu_decay_time_;
-
 
   // rocksdb blob
   bool enable_blob_files_ = false;

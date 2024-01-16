@@ -25,12 +25,14 @@ class NetworkStatistic {
   void IncrReplOutputBytes(uint64_t bytes);
 
  private:
-  std::atomic<size_t> stat_net_input_bytes {0}; /* Bytes read from network. */
-  std::atomic<size_t> stat_net_output_bytes {0}; /* Bytes written to network. */
-  std::atomic<size_t> stat_net_repl_input_bytes {0}; /* Bytes read during replication, added to stat_net_input_bytes in 'info'. */
-  std::atomic<size_t> stat_net_repl_output_bytes {0}; /* Bytes written during replication, added to stat_net_output_bytes in 'info'. */
+  std::atomic<size_t> stat_net_input_bytes{0};  /* Bytes read from network. */
+  std::atomic<size_t> stat_net_output_bytes{0}; /* Bytes written to network. */
+  std::atomic<size_t> stat_net_repl_input_bytes{
+      0}; /* Bytes read during replication, added to stat_net_input_bytes in 'info'. */
+  std::atomic<size_t> stat_net_repl_output_bytes{
+      0}; /* Bytes written during replication, added to stat_net_output_bytes in 'info'. */
 };
 
-}
+}  // namespace net
 
 #endif  // NET_INCLUDE_REDIS_STSTS_H_

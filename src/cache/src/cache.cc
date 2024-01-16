@@ -3,7 +3,6 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-
 #include "cache/include/cache.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd_defer.h"
@@ -64,7 +63,9 @@ void RedisCache::SetConfig(CacheConfig *cfg) {
 
 uint64_t RedisCache::GetUsedMemory(void) { return RcGetUsedMemory(); }
 
-void RedisCache::GetHitAndMissNum(int64_t *hits, int64_t *misses) { RcGetHitAndMissNum((long long int*)hits, (long long int*)misses); }
+void RedisCache::GetHitAndMissNum(int64_t *hits, int64_t *misses) {
+  RcGetHitAndMissNum((long long int *)hits, (long long int *)misses);
+}
 
 void RedisCache::ResetHitAndMissNum(void) { RcResetHitAndMissNum(); }
 
@@ -84,9 +85,7 @@ int32_t RedisCache::ActiveExpireCycle(void) { return RcActiveExpireCycle(cache_)
  *----------------------------------------------------------------------------*/
 bool RedisCache::Exists(std::string &key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    decrRefCount(kobj);
-  };
+  DEFER { decrRefCount(kobj); };
   bool is_exist = RcExists(cache_, kobj);
 
   return is_exist;
@@ -94,7 +93,7 @@ bool RedisCache::Exists(std::string &key) {
 
 int64_t RedisCache::DbSize(void) {
   int64_t dbsize = 0;
-  RcCacheSize(cache_, (long long int*)&dbsize);
+  RcCacheSize(cache_, (long long int *)&dbsize);
   return dbsize;
 }
 
@@ -102,9 +101,7 @@ void RedisCache::FlushDb(void) { RcFlushCache(cache_); }
 
 Status RedisCache::Del(const std::string &key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    decrRefCount(kobj);
-  };
+  DEFER { decrRefCount(kobj); };
   int ret = RcDel(cache_, kobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -120,9 +117,7 @@ Status RedisCache::Del(const std::string &key) {
 Status RedisCache::Expire(std::string &key, int64_t ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
-  DEFER {
-    DecrObjectsRefCount(kobj, tobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, tobj); };
   int ret = RcExpire(cache_, kobj, tobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -138,9 +133,7 @@ Status RedisCache::Expire(std::string &key, int64_t ttl) {
 Status RedisCache::Expireat(std::string &key, int64_t ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *tobj = createStringObjectFromLongLong(ttl);
-  DEFER {
-    DecrObjectsRefCount(kobj, tobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, tobj); };
   int ret = RcExpireat(cache_, kobj, tobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -154,9 +147,7 @@ Status RedisCache::Expireat(std::string &key, int64_t ttl) {
 
 Status RedisCache::TTL(std::string &key, int64_t *ttl) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcTTL(cache_, kobj, ttl);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -170,9 +161,7 @@ Status RedisCache::TTL(std::string &key, int64_t *ttl) {
 
 Status RedisCache::Persist(std::string &key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcPersist(cache_, kobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -187,9 +176,7 @@ Status RedisCache::Persist(std::string &key) {
 Status RedisCache::Type(std::string &key, std::string *value) {
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcType(cache_, kobj, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {

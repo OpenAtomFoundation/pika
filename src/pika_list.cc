@@ -5,12 +5,12 @@
 
 #include "include/pika_list.h"
 #include <utility>
+#include "include/pika_cache.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_cache.h"
+#include "pstd/include/pstd_string.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -93,9 +93,7 @@ void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LInsertCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LInsertCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LInsertCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -126,7 +124,7 @@ void LLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
   auto s = slot->cache()->LLen(CachePrefixKeyL, &llen);
-  if (s.ok()){
+  if (s.ok()) {
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
@@ -177,8 +175,9 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto& key_to_conns_ = dispatchThread->GetMapFromKeyToConns();
   net::BlockKey blrPop_key{slot->GetDBName(), key};
 
-  pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);//It's a RAII Lock
-  std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these two lock, or deadlock will happen
+  pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);  // It's a RAII Lock
+  std::unique_lock map_lock(
+      dispatchThread->GetBlockMtx());  // do not change the sequence of these two lock, or deadlock will happen
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
     return;
@@ -243,7 +242,8 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
       LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
     } else {
       pop_cmd->SetConn(pop_arg.conn);
-      auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
+      auto resp_ptr =
+          std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
       pop_cmd->SetResp(resp_ptr);
       pop_cmd->DoBinlog(sync_slot);
     }
@@ -279,9 +279,7 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void LPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -356,7 +354,7 @@ void BLPopCmd::DoInitial() {
 void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    rocksdb::Status s  = slot->db()->LPop(this_key, 1, &values);
+    rocksdb::Status s = slot->db()->LPop(this_key, 1, &values);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -379,7 +377,7 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
     if (client_conn->IsInTxn()) {
       res_.AppendArrayLen(-1);
-      return ;
+      return;
     }
   }
   BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
@@ -433,9 +431,7 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -468,9 +464,7 @@ void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -564,9 +558,7 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -604,9 +596,7 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -641,9 +631,7 @@ void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LTrimCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void LTrimCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void LTrimCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -678,7 +666,7 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
   if (auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn()); client_conn != nullptr) {
     if (client_conn->IsInTxn()) {
       res_.AppendArrayLen(-1);
-      return ;
+      return;
     }
   }
   BlockThisClientToWaitLRPush(BlockKeyType::Brpop, keys_, expire_time_);
@@ -721,8 +709,6 @@ void BRPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   WriteBinlogOfPop(args);
 }
 
-
-
 void RPopCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
@@ -744,13 +730,13 @@ void RPopCmd::DoInitial() {
 }
 
 void RPopCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector <std::string> elements;
+  std::vector<std::string> elements;
   s_ = slot->db()->RPop(key_, count_, &elements);
   if (s_.ok()) {
     if (elements.size() > 1) {
       res_.AppendArrayLenUint64(elements.size());
     }
-    for (const auto &element: elements) {
+    for (const auto& element : elements) {
       res_.AppendString(element);
     }
   } else if (s_.IsNotFound()) {
@@ -760,9 +746,7 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void RPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void RPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void RPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -861,9 +845,7 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
   TryToServeBLrPopWithThisKey(key_, slot);
 }
 
-void RPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void RPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void RPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -895,9 +877,7 @@ void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void RPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {

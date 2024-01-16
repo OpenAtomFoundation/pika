@@ -267,7 +267,7 @@ HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std
                    void* worker_specific_data)
     : NetConn(fd, ip_port, thread),
 #ifdef __ENABLE_SSL
-      // security_(thread->security()),
+// security_(thread->security()),
 #endif
       handles_(std::move(handles)) {
   handles_->worker_specific_data_ = worker_specific_data;
@@ -281,11 +281,7 @@ HTTPConn::~HTTPConn() {
   delete response_;
 }
 
-HTTPRequest::HTTPRequest(HTTPConn* conn)
-    : conn_(conn)
-      {
-  rbuf_ = new char[kHTTPMaxMessage];
-}
+HTTPRequest::HTTPRequest(HTTPConn* conn) : conn_(conn) { rbuf_ = new char[kHTTPMaxMessage]; }
 
 HTTPRequest::~HTTPRequest() { delete[] rbuf_; }
 
@@ -458,11 +454,7 @@ ReadStatus HTTPConn::GetRequest() {
   return status;
 }
 
-HTTPResponse::HTTPResponse(HTTPConn* conn)
-    : conn_(conn)
-      {
-  wbuf_ = new char[kHTTPMaxMessage];
-}
+HTTPResponse::HTTPResponse(HTTPConn* conn) : conn_(conn) { wbuf_ = new char[kHTTPMaxMessage]; }
 
 HTTPResponse::~HTTPResponse() { delete[] wbuf_; }
 

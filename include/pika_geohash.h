@@ -51,7 +51,6 @@ constexpr double GEO_LAT_MAX{85.05112878};
 constexpr int64_t GEO_LONG_MIN{-180};
 constexpr int64_t GEO_LONG_MAX{180};
 
-
 enum GeoDirection {
   GEOHASH_NORTH = 0,
   GEOHASH_EAST,
@@ -99,8 +98,7 @@ int geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range,
                   uint8_t step, GeoHashBits* hash);
 int geohashEncodeType(double longitude, double latitude, uint8_t step, GeoHashBits* hash);
 int geohashEncodeWGS84(double longitude, double latitude, uint8_t step, GeoHashBits* hash);
-int geohashDecode(GeoHashRange long_range, GeoHashRange lat_range, GeoHashBits hash,
-                  GeoHashArea* area);
+int geohashDecode(GeoHashRange long_range, GeoHashRange lat_range, GeoHashBits hash, GeoHashArea* area);
 int geohashDecodeType(GeoHashBits hash, GeoHashArea* area);
 int geohashDecodeWGS84(GeoHashBits hash, GeoHashArea* area);
 int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy);

@@ -18,7 +18,7 @@ static std::string ConstructPubSubResp(const std::string& cmd, const std::vector
          << "$" << -1 << "\r\n"
          << ":" << 0 << "\r\n";
   }
-  for (const auto & it : result) {
+  for (const auto& it : result) {
     resp << "*3\r\n"
          << "$" << cmd.length() << "\r\n"
          << cmd << "\r\n"
@@ -160,7 +160,6 @@ void PUnSubscribeCmd::DoInitial() {
   for (size_t i = 1; i < argv_.size(); i++) {
     channels_.push_back(argv_[i]);
   }
-
 }
 
 void PUnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
@@ -221,7 +220,7 @@ void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
     g_pika_server->PubSubChannels(pattern, &result);
 
     res_.AppendArrayLenUint64(result.size());
-    for (auto &it : result) {
+    for (auto& it : result) {
       res_.AppendStringLenUint64(it.length());
       res_.AppendContent(it);
     }
@@ -229,7 +228,7 @@ void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->PubSubNumSub(arguments_, &result);
     res_.AppendArrayLenUint64(result.size() * 2);
-    for (auto &it : result) {
+    for (auto& it : result) {
       res_.AppendStringLenUint64(it.first.length());
       res_.AppendContent(it.first);
       res_.AppendInteger(it.second);

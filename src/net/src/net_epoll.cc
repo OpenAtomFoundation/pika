@@ -45,7 +45,7 @@ int NetEpoll::NetAddEvent(int fd, int mask) {
   }
   if (mask & kWritable) {
     ee.events |= EPOLLOUT;
-    }
+  }
 
   return epoll_ctl(multiplexer_, EPOLL_CTL_ADD, fd, &ee);
 }

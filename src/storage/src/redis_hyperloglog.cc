@@ -35,8 +35,9 @@ std::string HyperLogLog::Add(const char* value, uint32_t len) {
   MurmurHash3_x86_32(value, static_cast<int32_t>(len), HLL_HASH_SEED, static_cast<void*>(&hash_value));
   uint32_t index = hash_value & ((1 << b_) - 1);
   uint8_t rank = Nctz((hash_value >> b_), static_cast<int32_t>(32 - b_));
-  if (rank > register_[index]) { register_[index] = static_cast<char>(rank);
-}
+  if (rank > register_[index]) {
+    register_[index] = static_cast<char>(rank);
+  }
   std::string result(m_, 0);
   for (uint32_t i = 0; i < m_; ++i) {
     result[i] = register_[i];

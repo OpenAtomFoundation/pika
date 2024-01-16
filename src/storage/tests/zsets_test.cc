@@ -11,11 +11,11 @@
 #include "storage/util.h"
 
 // using namespace storage;
-using storage::Status;
-using storage::Slice;
-using storage::ScoreMember;
-using storage::kZSets;
 using storage::DataType;
+using storage::kZSets;
+using storage::ScoreMember;
+using storage::Slice;
+using storage::Status;
 
 class ZSetsTest : public ::testing::Test {
  public:

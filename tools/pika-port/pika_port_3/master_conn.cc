@@ -277,8 +277,8 @@ bool MasterConn::ProcessBinlogData(const net::RedisCmdArgsType& argv, const Port
   }
 
   std::string command;
-  if (argv[0] == "pksetexat"){
-    //struct timeval now;
+  if (argv[0] == "pksetexat") {
+    // struct timeval now;
     std::string temp("");
     std::string time_out("");
     std::string time_cmd("");
@@ -287,27 +287,27 @@ bool MasterConn::ProcessBinlogData(const net::RedisCmdArgsType& argv, const Port
     int new_time_size;
     int diff;
     temp = argv[2];
-    //gettimeofday(&now, NULL);
-    unsigned long int sec= time(NULL);
+    // gettimeofday(&now, NULL);
+    unsigned long int sec = time(NULL);
     unsigned long int tot;
     tot = std::stol(temp) - sec;
     time_out = std::to_string(tot);
-    
+
     command = binlog_item.content();
-    command.erase(0,4);
+    command.erase(0, 4);
     command.replace(0, 13, "*4\r\n$5\r\nsetex");
     //"*4\r\n$5\r\nsetex\r\n$48\r\n1691478611637921200018685540810_4932190141418052\r\n$10\r\n1691483848\r\n$1681\r\n(\265/\375`\332\024=4"}}
-    start = 13 + 3 + std::to_string(key.size()).size() + 2 + key.size() +3;
+    start = 13 + 3 + std::to_string(key.size()).size() + 2 + key.size() + 3;
     old_time_size = std::to_string(temp.size()).size() + 2 + temp.size();
     new_time_size = std::to_string(time_out.size()).size() + 2 + time_out.size();
-    diff =  old_time_size - new_time_size;
+    diff = old_time_size - new_time_size;
     command.erase(start, diff);
     time_cmd = std::to_string(time_out.size()) + "\r\n" + time_out;
     command.replace(start, new_time_size, time_cmd);
   } else {
     command = binlog_item.content();
   }
-  
+
   int ret = g_pika_port->SendRedisCommand(command, key);
   if (ret != 0) {
     LOG(WARNING) << "send redis command:" << command << ", ret:" << ret;
@@ -315,4 +315,3 @@ bool MasterConn::ProcessBinlogData(const net::RedisCmdArgsType& argv, const Port
 
   return true;
 }
-

@@ -15,9 +15,9 @@
 #  include <cstring>
 
 #  ifdef __XDEBUG__
-#    define pint(x) qf_debug("%s = %d", #x, x)
-#    define psize(x) qf_debug("%s = %zu", #x, x)
-#    define pstr(x) qf_debug("%s = %s", #x, x)
+#    define pint(x) qf_debug("%s = %d", #    x, x)
+#    define psize(x) qf_debug("%s = %zu", #    x, x)
+#    define pstr(x) qf_debug("%s = %s", #    x, x)
 // 如果A 不对, 那么就输出M
 #    define qf_check(A, M, ...)    \
       if (!(A)) {                  \
@@ -42,10 +42,11 @@
 #    define _debug_time ((int)(((e.tv_sec - s1.tv_sec) * 1000 + (e.tv_usec - s1.tv_usec) / 1000)))
 
 #    define clean_errno() (errno == 0 ? "None" : strerror(errno))
-#    define log_err(M, ...)                                                                                      \
-      {                                                                                                          \
-        fprintf(stderr, "[ERROR] (%s:%d %s errno: %s) " M "\n", __FILE__, __LINE__, get_date_time().c_str(), clean_errno(), ##__VA_ARGS__); \
-        exit(-1);                                                                                                \
+#    define log_err(M, ...)                                                                                  \
+      {                                                                                                      \
+        fprintf(stderr, "[ERROR] (%s:%d %s errno: %s) " M "\n", __FILE__, __LINE__, get_date_time().c_str(), \
+                clean_errno(), ##__VA_ARGS__);                                                               \
+        exit(-1);                                                                                            \
       }
 #    define log_warn(M, ...) \
       fprintf(stderr, "[WARN] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__, clean_errno(), ##__VA_ARGS__)

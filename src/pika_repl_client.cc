@@ -24,7 +24,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
+PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
   for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
@@ -43,7 +43,7 @@ int PikaReplClient::Start() {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
-  for (auto & bg_worker : bg_workers_) {
+  for (auto& bg_worker : bg_workers_) {
     res = bg_worker->StartThread();
     if (res != net::kSuccess) {
       LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
@@ -55,7 +55,7 @@ int PikaReplClient::Start() {
 
 int PikaReplClient::Stop() {
   client_thread_->StopThread();
-  for (auto & bg_worker : bg_workers_) {
+  for (auto& bg_worker : bg_workers_) {
     bg_worker->StopThread();
   }
   return 0;
@@ -96,7 +96,7 @@ Status PikaReplClient::Close(const std::string& ip, const int port) { return cli
 
 Status PikaReplClient::SendMetaSync() {
   std::string local_ip;
-  std::unique_ptr<net::NetCli> cli (net::NewRedisCli());
+  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   cli->set_connect_timeout(1500);
   if ((cli->Connect(g_pika_server->master_ip(), g_pika_server->master_port(), "")).ok()) {
     struct sockaddr_in laddr;
@@ -140,8 +140,7 @@ Status PikaReplClient::SendMetaSync() {
 }
 
 Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                           uint32_t slot_id, const BinlogOffset& boffset,
-                                           const std::string& local_ip) {
+                                      uint32_t slot_id, const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kDBSync);
   InnerMessage::InnerRequest::DBSync* db_sync = request.mutable_db_sync();
@@ -165,8 +164,7 @@ Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, cons
 }
 
 Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                            uint32_t slot_id, const BinlogOffset& boffset,
-                                            const std::string& local_ip) {
+                                       uint32_t slot_id, const BinlogOffset& boffset, const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
@@ -190,9 +188,8 @@ Status PikaReplClient::SendSlotTrySync(const std::string& ip, uint32_t port, con
 }
 
 Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, const std::string& db_name,
-                                               uint32_t slot_id, const LogOffset& ack_start,
-                                               const LogOffset& ack_end, const std::string& local_ip,
-                                               bool is_first_send) {
+                                          uint32_t slot_id, const LogOffset& ack_start, const LogOffset& ack_end,
+                                          const std::string& local_ip, bool is_first_send) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
@@ -215,8 +212,7 @@ Status PikaReplClient::SendSlotBinlogSync(const std::string& ip, uint32_t port, 
   ack_range_end->set_term(ack_end.l_offset.term);
   ack_range_end->set_index(ack_end.l_offset.index);
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << db_name << "_" << slot_id << " not exist";
     return Status::NotFound("SyncSlaveSlot NotFound");

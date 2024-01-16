@@ -11,9 +11,7 @@ namespace cache {
 Status RedisCache::LIndex(std::string &key, int64_t index, std::string *element) {
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcLIndex(cache_, kobj, index, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -42,9 +40,7 @@ Status RedisCache::LInsert(std::string &key, storage::BeforeOrAfter &before_or_a
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *pobj = createObject(OBJ_STRING, sdsnewlen(pivot.data(), pivot.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, pobj, vobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, pobj, vobj); };
   int res = RcLInsert(cache_, kobj, where, pobj, vobj);
   if (C_OK != res) {
     if (REDIS_KEY_NOT_EXIST == res) {
@@ -58,9 +54,7 @@ Status RedisCache::LInsert(std::string &key, storage::BeforeOrAfter &before_or_a
 
 Status RedisCache::LLen(std::string &key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcLLen(cache_, kobj, reinterpret_cast<unsigned long *>(len));
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -75,9 +69,7 @@ Status RedisCache::LLen(std::string &key, uint64_t *len) {
 Status RedisCache::LPop(std::string &key, std::string *element) {
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-        DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcLPop(cache_, kobj, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -146,9 +138,7 @@ Status RedisCache::LRange(std::string &key, int64_t start, int64_t stop, std::ve
   sds *vals = nullptr;
   uint64_t vals_size = 0;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcLRange(cache_, kobj, start, stop, &vals, reinterpret_cast<unsigned long *>(&vals_size));
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -168,9 +158,7 @@ Status RedisCache::LRange(std::string &key, int64_t start, int64_t stop, std::ve
 Status RedisCache::LRem(std::string &key, int64_t count, std::string &value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, vobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, vobj); };
   int ret = RcLRem(cache_, kobj, count, vobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -185,9 +173,7 @@ Status RedisCache::LRem(std::string &key, int64_t count, std::string &value) {
 Status RedisCache::LSet(std::string &key, int64_t index, std::string &value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   robj *vobj = createObject(OBJ_STRING, sdsnewlen(value.data(), value.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj, vobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj, vobj); };
   int ret = RcLSet(cache_, kobj, index, vobj);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -203,9 +189,7 @@ Status RedisCache::LSet(std::string &key, int64_t index, std::string &value) {
 
 Status RedisCache::LTrim(std::string &key, int64_t start, int64_t stop) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcLTrim(cache_, kobj, start, stop);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {
@@ -221,9 +205,7 @@ Status RedisCache::LTrim(std::string &key, int64_t start, int64_t stop) {
 Status RedisCache::RPop(std::string &key, std::string *element) {
   sds val;
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
-  DEFER {
-    DecrObjectsRefCount(kobj);
-  };
+  DEFER { DecrObjectsRefCount(kobj); };
   int ret = RcRPop(cache_, kobj, &val);
   if (C_OK != ret) {
     if (REDIS_KEY_NOT_EXIST == ret) {

@@ -49,7 +49,7 @@ class Redis {
       }
     }
     uint64_t AvgDuration() {
-      if (durations.size () < window_size) {
+      if (durations.size() < window_size) {
         return 0;
       }
       uint64_t min = durations[0];
@@ -66,20 +66,16 @@ class Redis {
       }
       return (sum - max - min) / (durations.size() - 2);
     }
-    void AddModifyCount(uint64_t count) {
-      modify_count += count;
-    }
-    uint64_t ModifyCount() {
-      return modify_count;
-    }
+    void AddModifyCount(uint64_t count) { modify_count += count; }
+    uint64_t ModifyCount() { return modify_count; }
   };
 
   struct KeyStatisticsDurationGuard {
     Redis* ctx;
     std::string key;
     uint64_t start_us;
-    KeyStatisticsDurationGuard(Redis* that, const std::string& key): ctx(that), key(key), start_us(pstd::NowMicros()) {
-    }
+    KeyStatisticsDurationGuard(Redis* that, const std::string& key)
+        : ctx(that), key(key), start_us(pstd::NowMicros()) {}
     ~KeyStatisticsDurationGuard() {
       uint64_t end_us = pstd::NowMicros();
       uint64_t duration = end_us > start_us ? end_us - start_us : 0;
@@ -113,8 +109,8 @@ class Redis {
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
   Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
-  std::vector<rocksdb::ColumnFamilyHandle*> GetHandles(){ return handles_;};
-  void GetRocksDBInfo(std::string &info, const char *prefix);
+  std::vector<rocksdb::ColumnFamilyHandle*> GetHandles() { return handles_; };
+  void GetRocksDBInfo(std::string& info, const char* prefix);
 
  protected:
   Storage* const storage_;

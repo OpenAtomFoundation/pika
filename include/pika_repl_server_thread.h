@@ -26,8 +26,7 @@ class PikaReplServerThread : public net::HolyThread {
     explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
     std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
-                                                     void* worker_specific_data,
-                                                     net::NetMultiplexer* net) const override {
+                                             void* worker_specific_data, net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
           std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net));
     }

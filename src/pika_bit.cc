@@ -7,9 +7,9 @@
 
 #include "pstd/include/pstd_string.h"
 
+#include "include/pika_cache.h"
 #include "include/pika_define.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_cache.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -52,9 +52,7 @@ void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void BitSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void BitSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -62,7 +60,6 @@ void BitSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     slot->cache()->SetBitIfKeyExist(CachePrefixKeyB, bit_offset_, on_);
   }
 }
-
 
 void BitGetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -108,7 +105,7 @@ void BitGetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   Do(slot);
 }
 
-void BitGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot){
+void BitGetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, slot);
   }
@@ -246,7 +243,7 @@ void BitPosCmd::ReadCache(std::shared_ptr<Slot> slot) {
   rocksdb::Status s;
   int64_t bit = static_cast<long>(bit_val_);
   int64_t start = static_cast<long>(start_offset_);
-  int64_t end = static_cast<long>(end_offset_);\
+  int64_t end = static_cast<long>(end_offset_);
   std::string CachePrefixKeyB = PCacheKeyPrefixB + key_;
   if (pos_all_) {
     s = slot->cache()->BitPos(CachePrefixKeyB, bit, &pos);
@@ -320,9 +317,7 @@ void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void BitOpCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void BitOpCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void BitOpCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -334,13 +329,13 @@ void BitOpCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 
 void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   PikaCmdArgsType set_args;
-  //used "set" instead of "SET" to distinguish the binlog of SetCmd
+  // used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_args.emplace_back("set");
   set_args.emplace_back(dest_key_);
   set_args.emplace_back(value_to_dest_);
   set_cmd_->Initial(set_args, db_name_);
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  //value of this binlog might be strange if you print it out(eg. set bitkey_out1 «ѦFO<t·), but it's ok.
+  // value of this binlog might be strange if you print it out(eg. set bitkey_out1 «ѦFO<t·), but it's ok.
   set_cmd_->DoBinlog(slot);
 }

@@ -384,7 +384,8 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
 
   // we delete the message in batchs, prevent from using too much memory
   while (trim_ret.next_field < serialized_min_id && stream_meta.length() - trim_ret.count > 0) {
-    auto cur_batch = static_cast<int32_t>(std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count), kDEFAULT_TRIM_BATCH_SIZE));
+    auto cur_batch = static_cast<int32_t>(
+        std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count), kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<storage::FieldValue> filed_values;
 
     StreamStorage::ScanStreamOptions options(key, stream_meta.first_id(), args.minid, cur_batch, false, false, false);

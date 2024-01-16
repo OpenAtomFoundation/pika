@@ -87,7 +87,7 @@ struct KeyInfo {
 struct ValueStatus {
   std::string value;
   Status status;
-  int64_t  ttl;
+  int64_t ttl;
   bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status && vs.ttl == ttl); }
 };
 
@@ -126,16 +126,25 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactRange };
+enum Operation {
+  kNone = 0,
+  kCleanAll,
+  kCleanStrings,
+  kCleanHashes,
+  kCleanZSets,
+  kCleanSets,
+  kCleanLists,
+  kCompactRange
+};
 
 struct BGTask {
   DataType type;
   Operation operation;
   std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll,
-         const Operation& _opeation = Operation::kNone,
-         const std::vector<std::string>& _argv = {}) : type(_type), operation(_opeation), argv(_argv) {}
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {})
+      : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
@@ -220,8 +229,8 @@ class Storage {
   // determined by the offsets start and end (both are inclusive)
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
 
-  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
-                           std::string* ret, std::string* value, int64_t* ttl);
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret,
+                           std::string* value, int64_t* ttl);
 
   // If key already exists and is a string, this command appends the value at
   // the end of the string
@@ -235,7 +244,8 @@ class Storage {
 
   // Perform a bitwise operation between multiple keys
   // and store the result in the destination key
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
+               std::string& value_to_dest, int64_t* ret);
 
   // Return the position of the first bit set to 1 or 0 in a string
   // BitPos key 0
@@ -401,7 +411,8 @@ class Storage {
   //   key3 = {a, c, e}
   //   SDIFFSTORE destination key1 key2 key3
   //   destination = {b, d}
-  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
+  Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys,
+                    std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns the members of the set resulting from the intersection of all the
   // given sets.
@@ -424,7 +435,8 @@ class Storage {
   //   key3 = {a, c, e}
   //   SINTERSTORE destination key1 key2 key3
   //   destination = {a, c}
-  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
+  Status SInterstore(const Slice& destination, const std::vector<std::string>& keys,
+                     std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // Returns if member is a member of the set stored at key.
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
@@ -433,7 +445,7 @@ class Storage {
   // This has the same effect as running SINTER with one argument key.
   Status SMembers(const Slice& key, std::vector<std::string>* members);
 
-  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl);
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t* ttl);
 
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
@@ -483,7 +495,8 @@ class Storage {
   //   key3 = {c, d, e}
   //   SUNIONSTORE destination key1 key2 key3
   //   destination = {a, b, c, d, e}
-  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
+  Status SUnionstore(const Slice& destination, const std::vector<std::string>& keys,
+                     std::vector<std::string>& value_to_dest, int32_t* ret);
 
   // See SCAN for SSCAN documentation.
   Status SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -506,7 +519,7 @@ class Storage {
   // (the head of the list), 1 being the next element and so on.
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
 
-  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl);
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -669,7 +682,7 @@ class Storage {
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
 
   Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
-                                int64_t *ttl);
+                       int64_t* ttl);
 
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
@@ -1055,10 +1068,10 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
-  Status EnableDymayticOptions(const OptionType& option_type, 
-                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
-  Status EnableAutoCompaction(const OptionType& option_type, 
-                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
+  Status EnableDymayticOptions(const OptionType& option_type, const std::string& db_type,
+                               const std::unordered_map<std::string, std::string>& options);
+  Status EnableAutoCompaction(const OptionType& option_type, const std::string& db_type,
+                              const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
  private:

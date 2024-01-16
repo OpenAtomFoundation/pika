@@ -50,7 +50,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  DEFER { 
+  DEFER {
     delete index;
     delete task_arg;
   };
@@ -99,15 +99,13 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   worker->db_name_ = db_name;
   worker->slot_id_ = slot_id;
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     LOG(WARNING) << "Slot " << db_name << "_" << slot_id << " Not Found";
     return;
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
+  std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot " << db_name << "_" << slot_id << " Not Found";
     return;
@@ -116,8 +114,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   if (res->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
     if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
+      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from " << slot->ConsensusTerm() << " to "
+                << meta.term();
       slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
       LOG(WARNING) << "Drop outdated binlog sync response " << db_name << "_" << slot_id
@@ -148,12 +146,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
 
     if (slave_slot->MasterSessionId() != binlog_res.session_id()) {
-      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp() << ":"
-                   << slave_slot->MasterPort() << ", " << slave_slot->SyncSlotInfo().ToString()
-                   << " expected_session: " << binlog_res.session_id()
+      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp() << ":" << slave_slot->MasterPort() << ", "
+                   << slave_slot->SyncSlotInfo().ToString() << " expected_session: " << binlog_res.session_id()
                    << ", actual_session:" << slave_slot->MasterSessionId();
-      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name() << "_"
-                   << binlog_res.slot().slot_id();
+      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name() << "_" << binlog_res.slot().slot_id();
       slave_slot->SetReplState(ReplState::kTryConnect);
       return;
     }
@@ -209,8 +205,8 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
     std::string db_name = worker->db_name_.substr(2);
-    std::string monitor_message =
-        std::to_string(static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name + " " + worker->ip_port_ + "]";
+    std::string monitor_message = std::to_string(static_cast<double>(pstd::NowMicros()) / 1000000) + " [" + db_name +
+                                  " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
       monitor_message += " " + pstd::ToRead(item);
     }
@@ -258,9 +254,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (!c_ptr->IsSuspend()) {
     slot->DbRWLockReader();
   }
-  if (c_ptr->IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+  if (c_ptr->IsNeedCacheDo() && PIKA_CACHE_NONE != g_pika_conf->cache_model() &&
+      slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
       c_ptr->DoThroughDB(slot);
       if (c_ptr->IsNeedUpdateCache()) {

@@ -5,10 +5,10 @@
 
 #include "include/pika_set.h"
 
-#include "include/pika_slot_command.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_cache.h"
 #include "include/pika_conf.h"
+#include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 void SAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -33,9 +33,7 @@ void SAddCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void SAddCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SAddCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -67,7 +65,7 @@ void SPopCmd::DoInitial() {
 }
 
 void SPopCmd::Do(std::shared_ptr<Slot> slot) {
-   s_ = slot->db()->SPop(key_, &members_, count_);
+  s_ = slot->db()->SPop(key_, &members_, count_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(members_.size());
     for (const auto& member : members_) {
@@ -81,9 +79,7 @@ void SPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -263,9 +259,7 @@ void SRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok() && deleted_ > 0) {
@@ -318,9 +312,7 @@ void SUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -340,12 +332,12 @@ void SetOperationCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   del_cmd_->DoBinlog(slot);
 
   if (value_to_dest_.size() == 0) {
-    //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
+    // The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
     return;
   }
 
   PikaCmdArgsType initial_args;
-  initial_args.emplace_back("sadd");//use "sadd" to distinguish the binlog of SaddCmd which use "SADD" for binlog
+  initial_args.emplace_back("sadd");  // use "sadd" to distinguish the binlog of SaddCmd which use "SADD" for binlog
   initial_args.emplace_back(dest_key_);
   initial_args.emplace_back(value_to_dest_[0]);
   sadd_cmd_->Initial(initial_args, db_name_);
@@ -414,9 +406,7 @@ void SInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -457,7 +447,6 @@ void SIsmemberCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-
 void SIsmemberCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
   res_.clear();
   Do(slot);
@@ -488,7 +477,7 @@ void SDiffCmd::Do(std::shared_ptr<Slot> slot) {
       res_.AppendContent(member);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther,s_.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
@@ -513,9 +502,7 @@ void SDiffstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SDiffstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SDiffstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SDiffstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -546,9 +533,7 @@ void SMoveCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
-}
+void SMoveCmd::DoThroughDB(std::shared_ptr<Slot> slot) { Do(slot); }
 
 void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
@@ -563,18 +548,18 @@ void SMoveCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
 
 void SMoveCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   if (!move_success_) {
-    //the member is not in the source set, nothing changed
+    // the member is not in the source set, nothing changed
     return;
   }
   PikaCmdArgsType srem_args;
-  //SremCmd use "SREM", SMove use "srem"
+  // SremCmd use "SREM", SMove use "srem"
   srem_args.emplace_back("srem");
   srem_args.emplace_back(src_key_);
   srem_args.emplace_back(member_);
   srem_cmd_->Initial(srem_args, db_name_);
 
   PikaCmdArgsType sadd_args;
-  //Saddcmd use "SADD", Smovecmd use "sadd"
+  // Saddcmd use "SADD", Smovecmd use "sadd"
   sadd_args.emplace_back("sadd");
   sadd_args.emplace_back(dest_key_);
   sadd_args.emplace_back(member_);
@@ -658,4 +643,3 @@ void SRandmemberCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
     slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, slot);
   }
 }
-

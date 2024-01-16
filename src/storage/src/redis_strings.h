@@ -31,13 +31,15 @@ class RedisStrings : public Redis {
   // Strings Commands
   Status Append(const Slice& key, const Slice& value, int32_t* ret);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
-  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
+  Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
+               std::string& value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
   Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
-  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret, std::string* value, int64_t* ttl);
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret,
+                           std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
   Status Incrby(const Slice& key, int64_t value, int64_t* ret);
   Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);

@@ -10,8 +10,8 @@
 #include <map>
 #include <memory>
 
-#include <glog/logging.h>
 #include <fmt/core.h>
+#include <glog/logging.h>
 
 #include "iostream"
 #include "src/scope_record_lock.h"
@@ -36,8 +36,8 @@ Status RedisZSets::Open(const StorageOptions& storage_options, const std::string
   rocksdb::Options ops(storage_options.options);
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
   if (s.ok()) {
-    rocksdb::ColumnFamilyHandle *dcf = nullptr;
-    rocksdb::ColumnFamilyHandle *scf = nullptr;
+    rocksdb::ColumnFamilyHandle* dcf = nullptr;
+    rocksdb::ColumnFamilyHandle* scf = nullptr;
     s = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(), "data_cf", &dcf);
     if (!s.ok()) {
       return s;
@@ -244,7 +244,7 @@ Status RedisZSets::ZPopMax(const Slice& key, const int64_t count, std::vector<Sc
         batch.Delete(handles_[2], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -290,7 +290,7 @@ Status RedisZSets::ZPopMin(const Slice& key, const int64_t count, std::vector<Sc
         batch.Delete(handles_[2], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -369,7 +369,7 @@ Status RedisZSets::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_
         cnt++;
       }
     }
-    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)){
+    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)) {
       return Status::InvalidArgument("zset size overflow");
     }
     parsed_zsets_meta_value.ModifyCount(cnt);
@@ -507,7 +507,7 @@ Status RedisZSets::ZIncrby(const Slice& key, const Slice& member, double increme
       statistic++;
     } else if (s.IsNotFound()) {
       score = increment;
-      if (!parsed_zsets_meta_value.CheckModifyCount(1)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(1)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(1);
@@ -614,22 +614,17 @@ Status RedisZSets::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, 
       int32_t count = parsed_zsets_meta_value.count();
       int32_t version = parsed_zsets_meta_value.version();
       int32_t start_index = start >= 0 ? start : count + start;
-      int32_t stop_index  = stop  >= 0 ? stop  : count + stop;
+      int32_t stop_index = stop >= 0 ? stop : count + stop;
       start_index = start_index <= 0 ? 0 : start_index;
       stop_index = stop_index >= count ? count - 1 : stop_index;
-      if (start_index > stop_index
-          || start_index >= count
-          || stop_index < 0) {
+      if (start_index > stop_index || start_index >= count || stop_index < 0) {
         return s;
       }
       int32_t cur_index = 0;
       ScoreMember score_member;
-      ZSetsScoreKey zsets_score_key(key, version,
-                                    std::numeric_limits<double>::lowest(), Slice());
+      ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
-      for (iter->Seek(zsets_score_key.Encode());
-           iter->Valid() && cur_index <= stop_index;
-           iter->Next(), ++cur_index) {
+      for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         if (cur_index >= start_index) {
           ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
           score_member.score = parsed_zsets_score_key.score();
@@ -796,7 +791,7 @@ Status RedisZSets::ZRem(const Slice& key, const std::vector<std::string>& member
         }
       }
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -851,7 +846,7 @@ Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -919,7 +914,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -1122,7 +1117,8 @@ Status RedisZSets::ZScore(const Slice& key, const Slice& member, double* score) 
 }
 
 Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, std::map<std::string, double>& value_to_dest, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg,
+                               std::map<std::string, double>& value_to_dest, int32_t* ret) {
   *ret = 0;
   uint32_t statistic = 0;
   rocksdb::WriteBatch batch;
@@ -1219,7 +1215,8 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
 }
 
 Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::string>& keys,
-                               const std::vector<double>& weights, const AGGREGATE agg, std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
+                               const std::vector<double>& weights, const AGGREGATE agg,
+                               std::vector<ScoreMember>& value_to_dest, int32_t* ret) {
   if (keys.empty()) {
     return Status::Corruption("ZInterstore invalid parameter, no keys");
   }
@@ -1463,7 +1460,7 @@ Status RedisZSets::ZRemrangebylex(const Slice& key, const Slice& min, const Slic
       delete iter;
     }
     if (del_cnt > 0) {
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -1865,8 +1862,8 @@ void RedisZSets::ScanDatabase() {
     }
 
     LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10}] [version : {}] [survival_time : {}]",
-                             meta_iter->key().ToString(), parsed_zsets_meta_value.count(), parsed_zsets_meta_value.timestamp(),
-                             parsed_zsets_meta_value.version(), survival_time);
+                             meta_iter->key().ToString(), parsed_zsets_meta_value.count(),
+                             parsed_zsets_meta_value.timestamp(), parsed_zsets_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
@@ -1889,10 +1886,10 @@ void RedisZSets::ScanDatabase() {
   auto score_iter = db_->NewIterator(iterator_options, handles_[2]);
   for (score_iter->SeekToFirst(); score_iter->Valid(); score_iter->Next()) {
     ParsedZSetsScoreKey parsed_zsets_score_key(score_iter->key());
-    
+
     LOG(INFO) << fmt::format("[key : {:<30}] [score : {:<20}] [member : {:<20}] [version : {}]",
                              parsed_zsets_score_key.key().ToString(), parsed_zsets_score_key.score(),
-                              parsed_zsets_score_key.member().ToString(), parsed_zsets_score_key.version());
+                             parsed_zsets_score_key.member().ToString(), parsed_zsets_score_key.version());
   }
   delete score_iter;
 }

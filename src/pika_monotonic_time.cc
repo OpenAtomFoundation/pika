@@ -4,9 +4,9 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #ifdef __APPLE__  // Mac
-#include <mach/mach_time.h>
+#  include <mach/mach_time.h>
 
-#include "include/pika_monotonic_time.h"
+#  include "include/pika_monotonic_time.h"
 
 monotime getMonotonicUs() {
   static mach_timebase_info_data_t timebase;
@@ -19,11 +19,11 @@ monotime getMonotonicUs() {
 
 #elif __linux__  // Linux
 
-#ifdef __x86_64__  // x86_64
+#  ifdef __x86_64__  // x86_64
 
-#include <ctime>
+#    include <ctime>
 
-#include "include/pika_monotonic_time.h"
+#    include "include/pika_monotonic_time.h"
 
 monotime getMonotonicUs() {
   timespec ts;
@@ -31,11 +31,11 @@ monotime getMonotonicUs() {
   return static_cast<uint64_t>(ts.tv_sec) * 1000000 + static_cast<uint64_t>(ts.tv_nsec) / 1000;
 }
 
-#elif __arm__ || __aarch64__  // ARM
+#  elif __arm__ || __aarch64__  // ARM
 
-#include <sys/time.h>
+#    include <sys/time.h>
 
-#include "include/pika_monotonic_time.h"
+#    include "include/pika_monotonic_time.h"
 
 uint64_t getMonotonicUs() {
   timeval tv;
@@ -43,10 +43,10 @@ uint64_t getMonotonicUs() {
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + static_cast<uint64_t>(tv.tv_usec);
 }
 
-#else
-#error "Unsupported architecture for Linux"
-#endif  // __x86_64__, __arm__
+#  else
+#    error "Unsupported architecture for Linux"
+#  endif  // __x86_64__, __arm__
 
 #else
-#error "Unsupported platform"
+#  error "Unsupported platform"
 #endif  // __APPLE__, __linux__

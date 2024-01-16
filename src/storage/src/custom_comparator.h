@@ -9,8 +9,8 @@
 
 #include <glog/logging.h>
 
-#include "src/coding.h"
 #include "rocksdb/comparator.h"
+#include "src/coding.h"
 
 namespace storage {
 
@@ -104,7 +104,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     ptr_a += key_a_len + 2 * sizeof(int32_t);
     ptr_b += key_b_len + 2 * sizeof(int32_t);
     int ret = key_a_prefix.compare(key_b_prefix);
-     if (ret) {
+    if (ret) {
       return ret;
     }
 
@@ -129,7 +129,7 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
         rocksdb::Slice key_a_member(ptr_a, a_size - (ptr_a - a.data()));
         rocksdb::Slice key_b_member(ptr_b, b_size - (ptr_b - b.data()));
         ret = key_a_member.compare(key_b_member);
-         if (ret) {
+        if (ret) {
           return ret;
         }
       }
@@ -157,7 +157,8 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     ptr += sizeof(uint64_t);
 
     std::string member(ptr, str.size() - (key_len + 2 * sizeof(int32_t) + sizeof(uint64_t)));
-    LOG(INFO) << from.data() << ": total_len[" << str.size() << "], key_len[" << key_len << "], key[" << key.data() << "], "
+    LOG(INFO) << from.data() << ": total_len[" << str.size() << "], key_len[" << key_len << "], key[" << key.data()
+              << "], "
               << "version[ " << version << "], score[" << score << "], member[" << member.data() << "]";
   }
 

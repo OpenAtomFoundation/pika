@@ -9,9 +9,9 @@
 #include "binlog_receiver_thread.h"
 #include "pika_binlog.h"
 #include "pika_define.h"
-#include "redis_sender.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
+#include "redis_sender.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
 

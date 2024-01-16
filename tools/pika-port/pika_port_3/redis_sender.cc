@@ -13,7 +13,14 @@
 static time_t kCheckDiff = 1;
 
 RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password)
-    : id_(id), cli_(nullptr), ip_(std::move(ip)), port_(port), password_(std::move(password)), should_exit_(false), cnt_(0), elements_(0) {
+    : id_(id),
+      cli_(nullptr),
+      ip_(std::move(ip)),
+      port_(port),
+      password_(std::move(password)),
+      should_exit_(false),
+      cnt_(0),
+      elements_(0) {
   last_write_time_ = ::time(nullptr);
 }
 

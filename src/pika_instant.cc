@@ -3,16 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <string>
 #include "../include/pika_instant.h"
+#include <string>
 
 /* Return the mean of all the samples. */
 double Instant::getInstantaneousMetric(std::string metric) {
   size_t j;
   size_t sum = 0;
 
-  for (j = 0; j < STATS_METRIC_SAMPLES; j++)
-    sum += inst_metrics_[metric].samples[j];
+  for (j = 0; j < STATS_METRIC_SAMPLES; j++) sum += inst_metrics_[metric].samples[j];
 
   return sum / STATS_METRIC_SAMPLES;
 }

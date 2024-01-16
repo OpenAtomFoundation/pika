@@ -39,8 +39,8 @@ class PikaCmdTableManager {
   std::vector<std::string> GetAclCategoryCmdNames(uint32_t flag);
 
   /*
-  * Info Commandstats used
-  */
+   * Info Commandstats used
+   */
   std::unordered_map<std::string, CommandStatistics>* GetCommandStatMap();
 
  private:
@@ -57,8 +57,8 @@ class PikaCmdTableManager {
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
 
   /*
-  * Info Commandstats used
-  */
+   * Info Commandstats used
+   */
   std::unordered_map<std::string, CommandStatistics> cmdstat_map_;
 };
 #endif

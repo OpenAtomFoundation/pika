@@ -4,21 +4,20 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 #include <glog/logging.h>
 
+#include "include/pika_cache.h"
 #include "include/pika_cache_load_thread.h"
 #include "include/pika_server.h"
-#include "include/pika_cache.h"
 #include "pstd/include/scope_record_lock.h"
 
 extern PikaServer *g_pika_server;
 
 PikaCacheLoadThread::PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key)
-    : should_exit_(false)
-      , loadkeys_cond_()
-      , async_load_keys_num_(0)
-      , waitting_load_keys_num_(0)
-      , zset_cache_start_pos_(zset_cache_start_pos)
-      , zset_cache_field_num_per_key_(zset_cache_field_num_per_key)
-{
+    : should_exit_(false),
+      loadkeys_cond_(),
+      async_load_keys_num_(0),
+      waitting_load_keys_num_(0),
+      zset_cache_start_pos_(zset_cache_start_pos),
+      zset_cache_field_num_per_key_(zset_cache_field_num_per_key) {
   set_thread_name("PikaCacheLoadThread");
 }
 
@@ -53,7 +52,7 @@ void PikaCacheLoadThread::Push(const char key_type, std::string &key, const std:
   }
 }
 
-bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<Slot> &slot) {
   std::string value;
   int64_t ttl = -1;
   rocksdb::Status s = slot->db()->GetWithTTL(key, &value, &ttl);
@@ -66,7 +65,7 @@ bool PikaCacheLoadThread::LoadKV(std::string &key, const std::shared_ptr<Slot>& 
   return true;
 }
 
-bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot> &slot) {
   int32_t len = 0;
   slot->db()->HLen(key, &len);
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -87,7 +86,7 @@ bool PikaCacheLoadThread::LoadHash(std::string &key, const std::shared_ptr<Slot>
   return true;
 }
 
-bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot> &slot) {
   uint64_t len = 0;
   slot->db()->LLen(key, &len);
   if (len <= 0 || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -108,7 +107,7 @@ bool PikaCacheLoadThread::LoadList(std::string &key, const std::shared_ptr<Slot>
   return true;
 }
 
-bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot> &slot) {
   int32_t len = 0;
   slot->db()->SCard(key, &len);
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
@@ -129,7 +128,7 @@ bool PikaCacheLoadThread::LoadSet(std::string &key, const std::shared_ptr<Slot>&
   return true;
 }
 
-bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot> &slot) {
   int32_t len = 0;
   int start_index = 0;
   int stop_index = -1;
@@ -165,7 +164,7 @@ bool PikaCacheLoadThread::LoadZset(std::string &key, const std::shared_ptr<Slot>
   return true;
 }
 
-bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot>& slot) {
+bool PikaCacheLoadThread::LoadKey(const char key_type, std::string &key, const std::shared_ptr<Slot> &slot) {
   pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);
   switch (key_type) {
     case 'k':

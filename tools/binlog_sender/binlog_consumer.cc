@@ -14,9 +14,7 @@ BinlogConsumer::BinlogConsumer(const std::string& binlog_path, uint32_t first_fi
       backing_store_(new char[kBlockSize]),
       queue_(nullptr){};
 
-BinlogConsumer::~BinlogConsumer() {
-  delete[] backing_store_;
-}
+BinlogConsumer::~BinlogConsumer() { delete[] backing_store_; }
 
 std::string BinlogConsumer::NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];

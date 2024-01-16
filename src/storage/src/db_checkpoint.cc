@@ -17,7 +17,7 @@
 
 #  include <cinttypes>
 
-#include <glog/logging.h>
+#  include <glog/logging.h>
 #  include "file/file_util.h"
 #  include "rocksdb/db.h"
 // #include "file/filename.h"

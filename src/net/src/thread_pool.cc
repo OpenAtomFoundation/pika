@@ -41,7 +41,7 @@ int ThreadPool::Worker::stop() {
   return 0;
 }
 
-ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name)
+ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name)
     : worker_num_(worker_num),
       max_queue_size_(max_queue_size),
       thread_pool_name_(std::move(thread_pool_name)),
@@ -141,7 +141,7 @@ void ThreadPool::runInThread() {
       uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 
       auto [exec_time, func, arg] = time_queue_.top();
-      if (unow  >= exec_time) {
+      if (unow >= exec_time) {
         time_queue_.pop();
         lock.unlock();
         (*func)(arg);

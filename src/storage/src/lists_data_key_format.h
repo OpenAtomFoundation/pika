@@ -14,7 +14,7 @@ namespace storage {
 class ListsDataKey {
  public:
   ListsDataKey(const rocksdb::Slice& key, int32_t version, uint64_t index)
-      :  key_(key), version_(version), index_(index) {}
+      : key_(key), version_(version), index_(index) {}
 
   ~ListsDataKey() {
     if (start_ != space_) {

@@ -13,7 +13,6 @@
 
 #include "include/pika_define.h"
 
-
 class PikaMeta : public pstd::noncopyable {
  public:
   PikaMeta() = default;
@@ -27,7 +26,6 @@ class PikaMeta : public pstd::noncopyable {
  private:
   std::shared_mutex rwlock_;
   std::string local_meta_path_;
-
 };
 
 #endif

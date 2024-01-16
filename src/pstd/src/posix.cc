@@ -55,9 +55,7 @@ void Kill(pid_t pid, int signum) {
 }
 /* $end kill */
 
-void Pause() {
-  (void)pause();
-}
+void Pause() { (void)pause(); }
 
 unsigned int Sleep(unsigned int secs) { return sleep(secs); }
 
@@ -439,7 +437,7 @@ void Pthread_once(pthread_once_t* once_control, void (*init_function)()) { pthre
  *******************************/
 
 void Sem_init(sem_t* sem, int pshared, unsigned int value) {
-// TODO(clang-tidy) : should use c11 cond or mutex instead of Posix sem
+  // TODO(clang-tidy) : should use c11 cond or mutex instead of Posix sem
   if (sem_init(sem, pshared, value) < 0) {  // NOLINT
     LOG(ERROR) << "Sem_init error: " << strerror(errno);
   }
@@ -472,13 +470,13 @@ ssize_t rio_readn(int fd, void* usrbuf, size_t n) {
   while (nleft > 0) {
     if ((nread = read(fd, bufp, nleft)) < 0) {
       if (errno == EINTR) { /* interrupted by sig handler return */
-        nread = 0;        /* and call read() again */
+        nread = 0;          /* and call read() again */
       } else {
         return -1; /* errno set by read() */
-}
+      }
     } else if (nread == 0) {
       break; /* EOF */
-}
+    }
     nleft -= nread;
     bufp += nread;
   }
@@ -498,10 +496,10 @@ ssize_t rio_writen(int fd, void* usrbuf, size_t n) {
   while (nleft > 0) {
     if ((nwritten = write(fd, bufp, nleft)) <= 0) {
       if (errno == EINTR) { /* interrupted by sig handler return */
-        nwritten = 0;     /* and call write() again */
+        nwritten = 0;       /* and call write() again */
       } else {
         return -1; /* errorno set by write() */
-}
+      }
     }
     nleft -= nwritten;
     bufp += nwritten;
@@ -527,12 +525,12 @@ static ssize_t rio_read(rio_t* rp, char* usrbuf, size_t n) {
     if (rp->rio_cnt < 0) {
       if (errno != EINTR) { /* interrupted by sig handler return */
         return -1;
-}
+      }
     } else if (rp->rio_cnt == 0) { /* EOF */
       return 0;
     } else {
       rp->rio_bufptr = rp->rio_buf; /* reset buffer ptr */
-}
+    }
   }
 
   /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
@@ -570,7 +568,7 @@ ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
   while (nleft > 0) {
     if ((nread = rio_read(rp, bufp, nleft)) < 0) {
       if (errno == EINTR) { /* interrupted by sig handler return */
-        nread = 0;        /* call read() again */
+        nread = 0;          /* call read() again */
       } else {
         return -1; /* errno set by read() */
       }
@@ -592,22 +590,23 @@ ssize_t rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen) {
   size_t n;
   int rc;
   char c;
-  char *bufp = static_cast<char*>(usrbuf);
+  char* bufp = static_cast<char*>(usrbuf);
 
   for (n = 1; n < maxlen; n++) {
     if ((rc = static_cast<int32_t>(rio_read(rp, &c, 1))) == 1) {
       *bufp++ = c;
-      if (c == '\n') { break;
-}
+      if (c == '\n') {
+        break;
+      }
     } else if (rc == 0) {
       if (n == 1) {
         return 0; /* EOF, no data read */
       } else {
         break; /* EOF, some data was read */
-}
+      }
     } else {
       return -1; /* error */
-}
+    }
   }
   *bufp = 0;
   return static_cast<ssize_t>(n);
@@ -721,7 +720,7 @@ int open_listenfd(int port) {
   /* Make it a listening socket ready to accept connection requests */
   if (listen(listenfd, LISTENQ) < 0) {
     return -1;
-}
+  }
   return listenfd;
 }
 /* $end open_listenfd */
@@ -736,7 +735,7 @@ int Open_clientfd(char* hostname, int port) {
     if (rc == -1) {
       LOG(ERROR) << "Open_clientfd Unix error: " << strerror(errno);
     } else {
-      LOG(ERROR) << "Open_clientfd DNS error: DNS error " <<  h_errno;
+      LOG(ERROR) << "Open_clientfd DNS error: DNS error " << h_errno;
     }
   }
   return rc;

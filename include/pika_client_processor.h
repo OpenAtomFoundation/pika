@@ -6,9 +6,9 @@
 #ifndef PIKA_CLIENT_PROCESSOR_H_
 #define PIKA_CLIENT_PROCESSOR_H_
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 #include "net/include/bg_thread.h"
 #include "net/include/thread_pool.h"
 

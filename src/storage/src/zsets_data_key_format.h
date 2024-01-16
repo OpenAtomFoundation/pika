@@ -15,7 +15,7 @@ namespace storage {
 class ZSetsScoreKey {
  public:
   ZSetsScoreKey(const Slice& key, int32_t version, double score, const Slice& member)
-      :  key_(key), version_(version), score_(score), member_(member) {}
+      : key_(key), version_(version), score_(score), member_(member) {}
 
   ~ZSetsScoreKey() {
     if (start_ != space_) {

@@ -11,8 +11,7 @@
 namespace storage {
 class BaseDataKey {
  public:
-  BaseDataKey(const Slice& key, int32_t version, const Slice& data)
-      :  key_(key), version_(version), data_(data) {}
+  BaseDataKey(const Slice& key, int32_t version, const Slice& data) : key_(key), version_(version), data_(data) {}
 
   ~BaseDataKey() {
     if (start_ != space_) {

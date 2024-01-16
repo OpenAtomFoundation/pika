@@ -443,7 +443,7 @@ int PikaConf::Load() {
   if (max_cache_statistic_keys_ <= 0) {
     max_cache_statistic_keys_ = 0;
   }
-  
+
   // disable_auto_compactions
   GetConfBool("disable_auto_compactions", &disable_auto_compactions_);
 
@@ -586,7 +586,7 @@ int PikaConf::Load() {
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
-  
+
   int cache_num = 16;
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;

@@ -33,7 +33,7 @@ static int lockFile(int fd) {
 static void createPidFile(const char* file) {
   int flags = O_RDWR | O_CREAT;
 #if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
-    flags |= O_DIRECT;
+  flags |= O_DIRECT;
 #endif
   int fd = open(file, flags, S_IRUSR | S_IWUSR);
   if (-1 == fd) {
@@ -51,9 +51,10 @@ static void createPidFile(const char* file) {
 }
 
 static void daemonize() {
-  if (fork() != 0) { exit(0); /* parent exits */
-}
-  setsid();                 /* create a new session */
+  if (fork() != 0) {
+    exit(0); /* parent exits */
+  }
+  setsid(); /* create a new session */
 }
 
 static void close_std() {
