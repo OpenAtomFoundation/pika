@@ -475,9 +475,7 @@ void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void LPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    std::vector<std::string> values;
-    values.push_back(value_);
-    slot->cache()->LPushx(CachePrefixKeyL, values);
+    slot->cache()->LPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -902,8 +900,6 @@ void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
 void RPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    std::vector<std::string> values;
-    values.push_back(value_);
-    slot->cache()->RPushx(CachePrefixKeyL, values);
+    slot->cache()->RPushx(CachePrefixKeyL, values_);
   }
 }

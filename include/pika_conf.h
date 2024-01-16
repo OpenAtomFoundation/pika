@@ -244,9 +244,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_bytes_for_level_multiplier_;
   }
-  int disable_auto_compactions() {
-    return disable_auto_compactions_;
-  }
   int64_t block_size() {
     std::shared_lock l(rwlock_);
     return block_size_;
@@ -724,7 +721,6 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;
   std::atomic<int> replication_num_;
-  std::atomic<bool> disable_auto_compactions_;
 
   std::string network_interface_;
 

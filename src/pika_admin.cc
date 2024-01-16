@@ -2065,15 +2065,15 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->scache_type());
   }
 
-  if (pstd::stringmatch(pattern.data(), "cache-start-direction", 1)) {
+  if (pstd::stringmatch(pattern.data(), "zset-cache-start-direction", 1)) {
     elements += 2;
-    EncodeString(&config_body, "cache-start-direction");
+    EncodeString(&config_body, "zset-cache-start-direction");
     EncodeNumber(&config_body, g_pika_conf->zset_cache_start_pos());
   }
 
-  if (pstd::stringmatch(pattern.data(), "cache-items-per-key", 1)) {
+  if (pstd::stringmatch(pattern.data(), "zset-cache-field-num-per-key", 1)) {
     elements += 2;
-    EncodeString(&config_body, "cache-items-per-key");
+    EncodeString(&config_body, "zset-cache-field-num-per-key");
     EncodeNumber(&config_body, g_pika_conf->zset_cache_field_num_per_key());
   }
 
@@ -2151,12 +2151,11 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "cache-model");
     EncodeString(&ret, "cache-type");
     EncodeString(&ret, "zset-cache-start-direction");
-    EncodeString(&ret, "zset-cache-items-per-key");
+    EncodeString(&ret, "zset-cache-field-num-per-key");
     EncodeString(&ret, "cache-maxmemory");
     EncodeString(&ret, "cache-maxmemory-policy");
     EncodeString(&ret, "cache-maxmemory-samples");
     EncodeString(&ret, "cache-lfu-decay-time");
-    EncodeString(&ret, "disable-auto-compactions");
     return;
   }
   long int ival = 0;
@@ -3085,7 +3084,7 @@ void DisableWalCmd::Do(std::shared_ptr<Slot> slot) {
 }
 
 void CacheCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
+  if (!CheckArg(argv_.size()) || argv_.size() < 2) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
     return;
   }
