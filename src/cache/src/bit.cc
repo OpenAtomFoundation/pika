@@ -7,8 +7,6 @@
 
 #include "pstd_defer.h"
 
-#include "glog/logging.h"
-
 namespace cache {
 
 Status RedisCache::SetBit(std::string &key, size_t offset, int64_t value) {
@@ -27,7 +25,7 @@ Status RedisCache::SetBit(std::string &key, size_t offset, int64_t value) {
     return Status::Corruption("RcSetBit failed");
   }
 
-  return Status::Corruption("RcBitPos failed");
+  return Status::OK();
 }
 
 Status RedisCache::GetBit(std::string &key, size_t offset, int64_t *value) {
@@ -106,7 +104,7 @@ Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t 
     if (REDIS_KEY_NOT_EXIST == ret) {
       return Status::NotFound("key not in cache");
     }
-    return Status::OK();
+    return Status::Corruption("RcBitPos failed");
   }
 
   return Status::OK();
