@@ -2065,44 +2065,46 @@ void ConfigCmd::ConfigGet(std::string& ret) {
 void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*29\r\n";
-    EncodeString(&ret, "timeout");
-    EncodeString(&ret, "requirepass");
-    EncodeString(&ret, "masterauth");
-    EncodeString(&ret, "slotmigrate");
-    EncodeString(&ret, "userpass");
-    EncodeString(&ret, "userblacklist");
-    EncodeString(&ret, "dump-prefix");
-    EncodeString(&ret, "maxclients");
-    EncodeString(&ret, "dump-expire");
-    EncodeString(&ret, "expire-logs-days");
-    EncodeString(&ret, "expire-logs-nums");
-    EncodeString(&ret, "root-connection-num");
-    EncodeString(&ret, "slowlog-write-errorlog");
-    EncodeString(&ret, "slowlog-log-slower-than");
-    EncodeString(&ret, "slowlog-max-len");
-    EncodeString(&ret, "write-binlog");
-    EncodeString(&ret, "max-cache-statistic-keys");
-    EncodeString(&ret, "small-compaction-threshold");
-    EncodeString(&ret, "small-compaction-duration-threshold");
-    EncodeString(&ret, "max-client-response-size");
-    EncodeString(&ret, "db-sync-speed");
-    EncodeString(&ret, "compact-cron");
-    EncodeString(&ret, "compact-interval");
-    EncodeString(&ret, "disable_auto_compactions");
-    EncodeString(&ret, "slave-priority");
-    EncodeString(&ret, "sync-window-size");
-    // Options for storage engine
-    // MutableDBOptions
-    EncodeString(&ret, "max-cache-files");
-    EncodeString(&ret, "max-background-compactions");
-    EncodeString(&ret, "max-background-jobs");
-    // MutableColumnFamilyOptions
-    EncodeString(&ret, "write-buffer-size");
-    EncodeString(&ret, "max-write-buffer-num");
-    EncodeString(&ret, "arena-block-size");
-    EncodeString(&ret, "throttle-bytes-per-second");
-    EncodeString(&ret, "max-rsync-parallel-num");
+    std::vector<std::string> replyVt({
+      "timeout",
+      "requirepass",
+      "masterauth",
+      "dump-prefix",
+      "maxclients",
+      "dump-expire",
+      "expire-logs-days",
+      "expire-logs-nums",
+      "root-connection-num",
+      "slowlog-write-errorlog",
+      "slowlog-log-slower-than",
+      "slowlog-max-len",
+      "write-binlog",
+      "userpass",
+      "userblacklist",
+      "max-cache-statistic-keys",
+      "small-compaction-threshold",
+      "small-compaction-duration-threshold",
+      "max-client-response-size",
+      "db-sync-speed",
+      "compact-cron",
+      "compact-interval",
+      "disable_auto_compactions",
+      "slave-priority",
+      "sync-window-size",
+      // Options for storage engine
+      // MutableDBOptions
+      "max-cache-files",
+      "max-background-compactions",
+      "max-background-jobs",
+      // MutableColumnFamilyOptions
+       "write-buffer-size",
+       "max-write-buffer-num",
+      "arena-block-size",
+       "throttle-bytes-per-second",
+      "max-rsync-parallel-num",
+      "slotmigrate"
+    });
+    res_.AppendStringVector(replyVt);
     return;
   }
   long int ival = 0;

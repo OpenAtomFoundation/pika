@@ -431,7 +431,7 @@ class CmdRes {
 
   void AppendStringVector(const std::vector<std::string>& strArray) {
     if (strArray.empty()) {
-      AppendArrayLen(-1);
+      AppendArrayLen(0);
       return;
     }
     AppendArrayLen(strArray.size());
