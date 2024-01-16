@@ -19,7 +19,7 @@ class PikaAclCmd : public Cmd {
     subCmdName_ = {"cat", "deluser", "dryrun",  "genpass", "getuser", "list", "load",
                    "log", "save",    "setuser", "users",   "whoami",  "help"};
   }
-  void Do(std::shared_ptr<DB> db = nullptr) override;
+  void Do(std::shared_ptr<DB> db) override;
   void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PikaAclCmd(*this); }

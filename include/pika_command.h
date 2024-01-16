@@ -253,12 +253,12 @@ static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW = 1,
-  kCmdFlagsMaskLocal = 32,
-  kCmdFlagsMaskSuspend = 64,
-  kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskDoThrouhDB = 4096,
-  kCmdFlagsMaskReadCache = 128,
-  kCmdFlagsMaskUpdateCache = 2048,
+  kCmdFlagsMaskLocal = (1 << 1),
+  kCmdFlagsMaskSuspend = (1 << 2),
+  kCmdFlagsMaskReadCache = (1 << 3),
+  kCmdFlagsMaskAdminRequire = (1 << 4),
+  kCmdFlagsMaskUpdateCache = (1 << 5),
+  kCmdFlagsMaskDoThrouhDB = (1 << 6),
 };
 
 enum CmdFlags {

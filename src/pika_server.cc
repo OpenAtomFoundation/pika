@@ -48,7 +48,6 @@ void DoDBSync(void* arg) {
 
 PikaServer::PikaServer()
     : exit_(false),
-      db_state_(INFREE),
       last_check_compact_time_({0, 0}),
       last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
@@ -438,7 +437,6 @@ void PikaServer::PrepareDBTrySync() {
     }
   }
   force_full_sync_ = false;
-  loop_db_state_machine_ = true;
   LOG(INFO) << "Mark try connect finish";
 }
 
@@ -641,7 +639,6 @@ void PikaServer::RemoveMaster() {
     if (!master_ip_.empty() && master_port_ != -1) {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
-      loop_db_state_machine_ = false;
       UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
@@ -689,15 +686,8 @@ void PikaServer::ResetMetaSyncStatus() {
     // not change by slaveof no one, so set repl_state = PIKA_REPL_SHOULD_META_SYNC,
     // continue to connect master
     repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
-    loop_db_state_machine_ = false;
     DoSameThingEveryDB(TaskType::kResetReplState);
   }
-}
-
-void PikaServer::SetLoopDBStateMachine(bool need_loop) {
-  std::lock_guard sp_l(state_protector_);
-  assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
-  loop_db_state_machine_ = need_loop;
 }
 
 int PikaServer::GetMetaSyncTimestamp() {

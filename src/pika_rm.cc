@@ -519,7 +519,6 @@ Status SyncSlaveDB::CheckSyncTimeout(uint64_t now) {
   if (m_info_.LastRecvTime() + kRecvKeepAliveTimeout < now) {
     // update slave state to kTryConnect, and try reconnect to master node
     repl_state_ = ReplState::kTryConnect;
-    g_pika_server->SetLoopDBStateMachine(true);
   }
   return Status::OK();
 }

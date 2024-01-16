@@ -166,7 +166,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
     while (retries < max_retries_) {
       if (state_.load() != RUNNING) {
         break;
-        }
+      }
       size_t copy_file_begin_time = pstd::NowMicros();
       size_t count = Throttle::GetInstance().ThrottledByThroughput(kBytesPerRequest);
       if (count == 0) {
@@ -232,12 +232,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         s = writer->Fsync();
         if (!s.ok()) {
             return s;
-        }
-        s = writer->Close();
-        if (!s.ok()) {
-            return s;
-        }
-        writer.reset();
+        } 
         mu_.lock();
         meta_table_[filename] = "";
         mu_.unlock();

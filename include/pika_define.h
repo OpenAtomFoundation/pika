@@ -79,10 +79,6 @@ enum ReplState {
 const std::string ReplStateMsg[] = {"kNoConnect", "kTryConnect", "kTryDBSync", "kWaitDBSync",
                                     "kWaitReply", "kConnected",  "kError",     "kDBNoConnect"};
 
-enum DBState {
-  INFREE = 0,
-};
-
 struct LogicOffset {
   uint32_t term{0};
   uint64_t index{0};

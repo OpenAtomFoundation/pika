@@ -513,7 +513,6 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DB used
    */
-  std::atomic<DBState> db_state_;
   std::shared_mutex dbs_rw_;
   std::map<std::string, std::shared_ptr<DB>> dbs_;
 
@@ -545,7 +544,6 @@ class PikaServer : public pstd::noncopyable {
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
   bool force_full_sync_ = false;
-  bool loop_db_state_machine_ = false;
   bool leader_protected_mode_ = false;  // reject request after master slave sync done
   std::shared_mutex state_protector_;   // protect below, use for master-slave mode
 
