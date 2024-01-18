@@ -109,31 +109,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     response.set_code(InnerMessage::kOk);
   }
 
-  if (pre_success && req->has_consensus_meta()) {
-    if (slot->GetNumberOfSlaveNode() >= g_pika_conf->replication_num() &&
-        !slot->CheckSlaveNodeExist(node.ip(), node.port())) {
-      LOG(WARNING) << "Current replication num: " << slot->GetNumberOfSlaveNode()
-                   << " hits configuration replication-num " << g_pika_conf->replication_num() << " stop trysync.";
-      pre_success = false;
-    }
-    if (pre_success) {
-      const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
-      // need to response to outdated pb, new follower count on this response to update term
-      if (meta.term() > slot->ConsensusTerm()) {
-        LOG(INFO) << "Update " << slot_name << " term from " << slot->ConsensusTerm() << " to "
-                  << meta.term();
-        slot->ConsensusUpdateTerm(meta.term());
-      }
-    }
-    if (pre_success) {
-      pre_success = TrySyncConsensusOffsetCheck(slot, req->consensus_meta(), &response, try_sync_response);
-    }
-  } else if (pre_success) {
-    pre_success = TrySyncOffsetCheck(slot, try_sync_request, try_sync_response);
-  }
-
-  if (pre_success) {
-    pre_success = TrySyncUpdateSlaveNode(slot, try_sync_request, conn, try_sync_response);
+  if (pre_success && TrySyncOffsetCheck(slot, try_sync_request, try_sync_response)) {
+    TrySyncUpdateSlaveNode(slot, try_sync_request, conn, try_sync_response);
   }
 
   std::string reply_str;
@@ -184,36 +161,6 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMaster
     LOG(INFO) << "Slot: " << slot_name << " TrySync Success, Session: " << session_id;
   }
   return true;
-}
-
-bool PikaReplServerConn::TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterSlot>& slot,
-                                                     const InnerMessage::ConsensusMeta& meta,
-                                                     InnerMessage::InnerResponse* response,
-                                                     InnerMessage::InnerResponse::TrySync* try_sync_response) {
-  LogOffset last_log_offset;
-  last_log_offset.b_offset.filenum = meta.log_offset().filenum();
-  last_log_offset.b_offset.offset = meta.log_offset().offset();
-  last_log_offset.l_offset.term = meta.log_offset().term();
-  last_log_offset.l_offset.index = meta.log_offset().index();
-  std::string slot_name = slot->SlotName();
-  bool reject = false;
-  std::vector<LogOffset> hints;
-  Status s = slot->ConsensusLeaderNegotiate(last_log_offset, &reject, &hints);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(INFO) << "Slot: " << slot_name << " need full sync";
-      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
-      return false;
-    } else {
-      LOG(WARNING) << "Slot:" << slot_name << " error " << s.ToString();
-      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-      return false;
-    }
-  }
-  try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-  uint32_t term = slot->ConsensusTerm();
-  BuildConsensusMeta(reject, hints, term, response);
-  return !reject;
 }
 
 bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot>& slot,
@@ -329,7 +276,6 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
         } else {
           response.set_code(InnerMessage::kError);
           LOG(WARNING) << "Slot: " << slot_name << " Handle DBSync Request Failed, " << s.ToString();
-          prior_success = false;
         }
       } else {
         db_sync_response->set_session_id(-1);
@@ -340,7 +286,6 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
       if (!s.ok()) {
         response.set_code(InnerMessage::kError);
         LOG(WARNING) << "Slot: " << slot_name << ", Get Session id Failed" << s.ToString();
-        prior_success = false;
         db_sync_response->set_session_id(-1);
       } else {
         db_sync_response->set_session_id(session_id);
@@ -398,19 +343,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     return;
   }
 
-  if (req->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
-    if (meta.term() > master_slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << master_slot->ConsensusTerm()
-                << " to " << meta.term();
-      master_slot->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < master_slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync req " << db_name << ":" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << master_slot->ConsensusTerm();
-      return;
-    }
-  }
-
   if (!master_slot->CheckSessionId(node.ip(), node.port(), db_name, slot_id, session_id)) {
     LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << db_name << "_"
                  << slot_id;
@@ -436,7 +368,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       return;
     }
 
-    Status s = master_slot->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
+    s = master_slot->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
       conn->NotifyClose();

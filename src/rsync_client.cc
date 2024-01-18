@@ -62,7 +62,7 @@ bool RsyncClient::Init() {
   master_port_ = g_pika_server->master_port() + kPortShiftRsync2;
   file_set_.clear();
   client_thread_->StartThread();
-  bool ret = Recover();
+  bool ret = ComparisonUpdate();
   if (!ret) {
     LOG(WARNING) << "RsyncClient recover failed";
     client_thread_->StopThread();
@@ -259,14 +259,14 @@ Status RsyncClient::Stop() {
   return Status::OK();
 }
 
-bool RsyncClient::Recover() {
+bool RsyncClient::ComparisonUpdate() {
   std::string local_snapshot_uuid;
   std::string remote_snapshot_uuid;
   std::set<std::string> local_file_set;
   std::set<std::string> remote_file_set;
   std::map<std::string, std::string> local_file_map;
 
-  Status s = CopyRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
+  Status s = PullRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
   if (!s.ok()) {
     LOG(WARNING) << "copy remote meta failed! error:" << s.ToString();
     return false;
@@ -323,7 +323,7 @@ bool RsyncClient::Recover() {
   return true;
 }
 
-Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set) {
+Status RsyncClient::PullRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set) {
   Status s;
   int retries = 0;
   RsyncRequest request;
@@ -342,7 +342,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     std::shared_ptr<RsyncResponse> resp;
     s = wo->Wait(resp);
     if (s.IsTimeout()) {
-      LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
+      LOG(WARNING) << "rsync PullRemoteMeta request timeout, "
                    << "retry times: " << retries;
       retries++;
       continue;

@@ -262,8 +262,14 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 		return redis.NewBulkBytes([]byte(strconv.FormatBool(p.config.BackendPrimaryOnly)))
 	case "max_slot_num":
 		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.MaxSlotNum)))
+	case "backend_primary_parallel":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendPrimaryParallel)))
 	case "backend_replica_parallel":
 		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendReplicaParallel)))
+	case "backend_primary_quick":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendPrimaryQuick)))
+	case "backend_replica_quick":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendReplicaQuick)))
 	case "backend_keepalive_period":
 		return redis.NewBulkBytes([]byte(p.config.BackendKeepAlivePeriod.Duration().String()))
 	case "backend_number_databases":
@@ -308,6 +314,12 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 			redis.NewBulkBytes([]byte("metrics_report_statsd_prefix")),
 			redis.NewBulkBytes([]byte(p.config.MetricsReportStatsdPrefix)),
 		})
+	case "quick_cmd_list":
+		return redis.NewBulkBytes([]byte(p.config.QuickCmdList))
+	case "slow_cmd_list":
+		return redis.NewBulkBytes([]byte(p.config.SlowCmdList))
+	case "quick_slow_cmd":
+		return getCmdFlag()
 	case "max_delay_refresh_time_interval":
 		if text, err := p.config.MaxDelayRefreshTimeInterval.MarshalText(); err != nil {
 			return redis.NewErrorf("cant get max_delay_refresh_time_interval value.")
@@ -348,6 +360,50 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		}
 		p.config.SlowlogLogSlowerThan = n
 		return redis.NewString([]byte("OK"))
+	case "quick_cmd_list":
+		err := setCmdListFlag(value, FlagQuick)
+		if err != nil {
+			log.Warnf("setQuickCmdList config[%s] failed, recover old config[%s].", value, p.config.QuickCmdList)
+			setCmdListFlag(p.config.QuickCmdList, FlagQuick)
+			return redis.NewErrorf("err：%s.", err)
+		}
+		p.config.QuickCmdList = value
+		return redis.NewString([]byte("OK"))
+	case "slow_cmd_list":
+		err := setCmdListFlag(value, FlagSlow)
+		if err != nil {
+			log.Warnf("setSlowCmdList config[%s] failed, recover old config[%s].", value, p.config.SlowCmdList)
+			setCmdListFlag(p.config.SlowCmdList, FlagSlow)
+			return redis.NewErrorf("err：%s.", err)
+		}
+		p.config.SlowCmdList = value
+		return redis.NewString([]byte("OK"))
+	case "backend_replica_quick":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+
+		if n < 0 || n >= p.config.BackendReplicaParallel {
+			return redis.NewErrorf("invalid backend_replica_quick")
+		} else {
+			p.config.BackendReplicaQuick = n
+			p.router.SetReplicaQuickConn(p.config.BackendReplicaQuick)
+			return redis.NewString([]byte("OK"))
+		}
+	case "backend_primary_quick":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+
+		if n < 0 || n >= p.config.BackendPrimaryParallel {
+			return redis.NewErrorf("invalid backend_primary_quick")
+		} else {
+			p.config.BackendPrimaryQuick = n
+			p.router.SetPrimaryQuickConn(p.config.BackendPrimaryQuick)
+			return redis.NewString([]byte("OK"))
+		}
 	case "max_delay_refresh_time_interval":
 		s := &(p.config.MaxDelayRefreshTimeInterval)
 		err := s.UnmarshalText([]byte(value))
@@ -490,6 +546,13 @@ func (p *Proxy) serveProxy() {
 
 	if d := p.config.BackendPingPeriod.Duration(); d != 0 {
 		go p.keepAlive(d)
+	}
+
+	if err := setCmdListFlag(p.config.QuickCmdList, FlagQuick); err != nil {
+		log.PanicErrorf(err, "setQuickCmdList [%s] failed", p.config.QuickCmdList)
+	}
+	if err := setCmdListFlag(p.config.SlowCmdList, FlagSlow); err != nil {
+		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
 	select {

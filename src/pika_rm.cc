@@ -491,13 +491,6 @@ LogOffset SyncMasterSlot::ConsensusLastIndex() { return coordinator_.MemLogger()
 
 uint32_t SyncMasterSlot::ConsensusTerm() { return coordinator_.term(); }
 
-void SyncMasterSlot::ConsensusUpdateTerm(uint32_t term) {
-  coordinator_.UpdateTerm(term);
-  if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
-    CommitPreviousLogs(term);
-  }
-}
-
 void SyncMasterSlot::CommitPreviousLogs(const uint32_t& term) {
   // Append dummy cmd
   std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSingleSlot);

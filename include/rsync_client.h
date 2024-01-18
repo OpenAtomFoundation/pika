@@ -68,9 +68,9 @@ class RsyncClient : public net::Thread {
   void OnReceive(RsyncService::RsyncResponse* resp);
 
 private:
-  bool Recover();
+  bool ComparisonUpdate();
   Status CopyRemoteFile(const std::string& filename, int index);
-  Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
+  Status PullRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
   Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
   std::string GetLocalMetaFilePath();
   Status FlushMetaTable();

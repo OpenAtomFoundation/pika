@@ -92,7 +92,6 @@ class SyncMasterSlot : public SyncSlot {
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
   uint32_t ConsensusTerm();
-  void ConsensusUpdateTerm(uint32_t term);
   pstd::Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
   LogOffset ConsensusAppliedIndex();
   pstd::Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);

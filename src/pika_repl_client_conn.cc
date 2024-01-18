@@ -214,30 +214,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 
   LogicOffset logic_last_offset;
-  if (response->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
-    if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
-      slot->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated trysync response " << db_name << ":" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
-      return;
-    }
-
-    if (response->consensus_meta().reject()) {
-      Status s = TrySyncConsensusCheck(response->consensus_meta(), slot, slave_slot);
-      if (!s.ok()) {
-        slave_slot->SetReplState(ReplState::kError);
-        LOG(WARNING) << "Consensus Check failed " << s.ToString();
-      }
-      return;
-    }
-
-    logic_last_offset = slot->ConsensusLastIndex().l_offset;
-  }
-
   std::string slot_name = slot->SlotName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
@@ -263,29 +239,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 }
 
-Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                                 const std::shared_ptr<SyncMasterSlot>& slot,
-                                                 const std::shared_ptr<SyncSlaveSlot>& slave_slot) {
-  std::vector<LogOffset> hints;
-  for (int i = 0; i < consensus_meta.hint_size(); ++i) {
-    const InnerMessage::BinlogOffset& pb_offset = consensus_meta.hint(i);
-    LogOffset offset;
-    offset.b_offset.filenum = pb_offset.filenum();
-    offset.b_offset.offset = pb_offset.offset();
-    offset.l_offset.term = pb_offset.term();
-    offset.l_offset.index = pb_offset.index();
-    hints.push_back(offset);
-  }
-  LogOffset reply_offset;
-  Status s = slot->ConsensusFollowerNegotiate(hints, &reply_offset);
-  if (!s.ok()) {
-    return s;
-  }
-  slave_slot->SetReplState(ReplState::kTryConnect);
-
-  return s;
-}
-
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
   // slot to a bunch of binlog chips
   std::unordered_map<SlotInfo, std::vector<int>*, hash_slot_info> par_binlog;
@@ -299,7 +252,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
     par_binlog[p_info]->push_back(i);
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot = nullptr;
+  std::shared_ptr<SyncSlaveSlot> slave_slot;
   for (auto& binlog_nums : par_binlog) {
     RmNode node(binlog_nums.first.db_name_, binlog_nums.first.slot_id_);
     slave_slot = g_pika_rm->GetSyncSlaveSlotByName(

@@ -113,28 +113,16 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     return;
   }
 
-  if (res->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
-    if (meta.term() > slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << "_" << slot_id << " term from " << slot->ConsensusTerm()
-                << " to " << meta.term();
-      slot->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync response " << db_name << "_" << slot_id
-                   << " recv term: " << meta.term() << " local term: " << slot->ConsensusTerm();
+  if (res->has_consensus_meta() && !only_keepalive) {
+    LogOffset last_offset = slot->ConsensusLastIndex();
+    LogOffset prev_offset;
+    ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
+    if (last_offset.l_offset.index != 0 &&
+        (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
+      LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
+                   << prev_offset.ToString();
+      slave_slot->SetReplState(ReplState::kTryConnect);
       return;
-    }
-    if (!only_keepalive) {
-      LogOffset last_offset = slot->ConsensusLastIndex();
-      LogOffset prev_offset;
-      ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
-      if (last_offset.l_offset.index != 0 &&
-          (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
-        LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
-                     << prev_offset.ToString();
-        slave_slot->SetReplState(ReplState::kTryConnect);
-        return;
-      }
     }
   }
 
