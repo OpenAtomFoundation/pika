@@ -6,12 +6,11 @@
 #include <fstream>
 #include <memory>
 
-#include "pstd/include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
 #include "include/pika_command.h"
-
+#include "pstd/include/pika_conf.h"
 #include "pstd/include/mutex_impl.h"
 #include "pstd/include/pstd_hash.h"
 

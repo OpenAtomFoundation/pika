@@ -14,16 +14,16 @@
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 
-#include "pstd/include/pika_codis_slot.h"
+#include "src/debug.h"
 #include "src/lock_mgr.h"
 #include "src/lru_cache.h"
 #include "src/mutex_impl.h"
-#include "src/custom_comparator.h"
 #include "src/type_iterator.h"
+#include "src/custom_comparator.h"
 #include "storage/storage.h"
 #include "storage/storage_define.h"
 #include "pstd/include/env.h"
-#include "src/debug.h"
+#include "pstd/include/pika_codis_slot.h"
 
 #define SPOP_COMPACT_THRESHOLD_COUNT 500
 #define SPOP_COMPACT_THRESHOLD_DURATION (1000 * 1000)  // 1000ms
@@ -329,6 +329,7 @@ private:
   Storage* const storage_;
   std::shared_ptr<LockMgr> lock_mgr_;
   rocksdb::DB* db_ = nullptr;
+  rocksdb::Env* env_ = nullptr;
   //TODO(wangshaoyi): seperate env for each rocksdb instance
   //std::unique_ptr<rocksdb::Env> env_;
 
