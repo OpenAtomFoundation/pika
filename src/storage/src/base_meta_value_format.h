@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include "pstd/include/env.h"
 #include "storage/storage_define.h"
 #include "src/base_value_format.h"
 
@@ -42,9 +43,8 @@ class BaseMetaValue : public InternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (version_ >= uint64_t(unix_time)) {
+    int64_t unix_time = pstd::NowMicros() / 1000000;
+    if (version_ >= unix_time) {
       version_++;
     } else {
       version_ = uint64_t(unix_time);

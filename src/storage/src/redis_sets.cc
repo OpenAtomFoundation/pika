@@ -13,12 +13,12 @@
 #include <glog/logging.h>
 #include <fmt/core.h>
 
-#include "pstd/include/pika_codis_slot.h"
-#include "src/base_data_value_format.h"
 #include "src/base_filter.h"
-#include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
+#include "src/scope_record_lock.h"
+#include "src/base_data_value_format.h"
 #include "pstd/include/env.h"
+#include "pstd/include/pika_codis_slot.h"
 #include "storage/util.h"
 
 namespace storage {

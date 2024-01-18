@@ -25,6 +25,7 @@ inline const std::string DEFAULT_RS_PATH = "db";    // Default restore root dir
 struct BackupSaveArgs {
   void* p_engine = nullptr;
   const std::string backup_dir;
+  // rocksdb instance number, consistent will instance index in storage.
   int index_ = 0;
   Status res;
 

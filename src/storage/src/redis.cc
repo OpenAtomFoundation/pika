@@ -36,6 +36,7 @@ Redis::Redis(Storage* const s, int32_t index)
   default_compact_range_options_.change_level = true;
   spop_counts_store_->SetCapacity(1000);
   scan_cursors_store_->SetCapacity(5000);
+  env_ = rocksdb::Env::Instance();
   handles_.clear();
 }
 
@@ -46,6 +47,7 @@ Redis::~Redis() {
   for (auto handle : tmp_handles) {
     delete handle;
   }
+  delete env_;
   delete db_;
 }
 
@@ -55,7 +57,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   rocksdb::DBOptions db_ops(storage_options.options);
   db_ops.create_missing_column_families = true;
-  db_ops.env = rocksdb::Env::Instance();
+  db_ops.env = env_;
 
   // string column-family options
   rocksdb::ColumnFamilyOptions string_cf_ops(storage_options.options);

@@ -7,12 +7,11 @@
 #include <memory>
 
 #include "include/pika_command.h"
-#include "include/pika_stream_base.h"
-#include "pstd/include/pstd_string.h"
-
-#include "include/pika_cache.h"
-#include "pstd/include/pika_conf.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_cache.h"
+#include "include/pika_stream_base.h"
+#include "pstd/include/pika_conf.h"
+#include "pstd/include/pstd_string.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
@@ -203,7 +202,7 @@ void DelCmd::DoInitial() {
 void DelCmd::Do() {
   std::map<storage::DataType, storage::Status> type_status;
   int64_t count = db_->storage()->Del(keys_, &type_status);
-  
+
   // stream's destory need to be treated specially
   auto s = StreamStorage::DestoryStreams(keys_, db_.get());
   if (!s.ok()) {

@@ -50,7 +50,6 @@ const static char* kEncodedKeyDelim = "\u0000\u0000";
 const static int kEncodedKeyDelimSize = 2;
 
 inline char* EncodeUserKey(const Slice& user_key, char* dst_ptr) {
-  char* start = dst_ptr;
   std::for_each(user_key.data(), user_key.data() + user_key.size(),
       [&dst_ptr](auto & ch){
         if (ch == kNeedTransformCharacter) {

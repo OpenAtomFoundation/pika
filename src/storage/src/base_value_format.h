@@ -45,7 +45,7 @@ public:
     } else {
       dst = new char[needed];
       if (start_ != space_) {
-        delete [] start_;
+        delete[] start_;
       }
     }
     start_ = dst;
