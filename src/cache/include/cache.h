@@ -44,7 +44,7 @@ public:
   // Normal Commands
   bool Exists(std::string& key);
   int64_t DbSize(void);
-  void FlushDb(void);
+  void FlushCache(void);
 
   Status Del(const std::string& key);
   Status Expire(std::string& key, int64_t ttl);

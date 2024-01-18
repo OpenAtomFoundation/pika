@@ -16,9 +16,9 @@ class MultiCmd : public Cmd {
  public:
   MultiCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   Cmd* Clone() override { return new MultiCmd(*this); }
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
+  void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
 
  private:
@@ -29,10 +29,10 @@ class ExecCmd : public Cmd {
  public:
   ExecCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   Cmd* Clone() override { return new ExecCmd(*this); }
   void Execute() override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
+  void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
   std::vector<std::string> current_key() const override { return {}; }
 
@@ -64,9 +64,9 @@ class DiscardCmd : public Cmd {
  public:
   DiscardCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   Cmd* Clone() override { return new DiscardCmd(*this); }
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
+  void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
 
  private:
@@ -78,9 +78,9 @@ class WatchCmd : public Cmd {
   WatchCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
 
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   void Execute() override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
+  void Split(const HintKeys& hint_keys) override {}
   Cmd* Clone() override { return new WatchCmd(*this); }
   void Merge() override {}
   std::vector<std::string> current_key() const override { return keys_; }
@@ -96,9 +96,9 @@ class UnwatchCmd : public Cmd {
   UnwatchCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
 
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   Cmd* Clone() override { return new UnwatchCmd(*this); }
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {}
+  void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
 
  private:

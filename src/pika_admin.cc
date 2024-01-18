@@ -138,7 +138,7 @@ void SlaveofCmd::DoInitial() {
   }
 }
 
-void SlaveofCmd::Do(std::shared_ptr<DB> db) {
+void SlaveofCmd::Do() {
   // Check if we are already connected to the specified master
   if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
       g_pika_server->master_port() == master_port_) {
@@ -162,7 +162,7 @@ void SlaveofCmd::Do(std::shared_ptr<DB> db) {
 
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
-    g_pika_server->ClearCacheDbAsync(db);
+    g_pika_server->ClearCacheDbAsync(db_);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
     g_pika_server->SetFirstMetaSync(true);
   } else {
@@ -220,7 +220,7 @@ void DbSlaveofCmd::DoInitial() {
   }
 }
 
-void DbSlaveofCmd::Do(std::shared_ptr<DB> db) {
+void DbSlaveofCmd::Do() {
   std::shared_ptr<SyncSlaveDB> slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name_));
   if (!slave_db) {
     res_.SetRes(CmdRes::kErrOther, "Db not found");
@@ -257,7 +257,7 @@ void AuthCmd::DoInitial() {
   }
 }
 
-void AuthCmd::Do(std::shared_ptr<DB> db) {
+void AuthCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
@@ -316,7 +316,7 @@ void BgsaveCmd::DoInitial() {
   }
 }
 
-void BgsaveCmd::Do(std::shared_ptr<DB> db) {
+void BgsaveCmd::Do() {
   g_pika_server->DoSameThingSpecificDB(bgsave_dbs_, {TaskType::kBgSave});
   LogCommand();
   res_.AppendContent("+Background saving started");
@@ -354,7 +354,7 @@ void CompactCmd::DoInitial() {
   }
 }
 
-void CompactCmd::Do(std::shared_ptr<DB> db) {
+void CompactCmd::Do() {
   if (strcasecmp(struct_type_.data(), "all") == 0) {
     g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
   } else if (strcasecmp(struct_type_.data(), "string") == 0) {
@@ -401,7 +401,7 @@ void CompactRangeCmd::DoInitial() {
   end_key_ = argv_[4];
 }
 
-void CompactRangeCmd::Do(std::shared_ptr<DB> db) {
+void CompactRangeCmd::Do() {
   if (strcasecmp(struct_type_.data(), "string") == 0) {
     g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeStrings, {start_key_, end_key_}});
   } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
@@ -445,7 +445,7 @@ void PurgelogstoCmd::DoInitial() {
   }
 }
 
-void PurgelogstoCmd::Do(std::shared_ptr<DB> db) {
+void PurgelogstoCmd::Do() {
   std::shared_ptr<SyncMasterDB> sync_db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_));
   if (!sync_db) {
     res_.SetRes(CmdRes::kErrOther, "DB not found");
@@ -462,7 +462,7 @@ void PingCmd::DoInitial() {
   }
 }
 
-void PingCmd::Do(std::shared_ptr<DB> db) {
+void PingCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
@@ -482,17 +482,8 @@ void SelectCmd::DoInitial() {
     return;
   }
   db_name_ = "db" + argv_[1];
-  select_db_ = g_pika_server->GetDB(db_name_);
-  return;
-}
-
-void SelectCmd::Do(std::shared_ptr<DB> db) {
-  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
-  if (!conn) {
-    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
-    LOG(WARNING) << name_ << " weak ptr is empty";
-    return;
-  }
+  db_ = g_pika_server->GetDB(db_name_);
+  sync_db_ = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
   int index = atoi(argv_[1].data());
   if (std::to_string(index) != argv_[1]) {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
@@ -502,8 +493,17 @@ void SelectCmd::Do(std::shared_ptr<DB> db) {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
     return;
   }
-  if (select_db_ == nullptr) {
+  if (db_ == nullptr || sync_db_ == nullptr) {
     res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
+    return;
+  }
+}
+
+void SelectCmd::Do() {
+  std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameSelect);
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   conn->SetCurrentDb(db_name_);
@@ -516,22 +516,22 @@ void FlushallCmd::DoInitial() {
     return;
   }
 }
-void FlushallCmd::Do(std::shared_ptr<DB> db) {
-  if (!db) {
+void FlushallCmd::Do() {
+  if (!db_) {
     LOG(INFO) << "Flushall, but DB not found";
   } else {
-    db->FlushDB();
+    db_->FlushDB();
   }
 }
 
-void FlushallCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void FlushallCmd::DoThroughDB() {
+  Do();
 }
 
-void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void FlushallCmd::DoUpdateCache() {
   // clear cache
   if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
-    g_pika_server->ClearCacheDbAsync(db);
+    g_pika_server->ClearCacheDbAsync(db_);
   }
 }
 
@@ -586,12 +586,38 @@ void FlushallCmd::FlushAllWithoutLock() {
   }
 }
 
+void FlushallCmd::DoBinlog(std::shared_ptr<SyncMasterDB> sync_db) {
+  if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
+    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
+    std::shared_ptr<std::string> resp_ptr = GetResp();
+    // Consider that dummy cmd appended by system, both conn and resp are null.
+    if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
+      if (!conn_ptr) {
+        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " conn empty.";
+      }
+      if (!resp_ptr) {
+        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " resp empty.";
+      }
+      res().SetRes(CmdRes::kErrOther);
+      return;
+    }
+
+    Status s = sync_db->ConsensusProposeLog(shared_from_this());
+    if (!s.ok()) {
+      LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
+                   << s.ToString();
+      res().SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+}
+
 void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
   if (!db) {
     LOG(INFO) << "Flushall, but DB not found";
   } else {
     db->FlushDBWithoutLock();
-    DoUpdateCache(db);
+    DoUpdateCache();
   }
 }
 
@@ -620,64 +646,63 @@ void FlushdbCmd::DoInitial() {
   }
 }
 
-void FlushdbCmd::Do(std::shared_ptr<DB> db) {
-  if (!db) {
+void FlushdbCmd::Do() {
+  if (!db_) {
     LOG(INFO) << "Flushdb, but DB not found";
   } else {
     if (db_name_ == "all") {
-      db->FlushDB();
+      db_->FlushDB();
     } else {
-      db->FlushSubDB(db_name_);
+      db_->FlushSubDB(db_name_);
     }
   }
 }
 
 
-void FlushdbCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void FlushdbCmd::DoThroughDB() {
+  Do();
 }
 
-void FlushdbCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void FlushdbCmd::DoUpdateCache() {
   // clear cache
   if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
-    g_pika_server->ClearCacheDbAsync(db);
+    g_pika_server->ClearCacheDbAsync(db_);
   }
 }
 
-void FlushdbCmd::FlushAllDBsWithoutLock(std::shared_ptr<DB> db) {
-  DBInfo p_info(db->GetDBName());
+void FlushdbCmd::FlushAllDBsWithoutLock() {
+  DBInfo p_info(db_->GetDBName());
   if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
     res_.SetRes(CmdRes::kErrOther, "DB not found");
     return;
   }
-  DoWithoutLock(db);
-  DoBinlog(g_pika_rm->GetSyncMasterDBs()[p_info]);
+  DoWithoutLock();
+  DoBinlog();
 }
 
-void FlushdbCmd::DoWithoutLock(std::shared_ptr<DB> db) {
-  if (!db) {
+void FlushdbCmd::DoWithoutLock() {
+  if (!db_) {
     LOG(INFO) << "Flushdb, but DB not found";
   } else {
     if (db_name_ == "all") {
-      db->FlushDBWithoutLock();
+      db_->FlushDBWithoutLock();
     } else {
-      db->FlushSubDBWithoutLock(db_name_);
+      db_->FlushSubDBWithoutLock(db_name_);
     }
-    DoUpdateCache(db);
+    DoUpdateCache();
   }
 }
 
 void FlushdbCmd::Execute() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(Cmd::db_name_);
-  if (!db) {
+  if (!db_) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    if (db->IsKeyScaning()) {
+    if (db_->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db->GetDBLock());
+      std::lock_guard l_prw(db_->GetDBLock());
       std::lock_guard s_prw(g_pika_rm->GetDBLock());
-      FlushAllDBsWithoutLock(db);
+      FlushAllDBsWithoutLock();
       res_.SetRes(CmdRes::kOk);
     }
   }
@@ -723,7 +748,7 @@ void ClientCmd::DoInitial() {
   operation_ = argv_[1];
 }
 
-void ClientCmd::Do(std::shared_ptr<DB> db) {
+void ClientCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameClient);
@@ -796,7 +821,7 @@ void ShutdownCmd::DoInitial() {
   }
 }
 // no return
-void ShutdownCmd::Do(std::shared_ptr<DB> db) {
+void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
   g_pika_server->Exit();
   res_.SetRes(CmdRes::kNone);
@@ -898,7 +923,7 @@ void InfoCmd::DoInitial() {
   }
 }
 
-void InfoCmd::Do(std::shared_ptr<DB> db) {
+void InfoCmd::Do() {
   std::string info;
   switch (info_section_) {
     case kInfo:
@@ -929,7 +954,7 @@ void InfoCmd::Do(std::shared_ptr<DB> db) {
       info.append("\r\n");
       InfoCommandStats(info);
       info.append("\r\n");
-      InfoCache(info, db);
+      InfoCache(info, db_);
       info.append("\r\n");
       InfoCPU(info);
       info.append("\r\n");
@@ -973,7 +998,7 @@ void InfoCmd::Do(std::shared_ptr<DB> db) {
       InfoCommandStats(info);
       break;
     case kInfoCache:
-      InfoCache(info, db);
+      InfoCache(info, db_);
       break;
     default:
       // kInfoErr is nothing
@@ -1450,7 +1475,7 @@ std::string InfoCmd::CacheStatusToString(int status) {
 
 void InfoCmd::Execute() {
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  Do(db);
+  Do();
 }
 
 void ConfigCmd::DoInitial() {
@@ -1489,12 +1514,12 @@ void ConfigCmd::DoInitial() {
   config_args_v_.assign(argv_.begin() + 1, argv_.end());
 }
 
-void ConfigCmd::Do(std::shared_ptr<DB> db) {
+void ConfigCmd::Do() {
   std::string config_ret;
   if (strcasecmp(config_args_v_[0].data(), "get") == 0) {
     ConfigGet(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "set") == 0) {
-    ConfigSet(config_ret, db);
+    ConfigSet(config_ret, db_);
   } else if (strcasecmp(config_args_v_[0].data(), "rewrite") == 0) {
     ConfigRewrite(config_ret);
   } else if (strcasecmp(config_args_v_[0].data(), "resetstat") == 0) {
@@ -2551,8 +2576,7 @@ void ConfigCmd::ConfigResetstat(std::string& ret) {
 }
 
 void ConfigCmd::Execute() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  Do(db);
+  Do();
 }
 
 void MonitorCmd::DoInitial() {
@@ -2562,7 +2586,7 @@ void MonitorCmd::DoInitial() {
   }
 }
 
-void MonitorCmd::Do(std::shared_ptr<DB> db) {
+void MonitorCmd::Do() {
   std::shared_ptr<net::NetConn> conn_repl = GetConn();
   if (!conn_repl) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameMonitor);
@@ -2581,7 +2605,7 @@ void DbsizeCmd::DoInitial() {
   }
 }
 
-void DbsizeCmd::Do(std::shared_ptr<DB> db) {
+void DbsizeCmd::Do() {
   std::shared_ptr<DB> dbs = g_pika_server->GetDB(db_name_);
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
@@ -2604,7 +2628,7 @@ void TimeCmd::DoInitial() {
   }
 }
 
-void TimeCmd::Do(std::shared_ptr<DB> db) {
+void TimeCmd::Do() {
   struct timeval tv;
   if (gettimeofday(&tv, nullptr) == 0) {
     res_.AppendArrayLen(2);
@@ -2628,7 +2652,7 @@ void LastsaveCmd::DoInitial() {
   }
 }
 
-void LastsaveCmd::Do(std::shared_ptr<DB> db) {
+void LastsaveCmd::Do() {
   res_.AppendInteger(g_pika_server->GetLastSave());
 }
 
@@ -2639,7 +2663,7 @@ void DelbackupCmd::DoInitial() {
   }
 }
 
-void DelbackupCmd::Do(std::shared_ptr<DB> db) {
+void DelbackupCmd::Do() {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
   std::string db_sync_path = g_pika_conf->bgsave_path();
   std::vector<std::string> dump_dir;
@@ -2688,7 +2712,7 @@ void EchoCmd::DoInitial() {
   body_ = argv_[1];
 }
 
-void EchoCmd::Do(std::shared_ptr<DB> db) { res_.AppendString(body_); }
+void EchoCmd::Do() { res_.AppendString(body_); }
 
 void ScandbCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2714,7 +2738,7 @@ void ScandbCmd::DoInitial() {
   }
 }
 
-void ScandbCmd::Do(std::shared_ptr<DB> db) {
+void ScandbCmd::Do() {
   std::shared_ptr<DB> dbs = g_pika_server->GetDB(db_name_);
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
@@ -2745,7 +2769,7 @@ void SlowlogCmd::DoInitial() {
   }
 }
 
-void SlowlogCmd::Do(std::shared_ptr<DB> db) {
+void SlowlogCmd::Do() {
   if (condition_ == SlowlogCmd::kRESET) {
     g_pika_server->SlowlogReset();
     res_.SetRes(CmdRes::kOk);
@@ -2775,7 +2799,7 @@ void PaddingCmd::DoInitial() {
   }
 }
 
-void PaddingCmd::Do(std::shared_ptr<DB> db) { res_.SetRes(CmdRes::kOk); }
+void PaddingCmd::Do() { res_.SetRes(CmdRes::kOk); }
 
 std::string PaddingCmd::ToRedisProtocol() {
   return PikaBinlogTransverter::ConstructPaddingBinlog(
@@ -2805,9 +2829,9 @@ void PKPatternMatchDelCmd::DoInitial() {
   }
 }
 
-void PKPatternMatchDelCmd::Do(std::shared_ptr<DB> db) {
+void PKPatternMatchDelCmd::Do() {
   int ret = 0;
-  rocksdb::Status s = db->storage()->PKPatternMatchDel(type_, pattern_, &ret);
+  rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);
   if (s.ok()) {
     res_.AppendInteger(ret);
   } else {
@@ -2817,7 +2841,7 @@ void PKPatternMatchDelCmd::Do(std::shared_ptr<DB> db) {
 
 void DummyCmd::DoInitial() {}
 
-void DummyCmd::Do(std::shared_ptr<DB> db) {}
+void DummyCmd::Do() {}
 
 void QuitCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2825,7 +2849,7 @@ void QuitCmd::DoInitial() {
   }
 }
 
-void QuitCmd::Do(std::shared_ptr<DB> db) {
+void QuitCmd::Do() {
   res_.SetRes(CmdRes::kOk);
   LOG(INFO) << "QutCmd will close connection " << GetConn()->String();
   GetConn()->SetClose(true);
@@ -2841,7 +2865,7 @@ void HelloCmd::DoInitial() {
   }
 }
 
-void HelloCmd::Do(std::shared_ptr<DB> db) {
+void HelloCmd::Do() {
   size_t next_arg = 1;
   long ver = 0;
   if (argv_.size() >= 2) {
@@ -2947,7 +2971,7 @@ void DiskRecoveryCmd::DoInitial() {
   }
 }
 
-void DiskRecoveryCmd::Do(std::shared_ptr<DB> db) {
+void DiskRecoveryCmd::Do() {
   struct statvfs disk_info;
   int ret = statvfs(g_pika_conf->db_path().c_str(), &disk_info);
   if (ret == -1) {
@@ -2994,7 +3018,7 @@ void ClearReplicationIDCmd::DoInitial() {
   }
 }
 
-void ClearReplicationIDCmd::Do(std::shared_ptr<DB> db) {
+void ClearReplicationIDCmd::Do() {
   g_pika_conf->SetReplicationID("");
   g_pika_conf->ConfigRewriteReplicationID();
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
@@ -3007,7 +3031,7 @@ void DisableWalCmd::DoInitial() {
   }
 }
 
-void DisableWalCmd::Do(std::shared_ptr<DB> db) {
+void DisableWalCmd::Do() {
   std::string option = argv_[1].data();
   bool is_wal_disable = false;
   if (option.compare("true") == 0) {
@@ -3018,7 +3042,7 @@ void DisableWalCmd::Do(std::shared_ptr<DB> db) {
     res_.SetRes(CmdRes::kErrOther, "Invalid parameter");
     return;
   }
-  db->storage()->DisableWal(is_wal_disable);
+  db_->storage()->DisableWal(is_wal_disable);
   res_.SetRes(CmdRes::kOk, "Wal options is changed");
 }
 
@@ -3046,23 +3070,23 @@ void CacheCmd::DoInitial() {
   return;
 }
 
-void CacheCmd::Do(std::shared_ptr<DB> db) {
+void CacheCmd::Do() {
   std::string key;
   switch (condition_) {
     case kCLEAR_DB:
-      g_pika_server->ClearCacheDbAsync(db);
+      g_pika_server->ClearCacheDbAsync(db_);
       res_.SetRes(CmdRes::kOk);
       break;
     case kCLEAR_HITRATIO:
-      g_pika_server->ClearHitRatio(db);
+      g_pika_server->ClearHitRatio(db_);
       res_.SetRes(CmdRes::kOk);
       break;
     case kDEL_KEYS:
-      db->cache()->Del(keys_);
+      db_->cache()->Del(keys_);
       res_.SetRes(CmdRes::kOk);
       break;
     case kRANDOM_KEY:
-      s_ = db->cache()->RandomKey(&key);
+      s_ = db_->cache()->RandomKey(&key);
       if (!s_.ok()) {
         res_.AppendStringLen(-1);
       } else {
@@ -3084,10 +3108,10 @@ void ClearCacheCmd::DoInitial() {
   }
 }
 
-void ClearCacheCmd::Do(std::shared_ptr<DB> db) {
+void ClearCacheCmd::Do() {
   // clean cache
   if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
-    g_pika_server->ClearCacheDbAsync(db);
+    g_pika_server->ClearCacheDbAsync(db_);
   }
   res_.SetRes(CmdRes::kOk, "Cache is cleared");
 }

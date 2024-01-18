@@ -14,7 +14,7 @@ const static int AclGenPassMaxBit = 4096;
 
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-void PikaAclCmd::Do(std::shared_ptr<DB> db) {
+void PikaAclCmd::Do() {
   if (subCmd_ == "cat") {
     Cat();
   } else if (subCmd_ == "deluser") {

@@ -22,10 +22,10 @@ class SAddCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SAddCmd(*this); }
 
@@ -45,10 +45,10 @@ class SPopCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SPopCmd(*this); }
 
@@ -69,11 +69,11 @@ class SCardCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SCardCmd(*this); }
 
@@ -92,11 +92,11 @@ class SMembersCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SMembersCmd(*this); }
 
@@ -115,8 +115,8 @@ class SScanCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SScanCmd(*this); }
 
@@ -140,10 +140,10 @@ class SRemCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SRemCmd(*this); }
 
@@ -159,8 +159,8 @@ class SUnionCmd : public Cmd {
  public:
   SUnionCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SUnionCmd(*this); }
 
@@ -183,7 +183,7 @@ class SetOperationCmd : public Cmd {
   }
 
   std::vector<std::string> current_key() const override { return {dest_key_}; }
-  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
+  void DoBinlog() override;
 
  protected:
   std::string dest_key_;
@@ -198,10 +198,10 @@ class SUnionstoreCmd : public SetOperationCmd {
  public:
   SUnionstoreCmd(const std::string& name, int arity, uint32_t flag) : SetOperationCmd(name, arity, flag) {}
   // current_key() is override in base class : SetOperationCmd
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SUnionstoreCmd(*this); }
 
@@ -214,8 +214,8 @@ class SInterCmd : public Cmd {
  public:
   SInterCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SInterCmd(*this); }
 
@@ -227,10 +227,10 @@ class SInterCmd : public Cmd {
 class SInterstoreCmd : public SetOperationCmd {
  public:
   SInterstoreCmd(const std::string& name, int arity, uint32_t flag) : SetOperationCmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SInterstoreCmd(*this); }
 
@@ -248,11 +248,11 @@ class SIsmemberCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SIsmemberCmd(*this); }
 
@@ -267,8 +267,8 @@ class SDiffCmd : public Cmd {
  public:
   SDiffCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SDiffCmd(*this); }
 
@@ -280,10 +280,10 @@ class SDiffCmd : public Cmd {
 class SDiffstoreCmd : public SetOperationCmd {
  public:
   SDiffstoreCmd(const std::string& name, int arity, uint32_t flag) : SetOperationCmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SDiffstoreCmd(*this); }
 
@@ -309,13 +309,13 @@ class SMoveCmd : public Cmd {
     sadd_cmd_ = std::make_shared<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet);
   }
   std::vector<std::string> current_key() const override { return {src_key_, dest_key_}; }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SMoveCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
+  void DoBinlog() override;
 
  private:
   std::string src_key_, dest_key_, member_;
@@ -335,11 +335,11 @@ class SRandmemberCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SRandmemberCmd(*this); }
 

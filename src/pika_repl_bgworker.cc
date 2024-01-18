@@ -247,27 +247,26 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
   // Add read lock for no suspend command
   if (!c_ptr->IsSuspend()) {
-    db->DbRWLockReader();
+    c_ptr->GetDB()->DbRWLockReader();
   }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && db->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
-      c_ptr->DoThroughDB(db);
+      c_ptr->DoThroughDB();
       if (c_ptr->IsNeedUpdateCache()) {
-        c_ptr->DoUpdateCache(db);
+        c_ptr->DoUpdateCache();
       }
     } else {
       LOG(WARNING) << "This branch is not impossible reach";
     }
   } else {
-    c_ptr->Do(db);
+    c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    db->DbRWUnLock();
+    c_ptr->GetDB()->DbRWUnLock();
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {

@@ -34,25 +34,25 @@ void ZAddCmd::DoInitial() {
   }
 }
 
-void ZAddCmd::Do(std::shared_ptr<DB> db) {
+void ZAddCmd::Do() {
   int32_t count = 0;
-  s_ = db->storage()->ZAdd(key_, score_members, &count);
+  s_ = db_->storage()->ZAdd(key_, score_members, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
-    AddSlotKey("z", key_, db);
+    AddSlotKey("z", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void ZAddCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZAddCmd::DoThroughDB() {
+  Do();
 }
 
-void ZAddCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZAddCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZAddIfKeyExist(CachePrefixKeyZ, score_members);
+    db_->cache()->ZAddIfKeyExist(CachePrefixKeyZ, score_members);
   }
 }
 
@@ -64,9 +64,9 @@ void ZCardCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void ZCardCmd::Do(std::shared_ptr<DB> db) {
+void ZCardCmd::Do() {
   int32_t card = 0;
-  s_ = db->storage()->ZCard(key_, &card);
+  s_ = db_->storage()->ZCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -74,16 +74,16 @@ void ZCardCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZCardCmd::ReadCache(std::shared_ptr<DB> db){
+void ZCardCmd::ReadCache(){
   res_.SetRes(CmdRes::kCacheMiss);
 }
 
-void ZCardCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZCardCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZCardCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZCardCmd::DoUpdateCache() {
   return;
 }
 
@@ -125,10 +125,10 @@ void ZScanCmd::DoInitial() {
   }
 }
 
-void ZScanCmd::Do(std::shared_ptr<DB> db) {
+void ZScanCmd::Do() {
   int64_t next_cursor = 0;
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = db->storage()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  rocksdb::Status s = db_->storage()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
@@ -162,29 +162,29 @@ void ZIncrbyCmd::DoInitial() {
   member_ = argv_[3];
 }
 
-void ZIncrbyCmd::Do(std::shared_ptr<DB> db) {
+void ZIncrbyCmd::Do() {
   double score = 0.0;
-  rocksdb::Status s = db->storage()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     score_ = score;
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
-    AddSlotKey("z", key_, db);
+    AddSlotKey("z", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
-void ZIncrbyCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZIncrbyCmd::DoThroughDB() {
+  Do();
 }
 
-void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZIncrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this, db);
+    db_->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this, db_);
   }
 }
 
@@ -214,9 +214,9 @@ void ZRangeCmd::DoInitial() {
   ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRangeCmd::Do(std::shared_ptr<DB> db) {
+void ZRangeCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  s_ = db->storage()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  s_ = db_->storage()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -241,9 +241,9 @@ void ZRangeCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRangeCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRangeCmd::ReadCache() {
   std::vector<storage::ScoreMember> score_members;
-  auto s = db->cache()->ZRange(key_, start_, stop_, &score_members, db);
+  auto s = db_->cache()->ZRange(key_, start_, stop_, &score_members, db_);
   if (s.ok()) {
     if (is_ws_) {
       char buf[32];
@@ -271,14 +271,14 @@ void ZRangeCmd::ReadCache(std::shared_ptr<DB> db) {
   return;
 }
 
-void ZRangeCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRangeCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRangeCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -290,9 +290,9 @@ void ZRevrangeCmd::DoInitial() {
   ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRevrangeCmd::Do(std::shared_ptr<DB> db) {
+void ZRevrangeCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  s_ = db->storage()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  s_ = db_->storage()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -317,9 +317,9 @@ void ZRevrangeCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrangeCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRevrangeCmd::ReadCache() {
   std::vector<storage::ScoreMember> score_members;
-  auto s = db->cache()->ZRevrange(key_, start_, stop_, &score_members, db);
+  auto s = db_->cache()->ZRevrange(key_, start_, stop_, &score_members, db_);
 
   if (s.ok()) {
     if (is_ws_) {
@@ -348,14 +348,14 @@ void ZRevrangeCmd::ReadCache(std::shared_ptr<DB> db) {
   return;
 }
 
-void ZRevrangeCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRevrangeCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRevrangeCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRevrangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -441,13 +441,13 @@ void ZRangebyscoreCmd::DoInitial() {
   ZsetRangebyscoreParentCmd::DoInitial();
 }
 
-void ZRangebyscoreCmd::Do(std::shared_ptr<DB> db) {
+void ZRangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  s_ = db->storage()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  s_ = db_->storage()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -475,7 +475,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRangebyscoreCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRangebyscoreCmd::ReadCache() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
@@ -484,7 +484,7 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<DB> db) {
   std::vector<storage::ScoreMember> score_members;
   min_ = std::to_string(min_score_);
   max_ = std::to_string(max_score_);
-  auto s = db->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
+  auto s = db_->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -512,14 +512,14 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRangebyscoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRangebyscoreCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRangebyscoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -540,13 +540,13 @@ void ZRevrangebyscoreCmd::DoInitial() {
   right_close_ = tmp_close;
 }
 
-void ZRevrangebyscoreCmd::Do(std::shared_ptr<DB> db) {
+void ZRevrangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  s_ = db->storage()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  s_ = db_->storage()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -574,14 +574,14 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<DB> db){
+void ZRevrangebyscoreCmd::ReadCache(){
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN
       || max_score_ < min_score_) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  auto s = db->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this, db);
+  auto s = db_->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this, db_);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -609,14 +609,14 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<DB> db){
   }
 }
 
-void ZRevrangebyscoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRevrangebyscoreCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRevrangebyscoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRevrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -635,14 +635,14 @@ void ZCountCmd::DoInitial() {
   }
 }
 
-void ZCountCmd::Do(std::shared_ptr<DB> db) {
+void ZCountCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
 
   int32_t count = 0;
-  s_ = db->storage()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -650,13 +650,13 @@ void ZCountCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZCountCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZCountCmd::ReadCache() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   uint64_t count = 0;
-  auto s = db->cache()->ZCount(key_, min_, max_, &count, this);
+  auto s = db_->cache()->ZCount(key_, min_, max_, &count, this);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else if (s.IsNotFound()) {
@@ -666,14 +666,14 @@ void ZCountCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZCountCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZCountCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZCountCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZCountCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -687,8 +687,8 @@ void ZRemCmd::DoInitial() {
   members_.assign(iter, argv_.end());
 }
 
-void ZRemCmd::Do(std::shared_ptr<DB> db) {
-  s_ = db->storage()->ZRem(key_, members_, &deleted_);
+void ZRemCmd::Do() {
+  s_ = db_->storage()->ZRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
   } else {
@@ -696,14 +696,14 @@ void ZRemCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZRemCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRemCmd::DoUpdateCache() {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZRem(CachePrefixKeyZ, members_, db);
+    db_->cache()->ZRem(CachePrefixKeyZ, members_, db_);
   }
 }
 
@@ -773,30 +773,30 @@ void ZUnionstoreCmd::DoInitial() {
   ZsetUIstoreParentCmd::DoInitial();
 }
 
-void ZUnionstoreCmd::Do(std::shared_ptr<DB> db) {
+void ZUnionstoreCmd::Do() {
   int32_t count = 0;
-  s_ = db->storage()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  s_ = db_->storage()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
-    AddSlotKey("z", dest_key_, db);
+    AddSlotKey("z", dest_key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void ZUnionstoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZUnionstoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZUnionstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZUnionstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixZ + dest_key_);
-    db->cache()->Del(v);
+    db_->cache()->Del(v);
   }
 }
 
-void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void ZUnionstoreCmd::DoBinlog() {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
@@ -804,7 +804,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   del_cmd->Initial(del_args, db_name_);
   del_cmd->SetConn(GetConn());
   del_cmd->SetResp(resp_.lock());
-  del_cmd->DoBinlog(db);
+  del_cmd->DoBinlog();
 
   if(value_to_dest_.empty()){
     // The union operation got an empty set, only use del to simulate overwrite the dest_key with empty set
@@ -830,7 +830,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   for (const auto& it : value_to_dest_) {
     if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      zadd_cmd_->DoBinlog(db);
+      zadd_cmd_->DoBinlog();
       zadd_argv.clear();
       zadd_argv.emplace_back("zadd");
       zadd_argv.emplace_back(dest_key_);
@@ -841,7 +841,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
     zadd_argv.emplace_back(it.first);
     data_size += (d_len + it.first.size());
   }
-  zadd_cmd_->DoBinlog(db);
+  zadd_cmd_->DoBinlog();
 }
 
 void ZInterstoreCmd::DoInitial() {
@@ -852,9 +852,9 @@ void ZInterstoreCmd::DoInitial() {
   ZsetUIstoreParentCmd::DoInitial();
 }
 
-void ZInterstoreCmd::Do(std::shared_ptr<DB> db) {
+void ZInterstoreCmd::Do() {
   int32_t count = 0;
-  s_ = db->storage()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  s_ = db_->storage()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -862,19 +862,19 @@ void ZInterstoreCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZInterstoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZInterstoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZInterstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixZ + dest_key_);
-    db->cache()->Del(v);
+    db_->cache()->Del(v);
   }
 }
 
-void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void ZInterstoreCmd::DoBinlog() {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
@@ -882,7 +882,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   del_cmd->Initial(del_args, db_name_);
   del_cmd->SetConn(GetConn());
   del_cmd->SetResp(resp_.lock());
-  del_cmd->DoBinlog(db);
+  del_cmd->DoBinlog();
 
   if (value_to_dest_.size() == 0) {
     //The inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
@@ -906,7 +906,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   for (size_t i = 1; i < value_to_dest_.size(); i++) {
     if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      zadd_cmd_->DoBinlog(db);
+      zadd_cmd_->DoBinlog();
       zadd_argv.clear();
       zadd_argv.emplace_back("zadd");
       zadd_argv.emplace_back(dest_key_);
@@ -917,7 +917,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
     zadd_argv.emplace_back(value_to_dest_[i].member);
     data_size += (value_to_dest_[i].member.size() + d_len);
   }
-  zadd_cmd_->DoBinlog(db);
+  zadd_cmd_->DoBinlog();
 }
 
 void ZsetRankParentCmd::DoInitial() {
@@ -933,9 +933,9 @@ void ZRankCmd::DoInitial() {
   ZsetRankParentCmd::DoInitial();
 }
 
-void ZRankCmd::Do(std::shared_ptr<DB> db) {
+void ZRankCmd::Do() {
   int32_t rank = 0;
-  s_ = db->storage()->ZRank(key_, member_, &rank);
+  s_ = db_->storage()->ZRank(key_, member_, &rank);
   if (s_.ok()) {
     res_.AppendInteger(rank);
   } else if (s_.IsNotFound()) {
@@ -945,9 +945,9 @@ void ZRankCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRankCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRankCmd::ReadCache() {
   int64_t rank = 0;
-  auto s = db->cache()->ZRank(key_, member_, &rank, db);
+  auto s = db_->cache()->ZRank(key_, member_, &rank, db_);
   if (s.ok()) {
     res_.AppendInteger(rank);
   } else if (s.IsNotFound()){
@@ -957,14 +957,14 @@ void ZRankCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRankCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRankCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRankCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRankCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -976,9 +976,9 @@ void ZRevrankCmd::DoInitial() {
   ZsetRankParentCmd::DoInitial();
 }
 
-void ZRevrankCmd::Do(std::shared_ptr<DB> db) {
+void ZRevrankCmd::Do() {
   int32_t revrank = 0;
-  s_ = db->storage()->ZRevrank(key_, member_, &revrank);
+  s_ = db_->storage()->ZRevrank(key_, member_, &revrank);
   if (s_.ok()) {
     res_.AppendInteger(revrank);
   } else if (s_.IsNotFound()) {
@@ -988,9 +988,9 @@ void ZRevrankCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrankCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRevrankCmd::ReadCache() {
   int64_t revrank = 0;
-  auto s = db->cache()->ZRevrank(key_, member_, &revrank, db);
+  auto s = db_->cache()->ZRevrank(key_, member_, &revrank, db_);
   if (s.ok()) {
     res_.AppendInteger(revrank);
   } else if (s.IsNotFound()){
@@ -1000,14 +1000,14 @@ void ZRevrankCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrankCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRevrankCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRevrankCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRevrankCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1020,9 +1020,9 @@ void ZScoreCmd::DoInitial() {
   member_ = argv_[2];
 }
 
-void ZScoreCmd::Do(std::shared_ptr<DB> db) {
+void ZScoreCmd::Do() {
   double score = 0.0;
-  s_ = db->storage()->ZScore(key_, member_, &score);
+  s_ = db_->storage()->ZScore(key_, member_, &score);
   if (s_.ok()) {
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
@@ -1035,10 +1035,10 @@ void ZScoreCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZScoreCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZScoreCmd::ReadCache() {
   double score = 0.0;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  auto s = db->cache()->ZScore(CachePrefixKeyZ, member_, &score, db);
+  auto s = db_->cache()->ZScore(CachePrefixKeyZ, member_, &score, db_);
   if (s.ok()) {
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
@@ -1051,12 +1051,12 @@ void ZScoreCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZScoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZScoreCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZScoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZScoreCmd::DoUpdateCache() {
   return;
 }
 
@@ -1128,13 +1128,13 @@ void ZRangebylexCmd::DoInitial() {
   ZsetRangebylexParentCmd::DoInitial();
 }
 
-void ZRangebylexCmd::Do(std::shared_ptr<DB> db) {
+void ZRangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  s_ = db->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1150,13 +1150,13 @@ void ZRangebylexCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRangebylexCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRangebylexCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  auto s = db->cache()->ZRangebylex(key_, min_, max_, &members, db);
+  auto s = db_->cache()->ZRangebylex(key_, min_, max_, &members, db_);
   if (s.ok()) {
     FitLimit(count_, offset_, members.size());
 
@@ -1174,14 +1174,14 @@ void ZRangebylexCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRangebylexCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRangebylexCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRangebylexCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1203,13 +1203,13 @@ void ZRevrangebylexCmd::DoInitial() {
   right_close_ = tmp_b;
 }
 
-void ZRevrangebylexCmd::Do(std::shared_ptr<DB> db) {
+void ZRevrangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  s_ = db->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1225,13 +1225,13 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrangebylexCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZRevrangebylexCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  auto s = db->cache()->ZRevrangebylex(key_, min_, max_, &members, db);
+  auto s = db_->cache()->ZRevrangebylex(key_, min_, max_, &members, db_);
   if (s.ok()) {
     auto size = count_ < members.size() ? count_ : members.size();
     res_.AppendArrayLen(static_cast<int64_t >(size));
@@ -1245,14 +1245,14 @@ void ZRevrangebylexCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRevrangebylexCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZRevrangebylexCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZRevrangebylexCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRevrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1271,13 +1271,13 @@ void ZLexcountCmd::DoInitial() {
   }
 }
 
-void ZLexcountCmd::Do(std::shared_ptr<DB> db) {
+void ZLexcountCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent(":0");
     return;
   }
   int32_t count = 0;
-  s_ = db->storage()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1285,13 +1285,13 @@ void ZLexcountCmd::Do(std::shared_ptr<DB> db) {
   res_.AppendInteger(count);
 }
 
-void ZLexcountCmd::ReadCache(std::shared_ptr<DB> db) {
+void ZLexcountCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent(":0");
     return;
   }
   uint64_t count = 0;
-  auto s = db->cache()->ZLexcount(key_, min_, max_, &count, db);
+  auto s = db_->cache()->ZLexcount(key_, min_, max_, &count, db_);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else if (s.IsNotFound()) {
@@ -1301,14 +1301,14 @@ void ZLexcountCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void ZLexcountCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void ZLexcountCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void ZLexcountCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZLexcountCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1328,9 +1328,9 @@ void ZRemrangebyrankCmd::DoInitial() {
   }
 }
 
-void ZRemrangebyrankCmd::Do(std::shared_ptr<DB> db) {
+void ZRemrangebyrankCmd::Do() {
   int32_t count = 0;
-  s_ = db->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -1338,14 +1338,14 @@ void ZRemrangebyrankCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void ZRemrangebyrankCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZRemrangebyrankCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebyrankCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
+    db_->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
   }
 }
 
@@ -1362,13 +1362,13 @@ void ZRemrangebyscoreCmd::DoInitial() {
   }
 }
 
-void ZRemrangebyscoreCmd::Do(std::shared_ptr<DB> db) {
+void ZRemrangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
     return;
   }
   int32_t count = 0;
-  s_ = db->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1376,14 +1376,14 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<DB> db) {
   res_.AppendInteger(count);
 }
 
-void ZRemrangebyscoreCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZRemrangebyscoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebyscoreCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRemrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZRemrangebyscore(CachePrefixKeyZ, min_, max_, db);
+    db_->cache()->ZRemrangebyscore(CachePrefixKeyZ, min_, max_, db_);
   }
 }
 
@@ -1400,14 +1400,14 @@ void ZRemrangebylexCmd::DoInitial() {
   }
 }
 
-void ZRemrangebylexCmd::Do(std::shared_ptr<DB> db) {
+void ZRemrangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   int32_t count = 0;
 
-  s_ = db->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1415,14 +1415,14 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<DB> db) {
   res_.AppendInteger(count);
 }
 
-void ZRemrangebylexCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void ZRemrangebylexCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebylexCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void ZRemrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db->cache()->ZRemrangebylex(CachePrefixKeyZ, min_, max_, db);
+    db_->cache()->ZRemrangebylex(CachePrefixKeyZ, min_, max_, db_);
   }
 }
 
@@ -1442,9 +1442,9 @@ void ZPopmaxCmd::DoInitial() {
   }
 }
 
-void ZPopmaxCmd::Do(std::shared_ptr<DB> db) {
+void ZPopmaxCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = db->storage()->ZPopMax(key_, count_, &score_members);
+  rocksdb::Status s = db_->storage()->ZPopMax(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len = 0;
@@ -1476,9 +1476,9 @@ void ZPopminCmd::DoInitial() {
   }
 }
 
-void ZPopminCmd::Do(std::shared_ptr<DB> db) {
+void ZPopminCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = db->storage()->ZPopMin(key_, count_, &score_members);
+  rocksdb::Status s = db_->storage()->ZPopMin(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len = 0;

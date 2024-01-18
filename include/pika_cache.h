@@ -62,7 +62,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   // Normal Commands
   void Info(CacheInfo& info);
   bool Exists(std::string& key);
-  void FlushDB(void);
+  void FlushCache(void);
   void ProcessCronTask(void);
 
   rocksdb::Status Del(const std::vector<std::string>& keys);

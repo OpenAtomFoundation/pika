@@ -621,8 +621,6 @@ class PikaConf : public pstd::BaseConf {
 
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
-
- private:
   int port_ = 0;
   int slave_priority_ = 0;
   int thread_num_ = 0;

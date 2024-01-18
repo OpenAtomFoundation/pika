@@ -28,9 +28,9 @@ void LIndexCmd::DoInitial() {
   }
 }
 
-void LIndexCmd::Do(std::shared_ptr<DB> db) {
+void LIndexCmd::Do() {
   std::string value;
-  s_ = db->storage()->LIndex(key_, index_, &value);
+  s_ = db_->storage()->LIndex(key_, index_, &value);
   if (s_.ok()) {
     res_.AppendString(value);
   } else if (s_.IsNotFound()) {
@@ -40,10 +40,10 @@ void LIndexCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LIndexCmd::ReadCache(std::shared_ptr<DB> db) {
+void LIndexCmd::ReadCache() {
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   std::string value;
-  auto s = db->cache()->LIndex(CachePrefixKeyL, index_, &value);
+  auto s = db_->cache()->LIndex(CachePrefixKeyL, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -53,14 +53,14 @@ void LIndexCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void LIndexCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void LIndexCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void LIndexCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LIndexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
@@ -83,25 +83,25 @@ void LInsertCmd::DoInitial() {
   value_ = argv_[4];
 }
 
-void LInsertCmd::Do(std::shared_ptr<DB> db) {
+void LInsertCmd::Do() {
   int64_t llen = 0;
-  s_ = db->storage()->LInsert(key_, dir_, pivot_, value_, &llen);
+  s_ = db_->storage()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(llen);
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void LInsertCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LInsertCmd::DoThroughDB() {
+  Do();
 }
 
-void LInsertCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LInsertCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
+    db_->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
   }
 }
 
@@ -113,9 +113,9 @@ void LLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void LLenCmd::Do(std::shared_ptr<DB> db) {
+void LLenCmd::Do() {
   uint64_t llen = 0;
-  s_ = db->storage()->LLen(key_, &llen);
+  s_ = db_->storage()->LLen(key_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
@@ -123,10 +123,10 @@ void LLenCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LLenCmd::ReadCache(std::shared_ptr<DB> db) {
+void LLenCmd::ReadCache() {
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
-  auto s = db->cache()->LLen(CachePrefixKeyL, &llen);
+  auto s = db_->cache()->LLen(CachePrefixKeyL, &llen);
   if (s.ok()){
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
@@ -136,14 +136,14 @@ void LLenCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void LLenCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void LLenCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void LLenCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LLenCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
@@ -238,16 +238,10 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     args.push_back(std::move(pop_type));
     args.push_back(pop_arg.key);
     pop_cmd->Initial(args, pop_arg.db->GetDBName());
-    std::shared_ptr<SyncMasterDB> sync_db =
-        g_pika_rm->GetSyncMasterDBByName(DBInfo(pop_arg.db->GetDBName()));
-    if (!sync_db) {
-      LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterDB not found";
-    } else {
-      pop_cmd->SetConn(pop_arg.conn);
-      auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
-      pop_cmd->SetResp(resp_ptr);
-      pop_cmd->DoBinlog(sync_db);
-    }
+    pop_cmd->SetConn(pop_arg.conn);
+    auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
+    pop_cmd->SetResp(resp_ptr);
+    pop_cmd->DoBinlog();
   }
 }
 
@@ -263,12 +257,12 @@ void LPushCmd::DoInitial() {
   }
 }
 
-void LPushCmd::Do(std::shared_ptr<DB> db) {
+void LPushCmd::Do() {
   uint64_t llen = 0;
-  s_ = db->storage()->LPush(key_, values_, &llen);
+  s_ = db_->storage()->LPush(key_, values_, &llen);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -277,17 +271,17 @@ void LPushCmd::Do(std::shared_ptr<DB> db) {
       return;
     }
   }
-  TryToServeBLrPopWithThisKey(key_, db);
+  TryToServeBLrPopWithThisKey(key_, db_);
 }
 
-void LPushCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LPushCmd::DoThroughDB() {
+  Do();
 }
 
-void LPushCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LPushCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -354,10 +348,10 @@ void BLPopCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BLPopCmd::Do(std::shared_ptr<DB> db) {
+void BLPopCmd::Do() {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    rocksdb::Status s  = db->storage()->LPop(this_key, 1, &values);
+    rocksdb::Status s  = db_->storage()->LPop(this_key, 1, &values);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -365,7 +359,7 @@ void BLPopCmd::Do(std::shared_ptr<DB> db) {
       // write a binlog of lpop
       binlog_args_.block_type = BlockKeyType::Blpop;
       binlog_args_.key = this_key;
-      binlog_args_.db = db;
+      binlog_args_.db = db_;
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
@@ -386,7 +380,7 @@ void BLPopCmd::Do(std::shared_ptr<DB> db) {
   BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
 }
 
-void BLPopCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void BLPopCmd::DoBinlog() {
   if (is_binlog_deferred_) {
     return;
   }
@@ -416,9 +410,9 @@ void LPopCmd::DoInitial() {
   }
 }
 
-void LPopCmd::Do(std::shared_ptr<DB> db) {
+void LPopCmd::Do() {
   std::vector<std::string> elements;
-  s_ = db->storage()->LPop(key_, count_, &elements);
+  s_ = db_->storage()->LPop(key_, count_, &elements);
 
   if (s_.ok()) {
     if (elements.size() > 1) {
@@ -434,15 +428,15 @@ void LPopCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LPopCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LPopCmd::DoThroughDB() {
+  Do();
 }
 
-void LPopCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LPopCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db->cache()->LPop(CachePrefixKeyL, &value);
+    db_->cache()->LPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -458,27 +452,27 @@ void LPushxCmd::DoInitial() {
   }
 }
 
-void LPushxCmd::Do(std::shared_ptr<DB> db) {
+void LPushxCmd::Do() {
   uint64_t llen = 0;
-  s_ = db->storage()->LPushx(key_, values_, &llen);
+  s_ = db_->storage()->LPushx(key_, values_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void LPushxCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LPushxCmd::DoThroughDB() {
+  Do();
 }
 
-void LPushxCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    db->cache()->LPushx(CachePrefixKeyL, values);
+    db_->cache()->LPushx(CachePrefixKeyL, values);
   }
 }
 
@@ -499,9 +493,9 @@ void LRangeCmd::DoInitial() {
   }
 }
 
-void LRangeCmd::Do(std::shared_ptr<DB> db) {
+void LRangeCmd::Do() {
   std::vector<std::string> values;
-  s_ = db->storage()->LRange(key_, left_, right_, &values);
+  s_ = db_->storage()->LRange(key_, left_, right_, &values);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(values.size());
     for (const auto& value : values) {
@@ -514,10 +508,10 @@ void LRangeCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LRangeCmd::ReadCache(std::shared_ptr<DB> db) {
+void LRangeCmd::ReadCache() {
   std::vector<std::string> values;
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-  auto s = db->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
+  auto s = db_->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -530,14 +524,14 @@ void LRangeCmd::ReadCache(std::shared_ptr<DB> db) {
   }
 }
 
-void LRangeCmd::DoThroughDB(std::shared_ptr<DB> db) {
+void LRangeCmd::DoThroughDB() {
   res_.clear();
-  Do(db);
+  Do();
 }
 
-void LRangeCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LRangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
@@ -555,9 +549,9 @@ void LRemCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void LRemCmd::Do(std::shared_ptr<DB> db) {
+void LRemCmd::Do() {
   uint64_t res = 0;
-  s_ = db->storage()->LRem(key_, count_, value_, &res);
+  s_ = db_->storage()->LRem(key_, count_, value_, &res);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(res));
   } else {
@@ -565,14 +559,14 @@ void LRemCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LRemCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LRemCmd::DoThroughDB() {
+  Do();
 }
 
-void LRemCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LRemCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->LRem(CachePrefixKeyL, count_, value_);
+    db_->cache()->LRem(CachePrefixKeyL, count_, value_);
   }
 }
 
@@ -590,11 +584,11 @@ void LSetCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void LSetCmd::Do(std::shared_ptr<DB> db) {
-  s_ = db->storage()->LSet(key_, index_, value_);
+void LSetCmd::Do() {
+  s_ = db_->storage()->LSet(key_, index_, value_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else if (s_.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: index out of range") {
@@ -605,14 +599,14 @@ void LSetCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LSetCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LSetCmd::DoThroughDB() {
+  Do();
 }
 
-void LSetCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LSetCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->LSet(CachePrefixKeyL, index_, value_);
+    db_->cache()->LSet(CachePrefixKeyL, index_, value_);
   }
 }
 
@@ -633,8 +627,8 @@ void LTrimCmd::DoInitial() {
   }
 }
 
-void LTrimCmd::Do(std::shared_ptr<DB> db) {
-  s_ = db->storage()->LTrim(key_, start_, stop_);
+void LTrimCmd::Do() {
+  s_ = db_->storage()->LTrim(key_, start_, stop_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -642,21 +636,21 @@ void LTrimCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void LTrimCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void LTrimCmd::DoThroughDB() {
+  Do();
 }
 
-void LTrimCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void LTrimCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->LTrim(CachePrefixKeyL, start_, stop_);
+    db_->cache()->LTrim(CachePrefixKeyL, start_, stop_);
   }
 }
 
-void BRPopCmd::Do(std::shared_ptr<DB> db) {
+void BRPopCmd::Do() {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    s_ = db->storage()->RPop(this_key, 1, &values);
+    s_ = db_->storage()->RPop(this_key, 1, &values);
     if (s_.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -664,7 +658,7 @@ void BRPopCmd::Do(std::shared_ptr<DB> db) {
       // write an binlog of rpop
       binlog_args_.block_type = BlockKeyType::Brpop;
       binlog_args_.key = this_key;
-      binlog_args_.db = db;
+      binlog_args_.db = db_;
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
@@ -713,7 +707,7 @@ void BRPopCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BRPopCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void BRPopCmd::DoBinlog() {
   if (is_binlog_deferred_) {
     return;
   }
@@ -744,9 +738,9 @@ void RPopCmd::DoInitial() {
   }
 }
 
-void RPopCmd::Do(std::shared_ptr<DB> db) {
+void RPopCmd::Do() {
   std::vector <std::string> elements;
-  s_ = db->storage()->RPop(key_, count_, &elements);
+  s_ = db_->storage()->RPop(key_, count_, &elements);
   if (s_.ok()) {
     if (elements.size() > 1) {
       res_.AppendArrayLenUint64(elements.size());
@@ -761,15 +755,15 @@ void RPopCmd::Do(std::shared_ptr<DB> db) {
   }
 }
 
-void RPopCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void RPopCmd::DoThroughDB() {
+  Do();
 }
 
-void RPopCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void RPopCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db->cache()->RPop(CachePrefixKeyL, &value);
+    db_->cache()->RPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -785,11 +779,11 @@ void RPopLPushCmd::DoInitial() {
   }
 }
 
-void RPopLPushCmd::Do(std::shared_ptr<DB> db) {
+void RPopLPushCmd::Do() {
   std::string value;
-  s_ = db->storage()->RPoplpush(source_, receiver_, &value);
+  s_ = db_->storage()->RPoplpush(source_, receiver_, &value);
   if (s_.ok()) {
-    AddSlotKey("k", receiver_, db);
+    AddSlotKey("k", receiver_, db_);
     res_.AppendString(value);
     value_poped_from_source_ = value;
     is_write_binlog_ = true;
@@ -802,14 +796,14 @@ void RPopLPushCmd::Do(std::shared_ptr<DB> db) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
-  TryToServeBLrPopWithThisKey(receiver_, db);
+  TryToServeBLrPopWithThisKey(receiver_, db_);
 }
 
-void RPopLPushCmd::ReadCache(std::shared_ptr<DB> db) {
+void RPopLPushCmd::ReadCache() {
   res_.SetRes(CmdRes::kErrOther, "the command is not support in cache mode");
 }
 
-void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void RPopLPushCmd::DoBinlog() {
   if (!is_write_binlog_) {
     return;
   }
@@ -829,8 +823,8 @@ void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
   lpush_cmd_->SetConn(GetConn());
   lpush_cmd_->SetResp(resp_.lock());
 
-  rpop_cmd_->DoBinlog(db);
-  lpush_cmd_->DoBinlog(db);
+  rpop_cmd_->DoBinlog();
+  lpush_cmd_->DoBinlog();
 }
 
 void RPushCmd::DoInitial() {
@@ -845,12 +839,12 @@ void RPushCmd::DoInitial() {
   }
 }
 
-void RPushCmd::Do(std::shared_ptr<DB> db) {
+void RPushCmd::Do() {
   uint64_t llen = 0;
-  s_ = db->storage()->RPush(key_, values_, &llen);
+  s_ = db_->storage()->RPush(key_, values_, &llen);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -859,17 +853,17 @@ void RPushCmd::Do(std::shared_ptr<DB> db) {
       return;
     }
   }
-  TryToServeBLrPopWithThisKey(key_, db);
+  TryToServeBLrPopWithThisKey(key_, db_);
 }
 
-void RPushCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void RPushCmd::DoThroughDB() {
+  Do();
 }
 
-void RPushCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void RPushCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -885,26 +879,26 @@ void RPushxCmd::DoInitial() {
   }
 }
 
-void RPushxCmd::Do(std::shared_ptr<DB> db) {
+void RPushxCmd::Do() {
   uint64_t llen = 0;
-  s_ = db->storage()->RPushx(key_, values_, &llen);
+  s_ = db_->storage()->RPushx(key_, values_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, db);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void RPushxCmd::DoThroughDB(std::shared_ptr<DB> db) {
-  Do(db);
+void RPushxCmd::DoThroughDB() {
+  Do();
 }
 
-void RPushxCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void RPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    db->cache()->RPushx(CachePrefixKeyL, values);
+    db_->cache()->RPushx(CachePrefixKeyL, values);
   }
 }

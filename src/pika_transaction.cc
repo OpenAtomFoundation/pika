@@ -18,7 +18,7 @@
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-void MultiCmd::Do(std::shared_ptr<DB> db) {
+void MultiCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (conn == nullptr || client_conn == nullptr) {
@@ -40,7 +40,7 @@ void MultiCmd::DoInitial() {
   }
 }
 
-void ExecCmd::Do(std::shared_ptr<DB> db) {
+void ExecCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
@@ -61,15 +61,15 @@ void ExecCmd::Do(std::shared_ptr<DB> db) {
       client_conn->SetAllTxnFailed();
     } else if (cmd->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
-      flushdb->FlushAllDBsWithoutLock(each_cmd_info.db_);
+      flushdb->FlushAllDBsWithoutLock();
       if (cmd->res().ok()) {
         cmd->res().SetRes(CmdRes::kOk);
       }
       client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
     } else {
-      cmd->Do(db);
+      cmd->Do();
       if (cmd->res().ok() && cmd->is_write()) {
-        cmd->DoBinlog(sync_db);
+        cmd->DoBinlog();
         auto db_keys = cmd->current_key();
         for (auto& item : db_keys) {
           item = cmd->db_name().append(item);
@@ -89,8 +89,6 @@ void ExecCmd::Do(std::shared_ptr<DB> db) {
 void ExecCmd::Execute() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  auto cmd_db = client_conn->GetCurrentTable();
-  auto db = g_pika_server->GetDB(cmd_db);
   if (client_conn == nullptr) {
     res_.SetRes(CmdRes::kErrOther, name());
     return;
@@ -105,7 +103,7 @@ void ExecCmd::Execute() {
   }
   SetCmdsVec();
   Lock();
-  Do(db);
+  Do();
   Unlock();
   ServeToBLrPopWithKeys();
   list_cmd_.clear();
@@ -185,7 +183,7 @@ void ExecCmd::SetCmdsVec() {
     auto sync_db = g_pika_rm->GetSyncMasterDBByName(DBInfo(cmd->db_name()));
     cmds_.emplace_back(cmd, db, sync_db);
     if (cmd->name() == kCmdNameSelect) {
-      cmd->Do(db);
+      cmd->Do();
     } else if (cmd->name() == kCmdNameFlushdb) {
       is_lock_rm_dbs_ = true;
       lock_db_.emplace(g_pika_server->GetDB(cmd_db));
@@ -222,10 +220,10 @@ void ExecCmd::ServeToBLrPopWithKeys() {
   }
 }
 
-void WatchCmd::Do(std::shared_ptr<DB> db) {
+void WatchCmd::Do() {
   auto mp = std::map<storage::DataType, storage::Status>{};
   for (const auto& key : keys_) {
-    auto type_count = db->storage()->IsExist(key, &mp);
+    auto type_count = db_->storage()->IsExist(key, &mp);
     if (type_count > 1) {
       res_.SetRes(CmdRes::CmdRet::kErrOther, "EXEC WATCH watch key must be unique");
       return;
@@ -249,8 +247,7 @@ void WatchCmd::Do(std::shared_ptr<DB> db) {
 }
 
 void WatchCmd::Execute() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  Do(db);
+  Do();
 }
 
 void WatchCmd::DoInitial() {
@@ -265,7 +262,7 @@ void WatchCmd::DoInitial() {
   }
 }
 
-void UnwatchCmd::Do(std::shared_ptr<DB> db) {
+void UnwatchCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {
@@ -297,7 +294,7 @@ void DiscardCmd::DoInitial() {
   }
 }
 
-void DiscardCmd::Do(std::shared_ptr<DB> db) {
+void DiscardCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (client_conn == nullptr) {

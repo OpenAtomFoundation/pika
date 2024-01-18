@@ -16,8 +16,8 @@ class PublishCmd : public Cmd {
  public:
   PublishCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PublishCmd(*this); }
   std::vector<std::string> current_key() const override { return {channel_}; }
@@ -32,8 +32,8 @@ class SubscribeCmd : public Cmd {
  public:
   SubscribeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SubscribeCmd(*this); }
   std::vector<std::string> current_key() const override { return channels_; }
@@ -47,8 +47,8 @@ class UnSubscribeCmd : public Cmd {
  public:
   UnSubscribeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new UnSubscribeCmd(*this); }
   std::vector<std::string> current_key() const override { return channels_; }
@@ -62,8 +62,8 @@ class PUnSubscribeCmd : public Cmd {
  public:
   PUnSubscribeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PUnSubscribeCmd(*this); }
   std::vector<std::string> current_key() const override { return {channels_}; }
@@ -77,8 +77,8 @@ class PSubscribeCmd : public Cmd {
  public:
   PSubscribeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PSubscribeCmd(*this); }
   std::vector<std::string> current_key() const override { return {channels_}; }
@@ -92,8 +92,8 @@ class PubSubCmd : public Cmd {
  public:
   PubSubCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PUBSUB)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new PubSubCmd(*this); }
 

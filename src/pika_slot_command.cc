@@ -940,7 +940,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
   }
 }
 
-void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtTagSlotCmd::Do() {
   if (g_pika_conf->slotmigrate() != true) {
     LOG(WARNING) << "Not in slotmigrate mode";
     res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
@@ -953,7 +953,7 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<DB> db) {
   std::string slot_key = GetSlotKey(static_cast<int32_t>(slot_id_));
 
   // first, get the count of slot_key, prevent to sscan key very slowly when the key is not found
-  rocksdb::Status s = db->storage()->SCard(slot_key, &len);
+  rocksdb::Status s = db_->storage()->SCard(slot_key, &len);
   LOG(INFO) << "【SlotsMgrtTagSlotCmd::Do】Get count, slot_key: " << slot_key << ", len: " << len;
   if (len < 0) {
     detail = "Get the len of slot Error";
@@ -963,13 +963,13 @@ void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<DB> db) {
     g_pika_server->pika_migrate_->CleanMigrateClient();
     int64_t next_cursor = 0;
     std::vector<std::string> members;
-    rocksdb::Status s = db->storage()->SScan(slot_key, 0, "*", 1, &members, &next_cursor);
+    rocksdb::Status s = db_->storage()->SScan(slot_key, 0, "*", 1, &members, &next_cursor);
     if (s.ok()) {
       for (const auto &member : members) {
         std::string key = member;
         char type = key.at(0);
         key.erase(key.begin());
-        ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key, type, detail, db);
+        ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key, type, detail, db_);
       }
     }
     // unlock
@@ -1069,7 +1069,7 @@ void SlotsMgrtTagOneCmd::DoInitial() {
   key_ = *it++;
 }
 
-void SlotsMgrtTagOneCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtTagOneCmd::Do() {
   if (!g_pika_conf->slotmigrate()) {
     LOG(WARNING) << "Not in slotmigrate mode";
     res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
@@ -1091,7 +1091,7 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<DB> db) {
     keys.emplace_back(key_);
 
     // check the key is not existed
-    ret = db->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys, &type_status);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
@@ -1108,7 +1108,7 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<DB> db) {
   } else {
     // key is tag_key, check the number of the tag_key
     std::string tag_key = GetSlotsTagKey(crc);
-    s = db->storage()->SCard(tag_key, &len);
+    s = db_->storage()->SCard(tag_key, &len);
     if (s.IsNotFound()) {
       res_.AppendInteger(0);
       return;
@@ -1136,20 +1136,20 @@ void SlotsMgrtTagOneCmd::Do(std::shared_ptr<DB> db) {
     keys.emplace_back(key_);
     // the key may be deleted by another thread
     std::map<storage::DataType, rocksdb::Status> type_status;
-    ret = db->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys, &type_status);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
       detail = s.ToString();
-    } else if (KeyTypeCheck(db) != 0) {
+    } else if (KeyTypeCheck(db_) != 0) {
       detail = "cont get the key type.";
       ret = -1;
     } else {
-      ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, key_type_, detail, db);
+      ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, key_type_, detail, db_);
     }
   } else {
     // key maybe doesn't exist, the key is tag key, migrate the same tag key
-    ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, 0, detail, db);
+    ret = SlotsMgrtTag(dest_ip_, static_cast<int32_t>(dest_port_), static_cast<int32_t>(timeout_ms_), key_, 0, detail, db_);
   }
 
   // unlock the record lock
@@ -1213,7 +1213,7 @@ void SlotsInfoCmd::DoInitial() {
   }
 }
 
-void SlotsInfoCmd::Do(std::shared_ptr<DB> db) {
+void SlotsInfoCmd::Do() {
   int slotNum = g_pika_conf->default_slot_num();
   int slots_slot[slotNum];
   int slots_size[slotNum];
@@ -1226,7 +1226,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<DB> db) {
   for (auto i = static_cast<int32_t>(begin_); i < end_; i++) {
     slot_key = GetSlotKey(i);
     len = 0;
-    rocksdb::Status s = db->storage()->SCard(slot_key, &len);
+    rocksdb::Status s = db_->storage()->SCard(slot_key, &len);
     if (!s.ok() || len == 0) {
       continue;
     }
@@ -1299,7 +1299,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtTagSlotAsyncCmd::Do() {
   // check whether open slotmigrate
   if (!g_pika_conf->slotmigrate()) {
     res_.SetRes(CmdRes::kErrOther, "please open slotmigrate and reload slot");
@@ -1308,7 +1308,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<DB> db) {
 
   int32_t remained = 0;
   std::string slotKey = GetSlotKey(static_cast<int32_t>(slot_id_));
-  storage::Status status = db->storage()->SCard(slotKey, &remained);
+  storage::Status status = db_->storage()->SCard(slotKey, &remained);
   if (status.IsNotFound()) {
     LOG(INFO) << "find no record in slot " << slot_id_;
     res_.AppendArrayLen(2);
@@ -1322,7 +1322,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<DB> db) {
     return;
   }
 
-  bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_id_, keys_num_, db);
+  bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_id_, keys_num_, db_);
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
     res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error, may be currently migrating");
@@ -1342,7 +1342,7 @@ void SlotsMgrtAsyncStatusCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtAsyncStatusCmd::Do() {
   std::string status;
   std::string ip;
   int64_t port = -1, slots = -1, moved = -1, remained = -1;
@@ -1376,7 +1376,7 @@ void SlotsMgrtAsyncCancelCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtAsyncCancelCmd::Do() {
   bool ret = g_pika_server->SlotsMigrateAsyncCancel();
   if (!ret) {
     res_.SetRes(CmdRes::kErrOther, "slotsmgrt-async-cancel error");
@@ -1393,14 +1393,14 @@ void SlotsDelCmd::DoInitial() {
   return;
 }
 
-void SlotsDelCmd::Do(std::shared_ptr<DB> db) {
+void SlotsDelCmd::Do() {
   std::vector<std::string> keys;
   std::vector<std::string>::const_iterator iter;
   for (iter = slots_.begin(); iter != slots_.end(); iter++) {
     keys.emplace_back(SlotKeyPrefix + *iter);
   }
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t count = db->storage()->Del(keys, &type_status);
+  int64_t count = db_->storage()->Del(keys, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {
@@ -1423,7 +1423,7 @@ void SlotsHashKeyCmd::DoInitial() {
   return;
 }
 
-void SlotsHashKeyCmd::Do(std::shared_ptr<DB> db) {
+void SlotsHashKeyCmd::Do() {
   std::vector<std::string>::const_iterator keys_it;
 
   res_.AppendArrayLenUint64(keys_.size());
@@ -1476,9 +1476,9 @@ void SlotsScanCmd::DoInitial() {
   return;
 }
 
-void SlotsScanCmd::Do(std::shared_ptr<DB> db) {
+void SlotsScanCmd::Do() {
   std::vector<std::string> members;
-  rocksdb::Status s = db->storage()->SScan(key_, cursor_, pattern_, count_, &members, &cursor_);
+  rocksdb::Status s = db_->storage()->SScan(key_, cursor_, pattern_, count_, &members, &cursor_);
 
   if (members.size() <= 0) {
     cursor_ = 0;
@@ -1512,9 +1512,9 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
 // return 0 means key doesn't exist, or key is not migrating
 // return 1 means key is migrating
 // return -1 means something wrong
-void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<DB> db) {
+void SlotsMgrtExecWrapperCmd::Do() {
   res_.AppendArrayLen(2);
-  int ret = g_pika_server->SlotsMigrateOne(key_, db);
+  int ret = g_pika_server->SlotsMigrateOne(key_, db_);
   switch (ret) {
     case 0:
     case -2:
@@ -1540,8 +1540,8 @@ void SlotsReloadCmd::DoInitial() {
   return;
 }
 
-void SlotsReloadCmd::Do(std::shared_ptr<DB> db) {
-  g_pika_server->Bgslotsreload(db);
+void SlotsReloadCmd::Do() {
+  g_pika_server->Bgslotsreload(db_);
   const PikaServer::BGSlotsReload &info = g_pika_server->bgslots_reload();
   char buf[256];
   snprintf(buf, sizeof(buf), "+%s : %lld", info.s_start_time.c_str(), g_pika_server->GetSlotsreloadingCursor());
@@ -1556,7 +1556,7 @@ void SlotsReloadOffCmd::DoInitial() {
   return;
 }
 
-void SlotsReloadOffCmd::Do(std::shared_ptr<DB> db) {
+void SlotsReloadOffCmd::Do() {
   g_pika_server->SetSlotsreloading(false);
   res_.SetRes(CmdRes::kOk);
   return;
@@ -1583,8 +1583,8 @@ void SlotsCleanupCmd::DoInitial() {
   return;
 }
 
-void SlotsCleanupCmd::Do(std::shared_ptr<DB> db) {
-  g_pika_server->Bgslotscleanup(cleanup_slots_, db);
+void SlotsCleanupCmd::Do() {
+  g_pika_server->Bgslotscleanup(cleanup_slots_, db_);
   std::vector<int> cleanup_slots(g_pika_server->GetCleanupSlots());
   res_.AppendArrayLenUint64(cleanup_slots.size());
   auto iter = cleanup_slots.begin();
@@ -1601,7 +1601,7 @@ void SlotsCleanupOffCmd::DoInitial() {
   return;
 }
 
-void SlotsCleanupOffCmd::Do(std::shared_ptr<DB> db) {
+void SlotsCleanupOffCmd::Do() {
   g_pika_server->StopBgslotscleanup();
   res_.SetRes(CmdRes::kOk);
   return;

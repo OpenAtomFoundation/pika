@@ -1734,7 +1734,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
       LOG(INFO) << "clear cache start...";
       db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
       g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, db);
-      db->cache()->FlushDB();
+      db->cache()->FlushCache();
       LOG(INFO) << "clear cache finish";
       break;
     case CACHE_BGTASK_RESET_NUM:

@@ -831,6 +831,7 @@ Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
 }
 
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
+
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
     : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
   // assign cmd id
@@ -841,6 +842,8 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
   argv_ = argv;
   db_name_ = db_name;
   res_.clear();  // Clear res content
+  db_ = g_pika_server->GetDB(db_name_);
+  sync_db_ = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
   Clear();       // Clear cmd, Derived class can has own implement
   DoInitial();
 };
@@ -848,112 +851,99 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
 std::vector<std::string> Cmd::current_key() const { return {""}; }
 
 void Cmd::Execute() {
-  ProcessDBCmd();
+  ProcessCommand();
 }
 
-void Cmd::ProcessDBCmd() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  if (!db) {
-    res_.SetRes(CmdRes::kErrOther, "DB not found");
-    return;
-  }
-
-  std::shared_ptr<SyncMasterDB> sync_db =
-      g_pika_rm->GetSyncMasterDBByName(DBInfo(db->GetDBName()));
-  if (!sync_db) {
-    res_.SetRes(CmdRes::kErrOther, "DB not found");
-    return;
-  }
-  ProcessCommand(db, sync_db);
-}
-
-void Cmd::ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
-                         const HintKeys& hint_keys) {
+void Cmd::ProcessCommand(const HintKeys& hint_keys) {
+  LOG(INFO) << "lmz";
   if (stage_ == kNone) {
-    InternalProcessCommand(db, sync_db, hint_keys);
+    InternalProcessCommand(hint_keys);
   } else {
     if (stage_ == kBinlogStage) {
-      DoBinlog(sync_db);
+      DoBinlog();
     } else if (stage_ == kExecuteStage) {
-      DoCommand(db, hint_keys);
+      DoCommand(hint_keys);
     }
   }
 }
 
-void Cmd::InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
-                                 const HintKeys& hint_keys) {
-  pstd::lock::MultiRecordLock record_lock(db->LockMgr());
+void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
+  LOG(INFO) << "xaz";
+  LOG(INFO) << db_->GetDBName();
+  LOG(INFO) << "aaa";
+  pstd::lock::MultiRecordLock record_lock(db_->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
   }
-
+  LOG(INFO) << "wxr";
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  DoCommand(db, hint_keys);
+  DoCommand(hint_keys);
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     do_duration_ += pstd::NowMicros() - start_us;
   }
 
-  DoBinlog(sync_db);
+  DoBinlog();
 
   if (is_write()) {
     record_lock.Unlock(current_key());
   }
 }
 
-void Cmd::DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_keys) {
+void Cmd::DoCommand(const HintKeys& hint_keys) {
+  LOG(INFO) << "yzh";
   if (!IsSuspend()) {
-    db->DbRWLockReader();
+    db_->DbRWLockReader();
   }
   DEFER {
     if (!IsSuspend()) {
-      db->DbRWUnLock();
+      db_->DbRWUnLock();
     }
   };
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && db->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (IsNeedReadCache()) {
-      ReadCache(db);
+      ReadCache();
     }
     if (is_read() && res().CacheMiss()) {
-      pstd::lock::MultiScopeRecordLock record_lock(db->LockMgr(), current_key());
-      DoThroughDB(db);
+      pstd::lock::MultiScopeRecordLock record_lock(db_->LockMgr(), current_key());
+      DoThroughDB();
       if (IsNeedUpdateCache()) {
-        DoUpdateCache(db);
+        DoUpdateCache();
       }
     } else if (is_write()) {
-      DoThroughDB(db);
+      DoThroughDB();
       if (IsNeedUpdateCache()) {
-        DoUpdateCache(db);
+        DoUpdateCache();
       }
     }
   } else {
-    Do(db);
+    Do();
   }
 }
 
-void Cmd::DoBinlog(const std::shared_ptr<SyncMasterDB>& db) {
+void Cmd::DoBinlog() {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
     if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
       if (!conn_ptr) {
-        LOG(WARNING) << db->SyncDBInfo().ToString() << " conn empty.";
+        LOG(WARNING) << sync_db_->SyncDBInfo().ToString() << " conn empty.";
       }
       if (!resp_ptr) {
-        LOG(WARNING) << db->SyncDBInfo().ToString() << " resp empty.";
+        LOG(WARNING) << sync_db_->SyncDBInfo().ToString() << " resp empty.";
       }
       res().SetRes(CmdRes::kErrOther);
       return;
     }
 
-    Status s = db->ConsensusProposeLog(shared_from_this());
+    Status s = sync_db_->ConsensusProposeLog(shared_from_this());
     if (!s.ok()) {
-      LOG(WARNING) << db->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
+      LOG(WARNING) << sync_db_->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
                    << s.ToString();
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;

@@ -507,14 +507,13 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
-  virtual void ProcessDBCmd();
-  virtual void Do(std::shared_ptr<DB> db) = 0;
-  virtual void DoThroughDB(std::shared_ptr<DB> db) {}
-  virtual void DoUpdateCache(std::shared_ptr<DB> db) {}
-  virtual void ReadCache(std::shared_ptr<DB> db) {}
+  virtual void Do() {};
+  virtual void DoThroughDB() {}
+  virtual void DoUpdateCache() {}
+  virtual void ReadCache() {}
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
-  virtual void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) = 0;
+  virtual void Split(const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
   int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
@@ -535,6 +534,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsNeedCacheDo() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
+  std::shared_ptr<DB> GetDB() const { return db_; };
   uint32_t AclCategory() const;
   void AddAclCategory(uint32_t aclCategory);
   void SetDbName(const std::string& db_name) { db_name_ = db_name; }
@@ -554,7 +554,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   void SetStage(CmdStage stage);
 
-  virtual void DoBinlog(const std::shared_ptr<SyncMasterDB>& db);
+  virtual void DoBinlog();
 
   uint32_t GetCmdId() const { return cmdId_; };
   bool CheckArg(uint64_t num) const;
@@ -562,11 +562,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
-                      const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<DB>& db, const std::shared_ptr<SyncMasterDB>& sync_db,
-                              const HintKeys& hint_key);
-  void DoCommand(const std::shared_ptr<DB>& db, const HintKeys& hint_key);
+  void ProcessCommand(const HintKeys& hint_key = HintKeys());
+  void InternalProcessCommand(const HintKeys& hint_key);
+  void DoCommand(const HintKeys& hint_key);
   void LogCommand() const;
 
   std::string name_;
@@ -580,7 +578,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   PikaCmdArgsType argv_;
   std::string db_name_;
   rocksdb::Status s_;
-
+  std::shared_ptr<DB> db_;
+  std::shared_ptr<SyncMasterDB> sync_db_;
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;
   CmdStage stage_ = kNone;

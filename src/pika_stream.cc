@@ -231,11 +231,11 @@ void XAddCmd::DoInitial() {
   }
 }
 
-void XAddCmd::Do(std::shared_ptr<DB> db) {
+void XAddCmd::Do() {
   // 1 get stream meta
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, db_.get());
   if (s.IsNotFound() && args_.no_mkstream) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -276,7 +276,7 @@ void XAddCmd::Do(std::shared_ptr<DB> db) {
   assert(field > serialized_last_id);
 #endif  // DEBUG
 
-  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, db.get());
+  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, db_.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, "error from XADD, insert stream message failed 1: " + s.ToString());
     return;
@@ -293,12 +293,12 @@ void XAddCmd::Do(std::shared_ptr<DB> db) {
   // 4 trim the stream if needed
   if (args_.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
     int32_t count;
-    TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db.get()), res_);
+    TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db_.get()), res_);
     (void)count;
   }
 
   // 5 update stream meta
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get());
+  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db_.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed 2: " + s.ToString());
     return;
@@ -385,13 +385,13 @@ void XRangeCmd::DoInitial() {
   }
 }
 
-void XRangeCmd::Do(std::shared_ptr<DB> db) {
+void XRangeCmd::Do() {
   std::vector<storage::FieldValue> field_values;
 
   if (start_sid <= end_sid) {
     StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, false);
     std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db_.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -399,16 +399,16 @@ void XRangeCmd::Do(std::shared_ptr<DB> db) {
     }
   }
 
-  AppendMessagesToRes(res_, field_values, db.get());
+  AppendMessagesToRes(res_, field_values, db_.get());
 }
 
-void XRevrangeCmd::Do(std::shared_ptr<DB> db) {
+void XRevrangeCmd::Do() {
   std::vector<storage::FieldValue> field_values;
 
   if (start_sid >= end_sid) {
     StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, true);
     std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db_.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -416,7 +416,7 @@ void XRevrangeCmd::Do(std::shared_ptr<DB> db) {
     }
   }
 
-  AppendMessagesToRes(res_, field_values, db.get());
+  AppendMessagesToRes(res_, field_values, db_.get());
 }
 
 inline void XDelCmd::SetFirstIDOrReply(StreamMetaValue &stream_meta, const DB* db) {
@@ -487,10 +487,10 @@ void XDelCmd::DoInitial() {
   }
 }
 
-void XDelCmd::Do(std::shared_ptr<DB> db) {
+void XDelCmd::Do() {
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db_.get());
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -501,7 +501,7 @@ void XDelCmd::Do(std::shared_ptr<DB> db) {
 
   // 2 do the delete
   int32_t count{0};
-  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, db.get());
+  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, db_.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -514,13 +514,13 @@ void XDelCmd::Do(std::shared_ptr<DB> db) {
       stream_meta.set_max_deleted_entry_id(id);
     }
     if (id == stream_meta.first_id()) {
-      SetFirstIDOrReply(stream_meta, db.get());
+      SetFirstIDOrReply(stream_meta, db_.get());
     } else if (id == stream_meta.last_id()) {
-      SetLastIDOrReply(stream_meta, db.get());
+      SetLastIDOrReply(stream_meta, db_.get());
     }
   }
 
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get());
+  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), db_.get());
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -537,10 +537,10 @@ void XLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void XLenCmd::Do(std::shared_ptr<DB> db) {
+void XLenCmd::Do() {
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
+  s = StreamStorage::GetStreamMeta(stream_meta, key_, db_.get());
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -566,7 +566,7 @@ void XReadCmd::DoInitial() {
   ParseReadOrReadGroupArgsOrReply(res_, argv_, args_, false);
 }
 
-void XReadCmd::Do(std::shared_ptr<DB> db) {
+void XReadCmd::Do() {
   rocksdb::Status s;
 
   // 1 prepare stream_metas
@@ -576,7 +576,7 @@ void XReadCmd::Do(std::shared_ptr<DB> db) {
     const auto &unparsed_id = args_.unparsed_ids[i];
 
     StreamMetaValue stream_meta;
-    auto s = StreamStorage::GetStreamMeta(stream_meta, key, db.get());
+    auto s = StreamStorage::GetStreamMeta(stream_meta, key, db_.get());
     if (s.IsNotFound()) {
       continue;
     } else if (!s.ok()) {
@@ -621,7 +621,7 @@ void XReadCmd::Do(std::shared_ptr<DB> db) {
     std::vector<storage::FieldValue> field_values;
     std::string next_field;
     StreamStorage::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count, true);
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, db.get());
+    auto s = StreamStorage::ScanStream(options, field_values, next_field, db_.get());
     (void)next_field;
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -630,7 +630,7 @@ void XReadCmd::Do(std::shared_ptr<DB> db) {
 
     res_.AppendArrayLen(2);
     res_.AppendString(key);
-    AppendMessagesToRes(res_, field_values, db.get());
+    AppendMessagesToRes(res_, field_values, db_.get());
   }
 }
 
@@ -647,10 +647,10 @@ void XTrimCmd::DoInitial() {
   }
 }
 
-void XTrimCmd::Do(std::shared_ptr<DB> db) {
+void XTrimCmd::Do() {
   // 1 try to get stream meta, if not found, return error
   StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db.get());
+  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, db_.get());
   if (s.IsNotFound()) {
     res_.AppendInteger(0);
     return;
@@ -661,10 +661,10 @@ void XTrimCmd::Do(std::shared_ptr<DB> db) {
 
   // 2 do the trim
   int32_t count{0};
-  TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db.get()), res_);
+  TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, db_.get()), res_);
 
   // 3 update stream meta
-  TRY_CATCH_ERROR(StreamStorage::SetStreamMeta(key_, stream_meta.value(), db.get()), res_);
+  TRY_CATCH_ERROR(StreamStorage::SetStreamMeta(key_, stream_meta.value(), db_.get()), res_);
 
   res_.AppendInteger(count);
   return;
@@ -710,9 +710,9 @@ void XInfoCmd::DoInitial() {
   }
 }
 
-void XInfoCmd::Do(std::shared_ptr<DB> db) {
+void XInfoCmd::Do() {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
-    this->StreamInfo(db);
+    this->StreamInfo(db_);
   } else if (!strcasecmp(subcmd_.c_str(), "GROUPS")) {
     // Korpse: TODO:
     // this->GroupsInfo(slot);

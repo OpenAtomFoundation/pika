@@ -27,8 +27,8 @@ class SlaveofCmd : public Cmd {
  public:
   SlaveofCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlaveofCmd(*this); }
 
@@ -48,8 +48,8 @@ class DbSlaveofCmd : public Cmd {
  public:
   DbSlaveofCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DbSlaveofCmd(*this); }
 
@@ -72,8 +72,8 @@ class DbSlaveofCmd : public Cmd {
 class AuthCmd : public Cmd {
  public:
   AuthCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new AuthCmd(*this); }
 
@@ -85,8 +85,8 @@ class BgsaveCmd : public Cmd {
  public:
   BgsaveCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BgsaveCmd(*this); }
 
@@ -100,8 +100,8 @@ class CompactCmd : public Cmd {
  public:
   CompactCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new CompactCmd(*this); }
 
@@ -119,8 +119,8 @@ class CompactCmd : public Cmd {
 class CompactRangeCmd : public Cmd {
  public:
   CompactRangeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new CompactRangeCmd(*this); }
 
@@ -142,8 +142,8 @@ class PurgelogstoCmd : public Cmd {
  public:
   PurgelogstoCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PurgelogstoCmd(*this); }
 
@@ -156,8 +156,8 @@ class PurgelogstoCmd : public Cmd {
 class PingCmd : public Cmd {
  public:
   PingCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PingCmd(*this); }
 
@@ -168,8 +168,8 @@ class PingCmd : public Cmd {
 class SelectCmd : public Cmd {
  public:
   SelectCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SelectCmd(*this); }
 
@@ -177,21 +177,22 @@ class SelectCmd : public Cmd {
   void DoInitial() override;
   void Clear() override { db_name_.clear(); }
   std::string db_name_;
-  std::shared_ptr<DB> select_db_;
 };
 
 class FlushallCmd : public Cmd {
  public:
   FlushallCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
   void Execute() override;
   void FlushAllWithoutLock();
+  void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
+
  private:
   void DoInitial() override;
   std::string ToRedisProtocol() override;
@@ -204,13 +205,13 @@ class FlushdbCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   // The flush command belongs to the write categories, so the key cannot be empty
   std::vector<std::string> current_key() const override { return {""}; }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
-  void FlushAllDBsWithoutLock(std::shared_ptr<DB> db);
+  void FlushAllDBsWithoutLock();
   void Execute() override;
   std::string GetFlushDname() { return db_name_; }
 
@@ -218,7 +219,7 @@ class FlushdbCmd : public Cmd {
   std::string db_name_;
   void DoInitial() override;
   void Clear() override { db_name_.clear(); }
-  void DoWithoutLock(std::shared_ptr<DB> db);
+  void DoWithoutLock();
 };
 
 class ClientCmd : public Cmd {
@@ -226,10 +227,10 @@ class ClientCmd : public Cmd {
   ClientCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {
     subCmdName_ = {"getname", "setname", "list", "addr", "kill"};
   }
-  void Do(std::shared_ptr<DB> db) override;
+  void Do() override;
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ClientCmd(*this); }
 
@@ -260,8 +261,8 @@ class InfoCmd : public Cmd {
   };
 
   InfoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
   void Execute() override;
@@ -316,8 +317,8 @@ class ShutdownCmd : public Cmd {
  public:
   ShutdownCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ShutdownCmd(*this); }
 
@@ -331,8 +332,8 @@ class ConfigCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {
     subCmdName_ = {"get", "set", "rewrite", "resetstat"};
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
   void Execute() override;
@@ -351,8 +352,8 @@ class MonitorCmd : public Cmd {
  public:
   MonitorCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new MonitorCmd(*this); }
 
@@ -364,8 +365,8 @@ class DbsizeCmd : public Cmd {
  public:
   DbsizeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DbsizeCmd(*this); }
 
@@ -376,8 +377,8 @@ class DbsizeCmd : public Cmd {
 class TimeCmd : public Cmd {
  public:
   TimeCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new TimeCmd(*this); }
 
@@ -388,8 +389,8 @@ class TimeCmd : public Cmd {
 class LastsaveCmd : public Cmd {
  public:
   LastsaveCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db = nullptr) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new LastsaveCmd(*this); }
 
@@ -401,8 +402,8 @@ class DelbackupCmd : public Cmd {
  public:
   DelbackupCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DelbackupCmd(*this); }
 
@@ -414,8 +415,8 @@ class EchoCmd : public Cmd {
  public:
   EchoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Merge() override{};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   Cmd* Clone() override { return new EchoCmd(*this); }
 
  private:
@@ -426,8 +427,8 @@ class EchoCmd : public Cmd {
 class ScandbCmd : public Cmd {
  public:
   ScandbCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ScandbCmd(*this); }
 
@@ -442,8 +443,8 @@ class SlowlogCmd : public Cmd {
   enum SlowlogCondition { kGET, kLEN, kRESET };
   SlowlogCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlowlogCmd(*this); }
 
@@ -461,8 +462,8 @@ class PaddingCmd : public Cmd {
  public:
   PaddingCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PaddingCmd(*this); }
 
@@ -475,8 +476,8 @@ class PKPatternMatchDelCmd : public Cmd {
  public:
   PKPatternMatchDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
@@ -491,8 +492,8 @@ class DummyCmd : public Cmd {
   DummyCmd() : Cmd("", 0, 0) {}
   DummyCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DummyCmd(*this); }
 
@@ -503,8 +504,8 @@ class DummyCmd : public Cmd {
 class QuitCmd : public Cmd {
  public:
   QuitCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new QuitCmd(*this); }
 
@@ -515,8 +516,8 @@ class QuitCmd : public Cmd {
 class HelloCmd : public Cmd {
  public:
   HelloCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HelloCmd(*this); }
 
@@ -528,8 +529,8 @@ class DiskRecoveryCmd : public Cmd {
  public:
   DiskRecoveryCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DiskRecoveryCmd(*this); }
 
@@ -542,11 +543,10 @@ class ClearReplicationIDCmd : public Cmd {
  public:
   ClearReplicationIDCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ClearReplicationIDCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override {};
 
  private:
   void DoInitial() override;
@@ -555,8 +555,8 @@ class ClearReplicationIDCmd : public Cmd {
 class DisableWalCmd : public Cmd {
  public:
   DisableWalCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DisableWalCmd(*this); }
 
@@ -568,8 +568,8 @@ class CacheCmd : public Cmd {
  public:
   enum CacheCondition {kCLEAR_DB, kCLEAR_HITRATIO, kDEL_KEYS, kRANDOM_KEY};
   CacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new CacheCmd(*this); }
 
@@ -586,8 +586,8 @@ class CacheCmd : public Cmd {
 class ClearCacheCmd : public Cmd {
  public:
   ClearCacheCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ClearCacheCmd(*this); }
 
@@ -599,8 +599,8 @@ class ClearCacheCmd : public Cmd {
 class CommandCmd : public Cmd {
  public:
   CommandCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new CommandCmd(*this); }
 

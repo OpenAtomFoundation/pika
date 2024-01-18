@@ -100,11 +100,11 @@ bool PikaCache::Exists(std::string& key) {
   return caches_[cache_index]->Exists(key);
 }
 
-void PikaCache::FlushDB(void) {
+void PikaCache::FlushCache(void) {
   std::lock_guard l(rwlock_);
   for (uint32_t i = 0; i < caches_.size(); ++i) {
     std::lock_guard lm(*cache_mutexs_[i]);
-    caches_[i]->FlushDb();
+    caches_[i]->FlushCache();
   }
 }
 

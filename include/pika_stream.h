@@ -32,8 +32,8 @@ class XAddCmd : public Cmd {
   XAddCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<DB> db = nullptr) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XAddCmd(*this); }
 
@@ -51,8 +51,8 @@ class XDelCmd : public Cmd {
   XDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<DB> db = nullptr) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XDelCmd(*this); }
 
@@ -71,8 +71,8 @@ class XReadCmd : public Cmd {
  public:
   XReadCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XReadCmd(*this); }
 
@@ -90,8 +90,8 @@ class XRangeCmd : public Cmd {
  public:
   XRangeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRangeCmd(*this); }
 
@@ -109,8 +109,8 @@ class XRangeCmd : public Cmd {
 class XRevrangeCmd : public XRangeCmd {
  public:
   XRevrangeCmd(const std::string& name, int arity, uint32_t flag) : XRangeCmd(name, arity, flag){};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRevrangeCmd(*this); }
 };
@@ -119,8 +119,8 @@ class XLenCmd : public Cmd {
  public:
   XLenCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XLenCmd(*this); }
 
@@ -134,8 +134,8 @@ class XTrimCmd : public Cmd {
  public:
   XTrimCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<DB> db = nullptr) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XTrimCmd(*this); }
 
@@ -150,8 +150,8 @@ class XInfoCmd : public Cmd {
  public:
   XInfoCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XInfoCmd(*this); }
 

@@ -24,11 +24,11 @@ class BitGetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitGetCmd(*this); }
 
@@ -52,10 +52,10 @@ class BitSetCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitSetCmd(*this); }
 
@@ -81,11 +81,11 @@ class BitCountCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitCountCmd(*this); }
 
@@ -113,11 +113,11 @@ class BitPosCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<DB> db) override;
-  void ReadCache(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BitPosCmd(*this); }
 
@@ -156,13 +156,13 @@ class BitOpCmd : public Cmd {
   }
 
   std::vector<std::string> current_key() const override { return {dest_key_}; }
-  void Do(std::shared_ptr<DB> db) override;
-  void DoUpdateCache(std::shared_ptr<DB> db) override;
-  void DoThroughDB(std::shared_ptr<DB> db) override;
-  void Split(std::shared_ptr<DB> db, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new BitOpCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterDB>& db) override;
+  void DoBinlog() override;
 
  private:
   std::string dest_key_;

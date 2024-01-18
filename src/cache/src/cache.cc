@@ -98,7 +98,7 @@ int64_t RedisCache::DbSize(void) {
   return dbsize;
 }
 
-void RedisCache::FlushDb(void) { RcFlushCache(cache_); }
+void RedisCache::FlushCache(void) { RcFlushCache(cache_); }
 
 Status RedisCache::Del(const std::string& key) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
