@@ -8,11 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
-
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
 	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/exporter/metrics"
 )
 
