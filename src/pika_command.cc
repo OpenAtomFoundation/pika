@@ -868,14 +868,11 @@ void Cmd::ProcessCommand(const HintKeys& hint_keys) {
 }
 
 void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
-  LOG(INFO) << "xaz";
   LOG(INFO) << db_->GetDBName();
-  LOG(INFO) << "aaa";
   pstd::lock::MultiRecordLock record_lock(db_->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
   }
-  LOG(INFO) << "wxr";
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
@@ -893,7 +890,6 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
 }
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
-  LOG(INFO) << "yzh";
   if (!IsSuspend()) {
     db_->DbRWLockReader();
   }

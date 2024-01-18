@@ -20,7 +20,7 @@ func AssertEqualRedisString(expected string, result redis.Cmder) {
 	}
 }
 
-var _ = FDescribe("Text Txn", func() {
+var _ = Describe("Text Txn", func() {
 	ctx := context.TODO()
 	var txnClient *redis.Client
 	var cmdClient *redis.Client

@@ -68,6 +68,8 @@ type RequestChan struct {
 
 	waits  int
 	closed bool
+
+	OpFlag
 }
 
 const DefaultRequestChanBuffer = 128

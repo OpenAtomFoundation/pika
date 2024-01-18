@@ -144,6 +144,19 @@ int PikaConf::Load() {
   if (thread_pool_size_ > 100) {
     thread_pool_size_ = 100;
   }
+
+  GetConfInt("slow-cmd-thread-pool-size", &slow_cmd_thread_pool_size_);
+  if (slow_cmd_thread_pool_size_ <= 0) {
+    slow_cmd_thread_pool_size_ = 12;
+  }
+  if (slow_cmd_thread_pool_size_ > 100) {
+    slow_cmd_thread_pool_size_ = 100;
+  }
+
+  std::string slow_cmd_list;
+  GetConfStr("slow-cmd-list", &slow_cmd_list);
+  SetSlowCmd(slow_cmd_list);
+
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
     sync_thread_num_ = 3;
@@ -645,6 +658,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
+  SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
