@@ -90,6 +90,7 @@ PikaServer::PikaServer()
   pika_migrate_thread_ = std::make_unique<PikaMigrateThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
+  pika_slow_cmd_thread_pool_ = std::make_unique<net::ThreadPool>(g_pika_conf->slow_cmd_thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
@@ -116,7 +117,7 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-
+  pika_slow_cmd_thread_pool_->stop_thread_pool();
   {
     std::lock_guard l(slave_mutex_);
     auto iter = slaves_.begin();
@@ -173,6 +174,12 @@ void PikaServer::Start() {
   if (ret != net::kSuccess) {
     dbs_.clear();
     LOG(FATAL) << "Start PikaClientProcessor Error: " << ret
+               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  ret = pika_slow_cmd_thread_pool_->start_thread_pool();
+  if (ret != net::kSuccess) {
+    dbs_.clear();
+    LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
@@ -857,7 +864,13 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg) { pika_client_processor_->SchedulePool(func, arg); }
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
+  if (is_slow_cmd) {
+    pika_slow_cmd_thread_pool_->Schedule(func, arg);
+    return;
+  }
+  pika_client_processor_->SchedulePool(func, arg);
+}
 
 void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str) {
   pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
@@ -875,6 +888,22 @@ size_t PikaServer::ClientProcessorThreadPoolMaxQueueSize() {
     return 0;
   }
   return pika_client_processor_->ThreadPoolMaxQueueSize();
+}
+
+size_t PikaServer::SlowCmdThreadPoolCurQueueSize() {
+  if (!pika_slow_cmd_thread_pool_) {
+    return 0;
+  }
+  size_t cur_size = 0;
+  pika_slow_cmd_thread_pool_->cur_queue_size(&cur_size);
+  return cur_size;
+}
+
+size_t PikaServer::SlowCmdThreadPoolMaxQueueSize() {
+  if (!pika_slow_cmd_thread_pool_) {
+    return 0;
+  }
+  return pika_slow_cmd_thread_pool_->max_queue_size();
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {

@@ -243,7 +243,16 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     arg->redis_cmds = argvs;
     time_stat_->enqueue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
+    /**
+     * If using the pipeline method to transmit batch commands to Pika, it is unable to
+     * correctly distinguish between fast and slow commands.
+     * However, if using the pipeline method for Codis, it can correctly distinguish between
+     * fast and slow commands, but it cannot guarantee sequential execution.
+     */
+    std::string opt = argvs[0][0];
+    pstd::StringToLower(opt);
+    bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
+    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd);
     return;
   }
   BatchExecRedisCmd(argvs);

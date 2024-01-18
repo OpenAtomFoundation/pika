@@ -1566,6 +1566,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->thread_pool_size());
   }
 
+  if (pstd::stringmatch(pattern.data(), "slow-cmd-thread-pool-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "slow-cmd-thread-pool-size");
+    EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "slow-cmd-list");
+    EncodeString(&config_body, g_pika_conf->GetSlowCmd());
+  }
+
   if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
@@ -2147,6 +2159,7 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     EncodeString(&ret, "disable_auto_compactions");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
+    EncodeString(&ret, "slow-cmd-list");
     // Options for storage engine
     // MutableDBOptions
     EncodeString(&ret, "max-cache-files");
@@ -2399,6 +2412,9 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
       return;
     }
     g_pika_conf->SetSyncWindowSize(static_cast<int>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "slow-cmd-list") {
+    g_pika_conf->SetSlowCmd(value);
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
