@@ -16,9 +16,7 @@ class QpsStatistic {
   QpsStatistic();
   QpsStatistic(const QpsStatistic& other);
   ~QpsStatistic() = default;
-
   void IncreaseQueryNum(bool is_write);
-
   void ResetLastSecQuerynum();
 
   std::atomic<uint64_t> querynum;

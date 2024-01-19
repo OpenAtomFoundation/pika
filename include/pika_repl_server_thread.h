@@ -14,11 +14,7 @@ class PikaReplServerThread : public net::HolyThread {
  public:
   PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval);
   ~PikaReplServerThread() override = default;
-
   int ListenPort();
-
-  // for ProcessBinlogData use
-  uint64_t GetnPlusSerial() { return serial_++; }
 
  private:
   class ReplServerConnFactory : public net::ConnFactory {

@@ -12,11 +12,9 @@
  * holding a monotonic time.  This will help distinguish & document that the
  * variable is associated with the monotonic clock and should not be confused
  * with other types of time.*/
-typedef uint64_t monotime;
+using monotime = uint64_t;
 
 // Get monotonic time in microseconds
 monotime getMonotonicUs();
 
 #endif  // PIKA_MONOTONIC_TIME_H
-
-

@@ -8,12 +8,13 @@
 #include "include/pika_acl.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 
 const static int AclGenPassMaxBit = 4096;
 
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-void PikaAclCmd::Do(std::shared_ptr<Slot> slot) {
+void PikaAclCmd::Do() {
   if (subCmd_ == "cat") {
     Cat();
   } else if (subCmd_ == "deluser") {
