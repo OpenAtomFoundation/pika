@@ -1741,7 +1741,7 @@ void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cac
   }
 }
 
-void PikaServer::ClearCacheDbAsync(std::shared_ptr<Slot> slot) {
+void PikaServer::ClearCacheDbAsync(std::shared_ptr<DB> db) {
   // disable cache temporarily, and restore it after cache cleared
   g_pika_conf->SetCacheDisableFlag();
   if (PIKA_CACHE_STATUS_OK != db->cache()->CacheStatus()) {
@@ -1808,7 +1808,7 @@ void PikaServer::ClearHitRatio(std::shared_ptr<DB> db) {
   db->cache()->ClearHitRatio();
 }
 
-void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot) {
+void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db) {
   ResetCacheConfig(db);
   ClearCacheDbAsync(db);
 }
@@ -1823,6 +1823,7 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->db = db;
   arg->task_type = CACHE_BGTASK_CLEAR;
+  arg->conf = std::move(g_pika_conf);
   arg->reenable_cache = true;
   common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
 }

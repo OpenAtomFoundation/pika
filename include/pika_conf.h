@@ -630,6 +630,7 @@ class PikaConf : public pstd::BaseConf {
   }
 
   const std::string scache_type() {
+    std::lock_guard l(rwlock_);
     return pstd::StringConcat(cache_type_, COMMA);
   }
 

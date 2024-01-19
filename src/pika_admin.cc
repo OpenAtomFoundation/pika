@@ -2176,14 +2176,10 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<DB> db) {
     EncodeString(&ret, "arena-block-size");
     EncodeString(&ret, "throttle-bytes-per-second");
     EncodeString(&ret, "max-rsync-parallel-num");
-    EncodeString(&ret, "cache-num");
     EncodeString(&ret, "cache-model");
     EncodeString(&ret, "cache-type");
     EncodeString(&ret, "zset-cache-start-direction");
     EncodeString(&ret, "zset-cache-field-num-per-key");
-    EncodeString(&ret, "cache-maxmemory");
-    EncodeString(&ret, "cache-maxmemory-policy");
-    EncodeString(&ret, "cache-maxmemory-samples");
     EncodeString(&ret, "cache-lfu-decay-time");
     return;
   }
@@ -3127,22 +3123,22 @@ void DisableWalCmd::Do() {
 }
 
 void CacheCmd::DoInitial() {
-  if (!CheckArg(argv_.size()) || argv_.size() < 2) {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCache);
     return;
   }
   if (!strcasecmp(argv_[1].data(), "clear")) {
-    if (!strcasecmp(argv_[2].data(), "db")) {
+    if (argv_.size() == 3 && !strcasecmp(argv_[2].data(), "db")) {
       condition_ = kCLEAR_DB;
-    } else if (!strcasecmp(argv_[2].data(), "hitratio")) {
+    } else if (argv_.size() == 3 && !strcasecmp(argv_[2].data(), "hitratio")) {
       condition_ = kCLEAR_HITRATIO;
     } else {
       res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
     }
-  } else if (!strcasecmp(argv_[1].data(), "del")) {
+  } else if (argv_.size() >= 3 && !strcasecmp(argv_[1].data(), "del")) {
     condition_ = kDEL_KEYS;
     keys_.assign(argv_.begin() + 2, argv_.end());
-  } else if (!strcasecmp(argv_[1].data(), "randomkey")) {
+  } else if (argv_.size() == 2 && !strcasecmp(argv_[1].data(), "randomkey")) {
     condition_ = kRANDOM_KEY;
   } else {
     res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
