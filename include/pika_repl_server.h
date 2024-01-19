@@ -32,10 +32,10 @@ class PikaReplServer {
   int Stop();
 
   pstd::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
-  void BuildBinlogOffset(const LogOffset& offset, InnerMessage::BinlogOffset* boffset);
-  void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
   pstd::Status Write(const std::string& ip, int port, const std::string& msg);
 
+  void BuildBinlogOffset(const LogOffset& offset, InnerMessage::BinlogOffset* boffset);
+  void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
   void Schedule(net::TaskFunc func, void* arg);
   void UpdateClientConnMap(const std::string& ip_port, int fd);
   void RemoveClientConn(int fd);
@@ -44,7 +44,6 @@ class PikaReplServer {
  private:
   std::unique_ptr<net::ThreadPool> server_tp_ = nullptr;
   std::unique_ptr<PikaReplServerThread> pika_repl_server_thread_ = nullptr;
-
   std::shared_mutex client_conn_rwlock_;
   std::map<std::string, int> client_conn_map_;
 };

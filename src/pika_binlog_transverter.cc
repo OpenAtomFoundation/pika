@@ -12,6 +12,7 @@
 #include "pstd/include/pstd_coding.h"
 
 #include "include/pika_command.h"
+#include "include/pika_define.h"
 #include "storage/storage.h"
 
 

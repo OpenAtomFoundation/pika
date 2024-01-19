@@ -29,8 +29,10 @@
 #include "acl.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_binlog.h"
+#include "include/pika_cache.h"
 #include "include/pika_client_processor.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_db.h"
 #include "include/pika_define.h"
@@ -43,83 +45,7 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_statistic.h"
 #include "include/pika_transaction.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_cache.h"
-#include "include/pika_slot.h"
-
-
 #include "include/rsync_server.h"
-
-/*
-static std::set<std::string> MultiKvCommands {kCmdNameDel,
-             kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
-             kCmdNameMsetnx,      kCmdNameExists,            kCmdNameScan,
-             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
-             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
-             kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
-             kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
-             kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
-             kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
-             kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
-             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember};
-*/
-
-static std::set<std::string> ConsensusNotSupportCommands{kCmdNameMsetnx,
-                                                         kCmdNameScan,
-                                                         kCmdNameKeys,
-                                                         kCmdNameRPopLPush,
-                                                         kCmdNameZUnionstore,
-                                                         kCmdNameZInterstore,
-                                                         kCmdNameSUnion,
-                                                         kCmdNameSUnionstore,
-                                                         kCmdNameSInter,
-                                                         kCmdNameSInterstore,
-                                                         kCmdNameSDiff,
-                                                         kCmdNameSDiffstore,
-                                                         kCmdNameSMove,
-                                                         kCmdNameBitOp,
-                                                         kCmdNamePfAdd,
-                                                         kCmdNamePfCount,
-                                                         kCmdNamePfMerge,
-                                                         kCmdNameGeoAdd,
-                                                         kCmdNameGeoPos,
-                                                         kCmdNameGeoDist,
-                                                         kCmdNameGeoHash,
-                                                         kCmdNameGeoRadius,
-                                                         kCmdNameGeoRadiusByMember,
-                                                         kCmdNamePKPatternMatchDel,
-                                                         kCmdNameSlaveof,
-                                                         kCmdNameDbSlaveof,
-                                                         kCmdNameMset,
-                                                         kCmdNameMget,
-                                                         kCmdNameScanx};
-
-static std::set<std::string> ShardingModeNotSupportCommands{kCmdNameMsetnx,
-                                                            kCmdNameScan,
-                                                            kCmdNameKeys,
-                                                            kCmdNameScanx,
-                                                            kCmdNameZUnionstore,
-                                                            kCmdNameZInterstore,
-                                                            kCmdNameSUnion,
-                                                            kCmdNameSUnionstore,
-                                                            kCmdNameSInter,
-                                                            kCmdNameSInterstore,
-                                                            kCmdNameSDiff,
-                                                            kCmdNameSDiffstore,
-                                                            kCmdNameSMove,
-                                                            kCmdNameBitOp,
-                                                            kCmdNamePfAdd,
-                                                            kCmdNamePfCount,
-                                                            kCmdNamePfMerge,
-                                                            kCmdNameGeoAdd,
-                                                            kCmdNameGeoPos,
-                                                            kCmdNameGeoDist,
-                                                            kCmdNameGeoHash,
-                                                            kCmdNameGeoRadius,
-                                                            kCmdNameGeoRadiusByMember,
-                                                            kCmdNamePKPatternMatchDel,
-                                                            kCmdNameSlaveof,
-                                                            kCmdNameDbSlaveof};
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
@@ -161,7 +87,6 @@ class PikaServer : public pstd::noncopyable {
    * Server init info
    */
   bool ServerInit();
-
   void Start();
   void Exit();
 
@@ -182,19 +107,15 @@ class PikaServer : public pstd::noncopyable {
   storage::StorageOptions storage_options();
 
   /*
-   * Table use
+   * DB use
    */
   void InitDBStruct();
-  pstd::Status AddDBStruct(const std::string& db_name, uint32_t num);
-  pstd::Status DelDBStruct(const std::string& db_name);
-  std::shared_ptr<DB> GetDB(const std::string& db_name);
-  std::set<uint32_t> GetDBSlotIds(const std::string& db_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsDBExist(const std::string& db_name);
-  bool IsDBSlotExist(const std::string& db_name, uint32_t slot_id);
   bool IsDBBinlogIoError(const std::string& db_name);
+  std::shared_ptr<DB> GetDB(const std::string& db_name);
   std::set<std::string> GetAllDBName();
   pstd::Status DoSameThingSpecificDB(const std::set<std::string>& dbs, const TaskArg& arg);
   std::shared_mutex& GetDBLock() {
@@ -214,17 +135,14 @@ class PikaServer : public pstd::noncopyable {
   }
 
   /*
-   * Slot use
+   * DB use
    */
-  void PrepareSlotTrySync();
-  void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
-  void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  void SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
-  bool GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id, BinlogOffset* boffset);
-  std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
-  std::shared_ptr<Slot> GetDBSlotById(const std::string& db_name, uint32_t slot_id);
-  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& db_name, const std::string& key);
-  pstd::Status DoSameThingEverySlot(const TaskType& type);
+  void PrepareDBTrySync();
+  void DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
+  void DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  void DBSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
+  bool GetDBBinlogOffset(const std::string& db_name, BinlogOffset* boffset);
+  pstd::Status DoSameThingEveryDB(const TaskType& type);
 
   /*
    * Master use
@@ -233,7 +151,6 @@ class PikaServer : public pstd::noncopyable {
   void DeleteSlave(int fd);  // conn fd
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
-  int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& table_structs);
   pstd::Mutex slave_mutex_;  // protect slaves_;
   std::vector<SlaveItem> slaves_;
@@ -257,9 +174,7 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  bool AllSlotConnectSuccess();
-  bool LoopSlotStateMachine();
-  void SetLoopSlotStateMachine(bool need_loop);
+  void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
@@ -296,13 +211,12 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DBSync used
    */
-  pstd::Status GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid);
-  pstd::Status GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* files,
-                           std::string* snapshot_uuid);
-  void DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  void DoBgSaveSlot(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id);
+  pstd::Status GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid);
+  pstd::Status GetDumpMeta(const std::string& db_name, std::vector<std::string>* files, std::string* snapshot_uuid);
+  void DBSync(const std::string& ip, int port, const std::string& db_name);
+  void TryDBSync(const std::string& ip, int port, const std::string& db_name, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name);
+  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name);
 
   /*
    * Keyscan used
@@ -329,23 +243,22 @@ class PikaServer : public pstd::noncopyable {
    */
   void SlowlogTrim();
   void SlowlogReset();
-  uint32_t SlowlogLen();
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
-  void SlowlogPushEntry(const PikaCmdArgsType& argv, int64_t time, int64_t duration);
+  void SlowlogPushEntry(const std::vector<std::string>& argv, int64_t time, int64_t duration);
+  uint32_t SlowlogLen();
   uint64_t SlowlogCount();
 
   /*
    * Statistic used
    */
-  void ResetStat();
   uint64_t ServerQueryNum();
   uint64_t ServerCurrentQps();
   uint64_t accumulative_connections();
+  void ResetStat();
   void incr_accumulative_connections();
   void ResetLastSecQuerynum();
   void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();
-  QpsStatistic ServerDBStat(const std::string& db_name);
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
 
   /*
@@ -379,7 +292,6 @@ class PikaServer : public pstd::noncopyable {
                  std::vector<std::pair<std::string, int>>* result);
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
-
   int ClientPubSubChannelSize(const std::shared_ptr<net::NetConn>& conn);
   int ClientPubSubChannelPatternSize(const std::shared_ptr<net::NetConn>& conn);
 
@@ -389,15 +301,12 @@ class PikaServer : public pstd::noncopyable {
   void ServerStatus(std::string* info);
 
   /*
-   * * Async migrate used
+   * Async migrate used
    */
-  int SlotsMigrateOne(const std::string& key, const std::shared_ptr<Slot>& slot);
-  bool SlotsMigrateBatch(const std::string& ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num,
-                         const std::shared_ptr<Slot>& slot);
-  void GetSlotsMgrtSenderStatus(std::string* ip, int64_t* port, int64_t* slot, bool* migrating, int64_t* moved,
-                                int64_t* remained);
+  int SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB> &db);
+  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
+  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
-
   std::shared_mutex bgsave_protector_;
   BgSaveInfo bgsave_info_;
 
@@ -412,7 +321,7 @@ class PikaServer : public pstd::noncopyable {
     int64_t cursor = 0;
     std::string pattern = "*";
     int64_t count = 100;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     BGSlotsReload() = default;
     void Clear() {
       reloading = false;
@@ -449,7 +358,7 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_reload_.end_time = time(nullptr);
   }
-  void Bgslotsreload(const std::shared_ptr<Slot>& slot);
+  void Bgslotsreload(const std::shared_ptr<DB>& db);
 
   // Revoke the authorization of the specified account, when handle Cmd deleteUser
   void AllClientUnAuth(const std::set<std::string>& users);
@@ -468,7 +377,7 @@ class PikaServer : public pstd::noncopyable {
     int64_t cursor = 0;
     std::string pattern = "*";
     int64_t count = 100;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     storage::DataType type_;
     std::vector<int> cleanup_slots;
     BGSlotsCleanup() = default;
@@ -502,10 +411,6 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cursor = cursor;
   }
-  int64_t GetSlotscleaningupCursor() {
-    std::lock_guard ml(bgsave_protector_);
-    return bgslots_cleanup_.cursor;
-  }
   void SetCleanupSlots(std::vector<int> cleanup_slots) {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
@@ -514,11 +419,8 @@ class PikaServer : public pstd::noncopyable {
     std::lock_guard ml(bgsave_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
-  void SetSlotscleaningupEndtime() {
-    std::lock_guard ml(bgsave_protector_);
-    bgslots_cleanup_.end_time = time(nullptr);
-  }
-  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<Slot>& slot);
+
+  void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<DB>& db);
   void StopBgslotscleanup() {
     std::lock_guard ml(bgsave_protector_);
     bgslots_cleanup_.cleaningup = false;
@@ -559,26 +461,26 @@ class PikaServer : public pstd::noncopyable {
   struct BGCacheTaskArg {
     BGCacheTaskArg() : conf(nullptr), reenable_cache(false) {}
     int task_type;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     uint32_t cache_num;
     cache::CacheConfig cache_cfg;
     std::unique_ptr<PikaConf> conf;
     bool reenable_cache;
   };
+
   /*
    * Cache used
    */
-  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg = nullptr);
-  void ClearCacheDbAsync(std::shared_ptr<Slot> slot);
-  void ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot);
-  void ResetCacheConfig(std::shared_ptr<Slot> slot);
-  void ClearHitRatio(std::shared_ptr<Slot> slot);
-  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot);
   static void DoCacheBGTask(void* arg);
+  void ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg = nullptr);
+  void ClearCacheDbAsync(std::shared_ptr<DB> db);
+  void ClearCacheDbAsyncV2(std::shared_ptr<DB> db);
+  void ResetCacheConfig(std::shared_ptr<DB> db);
+  void ClearHitRatio(std::shared_ptr<DB> db);
+  void OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db);
   void UpdateCacheInfo(void);
-  void ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot);
+  void ResetDisplayCacheInfo(int status, std::shared_ptr<DB> db);
   void CacheConfigInit(cache::CacheConfig &cache_cfg);
-  void ClearHitRatio(void);
   void ProcessCronTask();
   double HitRatio();
 
@@ -592,11 +494,9 @@ class PikaServer : public pstd::noncopyable {
    * TimingTask use
    */
   void DoTimingTask();
-  void AutoResumeDB();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
-  void AutoKeepAliveRSync();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
   int64_t GetLastSaveTime(const std::string& dump_dir);
@@ -613,9 +513,8 @@ class PikaServer : public pstd::noncopyable {
   std::timed_mutex exit_mutex_;
 
   /*
-   * Table used
+   * DB used
    */
-  std::atomic<SlotState> slot_state_;
   std::shared_mutex dbs_rw_;
   std::map<std::string, std::shared_ptr<DB>> dbs_;
 
@@ -647,7 +546,6 @@ class PikaServer : public pstd::noncopyable {
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
-  bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;
   bool leader_protected_mode_ = false;  // reject request after master slave sync done
   std::shared_mutex state_protector_;   // protect below, use for master-slave mode
