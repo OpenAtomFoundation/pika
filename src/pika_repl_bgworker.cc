@@ -24,7 +24,6 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size) : bg_thread_(queue_size) {
   redis_parser_.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   redis_parser_.data = this;
   db_name_ = g_pika_conf->default_db();
-  slot_id_ = 0;
 }
 
 int PikaReplBgWorker::StartThread() { return bg_thread_.StartThread(); }
@@ -56,7 +55,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   };
 
   std::string db_name;
-  uint32_t slot_id = 0;
+
   LogOffset pb_begin;
   LogOffset pb_end;
   bool only_keepalive = false;
@@ -66,7 +65,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     if (i == 0) {
       db_name = binlog_res.slot().db_name();
-      slot_id = binlog_res.slot().slot_id();
     }
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_begin);
@@ -94,55 +92,39 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     ack_start = pb_begin;
   }
 
-  // db_name and slot_id in the vector are same in the bgworker,
   // because DispatchBinlogRes() have been order them.
   worker->db_name_ = db_name;
-  worker->slot_id_ = slot_id;
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!slot) {
-    LOG(WARNING) << "Slot " << db_name << "_" << slot_id << " Not Found";
+  std::shared_ptr<SyncMasterDB> db =
+      g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
+  if (!db) {
+    LOG(WARNING) << "DB " << db_name << " Not Found";
     return;
   }
 
-  std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name, slot_id));
-  if (!slave_slot) {
-    LOG(WARNING) << "Slave Slot " << db_name << "_" << slot_id << " Not Found";
+  std::shared_ptr<SyncSlaveDB> slave_db =
+      g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name));
+  if (!slave_db) {
+    LOG(WARNING) << "Slave DB " << db_name << " Not Found";
     return;
-  }
-
-  if (res->has_consensus_meta() && !only_keepalive) {
-    LogOffset last_offset = slot->ConsensusLastIndex();
-    LogOffset prev_offset;
-    ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
-    if (last_offset.l_offset.index != 0 &&
-        (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
-      LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
-                   << prev_offset.ToString();
-      slave_slot->SetReplState(ReplState::kTryConnect);
-      return;
-    }
   }
 
   for (int i : *index) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
-    // if pika are not current a slave or Slot not in
+    // if pika are not current a slave or DB not in
     // BinlogSync state, we drop remain write binlog task
     if (((g_pika_server->role() & PIKA_ROLE_SLAVE) == 0) ||
-        ((slave_slot->State() != ReplState::kConnected) && (slave_slot->State() != ReplState::kWaitDBSync))) {
+        ((slave_db->State() != ReplState::kConnected) && (slave_db->State() != ReplState::kWaitDBSync))) {
       return;
     }
 
-    if (slave_slot->MasterSessionId() != binlog_res.session_id()) {
-      LOG(WARNING) << "Check SessionId Mismatch: " << slave_slot->MasterIp() << ":"
-                   << slave_slot->MasterPort() << ", " << slave_slot->SyncSlotInfo().ToString()
+    if (slave_db->MasterSessionId() != binlog_res.session_id()) {
+      LOG(WARNING) << "Check SessionId Mismatch: " << slave_db->MasterIp() << ":"
+                   << slave_db->MasterPort() << ", " << slave_db->SyncDBInfo().ToString()
                    << " expected_session: " << binlog_res.session_id()
-                   << ", actual_session:" << slave_slot->MasterSessionId();
-      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name() << "_"
-                   << binlog_res.slot().slot_id();
-      slave_slot->SetReplState(ReplState::kTryConnect);
+                   << ", actual_session:" << slave_db->MasterSessionId();
+      LOG(WARNING) << "Check Session failed " << binlog_res.slot().db_name();
+      slave_db->SetReplState(ReplState::kTryConnect);
       return;
     }
 
@@ -152,7 +134,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
-      slave_slot->SetReplState(ReplState::kTryConnect);
+      slave_db->SetReplState(ReplState::kTryConnect);
       return;
     }
     const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
@@ -162,16 +144,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
         worker->redis_parser_.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
     if (ret != net::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
-      slave_slot->SetReplState(ReplState::kTryConnect);
+      slave_db->SetReplState(ReplState::kTryConnect);
       return;
     }
-  }
-
-  if (res->has_consensus_meta()) {
-    LogOffset leader_commit;
-    ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
-    // Update follower commit && apply
-    return;
   }
 
   LogOffset ack_end;
@@ -180,14 +155,14 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   } else {
     LogOffset productor_status;
     // Reply Ack to master immediately
-    std::shared_ptr<Binlog> logger = slot->Logger();
+    std::shared_ptr<Binlog> logger = db->Logger();
     logger->GetProducerStatus(&productor_status.b_offset.filenum, &productor_status.b_offset.offset,
                               &productor_status.l_offset.term, &productor_status.l_offset.index);
     ack_end = productor_status;
     ack_end.l_offset.term = pb_end.l_offset.term;
   }
 
-  g_pika_rm->SendSlotBinlogSyncAckRequest(db_name, slot_id, ack_start, ack_end);
+  g_pika_rm->SendBinlogSyncAckRequest(db_name, ack_start, ack_end);
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
@@ -219,13 +194,13 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 
   g_pika_server->UpdateQueryNumAndExecCountDB(worker->db_name_, opt, c_ptr->is_write());
 
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(worker->db_name_, worker->slot_id_));
-  if (!slot) {
-    LOG(WARNING) << worker->db_name_ << worker->slot_id_ << "Not found.";
+  std::shared_ptr<SyncMasterDB> db =
+      g_pika_rm->GetSyncMasterDBByName(DBInfo(worker->db_name_));
+  if (!db) {
+    LOG(WARNING) << worker->db_name_ << "Not found.";
   }
 
-  slot->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_);
+  db->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_);
   return 0;
 }
 
@@ -235,33 +210,31 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
   std::string db_name = task_arg->db_name;
-  uint32_t slot_id = task_arg->slot_id;
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
   // Add read lock for no suspend command
   if (!c_ptr->IsSuspend()) {
-    slot->DbRWLockReader();
+    c_ptr->GetDB()->DbRWLockReader();
   }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
-      && slot->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
-      c_ptr->DoThroughDB(slot);
+      c_ptr->DoThroughDB();
       if (c_ptr->IsNeedUpdateCache()) {
-        c_ptr->DoUpdateCache(slot);
+        c_ptr->DoUpdateCache();
       }
     } else {
       LOG(WARNING) << "This branch is not impossible reach";
     }
   } else {
-    c_ptr->Do(slot);
+    c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    slot->DbRWUnLock();
+    c_ptr->GetDB()->DbRWUnLock();
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {

@@ -14,7 +14,7 @@
 #include "include/pika_define.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterSlot;
+class SyncMasterDB;
 
 class PikaReplServerConn : public net::PbConn {
  public:
@@ -25,10 +25,10 @@ class PikaReplServerConn : public net::PbConn {
   static void HandleMetaSyncRequest(void* arg);
   static void HandleTrySyncRequest(void* arg);
 
-  static bool TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot>& slot,
+  static bool TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>& db,
                                  const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                  InnerMessage::InnerResponse::TrySync* try_sync_response);
-  static bool TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterSlot>& slot,
+  static bool TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterDB>& db,
                                      const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                      const std::shared_ptr<net::PbConn>& conn,
                                      InnerMessage::InnerResponse::TrySync* try_sync_response);

@@ -18,7 +18,6 @@ class PikaReplClientThread : public net::ClientThread {
  public:
   PikaReplClientThread(int cron_interval, int keepalive_timeout);
   ~PikaReplClientThread() override = default;
-  int Start();
 
  private:
   class ReplClientConnFactory : public net::ConnFactory {
@@ -36,11 +35,6 @@ class PikaReplClientThread : public net::ClientThread {
     void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
     bool AccessHandle(std::string& ip) const override {
-      // ban 127.0.0.1 if you want to test this routine
-      // if (ip.find("127.0.0.2") != std::string::npos) {
-      //   std::cout << "AccessHandle " << ip << std::endl;
-      //   return false;
-      // }
       return true;
     }
     int CreateWorkerSpecificData(void** data) const override { return 0; }

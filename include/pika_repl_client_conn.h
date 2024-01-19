@@ -14,8 +14,8 @@
 #include "include/pika_conf.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterSlot;
-class SyncSlaveSlot;
+class SyncMasterDB;
+class SyncSlaveDB;
 
 class PikaReplClientConn : public net::PbConn {
  public:
@@ -32,15 +32,8 @@ class PikaReplClientConn : public net::PbConn {
   int DealMessage() override;
 
  private:
-  // dispatch binlog by its table_name + slot
+  // dispatch binlog by its db_name
   void DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& response);
-
-  struct ReplRespArg {
-    std::shared_ptr<InnerMessage::InnerResponse> resp;
-    std::shared_ptr<net::PbConn> conn;
-    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn)
-        : resp(std::move(_resp)), conn(std::move(_conn)) {}
-  };
 };
 
 #endif

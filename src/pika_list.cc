@@ -5,12 +5,13 @@
 
 #include "include/pika_list.h"
 #include <utility>
+#include "include/pika_cache.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_slot_command.h"
-#include "include/pika_cache.h"
+#include "pstd/include/pstd_string.h"
+#include "scope_record_lock.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -27,9 +28,9 @@ void LIndexCmd::DoInitial() {
   }
 }
 
-void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
+void LIndexCmd::Do() {
   std::string value;
-  s_ = slot->db()->LIndex(key_, index_, &value);
+  s_ = db_->storage()->LIndex(key_, index_, &value);
   if (s_.ok()) {
     res_.AppendString(value);
   } else if (s_.IsNotFound()) {
@@ -39,10 +40,10 @@ void LIndexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LIndexCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void LIndexCmd::ReadCache() {
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   std::string value;
-  auto s = slot->cache()->LIndex(CachePrefixKeyL, index_, &value);
+  auto s = db_->cache()->LIndex(CachePrefixKeyL, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -52,14 +53,14 @@ void LIndexCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LIndexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void LIndexCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void LIndexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LIndexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
@@ -82,25 +83,25 @@ void LInsertCmd::DoInitial() {
   value_ = argv_[4];
 }
 
-void LInsertCmd::Do(std::shared_ptr<Slot> slot) {
+void LInsertCmd::Do() {
   int64_t llen = 0;
-  s_ = slot->db()->LInsert(key_, dir_, pivot_, value_, &llen);
+  s_ = db_->storage()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(llen);
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void LInsertCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LInsertCmd::DoThroughDB() {
+  Do();
 }
 
-void LInsertCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LInsertCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
+    db_->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
   }
 }
 
@@ -112,9 +113,9 @@ void LLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void LLenCmd::Do(std::shared_ptr<Slot> slot) {
+void LLenCmd::Do() {
   uint64_t llen = 0;
-  s_ = slot->db()->LLen(key_, &llen);
+  s_ = db_->storage()->LLen(key_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
   } else {
@@ -122,10 +123,10 @@ void LLenCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void LLenCmd::ReadCache() {
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
-  auto s = slot->cache()->LLen(CachePrefixKeyL, &llen);
+  auto s = db_->cache()->LLen(CachePrefixKeyL, &llen);
   if (s.ok()){
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
@@ -135,18 +136,18 @@ void LLenCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LLenCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void LLenCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void LLenCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LLenCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
-void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot) {
+void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<DB> db) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
   if (!curr_conn) {
     // current node is a slave and is applying a binlog of lpush/rpush/rpoplpush, just return
@@ -165,7 +166,7 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
     }
   }
 
-  auto* args = new UnblockTaskArgs(key, std::move(slot), dispatchThread);
+  auto* args = new UnblockTaskArgs(key, std::move(db), dispatchThread);
   bool is_slow_cmd = g_pika_conf->is_slow_cmd("LPOP") || g_pika_conf->is_slow_cmd("RPOP");
   g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args, is_slow_cmd);
 }
@@ -173,12 +174,12 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
 void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   auto bg_args = std::unique_ptr<UnblockTaskArgs>(static_cast<UnblockTaskArgs*>(args));
   net::DispatchThread* dispatchThread = bg_args->dispatchThread;
-  std::shared_ptr<Slot> slot = bg_args->slot;
+  std::shared_ptr<DB> db = bg_args->db;
   std::string key = std::move(bg_args->key);
   auto& key_to_conns_ = dispatchThread->GetMapFromKeyToConns();
-  net::BlockKey blrPop_key{slot->GetDBName(), key};
+  net::BlockKey blrPop_key{db->GetDBName(), key};
 
-  pstd::lock::ScopeRecordLock record_lock(slot->LockMgr(), key);//It's a RAII Lock
+  pstd::lock::ScopeRecordLock record_lock(db->LockMgr(), key);//It's a RAII Lock
   std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these two lock, or deadlock will happen
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
@@ -192,9 +193,9 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   // traverse this list from head to tail(in the order of adding sequence) ,means "first blocked, first get served“
   for (auto conn_blocked = waitting_list->begin(); conn_blocked != waitting_list->end();) {
     if (conn_blocked->GetBlockType() == BlockKeyType::Blpop) {
-      s = slot->db()->LPop(key, 1, &values);
+      s = db->storage()->LPop(key, 1, &values);
     } else {  // BlockKeyType is Brpop
-      s = slot->db()->RPop(key, 1, &values);
+      s = db->storage()->RPop(key, 1, &values);
     }
     if (s.ok()) {
       res.AppendArrayLen(2);
@@ -211,7 +212,7 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
     conn_ptr->WriteResp(res.message());
     res.clear();
     conn_ptr->NotifyEpoll(true);
-    pop_binlog_args.emplace_back(conn_blocked->GetBlockType(), key, slot, conn_ptr);
+    pop_binlog_args.emplace_back(conn_blocked->GetBlockType(), key, db, conn_ptr);
     conn_blocked = waitting_list->erase(conn_blocked);  // remove this conn from current waiting list
     // erase all waiting info of this conn
     dispatchThread->CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
@@ -228,26 +229,20 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     std::string pop_type;
     if (pop_arg.block_type == BlockKeyType::Blpop) {
       pop_type = kCmdNameLPop;
-      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      pop_cmd = std::make_shared<LPopCmd>(kCmdNameLPop, 2, kCmdFlagsWrite |  kCmdFlagsList);
     } else if (pop_arg.block_type == BlockKeyType::Brpop) {
       pop_type = kCmdNameRPop;
-      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+      pop_cmd = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite |  kCmdFlagsList);
     }
 
     PikaCmdArgsType args;
     args.push_back(std::move(pop_type));
     args.push_back(pop_arg.key);
-    pop_cmd->Initial(args, pop_arg.slot->GetDBName());
-    std::shared_ptr<SyncMasterSlot> sync_slot =
-        g_pika_rm->GetSyncMasterSlotByName(SlotInfo(pop_arg.slot->GetDBName(), pop_arg.slot->GetSlotID()));
-    if (!sync_slot) {
-      LOG(WARNING) << "Writing binlog of blpop/brpop failed: SyncMasterSlot not found";
-    } else {
-      pop_cmd->SetConn(pop_arg.conn);
-      auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
-      pop_cmd->SetResp(resp_ptr);
-      pop_cmd->DoBinlog(sync_slot);
-    }
+    pop_cmd->Initial(args, pop_arg.db->GetDBName());
+    pop_cmd->SetConn(pop_arg.conn);
+    auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
+    pop_cmd->SetResp(resp_ptr);
+    pop_cmd->DoBinlog();
   }
 }
 
@@ -263,12 +258,12 @@ void LPushCmd::DoInitial() {
   }
 }
 
-void LPushCmd::Do(std::shared_ptr<Slot> slot) {
+void LPushCmd::Do() {
   uint64_t llen = 0;
-  s_ = slot->db()->LPush(key_, values_, &llen);
+  s_ = db_->storage()->LPush(key_, values_, &llen);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -277,17 +272,17 @@ void LPushCmd::Do(std::shared_ptr<Slot> slot) {
       return;
     }
   }
-  TryToServeBLrPopWithThisKey(key_, slot);
+  TryToServeBLrPopWithThisKey(key_, db_);
 }
 
-void LPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LPushCmd::DoThroughDB() {
+  Do();
 }
 
-void LPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LPushCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -354,18 +349,18 @@ void BLPopCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
+void BLPopCmd::Do() {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    rocksdb::Status s  = slot->db()->LPop(this_key, 1, &values);
+    rocksdb::Status s  = db_->storage()->LPop(this_key, 1, &values);
     if (s.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
       res_.AppendString(values[0]);
-      // write an binlog of lpop
+      // write a binlog of lpop
       binlog_args_.block_type = BlockKeyType::Blpop;
       binlog_args_.key = this_key;
-      binlog_args_.slot = slot;
+      binlog_args_.db = db_;
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
@@ -386,7 +381,7 @@ void BLPopCmd::Do(std::shared_ptr<Slot> slot) {
   BlockThisClientToWaitLRPush(BlockKeyType::Blpop, keys_, expire_time_);
 }
 
-void BLPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void BLPopCmd::DoBinlog() {
   if (is_binlog_deferred_) {
     return;
   }
@@ -416,9 +411,9 @@ void LPopCmd::DoInitial() {
   }
 }
 
-void LPopCmd::Do(std::shared_ptr<Slot> slot) {
+void LPopCmd::Do() {
   std::vector<std::string> elements;
-  s_ = slot->db()->LPop(key_, count_, &elements);
+  s_ = db_->storage()->LPop(key_, count_, &elements);
 
   if (s_.ok()) {
     if (elements.size() > 1) {
@@ -434,15 +429,15 @@ void LPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LPopCmd::DoThroughDB() {
+  Do();
 }
 
-void LPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LPopCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    slot->cache()->LPop(CachePrefixKeyL, &value);
+    db_->cache()->LPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -458,27 +453,27 @@ void LPushxCmd::DoInitial() {
   }
 }
 
-void LPushxCmd::Do(std::shared_ptr<Slot> slot) {
+void LPushxCmd::Do() {
   uint64_t llen = 0;
-  s_ = slot->db()->LPushx(key_, values_, &llen);
+  s_ = db_->storage()->LPushx(key_, values_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void LPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LPushxCmd::DoThroughDB() {
+  Do();
 }
 
-void LPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    slot->cache()->LPushx(CachePrefixKeyL, values);
+    db_->cache()->LPushx(CachePrefixKeyL, values);
   }
 }
 
@@ -499,9 +494,9 @@ void LRangeCmd::DoInitial() {
   }
 }
 
-void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void LRangeCmd::Do() {
   std::vector<std::string> values;
-  s_ = slot->db()->LRange(key_, left_, right_, &values);
+  s_ = db_->storage()->LRange(key_, left_, right_, &values);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(values.size());
     for (const auto& value : values) {
@@ -514,10 +509,10 @@ void LRangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void LRangeCmd::ReadCache() {
   std::vector<std::string> values;
   std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-  auto s = slot->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
+  auto s = db_->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -530,14 +525,14 @@ void LRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void LRangeCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void LRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LRangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_LIST, key_, db_);
   }
 }
 
@@ -555,9 +550,9 @@ void LRemCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void LRemCmd::Do(std::shared_ptr<Slot> slot) {
+void LRemCmd::Do() {
   uint64_t res = 0;
-  s_ = slot->db()->LRem(key_, count_, value_, &res);
+  s_ = db_->storage()->LRem(key_, count_, value_, &res);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(res));
   } else {
@@ -565,14 +560,14 @@ void LRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LRemCmd::DoThroughDB() {
+  Do();
 }
 
-void LRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LRemCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->LRem(CachePrefixKeyL, count_, value_);
+    db_->cache()->LRem(CachePrefixKeyL, count_, value_);
   }
 }
 
@@ -590,11 +585,11 @@ void LSetCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void LSetCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->LSet(key_, index_, value_);
+void LSetCmd::Do() {
+  s_ = db_->storage()->LSet(key_, index_, value_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else if (s_.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: index out of range") {
@@ -605,14 +600,14 @@ void LSetCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LSetCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LSetCmd::DoThroughDB() {
+  Do();
 }
 
-void LSetCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LSetCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->LSet(CachePrefixKeyL, index_, value_);
+    db_->cache()->LSet(CachePrefixKeyL, index_, value_);
   }
 }
 
@@ -633,8 +628,8 @@ void LTrimCmd::DoInitial() {
   }
 }
 
-void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->LTrim(key_, start_, stop_);
+void LTrimCmd::Do() {
+  s_ = db_->storage()->LTrim(key_, start_, stop_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -642,21 +637,21 @@ void LTrimCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void LTrimCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void LTrimCmd::DoThroughDB() {
+  Do();
 }
 
-void LTrimCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void LTrimCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->LTrim(CachePrefixKeyL, start_, stop_);
+    db_->cache()->LTrim(CachePrefixKeyL, start_, stop_);
   }
 }
 
-void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
+void BRPopCmd::Do() {
   for (auto& this_key : keys_) {
     std::vector<std::string> values;
-    s_ = slot->db()->RPop(this_key, 1, &values);
+    s_ = db_->storage()->RPop(this_key, 1, &values);
     if (s_.ok()) {
       res_.AppendArrayLen(2);
       res_.AppendString(this_key);
@@ -664,7 +659,7 @@ void BRPopCmd::Do(std::shared_ptr<Slot> slot) {
       // write an binlog of rpop
       binlog_args_.block_type = BlockKeyType::Brpop;
       binlog_args_.key = this_key;
-      binlog_args_.slot = slot;
+      binlog_args_.db = db_;
       binlog_args_.conn = GetConn();
       is_binlog_deferred_ = false;
       return;
@@ -713,7 +708,7 @@ void BRPopCmd::DoInitial() {
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BRPopCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void BRPopCmd::DoBinlog() {
   if (is_binlog_deferred_) {
     return;
   }
@@ -744,9 +739,9 @@ void RPopCmd::DoInitial() {
   }
 }
 
-void RPopCmd::Do(std::shared_ptr<Slot> slot) {
+void RPopCmd::Do() {
   std::vector <std::string> elements;
-  s_ = slot->db()->RPop(key_, count_, &elements);
+  s_ = db_->storage()->RPop(key_, count_, &elements);
   if (s_.ok()) {
     if (elements.size() > 1) {
       res_.AppendArrayLenUint64(elements.size());
@@ -761,15 +756,15 @@ void RPopCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void RPopCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void RPopCmd::DoThroughDB() {
+  Do();
 }
 
-void RPopCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void RPopCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    slot->cache()->RPop(CachePrefixKeyL, &value);
+    db_->cache()->RPop(CachePrefixKeyL, &value);
   }
 }
 
@@ -785,11 +780,11 @@ void RPopLPushCmd::DoInitial() {
   }
 }
 
-void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
+void RPopLPushCmd::Do() {
   std::string value;
-  s_ = slot->db()->RPoplpush(source_, receiver_, &value);
+  s_ = db_->storage()->RPoplpush(source_, receiver_, &value);
   if (s_.ok()) {
-    AddSlotKey("k", receiver_, slot);
+    AddSlotKey("k", receiver_, db_);
     res_.AppendString(value);
     value_poped_from_source_ = value;
     is_write_binlog_ = true;
@@ -802,14 +797,14 @@ void RPopLPushCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
-  TryToServeBLrPopWithThisKey(receiver_, slot);
+  TryToServeBLrPopWithThisKey(receiver_, db_);
 }
 
-void RPopLPushCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void RPopLPushCmd::ReadCache() {
   res_.SetRes(CmdRes::kErrOther, "the command is not support in cache mode");
 }
 
-void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void RPopLPushCmd::DoBinlog() {
   if (!is_write_binlog_) {
     return;
   }
@@ -829,8 +824,8 @@ void RPopLPushCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   lpush_cmd_->SetConn(GetConn());
   lpush_cmd_->SetResp(resp_.lock());
 
-  rpop_cmd_->DoBinlog(slot);
-  lpush_cmd_->DoBinlog(slot);
+  rpop_cmd_->DoBinlog();
+  lpush_cmd_->DoBinlog();
 }
 
 void RPushCmd::DoInitial() {
@@ -845,12 +840,12 @@ void RPushCmd::DoInitial() {
   }
 }
 
-void RPushCmd::Do(std::shared_ptr<Slot> slot) {
+void RPushCmd::Do() {
   uint64_t llen = 0;
-  s_ = slot->db()->RPush(key_, values_, &llen);
+  s_ = db_->storage()->RPush(key_, values_, &llen);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -859,17 +854,17 @@ void RPushCmd::Do(std::shared_ptr<Slot> slot) {
       return;
     }
   }
-  TryToServeBLrPopWithThisKey(key_, slot);
+  TryToServeBLrPopWithThisKey(key_, db_);
 }
 
-void RPushCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void RPushCmd::DoThroughDB() {
+  Do();
 }
 
-void RPushCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void RPushCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    slot->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -885,26 +880,26 @@ void RPushxCmd::DoInitial() {
   }
 }
 
-void RPushxCmd::Do(std::shared_ptr<Slot> slot) {
+void RPushxCmd::Do() {
   uint64_t llen = 0;
-  s_ = slot->db()->RPushx(key_, values_, &llen);
+  s_ = db_->storage()->RPushx(key_, values_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
-    AddSlotKey("l", key_, slot);
+    AddSlotKey("l", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void RPushxCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void RPushxCmd::DoThroughDB() {
+  Do();
 }
 
-void RPushxCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void RPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::vector<std::string> values;
     values.push_back(value_);
-    slot->cache()->RPushx(CachePrefixKeyL, values);
+    db_->cache()->RPushx(CachePrefixKeyL, values);
   }
 }

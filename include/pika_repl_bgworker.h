@@ -16,6 +16,7 @@
 #include "pika_inner_message.pb.h"
 
 #include "include/pika_binlog_transverter.h"
+#include "include/pika_define.h"
 #include "include/pika_command.h"
 
 class PikaReplBgWorker {
@@ -32,7 +33,6 @@ class PikaReplBgWorker {
   net::RedisParser redis_parser_;
   std::string ip_port_;
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
  private:
   net::BGThread bg_thread_;

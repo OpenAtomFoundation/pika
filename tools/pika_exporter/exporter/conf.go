@@ -22,6 +22,7 @@ type InfoConfig struct {
 	Execcount    bool `toml:"execcount"`
 	Commandstats bool `toml:"commandstats"`
 	Rocksdb      bool `toml:"rocksdb"`
+	Cache        bool `toml:"cache"`
 
 	Info    bool
 	InfoAll bool
@@ -70,6 +71,7 @@ func (c *InfoConfig) Display() {
 	log.Println("Execcount:", c.Execcount)
 	log.Println("Commandstats:", c.Commandstats)
 	log.Println("Rocksdb:", c.Rocksdb)
+	log.Println("Cache:", c.Cache)
 	log.Println("Info:", c.Info)
 	log.Println("InfoAll:", c.InfoAll)
 }
@@ -80,7 +82,7 @@ func (c *InfoConfig) CheckInfo() {
 
 	if c.Server && c.Data && c.Clients && c.Stats && c.CPU && c.Replication && c.Keyspace {
 		c.Info = true
-		if c.Execcount && c.Commandstats && c.Rocksdb {
+		if c.Execcount && c.Commandstats && c.Rocksdb && c.Cache {
 			c.InfoAll = true
 		}
 	}
