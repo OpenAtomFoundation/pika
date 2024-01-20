@@ -460,7 +460,7 @@ func (s *sharedBackendConn) KeepAlive() {
 	}
 }
 
-func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool) *BackendConn {
+func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool, isQuick bool) *BackendConn {
 	if s == nil {
 		return nil
 	}
@@ -474,14 +474,35 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool) *B
 	}
 
 	var parallel = s.conns[database]
-
 	var i = seed
-	for range parallel {
-		i = (i + 1) % uint(len(parallel))
-		if bc := parallel[i]; bc.IsConnected() {
-			return bc
+
+	/**
+	The seed is the result after hashing using a key, so in order to ensure
+	the execution order of the same key in a pipeline, do not select another
+	connection when the first connection is invalid.
+	*/
+	if quick := s.owner.quick; quick > 0 {
+		if isQuick {
+			i = seed % uint(quick)
+			if bc := parallel[i]; bc.IsConnected() {
+				return bc
+			}
+		} else {
+			i = uint(quick) + seed%uint(len(parallel)-quick)
+			if bc := parallel[i]; bc.IsConnected() {
+				return bc
+			}
+		}
+	} else {
+		for range parallel {
+			i = (i + 1) % uint(len(parallel))
+			if bc := parallel[i]; bc.IsConnected() {
+				//log.Debugf("BackendConn: find all bc[%d]", i)
+				return bc
+			}
 		}
 	}
+
 	if !must {
 		return nil
 	}
@@ -491,16 +512,21 @@ func (s *sharedBackendConn) BackendConn(database int32, seed uint, must bool) *B
 type sharedBackendConnPool struct {
 	config   *Config
 	parallel int
+	quick    int // The number of quick backend connection
 
 	pool map[string]*sharedBackendConn
 }
 
-func newSharedBackendConnPool(config *Config, parallel int) *sharedBackendConnPool {
+func newSharedBackendConnPool(config *Config, parallel, quick int) *sharedBackendConnPool {
 	p := &sharedBackendConnPool{
-		config: config, parallel: math2.MaxInt(1, parallel),
+		config: config, parallel: math2.MaxInt(1, parallel), quick: math2.MaxInt(math2.MinInt(quick, parallel-1), 0),
 	}
 	p.pool = make(map[string]*sharedBackendConn)
 	return p
+}
+
+func (p *sharedBackendConnPool) SetQuickConn(quick int) {
+	p.quick = math2.MaxInt(math2.MinInt(quick, p.parallel-1), 0)
 }
 
 func (p *sharedBackendConnPool) KeepAlive() {

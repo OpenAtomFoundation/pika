@@ -17,19 +17,19 @@ using namespace net;
 namespace rsync {
 
 class RsyncClientConn : public PbConn {
-public:
+ public:
   RsyncClientConn(int fd, const std::string& ip_port,
                   net::Thread* thread, void* cb_handler,
                   NetMultiplexer* mpx);
   ~RsyncClientConn() override;
   int DealMessage() override;
 
-private:
+ private:
   void* cb_handler_ = nullptr;
 };
 
 class RsyncClientConnFactory : public ConnFactory {
-public:
+ public:
   RsyncClientConnFactory(void* scheduler) : cb_handler_(scheduler) {}
   std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port,
                                            net::Thread* thread, void* cb_handler,
@@ -37,15 +37,15 @@ public:
     return std::static_pointer_cast<net::NetConn>(
         std::make_shared<RsyncClientConn>(connfd, ip_port, thread, cb_handler_, net));
   }
-private:
+ private:
   void* cb_handler_ = nullptr;
 };
 
 class RsyncClientThread : public ClientThread {
-public:
+ public:
   RsyncClientThread(int cron_interval, int keepalive_timeout, void* scheduler);
   ~RsyncClientThread() override;
-private:
+ private:
   RsyncClientConnFactory conn_factory_;
   ClientHandle handle_;
 };

@@ -17,28 +17,12 @@ class PikaDataDistribution {
   virtual ~PikaDataDistribution() = default;
   // Initialization
   virtual void Init() = 0;
-  // key map to slot id
-  virtual uint32_t Distribute(const std::string& str, uint32_t slot_num) = 0;
 };
 
 class HashModulo : public PikaDataDistribution {
  public:
   ~HashModulo() override = default;
   void Init() override;
-  uint32_t Distribute(const std::string& str, uint32_t slot_num) override;
 };
-
-class Crc32 : public PikaDataDistribution {
- public:
-  void Init() override;
-  uint32_t Distribute(const std::string& str, uint32_t slot_num) override;
-
- private:
-  void Crc32TableInit(uint32_t poly);
-  uint32_t Crc32Update(uint32_t crc, const char* buf, int len);
-  uint32_t crc32tab[256];
-};
-
-std::string GetHashkey(const std::string& key);
 
 #endif

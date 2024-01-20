@@ -34,25 +34,25 @@ void ZAddCmd::DoInitial() {
   }
 }
 
-void ZAddCmd::Do(std::shared_ptr<Slot> slot) {
+void ZAddCmd::Do() {
   int32_t count = 0;
-  s_ = slot->db()->ZAdd(key_, score_members, &count);
+  s_ = db_->storage()->ZAdd(key_, score_members, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
-    AddSlotKey("z", key_, slot);
+    AddSlotKey("z", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void ZAddCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZAddCmd::DoThroughDB() {
+  Do();
 }
 
-void ZAddCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZAddCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZAddIfKeyExist(CachePrefixKeyZ, score_members);
+    db_->cache()->ZAddIfKeyExist(CachePrefixKeyZ, score_members);
   }
 }
 
@@ -64,9 +64,9 @@ void ZCardCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void ZCardCmd::Do(std::shared_ptr<Slot> slot) {
+void ZCardCmd::Do() {
   int32_t card = 0;
-  s_ = slot->db()->ZCard(key_, &card);
+  s_ = db_->storage()->ZCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -74,16 +74,16 @@ void ZCardCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZCardCmd::ReadCache(std::shared_ptr<Slot> slot){
+void ZCardCmd::ReadCache(){
   res_.SetRes(CmdRes::kCacheMiss);
 }
 
-void ZCardCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZCardCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZCardCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZCardCmd::DoUpdateCache() {
   return;
 }
 
@@ -125,10 +125,10 @@ void ZScanCmd::DoInitial() {
   }
 }
 
-void ZScanCmd::Do(std::shared_ptr<Slot> slot) {
+void ZScanCmd::Do() {
   int64_t next_cursor = 0;
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  rocksdb::Status s = db_->storage()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
@@ -162,29 +162,29 @@ void ZIncrbyCmd::DoInitial() {
   member_ = argv_[3];
 }
 
-void ZIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
+void ZIncrbyCmd::Do() {
   double score = 0.0;
-  rocksdb::Status s = slot->db()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     score_ = score;
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
-    AddSlotKey("z", key_, slot);
+    AddSlotKey("z", key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
-void ZIncrbyCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZIncrbyCmd::DoThroughDB() {
+  Do();
 }
 
-void ZIncrbyCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZIncrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this, slot);
+    db_->cache()->ZIncrbyIfKeyExist(CachePrefixKeyZ, member_, by_, this, db_);
   }
 }
 
@@ -214,9 +214,9 @@ void ZRangeCmd::DoInitial() {
   ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRangeCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  s_ = slot->db()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  s_ = db_->storage()->ZRange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -241,9 +241,9 @@ void ZRangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRangeCmd::ReadCache() {
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot ->cache()->ZRange(key_, start_, stop_, &score_members, slot);
+  auto s = db_->cache()->ZRange(key_, start_, stop_, &score_members, db_);
   if (s.ok()) {
     if (is_ws_) {
       char buf[32];
@@ -271,14 +271,14 @@ void ZRangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   return;
 }
 
-void ZRangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRangeCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -290,9 +290,9 @@ void ZRevrangeCmd::DoInitial() {
   ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRevrangeCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  s_ = slot->db()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
+  s_ = db_->storage()->ZRevrange(key_, static_cast<int32_t>(start_), static_cast<int32_t>(stop_), &score_members);
   if (s_.ok() || s_.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -317,9 +317,9 @@ void ZRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRevrangeCmd::ReadCache() {
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot->cache()->ZRevrange(key_, start_, stop_, &score_members, slot);
+  auto s = db_->cache()->ZRevrange(key_, start_, stop_, &score_members, db_);
 
   if (s.ok()) {
     if (is_ws_) {
@@ -348,14 +348,14 @@ void ZRevrangeCmd::ReadCache(std::shared_ptr<Slot> slot) {
   return;
 }
 
-void ZRevrangeCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRevrangeCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRevrangeCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRevrangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -441,13 +441,13 @@ void ZRangebyscoreCmd::DoInitial() {
   ZsetRangebyscoreParentCmd::DoInitial();
 }
 
-void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  s_ = slot->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  s_ = db_->storage()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -475,7 +475,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRangebyscoreCmd::ReadCache() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
@@ -484,7 +484,7 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   std::vector<storage::ScoreMember> score_members;
   min_ = std::to_string(min_score_);
   max_ = std::to_string(max_score_);
-  auto s = slot->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
+  auto s = db_->cache()->ZRangebyscore(key_, min_, max_, &score_members, this);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -512,14 +512,14 @@ void ZRangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRangebyscoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRangebyscoreCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -540,13 +540,13 @@ void ZRevrangebyscoreCmd::DoInitial() {
   right_close_ = tmp_close;
 }
 
-void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRevrangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  s_ = slot->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  s_ = db_->storage()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -574,14 +574,14 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
+void ZRevrangebyscoreCmd::ReadCache(){
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN
       || max_score_ < min_score_) {
     res_.AppendContent("*0");
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  auto s = slot->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this, slot);
+  auto s = db_->cache()->ZRevrangebyscore(key_, min_, max_, &score_members, this, db_);
   if (s.ok()) {
     auto sm_count = score_members.size();
     if (with_scores_) {
@@ -609,14 +609,14 @@ void ZRevrangebyscoreCmd::ReadCache(std::shared_ptr<Slot> slot){
   }
 }
 
-void ZRevrangebyscoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRevrangebyscoreCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRevrangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRevrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -626,7 +626,7 @@ void ZCountCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  min_= argv_[2];
+  min_ = argv_[2];
   max_ = argv_[3];
   int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
@@ -635,14 +635,14 @@ void ZCountCmd::DoInitial() {
   }
 }
 
-void ZCountCmd::Do(std::shared_ptr<Slot> slot) {
+void ZCountCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
 
   int32_t count = 0;
-  s_ = slot->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -650,13 +650,13 @@ void ZCountCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZCountCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZCountCmd::ReadCache() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
   uint64_t count = 0;
-  auto s = slot->cache()->ZCount(key_, min_, max_, &count, this);
+  auto s = db_->cache()->ZCount(key_, min_, max_, &count, this);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else if (s.IsNotFound()) {
@@ -666,14 +666,14 @@ void ZCountCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZCountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZCountCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZCountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZCountCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -687,8 +687,8 @@ void ZRemCmd::DoInitial() {
   members_.assign(iter, argv_.end());
 }
 
-void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
-  s_ = slot->db()->ZRem(key_, members_, &deleted_);
+void ZRemCmd::Do() {
+  s_ = db_->storage()->ZRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
   } else {
@@ -696,14 +696,14 @@ void ZRemCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRemCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZRemCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRemCmd::DoUpdateCache() {
   if (s_.ok() && deleted_ > 0) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZRem(CachePrefixKeyZ, members_, slot);
+    db_->cache()->ZRem(CachePrefixKeyZ, members_, db_);
   }
 }
 
@@ -773,37 +773,38 @@ void ZUnionstoreCmd::DoInitial() {
   ZsetUIstoreParentCmd::DoInitial();
 }
 
-void ZUnionstoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZUnionstoreCmd::Do() {
   int32_t count = 0;
-  s_ = slot->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  s_ = db_->storage()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
-    AddSlotKey("z", dest_key_, slot);
+    AddSlotKey("z", dest_key_, db_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
-void ZUnionstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZUnionstoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZUnionstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZUnionstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixZ+dest_key_);
-    slot->cache()->Del(v);
+    v.emplace_back(PCacheKeyPrefixZ + dest_key_);
+    db_->cache()->Del(v);
   }
 }
 
-void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void ZUnionstoreCmd::DoBinlog() {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(del_args, db_name_);
-  del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog(slot);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  del_cmd->Initial(del_args, db_name_);
+  del_cmd->SetConn(GetConn());
+  del_cmd->SetResp(resp_.lock());
+  del_cmd->DoBinlog();
 
   if(value_to_dest_.empty()){
     // The union operation got an empty set, only use del to simulate overwrite the dest_key with empty set
@@ -829,7 +830,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   for (const auto& it : value_to_dest_) {
     if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      zadd_cmd_->DoBinlog(slot);
+      zadd_cmd_->DoBinlog();
       zadd_argv.clear();
       zadd_argv.emplace_back("zadd");
       zadd_argv.emplace_back(dest_key_);
@@ -840,7 +841,7 @@ void ZUnionstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     zadd_argv.emplace_back(it.first);
     data_size += (d_len + it.first.size());
   }
-  zadd_cmd_->DoBinlog(slot);
+  zadd_cmd_->DoBinlog();
 }
 
 void ZInterstoreCmd::DoInitial() {
@@ -851,9 +852,9 @@ void ZInterstoreCmd::DoInitial() {
   ZsetUIstoreParentCmd::DoInitial();
 }
 
-void ZInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZInterstoreCmd::Do() {
   int32_t count = 0;
-  s_ = slot->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
+  s_ = db_->storage()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -861,26 +862,27 @@ void ZInterstoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZInterstoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZInterstoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZInterstoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZInterstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
     v.emplace_back(PCacheKeyPrefixZ + dest_key_);
-    slot->cache()->Del(v);
+    db_->cache()->Del(v);
   }
 }
 
-void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void ZInterstoreCmd::DoBinlog() {
   PikaCmdArgsType del_args;
   del_args.emplace_back("del");
   del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(del_args, db_name_);
-  del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog(slot);
+  std::shared_ptr<Cmd> del_cmd = std::make_unique<DelCmd>(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv | kCmdFlagsDoThroughDB);
+  del_cmd->Initial(del_args, db_name_);
+  del_cmd->SetConn(GetConn());
+  del_cmd->SetResp(resp_.lock());
+  del_cmd->DoBinlog();
 
   if (value_to_dest_.size() == 0) {
     //The inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
@@ -904,7 +906,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   for (size_t i = 1; i < value_to_dest_.size(); i++) {
     if (data_size >= kDataSize) {
       // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      zadd_cmd_->DoBinlog(slot);
+      zadd_cmd_->DoBinlog();
       zadd_argv.clear();
       zadd_argv.emplace_back("zadd");
       zadd_argv.emplace_back(dest_key_);
@@ -915,7 +917,7 @@ void ZInterstoreCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
     zadd_argv.emplace_back(value_to_dest_[i].member);
     data_size += (value_to_dest_[i].member.size() + d_len);
   }
-  zadd_cmd_->DoBinlog(slot);
+  zadd_cmd_->DoBinlog();
 }
 
 void ZsetRankParentCmd::DoInitial() {
@@ -931,9 +933,9 @@ void ZRankCmd::DoInitial() {
   ZsetRankParentCmd::DoInitial();
 }
 
-void ZRankCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRankCmd::Do() {
   int32_t rank = 0;
-  s_ = slot->db()->ZRank(key_, member_, &rank);
+  s_ = db_->storage()->ZRank(key_, member_, &rank);
   if (s_.ok()) {
     res_.AppendInteger(rank);
   } else if (s_.IsNotFound()) {
@@ -943,9 +945,9 @@ void ZRankCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRankCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRankCmd::ReadCache() {
   int64_t rank = 0;
-  auto s = slot->cache()->ZRank(key_, member_, &rank, slot);
+  auto s = db_->cache()->ZRank(key_, member_, &rank, db_);
   if (s.ok()) {
     res_.AppendInteger(rank);
   } else if (s.IsNotFound()){
@@ -955,14 +957,14 @@ void ZRankCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRankCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRankCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRankCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -974,9 +976,9 @@ void ZRevrankCmd::DoInitial() {
   ZsetRankParentCmd::DoInitial();
 }
 
-void ZRevrankCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRevrankCmd::Do() {
   int32_t revrank = 0;
-  s_ = slot->db()->ZRevrank(key_, member_, &revrank);
+  s_ = db_->storage()->ZRevrank(key_, member_, &revrank);
   if (s_.ok()) {
     res_.AppendInteger(revrank);
   } else if (s_.IsNotFound()) {
@@ -986,9 +988,9 @@ void ZRevrankCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrankCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRevrankCmd::ReadCache() {
   int64_t revrank = 0;
-  auto s = slot->cache()->ZRevrank(key_, member_, &revrank, slot);
+  auto s = db_->cache()->ZRevrank(key_, member_, &revrank, db_);
   if (s.ok()) {
     res_.AppendInteger(revrank);
   } else if (s.IsNotFound()){
@@ -998,14 +1000,14 @@ void ZRevrankCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrankCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRevrankCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRevrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRevrankCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1018,9 +1020,9 @@ void ZScoreCmd::DoInitial() {
   member_ = argv_[2];
 }
 
-void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZScoreCmd::Do() {
   double score = 0.0;
-  s_ = slot->db()->ZScore(key_, member_, &score);
+  s_ = db_->storage()->ZScore(key_, member_, &score);
   if (s_.ok()) {
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
@@ -1033,10 +1035,10 @@ void ZScoreCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZScoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZScoreCmd::ReadCache() {
   double score = 0.0;
   std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-  auto s = slot->cache()->ZScore(CachePrefixKeyZ, member_, &score, slot);
+  auto s = db_->cache()->ZScore(CachePrefixKeyZ, member_, &score, db_);
   if (s.ok()) {
     char buf[32];
     int64_t len = pstd::d2string(buf, sizeof(buf), score);
@@ -1049,12 +1051,12 @@ void ZScoreCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZScoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZScoreCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZScoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZScoreCmd::DoUpdateCache() {
   return;
 }
 
@@ -1126,13 +1128,13 @@ void ZRangebylexCmd::DoInitial() {
   ZsetRangebylexParentCmd::DoInitial();
 }
 
-void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  s_ = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1148,13 +1150,13 @@ void ZRangebylexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRangebylexCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  auto s = slot->cache()->ZRangebylex(key_, min_, max_, &members, slot);
+  auto s = db_->cache()->ZRangebylex(key_, min_, max_, &members, db_);
   if (s.ok()) {
     FitLimit(count_, offset_, members.size());
 
@@ -1172,14 +1174,14 @@ void ZRangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRangebylexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRangebylexCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1201,13 +1203,13 @@ void ZRevrangebylexCmd::DoInitial() {
   right_close_ = tmp_b;
 }
 
-void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRevrangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  s_ = slot->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1223,13 +1225,13 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZRevrangebylexCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   std::vector<std::string> members;
-  auto s = slot->cache()->ZRevrangebylex(key_, min_, max_, &members, slot);
+  auto s = db_->cache()->ZRevrangebylex(key_, min_, max_, &members, db_);
   if (s.ok()) {
     auto size = count_ < members.size() ? count_ : members.size();
     res_.AppendArrayLen(static_cast<int64_t >(size));
@@ -1243,14 +1245,14 @@ void ZRevrangebylexCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRevrangebylexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZRevrangebylexCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZRevrangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRevrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1269,13 +1271,13 @@ void ZLexcountCmd::DoInitial() {
   }
 }
 
-void ZLexcountCmd::Do(std::shared_ptr<Slot> slot) {
+void ZLexcountCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent(":0");
     return;
   }
   int32_t count = 0;
-  s_ = slot->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1283,13 +1285,13 @@ void ZLexcountCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void ZLexcountCmd::ReadCache(std::shared_ptr<Slot> slot) {
+void ZLexcountCmd::ReadCache() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent(":0");
     return;
   }
   uint64_t count = 0;
-  auto s = slot->cache()->ZLexcount(key_, min_, max_, &count, slot);
+  auto s = db_->cache()->ZLexcount(key_, min_, max_, &count, db_);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else if (s.IsNotFound()) {
@@ -1299,14 +1301,14 @@ void ZLexcountCmd::ReadCache(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZLexcountCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
+void ZLexcountCmd::DoThroughDB() {
   res_.clear();
-  Do(slot);
+  Do();
 }
 
-void ZLexcountCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZLexcountCmd::DoUpdateCache() {
   if (s_.ok()) {
-    slot->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, slot);
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
   }
 }
 
@@ -1326,9 +1328,9 @@ void ZRemrangebyrankCmd::DoInitial() {
   }
 }
 
-void ZRemrangebyrankCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRemrangebyrankCmd::Do() {
   int32_t count = 0;
-  s_ = slot->db()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -1336,14 +1338,14 @@ void ZRemrangebyrankCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void ZRemrangebyrankCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZRemrangebyrankCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebyrankCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
+    db_->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
   }
 }
 
@@ -1360,13 +1362,13 @@ void ZRemrangebyscoreCmd::DoInitial() {
   }
 }
 
-void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRemrangebyscoreCmd::Do() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
     return;
   }
   int32_t count = 0;
-  s_ = slot->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1374,14 +1376,14 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void ZRemrangebyscoreCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZRemrangebyscoreCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebyscoreCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRemrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZRemrangebyscore(CachePrefixKeyZ, min_, max_, slot);
+    db_->cache()->ZRemrangebyscore(CachePrefixKeyZ, min_, max_, db_);
   }
 }
 
@@ -1398,14 +1400,14 @@ void ZRemrangebylexCmd::DoInitial() {
   }
 }
 
-void ZRemrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
+void ZRemrangebylexCmd::Do() {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
   }
   int32_t count = 0;
 
-  s_ = slot->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -1413,14 +1415,14 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendInteger(count);
 }
 
-void ZRemrangebylexCmd::DoThroughDB(std::shared_ptr<Slot> slot) {
-  Do(slot);
+void ZRemrangebylexCmd::DoThroughDB() {
+  Do();
 }
 
-void ZRemrangebylexCmd::DoUpdateCache(std::shared_ptr<Slot> slot) {
+void ZRemrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    slot->cache()->ZRemrangebylex(CachePrefixKeyZ, min_, max_, slot);
+    db_->cache()->ZRemrangebylex(CachePrefixKeyZ, min_, max_, db_);
   }
 }
 
@@ -1440,9 +1442,9 @@ void ZPopmaxCmd::DoInitial() {
   }
 }
 
-void ZPopmaxCmd::Do(std::shared_ptr<Slot> slot) {
+void ZPopmaxCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZPopMax(key_, count_, &score_members);
+  rocksdb::Status s = db_->storage()->ZPopMax(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len = 0;
@@ -1474,9 +1476,9 @@ void ZPopminCmd::DoInitial() {
   }
 }
 
-void ZPopminCmd::Do(std::shared_ptr<Slot> slot) {
+void ZPopminCmd::Do() {
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = slot->db()->ZPopMin(key_, count_, &score_members);
+  rocksdb::Status s = db_->storage()->ZPopMin(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
     int64_t len = 0;

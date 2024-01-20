@@ -10,6 +10,7 @@
 
 #include "include/acl.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
 #include "include/pika_server.h"
 #include "pstd_defer.h"
 #include "pstd_hash.h"

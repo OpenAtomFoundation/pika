@@ -8,25 +8,27 @@
 #include "include/pika_command.h"
 #include "include/pika_stream_meta_value.h"
 #include "include/pika_stream_types.h"
+#include "include/pika_db.h"
 #include "storage/storage.h"
 
-#define GET_NEXT_TREE_ID_AND_CHECK(slot, tid)       \
+
+#define GET_NEXT_TREE_ID_AND_CHECK(db, tid)       \
   do {                                              \
     auto &tid_gen = TreeIDGenerator::GetInstance(); \
-    auto s = tid_gen.GetNextTreeID(slot, tid);      \
+    auto s = tid_gen.GetNextTreeID(db, tid);      \
     if (!s.ok()) {                                  \
       return s;                                     \
     }                                               \
   } while (0)
 
-storage::Status TreeIDGenerator::GetNextTreeID(const Slot *slot, treeID &tid) {
-  assert(slot);
+storage::Status TreeIDGenerator::GetNextTreeID(const DB* db, treeID &tid) {
+  assert(db);
   auto expected_id = kINVALID_TREE_ID;
 
   // if tree_id_ is not initialized (equal to kINVALID_TREE_ID), try to fetch it from storage
   if (tree_id_.compare_exchange_strong(expected_id, START_TREE_ID)) {
     std::string value;
-    storage::Status s = slot->db()->HGet(STREAM_META_HASH_KEY, STREAM_LAST_GENERATED_TREE_ID_FIELD, &value);
+    storage::Status s = db->storage()->HGet(STREAM_META_HASH_KEY, STREAM_LAST_GENERATED_TREE_ID_FIELD, &value);
     if (s.ok()) {
       treeID id;
       if (!StreamUtils::string2int32(value.c_str(), id)) {
@@ -46,13 +48,13 @@ storage::Status TreeIDGenerator::GetNextTreeID(const Slot *slot, treeID &tid) {
   // insert tree id to storage
   std::string tree_id_str = std::to_string(tree_id_);
   int32_t res;
-  return slot->db()->HSet(STREAM_META_HASH_KEY, STREAM_LAST_GENERATED_TREE_ID_FIELD, tree_id_str, &res);
+  return db->storage()->HSet(STREAM_META_HASH_KEY, STREAM_LAST_GENERATED_TREE_ID_FIELD, tree_id_str, &res);
 }
 
-storage::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const std::string &key, const DB* db) {
+  assert(db);
   std::string value;
-  auto s = slot->db()->HGet(STREAM_META_HASH_KEY, key, &value);
+  auto s = db->storage()->HGet(STREAM_META_HASH_KEY, key, &value);
   if (s.ok()) {
     stream_meta.ParseFrom(value);
     return storage::Status::OK();
@@ -62,43 +64,43 @@ storage::Status StreamStorage::GetStreamMeta(StreamMetaValue &stream_meta, const
 
 // no need to be thread safe, only xadd will call this function
 // and xadd can be locked by the same key using current_key()
-storage::Status StreamStorage::SetStreamMeta(const std::string &key, std::string &meta_value, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::SetStreamMeta(const std::string &key, std::string &meta_value, const DB* db) {
+  assert(db);
   storage::Status s;
   int32_t temp{0};
-  s = slot->db()->HSet(STREAM_META_HASH_KEY, key, meta_value, &temp);
+  s = db->storage()->HSet(STREAM_META_HASH_KEY, key, meta_value, &temp);
   (void)temp;
   return s;
 }
 
-storage::Status StreamStorage::DeleteStreamMeta(const std::string &key, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::DeleteStreamMeta(const std::string &key, const DB* db) {
+  assert(db);
   int32_t ret;
-  return slot->db()->HDel({STREAM_META_HASH_KEY}, {key}, &ret);
+  return db->storage()->HDel({STREAM_META_HASH_KEY}, {key}, &ret);
 }
 
 storage::Status StreamStorage::InsertStreamMessage(const std::string &key, const streamID &id,
-                                                   const std::string &message, const Slot *slot) {
-  assert(slot);
+                                                   const std::string &message, const DB* db) {
+  assert(db);
   std::string true_key = STREAM_DATA_HASH_PREFIX + key;
   int32_t temp{0};
   std::string serialized_id;
   id.SerializeTo(serialized_id);
-  storage::Status s = slot->db()->HSet(true_key, serialized_id, message, &temp);
+  storage::Status s = db->storage()->HSet(true_key, serialized_id, message, &temp);
   (void)temp;
   return s;
 }
 
 storage::Status StreamStorage::GetStreamMessage(const std::string &key, const std::string &sid, std::string &message,
-                                                const Slot *slot) {
-  assert(slot);
+                                                const DB* db) {
+  assert(db);
   std::string true_key = STREAM_DATA_HASH_PREFIX + key;
-  return slot->db()->HGet(true_key, sid, &message);
+  return db->storage()->HGet(true_key, sid, &message);
 }
 
 storage::Status StreamStorage::DeleteStreamMessage(const std::string &key, const std::vector<streamID> &id,
-                                                   int32_t &ret, const Slot *slot) {
-  assert(slot);
+                                                   int32_t &ret, const DB* db) {
+  assert(db);
   std::string true_key = STREAM_DATA_HASH_PREFIX + key;
   std::vector<std::string> serialized_ids;
   for (auto &sid : id) {
@@ -106,20 +108,20 @@ storage::Status StreamStorage::DeleteStreamMessage(const std::string &key, const
     sid.SerializeTo(serialized_id);
     serialized_ids.emplace_back(std::move(serialized_id));
   }
-  return slot->db()->HDel(true_key, {serialized_ids}, &ret);
+  return db->storage()->HDel(true_key, {serialized_ids}, &ret);
 }
 
 storage::Status StreamStorage::DeleteStreamMessage(const std::string &key,
                                                    const std::vector<std::string> &serialized_ids, int32_t &ret,
-                                                   const Slot *slot) {
-  assert(slot);
+                                                   const DB* db) {
+  assert(db);
   std::string true_key = STREAM_DATA_HASH_PREFIX + key;
-  return slot->db()->HDel(true_key, {serialized_ids}, &ret);
+  return db->storage()->HDel(true_key, {serialized_ids}, &ret);
 }
 
 storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vector<storage::FieldValue> &field_values,
-                                          std::string &next_field, const Slot *slot) {
-  assert(slot);
+                                          std::string &next_field, const DB* db) {
+  assert(db);
   std::string start_field;
   std::string end_field;
   storage::Slice pattern = "*";  // match all the fields from start_field to end_field
@@ -134,7 +136,7 @@ storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vect
     } else {
       op.start_sid.SerializeTo(start_field);
     }
-    s = slot->db()->PKHRScanRange(true_key, start_field, end_field, pattern, op.count, &field_values, &next_field);
+    s = db->storage()->PKHRScanRange(true_key, start_field, end_field, pattern, op.count, &field_values, &next_field);
   } else {
     op.start_sid.SerializeTo(start_field);
     if (op.end_sid == kSTREAMID_MAX) {
@@ -142,7 +144,7 @@ storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vect
     } else {
       op.end_sid.SerializeTo(end_field);
     }
-    s = slot->db()->PKHScanRange(true_key, start_field, end_field, pattern, op.count, &field_values, &next_field);
+    s = db->storage()->PKHScanRange(true_key, start_field, end_field, pattern, op.count, &field_values, &next_field);
   }
 
   // 2 exclude the start_sid and end_sid if needed
@@ -165,76 +167,76 @@ storage::Status StreamStorage::ScanStream(const ScanStreamOptions &op, std::vect
   return s;
 }
 
-storage::Status StreamStorage::DeleteStreamData(const std::string &key, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::DeleteStreamData(const std::string &key, const DB* db) {
+  assert(db);
   std::string true_key = STREAM_DATA_HASH_PREFIX + key;
   std::map<storage::DataType, storage::Status> type_status;
-  int64_t count = slot->db()->Del({true_key}, &type_status);
+  int64_t count = db->storage()->Del({true_key}, &type_status);
   storage::Status s = type_status[storage::DataType::kHashes];
   return s;
 }
 
 storage::Status StreamStorage::GetTreeNodeValue(const treeID tid, std::string &field, std::string &value,
-                                                const Slot *slot) {
-  assert(slot);
+                                                const DB* db) {
+  assert(db);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
   storage::Status s;
-  s = slot->db()->HGet(key, field, &value);
+  s = db->storage()->HGet(key, field, &value);
   return s;
 }
 
 storage::Status StreamStorage::InsertTreeNodeValue(const treeID tid, const std::string &filed, const std::string &value,
-                                                   const Slot *slot) {
-  assert(slot);
+                                                   const DB* db) {
+  assert(db);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
 
   storage::Status s;
   int res;
-  s = slot->db()->HSet(key, filed, value, &res);
+  s = db->storage()->HSet(key, filed, value, &res);
   (void)res;
   return s;
 }
 
-storage::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::string &field, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::DeleteTreeNode(const treeID tid, const std::string &field, const DB* db) {
+  assert(db);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
 
   storage::Status s;
   int res;
-  s = slot->db()->HDel(key, std::vector<std::string>{field}, &res);
+  s = db->storage()->HDel(key, std::vector<std::string>{field}, &res);
   (void)res;
   return s;
 }
 
 storage::Status StreamStorage::GetAllTreeNode(const treeID tid, std::vector<storage::FieldValue> &field_values,
-                                              const Slot *slot) {
-  assert(slot);
+                                              const DB* db) {
+  assert(db);
   auto key = std::move(StreamUtils::TreeID2Key(tid));
-  return slot->db()->PKHScanRange(key, "", "", "*", INT_MAX, &field_values, nullptr);
+  return db->storage()->PKHScanRange(key, "", "", "*", INT_MAX, &field_values, nullptr);
 }
 
-storage::Status StreamStorage::DeleteTree(const treeID tid, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::DeleteTree(const treeID tid, const DB* db) {
+  assert(db);
   assert(tid != kINVALID_TREE_ID);
   storage::Status s;
   auto key = std::move(StreamUtils::TreeID2Key(tid));
   std::map<storage::DataType, storage::Status> type_status;
-  int64_t count = slot->db()->Del({key}, &type_status);
+  int64_t count = db->storage()->Del({key}, &type_status);
   s = type_status[storage::DataType::kStrings];
   return s;
 }
 
-storage::Status StreamStorage::CreateConsumer(treeID consumer_tid, std::string &consumername, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::CreateConsumer(treeID consumer_tid, std::string &consumername, const DB* db) {
+  assert(db);
   std::string consumer_meta_value;
-  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, db);
   if (s.IsNotFound()) {
     treeID pel_tid;
-    GET_NEXT_TREE_ID_AND_CHECK(slot, pel_tid);
+    GET_NEXT_TREE_ID_AND_CHECK(db, pel_tid);
 
     StreamConsumerMetaValue consumer_meta;
     consumer_meta.Init(pel_tid);
-    s = StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    s = StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), db);
     if (!s.ok()) {
       LOG(ERROR) << "Insert consumer meta failed";
       return s;
@@ -244,19 +246,19 @@ storage::Status StreamStorage::CreateConsumer(treeID consumer_tid, std::string &
   return s;
 }
 
-storage::Status StreamStorage::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername, const Slot *slot,
+storage::Status StreamStorage::GetOrCreateConsumer(treeID consumer_tid, std::string &consumername, const DB* db,
                                                    StreamConsumerMetaValue &consumer_meta) {
-  assert(slot);
+  assert(db);
   std::string consumer_meta_value;
-  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, slot);
+  auto s = StreamStorage::GetTreeNodeValue(consumer_tid, consumername, consumer_meta_value, db);
   if (s.ok()) {
     consumer_meta.ParseFrom(consumer_meta_value);
 
   } else if (s.IsNotFound()) {
     treeID pel_tid;
-    GET_NEXT_TREE_ID_AND_CHECK(slot, pel_tid);
+    GET_NEXT_TREE_ID_AND_CHECK(db, pel_tid);
     consumer_meta.Init(pel_tid);
-    return StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), slot);
+    return StreamStorage::InsertTreeNodeValue(consumer_tid, consumername, consumer_meta.value(), db);
   }
 
   return s;
@@ -336,8 +338,8 @@ bool StreamUtils::StreamParseIntervalId(const std::string &var, streamID &id, bo
 }
 
 storage::Status StreamStorage::TrimByMaxlen(TrimRet &trim_ret, StreamMetaValue &stream_meta, const std::string &key,
-                                            const Slot *slot, const StreamAddTrimArgs &args) {
-  assert(slot);
+                                            const DB* db, const StreamAddTrimArgs &args) {
+  assert(db);
   storage::Status s;
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
@@ -347,7 +349,7 @@ storage::Status StreamStorage::TrimByMaxlen(TrimRet &trim_ret, StreamMetaValue &
 
     StreamStorage::ScanStreamOptions options(key, stream_meta.first_id(), kSTREAMID_MAX, cur_batch, false, false,
                                              false);
-    s = StreamStorage::ScanStream(options, filed_values, trim_ret.next_field, slot);
+    s = StreamStorage::ScanStream(options, filed_values, trim_ret.next_field, db);
     if (!s.ok() && !s.IsNotFound()) {
       return s;
     }
@@ -363,7 +365,7 @@ storage::Status StreamStorage::TrimByMaxlen(TrimRet &trim_ret, StreamMetaValue &
       fields_to_del.emplace_back(std::move(fv.field));
     }
     int32_t ret;
-    s = StreamStorage::DeleteStreamMessage(key, fields_to_del, ret, slot);
+    s = StreamStorage::DeleteStreamMessage(key, fields_to_del, ret, db);
     if (!s.ok()) {
       return s;
     }
@@ -375,8 +377,8 @@ storage::Status StreamStorage::TrimByMaxlen(TrimRet &trim_ret, StreamMetaValue &
 }
 
 storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &stream_meta, const std::string &key,
-                                           const Slot *slot, const StreamAddTrimArgs &args) {
-  assert(slot);
+                                           const DB* db, const StreamAddTrimArgs &args) {
+  assert(db);
   storage::Status s;
   std::string serialized_min_id;
   stream_meta.first_id().SerializeTo(trim_ret.next_field);
@@ -388,7 +390,7 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
     std::vector<storage::FieldValue> filed_values;
 
     StreamStorage::ScanStreamOptions options(key, stream_meta.first_id(), args.minid, cur_batch, false, false, false);
-    s = StreamStorage::ScanStream(options, filed_values, trim_ret.next_field, slot);
+    s = StreamStorage::ScanStream(options, filed_values, trim_ret.next_field, db);
     if (!s.ok() && !s.IsNotFound()) {
       return s;
     }
@@ -415,7 +417,7 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
       fields_to_del.emplace_back(std::move(fv.field));
     }
     int32_t ret;
-    s = StreamStorage::DeleteStreamMessage(key, fields_to_del, ret, slot);
+    s = StreamStorage::DeleteStreamMessage(key, fields_to_del, ret, db);
     if (!s.ok()) {
       return s;
     }
@@ -427,17 +429,17 @@ storage::Status StreamStorage::TrimByMinid(TrimRet &trim_ret, StreamMetaValue &s
 }
 
 storage::Status StreamStorage::TrimStream(int32_t &count, StreamMetaValue &stream_meta, const std::string &key,
-                                          StreamAddTrimArgs &args, const Slot *slot) {
-  assert(slot);
+                                          StreamAddTrimArgs &args, const DB* db) {
+  assert(db);
   count = 0;
   // 1 do the trim
   TrimRet trim_ret;
   storage::Status s;
   if (args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MAXLEN) {
-    s = TrimByMaxlen(trim_ret, stream_meta, key, slot, args);
+    s = TrimByMaxlen(trim_ret, stream_meta, key, db, args);
   } else {
     assert(args.trim_strategy == StreamTrimStrategy::TRIM_STRATEGY_MINID);
-    s = TrimByMinid(trim_ret, stream_meta, key, slot, args);
+    s = TrimByMinid(trim_ret, stream_meta, key, db, args);
   }
 
   if (!s.ok()) {
@@ -472,13 +474,13 @@ storage::Status StreamStorage::TrimStream(int32_t &count, StreamMetaValue &strea
   return s;
 }
 
-storage::Status StreamStorage::DestoryStreams(std::vector<std::string> &keys, const Slot *slot) {
-  assert(slot);
+storage::Status StreamStorage::DestoryStreams(std::vector<std::string> &keys, const DB* db) {
+  assert(db);
   storage::Status s;
   for (const auto &key : keys) {
     // 1.try to get the stream meta
     StreamMetaValue stream_meta;
-    s = StreamStorage::GetStreamMeta(stream_meta, key, slot);
+    s = StreamStorage::GetStreamMeta(stream_meta, key, db);
     if (s.IsNotFound()) {
       continue;
     } else if (!s.ok()) {
@@ -494,13 +496,13 @@ storage::Status StreamStorage::DestoryStreams(std::vector<std::string> &keys, co
     }
 
     // 3 delete stream meta
-    s = StreamStorage::DeleteStreamMeta(key, slot);
+    s = StreamStorage::DeleteStreamMeta(key, db);
     if (!s.ok()) {
       return s;
     }
 
     // 4 delete stream data
-    s = StreamStorage::DeleteStreamData(key, slot);
+    s = StreamStorage::DeleteStreamData(key, db);
     if (!s.ok()) {
       return s;
     }

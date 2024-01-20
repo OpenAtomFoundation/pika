@@ -56,6 +56,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return thread_pool_size_;
   }
+  int slow_cmd_thread_pool_size() {
+    std::shared_lock l(rwlock_);
+    return slow_cmd_thread_pool_size_;
+  }
   int sync_thread_num() {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
@@ -356,6 +360,18 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_rsync_parallel_num_;
   }
+
+  // Slow Commands configuration
+  const std::string GetSlowCmd() {
+    std::shared_lock l(rwlock_);
+    return pstd::Set2String(slow_cmd_set_, ',');
+  }
+
+  bool is_slow_cmd(const std::string& cmd) {
+    std::shared_lock l(rwlock_);
+    return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
+  }
+
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
@@ -389,6 +405,12 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
+
+  void SetLowLevelThreadPoolSize(const int value) {
+    std::lock_guard l(rwlock_);
+    slow_cmd_thread_pool_size_ = value;
+  }
+
   void SetSlaveof(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
@@ -463,7 +485,7 @@ class PikaConf : public pstd::BaseConf {
   }
   void SetSlotMigrate(const std::string& value) {
     std::lock_guard l(rwlock_);
-    slotmigrate_ = (value == "yes") ? true : false;
+    slotmigrate_ = (value == "yes");
   }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);
@@ -607,42 +629,41 @@ class PikaConf : public pstd::BaseConf {
     acl_Log_max_len_ = value;
   }
 
+  int64_t cache_maxmemory() { return cache_maxmemory_; }
+  void SetSlowCmd(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("slow-cmd-list", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
+  }
+
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_pos() { return zset_cache_start_pos_; }
   int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
-  int64_t cache_maxmemory() { return cache_maxmemory_; }
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
   int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
-  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
-                                    bool is_add);
-  pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
-  pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
-  pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
-  pstd::Status AddDBSanityCheck(const std::string& db_name);
-  pstd::Status DelDB(const std::string& db_name);
-  pstd::Status DelDBSanityCheck(const std::string& db_name);
-
   int Load();
   int ConfigRewrite();
   int ConfigRewriteReplicationID();
 
  private:
-  pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
-
   int port_ = 0;
-  std::string slaveof_;
   int slave_priority_ = 0;
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
+  int slow_cmd_thread_pool_size_ = 0;
+  std::unordered_set<std::string> slow_cmd_set_;
   int sync_thread_num_ = 0;
+  int expire_dump_days_ = 3;
+  int db_sync_speed_ = 0;
+  std::string slaveof_;
   std::string log_path_;
   std::string log_level_;
   std::string db_path_;
   std::string db_sync_path_;
-  int expire_dump_days_ = 3;
-  int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
   bool disable_auto_compactions_ = false;
@@ -733,10 +754,11 @@ class PikaConf : public pstd::BaseConf {
   int binlog_file_size_ = 0;
 
   // cache
+  std::vector<std::string> cache_type_;
+  std::atomic_bool tmp_cache_disable_flag_;
+  std::atomic_int64_t cache_maxmemory_;
   std::atomic_int cache_num_;
   std::atomic_int cache_model_;
-  std::atomic_bool tmp_cache_disable_flag_;
-  std::vector<std::string> cache_type_;
   std::atomic_int cache_string_;
   std::atomic_int cache_set_;
   std::atomic_int cache_zset_;
@@ -745,25 +767,22 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_int cache_bit_;
   std::atomic_int zset_cache_start_pos_;
   std::atomic_int zset_cache_field_num_per_key_;
-  std::atomic_int64_t cache_maxmemory_;
   std::atomic_int cache_maxmemory_policy_;
   std::atomic_int cache_maxmemory_samples_;
   std::atomic_int cache_lfu_decay_time_;
 
-
   // rocksdb blob
   bool enable_blob_files_ = false;
-  int64_t min_blob_size_ = 4096;                // 4K
-  int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
-  std::string blob_compression_type_ = "none";
   bool enable_blob_garbage_collection_ = false;
   double blob_garbage_collection_age_cutoff_ = 0.25;
   double blob_garbage_collection_force_threshold_ = 1.0;
+  int64_t min_blob_size_ = 4096;                // 4K
   int64_t blob_cache_ = 0;
   int64_t blob_num_shard_bits_ = 0;
+  int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
+  std::string blob_compression_type_ = "none";
 
   std::unique_ptr<PikaMeta> local_meta_;
-
   std::shared_mutex rwlock_;
 
   // Rsync Rate limiting configuration

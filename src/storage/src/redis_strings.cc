@@ -692,7 +692,7 @@ Status RedisStrings::MGetWithTTL(const std::vector<std::string>& keys, std::vect
 Status RedisStrings::MSet(const std::vector<KeyValue>& kvs) {
   std::vector<std::string> keys;
   keys.reserve(kvs.size());
-for (const auto& kv : kvs) {
+  for (const auto& kv : kvs) {
     keys.push_back(kv.key);
   }
 

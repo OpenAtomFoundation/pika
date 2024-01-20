@@ -243,7 +243,7 @@ func convertToFloat64(s string) float64 {
 	s = strings.ToLower(s)
 
 	switch s {
-	case "yes", "up", "online", "true":
+	case "yes", "up", "online", "true", "ok":
 		return 1
 	case "no", "down", "offline", "null", "false":
 		return 0
