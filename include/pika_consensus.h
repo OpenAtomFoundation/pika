@@ -21,7 +21,6 @@ class Context : public pstd::noncopyable {
   pstd::Status Init();
   // RWLock should be held when access members.
   pstd::Status StableSave();
-  void PrepareUpdateAppliedIndex(const LogOffset& offset);
   void UpdateAppliedIndex(const LogOffset& offset);
   void Reset(const LogOffset& offset);
 
@@ -48,16 +47,13 @@ class SyncProgress {
   ~SyncProgress() = default;
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
-  std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
-  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                      int session_id);
+  pstd::Status AddSlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   pstd::Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
                 LogOffset* committed_index);
   int SlaveSize();
 
  private:
-
   std::shared_mutex rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
   std::unordered_map<std::string, LogOffset> match_index_;
@@ -82,8 +78,6 @@ class MemLog {
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
-  pstd::Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
-  pstd::Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   pstd::Status TruncateTo(const LogOffset& offset);
 
   void Reset(const LogOffset& offset);
@@ -108,7 +102,7 @@ class MemLog {
 
 class ConsensusCoordinator {
  public:
-  ConsensusCoordinator(const std::string& db_name, uint32_t slot_id);
+  ConsensusCoordinator(const std::string& db_name);
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
   void Init();
@@ -121,7 +115,6 @@ class ConsensusCoordinator {
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
   void UpdateTerm(uint32_t term);
   uint32_t term();
-  pstd::Status CheckEnoughFollower();
 
   // invoked by follower
   pstd::Status ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
@@ -137,11 +130,6 @@ class ConsensusCoordinator {
   LogOffset committed_index() {
     std::lock_guard lock(index_mu_);
     return committed_index_;
-  }
-
-  LogOffset applied_index() {
-    std::shared_lock lock(context_->rwlock_);
-    return context_->applied_index_;
   }
 
   std::shared_ptr<Context> context() { return context_; }
@@ -177,9 +165,6 @@ class ConsensusCoordinator {
   }
 
  private:
-  pstd::Status ScheduleApplyLog(const LogOffset& committed_index);
-  pstd::Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
-  bool MatchConsensusLevel();
   pstd::Status TruncateTo(const LogOffset& offset);
 
   pstd::Status InternalAppendLog(const std::shared_ptr<Cmd>& cmd_ptr);
@@ -209,7 +194,6 @@ class ConsensusCoordinator {
   uint32_t term_ = 0;
 
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
   SyncProgress sync_pros_;
   std::shared_ptr<StableLog> stable_logger_;

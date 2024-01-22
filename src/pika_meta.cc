@@ -39,10 +39,6 @@ Status PikaMeta::StableSave(const std::vector<DBStruct>& db_structs) {
   for (const auto& ts : db_structs) {
     InnerMessage::DBInfo* db_info = meta.add_db_infos();
     db_info->set_db_name(ts.db_name);
-    db_info->set_slot_num(ts.slot_num);
-    for (const auto& id : ts.slot_ids) {
-      db_info->add_slot_ids(id);
-    }
   }
 
   std::string meta_str;
@@ -104,11 +100,7 @@ Status PikaMeta::ParseMeta(std::vector<DBStruct>* const db_structs) {
   db_structs->clear();
   for (int idx = 0; idx < meta.db_infos_size(); ++idx) {
     const InnerMessage::DBInfo& ti = meta.db_infos(idx);
-    std::set<uint32_t> slot_ids;
-    for (int sidx = 0; sidx < ti.slot_ids_size(); ++sidx) {
-      slot_ids.insert(ti.slot_ids(sidx));
-    }
-    db_structs->emplace_back(ti.db_name(), ti.slot_num(), slot_ids);
+    db_structs->emplace_back(ti.db_name());
   }
   return Status::OK();
 }

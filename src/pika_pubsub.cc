@@ -38,7 +38,7 @@ void PublishCmd::DoInitial() {
   msg_ = argv_[2];
 }
 
-void PublishCmd::Do(std::shared_ptr<Slot> slot) {
+void PublishCmd::Do() {
   int receivers = g_pika_server->Publish(channel_, msg_);
   res_.AppendInteger(receivers);
 }
@@ -53,7 +53,7 @@ void SubscribeCmd::DoInitial() {
   }
 }
 
-void SubscribeCmd::Do(std::shared_ptr<Slot> slot) {
+void SubscribeCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
@@ -88,7 +88,7 @@ void UnSubscribeCmd::DoInitial() {
   }
 }
 
-void UnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
+void UnSubscribeCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameUnSubscribe);
@@ -127,7 +127,7 @@ void PSubscribeCmd::DoInitial() {
   }
 }
 
-void PSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
+void PSubscribeCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
@@ -163,7 +163,7 @@ void PUnSubscribeCmd::DoInitial() {
 
 }
 
-void PUnSubscribeCmd::Do(std::shared_ptr<Slot> slot) {
+void PUnSubscribeCmd::Do() {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePUnSubscribe);
@@ -207,7 +207,7 @@ void PubSubCmd::DoInitial() {
   }
 }
 
-void PubSubCmd::Do(std::shared_ptr<Slot> slot) {
+void PubSubCmd::Do() {
   if (strcasecmp(subcommand_.data(), "channels") == 0) {
     std::string pattern;
     std::vector<std::string> result;

@@ -22,8 +22,8 @@ const int kBytesPerRequest = 4 << 20;
 const int kThrottleCheckCycle = 10;
 
 namespace rsync {
-RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
-    : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
+RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name)
+    : snapshot_uuid_(""), dir_(dir), db_name_(db_name),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0),
       parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
@@ -177,7 +177,12 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
-      request.set_slot_id(slot_id_);
+      /*
+       * Since the slot field is written in protobuffer,
+       * slot_id is set to the default value 0 for compatibility
+       * with older versions, but slot_id is not used
+       */
+      request.set_slot_id(0);
       FileRequest* file_req = request.mutable_file_req();
       file_req->set_filename(filename);
       file_req->set_offset(offset);
@@ -309,7 +314,7 @@ bool RsyncClient::Recover() {
   }
 
   state_ = RUNNING;
-  LOG(INFO) << "copy meta data done, slot_id: " << slot_id_
+  LOG(INFO) << "copy meta data done, db name: " << db_name_
             << " snapshot_uuid: " << snapshot_uuid_
             << " file count: " << file_set_.size()
             << " expired file count: " << expired_files.size()
@@ -329,7 +334,12 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
   RsyncRequest request;
   request.set_reader_index(0);
   request.set_db_name(db_name_);
-  request.set_slot_id(slot_id_);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
+  request.set_slot_id(0);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);

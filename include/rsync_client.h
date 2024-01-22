@@ -43,6 +43,7 @@ class WaitObject;
 class WaitObjectManager;
 
 using pstd::Status;
+
 using ResponseSPtr = std::shared_ptr<RsyncService::RsyncResponse>;
 class RsyncClient : public net::Thread {
  public:
@@ -51,7 +52,7 @@ class RsyncClient : public net::Thread {
       RUNNING,
       STOP,
   };
-  RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
+  RsyncClient(const std::string& dir, const std::string& db_name);
   void* ThreadMain() override;
   void Copy(const std::set<std::string>& file_set, int index);
   bool Init();
@@ -81,13 +82,11 @@ private:
 
 private:
   typedef std::unique_ptr<RsyncClientThread> NetThreadUPtr;
-
   std::map<std::string, std::string> meta_table_;
   std::set<std::string> file_set_;
   std::string snapshot_uuid_;
   std::string dir_;
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
   NetThreadUPtr client_thread_;
   std::vector<std::thread> work_threads_;
@@ -105,7 +104,7 @@ private:
 };
 
 class RsyncWriter {
-public:
+ public:
   RsyncWriter(const std::string& filepath) {
     filepath_ = filepath;
     fd_ = open(filepath.c_str(), O_RDWR | O_APPEND | O_CREAT, 0644);
@@ -139,13 +138,13 @@ public:
     return Status::OK();
   }
 
-private:
+ private:
   std::string filepath_;
   int fd_ = -1;
 };
 
 class WaitObject {
-public:
+ public:
   WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
   ~WaitObject() {}
 
@@ -183,7 +182,7 @@ public:
   std::string Filename() {return filename_;}
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
-private:
+ private:
   std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = kInvalidOffset;
@@ -193,7 +192,7 @@ private:
 };
 
 class WaitObjectManager {
-public:
+ public:
   WaitObjectManager() {
     wo_vec_.resize(kMaxRsyncParallelNum);
     for (int i = 0; i < kMaxRsyncParallelNum; i++) {
@@ -230,7 +229,7 @@ public:
     wo_vec_[index]->WakeUp(resp);
   }
 
-private:
+ private:
   std::vector<WaitObject*> wo_vec_;
   std::mutex mu_;
 };

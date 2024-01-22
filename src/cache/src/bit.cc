@@ -9,7 +9,7 @@
 
 namespace cache {
 
-Status RedisCache::SetBit(std::string &key, size_t offset, int64_t value) {
+Status RedisCache::SetBit(std::string& key, size_t offset, int64_t value) {
   int res = RcFreeMemoryIfNeeded(cache_);
   if (C_OK != res) {
     return Status::Corruption("[error] Free memory faild !");
@@ -28,7 +28,7 @@ Status RedisCache::SetBit(std::string &key, size_t offset, int64_t value) {
   return Status::OK();
 }
 
-Status RedisCache::GetBit(std::string &key, size_t offset, int64_t *value) {
+Status RedisCache::GetBit(std::string& key, size_t offset, int64_t *value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -45,7 +45,7 @@ Status RedisCache::GetBit(std::string &key, size_t offset, int64_t *value) {
   return Status::OK();
 }
 
-Status RedisCache::BitCount(std::string &key, int64_t start, int64_t end, int64_t *value, bool have_offset) {
+Status RedisCache::BitCount(std::string& key, int64_t start, int64_t end, int64_t *value, bool have_offset) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -62,7 +62,7 @@ Status RedisCache::BitCount(std::string &key, int64_t start, int64_t end, int64_
   return Status::OK();
 }
 
-Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t *value) {
+Status RedisCache::BitPos(std::string& key, int64_t bit, int64_t *value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -78,7 +78,7 @@ Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t *value) {
   return Status::OK();
 }
 
-Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t *value) {
+Status RedisCache::BitPos(std::string& key, int64_t bit, int64_t start, int64_t *value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
@@ -94,7 +94,7 @@ Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t 
   return Status::OK();
 }
 
-Status RedisCache::BitPos(std::string &key, int64_t bit, int64_t start, int64_t end, int64_t *value) {
+Status RedisCache::BitPos(std::string& key, int64_t bit, int64_t start, int64_t end, int64_t *value) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
