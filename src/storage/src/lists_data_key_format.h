@@ -6,7 +6,7 @@
 #ifndef SRC_LISTS_DATA_KEY_FORMAT_H_
 #define SRC_LISTS_DATA_KEY_FORMAT_H_
 
-#include "pstd/include/pstd_coding.h"
+#include "src/coding.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -29,7 +29,8 @@ public:
   Slice Encode() {
     size_t meta_size = sizeof(reserve1_) + sizeof(version_) + sizeof(reserve2_);
     size_t usize = key_.size() + sizeof(index_) + kEncodedKeyDelimSize;
-    usize += std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
     size_t needed = meta_size + usize;
     char* dst;
     if (needed <= sizeof(space_)) {
@@ -47,12 +48,12 @@ public:
     // reserve1: 8 byte
     memcpy(dst, reserve1_, sizeof(reserve1_));
     dst += sizeof(reserve1_);
-    dst = EncodeUserKey(key_, dst);
+    dst = EncodeUserKey(key_, dst, nzero);
     // version 8 byte
-    pstd::EncodeFixed64(dst, version_);
+    EncodeFixed64(dst, version_);
     dst += sizeof(version_);
     // index
-    pstd::EncodeFixed64(dst, index_);
+    EncodeFixed64(dst, index_);
     dst += sizeof(index_);
     // TODO(wangshaoyi): too much for reserve
     // reserve2: 16 byte
@@ -92,9 +93,9 @@ class ParsedListsDataKey {
     end_ptr -= sizeof(reserve2_);
 
     ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
-    version_ = pstd::DecodeFixed64(ptr);
+    version_ = DecodeFixed64(ptr);
     ptr += sizeof(version_);
-    index_ = pstd::DecodeFixed64(ptr);
+    index_ = DecodeFixed64(ptr);
   }
 
   virtual ~ParsedListsDataKey() = default;

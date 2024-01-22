@@ -7,6 +7,7 @@
 #include <ctime>
 #include <unordered_set>
 #include <thread>
+#include <zlib.h>
 
 #include "include/pika_cache.h"
 #include "include/pika_cache_load_thread.h"
@@ -1608,7 +1609,7 @@ void PikaCache::DestroyWithoutLock(void)
 }
 
 int PikaCache::CacheIndex(const std::string& key) {
-  uint32_t crc = CRC32Update(0, key.data(), (int)key.size());
+  auto crc = crc32(0L, (const Bytef*)key.data(), (int)key.size());
   return (int)(crc % caches_.size());
 }
 

@@ -203,7 +203,6 @@ int main(int argc, char* argv[]) {
 
   PikaGlogInit();
   PikaSignalSetup();
-  InitCRC32Table();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();

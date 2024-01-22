@@ -213,12 +213,13 @@ int CalculateStartAndEndKey(const std::string& key, std::string* start_key, std:
     return 0;
   }
   size_t usize = kPrefixReserveLength + key.size() + kEncodedKeyDelimSize;
-  usize += std::count(key.begin(), key.end(), kNeedTransformCharacter);
+  size_t nzero = std::count(key.begin(), key.end(), kNeedTransformCharacter);
+  usize += nzero;
   auto dst = std::make_unique<char[]>(usize);
   char* ptr = dst.get();
   memset(ptr, kNeedTransformCharacter, kPrefixReserveLength);
   ptr += kPrefixReserveLength;
-  ptr = storage::EncodeUserKey(Slice(key), ptr);
+  ptr = storage::EncodeUserKey(Slice(key), ptr, nzero);
   if (start_key) {
     *start_key = std::string(dst.get(), ptr);
   }

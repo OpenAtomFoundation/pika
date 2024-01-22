@@ -674,6 +674,7 @@ class PikaConf : public pstd::BaseConf {
   int ConfigRewriteReplicationID();
 
  private:
+  // TODO: replace mutex with atomic value
   int port_ = 0;
   int slave_priority_ = 0;
   int thread_num_ = 0;
