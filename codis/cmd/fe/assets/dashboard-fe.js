@@ -456,7 +456,7 @@ function isValidInput(text) {
 function processGroupStats(codis_stats) {
     var group_array = codis_stats.group.models;
     var group_stats = codis_stats.group.stats;
-    var keys = 0, memory = 0;
+    var keys = 0, memory = 0, pika_memory = 0;
     var dbkeyRegexp = /db\d+/
     for (var i = 0; i < group_array.length; i++) {
         var g = group_array[i];
@@ -504,7 +504,7 @@ function processGroupStats(codis_stats) {
                 if (s.stats["used_memory"]) {
                     var v = parseInt(s.stats["used_memory"], 10);
                     if (j == 0) {
-                        memory += v;
+                        pika_memory += v;
                     }
                     x.memory = humanSize(v);
                 }
@@ -552,7 +552,7 @@ function processGroupStats(codis_stats) {
             x.server_text = x.server;
         }
     }
-    return {group_array: group_array, keys: keys, memory: memory};
+    return {group_array: group_array, keys: keys, pika_memory: pika_memory};
 }
 
 dashboard.config(['$interpolateProvider',
@@ -588,8 +588,7 @@ dashboard.controller('MainCodisCtrl', ['$scope', '$http', '$uibModal', '$timeout
             $scope.codis_coord_addr = "NA";
             $scope.codis_qps = "NA";
             $scope.codis_sessions = "NA";
-            $scope.redis_mem = "NA";
-            $scope.redis_keys = "NA";
+            $scope.pika_mem = "NA";
             $scope.slots_array = [];
             $scope.proxy_array = [];
             $scope.group_array = [];
@@ -662,8 +661,7 @@ dashboard.controller('MainCodisCtrl', ['$scope', '$http', '$uibModal', '$timeout
 
             $scope.codis_qps = proxy_stats.qps;
             $scope.codis_sessions = proxy_stats.sessions;
-            $scope.redis_mem = humanSize(group_stats.memory);
-            $scope.redis_keys = group_stats.keys.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            $scope.pika_mem = humanSize(group_stats.pika_memory);
             $scope.slots_array = merge($scope.slots_array, codis_stats.slots);
             $scope.proxy_array = merge($scope.proxy_array, proxy_stats.proxy_array);
             $scope.group_array = merge($scope.group_array, group_stats.group_array);
