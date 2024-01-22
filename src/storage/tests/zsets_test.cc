@@ -5254,11 +5254,10 @@ int main(int argc, char** argv) {
   if (!pstd::FileExists(g_pika_conf->log_path())) {
     pstd::CreatePath(g_pika_conf->log_path());
   }
-  FLAGS_log_dir = g_pika_conf->log_path(); 
+  FLAGS_log_dir = g_pika_conf->log_path();
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
   FLAGS_logbufsecs = 0;
-  InitCRC32Table();
   ::google::InitGoogleLogging("zsets_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

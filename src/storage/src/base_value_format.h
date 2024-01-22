@@ -13,13 +13,16 @@
 
 #include "src/coding.h"
 #include "src/mutex.h"
-#include "pstd/include/pstd_coding.h"
+
+#include "pstd/include/env.h"
 
 namespace storage {
 class InternalValue {
 public:
   explicit InternalValue(const rocksdb::Slice& user_value)
-      :  user_value_(user_value) {}
+      :  user_value_(user_value) {
+        ctime_ = pstd::NowMicros() / 1000000;
+      }
   virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;

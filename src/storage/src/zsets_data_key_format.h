@@ -6,7 +6,7 @@
 #ifndef SRC_ZSETS_DATA_KEY_FORMAT_H_
 #define SRC_ZSETS_DATA_KEY_FORMAT_H_
 
-#include "pstd/include/pstd_coding.h"
+#include "src/coding.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -31,7 +31,8 @@ class ZSetsScoreKey {
   Slice Encode() {
     size_t meta_size = sizeof(reserve1_) + sizeof(version_) + sizeof(score_) + sizeof(reserve2_);
     size_t usize = key_.size() + member_.size() + kEncodedKeyDelimSize;
-    usize += std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
     size_t needed = meta_size + usize;
     char* dst = nullptr;
     if (needed <= sizeof(space_)) {
@@ -50,13 +51,13 @@ class ZSetsScoreKey {
     memcpy(dst, reserve1_, sizeof(reserve1_));
     dst += sizeof(reserve1_);
     // key
-    dst = EncodeUserKey(key_, dst);
+    dst = EncodeUserKey(key_, dst, nzero);
     // version 8 byte
-    pstd::EncodeFixed64(dst, version_);
+    EncodeFixed64(dst, version_);
     dst += sizeof(version_);
     // score
-    DoubleToCharArray convert = {.score = score_};
-    memcpy(dst, convert.arr, sizeof(score_));
+    const void* addr_score = reinterpret_cast<const void*>(&score_);
+    EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
     dst += sizeof(score_);
     // member
     memcpy(dst, member_.data(), member_.size());
@@ -99,11 +100,11 @@ class ParsedZSetsScoreKey {
     end_ptr -= sizeof(reserve2_);
     // user key
     ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
-    version_ = pstd::DecodeFixed64(ptr);
+    version_ = DecodeFixed64(ptr);
     ptr += sizeof(version_);
-    DoubleToCharArray convert;
-    memcpy(convert.arr, ptr, sizeof(score_));
-    score_ = convert.score;
+    uint64_t tmp = DecodeFixed64(ptr);
+    const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
+    score_ = *reinterpret_cast<const double*>(ptr_tmp);
     ptr += sizeof(uint64_t);
     member_ = Slice(ptr, std::distance(ptr, end_ptr));
   }

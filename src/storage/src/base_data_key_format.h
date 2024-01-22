@@ -6,7 +6,7 @@
 #ifndef SRC_BASE_DATA_KEY_FORMAT_H_
 #define SRC_BASE_DATA_KEY_FORMAT_H_
 
-#include "pstd/include/pstd_coding.h"
+#include "src/coding.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -32,7 +32,8 @@ class BaseDataKey {
   Slice EncodeSeekKey() {
     size_t meta_size = sizeof(reserve1_) + sizeof(version_);
     size_t usize = key_.size() + data_.size() + kEncodedKeyDelimSize;
-    usize += std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
     size_t needed = meta_size + usize;
     char* dst;
     if (needed <= sizeof(space_)) {
@@ -51,9 +52,9 @@ class BaseDataKey {
     memcpy(dst, reserve1_, sizeof(reserve1_));
     dst += sizeof(reserve1_);
     // key
-    dst = EncodeUserKey(key_, dst);
+    dst = EncodeUserKey(key_, dst, nzero);
     // version 8 byte
-    pstd::EncodeFixed64(dst, version_);
+    EncodeFixed64(dst, version_);
     dst += sizeof(version_);
     // data
     memcpy(dst, data_.data(), data_.size());
@@ -64,7 +65,8 @@ class BaseDataKey {
   Slice Encode() {
     size_t meta_size = sizeof(reserve1_) + sizeof(version_) + sizeof(reserve2_);
     size_t usize = key_.size() + data_.size() + kEncodedKeyDelimSize;
-    usize += std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
     size_t needed = meta_size + usize;
     char* dst;
     if (needed <= sizeof(space_)) {
@@ -83,9 +85,9 @@ class BaseDataKey {
     memcpy(dst, reserve1_, sizeof(reserve1_));
     dst += sizeof(reserve1_);
     // key
-    dst = EncodeUserKey(key_, dst);
+    dst = EncodeUserKey(key_, dst, nzero);
     // version 8 byte
-    pstd::EncodeFixed64(dst, version_);
+    EncodeFixed64(dst, version_);
     dst += sizeof(version_);
     // data
     memcpy(dst, data_.data(), data_.size());
@@ -129,7 +131,7 @@ class ParsedBaseDataKey {
     // user key
     ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
 
-    version_ = pstd::DecodeFixed64(ptr);
+    version_ = DecodeFixed64(ptr);
     ptr += sizeof(version_);
     data_ = Slice(ptr, std::distance(ptr, end_ptr));
   }

@@ -649,6 +649,7 @@ class PikaConf : public pstd::BaseConf {
  private:
   pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
+  // TODO: replace mutex with atomic value
   int port_ = 0;
   std::string slaveof_;
   int slave_priority_ = 0;

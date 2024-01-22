@@ -1310,7 +1310,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(size_match(&db, "GP1_SPOP_KEY", 1));
-  
+
 
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
@@ -1337,7 +1337,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP2_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP2_SPOP_KEY", 1 - idx));
-    
+
   }
 
   gp2_out_all.swap(members);
@@ -1361,7 +1361,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP3_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP3_SPOP_KEY", 100 - idx));
-    
+
   }
 
   gp3_out_all.swap(members);
@@ -1385,7 +1385,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP4_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP4_SPOP_KEY", 10000 - idx));
-    
+
   }
 
   gp4_out_all.swap(members);
@@ -2258,11 +2258,10 @@ int main(int argc, char** argv) {
   if (!pstd::FileExists(g_pika_conf->log_path())) {
     pstd::CreatePath(g_pika_conf->log_path());
   }
-  FLAGS_log_dir = g_pika_conf->log_path(); 
+  FLAGS_log_dir = g_pika_conf->log_path();
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
   FLAGS_logbufsecs = 0;
-  InitCRC32Table();
   ::google::InitGoogleLogging("strings_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

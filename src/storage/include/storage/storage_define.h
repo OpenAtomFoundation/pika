@@ -12,8 +12,6 @@
 
 #include "rocksdb/slice.h"
 
-#include "src/debug.h"
-
 namespace storage {
 using Slice = rocksdb::Slice;
 
@@ -49,17 +47,35 @@ const static char* kEncodedTransformCharacter = "\u0000\u0001";
 const static char* kEncodedKeyDelim = "\u0000\u0000";
 const static int kEncodedKeyDelimSize = 2;
 
-inline char* EncodeUserKey(const Slice& user_key, char* dst_ptr) {
-  std::for_each(user_key.data(), user_key.data() + user_key.size(),
-      [&dst_ptr](auto & ch){
-        if (ch == kNeedTransformCharacter) {
-          memcpy(dst_ptr, kEncodedTransformCharacter, 2);
-          dst_ptr += 2;
-        } else {
-          *dst_ptr = ch;
-          dst_ptr++;
-        }
-      });
+inline char* EncodeUserKey(const Slice& user_key, char* dst_ptr, size_t nzero) {
+  // no \u0000 exists in user_key, memcopy user_key directly.
+  if (nzero == 0) {
+    memcpy(dst_ptr, user_key.data(), user_key.size());
+    dst_ptr += user_key.size();
+    memcpy(dst_ptr, kEncodedKeyDelim, 2);
+    dst_ptr += 2;
+    return dst_ptr;
+  }
+
+  // \u0000 exists in user_key, iterate and replace.
+  size_t pos = 0;
+  const char* user_data = user_key.data();
+  for (size_t i = 0; i < user_key.size(); i++) {
+    if (user_data[i] == kNeedTransformCharacter) {
+      size_t sub_len = i - pos;
+      if (sub_len != 0) {
+        memcpy(dst_ptr, user_data + pos, sub_len);
+        dst_ptr += sub_len;
+      }
+      memcpy(dst_ptr, kEncodedTransformCharacter, 2);
+      dst_ptr += 2;
+      pos = i + 1;
+    }
+  }
+  if (pos != user_key.size()) {
+    memcpy(dst_ptr, user_data + pos, user_key.size() - pos);
+  }
+
   memcpy(dst_ptr, kEncodedKeyDelim, 2);
   dst_ptr += 2;
   return dst_ptr;
@@ -110,11 +126,6 @@ inline const char* SeekUserkeyDelim(const char* ptr, int length) {
     //TODO: handle invalid format
     return ptr;
 }
-
-union DoubleToCharArray {
-  double score;
-  char arr[8];
-};
 
 } // end namespace storage
 #endif

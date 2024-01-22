@@ -3,36 +3,9 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include <zlib.h>
+
 #include "pstd/include/pika_codis_slot.h"
-
-uint32_t crc32tab[256];
-void CRC32TableInit(uint32_t poly) {
-  int i, j;
-  for (i = 0; i < 256; i++) {
-    uint32_t crc = i;
-    for (j = 0; j < 8; j++) {
-      if (crc & 1) {
-        crc = (crc >> 1) ^ poly;
-      } else {
-        crc = (crc >> 1);
-      }
-    }
-    crc32tab[i] = crc;
-  }
-}
-
-void InitCRC32Table() {
-  CRC32TableInit(0xedb88320);
-}
-
-uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
-  int i;
-  crc = ~crc;
-  for (i = 0; i < len; i++) {
-    crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^ (crc >> 8);
-  }
-  return ~crc;
-}
 
 // get slot tag
 static const char *GetSlotsTag(const std::string &str, int *plen) {
@@ -55,8 +28,6 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
   return s + i;
 }
 
-uint32_t CRC32CheckSum(const char *buf, int len) { return CRC32Update(0, buf, len); }
-
 // get slot number of the key
 int GetSlotID(const std::string &str) { return GetSlotsID(str, nullptr, nullptr); }
 
@@ -70,12 +41,12 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   } else {
     hastag = 1;
   }
-  uint32_t crc = CRC32CheckSum(tag, taglen);
+  auto crc = crc32(0L, (const Bytef*)tag, taglen);
   if (pcrc != nullptr) {
-    *pcrc = crc;
+    *pcrc = uint32_t(crc);
   }
   if (phastag != nullptr) {
     *phastag = hastag;
   }
-  return crc % g_pika_conf->default_slot_num();
+  return uint32_t(crc) % g_pika_conf->default_slot_num();
 }

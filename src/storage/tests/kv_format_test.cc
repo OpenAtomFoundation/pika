@@ -3,19 +3,19 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include <gtest/gtest.h>
 #include <iostream>
 #include <thread>
 
+#include <gtest/gtest.h>
 #include "glog/logging.h"
 
-#include "pstd/include/pstd_coding.h"
+#include "src/debug.h"
+#include "src/coding.h"
 #include "src/base_key_format.h"
 #include "src/base_data_key_format.h"
 #include "src/zsets_data_key_format.h"
 #include "src/lists_data_key_format.h"
 #include "storage/storage_define.h"
-#include "src/debug.h"
 
 using namespace storage;
 
@@ -43,7 +43,7 @@ TEST(KVFormatTest, BaseDataKeyFormat) {
   std::string expect_enc(8, '\0');
   expect_enc.append("\u0000\u0001\u0001base_data_key\u0000\u0001\u0000\u0000", 20);
   char dst[9];
-  pstd::EncodeFixed64(dst, version);
+  EncodeFixed64(dst, version);
   expect_enc.append(dst, 8);
   expect_enc.append("\u0000\u0001data\u0000", 7);
   ASSERT_EQ(seek_key_enc, Slice(expect_enc));
@@ -71,11 +71,11 @@ TEST(KVFormatTest, ZsetsScoreKeyFormat) {
   expect_enc.append("\u0000\u0001\u0001base_data_key\u0000\u0001\u0000\u0000", 20);
   // version
   char dst[9];
-  pstd::EncodeFixed64(dst, version);
+  EncodeFixed64(dst, version);
   expect_enc.append(dst, 8);
   // score
   const void* addr_score = reinterpret_cast<const void*>(&score);
-  pstd::EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
+  EncodeFixed64(dst, *reinterpret_cast<const uint64_t*>(addr_score));
   expect_enc.append(dst, 8);
   // data
   expect_enc.append("\u0000\u0001data\u0000", 7);
@@ -101,9 +101,9 @@ TEST(KVFormatTest, ListDataKeyFormat) {
   std::string expect_enc(8, '\0');
   expect_enc.append("\u0000\u0001\u0001list_data_key\u0000\u0001\u0000\u0000", 20);
   char dst[9];
-  pstd::EncodeFixed64(dst, version);
+  EncodeFixed64(dst, version);
   expect_enc.append(dst, 8);
-  pstd::EncodeFixed64(dst, index);
+  EncodeFixed64(dst, index);
   expect_enc.append(dst, 8);
   expect_enc.append(16, '\0');
   ASSERT_EQ(key_enc, Slice(expect_enc));

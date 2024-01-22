@@ -6,9 +6,6 @@
 #ifndef SRC_BASE_KEY_FORMAT_H_
 #define SRC_BASE_KEY_FORMAT_H_
 
-#include <iostream>
-
-#include "pstd/include/pstd_coding.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -30,8 +27,8 @@ class BaseKey {
 
   Slice Encode() {
     size_t meta_size = sizeof(reserve1_) + sizeof(reserve2_);
-    size_t usize = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
-    usize += kEncodedKeyDelimSize + key_.size();
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    size_t usize = nzero + kEncodedKeyDelimSize + key_.size();
     size_t needed = meta_size + usize;
     char* dst;
     if (needed <= sizeof(space_)) {
@@ -50,7 +47,7 @@ class BaseKey {
     memcpy(dst, reserve1_, sizeof(reserve1_));
     dst += sizeof(reserve1_);
     // key
-    dst = EncodeUserKey(key_, dst);
+    dst = EncodeUserKey(key_, dst, nzero);
     // TODO(wangshaoyi): no need to reserve tailing,
     // since we already set delimiter
     memcpy(dst, reserve2_, sizeof(reserve2_));
@@ -80,8 +77,8 @@ class ParsedBaseKey {
   }
 
   void decode(const char* ptr, const char* end_ptr) {
-    // skip head reserve1_
-    ptr += sizeof(reserve1_);
+    // skip head reserve
+    ptr += kPrefixReserveLength;
     // skip tail reserve2_
     end_ptr -= kSuffixReserveLength;
     DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
@@ -93,7 +90,6 @@ class ParsedBaseKey {
 
 protected:
   std::string key_str_;
-  char reserve1_[8] = {0};
 };
 
 using ParsedBaseMetaKey = ParsedBaseKey;

@@ -5313,6 +5313,7 @@ TEST_F(KeysTest, TTLTest) {
   }
 }
 
+
 int main(int argc, char** argv) {
   std::string pika_conf_path = "./pika.conf";
 #ifdef PIKA_ROOT_DIR
@@ -5332,7 +5333,6 @@ int main(int argc, char** argv) {
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
   FLAGS_logbufsecs = 0;
-  InitCRC32Table();
   ::google::InitGoogleLogging("keys_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

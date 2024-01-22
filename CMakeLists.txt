@@ -731,7 +731,7 @@ add_subdirectory(src/net)
 add_subdirectory(src/storage)
 add_subdirectory(src/cache)
 if (USE_PIKA_TOOLS)
-  #add_subdirectory(tools)
+  add_subdirectory(tools)
 endif()
 aux_source_directory(src DIR_SRCS)
 
