@@ -855,7 +855,6 @@ void Cmd::Execute() {
 }
 
 void Cmd::ProcessCommand(const HintKeys& hint_keys) {
-  LOG(INFO) << "lmz";
   if (stage_ == kNone) {
     InternalProcessCommand(hint_keys);
   } else {
@@ -868,7 +867,6 @@ void Cmd::ProcessCommand(const HintKeys& hint_keys) {
 }
 
 void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
-  LOG(INFO) << db_->GetDBName();
   pstd::lock::MultiRecordLock record_lock(db_->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
