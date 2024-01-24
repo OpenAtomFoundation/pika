@@ -1688,9 +1688,9 @@ void PikaServer::DisableCompact() {
   /* cancel in-progress manual compactions */
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->SetCompactRangeOptions(true);
-    }
+      db_item.second->DbRWLockWriter();
+      db_item.second->SetCompactRangeOptions(true);
+      db_item.second->DbRWUnLock();
   }
 }
 

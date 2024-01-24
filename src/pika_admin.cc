@@ -823,9 +823,9 @@ void ShutdownCmd::DoInitial() {
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  slot->DbRWUnLock();
+  db_->DbRWUnLock();
   g_pika_server->Exit();
-  slot->DbRWLockReader();
+  db_->DbRWLockReader();
   res_.SetRes(CmdRes::kNone);
 }
 
