@@ -7,12 +7,12 @@
 
 #include <utility>
 
+#include "pstd/include/pika_define.h"
+#include "pstd/include/env.h"
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_client_conn.h"
-#include "include/pika_define.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
-#include "pstd/include/env.h"
 
 class Context : public pstd::noncopyable {
  public:

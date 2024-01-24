@@ -7,10 +7,17 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pika_conf.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
 using namespace storage;
+
+std::unique_ptr<PikaConf> g_pika_conf;
 
 class SetsTest : public ::testing::Test {
  public:
@@ -19,9 +26,8 @@ class SetsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/sets";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
@@ -1304,7 +1310,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(size_match(&db, "GP1_SPOP_KEY", 1));
-  
+
 
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
@@ -1331,7 +1337,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP2_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP2_SPOP_KEY", 1 - idx));
-    
+
   }
 
   gp2_out_all.swap(members);
@@ -1355,7 +1361,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP3_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP3_SPOP_KEY", 100 - idx));
-    
+
   }
 
   gp3_out_all.swap(members);
@@ -1379,7 +1385,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP4_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP4_SPOP_KEY", 10000 - idx));
-    
+
   }
 
   gp4_out_all.swap(members);
@@ -2238,6 +2244,25 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  std::string pika_conf_path = "./pika.conf";
+#ifdef PIKA_ROOT_DIR
+  pika_conf_path = PIKA_ROOT_DIR;
+  pika_conf_path += "/tests/conf/pika.conf";
+#endif
+  LOG(WARNING) << "pika_conf_path: " << pika_conf_path;
+  g_pika_conf = std::make_unique<PikaConf>(pika_conf_path);
+  if (g_pika_conf->Load()) {
+    printf("pika load conf error\n");
+    return 0;
+  }
+  if (!pstd::FileExists(g_pika_conf->log_path())) {
+    pstd::CreatePath(g_pika_conf->log_path());
+  }
+  FLAGS_log_dir = g_pika_conf->log_path();
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("strings_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

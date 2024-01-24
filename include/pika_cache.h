@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "include/pika_server.h"
-#include "include/pika_define.h"
+#include "pstd/include/pika_define.h"
 #include "include/pika_zset.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"

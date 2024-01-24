@@ -12,8 +12,8 @@
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
-#include "include/pika_conf.h"
-#include "include/pika_define.h"
+#include "pstd/include/pika_conf.h"
+#include "pstd/include/pika_define.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 

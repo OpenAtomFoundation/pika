@@ -7,9 +7,12 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "pstd/include/pika_conf.h"
 #include "storage/storage.h"
 
 using namespace storage;
+
+std::unique_ptr<PikaConf> g_pika_conf;
 
 class StorageOptionsTest : public ::testing::Test {
  public:
@@ -55,6 +58,17 @@ TEST_F(StorageOptionsTest, ResetOptionsTest) {
 }
 
 int main(int argc, char** argv) {
+  std::string pika_conf_path = "./pika.conf";
+#ifdef PIKA_ROOT_DIR
+  pika_conf_path = PIKA_ROOT_DIR;
+  pika_conf_path += "/tests/conf/pika.conf";
+#endif
+  LOG(WARNING) << "pika_conf_path: " << pika_conf_path;
+  g_pika_conf = std::make_unique<PikaConf>(pika_conf_path);
+  if (g_pika_conf->Load()) {
+    printf("pika load conf error\n");
+    return 0;
+  }
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

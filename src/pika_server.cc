@@ -21,6 +21,7 @@
 #include "net/include/net_stats.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
+#include "pstd/include/pika_codis_slot.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
@@ -1645,7 +1646,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
     std::lock_guard slot_rwl(db_item.second->slots_rw_);
     for (const auto& slot_item : db_item.second->slots_) {
       slot_item.second->DbRWLockWriter();
-      s = slot_item.second->db()->SetOptions(option_type, storage::ALL_DB, options_map);
+      s = slot_item.second->db()->SetOptions(option_type, options_map);
       slot_item.second->DbRWUnLock();
       if (!s.ok()) {
         return s;

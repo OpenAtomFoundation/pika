@@ -8,11 +8,11 @@
 #include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
-#include "include/pika_define.h"
 #include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_transaction.h"
+#include "pstd/include/pika_define.h"
 
 extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;

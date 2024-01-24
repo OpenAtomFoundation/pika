@@ -20,7 +20,7 @@ extern "C" {
   #include "rediscache/redis.h"
 }
 
-#include "config.h"
+#include "pstd/include/cache/config.h"
 #include "pstd_status.h"
 #include "storage/storage.h"
 

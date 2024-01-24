@@ -15,10 +15,11 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_conf.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+#include "pstd/include/pika_conf.h"
 #include "pstd/include/rsync.h"
 
 using pstd::Status;
@@ -1306,7 +1307,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::map<std::string, uint64_t> background_errors;
+  std::map<int, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
@@ -2346,6 +2347,32 @@ void ConfigCmd::ConfigSet(std::string& ret, std::shared_ptr<Slot> slot) {
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
     ret = "+OK\r\n";
+  } else if (set_item == "rocksdb-periodic-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-periodic-second'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"periodic_compaction_seconds", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetRocksdbPeriodicSecond(static_cast<uint64_t>(ival));
+    ret = "+OK\r\n";
+  } else if (set_item == "rocksdb-ttl-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-ttl-second'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"ttl", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetRocksdbTTLSecond(static_cast<uint64_t>(ival));
+    ret = "+OK\r\n";
   } else if (set_item == "max-background-jobs") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-jobs'\r\n";
@@ -2963,7 +2990,7 @@ void DiskRecoveryCmd::Do(std::shared_ptr<Slot> slot) {
       slot_item.second->DbRWUnLock();
       for (const auto &item: background_errors_) {
         if (item.second != 0) {
-          rocksdb::Status s = slot_item.second->db()->GetDBByType(item.first)->Resume();
+          rocksdb::Status s = slot_item.second->db()->GetDBByIndex(item.first)->Resume();
           if (!s.ok()) {
             res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
           }

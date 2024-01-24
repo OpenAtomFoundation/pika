@@ -11,7 +11,7 @@
 #include "net/include/net_thread.h"
 #include "net/include/pb_conn.h"
 
-#include "include/pika_define.h"
+#include "pstd/include/pika_define.h"
 #include "pika_inner_message.pb.h"
 
 class SyncMasterSlot;

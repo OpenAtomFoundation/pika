@@ -9,8 +9,6 @@
 
 #include <cstdint>
 
-#include "rediscache/commondef.h"
-
 namespace cache {
 
 /* Redis maxmemory strategies */
@@ -25,9 +23,9 @@ enum RedisMaxmemoryPolicy {
   CACHE_NO_EVICTION       = 7
 };
 
-#define CACHE_DEFAULT_MAXMEMORY         CONFIG_DEFAULT_MAXMEMORY     // 10G
-#define CACHE_DEFAULT_MAXMEMORY_SAMPLES CONFIG_DEFAULT_MAXMEMORY_SAMPLES
-#define CACHE_DEFAULT_LFU_DECAY_TIME    CONFIG_DEFAULT_LFU_DECAY_TIME
+#define CACHE_DEFAULT_MAXMEMORY         ((uint64_t)(10) << 30) // 10G
+#define CACHE_DEFAULT_MAXMEMORY_SAMPLES 5
+#define CACHE_DEFAULT_LFU_DECAY_TIME    1
 
 /*
  * cache start pos

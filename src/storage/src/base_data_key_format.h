@@ -6,13 +6,22 @@
 #ifndef SRC_BASE_DATA_KEY_FORMAT_H_
 #define SRC_BASE_DATA_KEY_FORMAT_H_
 
-#include "pstd/include/pstd_coding.h"
+#include "src/coding.h"
+#include "storage/storage_define.h"
 
 namespace storage {
+
+using Slice = rocksdb::Slice;
+/*
+* used for Hash/Set/Zset's member data key. format:
+* | reserve1 | key | version | data | reserve2 |
+* |    8B    |     |    8B   |      |   16B    |
+*/
 class BaseDataKey {
  public:
-  BaseDataKey(const Slice& key, int32_t version, const Slice& data)
-      :  key_(key), version_(version), data_(data) {}
+  BaseDataKey(const Slice& key,
+             uint64_t version, const Slice& data)
+      : key_(key), version_(version), data_(data) {}
 
   ~BaseDataKey() {
     if (start_ != space_) {
@@ -20,9 +29,12 @@ class BaseDataKey {
     }
   }
 
-  Slice Encode() {
-    size_t usize = key_.size() + data_.size();
-    size_t needed = usize + sizeof(int32_t) * 2;
+  Slice EncodeSeekKey() {
+    size_t meta_size = sizeof(reserve1_) + sizeof(version_);
+    size_t usize = key_.size() + data_.size() + kEncodedKeyDelimSize;
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
+    size_t needed = meta_size + usize;
     char* dst;
     if (needed <= sizeof(space_)) {
       dst = space_;
@@ -36,59 +48,106 @@ class BaseDataKey {
     }
 
     start_ = dst;
-    pstd::EncodeFixed32(dst, key_.size());
-    dst += sizeof(int32_t);
-    memcpy(dst, key_.data(), key_.size());
-    dst += key_.size();
-    pstd::EncodeFixed32(dst, version_);
-    dst += sizeof(int32_t);
+    // reserve1: 8 byte
+    memcpy(dst, reserve1_, sizeof(reserve1_));
+    dst += sizeof(reserve1_);
+    // key
+    dst = EncodeUserKey(key_, dst, nzero);
+    // version 8 byte
+    EncodeFixed64(dst, version_);
+    dst += sizeof(version_);
+    // data
     memcpy(dst, data_.data(), data_.size());
+    dst += data_.size();
+    return Slice(start_, needed);
+  }
+
+  Slice Encode() {
+    size_t meta_size = sizeof(reserve1_) + sizeof(version_) + sizeof(reserve2_);
+    size_t usize = key_.size() + data_.size() + kEncodedKeyDelimSize;
+    size_t nzero = std::count(key_.data(), key_.data() + key_.size(), kNeedTransformCharacter);
+    usize += nzero;
+    size_t needed = meta_size + usize;
+    char* dst;
+    if (needed <= sizeof(space_)) {
+      dst = space_;
+    } else {
+      dst = new char[needed];
+
+      // Need to allocate space, delete previous space
+      if (start_ != space_) {
+        delete[] start_;
+      }
+    }
+
+    start_ = dst;
+    // reserve1: 8 byte
+    memcpy(dst, reserve1_, sizeof(reserve1_));
+    dst += sizeof(reserve1_);
+    // key
+    dst = EncodeUserKey(key_, dst, nzero);
+    // version 8 byte
+    EncodeFixed64(dst, version_);
+    dst += sizeof(version_);
+    // data
+    memcpy(dst, data_.data(), data_.size());
+    dst += data_.size();
+    // TODO(wangshaoyi): too much for reserve
+    // reserve2: 16 byte
+    memcpy(dst, reserve2_, sizeof(reserve2_));
     return Slice(start_, needed);
   }
 
  private:
-  char space_[200];
   char* start_ = nullptr;
+  char space_[200];
+  char reserve1_[8] = {0};
   Slice key_;
-  int32_t version_ = -1;
+  uint64_t version_ = uint64_t(-1);
   Slice data_;
+  char reserve2_[16] = {0};
 };
 
 class ParsedBaseDataKey {
  public:
   explicit ParsedBaseDataKey(const std::string* key) {
     const char* ptr = key->data();
-    int32_t key_len = pstd::DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    key_ = Slice(ptr, key_len);
-    ptr += key_len;
-    version_ = pstd::DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    data_ = Slice(ptr, key->size() - key_len - sizeof(int32_t) * 2);
+    const char* end_ptr = key->data() + key->size();
+    decode(ptr, end_ptr);
   }
 
   explicit ParsedBaseDataKey(const Slice& key) {
     const char* ptr = key.data();
-    int32_t key_len = pstd::DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    key_ = Slice(ptr, key_len);
-    ptr += key_len;
-    version_ = pstd::DecodeFixed32(ptr);
-    ptr += sizeof(int32_t);
-    data_ = Slice(ptr, key.size() - key_len - sizeof(int32_t) * 2);
+    const char* end_ptr = key.data() + key.size();
+    decode(ptr, end_ptr);
+  }
+
+  void decode(const char* ptr, const char* end_ptr) {
+    const char* start = ptr;
+    // skip head reserve1_
+    ptr += sizeof(reserve1_);
+    // skip tail reserve2_
+    end_ptr -= kSuffixReserveLength;
+    // user key
+    ptr = DecodeUserKey(ptr, std::distance(ptr, end_ptr), &key_str_);
+
+    version_ = DecodeFixed64(ptr);
+    ptr += sizeof(version_);
+    data_ = Slice(ptr, std::distance(ptr, end_ptr));
   }
 
   virtual ~ParsedBaseDataKey() = default;
 
-  Slice key() { return key_; }
+  Slice Key() { return Slice(key_str_); }
 
-  int32_t version() { return version_; }
+  uint64_t Version() { return version_; }
 
-  Slice data() { return data_; }
+  Slice Data() { return data_; }
 
  protected:
-  Slice key_;
-  int32_t version_ = -1;
+  std::string key_str_;
+  char reserve1_[8] = {0};
+  uint64_t version_ = (uint64_t)(-1);
   Slice data_;
 };
 

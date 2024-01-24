@@ -1,17 +1,17 @@
-#include <glog/logging.h>
-
 #include <memory>
 
+#include <glog/logging.h>
+
 #include "include/pika_command.h"
-#include "include/pika_conf.h"
-#include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
-
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/pika_conf.h"
+#include "pstd/include/pika_define.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 

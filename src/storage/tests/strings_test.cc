@@ -7,10 +7,17 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pika_conf.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
 using namespace storage;
+
+std::unique_ptr<PikaConf> g_pika_conf;
 
 class StringsTest : public ::testing::Test {
  public:
@@ -19,9 +26,8 @@ class StringsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/strings";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
@@ -1006,6 +1012,25 @@ TEST_F(StringsTest, PKSetexAtTest) {
 }
 
 int main(int argc, char** argv) {
+  std::string pika_conf_path = "./pika.conf";
+#ifdef PIKA_ROOT_DIR
+  pika_conf_path = PIKA_ROOT_DIR;
+  pika_conf_path += "/tests/conf/pika.conf";
+#endif
+  LOG(WARNING) << "pika_conf_path: " << pika_conf_path;
+  g_pika_conf = std::make_unique<PikaConf>(pika_conf_path);
+  if (!pstd::FileExists(g_pika_conf->log_path())) {
+    pstd::CreatePath(g_pika_conf->log_path());
+  }
+  FLAGS_log_dir = g_pika_conf->log_path();
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("sets_test");
+  if (g_pika_conf->Load()) {
+    printf("pika load conf error\n");
+    return 0;
+  }
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
