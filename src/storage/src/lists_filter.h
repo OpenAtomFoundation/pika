@@ -126,6 +126,7 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
     }
   }
 
+  /*
   // Only judge by meta value ttl
   virtual rocksdb::CompactionFilter::Decision FilterBlobByKey(int level, const Slice& key,
       std::string* new_value, std::string* skip_until) const {
@@ -139,6 +140,7 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
     }
     return CompactionFilter::Decision::kKeep;
   }
+  */
 
   const char* Name() const override { return "ListsDataFilter"; }
 
