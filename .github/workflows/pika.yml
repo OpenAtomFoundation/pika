@@ -174,7 +174,7 @@ jobs:
       - name: Install Deps
         run: |
           brew update
-          brew install --overwrite python autoconf protobuf llvm wget git
+          brew install --overwrite autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
 
       - name: Configure CMake

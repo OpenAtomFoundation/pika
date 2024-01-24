@@ -11,8 +11,8 @@
 
 #include "glog/logging.h"
 #include "include/pika_command.h"
+#include "include/pika_db.h"
 #include "include/pika_define.h"
-#include "include/pika_slot.h"
 #include "storage/storage.h"
 
 // s : rocksdb::Status
@@ -181,8 +181,8 @@ void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, s
   }
 }
 
-void AppendMessagesToRes(CmdRes &res, std::vector<storage::IdMessage> &id_messages, const Slot *slot) {
-  assert(slot);
+void AppendMessagesToRes(CmdRes &res, std::vector<storage::IdMessage> &id_messages, const DB* db) {
+  assert(db);
   res.AppendArrayLenUint64(id_messages.size());
   for (auto &fv : id_messages) {
     std::vector<std::string> message;
@@ -211,8 +211,6 @@ void XAddCmd::DoInitial() {
   }
   key_ = argv_[1];
 
-  // FIXME: check the conflict of stream used prefix, see detail in defination of STERAM_TREE_PREFIX
-
   int idpos{-1};
   ParseAddOrTrimArgsOrReply(res_, argv_, args_, &idpos, true);
   if (res_.ret() != CmdRes::kNone) {
@@ -230,14 +228,14 @@ void XAddCmd::DoInitial() {
   }
 }
 
-void XAddCmd::Do(std::shared_ptr<Slot> slot) {
+void XAddCmd::Do() {
   std::string message;
   if (!storage::StreamUtils::SerializeMessage(argv_, message, field_pos_)) {
     res_.SetRes(CmdRes::kErrOther, "Serialize message failed");
     return;
   }
 
-  auto s = slot->db()->XAdd(key_, message, args_);
+  auto s = db_->storage()->XAdd(key_, message, args_);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -279,32 +277,32 @@ void XRangeCmd::DoInitial() {
   }
 }
 
-void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
+void XRangeCmd::Do() {
   std::vector<storage::IdMessage> id_messages;
 
   if (args_.start_sid <= args_.end_sid) {
-    auto s = slot->db()->XRange(key_, args_, id_messages);
+    auto s = db_->storage()->XRange(key_, args_, id_messages);
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
 
-  AppendMessagesToRes(res_, id_messages, slot.get());
+  AppendMessagesToRes(res_, id_messages, db_.get());
 }
 
-void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
+void XRevrangeCmd::Do() {
   std::vector<storage::IdMessage> id_messages;
 
   if (args_.start_sid >= args_.end_sid) {
-    auto s = slot->db()->XRevrange(key_, args_, id_messages);
+    auto s = db_->storage()->XRevrange(key_, args_, id_messages);
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
 
-  AppendMessagesToRes(res_, id_messages, slot.get());
+  AppendMessagesToRes(res_, id_messages, db_.get());
 }
 
 void XDelCmd::DoInitial() {
@@ -327,9 +325,9 @@ void XDelCmd::DoInitial() {
   }
 }
 
-void XDelCmd::Do(std::shared_ptr<Slot> slot) {
+void XDelCmd::Do() {
   int32_t count{0};
-  auto s = slot->db()->XDel(key_, ids_, count);
+  auto s = db_->storage()->XDel(key_, ids_, count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -349,9 +347,9 @@ void XLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void XLenCmd::Do(std::shared_ptr<Slot> slot) {
+void XLenCmd::Do() {
   int32_t len{0};
-  auto s = slot->db()->XLen(key_, len);
+  auto s = db_->storage()->XLen(key_, len);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -377,12 +375,12 @@ void XReadCmd::DoInitial() {
   ParseReadOrReadGroupArgsOrReply(res_, argv_, args_, false);
 }
 
-void XReadCmd::Do(std::shared_ptr<Slot> slot) {
+void XReadCmd::Do() {
   std::vector<std::vector<storage::IdMessage>> results;
   // The wrong key will not trigger error, just be ignored,
   // we need to save the right key，and return it to client.
   std::vector<std::string> reserved_keys;
-  auto s = slot->db()->XRead(args_, results, reserved_keys);
+  auto s = db_->storage()->XRead(args_, results, reserved_keys);
 
   if (!s.ok() && s.ToString() ==
                      "The > ID can be specified only when calling "
@@ -405,7 +403,7 @@ void XReadCmd::Do(std::shared_ptr<Slot> slot) {
   for (size_t i = 0; i < results.size(); ++i) {
     res_.AppendArrayLen(2);
     res_.AppendString(reserved_keys[i]);
-    AppendMessagesToRes(res_, results[i], slot.get());
+    AppendMessagesToRes(res_, results[i], db_.get());
   }
 }
 
@@ -422,9 +420,9 @@ void XTrimCmd::DoInitial() {
   }
 }
 
-void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
+void XTrimCmd::Do() {
   int32_t count{0};
-  auto s = slot->db()->XTrim(key_, args_, count);
+  auto s = db_->storage()->XTrim(key_, args_, count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -478,9 +476,9 @@ void XInfoCmd::DoInitial() {
   }
 }
 
-void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
+void XInfoCmd::Do() {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
-    this->StreamInfo(slot);
+    this->StreamInfo(db_);
   } else if (!strcasecmp(subcmd_.c_str(), "GROUPS")) {
     // Korpse: TODO:
     // this->GroupsInfo(slot);
@@ -493,9 +491,9 @@ void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
+void XInfoCmd::StreamInfo(std::shared_ptr<DB>& db) {
   storage::StreamInfoResult info;
-  auto s = slot->db()->XInfo(key_, info);
+  auto s = db_->storage()->XInfo(key_, info);
 
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());

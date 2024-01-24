@@ -104,7 +104,6 @@ static void create_pid_file() {
 
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
-    // mkpath(path.substr(0, pos).c_str(), 0755);
     pstd::CreateDir(path.substr(0, pos));
   } else {
     path = kPikaPidFile;
@@ -240,7 +239,7 @@ int main(int argc, char* argv[]) {
   }
 
   // stop PikaReplicaManager first，avoid internal threads
-  // may references to dead PikaServer
+  // may reference to dead PikaServer
   g_pika_rm->Stop();
 
   return 0;

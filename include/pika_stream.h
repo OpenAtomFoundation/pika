@@ -8,7 +8,6 @@
 
 #include "include/acl.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "storage/src/redis_streams.h"
 #include "storage/storage.h"
 
@@ -25,15 +24,15 @@ inline void ParseReadOrReadGroupArgsOrReply(CmdRes& res, const PikaCmdArgsType& 
 // @field_values is the result of ScanStream.
 // field is the serialized message id,
 // value is the serialized message.
-inline void AppendMessagesToRes(CmdRes& res, std::vector<storage::FieldValue>& field_values, const Slot* slot);
+inline void AppendMessagesToRes(CmdRes& res, std::vector<storage::FieldValue>& field_values, const DB* db);
 
 class XAddCmd : public Cmd {
  public:
   XAddCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XAddCmd(*this); }
 
@@ -50,8 +49,8 @@ class XDelCmd : public Cmd {
   XDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XDelCmd(*this); }
 
@@ -67,8 +66,8 @@ class XReadCmd : public Cmd {
  public:
   XReadCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XReadCmd(*this); }
 
@@ -86,8 +85,8 @@ class XRangeCmd : public Cmd {
  public:
   XRangeCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRangeCmd(*this); }
 
@@ -101,8 +100,8 @@ class XRangeCmd : public Cmd {
 class XRevrangeCmd : public XRangeCmd {
  public:
   XRevrangeCmd(const std::string& name, int arity, uint32_t flag) : XRangeCmd(name, arity, flag){};
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XRevrangeCmd(*this); }
 };
@@ -111,8 +110,8 @@ class XLenCmd : public Cmd {
  public:
   XLenCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XLenCmd(*this); }
 
@@ -126,8 +125,8 @@ class XTrimCmd : public Cmd {
  public:
   XTrimCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag){};
   std::vector<std::string> current_key() const override { return {key_}; }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XTrimCmd(*this); }
 
@@ -142,8 +141,8 @@ class XInfoCmd : public Cmd {
  public:
   XInfoCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::STREAM)){};
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new XInfoCmd(*this); }
 
@@ -156,9 +155,9 @@ class XInfoCmd : public Cmd {
   bool is_full_{false};
 
   void DoInitial() override;
-  void StreamInfo(std::shared_ptr<Slot>& slot);
-  void GroupsInfo(std::shared_ptr<Slot>& slot);
-  void ConsumersInfo(std::shared_ptr<Slot>& slot);
+  void StreamInfo(std::shared_ptr<DB>& db);
+  void GroupsInfo(std::shared_ptr<DB>& db);
+  void ConsumersInfo(std::shared_ptr<DB>& db);
 };
 
 #endif  //  PIKA_STREAM_H_

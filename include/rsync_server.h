@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
@@ -32,19 +34,19 @@ class RsyncReader;
 class RsyncServerThread;
 
 class RsyncServer {
-public:
+ public:
   RsyncServer(const std::set<std::string>& ips, const int port);
   ~RsyncServer();
   void Schedule(net::TaskFunc func, void* arg);
   int Start();
   int Stop();
-private:
+ private:
   std::unique_ptr<net::ThreadPool> work_thread_;
   std::unique_ptr<RsyncServerThread> rsync_server_thread_;
 };
 
 class RsyncServerConn : public net::PbConn {
-public:
+ public:
   RsyncServerConn(int connfd, const std::string& ip_port,
                   net::Thread* thread, void* worker_specific_data,
                   net::NetMultiplexer* mpx);
@@ -52,20 +54,20 @@ public:
   int DealMessage() override;
   static void HandleMetaRsyncRequest(void* arg);
   static void HandleFileRsyncRequest(void* arg);
-private:
+ private:
   std::vector<std::shared_ptr<RsyncReader> > readers_;
   std::mutex mu_;
   void* data_ = nullptr;
 };
 
 class RsyncServerThread : public net::HolyThread {
-public:
+ public:
   RsyncServerThread(const std::set<std::string>& ips, int port, int cron_internal, RsyncServer* arg);
   ~RsyncServerThread();
 
-private:
+ private:
   class RsyncServerConnFactory : public net::ConnFactory {
-  public:
+   public:
       explicit RsyncServerConnFactory(RsyncServer* sched) : scheduler_(sched) {}
 
       std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port,
@@ -74,23 +76,23 @@ private:
         return std::static_pointer_cast<net::NetConn>(
         std::make_shared<RsyncServerConn>(connfd, ip_port, thread, scheduler_, net));
       }
-  private:
+   private:
     RsyncServer* scheduler_ = nullptr;
   };
   class RsyncServerHandle : public net::ServerHandle {
-  public:
+   public:
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
     void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
     bool AccessHandle(int fd, std::string& ip) const override;
     void CronHandle() const override;
   };
-private:
+ private:
   RsyncServerConnFactory conn_factory_;
   RsyncServerHandle handle_;
 };
 
 class RsyncReader {
-public:
+ public:
   RsyncReader() {
     block_data_ = new char[kBlockSize];
   }
@@ -104,7 +106,7 @@ public:
                     const size_t count, char* data, size_t* bytes_read,
                     std::string* checksum, bool* is_eof) {
     std::lock_guard<std::mutex> guard(mu_);
-    pstd::Status s = Seek(filepath, offset);
+    pstd::Status s = readAhead(filepath, offset);
     if (!s.ok()) {
       return s;
     }
@@ -115,8 +117,9 @@ public:
     *is_eof = (offset + copy_count == total_size_);
     return pstd::Status::OK();
   }
+
 private:
-  pstd::Status Seek(const std::string filepath, const size_t offset) {
+  pstd::Status readAhead(const std::string filepath, const size_t offset) {
     if (filepath == filepath_ && offset >= start_offset_ && offset < end_offset_) {
       return pstd::Status::OK();
     }
@@ -124,7 +127,8 @@ private:
       Reset();
       fd_ = open(filepath.c_str(), O_RDONLY);
       if (fd_ < 0) {
-        return pstd::Status::IOError("fd open failed");
+        LOG(ERROR) << "open file [" << filepath <<  "] failed! error: " << strerror(errno);
+        return pstd::Status::IOError("open file [" + filepath +  "] failed! error: " + strerror(errno));
       }
       filepath_ = filepath;
       struct stat buf;
@@ -146,9 +150,9 @@ private:
       }
     }
     if (bytesin < 0) {
-      LOG(ERROR) << "unable to read from " << filepath_;
+      LOG(ERROR) << "unable to read from " << filepath << ". error: " << strerror(errno);
       Reset();
-      return pstd::Status::IOError("unable to read from " + filepath);
+      return pstd::Status::IOError("unable to read from " + filepath + ". error: " + strerror(errno));
     }
     end_offset_ = start_offset_ + (ptr - block_data_);
     return pstd::Status::OK();
@@ -164,7 +168,7 @@ private:
     fd_ = -1;
   }
 
-private:
+ private:
   std::mutex mu_;
   const size_t kBlockSize = 16 << 20;
 

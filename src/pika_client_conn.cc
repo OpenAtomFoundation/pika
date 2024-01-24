@@ -243,7 +243,16 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     arg->redis_cmds = argvs;
     time_stat_->enqueue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
+    /**
+     * If using the pipeline method to transmit batch commands to Pika, it is unable to
+     * correctly distinguish between fast and slow commands.
+     * However, if using the pipeline method for Codis, it can correctly distinguish between
+     * fast and slow commands, but it cannot guarantee sequential execution.
+     */
+    std::string opt = argvs[0][0];
+    pstd::StringToLower(opt);
+    bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
+    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd);
     return;
   }
   BatchExecRedisCmd(argvs);
@@ -265,40 +274,6 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
   }
 
   conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
-}
-
-void PikaClientConn::DoExecTask(void* arg) {
-  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
-  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
-  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
-  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
-  LogOffset offset = bg_arg->offset;
-  std::string db_name = bg_arg->db_name;
-  uint32_t slot_id = bg_arg->slot_id;
-  bg_arg.reset();
-
-  cmd_ptr->SetStage(Cmd::kExecuteStage);
-  cmd_ptr->Execute();
-  if (g_pika_conf->slowlog_slower_than() >= 0) {
-    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), cmd_ptr->GetDoDuration());
-  }
-
-  std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!slot) {
-    LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
-    return;
-  }
-  slot->ConsensusUpdateAppliedIndex(offset);
-
-  if (!conn_ptr || !resp_ptr) {
-    return;
-  }
-
-  *resp_ptr = std::move(cmd_ptr->res().message());
-  // last step to update resp_num, early update may casue another therad may
-  // TryWriteResp success with resp_ptr not updated
-  conn_ptr->resp_num--;
-  conn_ptr->TryWriteResp();
 }
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
@@ -332,11 +307,6 @@ void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) { txn_cmd_que_.push(
 bool PikaClientConn::IsInTxn() {
   std::lock_guard<std::mutex> lg(txn_state_mu_);
   return txn_state_[TxnStateBitMask::Start];
-}
-
-bool PikaClientConn::IsTxnFailed() {
-  std::lock_guard<std::mutex> lg(txn_state_mu_);
-  return txn_state_[TxnStateBitMask::WatchFailed] | txn_state_[TxnStateBitMask::InitCmdFailed];
 }
 
 bool PikaClientConn::IsTxnInitFailed() {

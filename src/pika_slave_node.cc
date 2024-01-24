@@ -59,9 +59,8 @@ int SyncWindow::Remaining() {
 
 /* SlaveNode */
 
-SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
-                     int session_id)
-    : RmNode(ip, port, db_name, slot_id, session_id)
+SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id)
+    : RmNode(ip, port, db_name, session_id)
       
       {}
 

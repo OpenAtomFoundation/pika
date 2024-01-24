@@ -101,6 +101,8 @@ func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitG
 				}
 			}
 		}(cursor)
+		cursor += int64(ScanSize)
+		start = true
 		keys, _, err := client.Scan(ctx, uint64(cursor), "*", 1).Result()
 		if err != nil {
 			_ = fmt.Errorf("scan error: %s", err)
@@ -111,8 +113,6 @@ func SolveSingleClient(client *redis.Client, ctx context.Context, wg *sync.WaitG
 				break
 			}
 		}
-		cursor += int64(ScanSize)
-		start = true
 	}
 	fmt.Printf("Current client %s done, waiting for task to finish\n", client)
 	wgClient.Wait()

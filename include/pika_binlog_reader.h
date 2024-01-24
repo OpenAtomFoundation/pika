@@ -16,9 +16,6 @@
 
 #include "include/pika_binlog.h"
 
-// using pstd::Slice;
-// using pstd::Status;
-
 class PikaBinlogReader {
  public:
   PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset);
