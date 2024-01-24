@@ -190,6 +190,13 @@ void DB::InitKeyScan() {
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
+void Slot::SetCompactRangeOptions(const bool is_canceled) {
+  if (!opened_) {
+    return;
+  }
+  db_->SetCompactRangeOptions(is_canceled);
+}
+
 void DB::DbRWLockWriter() { db_rwlock_.lock(); }
 
 DisplayCacheInfo DB::GetCacheInfo() {

@@ -485,6 +485,11 @@ class PikaServer : public pstd::noncopyable {
   double HitRatio();
 
   /*
+  * disable compact
+  */
+  void DisableCompact();
+
+  /*
    * lastsave used
    */
   int64_t GetLastSave() const {return lastsave_;}
