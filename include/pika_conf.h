@@ -19,7 +19,6 @@
 
 #include "acl.h"
 #include "include/pika_define.h"
-#include "include/pika_meta.h"
 #include "rocksdb/compression_type.h"
 
 #define kBinlogReadWinDefaultSize 9000

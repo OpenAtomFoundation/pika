@@ -14,7 +14,7 @@
 #include "net/include/net_conn.h"
 #include "net/include/thread_pool.h"
 #include "pstd/include/pstd_status.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_bgworker.h"

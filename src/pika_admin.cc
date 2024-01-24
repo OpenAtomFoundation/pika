@@ -19,7 +19,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/rsync.h"
 
 using pstd::Status;
@@ -2448,26 +2448,26 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "rocksdb-periodic-second") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
-      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-periodic-second'\r\n";
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-periodic-second'\r\n");
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"periodic_compaction_seconds", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
     if (!s.ok()) {
-      ret = "-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n";
+      res_.AppendStringRaw("-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n");
       return;
     }
     g_pika_conf->SetRocksdbPeriodicSecond(static_cast<uint64_t>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "rocksdb-ttl-second") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
-      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-ttl-second'\r\n";
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-ttl-second'\r\n");
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"ttl", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
     if (!s.ok()) {
-      ret = "-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n";
+      res_.AppendStringRaw("-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n");
       return;
     }
     g_pika_conf->SetRocksdbTTLSecond(static_cast<uint64_t>(ival));
@@ -3100,19 +3100,15 @@ void DiskRecoveryCmd::Do() {
       continue;
     }
     db_item.second->SetBinlogIoErrorrelieve();
-    std::shared_lock slot_rwl(slots_rw);
-    // loop every slot
-    for (const auto &slot_item: db_item.second->GetSlots()) {
-      background_errors_.clear();
-      slot_item.second->DbRWLockReader();
-      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
-      slot_item.second->DbRWUnLock();
-      for (const auto &item: background_errors_) {
-        if (item.second != 0) {
-          rocksdb::Status s = slot_item.second->db()->GetDBByIndex(item.first)->Resume();
-          if (!s.ok()) {
-            res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
-          }
+    background_errors_.clear();
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
+    db_item.second->DbRWUnLock();
+    for (const auto &item: background_errors_) {
+      if (item.second != 0) {
+        rocksdb::Status s = db_item.second->storage()->GetDBByIndex(item.first)->Resume();
+        if (!s.ok()) {
+          res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
         }
       }
     }

@@ -210,7 +210,24 @@ class Redis {
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
   Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
-  std::vector<rocksdb::ColumnFamilyHandle*> GetHandles(){ return handles_;};
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[0]}; }
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetHashCFHandles() {
+    return {handles_.begin() + kHashesMetaCF, handles_.begin() + kHashesDataCF + 1};
+  }
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetListCFHandles() {
+    return {handles_.begin() + kListsMetaCF, handles_.begin() + kListsDataCF + 1};
+  }
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetSetCFHandles() {
+    return {handles_.begin() + kSetsMetaCF, handles_.begin() + kSetsDataCF + 1};
+  }
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetZsetCFHandles() {
+    return {handles_.begin() + kZsetsMetaCF, handles_.end()};
+  }
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
   // Sets Commands

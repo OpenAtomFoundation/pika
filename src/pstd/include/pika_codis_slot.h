@@ -10,15 +10,11 @@
 #include <string>
 #include <memory>
 
-#include "pstd/include/pika_conf.h"
-
-extern std::unique_ptr<PikaConf> g_pika_conf;
-
 // get the slot number by key
-int GetSlotsID(const std::string& str, uint32_t* pcrc, int* phastag);
+int GetSlotsID(int slot_num, const std::string& str, uint32_t* pcrc, int* phastag);
 
 // get slot number of the key
-int GetSlotID(const std::string& str);
+int GetSlotID(int slot_num, const std::string& str);
 
 #endif
 

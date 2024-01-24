@@ -10,7 +10,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 
 using pstd::Slice;
 using pstd::Status;

@@ -15,7 +15,7 @@
 #include "include/pika_slot_command.h"
 #include "pstd/include/pika_codis_slot.h"
 #include "cache/include/cache.h"
-#include "pstd/include/cache/config.h"
+#include "cache/include/config.h"
 
 extern PikaServer* g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)

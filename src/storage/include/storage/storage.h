@@ -34,6 +34,13 @@ inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES = "rocksd
 inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM = "rocksdb.estimate-table-readers-mem";
 inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
 
+inline const std::string ALL_DB = "all";
+inline const std::string STRINGS_DB = "strings";
+inline const std::string HASHES_DB = "hashes";
+inline const std::string LISTS_DB = "lists";
+inline const std::string ZSETS_DB = "zsets";
+inline const std::string SETS_DB = "sets";
+
 inline constexpr size_t BATCH_DELETE_LIMIT = 100;
 inline constexpr size_t COMPACT_THRESHOLD_COUNT = 2000;
 
@@ -147,7 +154,8 @@ struct BGTask {
 
 class Storage {
  public:
-  Storage();
+  Storage(); // for unit test only
+  Storage(int db_instance_num, int slot_num, bool is_classic_mode);
   ~Storage();
 
   Status Open(const StorageOptions& storage_options, const std::string& db_path);
@@ -1057,11 +1065,11 @@ class Storage {
 
   rocksdb::DB* GetDBByIndex(int index);
 
-  Status SetOptions(const OptionType& option_type,
+  Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
-  Status EnableDymayticOptions(const OptionType& option_type, 
+  Status EnableDymayticOptions(const OptionType& option_type,
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
-  Status EnableAutoCompaction(const OptionType& option_type, 
+  Status EnableAutoCompaction(const OptionType& option_type,
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
@@ -1069,7 +1077,9 @@ class Storage {
   std::vector<std::shared_ptr<Redis>> insts_;
   std::unique_ptr<SlotIndexer> slot_indexer_;
   std::atomic<bool> is_opened_ = {false};
-  int slot_num_;
+  int db_instance_num_ = 3;
+  int slot_num_ = 1024;
+  bool is_classic_mode_ = true;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 

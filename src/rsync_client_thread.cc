@@ -5,7 +5,7 @@
 
 #include "include/rsync_client_thread.h"
 #include "include/rsync_client.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 
 using namespace pstd;
 using namespace net;

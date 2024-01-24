@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"

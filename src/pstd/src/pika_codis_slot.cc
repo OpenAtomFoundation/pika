@@ -29,10 +29,10 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
 }
 
 // get slot number of the key
-int GetSlotID(const std::string &str) { return GetSlotsID(str, nullptr, nullptr); }
+int GetSlotID(int slot_num, const std::string &str) { return GetSlotsID(slot_num, str, nullptr, nullptr); }
 
 // get the slot number by key
-int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
+int GetSlotsID(int slot_num, const std::string &str, uint32_t *pcrc, int *phastag) {
   const char *s = str.data();
   int taglen; int hastag = 0;
   const char *tag = GetSlotsTag(str, &taglen);
@@ -48,5 +48,5 @@ int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
   if (phastag != nullptr) {
     *phastag = hastag;
   }
-  return uint32_t(crc) % g_pika_conf->default_slot_num();
+  return int(crc) % slot_num;
 }

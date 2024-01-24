@@ -13,7 +13,7 @@
 
 #include "net/include/net_thread.h"
 #include "pstd/include/pstd_mutex.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "include/pika_client_conn.h"
 
 class PikaMonitorThread : public net::Thread {

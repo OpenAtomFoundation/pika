@@ -11,6 +11,7 @@
 #include "cache/include/config.h"
 #include "include/acl.h"
 #include "include/pika_define.h"
+#include "include/pika_conf.h"
 
 using pstd::Status;
 

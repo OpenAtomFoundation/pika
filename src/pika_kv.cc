@@ -10,7 +10,7 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
 #include "include/pika_stream_base.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/pstd_string.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;

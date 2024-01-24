@@ -24,7 +24,7 @@
 #include "pstd/include/pstd_hash.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/pstd_status.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "include/rsync_client_thread.h"
 #include "include/throttle.h"
 #include "rsync_service.pb.h"

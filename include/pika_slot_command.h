@@ -13,10 +13,11 @@ const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 
 const size_t MaxKeySendSize = 10 * 1024;
 
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<Slot>& slot);
-void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<Slot>& slot);
-void RemSlotKey(const std::string& key, const std::shared_ptr<Slot>& slot);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<Slot>& slot);
+int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db);
+void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
+void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
+int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
+void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
 

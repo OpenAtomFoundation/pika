@@ -7,7 +7,7 @@
 
 #include <utility>
 
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "pstd/include/env.h"
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_client_conn.h"

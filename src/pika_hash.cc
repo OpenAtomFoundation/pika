@@ -7,7 +7,7 @@
 
 #include "pstd/include/pstd_string.h"
 
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_stream_base.h"
 #include "include/pika_cache.h"

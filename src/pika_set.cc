@@ -5,7 +5,7 @@
 
 #include "include/pika_set.h"
 #include "include/pika_cache.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/pstd_string.h"
 #include "include/pika_slot_command.h"
 

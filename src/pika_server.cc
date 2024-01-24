@@ -1500,6 +1500,10 @@ void PikaServer::InitStorageOptions() {
           rocksdb::NewLRUCache(g_pika_conf->blob_cache(), static_cast<int>(g_pika_conf->blob_num_shard_bits()));
     }
   }
+
+  // for column-family options
+  storage_options_.options.ttl = g_pika_conf->rocksdb_ttl_second();
+  storage_options_.options.periodic_compaction_seconds = g_pika_conf->rocksdb_periodic_compaction_second();
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
@@ -1508,7 +1512,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
     db_item.second->DbRWLockWriter();
-    s = db_item.second->storage()->SetOptions(option_type, options_map);
+    s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
     db_item.second->DbRWUnLock();
     if (!s.ok()) {
       return s;
@@ -1692,13 +1696,13 @@ void DoBgslotscleanup(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
-      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()){
         if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
-          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
+          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key " << *iter << " error";
           continue;
         }
         if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
-          LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
+          LOG(WARNING) << "slots clean del for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key "<< *iter << " error";
         }
       }
     }

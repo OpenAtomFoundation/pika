@@ -14,7 +14,7 @@
 
 #include "net/include/net_cli.h"
 
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "include/pika_server.h"
 
 #include "include/pika_admin.h"

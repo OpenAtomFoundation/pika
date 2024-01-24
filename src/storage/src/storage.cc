@@ -17,10 +17,8 @@
 #include "src/redis_hyperloglog.h"
 #include "src/type_iterator.h"
 #include "src/redis.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/pika_codis_slot.h"
-
-extern std::unique_ptr<PikaConf> g_pika_conf;
 
 namespace storage {
 extern std::string BitOpOperate(BitOpType op, const std::vector<std::string>& src_values, int64_t max_len);
@@ -51,11 +49,16 @@ Status StorageOptions::ResetOptions(const OptionType& option_type,
   return Status::OK();
 }
 
-Storage::Storage() {
+// for unit test only
+Storage::Storage() : Storage(3, 1024, true) {}
+
+Storage::Storage(int db_instance_num, int slot_num, bool is_classic_mode) {
   cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
-  slot_indexer_ = std::make_unique<SlotIndexer>(g_pika_conf->db_instance_num());
-  slot_num_ = g_pika_conf->default_slot_num();
+  slot_indexer_ = std::make_unique<SlotIndexer>(db_instance_num);
+  is_classic_mode_ = is_classic_mode;
+  db_instance_num_ = db_instance_num;
+  slot_num_ = slot_num;
 
   Status s = StartBGThread();
   if (!s.ok()) {
@@ -85,7 +88,7 @@ static std::string AppendSubDirectory(const std::string& db_path, int index) {
 Status Storage::Open(const StorageOptions& storage_options, const std::string& db_path) {
   mkpath(db_path.c_str(), 0755);
 
-  int inst_count = g_pika_conf->db_instance_num();
+  int inst_count = db_instance_num_;
   for (int index = 0; index < inst_count; index++) {
     insts_.emplace_back(std::make_shared<Redis>(this, index));
     Status s = insts_.back()->Open(storage_options, AppendSubDirectory(db_path, index));
@@ -123,7 +126,7 @@ std::shared_ptr<Redis> Storage::GetDBInstance(const Slice& key) {
 }
 
 std::shared_ptr<Redis> Storage::GetDBInstance(const std::string& key) {
-  auto inst_index = slot_indexer_->GetInstanceID(GetSlotID(key));
+  auto inst_index = slot_indexer_->GetInstanceID(GetSlotID(slot_num_, key));
   return insts_[inst_index];
 }
 
@@ -222,7 +225,7 @@ Status Storage::Setnx(const Slice& key, const Slice& value, int32_t* ret, const 
 // disallowed in codis, only runs in pika classic mode
 // TODO: Not concurrent safe now, merge wuxianrong's bugfix after floyd's PR review finishes.
 Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
-  assert(g_pika_conf->classic_mode());
+  assert(is_classic_mode_);
   Status s;
   for (const auto& kv : kvs) {
     auto inst = GetDBInstance(kv.key);
@@ -285,7 +288,7 @@ Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_off
 // disallowed in codis proxy, only runs in classic mode
 Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
                       std::string &value_to_dest, int64_t* ret) {
-  assert(g_pika_conf->classic_mode());
+  assert(is_classic_mode_);
   Status s;
   int64_t max_len = 0;
   int64_t value_len = 0;
@@ -297,11 +300,12 @@ Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vect
     if (s.ok()) {
       src_vlaues.push_back(value);
       value_len = value.size();
-    } else if (s.IsNotFound()) {
+    } else {
+      if (!s.IsNotFound()) {
+        return s;
+      }
       src_vlaues.push_back("");
       value_len = 0;
-    } else {
-      return s;
     }
     max_len = std::max(max_len, value_len);
   }
@@ -480,7 +484,7 @@ Status Storage::SDiff(const std::vector<std::string>& keys, std::vector<std::str
 
   Status s;
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->SDiff(keys, members);
     return s;
@@ -515,7 +519,7 @@ Status Storage::SDiffstore(const Slice& destination, const std::vector<std::stri
   Status s;
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->SDiffstore(destination, keys, value_to_dest, ret);
     return s;
@@ -541,7 +545,7 @@ Status Storage::SInter(const std::vector<std::string>& keys, std::vector<std::st
   members->clear();
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->SInter(keys, members);
     return s;
@@ -582,7 +586,7 @@ Status Storage::SInterstore(const Slice& destination, const std::vector<std::str
   Status s;
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->SInterstore(destination, keys, value_to_dest, ret);
     return s;
@@ -622,7 +626,7 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
   Status s;
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(source);
     s = inst->SMove(source, destination, member, ret);
   }
@@ -666,7 +670,7 @@ Status Storage::SUnion(const std::vector<std::string>& keys, std::vector<std::st
   Status s;
   members->clear();
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     return inst->SUnion(keys, members);
   }
@@ -698,7 +702,7 @@ Status Storage::SUnionstore(const Slice& destination, const std::vector<std::str
   value_to_dest.clear();
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(destination);
     s = inst->SUnionstore(destination, keys, value_to_dest, ret);
     return s;
@@ -804,7 +808,7 @@ Status Storage::RPoplpush(const Slice& source, const Slice& destination, std::st
   element->clear();
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(source);
     s = inst->RPoplpush(source, destination, element);
     return s;
@@ -948,7 +952,7 @@ Status Storage::ZUnionstore(const Slice& destination, const std::vector<std::str
   Status s;
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->ZUnionstore(destination, keys, weights, agg, value_to_dest, ret);
     return s;
@@ -1007,7 +1011,7 @@ Status Storage::ZInterstore(const Slice& destination, const std::vector<std::str
   value_to_dest.clear();
 
   // in codis mode, users should garentee keys will be hashed to same slot
-  if (!g_pika_conf->classic_mode()) {
+  if (!is_classic_mode_) {
     auto inst = GetDBInstance(keys[0]);
     s = inst->ZInterstore(destination, keys, weights, agg, value_to_dest, ret);
     return s;
@@ -1343,7 +1347,7 @@ int64_t Storage::Exists(const std::vector<std::string>& keys, std::map<DataType,
 
 int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& pattern, int64_t count,
                       std::vector<std::string>* keys) {
-  assert(g_pika_conf->classic_mode());
+  assert(is_classic_mode_);
   keys->clear();
   bool is_finish;
   int64_t leftover_visits = count;
@@ -2227,15 +2231,15 @@ Status Storage::StopScanKeyNum() {
 }
 
 rocksdb::DB* Storage::GetDBByIndex(int index) {
-  if (index < 0 || index >= g_pika_conf->db_instance_num()) {
+  if (index < 0 || index >= db_instance_num_) {
     LOG(WARNING) << "Invalid DB Index: " << index << "total: "
-                 << g_pika_conf->db_instance_num();
+                 << db_instance_num_;
     return nullptr;
   }
   return insts_[index]->GetDB();
 }
 
-Status Storage::SetOptions(const OptionType& option_type,
+Status Storage::SetOptions(const OptionType& option_type, const std::string& db_type,
     const std::unordered_map<std::string, std::string>& options) {
   Status s;
   for (const auto& inst : insts_) {
@@ -2244,63 +2248,58 @@ Status Storage::SetOptions(const OptionType& option_type,
       return s;
     }
   }
-  s = EnableDymayticOptions(option_type,db_type,options);
+  s = EnableDymayticOptions(option_type, db_type, options);
   return s;
 }
 
-Status Storage::EnableDymayticOptions(const OptionType& option_type, 
-                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
+Status Storage::EnableDymayticOptions(const OptionType& option_type,
+    const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
   Status s;
   auto it = options.find("disable_auto_compactions");
   if (it != options.end() && it->second == "false") {
-    s = EnableAutoCompaction(option_type,db_type,options);
-    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") 
-                 << " when Options get disable_auto_compactions: " << it->second << ",db_type:" << db_type;
+    s = EnableAutoCompaction(option_type, db_type, options);
+    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed")
+                 << " when Options get disable_auto_compactions: " << it->second << " ,db_type: " << db_type;
   }
   return s;
 }
 
-Status Storage::EnableAutoCompaction(const OptionType& option_type, 
-                            const std::string& db_type, const std::unordered_map<std::string, std::string>& options){
+Status Storage::EnableAutoCompaction(const OptionType& option_type,
+    const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
   Status s;
-  std::vector<std::string> cfs;
-  std::vector<rocksdb::ColumnFamilyHandle*> cfhds;
 
-  if (db_type == ALL_DB || db_type == STRINGS_DB) {
-    cfhds = strings_db_->GetHandles();
-    s = strings_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
+  for (const auto& inst : insts_) {
+    std::vector<rocksdb::ColumnFamilyHandle*> cfhds;
+    if (db_type == ALL_DB || db_type == STRINGS_DB) {
+      auto string_cfhds = inst->GetStringCFHandles();
+      cfhds.insert(cfhds.end(), string_cfhds.begin(), string_cfhds.end());
+    }
+
+    if (db_type == ALL_DB || db_type == HASHES_DB) {
+      auto hash_cfhds = inst->GetHashCFHandles();
+      cfhds.insert(cfhds.end(), hash_cfhds.begin(), hash_cfhds.end());
+    }
+
+    if (db_type == ALL_DB || db_type == LISTS_DB) {
+      auto list_cfhds = inst->GetListCFHandles();
+      cfhds.insert(cfhds.end(), list_cfhds.begin(), list_cfhds.end());
+    }
+
+    if (db_type == ALL_DB || db_type == SETS_DB) {
+      auto set_cfhds = inst->GetSetCFHandles();
+      cfhds.insert(cfhds.end(), set_cfhds.begin(), set_cfhds.end());
+    }
+
+    if (db_type == ALL_DB || db_type == ZSETS_DB) {
+      auto zset_cfhds = inst->GetZsetCFHandles();
+      cfhds.insert(cfhds.end(), zset_cfhds.begin(), zset_cfhds.end());
+    }
+    s = inst->GetDB()->EnableAutoCompaction(cfhds);
     if (!s.ok()) {
       return s;
     }
   }
-  if (db_type == ALL_DB || db_type == HASHES_DB) {
-    cfhds = hashes_db_->GetHandles();
-    s = hashes_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
-    if (!s.ok()) {
-      return s;
-    }
-  }
-  if (db_type == ALL_DB || db_type == LISTS_DB) {
-    cfhds = lists_db_->GetHandles();
-    s = lists_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
-    if (!s.ok()) {
-      return s;
-    }
-  }
-  if (db_type == ALL_DB || db_type == ZSETS_DB) {
-    cfhds = zsets_db_->GetHandles();
-    s = zsets_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
-    if (!s.ok()) {
-      return s;
-    }
-  }
-  if (db_type == ALL_DB || db_type == SETS_DB) {
-    cfhds = sets_db_->GetHandles();
-    s = sets_db_.get()->GetDB()->EnableAutoCompaction(cfhds);
-    if (!s.ok()) {
-      return s;
-    }
-  }
+
   return s;
 }
 

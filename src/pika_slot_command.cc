@@ -18,9 +18,9 @@
 #include "include/pika_rm.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/pika_codis_slot.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "storage/include/storage/storage.h"
 
 
@@ -612,7 +612,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   uint32_t crc;
   int hastag;
-  int slotNum = GetSlotsID(key, &crc, &hastag);
+  int slotNum = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
 
   std::string slot_key = GetSlotKey(slotNum);
   int32_t res = 0;
@@ -646,7 +646,7 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   int count = 0;
   uint32_t crc;
   int hastag;
-  GetSlotsID(key, &crc, &hastag);
+  GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
   if (!hastag) {
     if (type == 0) {
       return 0;
@@ -705,7 +705,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   int32_t res = -1;
   uint32_t crc;
   int hastag;
-  int slotID = GetSlotsID(key, &crc, &hastag);
+  int slotID = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);
@@ -737,7 +737,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
     LOG(WARNING) << "SRem key: " << key << " from slotKey error";
     return;
   }
-  std::string slotKey = GetSlotKey(GetSlotID(key));
+  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
   rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
@@ -782,7 +782,7 @@ std::string GetSlotsTagKey(uint32_t crc) {
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
   LOG(INFO) << "Del key Srem key " << key;
   int32_t res = 0;
-  std::string slotKey = GetSlotKey(GetSlotID(key));
+  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
   LOG(INFO) << "Del key Srem key " << key;
 
   // delete key from slot
@@ -805,7 +805,7 @@ int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr
   std::map<storage::DataType, storage::Status> type_status;
   int64_t del_nums = db->storage()->Del(members, &type_status);
   if (0 > del_nums) {
-    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(key) << " error";
+    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(g_pika_conf->default_slot_num(), key) << " error";
     return -1;
   }
   WriteDelKeyToBinlog(key, db);
@@ -1011,7 +1011,7 @@ void SlotsMgrtTagOneCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // if you need migrates key, if the key is not existed, return
-  GetSlotsID(key_, &crc, &hastag);
+  GetSlotsID(g_pika_conf->default_slot_num(), key_, &crc, &hastag);
   if (!hastag) {
     std::vector<std::string> keys;
     keys.emplace_back(key_);
@@ -1354,7 +1354,7 @@ void SlotsHashKeyCmd::Do() {
 
   res_.AppendArrayLenUint64(keys_.size());
   for (keys_it = keys_.begin(); keys_it != keys_.end(); ++keys_it) {
-    res_.AppendInteger(GetSlotsID(*keys_it, nullptr, nullptr));
+    res_.AppendInteger(GetSlotsID(g_pika_conf->default_slot_num(), *keys_it, nullptr, nullptr));
   }
 
   return;

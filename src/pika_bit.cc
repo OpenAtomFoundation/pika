@@ -13,7 +13,7 @@
 #include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
 #include "pstd/include/pstd_string.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

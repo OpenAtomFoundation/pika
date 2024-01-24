@@ -10,9 +10,9 @@
 
 #include "net/include/net_stats.h"
 #include "pstd/include/pika_codis_slot.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_define.h"
 #include "pstd/include/pstd_defer.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 #include "pstd/include/env.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_slot_command.h"

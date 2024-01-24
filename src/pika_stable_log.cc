@@ -12,7 +12,7 @@
 #include "include/pika_server.h"
 #include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
-#include "pstd/include/pika_conf.h"
+#include "include/pika_conf.h"
 
 using pstd::Status;
 

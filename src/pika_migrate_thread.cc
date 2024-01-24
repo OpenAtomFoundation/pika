@@ -10,8 +10,8 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "pstd/include/pika_codis_slot.h"
-#include "pstd/include/pika_conf.h"
-#include "pstd/include/pika_define.h"
+#include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
@@ -534,7 +534,7 @@ PikaMigrateThread::PikaMigrateThread()
       send_num_(0),
       response_num_(0),
       moved_num_(0),
-      
+
       workers_num_(8),
       working_thread_num_(0)
       {}
@@ -597,7 +597,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
 int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
   std::unique_lock lm(migrator_mutex_);
 
-  int slot_id = GetSlotID(key);
+  int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
   std::vector<std::string> type_str(1);
   char key_type;
   rocksdb::Status s = db->storage()->GetType(key, true, type_str);
