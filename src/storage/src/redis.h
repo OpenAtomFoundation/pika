@@ -329,9 +329,8 @@ private:
   Storage* const storage_;
   std::shared_ptr<LockMgr> lock_mgr_;
   rocksdb::DB* db_ = nullptr;
-  rocksdb::Env* env_ = nullptr;
   //TODO(wangshaoyi): seperate env for each rocksdb instance
-  //std::unique_ptr<rocksdb::Env> env_;
+  // rocksdb::Env* env_ = nullptr;
 
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
   rocksdb::WriteOptions default_write_options_;
