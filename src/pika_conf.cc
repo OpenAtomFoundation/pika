@@ -86,10 +86,6 @@ int PikaConf::Load() {
   }
 
   GetConfInt("default-slot-num", &default_slot_num_);
-  if (default_slot_num_ <= 0) {
-    LOG(FATAL) << "config default-slot-num error,"
-               << " it should greater than zero, the actual is: " << default_slot_num_;
-  }
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
@@ -621,7 +617,7 @@ void PikaConf::SetCacheType(const std::string& value) {
 
 int PikaConf::ConfigRewrite() {
   //  std::string userblacklist = suser_blacklist();
-
+  std::string scachetype = scache_type();
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
@@ -649,6 +645,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
   SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");
+  SetConfStr("cache-type", scachetype);
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);
   SetConfInt64("manually-resume-interval", resume_check_interval_);
   SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);
@@ -669,6 +666,14 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
+  // cache config
+  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
+  SetConfInt("block-size", block_size_);
+  SetConfInt("block-cache", block_cache_);
+  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
+  SetConfInt("cache-model", cache_model_);
+  SetConfInt("zset_cache_start_pos", zset_cache_start_pos_);
+  SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;

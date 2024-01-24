@@ -776,7 +776,7 @@ void PsetexCmd::DoThroughDB() {
 void PsetexCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->WriteKVToCache(CachePrefixKeyK, value_, static_cast<int32_t>(usec_ / 1000));
+    db_->cache()->Setxx(CachePrefixKeyK, value_,  static_cast<int32_t>(usec_ / 1000));
   }
 }
 

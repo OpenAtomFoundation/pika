@@ -401,7 +401,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGet, std::move(hgetptr)));
   ////HGetallCmd
   std::unique_ptr<Cmd> hgetallptr =
-      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsSlow);
+      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsHash | kCmdFlagsSlow | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGetall, std::move(hgetallptr)));
   ////HExistsCmd
   std::unique_ptr<Cmd> hexistsptr =
@@ -441,7 +441,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHStrlen, std::move(hstrlenptr)));
   ////HValsCmd
   std::unique_ptr<Cmd> hvalsptr =
-      std::make_unique<HValsCmd>(kCmdNameHVals, 2, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsSlow);
+      std::make_unique<HValsCmd>(kCmdNameHVals, 2, kCmdFlagsRead | kCmdFlagsHash | kCmdFlagsSlow | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHVals, std::move(hvalsptr)));
   ////HScanCmd
   std::unique_ptr<Cmd> hscanptr = std::make_unique<HScanCmd>(
@@ -672,29 +672,29 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSMove, std::move(smoveptr)));
   ////SRandmemberCmd
   std::unique_ptr<Cmd> srandmemberptr =
-      std::make_unique<SRandmemberCmd>(kCmdNameSRandmember, -2, kCmdFlagsRead |  kCmdFlagsSet|kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
+      std::make_unique<SRandmemberCmd>(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSRandmember, std::move(srandmemberptr)));
 
   // BitMap
   ////bitsetCmd
   std::unique_ptr<Cmd> bitsetptr =
-      std::make_unique<BitSetCmd>(kCmdNameBitSet, 4, kCmdFlagsWrite |  kCmdFlagsBit | kCmdFlagsSlow);
+      std::make_unique<BitSetCmd>(kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitSet, std::move(bitsetptr)));
   ////bitgetCmd
   std::unique_ptr<Cmd> bitgetptr =
-      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead |  kCmdFlagsBit | kCmdFlagsSlow);
+      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitGet, std::move(bitgetptr)));
   ////bitcountCmd
   std::unique_ptr<Cmd> bitcountptr =
-      std::make_unique<BitCountCmd>(kCmdNameBitCount, -2, kCmdFlagsRead |  kCmdFlagsBit | kCmdFlagsSlow);
+      std::make_unique<BitCountCmd>(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitCount, std::move(bitcountptr)));
   ////bitposCmd
   std::unique_ptr<Cmd> bitposptr =
-      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead |  kCmdFlagsBit | kCmdFlagsSlow);
+      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitPos, std::move(bitposptr)));
   ////bitopCmd
   std::unique_ptr<Cmd> bitopptr =
-      std::make_unique<BitOpCmd>(kCmdNameBitOp, -3, kCmdFlagsWrite | kCmdFlagsBit | kCmdFlagsSlow);
+      std::make_unique<BitOpCmd>(kCmdNameBitOp, -3, kCmdFlagsWrite | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitOp, std::move(bitopptr)));
 
   // HyperLogLog

@@ -471,9 +471,7 @@ void LPushxCmd::DoThroughDB() {
 void LPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    std::vector<std::string> values;
-    values.push_back(value_);
-    db_->cache()->LPushx(CachePrefixKeyL, values);
+    db_->cache()->LPushx(CachePrefixKeyL, values_);
   }
 }
 
@@ -898,8 +896,6 @@ void RPushxCmd::DoThroughDB() {
 void RPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    std::vector<std::string> values;
-    values.push_back(value_);
-    db_->cache()->RPushx(CachePrefixKeyL, values);
+    db_->cache()->RPushx(CachePrefixKeyL, values_);
   }
 }

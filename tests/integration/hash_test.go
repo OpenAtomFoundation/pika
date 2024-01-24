@@ -2,6 +2,7 @@ package pika_integration
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
@@ -305,6 +306,7 @@ var _ = Describe("Hash Commands", func() {
 			var slice []string
 			err = client.HVals(ctx, "hash121").ScanSlice(&slice)
 			Expect(err).NotTo(HaveOccurred())
+			sort.Strings(slice)
 			Expect(slice).To(Equal([]string{"hello1", "hello2"}))
 		})
 

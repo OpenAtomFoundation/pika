@@ -2066,6 +2066,61 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->replication_id());
   }
 
+
+  if (pstd::stringmatch(pattern.data(), "cache-num", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-num");
+    EncodeNumber(&config_body, g_pika_conf->GetCacheNum());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-model", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-model");
+    EncodeNumber(&config_body, g_pika_conf->cache_model());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-type", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-type");
+    EncodeString(&config_body, g_pika_conf->scache_type());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "zset-cache-start-direction", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "zset-cache-start-direction");
+    EncodeNumber(&config_body, g_pika_conf->zset_cache_start_pos());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "zset-cache-field-num-per-key", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "zset-cache-field-num-per-key");
+    EncodeNumber(&config_body, g_pika_conf->zset_cache_field_num_per_key());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory-policy", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory-policy");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory_policy());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-maxmemory-samples", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-maxmemory-samples");
+    EncodeNumber(&config_body, g_pika_conf->cache_maxmemory_samples());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "cache-lfu-decay-time", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "cache-lfu-decay-time");
+    EncodeNumber(&config_body, g_pika_conf->cache_lfu_decay_time());
+  }
+
   if (pstd::stringmatch(pattern.data(), "acl-pubsub-default", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "acl-pubsub-default");
@@ -2121,6 +2176,11 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "arena-block-size",
         "throttle-bytes-per-second",
         "max-rsync-parallel-num",
+        "cache-model",
+        "cache-type",
+        "zset-cache-start-direction",
+        "zset-cache-field-num-per-key",
+        "cache-lfu-decay-time",
     });
     res_.AppendStringVector(replyVt);
     return;
@@ -3070,17 +3130,17 @@ void CacheCmd::DoInitial() {
     return;
   }
   if (!strcasecmp(argv_[1].data(), "clear")) {
-    if (!strcasecmp(argv_[2].data(), "db")) {
+    if (argv_.size() == 3 && !strcasecmp(argv_[2].data(), "db")) {
       condition_ = kCLEAR_DB;
-    } else if (!strcasecmp(argv_[2].data(), "hitratio")) {
+    } else if (argv_.size() == 3 && !strcasecmp(argv_[2].data(), "hitratio")) {
       condition_ = kCLEAR_HITRATIO;
     } else {
       res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");
     }
-  } else if (!strcasecmp(argv_[1].data(), "del")) {
+  } else if (argv_.size() >= 3 && !strcasecmp(argv_[1].data(), "del")) {
     condition_ = kDEL_KEYS;
     keys_.assign(argv_.begin() + 2, argv_.end());
-  } else if (!strcasecmp(argv_[1].data(), "randomkey")) {
+  } else if (argv_.size() == 2 && !strcasecmp(argv_[1].data(), "randomkey")) {
     condition_ = kRANDOM_KEY;
   } else {
     res_.SetRes(CmdRes::kErrOther, "Unknown cache subcommand or wrong # of args.");

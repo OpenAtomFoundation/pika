@@ -629,6 +629,11 @@ class PikaConf : public pstd::BaseConf {
     acl_Log_max_len_ = value;
   }
 
+  const std::string scache_type() {
+    std::lock_guard l(rwlock_);
+    return pstd::StringConcat(cache_type_, COMMA);
+  }
+
   int64_t cache_maxmemory() { return cache_maxmemory_; }
   void SetSlowCmd(const std::string& value) {
     std::lock_guard l(rwlock_);
@@ -686,7 +691,7 @@ class PikaConf : public pstd::BaseConf {
   std::string masterauth_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
-  int default_slot_num_ = 0;
+  int default_slot_num_ = 1;
   std::vector<DBStruct> db_structs_;
   std::string default_db_;
   std::string bgsave_path_;
