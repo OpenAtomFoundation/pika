@@ -143,6 +143,13 @@ TEST(ZSetScoreKeyComparator, FindShortestSeparatorTest) {
   // printf("**********************************************************************\n");
   ASSERT_TRUE(impl.Compare(change_start_9, start_9) >= 0);
   ASSERT_TRUE(impl.Compare(change_start_9, limit_9) < 0);
+
+  // ***************** Group 10 Test *****************
+  ZSetsScoreKey zsets_score_key_start_10("Axlgrep", 1557212502, 3.1415, "abc");
+  ZSetsScoreKey zsets_score_key_limit_10("Axlgrep", 1557212752, 3.1415, "abc");
+  std::string start_10 = zsets_score_key_start_10.Encode().ToString();
+  std::string limit_10 = zsets_score_key_limit_10.Encode().ToString();
+  ASSERT_TRUE(impl.Compare(start_10, limit_10) < 0);
 }
 
 int main(int argc, char** argv) {

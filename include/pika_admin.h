@@ -342,7 +342,7 @@ class ConfigCmd : public Cmd {
   std::vector<std::string> config_args_v_;
   void DoInitial() override;
   void ConfigGet(std::string& ret);
-  void ConfigSet(std::string& ret, std::shared_ptr<DB> db);
+  void ConfigSet(std::shared_ptr<DB> db);
   void ConfigRewrite(std::string& ret);
   void ConfigResetstat(std::string& ret);
   void ConfigRewriteReplicationID(std::string& ret);
