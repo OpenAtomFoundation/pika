@@ -37,7 +37,8 @@ DB::DB(std::string db_name, const std::string& db_path,
   bgsave_sub_path_ = db_name;
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), db_name);
   log_path_ = DBPath(log_path, "log_" + db_name_);
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
@@ -212,7 +213,8 @@ bool DB::FlushDBWithoutLock() {
   dbpath.append("_deleting/");
   pstd::RenameFile(db_path_, dbpath);
 
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
@@ -239,7 +241,8 @@ bool DB::FlushSubDBWithoutLock(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   pstd::RenameFile(sub_dbpath, del_dbpath);
 
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
