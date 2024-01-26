@@ -48,5 +48,5 @@ int GetSlotsID(int slot_num, const std::string &str, uint32_t *pcrc, int *phasta
   if (phastag != nullptr) {
     *phastag = hastag;
   }
-  return int(crc) % slot_num;
+  return static_cast<int>(crc) % slot_num;
 }
