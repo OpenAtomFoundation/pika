@@ -1469,7 +1469,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
   return s;
 }
 
-Status Redis::ZsetsExpire(const Slice& key, int32_t ttl) {
+Status Redis::ZsetsExpire(const Slice& key, uint64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 

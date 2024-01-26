@@ -175,7 +175,7 @@ class Storage {
   Status Set(const Slice& key, const Slice& value);
 
   // Set key to hold the string value. if key exist
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, uint64_t ttl = 0);
 
   // Get the value of key. If the key does not exist
   // the special value nil is returned
@@ -212,7 +212,7 @@ class Storage {
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, uint64_t ttl = 0);
 
   // Sets the given keys to their respective values.
   // MSETNX will not perform any operation at all even
@@ -223,7 +223,7 @@ class Storage {
   // return 1 if the key currently hold the give value And override success
   // return 0 if the key doesn't exist And override fail
   // return -1 if the key currently does not hold the given value And override fail
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, uint64_t ttl = 0);
 
   // delete the key that holds a given value
   // return 1 if the key currently hold the give value And delete success
@@ -278,7 +278,7 @@ class Storage {
 
   // Set key to hold the string value and set key to timeout after a given
   // number of seconds
-  Status Setex(const Slice& key, const Slice& value, int32_t ttl);
+  Status Setex(const Slice& key, const Slice& value, uint64_t ttl);
 
   // Returns the length of the string value stored at key. An error
   // is returned when key holds a non-string value.
@@ -936,7 +936,7 @@ class Storage {
   // Set a timeout on key
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, int32_t ttl, std::map<DataType, Status>* type_status);
+  int32_t Expire(const Slice& key, uint64_t ttl, std::map<DataType, Status>* type_status);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database

@@ -966,7 +966,7 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
   return s;
 }
 
-Status Redis::ListsExpire(const Slice& key, int32_t ttl) {
+Status Redis::ListsExpire(const Slice& key, uint64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 

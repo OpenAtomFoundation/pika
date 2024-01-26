@@ -654,7 +654,9 @@ void FlushdbCmd::Do() {
     if (db_name_ == "all") {
       db_->FlushDB();
     } else {
-      db_->FlushSubDB(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
+      // db_->FlushSubDB(db_name_);
     }
   }
 }

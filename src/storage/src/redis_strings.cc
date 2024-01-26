@@ -643,7 +643,7 @@ Status Redis::Set(const Slice& key, const Slice& value) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl) {
+Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
   bool not_found = true;
   std::string old_value;
   StringsValue strings_value(value);
@@ -721,7 +721,7 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
   }
 }
 
-Status Redis::Setex(const Slice& key, const Slice& value, int32_t ttl) {
+Status Redis::Setex(const Slice& key, const Slice& value, uint64_t ttl) {
   if (ttl <= 0) {
     return Status::InvalidArgument("invalid expire time");
   }
@@ -736,7 +736,7 @@ Status Redis::Setex(const Slice& key, const Slice& value, int32_t ttl) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl) {
+Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -769,7 +769,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, const in
 }
 
 Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret,
-                           const int32_t ttl) {
+                           const uint64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -1089,7 +1089,7 @@ Status Redis::PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp)
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::StringsExpire(const Slice& key, int32_t ttl) {
+Status Redis::StringsExpire(const Slice& key, uint64_t ttl) {
   std::string value;
 
   BaseKey base_key(key);

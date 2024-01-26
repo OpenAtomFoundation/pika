@@ -1198,7 +1198,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status Redis::SetsExpire(const Slice& key, int32_t ttl) {
+rocksdb::Status Redis::SetsExpire(const Slice& key, uint64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 

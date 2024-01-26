@@ -1028,7 +1028,7 @@ Status Redis::PKHRScanRange(const Slice& key, const Slice& field_start, const st
   return Status::OK();
 }
 
-Status Redis::HashesExpire(const Slice& key, int32_t ttl) {
+Status Redis::HashesExpire(const Slice& key, uint64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
