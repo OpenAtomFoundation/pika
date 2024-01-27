@@ -414,9 +414,17 @@ var _ = Describe("should replication ", func() {
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("master_link_status:up"))
 
-			infoRes = clientMaster.Info(ctx, "replication")
-			Expect(infoRes.Err()).NotTo(HaveOccurred())
-			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
+			// retry up to 30 times
+			for i := 0; i < 30; i++ {
+				infoRes = clientMaster.Info(ctx, "replication")
+				Expect(infoRes.Err()).NotTo(HaveOccurred())
+				Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
+				// check if the log is zero
+				if strings.Contains(infoRes.Val(), "lag=(db0:0)(db1:0)") {
+					break
+				}
+				time.Sleep(time.Duration(1) * time.Second)
+			}
 
 			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
 			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
