@@ -51,6 +51,7 @@ set ::all_tests {
     # unit/hyperloglog
     # unit/command
     unit/type
+    unit/acl
 }
 
 # because the comment not works in tcl list, use regsub to ignore the item starting with '#'
@@ -153,7 +154,7 @@ proc redis_deferring_client {args} {
     set client [redis [srv $level "host"] [srv $level "port"] 1]
 
     # select the right db and read the response (OK)
-    $client select 9
+    $client select 0
     $client read
     return $client
 }

@@ -85,7 +85,7 @@ static void daemonize() {
   if (fork()) {
     exit(0); /* parent exits */
   }
-  setsid();  /* create a new session */
+  setsid(); /* create a new session */
 }
 
 static void close_std() {
@@ -104,7 +104,6 @@ static void create_pid_file() {
 
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
-    // mkpath(path.substr(0, pos).c_str(), 0755);
     pstd::CreateDir(path.substr(0, pos));
   } else {
     path = kPikaPidFile;
@@ -207,10 +206,16 @@ int main(int argc, char* argv[]) {
 
   LOG(INFO) << "Server at: " << path;
   g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
+  g_pika_cmd_table_manager->InitCmdTable();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
   g_pika_server->InitDBStruct();
+
+  auto status = g_pika_server->InitAcl();
+  if (!status.ok()) {
+    LOG(FATAL) << status.ToString();
+  }
 
   if (g_pika_conf->daemonize()) {
     close_std();
@@ -234,7 +239,7 @@ int main(int argc, char* argv[]) {
   }
 
   // stop PikaReplicaManager first，avoid internal threads
-  // may references to dead PikaServer
+  // may reference to dead PikaServer
   g_pika_rm->Stop();
 
   return 0;

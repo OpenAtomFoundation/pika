@@ -132,6 +132,9 @@ int CreatePath(const std::string& path, mode_t mode) {
 
 int GetChildren(const std::string& dir, std::vector<std::string>& result) {
   result.clear();
+  if (filesystem::is_empty(dir)) {
+    return -1; 
+  }
   for (auto& de : filesystem::directory_iterator(dir)) {
     result.emplace_back(de.path().filename());
   }

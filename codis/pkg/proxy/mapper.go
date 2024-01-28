@@ -8,9 +8,11 @@ import (
 	"hash/crc32"
 	"strconv"
 	"strings"
+	"sync"
 
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/log"
 )
 
 var charmap [256]byte
@@ -45,19 +47,28 @@ func (f OpFlag) IsMasterOnly() bool {
 	return (f & mask) != 0
 }
 
+func (f OpFlag) IsQuick() bool {
+	return (f & FlagQuick) != 0
+}
+
 type OpInfo struct {
 	Name string
 	Flag OpFlag
 }
 
 const (
-	FlagWrite = 1 << iota
+	FlagWrite OpFlag = 1 << iota
 	FlagMasterOnly
 	FlagMayWrite
 	FlagNotAllow
+	FlagQuick
+	FlagSlow
 )
 
-var opTable = make(map[string]OpInfo, 256)
+var (
+	opTableLock sync.RWMutex
+	opTable     = make(map[string]OpInfo, 256)
+)
 
 func init() {
 	for _, i := range []OpInfo{
@@ -290,6 +301,10 @@ func getOpInfo(multi []*redis.Resp) (string, OpFlag, error) {
 		}
 	}
 	op = upper[:len(op)]
+
+	opTableLock.RLock()
+	defer opTableLock.RUnlock()
+
 	if r, ok := opTable[string(op)]; ok {
 		return r.Name, r.Flag, nil
 	}
@@ -346,4 +361,68 @@ func getWholeCmd(multi []*redis.Resp, cmd []byte) int {
 		}
 	}
 	return index
+}
+
+func setCmdListFlag(cmdlist string, flag OpFlag) error {
+	reverseFlag := FlagSlow
+	flagString := "FlagQuick"
+	if flag&FlagSlow != 0 {
+		reverseFlag = FlagQuick
+		flagString = "FlagSlow"
+	}
+
+	opTableLock.Lock()
+	defer opTableLock.Unlock()
+
+	for _, r := range opTable {
+		r.Flag = r.Flag &^ flag
+		opTable[r.Name] = r
+	}
+	if len(cmdlist) == 0 {
+		return nil
+	}
+	cmdlist = strings.ToUpper(cmdlist)
+	cmds := strings.Split(cmdlist, ",")
+	for i := 0; i < len(cmds); i++ {
+		if r, ok := opTable[strings.TrimSpace(cmds[i])]; ok {
+			log.Infof("before setCmdListFlag: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			if r.Flag&reverseFlag == 0 {
+				r.Flag = r.Flag | flag
+				opTable[strings.TrimSpace(cmds[i])] = r
+				log.Infof("after setCmdListFlag: r.Name[%s], r.Flag[%d]", r.Name, r.Flag)
+			} else {
+				log.Warnf("cmd[%s] is %s command.", cmds[i], flagString)
+				return errors.Errorf("cmd[%s] is %s command.", cmds[i], flagString)
+			}
+		} else {
+			log.Warnf("can not find [%s] command.", cmds[i])
+			return errors.Errorf("can not find [%s] command.", cmds[i])
+		}
+	}
+	return nil
+}
+
+func getCmdFlag() *redis.Resp {
+	var array = make([]*redis.Resp, 0, 32)
+	const mask = FlagQuick | FlagSlow
+
+	opTableLock.RLock()
+	defer opTableLock.RUnlock()
+
+	for _, r := range opTable {
+		if r.Flag&mask != 0 {
+			retStr := r.Name + " : Flag[" + strconv.Itoa(int(r.Flag)) + "]"
+
+			if r.Flag&FlagQuick != 0 {
+				retStr += ", FlagQuick"
+			}
+
+			if r.Flag&FlagSlow != 0 {
+				retStr += ", FlagSlow"
+			}
+
+			array = append(array, redis.NewBulkBytes([]byte(retStr)))
+		}
+	}
+	return redis.NewArray(array)
 }

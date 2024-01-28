@@ -14,125 +14,13 @@
 #include "pstd/include/pstd_string.h"
 
 #include "cache/include/config.h"
+#include "include/acl.h"
 #include "include/pika_define.h"
 
 using pstd::Status;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
-
-Status PikaConf::InternalGetTargetDB(const std::string& db_name, uint32_t* const target) {
-  int32_t db_index = -1;
-  for (size_t idx = 0; idx < db_structs_.size(); ++idx) {
-    if (db_structs_[idx].db_name == db_name) {
-      db_index = static_cast<int32_t>(idx);
-      break;
-    }
-  }
-  if (db_index == -1) {
-    return Status::NotFound("db : " + db_name + " not found");
-  }
-  *target = db_index;
-  return Status::OK();
-}
-
-Status PikaConf::DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids, bool is_add) {
-  std::shared_lock l(rwlock_);
-  uint32_t db_index = 0;
-  Status s = InternalGetTargetDB(db_name, &db_index);
-  if (!s.ok()) {
-    return s;
-  }
-  // Sanity Check
-  for (const auto& id : slot_ids) {
-    if (id >= db_structs_[db_index].slot_num) {
-      return Status::Corruption("slot index out of range");
-    } else if (is_add && db_structs_[db_index].slot_ids.count(id) != 0) {
-      return Status::Corruption("slot : " + std::to_string(id) + " exist");
-    } else if (!is_add && db_structs_[db_index].slot_ids.count(id) == 0) {
-      return Status::Corruption("slot : " + std::to_string(id) + " not exist");
-    }
-  }
-  return Status::OK();
-}
-
-Status PikaConf::AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids) {
-  Status s = DBSlotsSanityCheck(db_name, slot_ids, true);
-  if (!s.ok()) {
-    return s;
-  }
-
-  std::lock_guard l(rwlock_);
-  uint32_t index = 0;
-  s = InternalGetTargetDB(db_name, &index);
-  if (s.ok()) {
-    for (const auto& id : slot_ids) {
-      db_structs_[index].slot_ids.insert(id);
-    }
-    s = local_meta_->StableSave(db_structs_);
-  }
-  return s;
-}
-
-Status PikaConf::RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids) {
-  Status s = DBSlotsSanityCheck(db_name, slot_ids, false);
-  if (!s.ok()) {
-    return s;
-  }
-
-  std::lock_guard l(rwlock_);
-  uint32_t index = 0;
-  s = InternalGetTargetDB(db_name, &index);
-  if (s.ok()) {
-    for (const auto& id : slot_ids) {
-      db_structs_[index].slot_ids.erase(id);
-    }
-    s = local_meta_->StableSave(db_structs_);
-  }
-  return s;
-}
-
-Status PikaConf::AddDB(const std::string& db_name, const uint32_t slot_num) {
-  Status s = AddDBSanityCheck(db_name);
-  if (!s.ok()) {
-    return s;
-  }
-  std::lock_guard l(rwlock_);
-  db_structs_.push_back({db_name, slot_num, {}});
-  s = local_meta_->StableSave(db_structs_);
-  return s;
-}
-
-Status PikaConf::DelDB(const std::string& db_name) {
-  Status s = DelDBSanityCheck(db_name);
-  if (!s.ok()) {
-    return s;
-  }
-  std::lock_guard l(rwlock_);
-  for (auto iter = db_structs_.begin(); iter != db_structs_.end(); iter++) {
-    if (iter->db_name == db_name) {
-      db_structs_.erase(iter);
-      break;
-    }
-  }
-  return local_meta_->StableSave(db_structs_);
-}
-
-Status PikaConf::AddDBSanityCheck(const std::string& db_name) {
-  std::shared_lock l(rwlock_);
-  uint32_t db_index = 0;
-  Status s = InternalGetTargetDB(db_name, &db_index);
-  if (!s.IsNotFound()) {
-    return Status::Corruption("db: " + db_name + " already exist");
-  }
-  return Status::OK();
-}
-
-Status PikaConf::DelDBSanityCheck(const std::string& db_name) {
-  std::shared_lock l(rwlock_);
-  uint32_t db_index = 0;
-  return InternalGetTargetDB(db_name, &db_index);
-}
 
 int PikaConf::Load() {
   int ret = LoadConf();
@@ -161,7 +49,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  GetConfStr("userpass", &userpass_);
+  //  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -196,17 +84,8 @@ int PikaConf::Load() {
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
   }
-  std::string user_blacklist;
-  GetConfStr("userblacklist", &user_blacklist);
-  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
-  for (auto& item : user_blacklist_) {
-    pstd::StringToLower(item);
-  }
+
   GetConfInt("default-slot-num", &default_slot_num_);
-  if (default_slot_num_ <= 0) {
-    LOG(FATAL) << "config default-slot-num error,"
-               << " it should greater than zero, the actual is: " << default_slot_num_;
-  }
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
@@ -261,6 +140,19 @@ int PikaConf::Load() {
   if (thread_pool_size_ > 100) {
     thread_pool_size_ = 100;
   }
+
+  GetConfInt("slow-cmd-thread-pool-size", &slow_cmd_thread_pool_size_);
+  if (slow_cmd_thread_pool_size_ <= 0) {
+    slow_cmd_thread_pool_size_ = 12;
+  }
+  if (slow_cmd_thread_pool_size_ > 100) {
+    slow_cmd_thread_pool_size_ = 100;
+  }
+
+  std::string slow_cmd_list;
+  GetConfStr("slow-cmd-list", &slow_cmd_list);
+  SetSlowCmd(slow_cmd_list);
+
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
     sync_thread_num_ = 3;
@@ -279,7 +171,7 @@ int PikaConf::Load() {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
-      db_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+      db_structs_.push_back({"db" + std::to_string(idx)});
     }
   }
   default_db_ = db_structs_[0].db_name;
@@ -447,6 +339,9 @@ int PikaConf::Load() {
   if (max_cache_statistic_keys_ <= 0) {
     max_cache_statistic_keys_ = 0;
   }
+  
+  // disable_auto_compactions
+  GetConfBool("disable_auto_compactions", &disable_auto_compactions_);
 
   small_compaction_threshold_ = 5000;
   GetConfInt("small-compaction-threshold", &small_compaction_threshold_);
@@ -566,16 +461,28 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // acl users
+  GetConfStrMulti("user", &users_);
+
+  GetConfStr("aclfile", &aclFile_);
+
+  std::string acl_pubsub_default;
+  GetConfStr("acl-pubsub-default", &acl_pubsub_default);
+  if (acl_pubsub_default == "allchannels") {
+    acl_pubsub_default_ = static_cast<uint32_t>(AclSelectorFlag::ALL_CHANNELS);
+  }
+
+  int tmp_acllog_max_len = 128;
+  GetConfInt("acllog-max-len", &tmp_acllog_max_len);
+  if (tmp_acllog_max_len < 0) {
+    tmp_acllog_max_len = 128;
+  }
+  acl_Log_max_len_ = tmp_acllog_max_len;
+
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
-  if (slaveof_ != "") {
-    std::string master_run_id;
-    GetConfStr("master-run-id", &master_run_id);
-    if (master_run_id.length() == configRunIDSize) {
-      master_run_id_ = master_run_id;
-    }
-  }
+  
   int cache_num = 16;
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
@@ -709,15 +616,15 @@ void PikaConf::SetCacheType(const std::string& value) {
 }
 
 int PikaConf::ConfigRewrite() {
-  std::string userblacklist = suser_blacklist();
-
+  //  std::string userblacklist = suser_blacklist();
+  std::string scachetype = scache_type();
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  SetConfStr("userpass", userpass_);
-  SetConfStr("userblacklist", userblacklist);
+  //  SetConfStr("userpass", userpass_);
+  //  SetConfStr("userblacklist", userblacklist);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
@@ -729,7 +636,6 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfStr("run-id", run_id_);
-  SetConfStr("master-run-id", master_run_id_);
   SetConfStr("replication-id", replication_id_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
@@ -738,6 +644,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
+  SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");
+  SetConfStr("cache-type", scachetype);
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);
   SetConfInt64("manually-resume-interval", resume_check_interval_);
   SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);
@@ -747,6 +655,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
+  SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
@@ -757,6 +666,14 @@ int PikaConf::ConfigRewrite() {
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
+  // cache config
+  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
+  SetConfInt("block-size", block_size_);
+  SetConfInt("block-cache", block_cache_);
+  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
+  SetConfInt("cache-model", cache_model_);
+  SetConfInt("zset_cache_start_pos", zset_cache_start_pos_);
+  SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;

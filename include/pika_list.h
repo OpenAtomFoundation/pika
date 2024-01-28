@@ -6,8 +6,8 @@
 #ifndef PIKA_LIST_H_
 #define PIKA_LIST_H_
 
+#include "include/acl.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
 #include "storage/storage.h"
 
 /*
@@ -15,17 +15,18 @@
  */
 class LIndexCmd : public Cmd {
  public:
-  LIndexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LIndexCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LIndexCmd(*this); }
 
@@ -39,16 +40,17 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
  public:
-  LInsertCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {};
+  LInsertCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LInsertCmd(*this); }
 
@@ -63,17 +65,18 @@ class LInsertCmd : public Cmd {
 
 class LLenCmd : public Cmd {
  public:
-  LLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LLenCmd(*this); }
 
@@ -85,39 +88,39 @@ class LLenCmd : public Cmd {
 
 class BlockingBaseCmd : public Cmd {
  public:
-  BlockingBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  BlockingBaseCmd(const std::string& name, int arity, uint32_t flag, uint32_t category = 0)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST) | category) {}
 
-  //blpop/brpop used start
-  struct WriteBinlogOfPopArgs{
+  // blpop/brpop used start
+  struct WriteBinlogOfPopArgs {
     BlockKeyType block_type;
     std::string key;
-    std::shared_ptr<Slot> slot;
+    std::shared_ptr<DB> db;
     std::shared_ptr<net::NetConn> conn;
     WriteBinlogOfPopArgs() = default;
-    WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_,
-                         std::shared_ptr<Slot> slot_, std::shared_ptr<net::NetConn> conn_)
-        : block_type(block_type_), key(key_), slot(slot_), conn(conn_){}
+    WriteBinlogOfPopArgs(BlockKeyType block_type_, const std::string& key_, std::shared_ptr<DB> db_,
+                         std::shared_ptr<net::NetConn> conn_)
+        : block_type(block_type_), key(key_), db(db_), conn(conn_) {}
   };
   void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
-  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Slot> slot);
+  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<DB> db);
   static void ServeAndUnblockConns(void* args);
   static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);
-  void removeDuplicates(std::vector<std::string> & keys_);
-  //blpop/brpop used functions end
+  void removeDuplicates(std::vector<std::string>& keys_);
+  // blpop/brpop used functions end
 };
 
 class BLPopCmd final : public BlockingBaseCmd {
  public:
-  BLPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const override {
-    return { keys_ };
-  }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  virtual void Merge() override {};
-  virtual Cmd* Clone() override { return new BLPopCmd(*this); }
+  BLPopCmd(const std::string& name, int arity, uint32_t flag)
+      : BlockingBaseCmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BLOCKING)){};
+  std::vector<std::string> current_key() const override { return {keys_}; }
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new BLPopCmd(*this); }
   void DoInitial() override;
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog() override;
 
  private:
   std::vector<std::string> keys_;
@@ -129,16 +132,17 @@ class BLPopCmd final : public BlockingBaseCmd {
 
 class LPopCmd : public Cmd {
  public:
-  LPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPopCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPopCmd(*this); }
 
@@ -149,19 +153,18 @@ class LPopCmd : public Cmd {
   rocksdb::Status s_;
 };
 
-
 class LPushCmd : public BlockingBaseCmd {
  public:
-  LPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  LPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPushCmd(*this); }
 
@@ -175,22 +178,22 @@ class LPushCmd : public BlockingBaseCmd {
 
 class LPushxCmd : public Cmd {
  public:
-  LPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LPushxCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LPushxCmd(*this); }
 
  private:
   std::string key_;
-  std::string value_;
   rocksdb::Status s_;
   std::vector<std::string> values_;
   void DoInitial() override;
@@ -198,17 +201,18 @@ class LPushxCmd : public Cmd {
 
 class LRangeCmd : public Cmd {
  public:
-  LRangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRangeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LRangeCmd(*this); }
 
@@ -222,16 +226,17 @@ class LRangeCmd : public Cmd {
 
 class LRemCmd : public Cmd {
  public:
-  LRemCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LRemCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LRemCmd(*this); }
 
@@ -245,16 +250,17 @@ class LRemCmd : public Cmd {
 
 class LSetCmd : public Cmd {
  public:
-  LSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LSetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LSetCmd(*this); }
 
@@ -268,16 +274,17 @@ class LSetCmd : public Cmd {
 
 class LTrimCmd : public Cmd {
  public:
-  LTrimCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  LTrimCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new LTrimCmd(*this); }
 
@@ -291,16 +298,16 @@ class LTrimCmd : public Cmd {
 
 class BRPopCmd final : public BlockingBaseCmd {
  public:
-  BRPopCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
-  virtual std::vector<std::string> current_key() const override {
-    return { keys_ };
-  }
-  virtual void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
-  virtual void Merge() override {};
-  virtual Cmd* Clone() override { return new BRPopCmd(*this); }
+  BRPopCmd(const std::string& name, int arity, uint32_t flag)
+      : BlockingBaseCmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BLOCKING)){};
+  std::vector<std::string> current_key() const override { return {keys_}; }
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new BRPopCmd(*this); }
   void DoInitial() override;
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog() override;
+
  private:
   std::vector<std::string> keys_;
   int64_t expire_time_{0};
@@ -310,16 +317,17 @@ class BRPopCmd final : public BlockingBaseCmd {
 
 class RPopCmd : public Cmd {
  public:
-  RPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPopCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPopCmd(*this); }
 
@@ -332,9 +340,10 @@ class RPopCmd : public Cmd {
 
 class RPopLPushCmd : public BlockingBaseCmd {
  public:
-  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  RPopLPushCmd(const std::string& name, int arity, uint32_t flag)
+      : BlockingBaseCmd(name, arity, flag, static_cast<uint32_t>(AclCategory::BLOCKING)) {
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite |  kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite |  kCmdFlagsList);
   };
   RPopLPushCmd(const RPopLPushCmd& other)
       : BlockingBaseCmd(other),
@@ -342,8 +351,8 @@ class RPopLPushCmd : public BlockingBaseCmd {
         receiver_(other.receiver_),
         value_poped_from_source_(other.value_poped_from_source_),
         is_write_binlog_(other.is_write_binlog_) {
-    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
-    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+    rpop_cmd_ = std::make_shared<RPopCmd>(kCmdNameRPop, 2, kCmdFlagsWrite |  kCmdFlagsList);
+    lpush_cmd_ = std::make_shared<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite |  kCmdFlagsList);
   }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -351,12 +360,12 @@ class RPopLPushCmd : public BlockingBaseCmd {
     res.push_back(source_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void ReadCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void ReadCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPopLPushCmd(*this); }
-  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) override;
+  void DoBinlog() override;
 
  private:
   std::string source_;
@@ -372,17 +381,17 @@ class RPopLPushCmd : public BlockingBaseCmd {
 
 class RPushCmd : public BlockingBaseCmd {
  public:
-  RPushCmd(const std::string& name, int arity, uint16_t flag) : BlockingBaseCmd(name, arity, flag){};
+  RPushCmd(const std::string& name, int arity, uint32_t flag) : BlockingBaseCmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Do() override;
 
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPushCmd(*this); }
 
@@ -396,16 +405,17 @@ class RPushCmd : public BlockingBaseCmd {
 
 class RPushxCmd : public Cmd {
  public:
-  RPushxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPushxCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::LIST)){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoThroughDB(std::shared_ptr<Slot> slot = nullptr) override;
-  void DoUpdateCache(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new RPushxCmd(*this); }
 

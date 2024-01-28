@@ -37,6 +37,15 @@ static bool strToUint32(const std::string& value, uint32_t* num, int base = 10) 
   return true;
 }
 
+// strToBool may throw exception
+static bool strToBool(const std::string& value, bool* boolVal, int base = 10) {
+  if (value != "true" && value != "false") {
+      throw std::invalid_argument(value);
+  } 
+  *boolVal = value == "true";
+  return true;
+}
+
 bool ParseOptionMember(const MemberType& member_type, const std::string& value, char* member_address) {
   switch (member_type) {
     case MemberType::kInt: {
@@ -69,6 +78,14 @@ bool ParseOptionMember(const MemberType& member_type, const std::string& value, 
         return false;
       }
       *reinterpret_cast<size_t*>(member_address) = static_cast<size_t>(uint64Val);
+      break;
+    }
+    case MemberType::kBool: {
+      bool boolVal;
+      if (!strToBool(value, &boolVal)) {
+        return false;
+      }
+      *reinterpret_cast<bool*>(member_address) = static_cast<bool>(boolVal);
       break;
     }
     default: {

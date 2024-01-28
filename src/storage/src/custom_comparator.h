@@ -99,14 +99,22 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     auto b_size = static_cast<int32_t>(b.size());
     int32_t key_a_len = DecodeFixed32(ptr_a);
     int32_t key_b_len = DecodeFixed32(ptr_b);
-    rocksdb::Slice key_a_prefix(ptr_a, key_a_len + 2 * sizeof(int32_t));
-    rocksdb::Slice key_b_prefix(ptr_b, key_b_len + 2 * sizeof(int32_t));
-    ptr_a += key_a_len + 2 * sizeof(int32_t);
-    ptr_b += key_b_len + 2 * sizeof(int32_t);
+    rocksdb::Slice key_a_prefix(ptr_a, key_a_len + sizeof(int32_t));
+    rocksdb::Slice key_b_prefix(ptr_b, key_b_len + sizeof(int32_t));
+    ptr_a += key_a_len + sizeof(int32_t);
+    ptr_b += key_b_len + sizeof(int32_t);
     int ret = key_a_prefix.compare(key_b_prefix);
      if (ret) {
       return ret;
     }
+
+    int32_t version_a = DecodeFixed32(ptr_a);
+    int32_t version_b = DecodeFixed32(ptr_b);
+    if (version_a != version_b) {
+      return version_a < version_b ? -1 : 1;
+    }
+    ptr_a += sizeof(int32_t);
+    ptr_b += sizeof(int32_t);
 
     uint64_t a_i = DecodeFixed64(ptr_a);
     uint64_t b_i = DecodeFixed64(ptr_b);

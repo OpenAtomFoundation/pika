@@ -4,30 +4,26 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <arpa/inet.h>
-#include <ifaddrs.h>
 #include <netinet/in.h>
 #include <sys/resource.h>
-#include <sys/statvfs.h>
 #include <algorithm>
 #include <ctime>
 #include <fstream>
 #include <memory>
 #include <utility>
-
-#include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_interfaces.h"
-#include "net/include/redis_cli.h"
 #include "net/include/net_stats.h"
+#include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_monotonic_time.h"
 #include "include/pika_instant.h"
-#include "include/pika_server.h"
+#include "include/pika_monotonic_time.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
@@ -47,12 +43,11 @@ void DoPurgeDir(void* arg) {
 void DoDBSync(void* arg) {
   std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
   PikaServer* const ps = dbsa->p;
-  ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->db_name, dbsa->slot_id);
+  ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->db_name);
 }
 
 PikaServer::PikaServer()
     : exit_(false),
-      slot_state_(INFREE),
       last_check_compact_time_({0, 0}),
       last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
@@ -77,11 +72,12 @@ PikaServer::PikaServer()
   // We estimate the queue size
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
-  for_each(ips.begin(), ips.end(), [](auto& ip) {LOG(WARNING) << ip;});
-  pika_dispatch_thread_ =
-      std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
-  pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
-  //TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
+  for_each(ips.begin(), ips.end(), [](auto& ip) { LOG(WARNING) << ip; });
+  pika_dispatch_thread_ = std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit,
+                                                               g_pika_conf->max_conn_rbuf_size());
+  pika_rsync_service_ =
+      std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  // TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
   rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
@@ -89,10 +85,26 @@ PikaServer::PikaServer()
   pika_migrate_thread_ = std::make_unique<PikaMigrateThread>();
 
   pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
+  pika_slow_cmd_thread_pool_ = std::make_unique<net::ThreadPool>(g_pika_conf->slow_cmd_thread_pool_size(), 100000);
   instant_ = std::make_unique<Instant>();
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
+  
+  // init role
+  std::string slaveof = g_pika_conf->slaveof();
+  if (!slaveof.empty()) {
+    auto sep = static_cast<int32_t>(slaveof.find(':'));
+    std::string master_ip = slaveof.substr(0, sep);
+    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
+    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
+      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
+    } else {
+      SetMaster(master_ip, master_port);
+    }
+  }
+        
+  acl_ = std::make_unique<::Acl>();
 }
 
 PikaServer::~PikaServer() {
@@ -100,7 +112,7 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-
+  pika_slow_cmd_thread_pool_->stop_thread_pool();
   {
     std::lock_guard l(slave_mutex_);
     auto iter = slaves_.begin();
@@ -159,6 +171,12 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start PikaClientProcessor Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
+  ret = pika_slow_cmd_thread_pool_->start_thread_pool();
+  if (ret != net::kSuccess) {
+    dbs_.clear();
+    LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
+               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+  }
   ret = pika_dispatch_thread_->StartThread();
   if (ret != net::kSuccess) {
     dbs_.clear();
@@ -180,26 +198,6 @@ void PikaServer::Start() {
   }
 
   time(&start_time_s_);
-
-  std::string master_run_id = g_pika_conf->master_run_id();
-  set_master_run_id(master_run_id);
-  std::string slaveof = g_pika_conf->slaveof();
-  if (!slaveof.empty()) {
-    auto sep = static_cast<int32_t>(slaveof.find(':'));
-    std::string master_ip = slaveof.substr(0, sep);
-    int32_t master_port = std::stoi(slaveof.substr(sep + 1));
-    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
-      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
-    } else {
-      g_pika_server->set_master_run_id(g_pika_conf->master_run_id());
-      SetMaster(master_ip, master_port);
-    }
-  }
-  CommandStatistics statistics;
-  auto cmdstat_map = g_pika_server->GetCommandStatMap();
-  for (auto& iter : *g_pika_cmd_table_manager->GetCmdTable()) {
-    cmdstat_map->emplace(iter.first, statistics);
-  }
   LOG(INFO) << "Pika Server going to start";
   rsync_server_->Start();
   while (!exit_) {
@@ -233,16 +231,6 @@ int PikaServer::master_port() {
   return master_port_;
 }
 
-std::string PikaServer::master_run_id() {
-  std::shared_lock l(state_protector_);
-  return master_run_id_;
-}
-
-void PikaServer::set_master_run_id(const std::string& master_run_id) {
-  std::lock_guard l(state_protector_);
-  master_run_id_ = master_run_id;
-}
-
 int PikaServer::role() {
   std::shared_lock l(state_protector_);
   return role_;
@@ -265,7 +253,7 @@ void PikaServer::CheckLeaderProtectedMode() {
   }
 }
 
-bool PikaServer::readonly(const std::string& db_name, const std::string& key) {
+bool PikaServer::readonly(const std::string& db_name) {
   std::shared_lock l(state_protector_);
   return ((role_ & PIKA_ROLE_SLAVE) != 0) && g_pika_conf->slave_read_only();
 }
@@ -328,40 +316,10 @@ void PikaServer::InitDBStruct() {
   std::lock_guard rwl(dbs_rw_);
   for (const auto& db : db_structs) {
     std::string name = db.db_name;
-    uint32_t num = db.slot_num;
-    std::shared_ptr<DB> db_ptr = std::make_shared<DB>(name, num, db_path, log_path);
-    db_ptr->AddSlots(db.slot_ids);
+    std::shared_ptr<DB> db_ptr = std::make_shared<DB>(name, db_path, log_path);
+    db_ptr->Init();
     dbs_.emplace(name, db_ptr);
   }
-}
-
-Status PikaServer::AddDBStruct(const std::string &db_name, uint32_t num) {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
-  if (db) {
-    return Status::Corruption("db already exist");
-  }
-  std::string db_path = g_pika_conf->db_path();
-  std::string log_path = g_pika_conf->log_path();
-  std::shared_ptr<DB> db_ptr = std::make_shared<DB>(db_name, num, db_path, log_path);
-  std::lock_guard rwl(dbs_rw_);
-  dbs_.emplace(db_name, db_ptr);
-  return Status::OK();
-}
-
-Status PikaServer::DelDBStruct(const std::string &db_name) {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
-  if (!db) {
-    return Status::Corruption("db not found");
-  }
-  if (!db->DBIsEmpty()) {
-    return Status::Corruption("db have slots");
-  }
-  Status s = db->Leave();
-  if (!s.ok()) {
-    return s;
-  }
-  dbs_.erase(db_name);
-  return Status::OK();
 }
 
 std::shared_ptr<DB> PikaServer::GetDB(const std::string& db_name) {
@@ -370,21 +328,11 @@ std::shared_ptr<DB> PikaServer::GetDB(const std::string& db_name) {
   return (iter == dbs_.end()) ? nullptr : iter->second;
 }
 
-std::set<uint32_t> PikaServer::GetDBSlotIds(const std::string& db_name) {
-  std::set<uint32_t> empty;
-  std::shared_lock l(dbs_rw_);
-  auto iter = dbs_.find(db_name);
-  return (iter == dbs_.end()) ? empty : iter->second->GetSlotIDs();
-}
-
 bool PikaServer::IsBgSaving() {
   std::shared_lock l(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    std::shared_lock slot_rwl(db_item.second->slots_rw_);
-    for (const auto& slot_item : db_item.second->slots_) {
-      if (slot_item.second->IsBgSaving()) {
-        return true;
-      }
+    if (db_item.second->IsBgSaving()) {
+      return true;
     }
   }
   return false;
@@ -403,29 +351,17 @@ bool PikaServer::IsKeyScaning() {
 bool PikaServer::IsCompacting() {
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    std::shared_lock slot_rwl(db_item.second->slots_rw_);
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->DbRWLockReader();
-      std::string task_type = slot_item.second->db()->GetCurrentTaskType();
-      slot_item.second->DbRWUnLock();
-      if (strcasecmp(task_type.data(), "no") != 0) {
-        return true;
-      }
+    db_item.second->DbRWLockReader();
+    std::string task_type = db_item.second->storage()->GetCurrentTaskType();
+    db_item.second->DbRWUnLock();
+    if (strcasecmp(task_type.data(), "no") != 0) {
+      return true;
     }
   }
   return false;
 }
 
 bool PikaServer::IsDBExist(const std::string& db_name) { return static_cast<bool>(GetDB(db_name)); }
-
-bool PikaServer::IsDBSlotExist(const std::string& db_name, uint32_t slot_id) {
-  std::shared_ptr<DB> db_ptr = GetDB(db_name);
-  if (!db_ptr) {
-    return false;
-  } else {
-    return static_cast<bool>(db_ptr->GetSlotById(slot_id));
-  }
-}
 
 bool PikaServer::IsDBBinlogIoError(const std::string& db_name) {
   std::shared_ptr<DB> db = GetDB(db_name);
@@ -497,117 +433,86 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
   return Status::OK();
 }
 
-void PikaServer::PrepareSlotTrySync() {
+void PikaServer::PrepareDBTrySync() {
   std::shared_lock rwl(dbs_rw_);
   ReplState state = force_full_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      Status s = g_pika_rm->ActivateSyncSlaveSlot(
-          RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_item.second->GetDBName(),
-                 slot_item.second->GetSlotID()),
-          state);
-      if (!s.ok()) {
-        LOG(WARNING) << s.ToString();
-      }
+    Status s = g_pika_rm->ActivateSyncSlaveDB(
+        RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_item.second->GetDBName()), state);
+    if (!s.ok()) {
+      LOG(WARNING) << s.ToString();
     }
   }
   force_full_sync_ = false;
-  loop_slot_state_machine_ = true;
   LOG(INFO) << "Mark try connect finish";
 }
 
-void PikaServer::SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
+void PikaServer::DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->DbRWLockReader();
-      slot_item.second->db()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
-      slot_item.second->DbRWUnLock();
-    }
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
+    db_item.second->DbRWUnLock();
   }
 }
 
-void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
+void PikaServer::DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->DbRWLockReader();
-      slot_item.second->db()->SetSmallCompactionThreshold(small_compaction_threshold);
-      slot_item.second->DbRWUnLock();
-    }
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->SetSmallCompactionThreshold(small_compaction_threshold);
+    db_item.second->DbRWUnLock();
   }
 }
 
-void PikaServer::SlotSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
+void PikaServer::DBSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->DbRWLockReader();
-      slot_item.second->db()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
-      slot_item.second->DbRWUnLock();
-    }
+    db_item.second->DbRWLockReader();
+    db_item.second->storage()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
+    db_item.second->DbRWUnLock();
   }
 }
 
-bool PikaServer::GetDBSlotBinlogOffset(const std::string& db_name, uint32_t slot_id,
-                                       BinlogOffset* const boffset) {
-  std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!slot) {
+bool PikaServer::GetDBBinlogOffset(const std::string& db_name, BinlogOffset* const boffset) {
+  std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
+  if (!db) {
     return false;
   }
-  Status s = slot->Logger()->GetProducerStatus(&(boffset->filenum), &(boffset->offset));
+  Status s = db->Logger()->GetProducerStatus(&(boffset->filenum), &(boffset->offset));
   return s.ok();
 }
 
-std::shared_ptr<Slot> PikaServer::GetSlotByDBName(const std::string& db_name) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db ? db->GetSlotById(0) : nullptr;
-}
-
-std::shared_ptr<Slot> PikaServer::GetDBSlotById(const std::string& db_name, uint32_t slot_id) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db ? db->GetSlotById(slot_id) : nullptr;
-}
-
-std::shared_ptr<Slot> PikaServer::GetDBSlotByKey(const std::string& db_name, const std::string& key) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  return db ? db->GetSlotByKey(key) : nullptr;
-}
-
-Status PikaServer::DoSameThingEverySlot(const TaskType& type) {
+Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
   std::shared_lock rwl(dbs_rw_);
-  std::shared_ptr<SyncSlaveSlot> slave_slot = nullptr;
+  std::shared_ptr<SyncSlaveDB> slave_db = nullptr;
   for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      switch (type) {
-        case TaskType::kResetReplState: {
-          slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
-          if (!slave_slot) {
-            LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                         << slot_item.second->GetSlotID() << " Not Found";
-          }
-          slave_slot->SetReplState(ReplState::kNoConnect);
-          break;
+    switch (type) {
+      case TaskType::kResetReplState: {
+        slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_item.second->GetDBName()));
+        if (!slave_db) {
+          LOG(WARNING) << "Slave DB: " << db_item.second->GetDBName() << ":"
+                       << " Not Found";
         }
-        case TaskType::kPurgeLog: {
-          std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(
-              SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
-          if (!slot) {
-            LOG(WARNING) << "Slot: " << db_item.second->GetDBName() << ":"
-                         << slot_item.second->GetSlotID() << " Not Found.";
-            break;
-          }
-          slot->StableLogger()->PurgeStableLogs();
-          break;
-        }
-        case TaskType::kCompactAll:
-          slot_item.second->Compact(storage::kAll);
-          break;
-        default:
-          break;
+        slave_db->SetReplState(ReplState::kNoConnect);
+        break;
       }
+      case TaskType::kPurgeLog: {
+        std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(
+            DBInfo(db_item.second->GetDBName()));
+        if (!db) {
+          LOG(WARNING) << "DB: " << db_item.second->GetDBName() << ":"
+                       << " Not Found.";
+          break;
+        }
+        db->StableLogger()->PurgeStableLogs();
+        break;
+      }
+      case TaskType::kCompactAll:
+        db_item.second->Compact(storage::kAll);
+        break;
+      default:
+        break;
     }
   }
   return Status::OK();
@@ -657,23 +562,6 @@ int32_t PikaServer::CountSyncSlaves() {
   return static_cast<int32_t>(db_sync_slaves_.size());
 }
 
-int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
-  std::vector<std::string> complete_replica;
-  g_pika_rm->FindCompleteReplica(&complete_replica);
-  std::stringstream tmp_stream;
-  size_t index = 0;
-  for (const auto& replica : complete_replica) {
-    std::string ip;
-    int port;
-    if (!pstd::ParseIpPortString(replica, ip, port)) {
-      continue;
-    }
-    tmp_stream << "slave" << index++ << ":ip=" << ip << ",port=" << port << "\r\n";
-  }
-  slave_list_str.assign(tmp_stream.str());
-  return static_cast<int32_t>(index);
-}
-
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0;
   SlaveState slave_state;
@@ -682,33 +570,30 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   BinlogOffset acked_slave_boffset;
   std::stringstream tmp_stream;
   std::lock_guard l(slave_mutex_);
-  std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
+  std::shared_ptr<SyncMasterDB> master_db = nullptr;
   for (const auto& slave : slaves_) {
     tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",conn_fd=" << slave.conn_fd
                << ",lag=";
     for (const auto& ts : slave.db_structs) {
-      for (size_t idx = 0; idx < ts.slot_num; ++idx) {
-        std::shared_ptr<SyncMasterSlot> slot =
-            g_pika_rm->GetSyncMasterSlotByName(SlotInfo(ts.db_name, idx));
-        if (!slot) {
-          LOG(WARNING) << "Sync Master Slot: " << ts.db_name << ":" << idx << ", NotFound";
+      std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(ts.db_name));
+      if (!db) {
+        LOG(WARNING) << "Sync Master DB: " << ts.db_name << ", NotFound";
+        continue;
+      }
+      Status s = db->GetSlaveState(slave.ip, slave.port, &slave_state);
+      if (s.ok() && slave_state == SlaveState::kSlaveBinlogSync &&
+          db->GetSlaveSyncBinlogInfo(slave.ip, slave.port, &sent_slave_boffset, &acked_slave_boffset).ok()) {
+        Status s = db->Logger()->GetProducerStatus(&(master_boffset.filenum), &(master_boffset.offset));
+        if (!s.ok()) {
           continue;
-        }
-        Status s = slot->GetSlaveState(slave.ip, slave.port, &slave_state);
-        if (s.ok() && slave_state == SlaveState::kSlaveBinlogSync &&
-            slot->GetSlaveSyncBinlogInfo(slave.ip, slave.port, &sent_slave_boffset, &acked_slave_boffset).ok()) {
-          Status s = slot->Logger()->GetProducerStatus(&(master_boffset.filenum), &(master_boffset.offset));
-          if (!s.ok()) {
-            continue;
-          } else {
-            uint64_t lag =
-                static_cast<uint64_t>((master_boffset.filenum - sent_slave_boffset.filenum)) * g_pika_conf->binlog_file_size() +
-                master_boffset.offset - sent_slave_boffset.offset;
-            tmp_stream << "(" << slot->SlotName() << ":" << lag << ")";
-          }
         } else {
-          tmp_stream << "(" << slot->SlotName() << ":not syncing)";
+          uint64_t lag =
+              static_cast<uint64_t>((master_boffset.filenum - sent_slave_boffset.filenum)) * g_pika_conf->binlog_file_size() +
+              master_boffset.offset - sent_slave_boffset.offset;
+          tmp_stream << "(" << db->DBName() << ":" << lag << ")";
         }
+      } else {
+        tmp_stream << "(" << db->DBName() << ":not syncing)";
       }
     }
     tmp_stream << "\r\n";
@@ -719,8 +604,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
 
 // Try add Slave, return true if success,
 // return false when slave already exist
-bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
-                             const std::vector<DBStruct>& db_structs) {
+bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd, const std::vector<DBStruct>& db_structs) {
   std::string ip_port = pstd::IpPortString(ip, static_cast<int32_t>(port));
 
   std::lock_guard l(slave_mutex_);
@@ -762,15 +646,13 @@ void PikaServer::RemoveMaster() {
     if (!master_ip_.empty() && master_port_ != -1) {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
-      loop_slot_state_machine_ = false;
       UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
     master_ip_ = "";
     master_port_ = -1;
-    master_run_id_ = "";
-    DoSameThingEverySlot(TaskType::kResetReplState);
+    DoSameThingEveryDB(TaskType::kResetReplState);
   }
 }
 
@@ -811,44 +693,8 @@ void PikaServer::ResetMetaSyncStatus() {
     // not change by slaveof no one, so set repl_state = PIKA_REPL_SHOULD_META_SYNC,
     // continue to connect master
     repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
-    loop_slot_state_machine_ = false;
-    DoSameThingEverySlot(TaskType::kResetReplState);
+    DoSameThingEveryDB(TaskType::kResetReplState);
   }
-}
-
-bool PikaServer::AllSlotConnectSuccess() {
-  bool all_slot_connect_success = true;
-  std::shared_lock rwl(dbs_rw_);
-  std::shared_ptr<SyncSlaveSlot> slave_slot = nullptr;
-  for (const auto& db_item : dbs_) {
-    for (const auto& slot_item : db_item.second->slots_) {
-      slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotID()));
-      if (!slave_slot) {
-        LOG(WARNING) << "Slave Slot: " << db_item.second->GetDBName() << ":"
-                     << slot_item.second->GetSlotID() << ", NotFound";
-        return false;
-      }
-
-      ReplState repl_state = slave_slot->State();
-      if (repl_state != ReplState::kConnected) {
-        all_slot_connect_success = false;
-        break;
-      }
-    }
-  }
-  return all_slot_connect_success;
-}
-
-bool PikaServer::LoopSlotStateMachine() {
-  std::shared_lock sp_l(state_protector_);
-  return loop_slot_state_machine_;
-}
-
-void PikaServer::SetLoopSlotStateMachine(bool need_loop) {
-  std::lock_guard sp_l(state_protector_);
-  assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
-  loop_slot_state_machine_ = need_loop;
 }
 
 int PikaServer::GetMetaSyncTimestamp() {
@@ -875,7 +721,13 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg) { pika_client_processor_->SchedulePool(func, arg); }
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
+  if (is_slow_cmd) {
+    pika_slow_cmd_thread_pool_->Schedule(func, arg);
+    return;
+  }
+  pika_client_processor_->SchedulePool(func, arg);
+}
 
 void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str) {
   pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
@@ -893,6 +745,22 @@ size_t PikaServer::ClientProcessorThreadPoolMaxQueueSize() {
     return 0;
   }
   return pika_client_processor_->ThreadPoolMaxQueueSize();
+}
+
+size_t PikaServer::SlowCmdThreadPoolCurQueueSize() {
+  if (!pika_slow_cmd_thread_pool_) {
+    return 0;
+  }
+  size_t cur_size = 0;
+  pika_slow_cmd_thread_pool_->cur_queue_size(&cur_size);
+  return cur_size;
+}
+
+size_t PikaServer::SlowCmdThreadPoolMaxQueueSize() {
+  if (!pika_slow_cmd_thread_pool_) {
+    return 0;
+  }
+  return pika_slow_cmd_thread_pool_->max_queue_size();
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
@@ -915,9 +783,9 @@ void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.Schedule(function, arg);
 }
 
-void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
+void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_name) {
   {
-    std::string task_index = DbSyncTaskIndex(ip, port, db_name, slot_id);
+    std::string task_index = DbSyncTaskIndex(ip, port, db_name);
     std::lock_guard ml(db_sync_protector_);
     if (db_sync_slaves_.find(task_index) != db_sync_slaves_.end()) {
       return;
@@ -927,66 +795,64 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_n
   // Reuse the bgsave_thread_
   // Since we expect BgSave and DBSync execute serially
   bgsave_thread_.StartThread();
-  auto arg = new DBSyncArg(this, ip, port, db_name, slot_id);
+  auto arg = new DBSyncArg(this, ip, port, db_name);
   bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
 }
 
-pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, const uint32_t slot_id, std::string* snapshot_uuid) {
-  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
-  if (!slot) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
-    return pstd::Status::NotFound("slot no found");
+pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid) {
+  std::shared_ptr<DB> db = GetDB(db_name);
+  if (!db) {
+    LOG(WARNING) << "cannot find db for db_name " << db_name;
+    return pstd::Status::NotFound("db no found");
   }
-  slot->GetBgSaveUUID(snapshot_uuid);
+  db->GetBgSaveUUID(snapshot_uuid);
   return pstd::Status::OK();
 }
 
-pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, const uint32_t slot_id, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
-  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
-  if (!slot) {
-    LOG(WARNING) << "cannot find slot for db_name " << db_name << " slot_id: " << slot_id;
-    return pstd::Status::NotFound("slot no found");
+pstd::Status PikaServer::GetDumpMeta(const std::string& db_name, std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
+  std::shared_ptr<DB> db = GetDB(db_name);
+  if (!db) {
+    LOG(WARNING) << "cannot find db for db_name " << db_name;
+    return pstd::Status::NotFound("db no found");
   }
-  slot->GetBgSaveMetaData(fileNames, snapshot_uuid);
+  db->GetBgSaveMetaData(fileNames, snapshot_uuid);
   return pstd::Status::OK();
 }
 
-void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id,
+void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& db_name,
                            int32_t top) {
-  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
-  if (!slot) {
-    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name
+  std::shared_ptr<DB> db = GetDB(db_name);
+  if (!db) {
+    LOG(WARNING) << "can not find DB : " << db_name
                  << ", TryDBSync Failed";
     return;
   }
-  std::shared_ptr<SyncMasterSlot> sync_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
-  if (!sync_slot) {
-    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name
+  std::shared_ptr<SyncMasterDB> sync_db =
+      g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name));
+  if (!sync_db) {
+    LOG(WARNING) << "can not find DB: " << db_name
                  << ", TryDBSync Failed";
     return;
   }
-  BgSaveInfo bgsave_info = slot->bgsave_info();
-  std::string logger_filename = sync_slot->Logger()->filename();
+  BgSaveInfo bgsave_info = db->bgsave_info();
+  std::string logger_filename = sync_db->Logger()->filename();
   if (pstd::IsDir(bgsave_info.path) != 0 ||
       !pstd::FileExists(NewFileName(logger_filename, bgsave_info.offset.b_offset.filenum)) ||
       top - bgsave_info.offset.b_offset.filenum > kDBSyncMaxGap) {
     // Need Bgsave first
-    slot->BgSaveSlot();
+    db->BgSaveDB();
   }
-  //TODO: temporarily disable rsync server
-  //DBSync(ip, port, db_name, slot_id);
 }
 
-void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id) {
-  std::shared_ptr<Slot> slot = GetDBSlotById(db_name, slot_id);
-  if (!slot) {
-    LOG(WARNING) << "can not find Slot whose id is " << slot_id << " in db " << db_name
+void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name) {
+  std::shared_ptr<DB> db = GetDB(db_name);
+  if (!db) {
+    LOG(WARNING) << "can not find DB: " << db_name
                  << ", DbSync send file Failed";
     return;
   }
 
-  BgSaveInfo bgsave_info = slot->bgsave_info();
+  BgSaveInfo bgsave_info = db->bgsave_info();
   std::string bg_path = bgsave_info.path;
   uint32_t binlog_filenum = bgsave_info.offset.b_offset.filenum;
   uint64_t binlog_offset = bgsave_info.offset.b_offset.offset;
@@ -996,13 +862,13 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   // Get all files need to send
   std::vector<std::string> descendant;
   int ret = 0;
-  LOG(INFO) << "Slot: " << slot->GetSlotName() << " Start Send files in " << bg_path << " to " << ip;
+  LOG(INFO) << "DB: " << db->GetDBName() << " Start Send files in " << bg_path << " to " << ip;
   ret = pstd::GetChildren(bg_path, descendant);
   if (ret) {
     std::string ip_port = pstd::IpPortString(ip, port);
     std::lock_guard ldb(db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
-    LOG(WARNING) << "Slot: " << slot->GetSlotName()
+    LOG(WARNING) << "DB: " << db->GetDBName()
                  << " Get child directory when try to do sync failed, error: " << strerror(ret);
     return;
   }
@@ -1034,7 +900,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
     // We need specify the speed limit for every single file
     ret = pstd::RsyncSendFile(local_path, target_path, secret_file_path, remote);
     if (0 != ret) {
-      LOG(WARNING) << "Slot: " << slot->GetSlotName() << " RSync send file failed! From: " << *iter
+      LOG(WARNING) << "DB: " << db->GetDBName() << " RSync send file failed! From: " << *iter
                    << ", To: " << target_path << ", At: " << ip << ":" << port << ", Error: " << ret;
       break;
     }
@@ -1073,29 +939,28 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       pstd::DeleteFile(fn);
       if (ret) {
-        LOG(WARNING) << "Slot: " << slot->GetSlotName() << " Send Modified Info File Failed";
+        LOG(WARNING) << "DB: " << db->GetDBName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,
                                                secret_file_path, remote))) {
-      LOG(WARNING) << "Slot: " << slot->GetSlotName() << " Send Info File Failed";
+      LOG(WARNING) << "DB: " << db->GetDBName() << " Send Info File Failed";
     }
   }
   // remove slave
   {
-    std::string task_index = DbSyncTaskIndex(ip, port, db_name, slot_id);
+    std::string task_index = DbSyncTaskIndex(ip, port, db_name);
     std::lock_guard ml(db_sync_protector_);
     db_sync_slaves_.erase(task_index);
   }
 
   if (0 == ret) {
-    LOG(INFO) << "Slot: " << slot->GetSlotName() << " RSync Send Files Success";
+    LOG(INFO) << "DB: " << db->GetDBName() << " RSync Send Files Success";
   }
 }
 
-std::string PikaServer::DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name,
-                                        uint32_t slot_id) {
+std::string PikaServer::DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "%s:%d_%s:%d", ip.data(), port, db_name.data(), slot_id);
+  snprintf(buf, sizeof(buf), "%s:%d_%s:%d", ip.data(), port, db_name.data());
   return buf;
 }
 
@@ -1123,6 +988,10 @@ bool PikaServer::HasMonitorClients() const {
   std::unique_lock lock(monitor_mutex_protector_);
   return !pika_monitor_clients_.empty();
 }
+bool PikaServer::ClientIsMonitor(const std::shared_ptr<PikaClientConn>& client_ptr) const {
+  std::unique_lock lock(monitor_mutex_protector_);
+  return pika_monitor_clients_.count(client_ptr) != 0;
+}
 
 void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
   const std::string msg = "+" + monitor_message + "\r\n";
@@ -1144,7 +1013,7 @@ void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
     cli->WriteResp(msg);
     cli->SendReply();
   }
-  lock.unlock(); // SendReply without lock
+  lock.unlock();  // SendReply without lock
 }
 
 void PikaServer::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
@@ -1240,29 +1109,20 @@ void PikaServer::ResetLastSecQuerynum() {
   statistic_.ResetDBLastSecQuerynum();
 }
 
-void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command,
-                                              bool is_write) {
+void PikaServer::UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write) {
   std::string cmd(command);
   statistic_.server_stat.qps.querynum++;
   statistic_.server_stat.exec_count_db[pstd::StringToUpper(cmd)]++;
   statistic_.UpdateDBQps(db_name, command, is_write);
 }
 
-size_t PikaServer::NetInputBytes() {
-  return g_network_statistic->NetInputBytes();
-}
+size_t PikaServer::NetInputBytes() { return g_network_statistic->NetInputBytes(); }
 
-size_t PikaServer::NetOutputBytes() {
-  return g_network_statistic->NetOutputBytes();
-}
+size_t PikaServer::NetOutputBytes() { return g_network_statistic->NetOutputBytes(); }
 
-size_t PikaServer::NetReplInputBytes() {
-  return g_network_statistic->NetReplInputBytes();
-}
+size_t PikaServer::NetReplInputBytes() { return g_network_statistic->NetReplInputBytes(); }
 
-size_t PikaServer::NetReplOutputBytes() {
-  return g_network_statistic->NetReplOutputBytes();
-}
+size_t PikaServer::NetReplOutputBytes() { return g_network_statistic->NetReplOutputBytes(); }
 
 float PikaServer::InstantaneousInputKbps() {
   return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT)) / 1024.0f;
@@ -1273,11 +1133,13 @@ float PikaServer::InstantaneousOutputKbps() {
 }
 
 float PikaServer::InstantaneousInputReplKbps() {
-  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION)) / 1024.0f;
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION)) /
+         1024.0f;
 }
 
 float PikaServer::InstantaneousOutputReplKbps() {
-  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION)) / 1024.0f;
+  return static_cast<float>(g_pika_server->instant_->getInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION)) /
+         1024.0f;
 }
 
 std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountDB() {
@@ -1287,8 +1149,6 @@ std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountDB() {
   }
   return res;
 }
-
-QpsStatistic PikaServer::ServerDBStat(const std::string& db_name) { return statistic_.DBStat(db_name); }
 
 std::unordered_map<std::string, QpsStatistic> PikaServer::ServerAllDBStat() { return statistic_.AllDBStat(); }
 
@@ -1309,14 +1169,14 @@ void PikaServer::EnablePublish(int fd) {
   pika_pubsub_thread_->UpdateConnReadyState(fd, net::PubSubThread::ReadyState::kReady);
 }
 
-int PikaServer::UnSubscribe(const std::shared_ptr<net::NetConn> &conn, const std::vector<std::string>& channels, bool pattern,
-                            std::vector<std::pair<std::string, int>>* result) {
+int PikaServer::UnSubscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels,
+                            bool pattern, std::vector<std::pair<std::string, int>>* result) {
   int subscribed = pika_pubsub_thread_->UnSubscribe(conn, channels, pattern, result);
   return subscribed;
 }
 
-void PikaServer::Subscribe(const std::shared_ptr<net::NetConn> &conn, const std::vector<std::string>& channels, bool pattern,
-                           std::vector<std::pair<std::string, int>>* result) {
+void PikaServer::Subscribe(const std::shared_ptr<net::NetConn>& conn, const std::vector<std::string>& channels,
+                           bool pattern, std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->Subscribe(conn, channels, pattern, result);
 }
 
@@ -1329,6 +1189,14 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
   pika_pubsub_thread_->PubSubNumSub(channels, result);
 }
 
+int PikaServer::ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelSize(conn);
+}
+
+int PikaServer::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn) {
+  return pika_pubsub_thread_->ClientPubSubChannelPatternSize(conn);
+}
+
 /******************************* PRIVATE *******************************/
 
 void PikaServer::DoTimingTask() {
@@ -1339,8 +1207,8 @@ void PikaServer::DoTimingTask() {
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
-  //TODO: temporarily disable rsync
-  //AutoKeepAliveRSync();
+  // TODO: temporarily disable rsync
+  // AutoKeepAliveRSync();
   // Reset server qps
   ResetLastSecQuerynum();
   // Auto update network instantaneous metric
@@ -1426,7 +1294,7 @@ void PikaServer::AutoCompactRange() {
 
     if (!have_scheduled_crontask_ && in_window) {
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
-        Status s = DoSameThingEverySlot(TaskType::kCompactAll);
+        Status s = DoSameThingEveryDB(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size / 1048576
                     << "MB, disksize: " << total_size / 1048576 << "MB";
@@ -1443,7 +1311,7 @@ void PikaServer::AutoCompactRange() {
   }
 }
 
-void PikaServer::AutoPurge() { DoSameThingEverySlot(TaskType::kPurgeLog); }
+void PikaServer::AutoPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
 
 void PikaServer::AutoDeleteExpiredDump() {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
@@ -1466,9 +1334,8 @@ void PikaServer::AutoDeleteExpiredDump() {
     return;
   }
   // Handle dump directory
-  for (auto & i : dump_dir) {
-    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix ||
-        i.size() != (db_sync_prefix.size() + 8)) {
+  for (auto& i : dump_dir) {
+    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
     }
 
@@ -1524,22 +1391,17 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 }
 
-void PikaServer::AutoKeepAliveRSync() {
-  if (!pika_rsync_service_->CheckRsyncAlive()) {
-    LOG(WARNING) << "The Rsync service is down, Try to restart";
-    pika_rsync_service_->StartRsync();
-  }
-}
-
 void PikaServer::AutoUpdateNetworkMetric() {
   monotime current_time = getMonotonicUs();
-  size_t factor = 5e6; // us, 5s
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT, g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(),
-                                     current_time, factor);
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT, g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
-                                     current_time, factor);
-  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(), current_time,
+  size_t factor = 5e6;  // us, 5s
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT,
+                                     g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes(), current_time,
                                      factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT,
+                                     g_pika_server->NetOutputBytes() + g_pika_server->NetReplOutputBytes(),
+                                     current_time, factor);
+  instant_->trackInstantaneousMetric(STATS_METRIC_NET_INPUT_REPLICATION, g_pika_server->NetReplInputBytes(),
+                                     current_time, factor);
   instant_->trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT_REPLICATION, g_pika_server->NetReplOutputBytes(),
                                      current_time, factor);
 }
@@ -1571,6 +1433,7 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
   storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
   storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
+  storage_options_.options.disable_auto_compactions = g_pika_conf->disable_auto_compactions();
   storage_options_.options.max_background_jobs = g_pika_conf->max_background_jobs();
   storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
   storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
@@ -1641,15 +1504,13 @@ void PikaServer::InitStorageOptions() {
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
                                                   const std::unordered_map<std::string, std::string>& options_map) {
   storage::Status s;
+  std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    std::lock_guard slot_rwl(db_item.second->slots_rw_);
-    for (const auto& slot_item : db_item.second->slots_) {
-      slot_item.second->DbRWLockWriter();
-      s = slot_item.second->db()->SetOptions(option_type, storage::ALL_DB, options_map);
-      slot_item.second->DbRWUnLock();
-      if (!s.ok()) {
-        return s;
-      }
+    db_item.second->DbRWLockWriter();
+    s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
+    db_item.second->DbRWUnLock();
+    if (!s.ok()) {
+      return s;
     }
   }
   std::lock_guard rwl(storage_options_rw_);
@@ -1672,16 +1533,16 @@ void PikaServer::ServerStatus(std::string* info) {
   info->append(tmp_stream.str());
 }
 
-bool PikaServer:: SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, const std::shared_ptr<Slot>& slot) {
-  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, slot);
+bool PikaServer::SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot_num,int64_t keys_num, const std::shared_ptr<DB>& db) {
+  return pika_migrate_thread_->ReqMigrateBatch(ip, port, time_out, slot_num, keys_num, db);
 }
 
-void PikaServer:: GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained){
+void PikaServer::GetSlotsMgrtSenderStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained) {
   return pika_migrate_thread_->GetMigrateStatus(ip, port, slot, migrating, moved, remained);
 }
 
-int PikaServer:: SlotsMigrateOne(const std::string &key, const std::shared_ptr<Slot>& slot) {
-  return pika_migrate_thread_->ReqMigrateOne(key, slot);
+int PikaServer::SlotsMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
+  return pika_migrate_thread_->ReqMigrateOne(key, db);
 }
 
 bool PikaServer::SlotsMigrateAsyncCancel() {
@@ -1689,7 +1550,7 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
   return true;
 }
 
-void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
+void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1706,17 +1567,13 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<Slot>& slot) {
   bgslots_reload_.cursor = 0;
   bgslots_reload_.pattern = "*";
   bgslots_reload_.count = 100;
-  bgslots_reload_.slot = slot;
+  bgslots_reload_.db = db;
 
   LOG(INFO) << "Start slot reloading";
 
   // Start new thread if needed
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
-}
-
-std::unordered_map<std::string, CommandStatistics>* PikaServer::GetCommandStatMap() {
-  return &cmdstat_map_;
 }
 
 void DoBgslotsreload(void* arg) {
@@ -1728,20 +1585,19 @@ void DoBgslotsreload(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   while(cursor_ret != 0 && p->GetSlotsreloading()){
-    cursor_ret = reload.slot->db()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
+    cursor_ret = reload.db->storage()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
 
     std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
+    for (iter = keys.begin(); iter != keys.end(); iter++) {
       std::string key_type;
-
-      int s = GetKeyType(*iter, key_type, reload.slot);
+      int s = GetKeyType(*iter, key_type, reload.db);
       //if key is slotkey, can't add to SlotKey
       if (s > 0){
         if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
           continue;
         }
 
-        AddSlotKey(key_type, *iter, reload.slot);
+        AddSlotKey(key_type, *iter, reload.db);
       }
     }
 
@@ -1753,12 +1609,12 @@ void DoBgslotsreload(void* arg) {
 
   if (cursor_ret == 0) {
     LOG(INFO) << "Finish slot reloading";
-  } else{
+  } else {
     LOG(INFO) << "Stop slot reloading";
   }
 }
 
-void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared_ptr<Slot>& slot) {
+void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared_ptr<DB>& db) {
   // Only one thread can go through
   {
     std::lock_guard ml(bgsave_protector_);
@@ -1775,7 +1631,7 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   bgslots_cleanup_.cursor = 0;
   bgslots_cleanup_.pattern = "*";
   bgslots_cleanup_.count = 100;
-  bgslots_cleanup_.slot = slot;
+  bgslots_cleanup_.db = db;
   bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
 
   std::string slotsStr;
@@ -1804,6 +1660,20 @@ int64_t PikaServer::GetLastSaveTime(const std::string& dir_path) {
   return 0;
 }
 
+void PikaServer::AllClientUnAuth(const std::set<std::string>& users) {
+  pika_dispatch_thread_->UnAuthUserAndKillClient(users, acl_->GetUserLock(Acl::DefaultUser));
+}
+
+void PikaServer::CheckPubsubClientKill(const std::string& userName, const std::vector<std::string>& allChannel) {
+  pika_pubsub_thread_->ConnCanSubscribe(allChannel, [&](const std::shared_ptr<net::NetConn>& conn) -> bool {
+    auto pikaConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+    if (pikaConn && pikaConn->UserName() == userName) {
+      return true;
+    }
+    return false;
+  });
+}
+
 void DoBgslotscleanup(void* arg) {
   auto p = static_cast<PikaServer*>(arg);
   PikaServer::BGSlotsCleanup cleanup = p->bgslots_cleanup();
@@ -1813,21 +1683,20 @@ void DoBgslotscleanup(void* arg) {
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
   while (cursor_ret != 0 && p->GetSlotscleaningup()){
-    cursor_ret = g_pika_server->bgslots_cleanup_.slot->db()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
+    cursor_ret = g_pika_server->bgslots_cleanup_.db->storage()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
 
     std::string key_type;
     std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
-      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos){
+    for (iter = keys.begin(); iter != keys.end(); iter++) {
+      if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
       if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
-        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.slot) <= 0) {
+        if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
           LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
-          continue ;
+          continue;
         }
-
-        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.slot) <= 0){
+        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
           LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
         }
       }
@@ -1839,8 +1708,8 @@ void DoBgslotscleanup(void* arg) {
   }
 
   for (int cleanupSlot : cleanupSlots){
-    WriteDelKeyToBinlog(GetSlotKey(cleanupSlot), g_pika_server->bgslots_cleanup_.slot);
-    WriteDelKeyToBinlog(GetSlotsTagKey(cleanupSlot), g_pika_server->bgslots_cleanup_.slot);
+    WriteDelKeyToBinlog(GetSlotKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
+    WriteDelKeyToBinlog(GetSlotsTagKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
   }
 
   p->SetSlotscleaningup(false);
@@ -1852,13 +1721,13 @@ void DoBgslotscleanup(void* arg) {
   LOG(INFO) << "Finish slots cleanup, slots " << slotsStr;
 }
 
-void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot, cache::CacheConfig *cache_cfg) {
-  if (PIKA_CACHE_STATUS_OK == slot->cache()->CacheStatus()
-      || PIKA_CACHE_STATUS_NONE == slot->cache()->CacheStatus()) {
+void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg) {
+  if (PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()
+      || PIKA_CACHE_STATUS_NONE == db->cache()->CacheStatus()) {
 
     common_bg_thread_.StartThread();
     BGCacheTaskArg *arg = new BGCacheTaskArg();
-    arg->slot = slot;
+    arg->db = db;
     arg->cache_num = cache_num;
     if (cache_cfg == nullptr) {
       arg->task_type = CACHE_BGTASK_RESET_NUM;
@@ -1868,60 +1737,63 @@ void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<Slot> slot,
     }
     common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
   } else {
-    LOG(WARNING) << "can not reset cache in status: " << slot->cache()->CacheStatus();
+    LOG(WARNING) << "can not reset cache in status: " << db->cache()->CacheStatus();
   }
 }
 
-void PikaServer::ClearCacheDbAsync(std::shared_ptr<Slot> slot) {
-  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
-    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+void PikaServer::ClearCacheDbAsync(std::shared_ptr<DB> db) {
+  // disable cache temporarily, and restore it after cache cleared
+  g_pika_conf->SetCacheDisableFlag();
+  if (PIKA_CACHE_STATUS_OK != db->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
 
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
-  arg->slot = slot;
+  arg->db = db;
   arg->task_type = CACHE_BGTASK_CLEAR;
   common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
 }
 
 void PikaServer::DoCacheBGTask(void* arg) {
   std::unique_ptr<BGCacheTaskArg> pCacheTaskArg(static_cast<BGCacheTaskArg*>(arg));
-  std::shared_ptr<Slot> slot = pCacheTaskArg->slot;
+  std::shared_ptr<DB> db = pCacheTaskArg->db;
 
   switch (pCacheTaskArg->task_type) {
     case CACHE_BGTASK_CLEAR:
       LOG(INFO) << "clear cache start...";
-      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
-      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, slot);
-      slot->cache()->FlushSlot();
+      db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_CLEAR);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_CLEAR, db);
+      db->cache()->FlushCache();
       LOG(INFO) << "clear cache finish";
       break;
     case CACHE_BGTASK_RESET_NUM:
       LOG(INFO) << "reset cache num start...";
-      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
-      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
-      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, db);
+      db->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache num finish";
       break;
     case CACHE_BGTASK_RESET_CFG:
       LOG(INFO) << "reset cache config start...";
-      slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
-      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, slot);
-      slot->cache()->Reset(pCacheTaskArg->cache_num);
+      db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_RESET);
+      g_pika_server->ResetDisplayCacheInfo(PIKA_CACHE_STATUS_RESET, db);
+      db->cache()->Reset(pCacheTaskArg->cache_num);
       LOG(INFO) << "reset cache config finish";
       break;
     default:
       LOG(WARNING) << "invalid cache task type: " << pCacheTaskArg->task_type;
       break;
   }
-  slot->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
-  if (pCacheTaskArg->reenable_cache && pCacheTaskArg->conf) {
+
+  db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
+  if (pCacheTaskArg->reenable_cache) {
     pCacheTaskArg->conf->UnsetCacheDisableFlag();
   }
 }
 
-void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
+void PikaServer::ResetCacheConfig(std::shared_ptr<DB> db) {
   cache::CacheConfig cache_cfg;
   cache_cfg.maxmemory = g_pika_conf->cache_maxmemory();
   cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
@@ -1929,29 +1801,27 @@ void PikaServer::ResetCacheConfig(std::shared_ptr<Slot> slot) {
   cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
   cache_cfg.zset_cache_start_pos = g_pika_conf->zset_cache_start_pos();
   cache_cfg.zset_cache_field_num_per_key = g_pika_conf->zset_cache_field_num_per_key();
-  slot->cache()->ResetConfig(&cache_cfg);
+  db->cache()->ResetConfig(&cache_cfg);
 }
 
-void PikaServer::ClearHitRatio(std::shared_ptr<Slot> slot) {
-  slot->cache()->ClearHitRatio();
+void PikaServer::ClearHitRatio(std::shared_ptr<DB> db) {
+  db->cache()->ClearHitRatio();
 }
 
-void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<Slot> slot) {
-  // disable cache temporarily, and restore it after cache cleared
-  g_pika_conf->SetCacheDisableFlag();
-  ResetCacheConfig(slot);
-  ClearCacheDbAsyncV2(slot);
+void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db) {
+  ResetCacheConfig(db);
+  ClearCacheDbAsync(db);
 }
 
-void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
-  if (PIKA_CACHE_STATUS_OK != slot->cache()->CacheStatus()) {
-    LOG(WARNING) << "can not clear cache in status: " << slot->cache()->CacheStatus();
+void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
+  if (PIKA_CACHE_STATUS_OK != db->cache()->CacheStatus()) {
+    LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
 
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
-  arg->slot = slot;
+  arg->db = db;
   arg->task_type = CACHE_BGTASK_CLEAR;
   arg->conf = std::move(g_pika_conf);
   arg->reenable_cache = true;
@@ -1960,12 +1830,8 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<Slot> slot) {
 
 void PikaServer::ProcessCronTask() {
   for (auto& dbs : dbs_) {
-    auto db =  dbs.second;
-    auto slots = db->GetSlots();
-    for (size_t i = 0; i < slots.size(); ++i) {
-      auto cache = slots[i]->cache();
-      cache->ProcessCronTask();
-    }
+    auto cache = dbs.second->cache();
+    cache->ProcessCronTask();
   }
   LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
 }
@@ -1984,22 +1850,18 @@ double PikaServer::HitRatio(void) {
 
 void PikaServer::UpdateCacheInfo(void) {
   for (auto& dbs : dbs_) {
-    auto db =  dbs.second;
-    auto slots = db->GetSlots();
-    for (size_t i = 0; i < slots.size(); ++i) {
-      if (PIKA_CACHE_STATUS_OK != slots[i]->cache()->CacheStatus()) {
-        return;
-      }
-      // get cache info from redis cache
-      CacheInfo cache_info;
-      slots[i]->cache()->Info(cache_info);
-      slots[i]->UpdateCacheInfo(cache_info);
+    if (PIKA_CACHE_STATUS_OK != dbs.second->cache()->CacheStatus()) {
+      return;
     }
+    // get cache info from redis cache
+    CacheInfo cache_info;
+    dbs.second->cache()->Info(cache_info);
+    dbs.second->UpdateCacheInfo(cache_info);
   }
 }
 
-void PikaServer::ResetDisplayCacheInfo(int status, std::shared_ptr<Slot> slot) {
-  slot->ResetDisplayCacheInfo(status);
+void PikaServer::ResetDisplayCacheInfo(int status, std::shared_ptr<DB> db) {
+  db->ResetDisplayCacheInfo(status);
 }
 
 void PikaServer::CacheConfigInit(cache::CacheConfig& cache_cfg) {
