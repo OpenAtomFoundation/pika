@@ -115,6 +115,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   } else if (c_ptr->is_read() && c_ptr->flag_ == 0) {
     std::shared_ptr<DB> current_db = nullptr;
+    std::lock_guard db_guard(g_pika_server->GetDBLock());
     for (const auto& db_item : g_pika_server->GetDB()) {
       if (db_item.second->GetDBName() == current_db_) {
         current_db = db_item.second;
@@ -125,12 +126,13 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Current DB not found");
       return c_ptr;
     }
+    std::lock_guard slot_guard(current_db->GetSlotLock());
     for (const auto& slot_id : current_db->GetSlotIDs()) {
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(current_db_, slot_id));
       if (!slave_slot) {
         c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
         return c_ptr;
-      } else if (slave_slot->State() == ReplState::kWaitDBSync) {
+      } else if (slave_slot->State() != ReplState::kConnected) {
         c_ptr->res().SetRes(CmdRes::kErrOther, "Full sync not completed");
         return c_ptr;
       }
