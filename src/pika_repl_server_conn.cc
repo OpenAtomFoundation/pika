@@ -116,31 +116,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     response.set_code(InnerMessage::kOk);
   }
 
-  if (pre_success && req->has_consensus_meta()) {
-    if (db->GetNumberOfSlaveNode() >= g_pika_conf->replication_num() &&
-        !db->CheckSlaveNodeExist(node.ip(), node.port())) {
-      LOG(WARNING) << "Current replication num: " << db->GetNumberOfSlaveNode()
-                   << " hits configuration replication-num " << g_pika_conf->replication_num() << " stop trysync.";
-      pre_success = false;
-    }
-    if (pre_success) {
-      const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
-      // need to response to outdated pb, new follower count on this response to update term
-      if (meta.term() > db->ConsensusTerm()) {
-        LOG(INFO) << "Update " << db_name << " term from " << db->ConsensusTerm() << " to "
-                  << meta.term();
-        db->ConsensusUpdateTerm(meta.term());
-      }
-    }
-    if (pre_success) {
-      pre_success = TrySyncConsensusOffsetCheck(db, req->consensus_meta(), &response, try_sync_response);
-    }
-  } else if (pre_success) {
-    pre_success = TrySyncOffsetCheck(db, try_sync_request, try_sync_response);
-  }
-
-  if (pre_success) {
-    pre_success = TrySyncUpdateSlaveNode(db, try_sync_request, conn, try_sync_response);
+  if (pre_success && TrySyncOffsetCheck(db, try_sync_request, try_sync_response)) {
+    TrySyncUpdateSlaveNode(db, try_sync_request, conn, try_sync_response);
   }
 
   std::string reply_str;
@@ -189,36 +166,6 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMaster
     LOG(INFO) << "DB: " << db->DBName() << " TrySync Success, Session: " << session_id;
   }
   return true;
-}
-
-bool PikaReplServerConn::TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterDB>& db,
-                                                     const InnerMessage::ConsensusMeta& meta,
-                                                     InnerMessage::InnerResponse* response,
-                                                     InnerMessage::InnerResponse::TrySync* try_sync_response) {
-  LogOffset last_log_offset;
-  last_log_offset.b_offset.filenum = meta.log_offset().filenum();
-  last_log_offset.b_offset.offset = meta.log_offset().offset();
-  last_log_offset.l_offset.term = meta.log_offset().term();
-  last_log_offset.l_offset.index = meta.log_offset().index();
-
-  bool reject = false;
-  std::vector<LogOffset> hints;
-  Status s = db->ConsensusLeaderNegotiate(last_log_offset, &reject, &hints);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(INFO) << "DB: " << db->DBName() << " need full sync";
-      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
-      return false;
-    } else {
-      LOG(WARNING) << "DB: " << db->DBName() << " error " << s.ToString();
-      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-      return false;
-    }
-  }
-  try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-  uint32_t term = db->ConsensusTerm();
-  BuildConsensusMeta(reject, hints, term, response);
-  return !reject;
 }
 
 bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>& db,
@@ -321,13 +268,11 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   if (prior_success) {
     if (!master_db->CheckSlaveNodeExist(node.ip(), node.port())) {
       int32_t session_id = master_db->GenSessionId();
+      db_sync_response->set_session_id(session_id);
       if (session_id == -1) {
         response.set_code(InnerMessage::kError);
         LOG(WARNING) << "DB: " << db_name << ", Gen Session id Failed";
-        prior_success = false;
-      }
-      if (prior_success) {
-        db_sync_response->set_session_id(session_id);
+      } else {
         Status s = master_db->AddSlaveNode(node.ip(), node.port(), session_id);
         if (s.ok()) {
           const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
@@ -336,19 +281,15 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
         } else {
           response.set_code(InnerMessage::kError);
           LOG(WARNING) << "DB: " << db_name << " Handle DBSync Request Failed, " << s.ToString();
-          prior_success = false;
         }
-      } else {
-        db_sync_response->set_session_id(-1);
       }
     } else {
-      int32_t session_id;
+      int32_t session_id = 0;
       Status s = master_db->GetSlaveNodeSession(node.ip(), node.port(), &session_id);
       if (!s.ok()) {
         response.set_code(InnerMessage::kError);
-        LOG(WARNING) << "DB: " << db_name << ", Get Session id Failed" << s.ToString();
-        prior_success = false;
         db_sync_response->set_session_id(-1);
+        LOG(WARNING) << "DB: " << db_name << ", Get Session id Failed" << s.ToString();
       } else {
         db_sync_response->set_session_id(session_id);
         LOG(INFO) << "DB: " << db_name << " Handle DBSync Request Success, Session: " << session_id;
@@ -399,19 +340,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   if (!master_db) {
     LOG(WARNING) << "Sync Master DB: " << db_name <<  ", NotFound";
     return;
-  }
-
-  if (req->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
-    if (meta.term() > master_db->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << ": term from " << master_db->ConsensusTerm()
-                << " to " << meta.term();
-      master_db->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < master_db->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync req " << db_name << ":"
-                   << " recv term: " << meta.term() << " local term: " << master_db->ConsensusTerm();
-      return;
-    }
   }
 
   if (!master_db->CheckSessionId(node.ip(), node.port(), db_name, session_id)) {

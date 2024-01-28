@@ -195,17 +195,6 @@ Status SyncMasterDB::ConsensusUpdateSlave(const std::string& ip, int port, const
   return Status::OK();
 }
 
-Status SyncMasterDB::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
-  std::shared_ptr<Context> context = coordinator_.context();
-  if (!context) {
-    LOG(WARNING) << "Coordinator context empty.";
-    return Status::NotFound("context");
-  }
-  context->UpdateAppliedIndex(offset);
-  return Status::OK();
-}
-
-
 Status SyncMasterDB::GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset,
                                             BinlogOffset* acked_offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
@@ -369,48 +358,6 @@ std::string SyncMasterDB::ToStringStatus() {
   return tmp_stream.str();
 }
 
-void SyncMasterDB::GetValidSlaveNames(std::vector<std::string>* slavenames) {
-  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
-  for (const auto& slave_iter : slaves) {
-    std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
-    std::lock_guard l(slave_ptr->slave_mu);
-    if (slave_ptr->slave_state != kSlaveBinlogSync) {
-      continue;
-    }
-    std::string name = slave_ptr->Ip() + ":" + std::to_string(slave_ptr->Port());
-    slavenames->push_back(name);
-  }
-}
-
-Status SyncMasterDB::GetInfo(std::string* info) {
-  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
-
-  std::stringstream tmp_stream;
-  tmp_stream << "  Role: Master"
-             << "\r\n";
-  tmp_stream << "  connected_slaves: " << slaves.size() << "\r\n";
-  int i = 0;
-  for (const auto& slave_iter : slaves) {
-    std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
-    std::lock_guard l(slave_ptr->slave_mu);
-    tmp_stream << "  slave[" << i++ << "]: " << slave_ptr->Ip() << ":" << std::to_string(slave_ptr->Port()) << "\r\n";
-    tmp_stream << "  replication_status: " << SlaveStateMsg[slave_ptr->slave_state] << "\r\n";
-    if (slave_ptr->slave_state == kSlaveBinlogSync) {
-      BinlogOffset binlog_offset;
-      Status s = Logger()->GetProducerStatus(&(binlog_offset.filenum), &(binlog_offset.offset));
-      if (!s.ok()) {
-        return s;
-      }
-      uint64_t lag =
-          (binlog_offset.filenum - slave_ptr->acked_offset.b_offset.filenum) * g_pika_conf->binlog_file_size() +
-          (binlog_offset.offset - slave_ptr->acked_offset.b_offset.offset);
-      tmp_stream << "  lag: " << lag << "\r\n";
-    }
-  }
-  info->append(tmp_stream.str());
-  return Status::OK();
-}
-
 int32_t SyncMasterDB::GenSessionId() {
   std::lock_guard ml(session_mu_);
   return session_id_++;
@@ -445,41 +392,12 @@ LogOffset SyncMasterDB::ConsensusCommittedIndex() { return coordinator_.committe
 
 LogOffset SyncMasterDB::ConsensusLastIndex() { return coordinator_.MemLogger()->last_offset(); }
 
-uint32_t SyncMasterDB::ConsensusTerm() { return coordinator_.term(); }
-
-void SyncMasterDB::ConsensusUpdateTerm(uint32_t term) {
-  coordinator_.UpdateTerm(term);
-  if ((g_pika_server->role() & PIKA_ROLE_MASTER) != 0) {
-    CommitPreviousLogs(term);
-  }
-}
-
-void SyncMasterDB::CommitPreviousLogs(const uint32_t& term) {
-  // Append dummy cmd
-  std::shared_ptr<Cmd> dummy_ptr = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
-  PikaCmdArgsType args;
-  args.push_back(kCmdDummy);
-  dummy_ptr->Initial(args, SyncDBInfo().db_name_);
-  dummy_ptr->SetStage(Cmd::kBinlogStage);
-  dummy_ptr->Execute();
-  dummy_ptr->SetStage(Cmd::kExecuteStage);
-}
-
 std::shared_ptr<SlaveNode> SyncMasterDB::GetSlaveNode(const std::string& ip, int port) {
   return coordinator_.SyncPros().GetSlaveNode(ip, port);
 }
 
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncMasterDB::GetAllSlaveNodes() {
   return coordinator_.SyncPros().GetAllSlaveNodes();
-}
-
-Status SyncMasterDB::ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject,
-                                              std::vector<LogOffset>* hints) {
-  return coordinator_.LeaderNegotiate(f_last_offset, reject, hints);
-}
-
-Status SyncMasterDB::ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset) {
-  return coordinator_.FollowerNegotiate(hints, reply_offset);
 }
 
 /* SyncSlaveDB */
@@ -492,7 +410,6 @@ SyncSlaveDB::SyncSlaveDB(const std::string& db_name)
 
 void SyncSlaveDB::SetReplState(const ReplState& repl_state) {
   if (repl_state == ReplState::kNoConnect) {
-    // deactivate
     Deactivate();
     return;
   }
@@ -717,11 +634,9 @@ int PikaReplicaManager::ConsumeWriteQueue() {
   }
 
   if (!to_delete.empty()) {
-    {
-      std::lock_guard l(write_queue_mu_);
-      for (auto& del_queue : to_delete) {
-        write_queues_.erase(del_queue);
-      }
+    std::lock_guard l(write_queue_mu_);
+    for (auto& del_queue : to_delete) {
+      write_queues_.erase(del_queue);
     }
   }
   return counter;

@@ -57,13 +57,10 @@ class SyncMasterDB : public SyncDB {
   pstd::Status WakeUpSlaveBinlogSync();
   pstd::Status CheckSyncTimeout(uint64_t now);
   pstd::Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
-  void GetValidSlaveNames(std::vector<std::string>* slavenames);
   int GetNumberOfSlaveNode();
   bool BinlogCloudPurge(uint32_t index);
   bool CheckSlaveNodeExist(const std::string& ip, int port);
 
-  // display use
-  pstd::Status GetInfo(std::string* info);
   // debug use
   std::string ToStringStatus();
   int32_t GenSessionId();
@@ -75,12 +72,6 @@ class SyncMasterDB : public SyncDB {
   pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
-  uint32_t ConsensusTerm();
-  void ConsensusUpdateTerm(uint32_t term);
-  pstd::Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
-  pstd::Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
-  pstd::Status ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
-  void CommitPreviousLogs(const uint32_t& term);
 
   std::shared_ptr<StableLog> StableLogger() { return coordinator_.StableLogger(); }
 

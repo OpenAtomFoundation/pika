@@ -211,30 +211,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 
   LogicOffset logic_last_offset;
-  if (response->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
-    if (meta.term() > db->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << " term from " << db->ConsensusTerm()
-                << " to " << meta.term();
-      db->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < db->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated trysync response " << db_name
-                   << " recv term: " << meta.term() << " local term: " << db->ConsensusTerm();
-      return;
-    }
-
-    if (response->consensus_meta().reject()) {
-      Status s = TrySyncConsensusCheck(response->consensus_meta(), db, slave_db);
-      if (!s.ok()) {
-        slave_db->SetReplState(ReplState::kError);
-        LOG(WARNING) << "Consensus Check failed " << s.ToString();
-      }
-      return;
-    }
-
-    logic_last_offset = db->ConsensusLastIndex().l_offset;
-  }
-
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
@@ -257,29 +233,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     slave_db->SetReplState(ReplState::kError);
     LOG(WARNING) << "DB: " << db_name << " TrySync Error";
   }
-}
-
-Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                                 const std::shared_ptr<SyncMasterDB>& db,
-                                                 const std::shared_ptr<SyncSlaveDB>& slave_db) {
-  std::vector<LogOffset> hints;
-  for (int i = 0; i < consensus_meta.hint_size(); ++i) {
-    const InnerMessage::BinlogOffset& pb_offset = consensus_meta.hint(i);
-    LogOffset offset;
-    offset.b_offset.filenum = pb_offset.filenum();
-    offset.b_offset.offset = pb_offset.offset();
-    offset.l_offset.term = pb_offset.term();
-    offset.l_offset.index = pb_offset.index();
-    hints.push_back(offset);
-  }
-  LogOffset reply_offset;
-  Status s = db->ConsensusFollowerNegotiate(hints, &reply_offset);
-  if (!s.ok()) {
-    return s;
-  }
-  slave_db->SetReplState(ReplState::kTryConnect);
-
-  return s;
 }
 
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {

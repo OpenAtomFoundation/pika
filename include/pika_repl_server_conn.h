@@ -28,10 +28,6 @@ class PikaReplServerConn : public net::PbConn {
   static bool TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>& db,
                                  const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                  InnerMessage::InnerResponse::TrySync* try_sync_response);
-  static bool TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterDB>& db,
-                                          const InnerMessage::ConsensusMeta& meta,
-                                          InnerMessage::InnerResponse* response,
-                                          InnerMessage::InnerResponse::TrySync* try_sync_response);
   static bool TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterDB>& db,
                                      const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                      const std::shared_ptr<net::PbConn>& conn,
