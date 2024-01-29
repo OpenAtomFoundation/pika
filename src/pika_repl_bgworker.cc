@@ -109,31 +109,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     return;
   }
 
-  if (res->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
-    if (meta.term() > db->ConsensusTerm()) {
-      LOG(INFO) << "Update " << db_name << " term from " << db->ConsensusTerm()
-                << " to " << meta.term();
-      db->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < db->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync response " << db_name
-                   << " recv term: " << meta.term() << " local term: " << db->ConsensusTerm();
-      return;
-    }
-    if (!only_keepalive) {
-      LogOffset last_offset = db->ConsensusLastIndex();
-      LogOffset prev_offset;
-      ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
-      if (last_offset.l_offset.index != 0 &&
-          (last_offset.l_offset != prev_offset.l_offset || last_offset.b_offset != prev_offset.b_offset)) {
-        LOG(WARNING) << "last_offset " << last_offset.ToString() << " NOT equal to pb prev_offset "
-                     << prev_offset.ToString();
-        slave_db->SetReplState(ReplState::kTryConnect);
-        return;
-      }
-    }
-  }
-
   for (int i : *index) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // if pika are not current a slave or DB not in
@@ -172,13 +147,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       slave_db->SetReplState(ReplState::kTryConnect);
       return;
     }
-  }
-
-  if (res->has_consensus_meta()) {
-    LogOffset leader_commit;
-    ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
-    // Update follower commit && apply
-    return;
   }
 
   LogOffset ack_end;
