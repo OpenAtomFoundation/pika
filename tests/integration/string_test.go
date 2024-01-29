@@ -2,21 +2,26 @@ package pika_integration
 
 import (
 	"context"
+	"github.com/redis/go-redis/v9"
+	"math/rand"
 	"strconv"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-
-	"github.com/redis/go-redis/v9"
 )
+
+func randomInt(max int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(max)
+}
 
 var _ = Describe("String Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})

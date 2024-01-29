@@ -1,6 +1,6 @@
-module pika-integration
+module pika-replication
 
-go 1.19
+go 1.20
 
 require (
 	github.com/bsm/ginkgo/v2 v2.12.0

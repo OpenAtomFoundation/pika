@@ -1,4 +1,4 @@
-package pika_integration
+package pika_replication
 
 import (
 	"context"
@@ -371,8 +371,8 @@ var _ = Describe("should replication ", func() {
 		var clientMaster *redis.Client
 
 		BeforeEach(func() {
-			clientMaster = redis.NewClient(pikaOptions1())
-			clientSlave = redis.NewClient(pikaOptions2())
+			clientMaster = redis.NewClient(PikaOptions1())
+			clientSlave = redis.NewClient(PikaOptions2())
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())

@@ -3,13 +3,13 @@ package pika_integration
 import (
 	"bytes"
 	"context"
+	"github.com/redis/go-redis/v9"
 	"net"
 	"sync"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 )
 
 func bigVal() []byte {
@@ -21,8 +21,8 @@ var _ = Describe("PubSub", func() {
 	ctx := context.TODO()
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
-		client2 = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
+		client2 = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		Expect(client2.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(2 * time.Second)

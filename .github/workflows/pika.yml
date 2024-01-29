@@ -75,20 +75,23 @@ jobs:
         run: ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start pika master and slave
+      - name: Start Pika Master And Slave Replication Test
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/replication/replication_test.sh
+          ../tests/integration/replication/replication_test.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          chmod +x ../tests/integration/start_pika.sh
+          ../tests/integration/start_pika.sh
           cd ../tools/pika_keys_analysis/
           go test -v ./...
-          cd ../../tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
+          chmod +x ../tests/integration/integrate_test.sh
+          ../tests/integration/integrate_test.sh 
 
   build_on_centos:
     runs-on: ubuntu-latest
@@ -145,20 +148,23 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./pikatests.sh all
 
-      - name: Start pika master and slave
+      - name: Start Pika Master And Slave Replication Test
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/replication/replication_test.sh
+          ../tests/integration/replication/replication_test.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          chmod +x ../tests/integration/start_pika.sh
+          ../tests/integration/start_pika.sh
           cd ../tools/pika_keys_analysis/
           go test -v ./...
-          cd ../../tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
+          chmod +x ../tests/integration/integrate_test.sh
+          ../tests/integration/integrate_test.sh 
 
   build_on_macos:
     runs-on: macos-latest
@@ -205,20 +211,23 @@ jobs:
         run: |
           ./pikatests.sh all
 
-      - name: Start pika master and slave
+      - name: Start Pika Master And Slave Replication Test
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/replication/replication_test.sh
+          ../tests/integration/replication/replication_test.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          chmod +x ../tests/integration/start_pika.sh
+          ../tests/integration/start_pika.sh
           cd ../tools/pika_keys_analysis/
           go test -v ./...
-          cd ../../tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
+          chmod +x ../tests/integration/integrate_test.sh
+          ../tests/integration/integrate_test.sh 
 
   build_pika_image:
     name: Build Pika Docker image

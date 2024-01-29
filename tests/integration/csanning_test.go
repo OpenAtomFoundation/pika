@@ -3,11 +3,11 @@ package pika_integration
 import (
 	"context"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 )
 
 var _ = Describe("Csanning Commands", func() {
@@ -15,7 +15,7 @@ var _ = Describe("Csanning Commands", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})

@@ -2,13 +2,12 @@ package pika_integration
 
 import (
 	"context"
+	"github.com/redis/go-redis/v9"
 	"sync"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-
-	"github.com/redis/go-redis/v9"
 )
 
 func issueBLPop(ctx *context.Context, client *redis.Client, lists []string, timeout time.Duration) {
@@ -40,7 +39,7 @@ var _ = Describe("List Commands", func() {
 	var blockedLock sync.Mutex
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})
@@ -916,8 +915,8 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
 
-            err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
+			err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
 		})
 
 		It("should LPopCount", func() {
@@ -1162,7 +1161,7 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
 
 			err := client.Do(ctx, "RPOP", "list", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
 		})
 
 		It("should RPopCount", func() {

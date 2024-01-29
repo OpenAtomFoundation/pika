@@ -2,11 +2,11 @@ package pika_integration
 
 import (
 	"context"
+	"github.com/redis/go-redis/v9"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 )
 
 func isBetween(first, second, target int64) bool {
@@ -18,7 +18,7 @@ var _ = Describe("Slowlog Commands", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})

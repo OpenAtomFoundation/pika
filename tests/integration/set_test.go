@@ -2,11 +2,11 @@ package pika_integration
 
 import (
 	"context"
+	"github.com/redis/go-redis/v9"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 )
 
 var _ = Describe("Set Commands", func() {
@@ -14,7 +14,7 @@ var _ = Describe("Set Commands", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})
@@ -276,8 +276,8 @@ var _ = Describe("Set Commands", func() {
 			Expect(sMembers.Err()).NotTo(HaveOccurred())
 			Expect(sMembers.Val()).To(HaveLen(3))
 
-            err := client.Do(ctx, "SPOP", "set", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
+			err := client.Do(ctx, "SPOP", "set", 1, 2).Err()
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
 		})
 
 		It("should SPopN", func() {

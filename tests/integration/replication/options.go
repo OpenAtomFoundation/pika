@@ -1,4 +1,4 @@
-package pika_integration
+package pika_replication
 
 import (
 	"github.com/redis/go-redis/v9"
