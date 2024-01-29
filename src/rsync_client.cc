@@ -205,14 +205,13 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         continue;
       }
 
+      if (resp->code() != RsyncService::kOk) {
+        return Status::IOError("kRsyncFile request failed, master response error code");
+      }
+
       size_t ret_count = resp->file_resp().count();
       size_t elaspe_time_us = pstd::NowMicros() - copy_file_begin_time;
       Throttle::GetInstance().ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
-
-      if (resp->code() != RsyncService::kOk) {
-        //TODO: handle different error
-        continue;
-      }
 
       if (resp->snapshot_uuid() != snapshot_uuid_) {
         LOG(WARNING) << "receive newer dump, reset state to STOP, local_snapshot_uuid:"

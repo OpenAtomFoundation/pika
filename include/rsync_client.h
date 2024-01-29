@@ -220,6 +220,12 @@ class WaitObjectManager {
       delete resp;
       return;
     }
+    if (resp->code() != RsyncService::kOk) {
+      LOG(WARNING) << "rsync response error";
+      wo_vec_[index]->WakeUp(resp);
+      return;
+    }
+
     if (resp->type() == RsyncService::kRsyncFile &&
         ((resp->file_resp().filename() != wo_vec_[index]->Filename()) ||
 	 (resp->file_resp().offset() != wo_vec_[index]->Offset()))) {
