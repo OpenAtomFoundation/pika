@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "include/storage/storage.h"
 #include "pika_stream_meta_value.h"
 #include "pika_stream_types.h"
 #include "rocksdb/options.h"
@@ -136,7 +135,7 @@ class RedisStreams : public Redis {
   Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
   Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
   Status XLen(const Slice& key, int32_t& len);
-  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<IdMessage>>& results,
                std::vector<std::string>& reserved_keys);
   Status XInfo(const Slice& key, StreamInfoResult& result);
 
