@@ -11,10 +11,10 @@
 #include <memory>
 
 // get the slot number by key
-int GetSlotsID(int slot_num, const std::string& str, uint32_t* pcrc, int* phastag);
+int32_t GetSlotsID(int slot_num, const std::string& str, uint32_t* pcrc, int* phastag);
 
 // get slot number of the key
-int GetSlotID(int slot_num, const std::string& str);
+int32_t GetSlotID(int slot_num, const std::string& str);
 
 #endif
 

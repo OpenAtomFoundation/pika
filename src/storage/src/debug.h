@@ -21,7 +21,7 @@ static std::string get_printable_key(const std::string& key) {
       res.append(1, key[i]);
     } else {
       char tmp[3];
-      sprintf(tmp, "%02x", key[i] & 0xFF);
+      snprintf(tmp, 2, "%02x", key[i] & 0xFF);
       res.append(tmp, 2);
     }
   }
