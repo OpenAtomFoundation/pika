@@ -612,7 +612,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   uint32_t crc;
   int hastag;
-  int32_t slotNum = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
+  uint32_t slotNum = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
 
   std::string slot_key = GetSlotKey(slotNum);
   int32_t res = 0;
@@ -691,7 +691,7 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   return count;
 }
 
-std::string GetSlotKey(int32_t slot) {
+std::string GetSlotKey(uint32_t slot) {
   return SlotKeyPrefix + std::to_string(slot);
 }
 
@@ -705,7 +705,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   int32_t res = -1;
   uint32_t crc;
   int hastag;
-  int32_t slotID = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
+  uint32_t slotID = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);

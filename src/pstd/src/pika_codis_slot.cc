@@ -29,10 +29,10 @@ static const char *GetSlotsTag(const std::string &str, int *plen) {
 }
 
 // get slot number of the key
-int32_t GetSlotID(int slot_num, const std::string &str) { return GetSlotsID(slot_num, str, nullptr, nullptr); }
+uint32_t GetSlotID(int slot_num, const std::string &str) { return GetSlotsID(slot_num, str, nullptr, nullptr); }
 
 // get the slot number by key
-int32_t GetSlotsID(int slot_num, const std::string &str, uint32_t *pcrc, int *phastag) {
+uint32_t GetSlotsID(int slot_num, const std::string &str, uint32_t *pcrc, int *phastag) {
   const char *s = str.data();
   int taglen; int hastag = 0;
   const char *tag = GetSlotsTag(str, &taglen);
@@ -48,5 +48,5 @@ int32_t GetSlotsID(int slot_num, const std::string &str, uint32_t *pcrc, int *ph
   if (phastag != nullptr) {
     *phastag = hastag;
   }
-  return static_cast<int>(crc) % slot_num;
+  return static_cast<uint32_t>(crc) % slot_num;
 }

@@ -15,13 +15,13 @@ namespace storage {
 class SlotIndexer {
 public:
   SlotIndexer() = delete;
-  SlotIndexer(int32_t inst_num) : inst_num_(inst_num) {}
+  SlotIndexer(uint32_t inst_num) : inst_num_(inst_num) {}
   ~SlotIndexer() {}
-  int32_t GetInstanceID(int32_t slot_id) {return slot_id % inst_num_; }
+  uint32_t GetInstanceID(uint32_t slot_id) {return slot_id % inst_num_; }
   void ReshardSlots(const std::vector<uint32_t>& slots) {}
 
 private:
-  int32_t inst_num_ = 3;
+  uint32_t inst_num_ = 3;
 };
 } // namespace storage end
 

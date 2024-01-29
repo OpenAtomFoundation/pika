@@ -18,7 +18,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
-std::string GetSlotKey(int slot);
+std::string GetSlotKey(uint32_t slot);
 std::string GetSlotsTagKey(uint32_t crc);
 
 class PikaMigrate {
