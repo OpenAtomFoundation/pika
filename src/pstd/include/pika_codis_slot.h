@@ -10,11 +10,13 @@
 #include <string>
 #include <memory>
 
+using CRCU32 = uint32_t;
+
 // get the slot number by key
-uint32_t GetSlotsID(int slot_num, const std::string& str, uint32_t* pcrc, int* phastag);
+CRCU32 GetSlotsID(int slot_num, const std::string& str, CRCU32* pcrc, int* phastag);
 
 // get slot number of the key
-uint32_t GetSlotID(int slot_num, const std::string& str);
+CRCU32 GetSlotID(int slot_num, const std::string& str);
 
 #endif
 
