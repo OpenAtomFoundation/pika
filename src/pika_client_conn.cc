@@ -173,8 +173,14 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     } else if ((role & PIKA_ROLE_SLAVE) == PIKA_ROLE_SLAVE) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Full sync not completed");
-      return c_ptr;
+      const auto& slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(current_db_));
+      if (!slave_db) {
+        c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
+        return c_ptr;
+      } else if (slave_db->State() != ReplState::kConnected) {
+        c_ptr->res().SetRes(CmdRes::kErrOther, "Full sync not completed");
+        return c_ptr;
+      }
     }
   }
 
