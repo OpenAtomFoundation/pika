@@ -2454,7 +2454,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"periodic_compaction_seconds", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       res_.AppendStringRaw("-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n");
       return;
@@ -2467,7 +2467,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     std::unordered_map<std::string, std::string> options_map{{"ttl", value}};
-    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       res_.AppendStringRaw("-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n");
       return;
