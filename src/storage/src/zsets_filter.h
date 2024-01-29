@@ -31,7 +31,7 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
     UNUSED(value_changed);
     ParsedZSetsScoreKey parsed_zsets_score_key(key);
     TRACE("==========================START==========================");
-    TRACE("[ScoreFilter], key: %s, score = %lf, member = %s, version = %ld",
+    TRACE("[ScoreFilter], key: %s, score = %lf, member = %s, version = %llu",
           parsed_zsets_score_key.key().ToString().c_str(), parsed_zsets_score_key.score(),
           parsed_zsets_score_key.member().ToString().c_str(), parsed_zsets_score_key.Version());
 

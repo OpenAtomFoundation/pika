@@ -25,11 +25,11 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    auto cur_time = static_cast<int32_t>(unix_time);
+    auto cur_time = static_cast<uint64_t>(unix_time);
     ParsedBaseMetaValue parsed_base_meta_value(value);
     TRACE("==========================START==========================");
-    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %ld, cur_time: %ld, version: %ld", key.ToString().c_str(),
-          parsed_base_meta_value.Count(), parsed_base_meta_value.timestamp(), cur_time,
+    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu", key.ToString().c_str(),
+          parsed_base_meta_value.Count(), parsed_base_meta_value.Etime(), cur_time,
           parsed_base_meta_value.Version());
 
     if (parsed_base_meta_value.Etime() != 0 && parsed_base_meta_value.Etime() < cur_time &&
@@ -74,8 +74,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
     UNUSED(value_changed);
     ParsedBaseDataKey parsed_base_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, data = %s, version = %ld", parsed_base_data_key.Key().ToString().c_str(),
-          parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.Version());
+    TRACE("[DataFilter], key: %s, data = %s, version = %llu", parsed_base_data_key.Key().ToString().c_str(),
+          parsed_base_data_key.Data().ToString().c_str(), parsed_base_data_key.Version());
 
     const char* ptr = key.data();
     int key_size = key.size();

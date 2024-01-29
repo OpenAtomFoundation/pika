@@ -28,8 +28,8 @@ class ListsMetaFilter : public rocksdb::CompactionFilter {
     auto cur_time = static_cast<uint64_t>(unix_time);
     ParsedListsMetaValue parsed_lists_meta_value(value);
     TRACE("==========================START==========================");
-    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
-          parsed_lists_meta_value.Count(), parsed_lists_meta_value.timestamp(), cur_time,
+    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %llu, cur_time: %llu, version: %llu", key.ToString().c_str(),
+          parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
           parsed_lists_meta_value.Version());
 
     if (parsed_lists_meta_value.Etime() != 0 && parsed_lists_meta_value.Etime() < cur_time &&
@@ -74,7 +74,7 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
     UNUSED(value_changed);
     ParsedListsDataKey parsed_lists_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
+    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %llu", parsed_lists_data_key.key().ToString().c_str(),
           parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.Version());
 
     const char* ptr = key.data();
