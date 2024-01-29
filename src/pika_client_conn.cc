@@ -167,23 +167,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   } else if (c_ptr->is_read() && c_ptr->flag_ == 0) {
     const auto& server_guard = std::lock_guard(g_pika_server->GetDBLock());
-    std::shared_ptr<DB> current_db = nullptr;
-    for (const auto& db_item : g_pika_server->GetDB()) {
-      if (db_item.second->GetDBName() == current_db_) {
-        current_db = db_item.second;
-        break;
-      }
-    }
-    if (current_db == nullptr) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Current DB not found");
-      return c_ptr;
-    }
-    const auto& db_guard = std::lock_guard(current_db->GetDBLock());
-    const auto& slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(current_db_));
-    if (!slave_db) {
+    int role = 0;
+    auto status = g_pika_rm->CheckDBRole(current_db_, &role);
+    if (!status.ok()) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
-    } else if (slave_db->State() != ReplState::kConnected) {
+    } else if ((role & PIKA_ROLE_SLAVE) == PIKA_ROLE_SLAVE) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Full sync not completed");
       return c_ptr;
     }
