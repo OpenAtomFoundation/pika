@@ -136,7 +136,7 @@ Status Storage::Set(const Slice& key, const Slice& value) {
   return inst->Set(key, value);
 }
 
-Status Storage::Setxx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
+Status Storage::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   auto inst = GetDBInstance(key);
   return inst->Setxx(key, value, ret, ttl);
 }
@@ -217,7 +217,7 @@ Status Storage::MGetWithTTL(const std::vector<std::string>& keys, std::vector<Va
   return Status::OK();
 }
 
-Status Storage::Setnx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
+Status Storage::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   auto inst = GetDBInstance(key);
   return inst->Setnx(key, value, ret, ttl);
 }
@@ -249,7 +249,7 @@ Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   return s;
 }
 
-Status Storage::Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, const uint64_t ttl) {
+Status Storage::Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl) {
   auto inst = GetDBInstance(key);
   return inst->Setvx(key, value, new_value, ret, ttl);
 }
@@ -348,7 +348,7 @@ Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* r
   return inst->Incrbyfloat(key, value, ret);
 }
 
-Status Storage::Setex(const Slice& key, const Slice& value, uint64_t ttl) {
+Status Storage::Setex(const Slice& key, const Slice& value, int64_t ttl) {
   auto inst = GetDBInstance(key);
   return inst->Setex(key, value, ttl);
 }
@@ -358,7 +358,7 @@ Status Storage::Strlen(const Slice& key, int32_t* len) {
   return inst->Strlen(key, len);
 }
 
-Status Storage::PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp) {
+Status Storage::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   auto inst = GetDBInstance(key);
   return inst->PKSetexAt(key, value, timestamp);
 }
@@ -1098,7 +1098,7 @@ Status Storage::ZScan(const Slice& key, int64_t cursor, const std::string& patte
   return inst->ZScan(key, cursor, pattern, count, score_members, next_cursor);
 }
 
-int32_t Storage::Expire(const Slice& key, uint64_t ttl, std::map<DataType, Status>* type_status) {
+int32_t Storage::Expire(const Slice& key, int64_t ttl, std::map<DataType, Status>* type_status) {
   type_status->clear();
   int32_t ret = 0;
   bool is_corruption = false;
@@ -1604,7 +1604,7 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
   return Status::OK();
 }
 
-int32_t Storage::Expireat(const Slice& key, int32_t timestamp, std::map<DataType, Status>* type_status) {
+int32_t Storage::Expireat(const Slice& key, int64_t timestamp, std::map<DataType, Status>* type_status) {
   Status s;
   int32_t count = 0;
   bool is_corruption = false;

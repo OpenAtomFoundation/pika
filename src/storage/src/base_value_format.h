@@ -30,13 +30,10 @@ public:
   }
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
-  rocksdb::Status SetRelativeTimestamp(uint64_t ttl) {
+  rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = uint64_t(unix_time) + ttl;
-    if (etime_ != uint64_t(unix_time) + ttl) {
-      return rocksdb::Status::InvalidArgument("invalid expire time");
-    }
+    etime_ = uint64_t(unix_time + ttl);
     return rocksdb::Status::OK();
   }
   void SetVersion(uint64_t version = 0) { version_ = version; }
@@ -103,10 +100,10 @@ public:
     SetCtimeToValue();
   }
 
-  void SetRelativeTimestamp(uint64_t ttl) {
+  void SetRelativeTimestamp(int64_t ttl) {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = static_cast<uint64_t>(unix_time) + ttl;
+    etime_ = unix_time + ttl;
     SetEtimeToValue();
   }
 

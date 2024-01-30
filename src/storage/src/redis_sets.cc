@@ -1198,7 +1198,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status Redis::SetsExpire(const Slice& key, uint64_t ttl) {
+rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1245,7 +1245,7 @@ rocksdb::Status Redis::SetsDel(const Slice& key) {
   return s;
 }
 
-rocksdb::Status Redis::SetsExpireat(const Slice& key, int32_t timestamp) {
+rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1259,7 +1259,7 @@ rocksdb::Status Redis::SetsExpireat(const Slice& key, int32_t timestamp) {
       return rocksdb::Status::NotFound();
     } else {
       if (timestamp > 0) {
-        parsed_sets_meta_value.SetEtime(uint64_t(timestamp));
+        parsed_sets_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
       } else {
         parsed_sets_meta_value.InitialMetaValue();
       }
@@ -1282,7 +1282,7 @@ rocksdb::Status Redis::SetsPersist(const Slice& key) {
     } else if (parsed_sets_meta_value.Count() == 0) {
       return rocksdb::Status::NotFound();
     } else {
-      int32_t timestamp = parsed_sets_meta_value.Etime();
+      uint64_t timestamp = parsed_sets_meta_value.Etime();
       if (timestamp == 0) {
         return rocksdb::Status::NotFound("Not have an associated timeout");
       } else {

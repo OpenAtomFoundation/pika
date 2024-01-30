@@ -121,11 +121,11 @@ class Redis {
   virtual Status SetsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
   // Keys Commands
-  virtual Status StringsExpire(const Slice& key, uint64_t ttl);
-  virtual Status HashesExpire(const Slice& key, uint64_t ttl);
-  virtual Status ListsExpire(const Slice& key, uint64_t ttl);
-  virtual Status ZsetsExpire(const Slice& key, uint64_t ttl);
-  virtual Status SetsExpire(const Slice& key, uint64_t ttl);
+  virtual Status StringsExpire(const Slice& key, int64_t ttl);
+  virtual Status HashesExpire(const Slice& key, int64_t ttl);
+  virtual Status ListsExpire(const Slice& key, int64_t ttl);
+  virtual Status ZsetsExpire(const Slice& key, int64_t ttl);
+  virtual Status SetsExpire(const Slice& key, int64_t ttl);
 
   virtual Status StringsDel(const Slice& key);
   virtual Status HashesDel(const Slice& key);
@@ -133,11 +133,11 @@ class Redis {
   virtual Status ZsetsDel(const Slice& key);
   virtual Status SetsDel(const Slice& key);
 
-  virtual Status StringsExpireat(const Slice& key, int32_t timestamp);
-  virtual Status HashesExpireat(const Slice& key, int32_t timestamp);
-  virtual Status ListsExpireat(const Slice& key, int32_t timestamp);
-  virtual Status SetsExpireat(const Slice& key, int32_t timestamp);
-  virtual Status ZsetsExpireat(const Slice& key, int32_t timestamp);
+  virtual Status StringsExpireat(const Slice& key, int64_t timestamp);
+  virtual Status HashesExpireat(const Slice& key, int64_t timestamp);
+  virtual Status ListsExpireat(const Slice& key, int64_t timestamp);
+  virtual Status SetsExpireat(const Slice& key, int64_t timestamp);
+  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp);
 
   virtual Status StringsPersist(const Slice& key);
   virtual Status HashesPersist(const Slice& key);
@@ -168,11 +168,11 @@ class Redis {
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, uint64_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
   Status SetBit(const Slice& key, int64_t offset, int32_t value, int32_t* ret);
-  Status Setex(const Slice& key, const Slice& value, uint64_t ttl);
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, uint64_t ttl = 0);
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, uint64_t ttl = 0);
+  Status Setex(const Slice& key, const Slice& value, int64_t ttl);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl = 0);
   Status Delvx(const Slice& key, const Slice& value, int32_t* ret);
   Status Setrange(const Slice& key, int64_t start_offset, const Slice& value, int32_t* ret);
   Status Strlen(const Slice& key, int32_t* len);
@@ -180,7 +180,7 @@ class Redis {
   Status BitPos(const Slice& key, int32_t bit, int64_t* ret);
   Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t* ret);
   Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t end_offset, int64_t* ret);
-  Status PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp);
+  Status PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp);
 
   // Hash Commands
   Status HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);

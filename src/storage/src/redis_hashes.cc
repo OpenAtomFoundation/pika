@@ -1028,7 +1028,7 @@ Status Redis::PKHRScanRange(const Slice& key, const Slice& field_start, const st
   return Status::OK();
 }
 
-Status Redis::HashesExpire(const Slice& key, uint64_t ttl) {
+Status Redis::HashesExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1075,7 +1075,7 @@ Status Redis::HashesDel(const Slice& key) {
   return s;
 }
 
-Status Redis::HashesExpireat(const Slice& key, int32_t timestamp) {
+Status Redis::HashesExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1089,7 +1089,7 @@ Status Redis::HashesExpireat(const Slice& key, int32_t timestamp) {
       return Status::NotFound();
     } else {
       if (timestamp > 0) {
-        parsed_hashes_meta_value.SetEtime(uint64_t(timestamp));
+        parsed_hashes_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
       } else {
         parsed_hashes_meta_value.InitialMetaValue();
       }
@@ -1112,7 +1112,7 @@ Status Redis::HashesPersist(const Slice& key) {
     } else if (parsed_hashes_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      int32_t timestamp = parsed_hashes_meta_value.Etime();
+      uint64_t timestamp = parsed_hashes_meta_value.Etime();
       if (timestamp == 0) {
         return Status::NotFound("Not have an associated timeout");
       } else {

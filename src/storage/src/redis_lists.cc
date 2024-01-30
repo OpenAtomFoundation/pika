@@ -966,7 +966,7 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
   return s;
 }
 
-Status Redis::ListsExpire(const Slice& key, uint64_t ttl) {
+Status Redis::ListsExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1004,7 +1004,7 @@ Status Redis::ListsDel(const Slice& key) {
     } else if (parsed_lists_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      uint32_t statistic = parsed_lists_meta_value.Count();
+      uint64_t statistic = parsed_lists_meta_value.Count();
       parsed_lists_meta_value.InitialMetaValue();
       s = db_->Put(default_write_options_, handles_[kListsMetaCF], base_meta_key.Encode(), meta_value);
       UpdateSpecificKeyStatistics(DataType::kLists, key.ToString(), statistic);
@@ -1013,7 +1013,7 @@ Status Redis::ListsDel(const Slice& key) {
   return s;
 }
 
-Status Redis::ListsExpireat(const Slice& key, int32_t timestamp) {
+Status Redis::ListsExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1027,7 +1027,7 @@ Status Redis::ListsExpireat(const Slice& key, int32_t timestamp) {
       return Status::NotFound();
     } else {
       if (timestamp > 0) {
-        parsed_lists_meta_value.SetEtime(uint64_t(timestamp));
+        parsed_lists_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
       } else {
         parsed_lists_meta_value.InitialMetaValue();
       }
@@ -1049,7 +1049,7 @@ Status Redis::ListsPersist(const Slice& key) {
     } else if (parsed_lists_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      int32_t timestamp = parsed_lists_meta_value.Etime();
+      uint64_t timestamp = parsed_lists_meta_value.Etime();
       if (timestamp == 0) {
         return Status::NotFound("Not have an associated timeout");
       } else {

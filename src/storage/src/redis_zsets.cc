@@ -1469,7 +1469,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
   return s;
 }
 
-Status Redis::ZsetsExpire(const Slice& key, uint64_t ttl) {
+Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1515,7 +1515,7 @@ Status Redis::ZsetsDel(const Slice& key) {
   return s;
 }
 
-Status Redis::ZsetsExpireat(const Slice& key, int32_t timestamp) {
+Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1628,7 +1628,7 @@ Status Redis::ZsetsPersist(const Slice& key) {
     } else if (parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      int32_t timestamp = parsed_zsets_meta_value.Etime();
+      uint64_t timestamp = parsed_zsets_meta_value.Etime();
       if (timestamp == 0) {
         return Status::NotFound("Not have an associated timeout");
       } else {

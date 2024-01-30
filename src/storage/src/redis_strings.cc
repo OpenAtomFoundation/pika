@@ -643,7 +643,7 @@ Status Redis::Set(const Slice& key, const Slice& value) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
+Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   bool not_found = true;
   std::string old_value;
   StringsValue strings_value(value);
@@ -683,7 +683,7 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
   Status s = db_->Get(default_read_options_, base_key.Encode(), &meta_value);
   if (s.ok() || s.IsNotFound()) {
     std::string data_value;
-    int32_t timestamp = 0;
+    uint64_t timestamp = 0;
     if (s.ok()) {
       ParsedStringsValue parsed_strings_value(&meta_value);
       if (!parsed_strings_value.IsStale()) {
@@ -721,7 +721,7 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
   }
 }
 
-Status Redis::Setex(const Slice& key, const Slice& value, uint64_t ttl) {
+Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl) {
   if (ttl <= 0) {
     return Status::InvalidArgument("invalid expire time");
   }
@@ -736,7 +736,7 @@ Status Redis::Setex(const Slice& key, const Slice& value, uint64_t ttl) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, const uint64_t ttl) {
+Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -769,7 +769,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, const ui
 }
 
 Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret,
-                           const uint64_t ttl) {
+                    int64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -841,7 +841,7 @@ Status Redis::Setrange(const Slice& key, int64_t start_offset, const Slice& valu
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    int32_t timestamp = 0;
+    uint64_t timestamp = 0;
     ParsedStringsValue parsed_strings_value(&old_value);
     parsed_strings_value.StripSuffix();
     if (parsed_strings_value.IsStale()) {
@@ -1080,7 +1080,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
 }
 
 //TODO(wangshaoyi): timestamp uint64_t
-Status Redis::PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp) {
+Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   StringsValue strings_value(value);
 
   BaseKey base_key(key);
@@ -1089,7 +1089,7 @@ Status Redis::PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp)
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::StringsExpire(const Slice& key, uint64_t ttl) {
+Status Redis::StringsExpire(const Slice& key, int64_t ttl) {
   std::string value;
 
   BaseKey base_key(key);
@@ -1126,7 +1126,7 @@ Status Redis::StringsDel(const Slice& key) {
   return s;
 }
 
-Status Redis::StringsExpireat(const Slice& key, int32_t timestamp) {
+Status Redis::StringsExpireat(const Slice& key, int64_t timestamp) {
   std::string value;
   ScopeRecordLock l(lock_mgr_, key);
 
@@ -1138,7 +1138,7 @@ Status Redis::StringsExpireat(const Slice& key, int32_t timestamp) {
       return Status::NotFound("Stale");
     } else {
       if (timestamp > 0) {
-        parsed_strings_value.SetEtime(uint64_t(timestamp));
+        parsed_strings_value.SetEtime(static_cast<uint64_t>(timestamp));
         return db_->Put(default_write_options_, base_key.Encode(), value);
       } else {
         return db_->Delete(default_write_options_, base_key.Encode());
@@ -1159,7 +1159,7 @@ Status Redis::StringsPersist(const Slice& key) {
     if (parsed_strings_value.IsStale()) {
       return Status::NotFound("Stale");
     } else {
-      int32_t timestamp = parsed_strings_value.Etime();
+      uint64_t timestamp = parsed_strings_value.Etime();
       if (timestamp == 0) {
         return Status::NotFound("Not have an associated timeout");
       } else {
