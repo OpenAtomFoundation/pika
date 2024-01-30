@@ -5146,7 +5146,7 @@ TEST_F(KeysTest, ExpireatTest) {
 
   int64_t unix_time;
   rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-  int32_t timestamp = static_cast<int32_t>(unix_time) + 1;
+  int32_t timestamp = unix_time + 1;
   ret = db.Expireat("EXPIREAT_KEY", timestamp, &type_status);
   ASSERT_EQ(ret, 5);
 

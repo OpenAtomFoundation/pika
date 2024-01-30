@@ -491,7 +491,7 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
              iter->Valid() && current_index <= sublist_right_index;
              iter->Next(), current_index++) {
           ParsedBaseDataValue parsed_value(iter->value());
-          ret->push_back(iter->value().ToString());
+          ret->push_back(parsed_value.UserValue().ToString());
         }
         delete iter;
         return Status::OK();
