@@ -1167,9 +1167,7 @@ void Redis::ScanHashes() {
     ParsedHashesMetaValue parsed_hashes_meta_value(meta_iter->value());
     int32_t survival_time = 0;
     if (parsed_hashes_meta_value.Etime() != 0) {
-      survival_time = parsed_hashes_meta_value.Etime() - current_time > 0
-                          ? parsed_hashes_meta_value.Etime() - current_time
-                          : -1;
+      survival_time = parsed_hashes_meta_value.Etime() > current_time ? parsed_hashes_meta_value.Etime() - current_time : -1;
     }
     ParsedBaseMetaKey parsed_meta_key(meta_iter->key());
 
