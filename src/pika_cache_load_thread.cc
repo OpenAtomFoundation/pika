@@ -11,12 +11,12 @@
 
 extern PikaServer* g_pika_server;
 
-PikaCacheLoadThread::PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key)
+PikaCacheLoadThread::PikaCacheLoadThread(int zset_cache_start_direction, int zset_cache_field_num_per_key)
     : should_exit_(false)
       , loadkeys_cond_()
       , async_load_keys_num_(0)
       , waitting_load_keys_num_(0)
-      , zset_cache_start_pos_(zset_cache_start_pos)
+      , zset_cache_start_direction_(zset_cache_start_direction)
       , zset_cache_field_num_per_key_(zset_cache_field_num_per_key)
 {
   set_thread_name("PikaCacheLoadThread");
@@ -144,11 +144,11 @@ bool PikaCacheLoadThread::LoadZset(std::string& key, const std::shared_ptr<DB>& 
   if (cache_len != 0) {
     return true;
   }
-  if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+  if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
     if (zset_cache_field_num_per_key_ <= len) {
       stop_index = zset_cache_field_num_per_key_ - 1;
     }
-  } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+  } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
     if (zset_cache_field_num_per_key_ <= len) {
       start_index = len - zset_cache_field_num_per_key_;
     }

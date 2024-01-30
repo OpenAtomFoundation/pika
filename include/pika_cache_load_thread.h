@@ -19,7 +19,7 @@
 
 class PikaCacheLoadThread : public net::Thread {
  public:
-  PikaCacheLoadThread(int zset_cache_start_pos, int zset_cache_field_num_per_key);
+  PikaCacheLoadThread(int zset_cache_start_direction, int zset_cache_field_num_per_key);
   ~PikaCacheLoadThread() override;
 
   uint64_t AsyncLoadKeysNum(void) { return async_load_keys_num_; }
@@ -47,7 +47,7 @@ class PikaCacheLoadThread : public net::Thread {
   std::atomic_uint64_t async_load_keys_num_;
   std::atomic_uint32_t waitting_load_keys_num_;
   // currently only take effects to zset
-  int zset_cache_start_pos_;
+  int zset_cache_start_direction_;
   int zset_cache_field_num_per_key_;
   std::shared_ptr<PikaCache> cache_;
 };

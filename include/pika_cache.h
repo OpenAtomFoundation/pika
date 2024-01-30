@@ -48,7 +48,7 @@ struct CacheInfo {
 
 class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<PikaCache> {
  public:
-  PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key);
+  PikaCache(int zset_cache_start_direction, int zset_cache_field_num_per_key);
   ~PikaCache();
 
   rocksdb::Status Init(uint32_t cache_num, cache::CacheConfig *cache_cfg);
@@ -215,7 +215,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   uint32_t cache_num_ = 0;
 
   // currently only take effects to zset
-  int zset_cache_start_pos_ = 0;
+  int zset_cache_start_direction_ = 0;
   int zset_cache_field_num_per_key_ = 0;
   std::shared_mutex rwlock_;
   std::unique_ptr<PikaCacheLoadThread> cache_load_thread_;

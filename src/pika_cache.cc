@@ -19,12 +19,12 @@ extern PikaServer* g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
 using rocksdb::Status;
 
-PikaCache::PikaCache(int zset_cache_start_pos, int zset_cache_field_num_per_key)
+PikaCache::PikaCache(int zset_cache_start_direction, int zset_cache_field_num_per_key)
     : cache_status_(PIKA_CACHE_STATUS_NONE),
       cache_num_(0),
-      zset_cache_start_pos_(zset_cache_start_pos),
+      zset_cache_start_direction_(zset_cache_start_direction),
       zset_cache_field_num_per_key_(EXTEND_CACHE_SIZE(zset_cache_field_num_per_key)) {
-  cache_load_thread_ = std::make_unique<PikaCacheLoadThread> (zset_cache_start_pos_, zset_cache_field_num_per_key_);
+  cache_load_thread_ = std::make_unique<PikaCacheLoadThread> (zset_cache_start_direction_, zset_cache_field_num_per_key_);
   cache_load_thread_->StartThread();
 }
 
@@ -61,9 +61,9 @@ Status PikaCache::Reset(uint32_t cache_num, cache::CacheConfig *cache_cfg) {
 
 void PikaCache::ResetConfig(cache::CacheConfig *cache_cfg) {
   std::lock_guard l(rwlock_);
-  zset_cache_start_pos_ = cache_cfg->zset_cache_start_pos;
+  zset_cache_start_direction_ = cache_cfg->zset_cache_start_direction;
   zset_cache_field_num_per_key_ = EXTEND_CACHE_SIZE(cache_cfg->zset_cache_field_num_per_key);
-  LOG(WARNING) << "zset_cache_start_pos: " << zset_cache_start_pos_ << ", zset_cache_field_num_per_key: " << zset_cache_field_num_per_key_;
+  LOG(WARNING) << "zset-cache-start-direction: " << zset_cache_start_direction_ << ", zset_cache_field_num_per_key: " << zset_cache_field_num_per_key_;
   cache::RedisCache::SetConfig(cache_cfg);
 }
 
@@ -821,7 +821,7 @@ Status PikaCache::ZAddIfKeyExist(std::string& key, std::vector<storage::ScoreMem
     }
     auto cache_min_score = cache_min_sm.score;
     auto cache_max_score = cache_max_sm.score;
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       if (max_score < cache_max_score) {
         cache_obj->ZAdd(key, new_score_members);
       } else {
@@ -850,7 +850,7 @@ Status PikaCache::ZAddIfKeyExist(std::string& key, std::vector<storage::ScoreMem
           cache_obj->ZRem(key, members_need_remove);
         }
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       if (min_score > cache_min_score) {
         cache_obj->ZAdd(key, new_score_members);
       } else {
@@ -893,10 +893,10 @@ Status PikaCache::CleanCacheKeyIfNeeded(cache::RedisCache *cache_obj, std::strin
   if (cache_len > (unsigned long)zset_cache_field_num_per_key_) {
     long start = 0;
     long stop = 0;
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       start = -cache_len + zset_cache_field_num_per_key_;
       stop = -1;
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       start = 0;
       stop = cache_len - zset_cache_field_num_per_key_ - 1;
     }
@@ -949,7 +949,7 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
   bool cache_full = (cache_len == (unsigned long)zset_cache_field_num_per_key_);
 
   if (cache_full) {
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       bool ret = (max < cache_max);
       if (ret) {
         if (max < cache_min) {
@@ -960,7 +960,7 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
       } else {
         return RangeStatus::RangeMiss;
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       bool ret = min > cache_min;
       if (ret) {
         if (min > cache_max) {
@@ -975,7 +975,7 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
       return RangeStatus::RangeError;
     }
   } else {
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       bool ret = right_close ? max < cache_max : max <= cache_max;
       if (ret) {
         if (max < cache_min) {
@@ -986,7 +986,7 @@ RangeStatus PikaCache::CheckCacheRangeByScore(uint64_t cache_len, double cache_m
       } else {
         return RangeStatus::RangeMiss;
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       bool ret = left_close ? min > cache_min : min >= cache_min;
       if (ret) {
         if (min > cache_max) {
@@ -1108,7 +1108,7 @@ Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string& member, doubl
     return s;
   };
 
-  if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+  if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
     if (cmd->Score() > cache_max_score) {
       return RemCacheKeyMember(member);
     } else if (cmd->Score() == cache_max_score) {
@@ -1120,7 +1120,7 @@ Status PikaCache::ZIncrbyIfKeyExist(std::string& key, std::string& member, doubl
       CleanCacheKeyIfNeeded(cache_obj, key);
       return s;
     }
-  } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+  } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
     if (cmd->Score() > cache_min_score) {
       std::vector<storage::ScoreMember> score_member = {{cmd->Score(), member}};
       auto s = cache_obj->ZAdd(key, score_member);
@@ -1147,13 +1147,13 @@ RangeStatus PikaCache::CheckCacheRange(int32_t cache_len, int32_t db_len, int64_
   if (out_start > out_stop || out_start >= db_len || out_stop < 0) {
     return RangeStatus::RangeError;
   } else {
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       if (out_start < cache_len && out_stop < cache_len) {
         return RangeStatus::RangeHit;
       } else {
         return RangeStatus::RangeMiss;
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       if (out_start >= db_len - cache_len && out_stop >= db_len - cache_len) {
         out_start = out_start - (db_len - cache_len);
         out_stop = out_stop - (db_len - cache_len);
@@ -1176,7 +1176,7 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
   if (start_index > stop_index || start_index >= db_len || stop_index < 0) {
     return RangeStatus::RangeError;
   } else {
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       if (start_index < cache_len && stop_index < cache_len) {
         // cache reverse index
         out_start = cache_len - stop_index - 1;
@@ -1186,7 +1186,7 @@ RangeStatus PikaCache::CheckCacheRevRange(int32_t cache_len, int32_t db_len, int
       } else {
         return RangeStatus::RangeMiss;
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       if (start_index >= db_len - cache_len && stop_index >= db_len - cache_len) {
         int cache_start = start_index - (db_len - cache_len);
         int cache_stop = stop_index - (db_len - cache_len);
@@ -1275,7 +1275,7 @@ Status PikaCache::ZRank(std::string& key, std::string& member, int64_t *rank, co
   } else {
     auto s = cache_obj->ZRank(CachePrefixKeyZ, member, rank);
     if (s.ok()) {
-      if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+      if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
         int32_t db_len = 0;
         db->storage()->ZCard(key, &db_len);
         *rank = db_len - cache_len + *rank;
@@ -1321,7 +1321,7 @@ Status PikaCache::ZRemrangebyrank(std::string& key, std::string &min, std::strin
       return Status::NotFound("error range");
     }
 
-    if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+    if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
       if ((uint32_t)start_index <= cache_len) {
         auto cache_min_str = std::to_string(start_index);
         auto cache_max_str = std::to_string(stop_index);
@@ -1331,7 +1331,7 @@ Status PikaCache::ZRemrangebyrank(std::string& key, std::string &min, std::strin
       } else {
         return Status::NotFound("error range");
       }
-    } else if (zset_cache_start_pos_ == cache::CACHE_START_FROM_END) {
+    } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
       if ((uint32_t)stop_index >= db_len - cache_len) {
         int32_t cache_min = start_index - (db_len - cache_len);
         int32_t cache_max = stop_index - (db_len - cache_len);
@@ -1465,7 +1465,7 @@ Status PikaCache::ZRevrank(std::string& key, std::string& member, int64_t *rank,
   } else {
     auto s = cache_obj->ZRevrank(CachePrefixKeyZ, member, rank);
     if (s.ok()) {
-      if (zset_cache_start_pos_ == cache::CACHE_START_FROM_BEGIN) {
+      if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
         int32_t db_len = 0;
         db->storage()->ZCard(key, &db_len);
         *rank = db_len - cache_len + *rank;

@@ -1799,7 +1799,7 @@ void PikaServer::ResetCacheConfig(std::shared_ptr<DB> db) {
   cache_cfg.maxmemory_policy = g_pika_conf->cache_maxmemory_policy();
   cache_cfg.maxmemory_samples = g_pika_conf->cache_maxmemory_samples();
   cache_cfg.lfu_decay_time = g_pika_conf->cache_lfu_decay_time();
-  cache_cfg.zset_cache_start_pos = g_pika_conf->zset_cache_start_pos();
+  cache_cfg.zset_cache_start_direction = g_pika_conf->zset_cache_start_direction();
   cache_cfg.zset_cache_field_num_per_key = g_pika_conf->zset_cache_field_num_per_key();
   db->cache()->ResetConfig(&cache_cfg);
 }
@@ -1808,7 +1808,7 @@ void PikaServer::ClearHitRatio(std::shared_ptr<DB> db) {
   db->cache()->ClearHitRatio();
 }
 
-void PikaServer::OnCacheStartPosChanged(int zset_cache_start_pos, std::shared_ptr<DB> db) {
+void PikaServer::OnCacheStartPosChanged(int zset_cache_start_direction, std::shared_ptr<DB> db) {
   ResetCacheConfig(db);
   ClearCacheDbAsync(db);
 }

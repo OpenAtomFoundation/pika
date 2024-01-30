@@ -2088,7 +2088,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "zset-cache-start-direction", 1)) {
     elements += 2;
     EncodeString(&config_body, "zset-cache-start-direction");
-    EncodeNumber(&config_body, g_pika_conf->zset_cache_start_pos());
+    EncodeNumber(&config_body, g_pika_conf->zset_cache_start_direction());
   }
 
   if (pstd::stringmatch(pattern.data(), "zset-cache-field-num-per-key", 1)) {
@@ -2561,9 +2561,9 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       res_.AppendStringRaw("-ERR Invalid zset-cache-start-direction\r\n");
       return;
     }
-    auto origin_start_pos = g_pika_conf->zset_cache_start_pos();
+    auto origin_start_pos = g_pika_conf->zset_cache_start_direction();
     if (origin_start_pos != ival) {
-      g_pika_conf->SetCacheStartPos(ival);
+      g_pika_conf->SetCacheStartDirection(ival);
       g_pika_server->OnCacheStartPosChanged(ival, db);
     }
     res_.AppendStringRaw("+OK\r\n");
