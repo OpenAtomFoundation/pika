@@ -960,7 +960,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
 
 std::string PikaServer::DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "%s:%d_%s:%d", ip.data(), port, db_name.data());
+  snprintf(buf, sizeof(buf), "%s:%d_%s", ip.data(), port, db_name.data());
   return buf;
 }
 
