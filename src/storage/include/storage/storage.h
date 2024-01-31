@@ -164,9 +164,9 @@ class Storage {
 
   Status StoreCursorStartKey(const DataType& dtype, int64_t cursor, char type, const std::string& next_key);
 
-  std::shared_ptr<Redis> GetDBInstance(const Slice& key);
+  std::unique_ptr<Redis>& GetDBInstance(const Slice& key);
 
-  std::shared_ptr<Redis> GetDBInstance(const std::string& key);
+  std::unique_ptr<Redis>& GetDBInstance(const std::string& key);
 
   // Strings Commands
 
@@ -1074,7 +1074,7 @@ class Storage {
   void GetRocksDBInfo(std::string& info);
 
  private:
-  std::vector<std::shared_ptr<Redis>> insts_;
+  std::vector<std::unique_ptr<Redis>> insts_;
   std::unique_ptr<SlotIndexer> slot_indexer_;
   std::atomic<bool> is_opened_ = {false};
   int db_instance_num_ = 3;
