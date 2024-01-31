@@ -43,16 +43,16 @@ const std::string kDefaultRsyncAuth = "default";
 const int kMaxRsyncParallelNum = 4;
 
 struct DBStruct {
-  DBStruct(std::string tn)
-      : db_name(std::move(tn)) {}
+  DBStruct(std::string tn, int32_t inst_num)
+      : db_name(std::move(tn)), db_instance_num(inst_num) {}
 
   bool operator==(const DBStruct& db_struct) const {
-    return db_name == db_struct.db_name;
+    return db_name == db_struct.db_name && db_instance_num == db_struct.db_instance_num;
   }
   std::string db_name;
+  int32_t db_instance_num = 0;
 };
 
-// slave item
 struct SlaveItem {
   std::string ip_port;
   std::string ip;
