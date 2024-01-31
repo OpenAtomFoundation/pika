@@ -1680,7 +1680,7 @@ void PikaServer::DisableCompact() {
   std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", "true"}};
   storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
   if (!s.ok()) {
-    LOG(FATAL) << "-ERR Set storage::OptionType::kColumnFamily disable_auto_compactions error: " + s.ToString() + "\r\n";
+    LOG(ERROR) << "-ERR Set storage::OptionType::kColumnFamily disable_auto_compactions error: " + s.ToString() + "\r\n";
     return;
   }
   g_pika_conf->SetDisableAutoCompaction("true");
