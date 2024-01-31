@@ -8,7 +8,6 @@
 #include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
-#include "include/pika_define.h"
 #include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"

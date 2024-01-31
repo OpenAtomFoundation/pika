@@ -12,6 +12,7 @@
 
 #include <glog/logging.h>
 
+#include "include/pika_client_conn.h"
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"

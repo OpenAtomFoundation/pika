@@ -64,6 +64,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
          * with older versions, but slot_num is not used
          */
         db_info->set_slot_num(1);
+        db_info->set_db_instance_num(db_struct.db_instance_num);
       }
     }
   }
