@@ -44,7 +44,7 @@ struct CacheConfig {
   int32_t  maxmemory_policy;               /* Policy for key eviction */
   int32_t  maxmemory_samples;              /* Precision of random sampling */
   int32_t  lfu_decay_time;                 /* LFU counter decay factor. */
-  int32_t  zset_cache_start_pos;
+  int32_t  zset_cache_start_direction;
   int32_t  zset_cache_field_num_per_key;
 
   CacheConfig()
@@ -52,7 +52,7 @@ struct CacheConfig {
       , maxmemory_policy(CACHE_NO_EVICTION)
       , maxmemory_samples(CACHE_DEFAULT_MAXMEMORY_SAMPLES)
       , lfu_decay_time(CACHE_DEFAULT_LFU_DECAY_TIME)
-      , zset_cache_start_pos(CACHE_START_FROM_BEGIN)
+      , zset_cache_start_direction(CACHE_START_FROM_BEGIN)
       , zset_cache_field_num_per_key(DEFAULT_CACHE_ITEMS_PER_KEY){}
 
   CacheConfig& operator=(const CacheConfig& obj) {
@@ -60,7 +60,7 @@ struct CacheConfig {
     maxmemory_policy = obj.maxmemory_policy;
     maxmemory_samples = obj.maxmemory_samples;
     lfu_decay_time = obj.lfu_decay_time;
-    zset_cache_start_pos = obj.zset_cache_start_pos;
+    zset_cache_start_direction = obj.zset_cache_start_direction;
     zset_cache_field_num_per_key = obj.zset_cache_field_num_per_key;
     return *this;
   }

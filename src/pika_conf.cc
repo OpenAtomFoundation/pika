@@ -495,12 +495,12 @@ int PikaConf::Load() {
   GetConfStr("cache-type", &cache_type);
   SetCacheType(cache_type);
 
-  int zset_cache_start_pos = 0;
-  GetConfInt("zset-cache-start-direction", &zset_cache_start_pos);
-  if (zset_cache_start_pos != cache::CACHE_START_FROM_BEGIN && zset_cache_start_pos != cache::CACHE_START_FROM_END) {
-    zset_cache_start_pos = cache::CACHE_START_FROM_BEGIN;
+  int zset_cache_start_direction = 0;
+  GetConfInt("zset-cache-start-direction", &zset_cache_start_direction);
+  if (zset_cache_start_direction != cache::CACHE_START_FROM_BEGIN && zset_cache_start_direction != cache::CACHE_START_FROM_END) {
+    zset_cache_start_direction = cache::CACHE_START_FROM_BEGIN;
   }
-  zset_cache_start_pos_ = zset_cache_start_pos;
+  zset_cache_start_direction_ = zset_cache_start_direction;
 
   int zset_cache_field_num_per_key = DEFAULT_CACHE_ITEMS_PER_KEY;
   GetConfInt("zset-cache-field-num-per-key", &zset_cache_field_num_per_key);
@@ -672,7 +672,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("block-cache", block_cache_);
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
   SetConfInt("cache-model", cache_model_);
-  SetConfInt("zset_cache_start_pos", zset_cache_start_pos_);
+  SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);
   SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
   if (!diff_commands_.empty()) {
