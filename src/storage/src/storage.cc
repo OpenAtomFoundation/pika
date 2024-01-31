@@ -1808,6 +1808,14 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   return s;
 }
 
+void Storage::SetCompactRangeOptions(const bool is_canceled) {
+  strings_db_->SetCompactRangeOptions(is_canceled);
+  hashes_db_->SetCompactRangeOptions(is_canceled);
+  lists_db_->SetCompactRangeOptions(is_canceled);
+  sets_db_->SetCompactRangeOptions(is_canceled);
+  zsets_db_->SetCompactRangeOptions(is_canceled);
+}
+
 Status Storage::EnableDymayticOptions(const OptionType& option_type, 
                             const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
   Status s;

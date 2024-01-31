@@ -29,6 +29,10 @@ Redis::~Redis() {
     delete handle;
   }
   delete db_;
+
+  if (default_compact_range_options_.canceled) {
+    delete default_compact_range_options_.canceled;
+  }
 }
 
 Status Redis::GetScanStartPoint(const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
@@ -185,6 +189,14 @@ void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
 
 void Redis::SetWriteWalOptions(const bool is_wal_disable) {
   default_write_options_.disableWAL = is_wal_disable;
+}
+
+void Redis::SetCompactRangeOptions(const bool is_canceled) {
+  if (!default_compact_range_options_.canceled) {
+    default_compact_range_options_.canceled = new std::atomic<bool>(is_canceled);
+  } else {
+    default_compact_range_options_.canceled->store(is_canceled);
+  } 
 }
 
 }  // namespace storage

@@ -211,6 +211,7 @@ void PikaServer::Start() {
 }
 
 void PikaServer::Exit() {
+  g_pika_server->DisableCompact();
   exit_mutex_.unlock();
   exit_ = true;
 }
@@ -1672,6 +1673,25 @@ void PikaServer::CheckPubsubClientKill(const std::string& userName, const std::v
     }
     return false;
   });
+}
+
+void PikaServer::DisableCompact() {
+  /* disable auto compactions */
+  std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", "true"}};
+  storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+  if (!s.ok()) {
+    LOG(ERROR) << "-ERR Set storage::OptionType::kColumnFamily disable_auto_compactions error: " + s.ToString() + "\r\n";
+    return;
+  }
+  g_pika_conf->SetDisableAutoCompaction("true");
+
+  /* cancel in-progress manual compactions */
+  std::shared_lock rwl(dbs_rw_);
+  for (const auto& db_item : dbs_) {
+      db_item.second->DbRWLockWriter();
+      db_item.second->SetCompactRangeOptions(true);
+      db_item.second->DbRWUnLock();
+  }
 }
 
 void DoBgslotscleanup(void* arg) {
