@@ -6,7 +6,7 @@ project (cache)
 aux_source_directory(./src  DIR_SRCS)
 include_directories(include)
 add_library(cache STATIC ${DIR_SRCS})
-add_dependencies(cache net protobuf glog gflags ${LIBUNWIND_NAME})
+add_dependencies(cache net protobuf glog gflags rediscache ${LIBUNWIND_NAME})
 
 target_link_libraries(cache
         PUBLIC ${GTEST_LIBRARY}

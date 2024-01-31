@@ -474,8 +474,11 @@ struct UnblockTaskArgs {
       : key(std::move(key_)), db(db_), dispatchThread(dispatchThread_) {}
 };
 
+class PikaClientConn;
+
 class Cmd : public std::enable_shared_from_this<Cmd> {
  public:
+  friend class PikaClientConn;
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
