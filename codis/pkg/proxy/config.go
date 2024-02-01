@@ -51,8 +51,8 @@ proxy_addr = "0.0.0.0:19000"
 #          /zk/codis/db_{PRODUCT_NAME}/proxy-{HASHID} (compatible with Codis2.0)
 #        or else
 #          /jodis/{PRODUCT_NAME}/proxy-{HASHID}
-jodis_name = ""
-jodis_addr = ""
+jodis_name = "etcd"
+jodis_addr = "127.0.0.1:2379"
 jodis_auth = ""
 jodis_timeout = "20s"
 jodis_compatible = false

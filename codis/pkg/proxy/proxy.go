@@ -106,6 +106,7 @@ func (p *Proxy) setup(config *Config) error {
 	proto := config.ProtoType
 
 	if config.ProxyTLS {
+		log.Printf("ufsdigushdgisdghfdg = %s = %s", config.ProxyTLSCert, config.ProxyTLSKey)
 
 		cert, err := tls.LoadX509KeyPair(config.ProxyTLSCert, config.ProxyTLSKey)
 		if err != nil {
@@ -133,10 +134,11 @@ func (p *Proxy) setup(config *Config) error {
                 p.model.ProxyAddr = x
 
 	}else{
+		log.Printf("fgdusgifhfdgfgfidudsfgi")
 
 		if l, err := net.Listen(proto, config.ProxyAddr); err != nil {
 			return errors.Trace(err)
-		} else {
+		}else{ 
 			p.lproxy = l
 
 			x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
