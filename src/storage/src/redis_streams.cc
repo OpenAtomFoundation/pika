@@ -27,7 +27,6 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
   // With the lock, we do not need snapshot for read.
   // And it's bugy to use snapshot for read when we try to add message with trim.
   // such as: XADD key 1-0 field value MINID 1-0
-  ScopeRecordLock l(lock_mgr_, key);
 
   // 1 get stream meta
   rocksdb::Status s;
@@ -99,7 +98,6 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
 }
 
 Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
-  ScopeRecordLock l(lock_mgr_, key);
 
   // 1 get stream meta
   rocksdb::Status s;
@@ -126,7 +124,6 @@ Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& c
 }
 
 Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count) {
-  ScopeRecordLock l(lock_mgr_, key);
 
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
@@ -599,7 +596,6 @@ Status RedisStreams::PKRScanRange(const Slice& key_start, const Slice& key_end, 
 
 Status RedisStreams::Del(const Slice& key) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     StreamMetaValue stream_meta_value;
