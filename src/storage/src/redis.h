@@ -89,6 +89,7 @@ class Redis {
 
   Status SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options);
   void SetWriteWalOptions(const bool is_wal_disable);
+  void SetCompactRangeOptions(const bool is_canceled);
 
   // Common Commands
   virtual Status Open(const StorageOptions& storage_options, const std::string& db_path) = 0;

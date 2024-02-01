@@ -41,6 +41,7 @@ DB::DB(std::string db_name, const std::string& db_path,
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
+  lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
   binlog_io_error_.store(false);
   opened_ = s.ok();
   assert(storage_);
@@ -69,6 +70,7 @@ void DB::BgSaveDB() {
 void DB::SetBinlogIoError() { return binlog_io_error_.store(true); }
 void DB::SetBinlogIoErrorrelieve() { return binlog_io_error_.store(false); }
 bool DB::IsBinlogIoError() { return binlog_io_error_.load(); }
+std::shared_ptr<pstd::lock::LockMgr> DB::LockMgr() { return lock_mgr_; }
 std::shared_ptr<PikaCache> DB::cache() const { return cache_; }
 std::shared_ptr<storage::Storage> DB::storage() const { return storage_; }
 
@@ -184,6 +186,13 @@ void DB::InitKeyScan() {
   size_t len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
+}
+
+void DB::SetCompactRangeOptions(const bool is_canceled) {
+  if (!opened_) {
+    return;
+  }
+  storage_->SetCompactRangeOptions(is_canceled);
 }
 
 DisplayCacheInfo DB::GetCacheInfo() {
