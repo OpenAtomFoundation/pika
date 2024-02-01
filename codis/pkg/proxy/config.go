@@ -37,6 +37,9 @@ admin_addr = "0.0.0.0:11080"
 
 # Set bind address for proxy, proto_type can be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 proto_type = "tcp4"
+#proxy_tls = true
+#proxy_tls_cert = "./cert.pem"
+#proxy_tls_key = "./key.pem"
 proxy_addr = "0.0.0.0:19000"
 
 # Set jodis address & session timeout
@@ -166,6 +169,9 @@ type Config struct {
 
 	ProxyDataCenter      string         `toml:"proxy_datacenter" json:"proxy_datacenter"`
 	ProxyMaxClients      int            `toml:"proxy_max_clients" json:"proxy_max_clients"`
+	ProxyTLS	     bool 	    `toml:"proxy_tls" json:"proxy_tls"`
+	ProxyTLSCert         string         `toml:"proxy_tls_cert" json:"proxy_tls_cert"`
+	ProxyTLSKey          string         `toml:"proxy_tls_key" json:"proxy_tls_key"`
 	ProxyMaxOffheapBytes bytesize.Int64 `toml:"proxy_max_offheap_size" json:"proxy_max_offheap_size"`
 	ProxyHeapPlaceholder bytesize.Int64 `toml:"proxy_heap_placeholder" json:"proxy_heap_placeholder"`
 

@@ -4,6 +4,7 @@
 package proxy
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -103,17 +104,49 @@ func New(config *Config) (*Proxy, error) {
 
 func (p *Proxy) setup(config *Config) error {
 	proto := config.ProtoType
-	if l, err := net.Listen(proto, config.ProxyAddr); err != nil {
-		return errors.Trace(err)
-	} else {
-		p.lproxy = l
 
-		x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
+	if config.ProxyTLS {
+
+		cert, err := tls.LoadX509KeyPair(config.ProxyTLSCert, config.ProxyTLSKey)
 		if err != nil {
-			return err
+			return errors.Trace(err)
+    		}
+
+		// Set up TLS configuration to use TLS 1.3
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
 		}
-		p.model.ProtoType = proto
-		p.model.ProxyAddr = x
+
+		l, err := tls.Listen(proto, config.ProxyAddr, tlsConfig)
+		if err != nil {
+			return errors.Trace(err)
+    		}
+
+                p.lproxy = l
+
+                x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
+                if err != nil {
+                        return err
+                }
+                p.model.ProtoType = proto
+                p.model.ProxyAddr = x
+
+	}else{
+
+		if l, err := net.Listen(proto, config.ProxyAddr); err != nil {
+			return errors.Trace(err)
+		} else {
+			p.lproxy = l
+
+			x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
+			if err != nil {
+				return err
+			}
+			p.model.ProtoType = proto
+			p.model.ProxyAddr = x
+		}
+
 	}
 
 	proto = "tcp"
