@@ -197,37 +197,30 @@ Options:
 	m.MapTo(r, (*martini.Routes)(nil))
 	m.Action(r.Handle)
 
-
 	var l net.Listener 
-	//var err error
 
-	if n, ok := utils.ArgumentInteger(d, "--tls"); ok {
-		if n == 1 {
+	if n, ok := utils.ArgumentInteger(d, "--tls"); ok && n == 1 {
 
-			log.Warnf("nfyDFUSIUDSH")
-			//listen := ":443" // Replace with your listening address and port
-			// Load server certificate and key
-			cert, err := tls.LoadX509KeyPair(utils.ArgumentMust(d, "--tls-cert"), utils.ArgumentMust(d, "--tls-key"))
-			if err != nil {
-				log.PanicErrorf(err, "failed to load key pair: %s", err)
-			}
-
-			// Create a TLS config
-			tlsConfig := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
-
-			// Create a TLS listener
-			l, err = tls.Listen("tcp", listen, tlsConfig)
-			if err != nil {
-				log.PanicErrorf(err, "listen %s failed", listen)
-			}
-
-
+		// Load server certificate and key
+		cert, err := tls.LoadX509KeyPair(utils.ArgumentMust(d, "--tls-cert"), utils.ArgumentMust(d, "--tls-key"))
+		if err != nil {
+			log.PanicErrorf(err, "failed to load key pair: %s", err)
 		}
+
+		// Create a TLS config
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		// Create a TLS listener
+		l, err = tls.Listen("tcp", listen, tlsConfig)
+		if err != nil {
+			log.PanicErrorf(err, "listen %s failed", listen)
+		}
+
+
 	}else{
 
-		log.Warnf("SDNAUDHDKSAJDHSD")
 		l, err = net.Listen("tcp", listen)
 		if err != nil {
 			log.PanicErrorf(err, "listen %s failed", listen)
