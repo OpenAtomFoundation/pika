@@ -1190,7 +1190,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       info.append("ERR: server role is error\r\n");
       return;
   }
-  tmp_stream << "ReplicationID: " << g_pika_conf->replication_id() << "\r\n";
+  tmp_stream << "ReplicationID:" << g_pika_conf->replication_id() << "\r\n";
   std::string slaves_list_str;
   switch (host_role) {
     case PIKA_ROLE_SLAVE:
@@ -1235,7 +1235,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
-    tmp_stream << db_name << " binlog_offset=" << filenum << " " << offset;
+    tmp_stream << db_name << ":binlog_offset=" << filenum << " " << offset;
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
