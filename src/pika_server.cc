@@ -90,7 +90,7 @@ PikaServer::PikaServer()
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
-  
+
   // init role
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
@@ -103,7 +103,7 @@ PikaServer::PikaServer()
       SetMaster(master_ip, master_port);
     }
   }
-        
+
   acl_ = std::make_unique<::Acl>();
 }
 
@@ -559,8 +559,22 @@ void PikaServer::DeleteSlave(int fd) {
 }
 
 int32_t PikaServer::CountSyncSlaves() {
-  std::lock_guard ldb(db_sync_protector_);
-  return static_cast<int32_t>(db_sync_slaves_.size());
+  int32_t count = 0;
+  std::lock_guard l(slave_mutex_);
+  for (const auto& slave : slaves_) {
+    for (const auto& ts : slave.db_structs) {
+      SlaveState slave_state;
+      std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(ts.db_name));
+      if (!db) {
+        continue;
+      }
+      Status s = db->GetSlaveState(slave.ip, slave.port, &slave_state);
+      if (s.ok() && slave_state == SlaveState::kSlaveDbSync) {
+        count++;
+      }
+    }
+  }
+  return count;
 }
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
