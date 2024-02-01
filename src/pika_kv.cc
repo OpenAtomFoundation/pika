@@ -7,7 +7,6 @@
 #include <memory>
 
 #include "include/pika_command.h"
-#include "include/pika_stream_base.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_cache.h"
@@ -202,14 +201,9 @@ void DelCmd::DoInitial() {
 
 void DelCmd::Do() {
   std::map<storage::DataType, storage::Status> type_status;
+
   int64_t count = db_->storage()->Del(keys_, &type_status);
-  
-  // stream's destory need to be treated specially
-  auto s = StreamStorage::DestoryStreams(keys_, db_.get());
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, "stream delete error: " + s.ToString());
-    return;
-  }
+
   if (count >= 0) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
@@ -617,6 +611,8 @@ void KeysCmd::DoInitial() {
       type_ = storage::DataType::kLists;
     } else if (strcasecmp(opt.data(), "hash") == 0) {
       type_ = storage::DataType::kHashes;
+    } else if (strcasecmp(opt.data(), "stream") == 0) {
+      type_ = storage::DataType::kStreams;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }

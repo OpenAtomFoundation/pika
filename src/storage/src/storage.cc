@@ -18,6 +18,7 @@
 #include "src/redis_hyperloglog.h"
 #include "src/redis_lists.h"
 #include "src/redis_sets.h"
+#include "src/redis_streams.h"
 #include "src/redis_strings.h"
 #include "src/redis_zsets.h"
 
@@ -69,6 +70,7 @@ Storage::~Storage() {
     rocksdb::CancelAllBackgroundWork(sets_db_->GetDB(), true);
     rocksdb::CancelAllBackgroundWork(lists_db_->GetDB(), true);
     rocksdb::CancelAllBackgroundWork(zsets_db_->GetDB(), true);
+    rocksdb::CancelAllBackgroundWork(streams_db_->GetDB(), true);
   }
 
   int ret = 0;
@@ -117,6 +119,13 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   if (!s.ok()) {
     LOG(FATAL) << "open zset db failed, " << s.ToString();
   }
+
+  streams_db_ = std::make_unique<RedisStreams>(this, kStreams);
+  s = streams_db_->Open(storage_options, AppendSubDirectory(db_path, "streams"));
+  if (!s.ok()) {
+    LOG(FATAL) << "open stream db failed, " << s.ToString();
+  }
+
   is_opened_.store(true);
   return Status::OK();
 }
@@ -530,6 +539,39 @@ Status Storage::ZScan(const Slice& key, int64_t cursor, const std::string& patte
   return zsets_db_->ZScan(key, cursor, pattern, count, score_members, next_cursor);
 }
 
+Status Storage::XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args) {
+  return streams_db_->XAdd(key, serialized_message, args);
+}
+
+Status Storage::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret) {
+  return streams_db_->XDel(key, ids, ret);
+}
+
+Status Storage::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
+  return streams_db_->XTrim(key, args, count);
+}
+
+Status Storage::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages) {
+  return streams_db_->XRange(key, args, id_messages);
+}
+
+Status Storage::XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages) {
+  return streams_db_->XRevrange(key, args, id_messages);
+}
+
+Status Storage::XLen(const Slice& key, int32_t& len) {
+  return streams_db_->XLen(key, len);
+}
+
+Status Storage::XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+              std::vector<std::string>& reserved_keys) {
+  return streams_db_->XRead(args, results, reserved_keys);
+}
+
+Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
+  return streams_db_->XInfo(key, result);
+}
+
 // Keys Commands
 int32_t Storage::Expire(const Slice& key, int32_t ttl, std::map<DataType, Status>* type_status) {
   int32_t ret = 0;
@@ -637,6 +679,15 @@ int64_t Storage::Del(const std::vector<std::string>& keys, std::map<DataType, St
       is_corruption = true;
       (*type_status)[DataType::kZSets] = s;
     }
+
+    // Streams
+    s = streams_db_->Del(key);
+    if (s.ok()) {
+      count++;
+    } else if (!s.IsNotFound()) {
+      is_corruption = true;
+      (*type_status)[DataType::kStreams] = s;
+    }
   }
 
   if (is_corruption) {
@@ -696,6 +747,16 @@ int64_t Storage::DelByType(const std::vector<std::string>& keys, const DataType&
       // ZSets
       case DataType::kZSets: {
         s = zsets_db_->Del(key);
+        if (s.ok()) {
+          count++;
+        } else if (!s.IsNotFound()) {
+          is_corruption = true;
+        }
+        break;
+      }
+      // Stream
+      case DataType::kStreams: {
+        s = streams_db_->Del(key);
         if (s.ok()) {
           count++;
         } else if (!s.IsNotFound()) {
@@ -868,6 +929,22 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
         }
       }
       start_key = prefix;
+    case 'x':
+      is_finish = streams_db_->Scan(start_key, pattern, keys, &leftover_visits, &next_key);
+      if ((leftover_visits == 0) && !is_finish) {
+        cursor_ret = cursor + step_length;
+        StoreCursorStartKey(DataType::kStreams, cursor_ret, std::string("x") + next_key);
+        break;
+      } else if (is_finish) {
+        if (DataType::kStreams == dtype) {
+          cursor_ret = 0;
+          break;
+        } else if (leftover_visits == 0) {
+          cursor_ret = cursor + step_length;
+          StoreCursorStartKey(DataType::kStreams, cursor_ret, std::string("k") + prefix);
+          break;
+        }
+      }
     case 'z':
       is_finish = zsets_db_->Scan(start_key, pattern, keys, &leftover_visits, &next_key);
       if ((leftover_visits == 0) && !is_finish) {
@@ -1018,6 +1095,9 @@ Status Storage::PKScanRange(const DataType& data_type, const Slice& key_start, c
     case DataType::kSets:
       s = sets_db_->PKScanRange(key_start, key_end, pattern, limit, keys, next_key);
       break;
+    case DataType::kStreams:
+      s = streams_db_->PKScanRange(key_start, key_end, pattern, limit, keys, next_key);
+      break;
     default:
       s = Status::Corruption("Unsupported data types");
       break;
@@ -1046,6 +1126,9 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
       break;
     case DataType::kSets:
       s = sets_db_->PKRScanRange(key_start, key_end, pattern, limit, keys, next_key);
+      break;
+    case DataType::kStreams:
+      s = streams_db_->PKRScanRange(key_start, key_end, pattern, limit, keys, next_key);
       break;
     default:
       s = Status::Corruption("Unsupported data types");
@@ -1099,6 +1182,9 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
       break;
     case DataType::kSets:
       sets_db_->Scan(start_key, pattern, keys, &count, next_key);
+      break;
+    case DataType::kStreams:
+      streams_db_->Scan(start_key, pattern, keys, &count, next_key);
       break;
     default:
       Status::Corruption("Unsupported data types");
@@ -1346,6 +1432,11 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
     if (!s.ok()) {
       return s;
     }
+  } else if (data_type == DataType::kStreams) {
+    s = streams_db_->ScanKeys(pattern, keys);
+    if (!s.ok()) {
+      return s;
+    }
   } else {
     s = strings_db_->ScanKeys(pattern, keys);
     if (!s.ok()) {
@@ -1364,6 +1455,10 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
       return s;
     }
     s = lists_db_->ScanKeys(pattern, keys);
+    if (!s.ok()) {
+      return s;
+    }
+    s = streams_db_->ScanKeys(pattern, keys);
     if (!s.ok()) {
       return s;
     }
@@ -1587,6 +1682,9 @@ Status Storage::DoCompact(const DataType& type) {
   } else if (type == kLists) {
     current_task_type_ = Operation::kCleanLists;
     s = lists_db_->CompactRange(nullptr, nullptr);
+  } else if (type == kStreams) {
+    current_task_type_ = Operation::kCleanStreams;
+    s = streams_db_->CompactRange(nullptr, nullptr);
   } else {
     current_task_type_ = Operation::kCleanAll;
     s = strings_db_->CompactRange(nullptr, nullptr);
@@ -1594,6 +1692,7 @@ Status Storage::DoCompact(const DataType& type) {
     s = sets_db_->CompactRange(nullptr, nullptr);
     s = zsets_db_->CompactRange(nullptr, nullptr);
     s = lists_db_->CompactRange(nullptr, nullptr);
+    s = streams_db_->CompactRange(nullptr, nullptr);
   }
   current_task_type_ = Operation::kNone;
   return s;
@@ -1641,6 +1740,9 @@ Status Storage::DoCompactRange(const DataType& type, const std::string& start, c
   } else if (type == kLists) {
     s = lists_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
     s = lists_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
+  } else if (type == kStreams) {
+    s = streams_db_->CompactRange(&slice_meta_begin, &slice_meta_end, kMeta);
+    s = streams_db_->CompactRange(&slice_data_begin, &slice_data_end, kData);
   }
   return s;
 }
@@ -1684,6 +1786,8 @@ std::string Storage::GetCurrentTaskType() {
       return "Set";
     case kCleanLists:
       return "List";
+    case kCleanStreams:
+      return "Stream";
     case kNone:
     default:
       return "No";
@@ -1702,6 +1806,7 @@ Status Storage::GetUsage(const std::string& property, std::map<std::string, uint
   (*type_result)[LISTS_DB] = GetProperty(LISTS_DB, property);
   (*type_result)[ZSETS_DB] = GetProperty(ZSETS_DB, property);
   (*type_result)[SETS_DB] = GetProperty(SETS_DB, property);
+  (*type_result)[STREAMS_DB] = GetProperty(STREAMS_DB, property);
   return Status::OK();
 }
 
@@ -1726,6 +1831,10 @@ uint64_t Storage::GetProperty(const std::string& db_type, const std::string& pro
   }
   if (db_type == ALL_DB || db_type == SETS_DB) {
     sets_db_->GetProperty(property, &out);
+    result += out;
+  }
+  if (db_type == ALL_DB || db_type == STREAMS_DB) {
+    streams_db_->GetProperty(property, &out);
     result += out;
   }
   return result;
@@ -1766,6 +1875,8 @@ rocksdb::DB* Storage::GetDBByType(const std::string& type) {
     return sets_db_->GetDB();
   } else if (type == ZSETS_DB) {
     return zsets_db_->GetDB();
+  } else if (type == STREAMS_DB) {
+    return streams_db_->GetDB();
   } else {
     return nullptr;
   }
@@ -1800,6 +1911,12 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   }
   if (db_type == ALL_DB || db_type == SETS_DB) {
     s = sets_db_->SetOptions(option_type, options);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (db_type == ALL_DB || db_type == STREAMS_DB) {
+    s = streams_db_->SetOptions(option_type, options);
     if (!s.ok()) {
       return s;
     }

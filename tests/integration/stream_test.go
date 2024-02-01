@@ -204,6 +204,32 @@ var _ = Describe("Stream Commands", func() {
 				return atomic.LoadInt32(&messageCount)
 			}).Should(Equal(int32(totalMessages)))
 		})
+
+		It("should create a stream and find it using keys * command", func() {
+			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+			// Creating a stream and adding entries
+			_, err := client.XAdd(ctx, &redis.XAddArgs{
+					Stream: "mystream",
+					ID:     "*",
+					Values: map[string]interface{}{"key1": "value1", "key2": "value2"},
+			}).Result()
+			Expect(err).NotTo(HaveOccurred())
+	
+			// Using keys * to find all keys including the stream
+			keys, err := client.Keys(ctx, "*").Result()
+			Expect(err).NotTo(HaveOccurred())
+	
+			// Checking if the stream 'mystream' exists in the returned keys
+			found := false
+			for _, key := range keys {
+					if key == "mystream" {
+							found = true
+							break
+					}
+			}
+			Expect(found).To(BeTrue(), "Stream 'mystream' should exist in keys")
+		})
+	
 		
 		
 		It("XADD wrong number of args", func() {
