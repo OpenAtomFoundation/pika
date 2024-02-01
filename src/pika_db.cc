@@ -82,7 +82,6 @@ void DB::KeyScan() {
     return;
   }
 
-  key_scan_info_.key_scaning_ = true;
   key_scan_info_.duration = -2;  // duration -2 mean the task in waiting status,
                                  // has not been scheduled for exec
   auto bg_task_arg = new BgTaskArg();
