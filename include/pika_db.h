@@ -127,9 +127,6 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void CompactRange(const storage::DataType& type, const std::string& start, const std::string& end);
 
   std::shared_ptr<pstd::lock::LockMgr> LockMgr();
-  void DbRWLockWriter();
-  void DbRWLockReader();
-  void DbRWUnLock();
   /*
    * Cache used
    */
@@ -162,11 +159,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::string log_path_;
   std::string bgsave_sub_path_;
   pstd::Mutex key_info_protector_;
-  std::shared_mutex db_rwlock_;
   std::atomic<bool> binlog_io_error_;
   std::shared_mutex dbs_rw_;
   // class may be shared, using shared_ptr would be a better choice
-  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> storage_;
   std::shared_ptr<PikaCache> cache_;
   /*

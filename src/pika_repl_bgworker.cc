@@ -215,10 +215,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  // Add read lock for no suspend command
-  if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWLockReader();
-  }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
@@ -232,9 +228,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     }
   } else {
     c_ptr->Do();
-  }
-  if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWUnLock();
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {

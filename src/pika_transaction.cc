@@ -151,7 +151,6 @@ void ExecCmd::Lock() {
       pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
       record_lock.Lock(lock_db_keys_[need_lock_slot]);
     }
-    need_lock_slot->DbRWLockReader();
   });
 }
 
@@ -161,7 +160,6 @@ void ExecCmd::Unlock() {
       pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
       record_lock.Unlock(lock_db_keys_[need_lock_slot]);
     }
-    need_lock_slot->DbRWUnLock();
   });
   if (is_lock_rm_dbs_) {
     g_pika_rm->DBUnlock();

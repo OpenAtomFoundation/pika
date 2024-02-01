@@ -888,14 +888,6 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
 }
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
-  if (!IsSuspend()) {
-    db_->DbRWLockReader();
-  }
-  DEFER {
-    if (!IsSuspend()) {
-      db_->DbRWUnLock();
-    }
-  };
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
