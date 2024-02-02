@@ -6,6 +6,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +15,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	_ "net/http/pprof"
 
 	"github.com/docopt/docopt-go"
 
@@ -25,7 +29,7 @@ import (
 func main() {
 	const usage = `
 Usage:
-	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR] [--pidfile=FILE] [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT] [--product_name=NAME] [--product_auth=AUTH] [--remove-lock]
+	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR] [--pidfile=FILE] [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT] [--product_name=NAME] [--product_auth=AUTH] [--remove-lock] [--pprof=ADDR]
 	codis-dashboard  --default-config
 	codis-dashboard  --version
 
@@ -114,6 +118,18 @@ Options:
 	if s, ok := utils.Argument(d, "--product_auth"); ok {
 		config.ProductAuth = s
 		log.Warnf("option --product_auth = %s", s)
+	}
+	if s, ok := utils.Argument(d, "--pprof"); ok {
+		addr := s
+		_, err := net.ResolveTCPAddr("tcp", addr)
+		if err != nil {
+			log.Warnf("pprof address %v is not valid, use default address 127.0.0.1:6060", s)
+			addr = "127.0.0.1:6060"
+		}
+		go func() {
+			log.Warnf("start pprof on %v", addr)
+			log.Warn(http.ListenAndServe(addr, nil))
+		}()
 	}
 
 	client, err := models.NewClient(config.CoordinatorName, config.CoordinatorAddr, config.CoordinatorAuth, time.Minute)
