@@ -5,8 +5,11 @@ package redis
 
 import (
 	"encoding/json"
+	"net"
 	"strconv"
 	"time"
+
+	"pika/codis/v2/pkg/models"
 )
 
 type SentinelMaster struct {
@@ -66,8 +69,9 @@ type InfoReplication struct {
 	ConnectedSlaves  int         `json:"connected_slaves"`
 	MasterHost       string      `json:"master_host"`
 	MasterPort       string      `json:"master_port"`
-	SlaveReplOffset  int         `json:"slave_repl_offset"`
-	MasterReplOffset int         `json:"master_repl_offset"`
+	MasterLinkStatus string      `json:"master_link_status"` // down; up
+	DbBinlogFileNum  uint64      `json:"binlog_file_num"`    // db0
+	DbBinlogOffset   uint64      `json:"binlog_offset"`      // db0
 	Slaves           []InfoSlave `json:"-"`
 }
 
@@ -75,8 +79,17 @@ type ReplicationState struct {
 	GroupID     int
 	Index       int
 	Addr        string
+	Server      *models.GroupServer
 	Replication *InfoReplication
 	Err         error
+}
+
+func (i *InfoReplication) GetMasterAddr() string {
+	if len(i.MasterHost) == 0 {
+		return ""
+	}
+
+	return net.JoinHostPort(i.MasterHost, i.MasterPort)
 }
 
 func (i *InfoReplication) UnmarshalJSON(b []byte) error {
@@ -90,18 +103,23 @@ func (i *InfoReplication) UnmarshalJSON(b []byte) error {
 			i.ConnectedSlaves = intval
 		}
 	}
-	if val, ok := kvmap["slave_repl_offset"]; ok {
-		if intval, err := strconv.Atoi(val); err == nil {
-			i.SlaveReplOffset = intval
-		}
-	}
-	if val, ok := kvmap["master_repl_offset"]; ok {
-		if intval, err := strconv.Atoi(val); err == nil {
-			i.MasterReplOffset = intval
-		}
-	}
+
 	i.Role = kvmap["role"]
 	i.MasterPort = kvmap["master_host"]
 	i.MasterHost = kvmap["master_port"]
+	i.MasterLinkStatus = kvmap["master_link_status"]
+
+	if val, ok := kvmap["binlog_file_num"]; ok {
+		if intval, err := strconv.ParseUint(val, 10, 64); err == nil {
+			i.DbBinlogFileNum = intval
+		}
+	}
+
+	if val, ok := kvmap["binlog_offset"]; ok {
+		if intval, err := strconv.ParseUint(val, 10, 64); err == nil {
+			i.DbBinlogOffset = intval
+		}
+	}
+
 	return nil
 }

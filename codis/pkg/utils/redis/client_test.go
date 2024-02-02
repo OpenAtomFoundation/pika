@@ -1,63 +1,53 @@
 package redis
 
 import (
-	"encoding/json"
 	"fmt"
-	"regexp"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestKk(t *testing.T) {
-	ok, err := regexp.Match("slave[0-9]+", []byte("slave_01"))
+func TestMasterInfoReplication(t *testing.T) {
+	text := `
+# Replication(MASTER)
+role:master
+ReplicationID:94e8feeaf9036a77c59ad2f091f1c0b0858047f06fa1e09afa
+connected_slaves:1
+slave0:ip=10.224.129.104,port=9971,conn_fd=104,lag=(db0:0)
+db0:binlog_offset=2 384,safety_purge=none
+`
+	res, err := parseInfoReplication(text)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	fmt.Sprintln(ok, err)
+	assert.Equal(t, res.DbBinlogFileNum, uint64(2), "db0 binlog file_num not right")
+	assert.Equal(t, res.DbBinlogOffset, uint64(384), "db0 binlog offset not right")
+	assert.Equal(t, len(res.Slaves), 1, "slaves numbers not right")
+	assert.Equal(t, res.Slaves[0].IP, "10.224.129.104", "slave0 IP not right")
+	assert.Equal(t, res.Slaves[0].Port, "9971", "slave0 Port not right")
 }
 
-func TestParseInfo(t *testing.T) {
-	text := "# Replication\nrole:master\nconnected_slaves:1\nslave0:ip=10.174.22.228,port=9225,state=online,offset=2175592,lag=0\nmaster_repl_offset:2175592\nrepl_backlog_active:1\nrepl_backlog_size:1048576\nrepl_backlog_first_byte_offset:1127017\nrepl_backlog_histlen:1048576\n"
-	info := make(map[string]string)
-	slaveMap := make([]map[string]string, 0)
-	var slaves []InfoSlave
-	var infoReplication InfoReplication
-
-	for _, line := range strings.Split(text, "\n") {
-		kv := strings.SplitN(line, ":", 2)
-		if len(kv) != 2 {
-			continue
-		}
-
-		if key := strings.TrimSpace(kv[0]); key != "" {
-			if ok, _ := regexp.Match("slave[0-9]+", []byte(key)); ok {
-				slaveKvs := strings.Split(kv[1], ",")
-
-				slave := make(map[string]string)
-				for _, slaveKvStr := range slaveKvs {
-					slaveKv := strings.Split(slaveKvStr, "=")
-					if len(slaveKv) != 2 {
-						continue
-					}
-					slave[slaveKv[0]] = slaveKv[1]
-				}
-
-				slaveMap = append(slaveMap, slave)
-			} else {
-				info[key] = strings.TrimSpace(kv[1])
-			}
-		}
-	}
-	if len(slaveMap) > 0 {
-		slavesStr, _ := json.Marshal(slaveMap)
-		err := json.Unmarshal(slavesStr, &slaves)
-
-		_ = err
-		info["slaveMap"] = string(slavesStr)
+func TestSlaveInfoReplication(t *testing.T) {
+	text := `
+# Replication(SLAVE)
+role:slave
+ReplicationID:94e8feeaf9036a77c59ad2f091f1c0b0858047f06fa1e09afa
+master_host:10.224.129.40
+master_port:9971
+master_link_status:up
+slave_priority:100
+slave_read_only:1
+db0:binlog_offset=1 284,safety_purge=none
+`
+	res, err := parseInfoReplication(text)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
-	str, _ := json.Marshal(info)
-	err := json.Unmarshal(str, &infoReplication)
-	infoReplication.Slaves = slaves
-
-	_ = err
-	fmt.Println(err)
+	assert.Equal(t, res.DbBinlogFileNum, uint64(1), "db0 binlog file_num not right")
+	assert.Equal(t, res.DbBinlogOffset, uint64(284), "db0 binlog offset not right")
+	assert.Equal(t, len(res.Slaves), 0)
 }
