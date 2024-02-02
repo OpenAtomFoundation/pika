@@ -40,12 +40,6 @@ void DoPurgeDir(void* arg) {
   LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
-void DoDBSync(void* arg) {
-  std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
-  PikaServer* const ps = dbsa->p;
-  ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->db_name);
-}
-
 PikaServer::PikaServer()
     : exit_(false),
       last_check_compact_time_({0, 0}),
@@ -90,7 +84,7 @@ PikaServer::PikaServer()
   exit_mutex_.lock();
   int64_t lastsave = GetLastSaveTime(g_pika_conf->bgsave_path());
   UpdateLastSave(lastsave);
-  
+
   // init role
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
@@ -103,7 +97,7 @@ PikaServer::PikaServer()
       SetMaster(master_ip, master_port);
     }
   }
-        
+
   acl_ = std::make_unique<::Acl>();
 }
 
@@ -559,8 +553,22 @@ void PikaServer::DeleteSlave(int fd) {
 }
 
 int32_t PikaServer::CountSyncSlaves() {
-  std::lock_guard ldb(db_sync_protector_);
-  return static_cast<int32_t>(db_sync_slaves_.size());
+  int32_t count = 0;
+  std::lock_guard l(slave_mutex_);
+  for (const auto& slave : slaves_) {
+    for (const auto& ts : slave.db_structs) {
+      SlaveState slave_state;
+      std::shared_ptr<SyncMasterDB> db = g_pika_rm->GetSyncMasterDBByName(DBInfo(ts.db_name));
+      if (!db) {
+        continue;
+      }
+      Status s = db->GetSlaveState(slave.ip, slave.port, &slave_state);
+      if (s.ok() && slave_state == SlaveState::kSlaveDbSync) {
+        count++;
+      }
+    }
+  }
+  return count;
 }
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
@@ -784,22 +792,6 @@ void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.Schedule(function, arg);
 }
 
-void PikaServer::DBSync(const std::string& ip, int port, const std::string& db_name) {
-  {
-    std::string task_index = DbSyncTaskIndex(ip, port, db_name);
-    std::lock_guard ml(db_sync_protector_);
-    if (db_sync_slaves_.find(task_index) != db_sync_slaves_.end()) {
-      return;
-    }
-    db_sync_slaves_.insert(task_index);
-  }
-  // Reuse the bgsave_thread_
-  // Since we expect BgSave and DBSync execute serially
-  bgsave_thread_.StartThread();
-  auto arg = new DBSyncArg(this, ip, port, db_name);
-  bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
-}
-
 pstd::Status PikaServer::GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid) {
   std::shared_ptr<DB> db = GetDB(db_name);
   if (!db) {
@@ -843,126 +835,6 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
     // Need Bgsave first
     db->BgSaveDB();
   }
-}
-
-void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& db_name) {
-  std::shared_ptr<DB> db = GetDB(db_name);
-  if (!db) {
-    LOG(WARNING) << "can not find DB: " << db_name
-                 << ", DbSync send file Failed";
-    return;
-  }
-
-  BgSaveInfo bgsave_info = db->bgsave_info();
-  std::string bg_path = bgsave_info.path;
-  uint32_t binlog_filenum = bgsave_info.offset.b_offset.filenum;
-  uint64_t binlog_offset = bgsave_info.offset.b_offset.offset;
-  uint32_t term = bgsave_info.offset.l_offset.term;
-  uint64_t index = bgsave_info.offset.l_offset.index;
-
-  // Get all files need to send
-  std::vector<std::string> descendant;
-  int ret = 0;
-  LOG(INFO) << "DB: " << db->GetDBName() << " Start Send files in " << bg_path << " to " << ip;
-  ret = pstd::GetChildren(bg_path, descendant);
-  if (ret) {
-    std::string ip_port = pstd::IpPortString(ip, port);
-    std::lock_guard ldb(db_sync_protector_);
-    db_sync_slaves_.erase(ip_port);
-    LOG(WARNING) << "DB: " << db->GetDBName()
-                 << " Get child directory when try to do sync failed, error: " << strerror(ret);
-    return;
-  }
-
-  std::string local_path;
-  std::string target_path;
-  const std::string& remote_path = db_name;
-  auto iter = descendant.begin();
-  pstd::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
-  std::string secret_file_path = g_pika_conf->db_sync_path();
-  if (g_pika_conf->db_sync_path().back() != '/') {
-    secret_file_path += "/";
-  }
-  secret_file_path += pstd::kRsyncSubDir + "/" + kPikaSecretFile;
-
-  for (; iter != descendant.end(); ++iter) {
-    local_path = bg_path + "/" + *iter;
-    target_path = remote_path + "/" + *iter;
-
-    if (*iter == kBgsaveInfoFile) {
-      continue;
-    }
-
-    if (pstd::IsDir(local_path) == 0 && local_path.back() != '/') {
-      local_path.push_back('/');
-      target_path.push_back('/');
-    }
-
-    // We need specify the speed limit for every single file
-    ret = pstd::RsyncSendFile(local_path, target_path, secret_file_path, remote);
-    if (0 != ret) {
-      LOG(WARNING) << "DB: " << db->GetDBName() << " RSync send file failed! From: " << *iter
-                   << ", To: " << target_path << ", At: " << ip << ":" << port << ", Error: " << ret;
-      break;
-    }
-  }
-  // Clear target path
-  pstd::RsyncSendClearTarget(bg_path + "/strings", remote_path + "/strings", secret_file_path, remote);
-  pstd::RsyncSendClearTarget(bg_path + "/hashes", remote_path + "/hashes", secret_file_path, remote);
-  pstd::RsyncSendClearTarget(bg_path + "/lists", remote_path + "/lists", secret_file_path, remote);
-  pstd::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", secret_file_path, remote);
-  pstd::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", secret_file_path, remote);
-
-  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
-  std::string lip(host_);
-  if (cli->Connect(ip, port, "").ok()) {
-    struct sockaddr_in laddr;
-    socklen_t llen = sizeof(laddr);
-    getsockname(cli->fd(), reinterpret_cast<struct sockaddr*>(&laddr), &llen);
-    lip = inet_ntoa(laddr.sin_addr);
-    cli->Close();
-  } else {
-    LOG(WARNING) << "Rsync try connect slave rsync service error"
-                 << ", slave rsync service(" << ip << ":" << port << ")";
-  }
-
-  // Send info file at last
-  if (0 == ret) {
-    // need to modify the IP addr in the info file
-    if (lip != host_) {
-      std::ofstream fix;
-      std::string fn = bg_path + "/" + kBgsaveInfoFile + "." + std::to_string(time(nullptr));
-      fix.open(fn, std::ios::in | std::ios::trunc);
-      if (fix.is_open()) {
-        fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
-        fix.close();
-      }
-      ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
-      pstd::DeleteFile(fn);
-      if (ret) {
-        LOG(WARNING) << "DB: " << db->GetDBName() << " Send Modified Info File Failed";
-      }
-    } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,
-                                               secret_file_path, remote))) {
-      LOG(WARNING) << "DB: " << db->GetDBName() << " Send Info File Failed";
-    }
-  }
-  // remove slave
-  {
-    std::string task_index = DbSyncTaskIndex(ip, port, db_name);
-    std::lock_guard ml(db_sync_protector_);
-    db_sync_slaves_.erase(task_index);
-  }
-
-  if (0 == ret) {
-    LOG(INFO) << "DB: " << db->GetDBName() << " RSync Send Files Success";
-  }
-}
-
-std::string PikaServer::DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "%s:%d_%s", ip.data(), port, db_name.data());
-  return buf;
 }
 
 void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
