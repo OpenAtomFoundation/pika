@@ -144,6 +144,19 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   zset_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(zset_data_cf_table_ops));
   zset_score_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(zset_score_cf_table_ops));
 
+  // stream column-family options
+  rocksdb::ColumnFamilyOptions stream_meta_cf_ops(storage_options.options);
+  rocksdb::ColumnFamilyOptions stream_data_cf_ops(storage_options.options);
+
+  rocksdb::BlockBasedTableOptions stream_meta_cf_table_ops(table_ops);
+  rocksdb::BlockBasedTableOptions stream_data_cf_table_ops(table_ops);
+  if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
+    stream_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
+    stream_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
+  }
+  stream_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_meta_cf_table_ops));
+  stream_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_data_cf_table_ops));
+
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
   column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, string_cf_ops);
   // hash CF
@@ -159,6 +172,9 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   column_families.emplace_back("zset_meta_cf", zset_meta_cf_ops);
   column_families.emplace_back("zset_data_cf", zset_data_cf_ops);
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
+  // stream CF
+  column_families.emplace_back("stream_meta_cf", stream_meta_cf_ops);
+  column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
 
@@ -229,6 +245,14 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
         db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
+      }
+      break;
+    case DataType::kStreams:
+      if (type == kMeta || type == kMetaAndData) {
+        s = db_->CompactRange(default_compact_range_options_, handles_[kStreamsMetaCF], begin, end);
+      }
+      if (s.ok() && (type == kData || type == kMetaAndData)) {
+        s = db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
       }
       break;
     default:
@@ -391,10 +415,14 @@ void Redis::SetCompactRangeOptions(const bool is_canceled) {
   } else {
     default_compact_range_options_.canceled->store(is_canceled);
   } 
+}
+
 Status Redis::GetProperty(const std::string& property, uint64_t* out) {
   std::string value;
-  db_->GetProperty(property, &value);
-  *out = std::strtoull(value.c_str(), nullptr, 10);
+  for (const auto& handle : handles_) {
+    db_->GetProperty(handle, property, &value);
+    *out += std::strtoull(value.c_str(), nullptr, 10);
+  }
   return Status::OK();
 }
 
@@ -418,6 +446,10 @@ Status Redis::ScanKeyNum(std::vector<KeyInfo>* key_infos) {
     return s;
   }
   s = ScanSetsKeyNum(&((*key_infos)[4]));
+  if (!s.ok()) {
+    return s;
+  }
+  s = ScanSetsKeyNum(&((*key_infos)[5]));
   if (!s.ok()) {
     return s;
   }

@@ -1134,8 +1134,23 @@ Status Storage::XLen(const Slice& key, int32_t& len) {
 
 Status Storage::XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
               std::vector<std::string>& reserved_keys) {
-  auto& inst = GetDBInstance(key);
-  return inst->XRead(args, results, reserved_keys);
+  Status s;
+  for (int i = 0; i < args.unparsed_ids.size(); i++) {
+    StreamReadGroupReadArgs single_args;
+    single_args.keys.push_back(args.keys[i]);
+    single_args.unparsed_ids.push_back(args.unparsed_ids[i]);
+    single_args.count = args.count;
+    single_args.block = args.block;
+    single_args.group_name = args.group_name;
+    single_args.consumer_name = args.consumer_name;
+    single_args.noack_ = args.noack_;
+    auto& inst = GetDBInstance(args.keys[i]);
+    s = inst->XRead(single_args, results, reserved_keys);
+    if (!s.ok() && !s.IsNotFound()) {
+      return s;
+    }
+  }
+  return s;
 }
 
 Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
@@ -1255,7 +1270,7 @@ int64_t Storage::Del(const std::vector<std::string>& keys, std::map<DataType, St
     }
 
     // Streams
-    s = streams_db_->Del(key);
+    s = inst->StreamsDel(key);
     if (s.ok()) {
       count++;
     } else if (!s.IsNotFound()) {
@@ -1331,7 +1346,7 @@ int64_t Storage::DelByType(const std::vector<std::string>& keys, const DataType&
       }
       // Stream
       case DataType::kStreams: {
-        s = streams_db_->Del(key);
+        s = inst->StreamsDel(key);
         if (s.ok()) {
           count++;
         } else if (!s.IsNotFound()) {
@@ -1892,6 +1907,7 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
     types.push_back(DataType::kLists);
     types.push_back(DataType::kZSets);
     types.push_back(DataType::kSets);
+    types.push_back(DataType::kStreams);
   } else {
     types.push_back(data_type);
   }
@@ -1910,10 +1926,6 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
     while (miter.Valid()) {
       keys->push_back(miter.Key());
       miter.Next();
-    }
-    s = streams_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) {
-      return s;
     }
   }
 
@@ -1937,6 +1949,9 @@ void Storage::ScanDatabase(const DataType& type) {
         break;
       case kLists:
         inst->ScanLists();
+        break;
+      case kStreams:
+        // do noting
         break;
       case kAll:
         inst->ScanStrings();
@@ -2267,10 +2282,6 @@ uint64_t Storage::GetProperty(const std::string& property) {
   Status s;
   for (const auto& inst : insts_) {
     s = inst->GetProperty(property, &out);
-    result += out;
-  }
-  if (db_type == ALL_DB || db_type == STREAMS_DB) {
-    streams_db_->GetProperty(property, &out);
     result += out;
   }
   return result;

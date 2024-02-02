@@ -25,6 +25,7 @@
 #include "src/base_meta_value_format.h"
 #include "src/strings_value_format.h"
 #include "src/lists_meta_value_format.h"
+#include "src/pika_stream_meta_value.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -231,6 +232,35 @@ public:
     }
     user_key_ = parsed_key.Key().ToString();
     user_value_ = parsed_meta_value.UserValue().ToString();
+    return false;
+  }
+private:
+  std::string pattern_;
+};
+
+class StreamsIterator : public TypeIterator {
+public:
+  StreamsIterator(const rocksdb::ReadOptions& options, rocksdb::DB* db,
+                  ColumnFamilyHandle* handle,
+                  const std::string& pattern)
+      : TypeIterator(options, db, handle), pattern_(pattern) {}
+  ~StreamsIterator() {}
+
+  bool ShouldSkip() override {
+    ParsedStreamMetaValue parsed_meta_value(raw_iter_->value());
+    if (parsed_meta_value.length() == 0) {
+      return true;
+    }
+
+    ParsedBaseMetaKey parsed_key(raw_iter_->key().ToString());
+    if (StringMatch(pattern_.data(), pattern_.size(),
+        parsed_key.Key().data(), parsed_key.Key().size(), 0) == 0) {
+      return true;
+    }
+    user_key_ = parsed_key.Key().ToString();
+    // multiple class members defined in StreamMetaValue,
+    // so user_value_ just return rocksdb raw value
+    user_value_ = raw_iter_->value().ToString();
     return false;
   }
 private:

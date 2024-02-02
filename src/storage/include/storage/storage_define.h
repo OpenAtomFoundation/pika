@@ -40,7 +40,8 @@ enum ColumnFamilyIndex {
     kZsetsMetaCF = 7,
     kZsetsDataCF = 8,
     kZsetsScoreCF = 9,
-    kStreamsCF = 10,
+    kStreamsMetaCF = 10,
+    kStreamsDataCF = 11,
 };
 
 const static char kNeedTransformCharacter = '\u0000';

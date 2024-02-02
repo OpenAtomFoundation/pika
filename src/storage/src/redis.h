@@ -23,6 +23,7 @@
 #include "storage/storage.h"
 #include "storage/storage_define.h"
 #include "pstd/include/env.h"
+#include "src/redis_streams.h"
 #include "pstd/include/pika_codis_slot.h"
 
 #define SPOP_COMPACT_THRESHOLD_COUNT 500
@@ -114,12 +115,14 @@ class Redis {
   Status ScanListsKeyNum(KeyInfo* key_info);
   Status ScanZsetsKeyNum(KeyInfo* key_info);
   Status ScanSetsKeyNum(KeyInfo* key_info);
+  Status ScanStreamsKeyNum(KeyInfo* key_info);
 
   virtual Status StringsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
   virtual Status ListsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
   virtual Status HashesPKPatternMatchDel(const std::string& pattern, int32_t* ret);
   virtual Status ZsetsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
   virtual Status SetsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
+  virtual Status StreamsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
   // Keys Commands
   virtual Status StringsExpire(const Slice& key, int64_t ttl);
@@ -133,6 +136,7 @@ class Redis {
   virtual Status ListsDel(const Slice& key);
   virtual Status ZsetsDel(const Slice& key);
   virtual Status SetsDel(const Slice& key);
+  virtual Status StreamsDel(const Slice& key);
 
   virtual Status StringsExpireat(const Slice& key, int64_t timestamp);
   virtual Status HashesExpireat(const Slice& key, int64_t timestamp);
@@ -212,7 +216,7 @@ class Redis {
   Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
   Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
 
-  std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[0]}; }
+  std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[kStringsCF]}; }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetHashCFHandles() {
     return {handles_.begin() + kHashesMetaCF, handles_.begin() + kHashesDataCF + 1};
@@ -227,7 +231,11 @@ class Redis {
   }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetZsetCFHandles() {
-    return {handles_.begin() + kZsetsMetaCF, handles_.end()};
+    return {handles_.begin() + kZsetsMetaCF, handles_.begin() + kZsetsScoreCF + 1};
+  }
+
+  std::vector<rocksdb::ColumnFamilyHandle*> GetStreamCFHandles() {
+    return {handles_.begin() + kStreamsMetaCF, handles_.end()};
   }
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
@@ -304,6 +312,35 @@ class Redis {
   Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
   Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
 
+  //===--------------------------------------------------------------------===//
+  // Commands
+  //===--------------------------------------------------------------------===//
+  Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
+  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XLen(const Slice& key, int32_t& len);
+  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<IdMessage>>& results,
+               std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult& result);
+  Status ScanStream(const ScanStreamOptions& option, std::vector<IdMessage>& id_messages, std::string& next_field,
+                    rocksdb::ReadOptions& read_options);
+  // get and parse the stream meta if found
+  // @return ok only when the stream meta exists
+  Status GetStreamMeta(StreamMetaValue& tream_meta, const rocksdb::Slice& key, rocksdb::ReadOptions& read_options);
+
+  // Before calling this function, the caller should ensure that the ids are valid
+  Status DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
+                              const std::vector<streamID>& ids, rocksdb::ReadOptions& read_options);
+
+  // Before calling this function, the caller should ensure that the ids are valid
+  Status DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
+                              const std::vector<std::string>& serialized_ids, rocksdb::ReadOptions& read_options);
+
+  Status TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key, StreamAddTrimArgs& args,
+                    rocksdb::ReadOptions& read_options);
+
   void ScanDatabase();
   void ScanStrings();
   void ScanHashes();
@@ -336,12 +373,48 @@ class Redis {
       case 'z':
         return new ZsetsIterator(options, db_, handles_[kZsetsMetaCF], pattern);
         break;
+      case 'x':
+        return new StreamsIterator(options, db_, handles_[kStreamsMetaCF], pattern);
+        break;
       default:
         LOG(WARNING) << "Invalid datatype to create iterator";
         return nullptr;
     }
     return nullptr;
   }
+
+private:
+  Status GenerateStreamID(const StreamMetaValue& stream_meta, StreamAddTrimArgs& args);
+
+  Status StreamScanRange(const Slice& key, const uint64_t version, const Slice& id_start, const std::string& id_end,
+                         const Slice& pattern, int32_t limit, std::vector<IdMessage>& id_messages, std::string& next_id,
+                         rocksdb::ReadOptions& read_options);
+  Status StreamReScanRange(const Slice& key, const uint64_t version, const Slice& id_start, const std::string& id_end,
+                           const Slice& pattern, int32_t limit, std::vector<IdMessage>& id_values, std::string& next_id,
+                           rocksdb::ReadOptions& read_options);
+
+  struct TrimRet {
+    // the count of deleted messages
+    int32_t count{0};
+    // the next field after trim
+    std::string next_field;
+    // the max deleted field, will be empty if no message is deleted
+    std::string max_deleted_field;
+  };
+
+  Status TrimByMaxlen(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                      const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options);
+
+  Status TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                     const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options);
+
+  inline Status SetFirstID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, rocksdb::ReadOptions& read_options);
+
+  inline Status SetLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, rocksdb::ReadOptions& read_options);
+
+  inline Status SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
+                                 rocksdb::ReadOptions& read_options);
+
 
 private:
   int32_t index_ = 0;

@@ -30,6 +30,7 @@ bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& curre
   }
   for (const auto& db_struct : current_dbs) {
     if (find(expect_dbs.begin(), expect_dbs.end(), db_struct) == expect_dbs.end()) {
+      LOG(WARNING) << "DB struct mismatch";
       return false;
     }
   }

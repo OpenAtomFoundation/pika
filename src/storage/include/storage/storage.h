@@ -138,9 +138,9 @@ struct ScoreMember {
 
 enum BeforeOrAfter { Before, After };
 
-enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets, kStreams };
+enum DataType { kAll, kStrings, kHashes, kSets, kLists, kZSets, kStreams };
 
-const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's', 'x'};
+const char DataTypeTag[] = {'a', 'k', 'h', 's', 'l', 'z', 'x'};
 
 enum class OptionType {
   kDB,
