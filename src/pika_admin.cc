@@ -630,20 +630,8 @@ void FlushdbCmd::DoInitial() {
   if (argv_.size() == 1) {
     db_name_ = "all";
   } else {
-    std::string struct_type = argv_[1];
-    if (strcasecmp(struct_type.data(), "string") == 0) {
-      db_name_ = "strings";
-    } else if (strcasecmp(struct_type.data(), "hash") == 0) {
-      db_name_ = "hashes";
-    } else if (strcasecmp(struct_type.data(), "set") == 0) {
-      db_name_ = "sets";
-    } else if (strcasecmp(struct_type.data(), "zset") == 0) {
-      db_name_ = "zsets";
-    } else if (strcasecmp(struct_type.data(), "list") == 0) {
-      db_name_ = "lists";
-    } else {
-      res_.SetRes(CmdRes::kInvalidDbType);
-    }
+    LOG(WARNING) << "not supported to flushdb with specific type in Floyd";
+    res_.SetRes(CmdRes::kInvalidParameter, "not supported to flushdb with specific type in Floyd");
   }
 }
 
@@ -656,7 +644,6 @@ void FlushdbCmd::Do() {
     } else {
       //Floyd does not support flushdb by type
       LOG(ERROR) << "cannot flushdb by type in floyd";
-      // db_->FlushSubDB(db_name_);
     }
   }
 }
@@ -690,7 +677,8 @@ void FlushdbCmd::DoWithoutLock() {
     if (db_name_ == "all") {
       db_->FlushDBWithoutLock();
     } else {
-      db_->FlushSubDBWithoutLock(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
     }
     DoUpdateCache();
   }

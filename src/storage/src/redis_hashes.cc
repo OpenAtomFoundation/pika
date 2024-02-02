@@ -34,7 +34,7 @@ Status Redis::ScanHashesKeyNum(KeyInfo* key_info) {
   int64_t curtime;
   rocksdb::Env::Default()->GetCurrentTime(&curtime);
 
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kHashesDataCF]);
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kHashesMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(iter->value());
     if (parsed_hashes_meta_value.IsStale() || parsed_hashes_meta_value.Count() == 0) {
