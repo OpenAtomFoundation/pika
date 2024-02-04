@@ -33,10 +33,8 @@ class PikaSlavepingThread : public net::Thread {
  private:
   int64_t sid_ = 0;
   bool is_first_send_ = true;
-
   int sockfd_ = -1;
   net::NetCli* cli_ = nullptr;
-
   virtual void* ThreadMain();
 };
 

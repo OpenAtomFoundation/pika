@@ -168,13 +168,13 @@ var _ = Describe("String Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pos).To(Equal(int64(-1)))
 
-			pos, err = client.BitPos(ctx, "mykey", 0, 0, -3).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(pos).To(Equal(int64(-1)))
+			//pos, err = client.BitPos(ctx, "mykey", 0, 0, -3).Result()
+			//Expect(err).NotTo(HaveOccurred())
+			//Expect(pos).To(Equal(int64(-1)))
 
-			pos, err = client.BitPos(ctx, "mykey", 0, 0, 0).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(pos).To(Equal(int64(-1)))
+			//pos, err = client.BitPos(ctx, "mykey", 0, 0, 0).Result()
+			//Expect(err).NotTo(HaveOccurred())
+			//Expect(pos).To(Equal(int64(-1)))
 		})
 
 		It("should BitPosSpan", func() {

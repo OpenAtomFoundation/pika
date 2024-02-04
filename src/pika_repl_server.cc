@@ -92,9 +92,14 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
   for (const auto& task : tasks) {
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
-    InnerMessage::Slot* slot = binlog_sync->mutable_slot();
-    slot->set_db_name(task.rm_node_.DBName());
-    slot->set_slot_id(task.rm_node_.SlotId());
+    InnerMessage::Slot* db = binlog_sync->mutable_slot();
+    db->set_db_name(task.rm_node_.DBName());
+    /*
+     * Since the slot field is written in protobuffer,
+     * slot_id is set to the default value 0 for compatibility
+     * with older versions, but slot_id is not used
+     */
+    db->set_slot_id(0);
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
     BuildBinlogOffset(task.binlog_chip_.offset_, boffset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);

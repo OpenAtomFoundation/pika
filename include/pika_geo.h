@@ -6,9 +6,10 @@
 #ifndef PIKA_GEO_H_
 #define PIKA_GEO_H_
 
+#include "include/pika_db.h"
 #include "include/acl.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
+#include "storage/storage.h"
 
 /*
  * zset
@@ -58,8 +59,8 @@ class GeoAddCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new GeoAddCmd(*this); }
 
@@ -78,8 +79,8 @@ class GeoPosCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new GeoPosCmd(*this); }
 
@@ -98,8 +99,8 @@ class GeoDistCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override{};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new GeoDistCmd(*this); }
 
@@ -117,8 +118,8 @@ class GeoHashCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override{};
   Cmd* Clone() override { return new GeoHashCmd(*this); }
 
@@ -132,8 +133,8 @@ class GeoRadiusCmd : public Cmd {
  public:
   GeoRadiusCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new GeoRadiusCmd(*this); }
 
@@ -158,8 +159,8 @@ class GeoRadiusByMemberCmd : public Cmd {
  public:
   GeoRadiusByMemberCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::GEO)) {}
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new GeoRadiusByMemberCmd(*this); }
 

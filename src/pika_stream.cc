@@ -1,16 +1,18 @@
-// Copyright (c) 2018-present, Qihoo, Inc.  All rights reserved.
-// This source code is licensed under the BSD-style license found in the
-// LICENSE file in the root directory of this source tree. An additional grant
-// of patent rights can be found in the PATENTS file in the same directory.
+//  Copyright (c) 2023-present, Qihoo, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_stream.h"
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
+#include "glog/logging.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
-#include "include/pika_stream_base.h"
-#include "include/pika_stream_meta_value.h"
-#include "include/pika_stream_types.h"
+#include "include/pika_db.h"
+#include "include/pika_define.h"
 #include "storage/storage.h"
 
 // s : rocksdb::Status
@@ -24,7 +26,7 @@
     }                                              \
   } while (0)
 
-void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamAddTrimArgs &args, int *idpos,
+void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, storage::StreamAddTrimArgs &args, int *idpos,
                                bool is_xadd) {
   int i = 2;
   bool limit_given = false;
@@ -38,7 +40,7 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
 
     } else if (strcasecmp(opt.c_str(), "maxlen") == 0 && moreargs) {
       // case: XADD mystream ... MAXLEN [= | ~] threshold ...
-      if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
+      if (args.trim_strategy != storage::StreamTrimStrategy::TRIM_STRATEGY_NONE) {
         res.SetRes(CmdRes::kSyntaxErr, "syntax error, MAXLEN and MINID options at the same time are not compatible");
         return;
       }
@@ -48,16 +50,16 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
         i++;
       }
       // parse threshold as uint64
-      if (!StreamUtils::string2uint64(argv[i + 1].c_str(), args.maxlen)) {
+      if (!storage::StreamUtils::string2uint64(argv[i + 1].c_str(), args.maxlen)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid MAXLEN argument");
       }
       i++;
-      args.trim_strategy = StreamTrimStrategy::TRIM_STRATEGY_MAXLEN;
+      args.trim_strategy = storage::StreamTrimStrategy::TRIM_STRATEGY_MAXLEN;
       args.trim_strategy_arg_idx = i;
 
     } else if (strcasecmp(opt.c_str(), "minid") == 0 && moreargs) {
       // case: XADD mystream ... MINID [= | ~] threshold ...
-      if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
+      if (args.trim_strategy != storage::StreamTrimStrategy::TRIM_STRATEGY_NONE) {
         res.SetRes(CmdRes::kSyntaxErr, "syntax error, MAXLEN and MINID options at the same time are not compatible");
         return;
       }
@@ -67,12 +69,12 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
         i++;
       }
       // parse threshold as stremID
-      if (!StreamUtils::StreamParseID(argv[i + 1], args.minid, 0)) {
+      if (!storage::StreamUtils::StreamParseID(argv[i + 1], args.minid, 0)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
         return;
       }
       i++;
-      args.trim_strategy = StreamTrimStrategy::TRIM_STRATEGY_MINID;
+      args.trim_strategy = storage::StreamTrimStrategy::TRIM_STRATEGY_MINID;
       args.trim_strategy_arg_idx = i;
 
     } else if (strcasecmp(opt.c_str(), "limit") == 0 && moreargs) {
@@ -87,7 +89,7 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
 
     } else if (is_xadd) {
       // case: XADD mystream ... ID ...
-      if (!StreamUtils::StreamParseStrictID(argv[i], args.id, 0, &args.seq_given)) {
+      if (!storage::StreamUtils::StreamParseStrictID(argv[i], args.id, 0, &args.seq_given)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
         return;
       }
@@ -110,7 +112,7 @@ void ParseAddOrTrimArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamA
  * [NOACK] STREAMS key [key ...] id [id ...]
  * XREAD [COUNT count] [BLOCK milliseconds] STREAMS key [key ...] id
  * [id ...] */
-void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, StreamReadGroupReadArgs &args,
+void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, storage::StreamReadGroupReadArgs &args,
                                      bool is_xreadgroup) {
   int streams_arg_idx{0};  // the index of stream keys arg
   size_t streams_cnt{0};   // the count of stream keys
@@ -120,13 +122,13 @@ void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, S
     const std::string &o = argv[i];
     if (strcasecmp(o.c_str(), "BLOCK") == 0 && moreargs) {
       i++;
-      if (!StreamUtils::string2uint64(argv[i].c_str(), args.block)) {
+      if (!storage::StreamUtils::string2uint64(argv[i].c_str(), args.block)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid BLOCK argument");
         return;
       }
     } else if (strcasecmp(o.c_str(), "COUNT") == 0 && moreargs) {
       i++;
-      if (!StreamUtils::string2int32(argv[i].c_str(), args.count)) {
+      if (!storage::StreamUtils::string2int32(argv[i].c_str(), args.count)) {
         res.SetRes(CmdRes::kInvalidParameter, "Invalid COUNT argument");
         return;
       }
@@ -179,12 +181,12 @@ void ParseReadOrReadGroupArgsOrReply(CmdRes &res, const PikaCmdArgsType &argv, S
   }
 }
 
-void AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_values, const Slot *slot) {
-  assert(slot);
-  res.AppendArrayLenUint64(field_values.size());
-  for (auto &fv : field_values) {
+void AppendMessagesToRes(CmdRes &res, std::vector<storage::IdMessage> &id_messages, const DB* db) {
+  assert(db);
+  res.AppendArrayLenUint64(id_messages.size());
+  for (auto &fv : id_messages) {
     std::vector<std::string> message;
-    if (!StreamUtils::DeserializeMessage(fv.value, message)) {
+    if (!storage::StreamUtils::DeserializeMessage(fv.value, message)) {
       LOG(ERROR) << "Deserialize message failed";
       res.SetRes(CmdRes::kErrOther, "Deserialize message failed");
       return;
@@ -192,7 +194,7 @@ void AppendMessagesToRes(CmdRes &res, std::vector<storage::FieldValue> &field_va
 
     assert(message.size() % 2 == 0);
     res.AppendArrayLen(2);
-    streamID sid;
+    storage::streamID sid;
     sid.DeserializeFrom(fv.field);
     res.AppendString(sid.ToString());  // field here is the stream id
     res.AppendArrayLenUint64(message.size());
@@ -208,12 +210,6 @@ void XAddCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-
-  // check the conflict of stream used prefix, see detail in defination of STREAM_TREE_PREFIX
-  if (key_ == STREAM_LAST_GENERATED_TREE_ID_FIELD) {
-    res_.SetRes(CmdRes::kErrOther, "Can not use " + STREAM_LAST_GENERATED_TREE_ID_FIELD + "as stream key");
-    return;
-  }
 
   int idpos{-1};
   ParseAddOrTrimArgsOrReply(res_, argv_, args_, &idpos, true);
@@ -232,29 +228,16 @@ void XAddCmd::DoInitial() {
   }
 }
 
-void XAddCmd::Do(std::shared_ptr<Slot> slot) {
-  // 1 get stream meta
-  rocksdb::Status s;
-  StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
-  if (s.IsNotFound() && args_.no_mkstream) {
-    res_.SetRes(CmdRes::kNotFound);
-    return;
-  } else if (s.IsNotFound()) {
-    stream_meta.Init();
-  } else if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed: " + s.ToString());
+void XAddCmd::Do() {
+  std::string message;
+  if (!storage::StreamUtils::SerializeMessage(argv_, message, field_pos_)) {
+    res_.SetRes(CmdRes::kErrOther, "Serialize message failed");
     return;
   }
 
-  if (stream_meta.last_id().ms == UINT64_MAX && stream_meta.last_id().seq == UINT64_MAX) {
-    res_.SetRes(CmdRes::kErrOther, "Fatal! Sequence number overflow !");
-    return;
-  }
-
-  // 2 append the message to storage
-  GenerateStreamIDOrReply(stream_meta);
-  if (res_.ret() != CmdRes::kNone) {
+  auto s = db_->storage()->XAdd(key_, message, args_);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
 
@@ -264,97 +247,7 @@ void XAddCmd::Do(std::shared_ptr<Slot> slot) {
     argv_[field_pos_ - 1] = args_.id.ToString();
   }
 
-  std::string message;
-  if (!StreamUtils::SerializeMessage(argv_, message, field_pos_)) {
-    res_.SetRes(CmdRes::kErrOther, "Serialize message failed");
-    return;
-  }
-
-  // check the serialized current id is larger than last_id
-#ifdef DEBUG
-  std::string serialized_last_id;
-  stream_meta.last_id().SerializeTo(serialized_last_id);
-  assert(field > serialized_last_id);
-#endif  // DEBUG
-
-  s = StreamStorage::InsertStreamMessage(key_, args_.id, message, slot.get());
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, "error from XADD, insert stream message failed 1: " + s.ToString());
-    return;
-  }
-
-  // 3 update stream meta
-  if (stream_meta.length() == 0) {
-    stream_meta.set_first_id(args_.id);
-  }
-  stream_meta.set_entries_added(stream_meta.entries_added() + 1);
-  stream_meta.set_last_id(args_.id);
-  stream_meta.set_length(stream_meta.length() + 1);
-
-  // 4 trim the stream if needed
-  if (args_.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
-    int32_t count;
-    TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, slot.get()), res_);
-    (void)count;
-  }
-
-  // 5 update stream meta
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get());
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, "error from XADD, get stream meta failed 2: " + s.ToString());
-    return;
-  }
-
   res_.AppendString(args_.id.ToString());
-}
-
-void XAddCmd::GenerateStreamIDOrReply(const StreamMetaValue &stream_meta) {
-  auto &id = args_.id;
-  if (args_.id_given && args_.seq_given && id.ms == 0 && id.seq == 0) {
-    res_.SetRes(CmdRes::kInvalidParameter, "The ID specified in XADD must be greater than 0-0");
-    return;
-  }
-
-  if (!args_.id_given || !args_.seq_given) {
-    // if id not given, generate one
-    if (!args_.id_given) {
-      id.ms = StreamUtils::GetCurrentTimeMs();
-
-      if (id.ms < stream_meta.last_id().ms) {
-        id.ms = stream_meta.last_id().ms;
-        if (stream_meta.last_id().seq == UINT64_MAX) {
-          id.ms++;
-          id.seq = 0;
-        } else {
-          id.seq++;
-        }
-        return;
-      }
-    }
-
-    // generate seq
-    auto last_id = stream_meta.last_id();
-    if (id.ms < last_id.ms) {
-      res_.SetRes(CmdRes::kErrOther, "The ID specified in XADD is equal or smaller");
-      return;
-    } else if (id.ms == last_id.ms) {
-      if (last_id.seq == UINT64_MAX) {
-        res_.SetRes(CmdRes::kErrOther, "The ID specified in XADD is equal or smaller");
-        return;
-      }
-      id.seq = last_id.seq + 1;
-    } else {
-      id.seq = 0;
-    }
-
-  } else {
-    //  Full ID given, check id
-    auto last_id = stream_meta.last_id();
-    if (id.ms < last_id.ms || (id.ms == last_id.ms && id.seq <= last_id.seq)) {
-      res_.SetRes(CmdRes::kErrOther, "INVALID ID given");
-      return;
-    }
-  }
 }
 
 void XRangeCmd::DoInitial() {
@@ -363,121 +256,65 @@ void XRangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!StreamUtils::StreamParseIntervalId(argv_[2], start_sid, &start_ex_, 0) ||
-      !StreamUtils::StreamParseIntervalId(argv_[3], end_sid, &end_ex_, UINT64_MAX)) {
+  if (!storage::StreamUtils::StreamParseIntervalId(argv_[2], args_.start_sid, &args_.start_ex, 0) ||
+      !storage::StreamUtils::StreamParseIntervalId(argv_[3], args_.end_sid, &args_.end_ex, UINT64_MAX)) {
     res_.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
     return;
   }
-  if (start_ex_ && start_sid.ms == UINT64_MAX && start_sid.seq == UINT64_MAX) {
+  if (args_.start_ex && args_.start_sid.ms == UINT64_MAX && args_.start_sid.seq == UINT64_MAX) {
     res_.SetRes(CmdRes::kInvalidParameter, "invalid start id");
     return;
   }
-  if (end_ex_ && end_sid.ms == 0 && end_sid.seq == 0) {
+  if (args_.end_ex && args_.end_sid.ms == 0 && args_.end_sid.seq == 0) {
     res_.SetRes(CmdRes::kInvalidParameter, "invalid end id");
     return;
   }
   if (argv_.size() == 6) {
-    // pika's PKHScanRange() only sopport max count of INT32_MAX
-    // but redis supports max count of UINT64_MAX
-    if (!StreamUtils::string2int32(argv_[5].c_str(), count_)) {
+    if (!storage::StreamUtils::string2int32(argv_[5].c_str(), args_.limit)) {
       res_.SetRes(CmdRes::kInvalidParameter, "COUNT should be a integer greater than 0 and not bigger than INT32_MAX");
       return;
     }
   }
 }
 
-void XRangeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<storage::FieldValue> field_values;
+void XRangeCmd::Do() {
+  std::vector<storage::IdMessage> id_messages;
 
-  if (start_sid <= end_sid) {
-    StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, false);
-    std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
-    (void)next_field;
+  if (args_.start_sid <= args_.end_sid) {
+    auto s = db_->storage()->XRange(key_, args_, id_messages);
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
 
-  AppendMessagesToRes(res_, field_values, slot.get());
+  AppendMessagesToRes(res_, id_messages, db_.get());
 }
 
-void XRevrangeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::vector<storage::FieldValue> field_values;
+void XRevrangeCmd::Do() {
+  std::vector<storage::IdMessage> id_messages;
 
-  if (start_sid >= end_sid) {
-    StreamStorage::ScanStreamOptions options(key_, start_sid, end_sid, count_, start_ex_, end_ex_, true);
-    std::string next_field;
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
-    (void)next_field;
+  if (args_.start_sid >= args_.end_sid) {
+    auto s = db_->storage()->XRevrange(key_, args_, id_messages);
     if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
 
-  AppendMessagesToRes(res_, field_values, slot.get());
-}
-
-inline void XDelCmd::SetFirstIDOrReply(StreamMetaValue &stream_meta, const Slot *slot) {
-  assert(slot);
-  return SetFirstOrLastIDOrReply(stream_meta, slot, true);
-}
-
-inline void XDelCmd::SetLastIDOrReply(StreamMetaValue &stream_meta, const Slot *slot) {
-  assert(slot);
-  return SetFirstOrLastIDOrReply(stream_meta, slot, false);
-}
-
-inline void XDelCmd::SetFirstOrLastIDOrReply(StreamMetaValue &stream_meta, const Slot *slot, bool is_set_first) {
-  assert(slot);
-  if (stream_meta.length() == 0) {
-    stream_meta.set_first_id(kSTREAMID_MIN);
-    return;
-  }
-
-  std::vector<storage::FieldValue> field_values;
-  std::string next_field;
-
-  storage::Status s;
-  if (is_set_first) {
-    StreamStorage::ScanStreamOptions option(key_, kSTREAMID_MIN, kSTREAMID_MAX, 1);
-    s = StreamStorage::ScanStream(option, field_values, next_field, slot);
-  } else {
-    bool is_reverse = true;
-    StreamStorage::ScanStreamOptions option(key_, kSTREAMID_MAX, kSTREAMID_MIN, 1, false, false, is_reverse);
-    s = StreamStorage::ScanStream(option, field_values, next_field, slot);
-  }
-  (void)next_field;
-
-  if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "Internal error: scan stream failed: " << s.ToString();
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
-
-  if (field_values.empty()) {
-    LOG(ERROR) << "Internal error: no messages found but stream length is not 0";
-    res_.SetRes(CmdRes::kErrOther, "Internal error: no messages found but stream length is not 0");
-    return;
-  }
-
-  streamID id;
-  id.DeserializeFrom(field_values[0].field);
-  stream_meta.set_first_id(id);
+  AppendMessagesToRes(res_, id_messages, db_.get());
 }
 
 void XDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameXDel);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameXAdd);
     return;
   }
 
   key_ = argv_[1];
   for (int i = 2; i < argv_.size(); i++) {
-    streamID id;
-    if (!StreamUtils::StreamParseStrictID(argv_[i], id, 0, nullptr)) {
+    storage::streamID id;
+    if (!storage::StreamUtils::StreamParseStrictID(argv_[i], id, 0, nullptr)) {
       res_.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
       return;
     }
@@ -488,43 +325,15 @@ void XDelCmd::DoInitial() {
   }
 }
 
-void XDelCmd::Do(std::shared_ptr<Slot> slot) {
-  // 1 try to get stream meta
-  StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
-  if (s.IsNotFound()) {
-    res_.AppendInteger(0);
-    return;
-  } else if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
-
-  // 2 do the delete
+void XDelCmd::Do() {
   int32_t count{0};
-  s = StreamStorage::DeleteStreamMessage(key_, ids_, count, slot.get());
-  if (!s.ok()) {
+  auto s = db_->storage()->XDel(key_, ids_, count);
+  if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
   }
 
-  // 3 update stream meta
-  stream_meta.set_length(stream_meta.length() - count);
-  for (const auto &id : ids_) {
-    if (id > stream_meta.max_deleted_entry_id()) {
-      stream_meta.set_max_deleted_entry_id(id);
-    }
-    if (id == stream_meta.first_id()) {
-      SetFirstIDOrReply(stream_meta, slot.get());
-    } else if (id == stream_meta.last_id()) {
-      SetLastIDOrReply(stream_meta, slot.get());
-    }
-  }
-
-  s = StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get());
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
+  if (count > INT_MAX) {
+    return res_.SetRes(CmdRes::kErrOther, "count is larger than INT_MAX");
   }
 
   res_.AppendInteger(count);
@@ -538,10 +347,9 @@ void XLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void XLenCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s;
-  StreamMetaValue stream_meta;
-  s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
+void XLenCmd::Do() {
+  int32_t len{0};
+  auto s = db_->storage()->XLen(key_, len);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
     return;
@@ -550,11 +358,11 @@ void XLenCmd::Do(std::shared_ptr<Slot> slot) {
     return;
   }
 
-  if (stream_meta.length() > INT_MAX) {
-    res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
-    return;
+  if (len > INT_MAX) {
+    return res_.SetRes(CmdRes::kErrOther, "stream's length is larger than INT_MAX");
   }
-  res_.AppendInteger(static_cast<int32_t>(stream_meta.length()));
+
+  res_.AppendInteger(len);
   return;
 }
 
@@ -567,71 +375,35 @@ void XReadCmd::DoInitial() {
   ParseReadOrReadGroupArgsOrReply(res_, argv_, args_, false);
 }
 
-void XReadCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s;
+void XReadCmd::Do() {
+  std::vector<std::vector<storage::IdMessage>> results;
+  // The wrong key will not trigger error, just be ignored,
+  // we need to save the right key，and return it to client.
+  std::vector<std::string> reserved_keys;
+  auto s = db_->storage()->XRead(args_, results, reserved_keys);
 
-  // 1 prepare stream_metas
-  std::vector<std::pair<StreamMetaValue, int>> streammeta_idx;
-  for (int i = 0; i < args_.unparsed_ids.size(); i++) {
-    const auto &key = args_.keys[i];
-    const auto &unparsed_id = args_.unparsed_ids[i];
-
-    StreamMetaValue stream_meta;
-    auto s = StreamStorage::GetStreamMeta(stream_meta, key, slot.get());
-    if (s.IsNotFound()) {
-      continue;
-    } else if (!s.ok()) {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
-      return;
-    }
-
-    streammeta_idx.emplace_back(std::move(stream_meta), i);
+  if (!s.ok() && s.ToString() ==
+                     "The > ID can be specified only when calling "
+                     "XREADGROUP using the GROUP <group> "
+                     "<consumer> option.") {
+    res_.SetRes(CmdRes::kSyntaxErr, s.ToString());
+  } else if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
-  if (streammeta_idx.empty()) {
+  if (results.empty()) {
     res_.AppendArrayLen(-1);
     return;
   }
 
+  assert(results.size() == reserved_keys.size());
+
   // 2 do the scan
-  res_.AppendArrayLenUint64(streammeta_idx.size());
-  for (const auto &stream_meta_id : streammeta_idx) {
-    const auto &stream_meta = stream_meta_id.first;
-    const auto &idx = stream_meta_id.second;
-    const auto &unparsed_id = args_.unparsed_ids[idx];
-    const auto &key = args_.keys[idx];
-
-    // 2.1 try to parse id
-    streamID id;
-    if (unparsed_id == "<") {
-      res_.SetRes(CmdRes::kSyntaxErr,
-                  "The > ID can be specified only when calling "
-                  "XREADGROUP using the GROUP <group> "
-                  "<consumer> option.");
-      return;
-    } else if (unparsed_id == "$") {
-      id = stream_meta.last_id();
-    } else {
-      if (!StreamUtils::StreamParseStrictID(unparsed_id, id, 0, nullptr)) {
-        res_.SetRes(CmdRes::kInvalidParameter, "Invalid stream ID specified as stream ");
-        return;
-      }
-    }
-
-    // 2.2 scan
-    std::vector<storage::FieldValue> field_values;
-    std::string next_field;
-    StreamStorage::ScanStreamOptions options(key, id, kSTREAMID_MAX, args_.count, true);
-    auto s = StreamStorage::ScanStream(options, field_values, next_field, slot.get());
-    (void)next_field;
-    if (!s.ok() && !s.IsNotFound()) {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
-      return;
-    }
-
+  res_.AppendArrayLenUint64(results.size());
+  for (size_t i = 0; i < results.size(); ++i) {
     res_.AppendArrayLen(2);
-    res_.AppendString(key);
-    AppendMessagesToRes(res_, field_values, slot.get());
+    res_.AppendString(reserved_keys[i]);
+    AppendMessagesToRes(res_, results[i], db_.get());
   }
 }
 
@@ -648,24 +420,17 @@ void XTrimCmd::DoInitial() {
   }
 }
 
-void XTrimCmd::Do(std::shared_ptr<Slot> slot) {
-  // 1 try to get stream meta, if not found, return error
-  StreamMetaValue stream_meta;
-  auto s = StreamStorage::GetStreamMeta(stream_meta, key_, slot.get());
-  if (s.IsNotFound()) {
-    res_.AppendInteger(0);
-    return;
-  } else if (!s.ok()) {
+void XTrimCmd::Do() {
+  int32_t count{0};
+  auto s = db_->storage()->XTrim(key_, args_, count);
+  if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
 
-  // 2 do the trim
-  int32_t count{0};
-  TRY_CATCH_ERROR(StreamStorage::TrimStream(count, stream_meta, key_, args_, slot.get()), res_);
-
-  // 3 update stream meta
-  TRY_CATCH_ERROR(StreamStorage::SetStreamMeta(key_, stream_meta.value(), slot.get()), res_);
+  if (count > INT_MAX) {
+    return res_.SetRes(CmdRes::kErrOther, "count is larger than INT_MAX");
+  }
 
   res_.AppendInteger(count);
   return;
@@ -682,7 +447,7 @@ void XInfoCmd::DoInitial() {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
     if (argv_.size() > 3 && strcasecmp(subcmd_.c_str(), "FULL") != 0) {
       is_full_ = true;
-      if (argv_.size() > 4 && !StreamUtils::string2uint64(argv_[4].c_str(), count_)) {
+      if (argv_.size() > 4 && !storage::StreamUtils::string2uint64(argv_[4].c_str(), count_)) {
         res_.SetRes(CmdRes::kInvalidParameter, "invalid count");
         return;
       }
@@ -711,9 +476,9 @@ void XInfoCmd::DoInitial() {
   }
 }
 
-void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
+void XInfoCmd::Do() {
   if (!strcasecmp(subcmd_.c_str(), "STREAM")) {
-    this->StreamInfo(slot);
+    this->StreamInfo(db_);
   } else if (!strcasecmp(subcmd_.c_str(), "GROUPS")) {
     // Korpse: TODO:
     // this->GroupsInfo(slot);
@@ -726,23 +491,28 @@ void XInfoCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-void XInfoCmd::StreamInfo(std::shared_ptr<Slot> &slot) {
-  // 1 try to get stream meta
-  StreamMetaValue stream_meta;
-  TRY_CATCH_ERROR(StreamStorage::GetStreamMeta(stream_meta, key_, slot.get()), res_);
+void XInfoCmd::StreamInfo(std::shared_ptr<DB>& db) {
+  storage::StreamInfoResult info;
+  auto s = db_->storage()->XInfo(key_, info);
 
-  // 2 append the stream info
+  if (!s.ok() && !s.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kNotFound);
+    return;
+  }
+
+  // // 2 append the stream info
   res_.AppendArrayLen(10);
   res_.AppendString("length");
-  res_.AppendInteger(static_cast<int64_t>(stream_meta.length()));
+  res_.AppendInteger(static_cast<int64_t>(info.length));
   res_.AppendString("last-generated-id");
-  res_.AppendString(stream_meta.last_id().ToString());
+  res_.AppendString(info.last_id_str);
   res_.AppendString("max-deleted-entry-id");
-  res_.AppendString(stream_meta.max_deleted_entry_id().ToString());
+  res_.AppendString(info.max_deleted_entry_id_str);
   res_.AppendString("entries-added");
-  res_.AppendInteger(static_cast<int64_t>(stream_meta.entries_added()));
+  res_.AppendInteger(static_cast<int64_t>(info.entries_added));
   res_.AppendString("recorded-first-entry-id");
-  res_.AppendString(stream_meta.first_id().ToString());
-
-  // Korpse TODO: add group info
+  res_.AppendString(info.first_id_str);
 }

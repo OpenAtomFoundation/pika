@@ -39,6 +39,7 @@ inline const std::string HASHES_DB = "hashes";
 inline const std::string LISTS_DB = "lists";
 inline const std::string ZSETS_DB = "zsets";
 inline const std::string SETS_DB = "sets";
+inline const std::string STREAMS_DB = "streams";
 
 inline constexpr size_t BATCH_DELETE_LIMIT = 100;
 inline constexpr size_t COMPACT_THRESHOLD_COUNT = 2000;
@@ -53,8 +54,15 @@ class RedisHashes;
 class RedisSets;
 class RedisLists;
 class RedisZSets;
+class RedisStreams;
 class HyperLogLog;
 enum class OptionType;
+
+struct StreamAddTrimArgs;
+struct StreamReadGroupReadArgs;
+struct StreamScanArgs;
+struct streamID;
+struct StreamInfoResult;
 
 template <typename T1, typename T2>
 class LRUCache;
@@ -97,6 +105,12 @@ struct FieldValue {
   bool operator==(const FieldValue& fv) const { return (fv.field == field && fv.value == value); }
 };
 
+struct IdMessage {
+  std::string field;
+  std::string value;
+  bool operator==(const IdMessage& fv) const { return (fv.field == field && fv.value == value); }
+};
+
 struct KeyVersion {
   std::string key;
   int32_t version;
@@ -111,9 +125,9 @@ struct ScoreMember {
 
 enum BeforeOrAfter { Before, After };
 
-enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets };
+enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets, kStreams };
 
-const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's'};
+const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's', 'x'};
 
 enum class OptionType {
   kDB,
@@ -126,16 +140,26 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactRange };
+enum Operation {
+  kNone = 0,
+  kCleanAll,
+  kCleanStrings,
+  kCleanHashes,
+  kCleanZSets,
+  kCleanSets,
+  kCleanLists,
+  kCleanStreams,
+  kCompactRange
+};
 
 struct BGTask {
   DataType type;
   Operation operation;
   std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll,
-         const Operation& _opeation = Operation::kNone,
-         const std::vector<std::string>& _argv = {}) : type(_type), operation(_opeation), argv(_argv) {}
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {})
+      : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
@@ -908,6 +932,15 @@ class Storage {
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
 
+  Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
+  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XLen(const Slice& key, int32_t& len);
+  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+               std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult &result);
   // Keys Commands
 
   // Note:
@@ -1055,6 +1088,7 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
+  void SetCompactRangeOptions(const bool is_canceled);
   Status EnableDymayticOptions(const OptionType& option_type, 
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   Status EnableAutoCompaction(const OptionType& option_type, 
@@ -1067,6 +1101,7 @@ class Storage {
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
   std::unique_ptr<RedisLists> lists_db_;
+  std::unique_ptr<RedisStreams> streams_db_;
   std::atomic<bool> is_opened_ = false;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
