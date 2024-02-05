@@ -85,7 +85,13 @@ func init() {
 	// Clear the accumulated maximum delay to 0
 	go func() {
 		for {
-			time.Sleep(time.Duration(RefreshPeriod.Int64()))
+			refreshPeriod := RefreshPeriod.Int64()
+			if refreshPeriod == 0 {
+				time.Sleep(15 * time.Second)
+			} else {
+				time.Sleep(time.Duration(refreshPeriod))
+			}
+
 			for _, s := range cmdstats.opmap {
 				s.maxDelay.Set(0)
 			}
