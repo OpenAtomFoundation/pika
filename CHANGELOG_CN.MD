@@ -1,3 +1,60 @@
+# v3.5.3
+
+## 新特性
+
+- Pika 支持 ACL[#2013](https://github.com/OpenAtomFoundation/pika/pull/2013) @[lqxhub](https://github.com/lqxhub)
+
+- 在 Codis dashboard 协程 panic 时自动恢复服务[#2349](https://github.com/OpenAtomFoundation/pika/pull/2349)@[chengyu-l](https://github.com/chengyu-l)
+
+- 在全量复制的过程中，pika 服务的从节点不接收读流量请求 [#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
+
+- Pika cache 新增 bimap数据类型[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+- 删除 Sharing 模式残留的 Slot，Pika 下只有 DB，一个 Pika 下有多个 DB[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
+
+- Pika exporter 暴露 cache 相关的数据采集指标[#2318](https://github.com/OpenAtomFoundation/pika/pull/2318) @[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- Pika 支持快慢命令分离[#2162](https://github.com/OpenAtomFoundation/pika/pull/2162) @[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- pika 执行完成 Bgsave后, 保留 unix timepoint[#2167](https://github.com/OpenAtomFoundation/pika/pull/2167) @[hero-heng](https://github.com/hero-heng)
+
+- Pika 支持动态配置 disable_auto_compations 参数[#2257](https://github.com/OpenAtomFoundation/pika/pull/2257) @[hero-heng](https://github.com/hero-heng)
+
+- Pika 支持 Redis Stream[#1955](https://github.com/OpenAtomFoundation/pika/pull/1955) @[KKorpse](https://github.com/KKorpse)
+
+- Pika 支持大 key 分析工具[#2195](https://github.com/OpenAtomFoundation/pika/pull/2195) @[sjcsjc123](https://github.com/sjcsjc123)
+
+- Pika 支持动态调整 Pika cache 参数[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+## bugfix
+
+- 修复 Pika 有从节点进行全量复制期间会误删除 dump 文件的问题[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
+
+- 修复主从复制过程中, slave 节点收到 master 异常回包后的处理逻辑[#2319](https://github.com/OpenAtomFoundation/pika/pull/2319)@[wangshao1](https://github.com/wangshao1)
+
+- 在 Pika 执行 shutdown 命令时调用 disable compaction, 提升进程退出速度 [#2345](https://github.com/OpenAtomFoundation/pika/pull/2345) @[panlei-coder](https://github.com/panlei-coder)
+
+- 修复 Codis-dashboard Redis Memory 值不准确的问题[#2337](https://github.com/OpenAtomFoundation/pika/pull/2337) @[Mixficsol](https://github.com/Mixficsol)
+
+- INFO 命令耗时优化，降低查磁盘频率 [#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+- 修复 Rsync 删除临时文件路径不对，删除失败，导致rocksdb打开失败的问题[#2186](https://github.com/OpenAtomFoundation/pika/pull/2186)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 Compact ,Bgsave ,Info keyspace 命令未指定db名称，导致部分命令 coredump 的问题[#2194](https://github.com/OpenAtomFoundation/pika/pull/2194)@[u6th9d](https://github.com/u6th9d)
+
+- Codis dashboard 用 info replication 替代 info 命令查寻 master ip 降低对 Pika 的性能影响 [#2198](https://github.com/OpenAtomFoundation/pika/pull/2198)  @[chenbt-hz](https://github.com/chenbt-hz)
+
+- 修复 Pika cache 使用边缘case，解决部分场景下 cache 和 DB 数据不一致的问题[#2225](https://github.com/OpenAtomFoundation/pika/pull/2225)  @[chejinge](https://github.com/chejinge)
+
+- 修复当 dump 文件夹为空时，会启动报错 Segmentation fault 的问题[#2265](https://github.com/OpenAtomFoundation/pika/pull/2265)  @[chenbt-hz](https://github.com/chenbt-hz)
+
+- 修复因为flag计算错误,导致的部分命令缓存没有生效问题[#2217](https://github.com/OpenAtomFoundation/pika/pull/2217) @[lqxhub](https://github.com/lqxhub)
+
+- 修复主从复制模式下，主实例 flushdb 后，从实例因为死锁导致的不能访问的问题[#2249](https://github.com/OpenAtomFoundation/pika/pull/2249)@[ForestLH](https://github.com/ForestLH)
+
+- 修复部分命令未对 RocksDB 的返回值进行判断的问题[#2187](https://github.com/OpenAtomFoundation/pika/pull/2187)@[callme-taota](https://github.com/callme-taota)
+
+
 # v3.5.2
 
 ## 新特性
