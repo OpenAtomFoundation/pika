@@ -11,4 +11,7 @@ const (
 	ActionMigrating = "migrating"
 	ActionFinished  = "finished"
 	ActionSyncing   = "syncing"
+	ActionSynced    = "synced"
+
+	ActionSyncedFailed = "synced_failed"
 )
