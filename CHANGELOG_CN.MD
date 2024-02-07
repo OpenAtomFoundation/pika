@@ -26,6 +26,20 @@
 
 - Pika 支持动态调整 Pika cache 参数[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
 
+- 更新 Pika benchmark 工具支持更多的接口压测[#2222](https://github.com/OpenAtomFoundation/pika/pull/2222)@[wangshao1](https://github.com/wangshao1)
+
+- Pika Operator 支持 pika 集群自动扩容[#2121](https://github.com/OpenAtomFoundation/pika/pull/2121)@[machinly](https://github.com/machinly/)
+
+- 添加 CompactRange 命令支持对一定范围内的 key 进行 compact[#2163](https://github.com/OpenAtomFoundation/pika/pull/2163)@[u6th9d](https://github.com/u6th9d)
+
+- 提升 Compaction 速度减少 Compaction 耗时[#2172](https://github.com/OpenAtomFoundation/pika/pull/2172)@[u6th9d](https://github.com/u6th9d)
+
+- 升级 RocksDB 版本到 v8.7.3[#2157](https://github.com/OpenAtomFoundation/pika/pull/2157)@[JasirVoriya](https://github.com/JasirVoriya)
+
+- Pika 分布式集群 Codis proxy 新增可观测指标[#2199](https://github.com/OpenAtomFoundation/pika/pull/2199)@[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- Pika 分布式集群支持自动 failover[#2386](https://github.com/OpenAtomFoundation/pika/pull/2386)@[chengyu-l](https://github.com/chengyu-l)
+
 ## bugfix
 
 - 修复 Pika 有从节点进行全量复制期间会误删除 dump 文件的问题[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
@@ -53,6 +67,16 @@
 - 修复主从复制模式下，主实例 flushdb 后，从实例因为死锁导致的不能访问的问题[#2249](https://github.com/OpenAtomFoundation/pika/pull/2249)@[ForestLH](https://github.com/ForestLH)
 
 - 修复部分命令未对 RocksDB 的返回值进行判断的问题[#2187](https://github.com/OpenAtomFoundation/pika/pull/2187)@[callme-taota](https://github.com/callme-taota)
+
+- 规范函数的返回值及初始值[#2176](https://github.com/OpenAtomFoundation/pika/pull/2176)@[Mixficsol](https://github.com/Mixficsol)
+
+- 修复网络监控指标统计不准确的问题[#2234](https://github.com/OpenAtomFoundation/pika/pull/2234)@[chengyu-l](https://github.com/chengyu-l)
+
+- 修复配置文件加载部分参数异常的问题[#2218](https://github.com/OpenAtomFoundation/pika/pull/2218)@[jettcc](https://github.com/jettcc)
+
+- 修复 Codis dashboard cpu 100% 的问题[#2393](https://github.com/OpenAtomFoundation/pika/pull/2393)@[chengyu-l](https://github.com/chengyu-l)
+
+- 修复 Codis fe pika 主从角色显示异常的问题[#2387](https://github.com/OpenAtomFoundation/pika/pull/2387)@[chengyu-l](https://github.com/chengyu-l)
 
 
 # v3.5.2
