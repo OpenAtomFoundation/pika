@@ -108,6 +108,7 @@ func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers
 					Index:       index,
 					GroupID:     gid,
 					Addr:        server.Addr,
+					Server:      server,
 					Replication: info,
 					Err:         err,
 				}
