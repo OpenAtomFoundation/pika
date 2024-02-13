@@ -156,7 +156,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
       cd output && make
     ```
 
-    其他子组件，如 `codis` 和 `pika_operator` 也可以用 `build.sh` 进行编译。
+    其他子组件，如 `codis` 也可以用 `build.sh` 进行编译。
 
     ```bash
       # 编译 codis, 默认 target，build-all
@@ -164,9 +164,6 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
       # 编译 codis, 但只构建 codis-proxy
       ./build.sh codis codis-proxy
-
-      # 编译 pika_operator
-      ./build.sh operator
     ```
 
 * #### 2.4 启动 Pika
@@ -229,43 +226,6 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
   ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
   ```
 
-* #### 3.3 使用 pika-operator 部署
-
-  使用 `pika-operator` 可以简单地在 Kubernetes 环境中部署单实例 `pika` 。
-  >注：__请勿在生产环境中使用此功能__。
-
-  本地安装：
-
-  1. 安装 [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
-
-  2. 部署 Pika-operator
-
-    ```bash
-    cd tools/pika_operator
-    make minikube-up # run this if you don't have a minikube cluster
-    make local-deploy
-    ```
-
-  3. 创建 Pika 实例
-
-    ```bash
-    cd tools/pika_operator
-    kubectl apply -f examples/pika-sample/
-    ```
-
-  4. 检查 Pika 状态
-
-    ```bash
-      kubectl get pika pika-sample
-    ```
-
-  5. 获取 Pika 实例信息
-
-    ```bash
-    kubectl run pika-sample-test \
-      --image redis -it --rm --restart=Never \
-      -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
-    ```
 
 ## Pika 未来工作规划
 
@@ -281,8 +241,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
 * 1. 提升 Slot 迁移速度， 提升 Operator 扩缩容的效率
 * 2. 升级 Codis-proxy
-* 3. Pika-operator
-* 4. Codis-proxy性能指标监控
+* 3. Codis-proxy性能指标监控
 
 ## Pika 发版特性时间轴
 
