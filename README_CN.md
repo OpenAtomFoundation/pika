@@ -266,7 +266,24 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
       --image redis -it --rm --restart=Never \
       -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
     ```
-
+* #### 3.4 使用 docker-compose
+ docker-compose.yaml
+```yaml
+  pikadb:
+    image: pikadb/pika:lastest
+    container_name: pikadb
+    ports:
+      - "6379:9221"
+    volumes:
+      - ./data/pika:/pika/log
+      # 指定配置文件路径,如果有需要指定配置文件则在这里指定
+      #- ./deploy/pika:/pika/conf
+      - ./data/pika/db:/pika/db
+      - ./data/pika/dump:/pika/dump
+      - ./data/pika/dbsync:/pika/dbsync
+    privileged: true
+    restart: always
+```
 ## Pika 未来工作规划
 
 ### 1、Pika 单机版
