@@ -286,6 +286,7 @@ docker-compose.yaml
     volumes:
       - ./data/pika:/pika/log
       # Specify the configuration file path. If you need to specify a configuration file, specify it here.
+      # Note: pika.conf should be in the ./deploy/pika directory
       #- ./deploy/pika:/pika/conf
       - ./data/pika/db:/pika/db
       - ./data/pika/dump:/pika/dump
