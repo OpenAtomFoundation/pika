@@ -12,6 +12,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_defer.h"
+#include "src/pstd/include/scope_record_lock.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -223,6 +224,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
+      pstd::lock::MultiScopeRecordLock record_lock(c_ptr->GetDB()->LockMgr(), c_ptr->current_key());
       c_ptr->DoThroughDB();
       if (c_ptr->IsNeedUpdateCache()) {
         c_ptr->DoUpdateCache();
