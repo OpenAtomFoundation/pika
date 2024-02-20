@@ -217,6 +217,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     start_us = pstd::NowMicros();
   }
   // Add read lock for no suspend command
+  pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
+  record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
     c_ptr->GetDB()->DbRWLockReader();
   }
@@ -224,7 +226,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
       && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
-      pstd::lock::MultiScopeRecordLock record_lock(c_ptr->GetDB()->LockMgr(), c_ptr->current_key());
       c_ptr->DoThroughDB();
       if (c_ptr->IsNeedUpdateCache()) {
         c_ptr->DoUpdateCache();
@@ -238,7 +239,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (!c_ptr->IsSuspend()) {
     c_ptr->GetDB()->DbRWUnLock();
   }
-
+  record_lock.Unlock(c_ptr->current_key());
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     auto start_time = static_cast<int32_t>(start_us / 1000000);
     auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
