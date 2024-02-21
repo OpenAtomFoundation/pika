@@ -48,13 +48,15 @@ int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start rsync Server Thread Error: " << res;
+    LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "
+               << (res == net::kBindError ? ": bind port conflict" : ": other error");
   }
   res = work_thread_->start_thread_pool();
   if (res != net::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res
+    LOG(FATAL) << "Start rsync Server ThreadPool Error, ret_code: " << res << " message: "
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
+  LOG(INFO) << "RsyncServer started ...";
   return res;
 }
 
@@ -113,9 +115,8 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
-  uint32_t slot_id = req->slot_id();
-  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
-  if (!slot || slot->IsBgSaving()) {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
+  if (!db || db->IsBgSaving()) {
     LOG(WARNING) << "waiting bgsave done...";
     return;
   }
@@ -125,11 +126,16 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncMeta);
   response.set_db_name(db_name);
-  response.set_slot_id(slot_id);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
+  response.set_slot_id(0);
 
   std::vector<std::string> filenames;
   std::string snapshot_uuid;
-  g_pika_server->GetDumpMeta(db_name, slot_id, &filenames, &snapshot_uuid);
+  g_pika_server->GetDumpMeta(db_name, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 
   LOG(INFO) << "Rsync Meta request, snapshot_uuid: " << snapshot_uuid
@@ -150,7 +156,6 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   const std::shared_ptr<RsyncService::RsyncRequest> req = task_arg->req;
   std::shared_ptr<RsyncServerConn> conn = task_arg->conn;
 
-  uint32_t slot_id = req->slot_id();
   std::string db_name = req->db_name();
   std::string filename = req->file_req().filename();
   size_t offset = req->file_req().offset();
@@ -161,10 +166,15 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
   response.set_code(RsyncService::kOk);
   response.set_type(RsyncService::kRsyncFile);
   response.set_db_name(db_name);
-  response.set_slot_id(slot_id);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
+  response.set_slot_id(0);
 
   std::string snapshot_uuid;
-  Status s = g_pika_server->GetDumpUUID(db_name, slot_id, &snapshot_uuid);
+  Status s = g_pika_server->GetDumpUUID(db_name, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
   if (!s.ok()) {
     LOG(WARNING) << "rsyncserver get snapshotUUID failed";
@@ -173,15 +183,14 @@ void RsyncServerConn::HandleFileRsyncRequest(void* arg) {
     return;
   }
 
-  std::shared_ptr<Slot> slot = g_pika_server->GetDBSlotById(db_name, slot_id);
-  if (!slot) {
-   LOG(WARNING) << "cannot find slot for db_name: " << db_name
-                << " slot_id: " << slot_id;
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
+  if (!db) {
+   LOG(WARNING) << "cannot find db for db_name: " << db_name;
    response.set_code(RsyncService::kErr);
    RsyncWriteResp(response, conn);
   }
 
-  const std::string filepath = slot->bgsave_info().path + "/" + filename;
+  const std::string filepath = db->bgsave_info().path + "/" + filename;
   char* buffer = new char[req->file_req().count() + 1];
   size_t bytes_read{0};
   std::string checksum = "";
@@ -212,20 +221,20 @@ RsyncServerThread::RsyncServerThread(const std::set<std::string>& ips, int port,
     : HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true), conn_factory_(arg) {}
 
 RsyncServerThread::~RsyncServerThread() {
-    LOG(WARNING) << "RsyncServerThread destroyed";
+  LOG(WARNING) << "RsyncServerThread destroyed";
 }
 
 void RsyncServerThread::RsyncServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection closed";
 }
 
 void RsyncServerThread::RsyncServerHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
-    LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
+  LOG(WARNING) << "ip_port: " << ip_port << " connection timeout";
 }
 
 bool RsyncServerThread::RsyncServerHandle::AccessHandle(int fd, std::string& ip_port) const {
-    LOG(WARNING) << "fd: "<< fd << " ip_port: " << ip_port << " connection accepted";
-    return true;
+  LOG(WARNING) << "fd: "<< fd << " ip_port: " << ip_port << " connection accepted";
+  return true;
 }
 
 void RsyncServerThread::RsyncServerHandle::CronHandle() const {

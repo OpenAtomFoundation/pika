@@ -21,8 +21,6 @@
 namespace storage {
 
 RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
-  spop_counts_store_ = std::make_unique<LRUCache<std::string, size_t>>();
-  spop_counts_store_->SetCapacity(1000);
 }
 
 RedisSets::~RedisSets() = default;
@@ -30,6 +28,7 @@ RedisSets::~RedisSets() = default;
 rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
+  small_compaction_duration_threshold_ = storage_options.small_compaction_duration_threshold;
 
   rocksdb::Options ops(storage_options.options);
   rocksdb::Status s = rocksdb::DB::Open(ops, db_path, &db_);
@@ -217,6 +216,9 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (parsed_sets_meta_value.IsStale() || parsed_sets_meta_value.count() == 0) {
       version = parsed_sets_meta_value.InitialMetaValue();
+      if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(filtered_members.size()))) {
+        return Status::InvalidArgument("set size overflow");
+      }
       parsed_sets_meta_value.set_count(static_cast<int32_t>(filtered_members.size()));
       batch.Put(handles_[0], key, meta_value);
       for (const auto& member : filtered_members) {
@@ -243,6 +245,9 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
       if (cnt == 0) {
         return rocksdb::Status::OK();
       } else {
+        if (!parsed_sets_meta_value.CheckModifyCount(cnt)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(cnt);
         batch.Put(handles_[0], key, meta_value);
       }
@@ -319,6 +324,7 @@ rocksdb::Status RedisSets::SDiff(const std::vector<std::string>& keys, std::vect
       version = parsed_sets_meta_value.version();
       SetsMemberKey sets_member_key(keys[0], version, Slice());
       prefix = sets_member_key.Encode();
+      KeyStatisticsDurationGuard guard(this, keys[0]);
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -387,6 +393,7 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
       version = parsed_sets_meta_value.version();
       SetsMemberKey sets_member_key(keys[0], version, Slice());
       Slice prefix = sets_member_key.Encode();
+      KeyStatisticsDurationGuard guard(this, keys[0]);
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -420,6 +427,9 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+      if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+        return Status::InvalidArgument("set size overflow");
+      }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
@@ -484,6 +494,7 @@ rocksdb::Status RedisSets::SInter(const std::vector<std::string>& keys, std::vec
       version = parsed_sets_meta_value.version();
       SetsMemberKey sets_member_key(keys[0], version, Slice());
       Slice prefix = sets_member_key.Encode();
+      KeyStatisticsDurationGuard guard(this, keys[0]);
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -566,6 +577,7 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
         version = parsed_sets_meta_value.version();
         SetsMemberKey sets_member_key(keys[0], version, Slice());
         Slice prefix = sets_member_key.Encode();
+        KeyStatisticsDurationGuard guard(this, keys[0]);
         auto iter = db_->NewIterator(read_options, handles_[1]);
         for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
           ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -603,6 +615,9 @@ rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+    if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+      return Status::InvalidArgument("set size overflow");
+    }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
@@ -673,8 +688,53 @@ rocksdb::Status RedisSets::SMembers(const Slice& key, std::vector<std::string>* 
       version = parsed_sets_meta_value.version();
       SetsMemberKey sets_member_key(key, version, Slice());
       Slice prefix = sets_member_key.Encode();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       auto iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
+        ParsedSetsMemberKey parsed_sets_member_key(iter->key());
+        members->push_back(parsed_sets_member_key.member().ToString());
+      }
+      delete iter;
+    }
+  }
+  return s;
+}
+
+Status RedisSets::SMembersWithTTL(const Slice& key,
+                                  std::vector<std::string>* members,
+                                  int64_t* ttl) {
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+
+  std::string meta_value;
+  int32_t version = 0;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+  Status s = db_->Get(read_options, handles_[0], key, &meta_value);
+  if (s.ok()) {
+    ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
+    if (parsed_sets_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else if (parsed_sets_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else {
+      // ttl
+      *ttl = parsed_sets_meta_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      version = parsed_sets_meta_value.version();
+      SetsMemberKey sets_member_key(key, version, Slice());
+      Slice prefix = sets_member_key.Encode();
+      auto iter = db_->NewIterator(read_options, handles_[1]);
+      for (iter->Seek(prefix);
+           iter->Valid() && iter->key().starts_with(prefix);
+           iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
         members->push_back(parsed_sets_member_key.member().ToString());
       }
@@ -714,6 +774,9 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
       s = db_->Get(default_read_options_, handles_[1], sets_member_key.Encode(), &member_value);
       if (s.ok()) {
         *ret = 1;
+        if (!parsed_sets_meta_value.CheckModifyCount(-1)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(-1);
         batch.Put(handles_[0], source, meta_value);
         batch.Delete(handles_[1], sets_member_key.Encode());
@@ -747,6 +810,9 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
       SetsMemberKey sets_member_key(destination, version, member);
       s = db_->Get(default_read_options_, handles_[1], sets_member_key.Encode(), &member_value);
       if (s.IsNotFound()) {
+        if (!parsed_sets_meta_value.CheckModifyCount(1)){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(1);
         batch.Put(handles_[0], destination, meta_value);
         batch.Put(handles_[1], sets_member_key.Encode(), Slice());
@@ -770,7 +836,7 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
   return s;
 }
 
-rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* members, bool* need_compact, int64_t cnt) {
+rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* members, int64_t cnt) {
   std::default_random_engine engine;
 
   std::string meta_value;
@@ -828,6 +894,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
 
         SetsMemberKey sets_member_key(key, version, Slice());
         int64_t del_count = 0;
+        KeyStatisticsDurationGuard guard(this, key.ToString());
         auto iter = db_->NewIterator(default_read_options_, handles_[1]);
         for (iter->Seek(sets_member_key.Encode());
             iter->Valid() && cur_index < size;
@@ -843,35 +910,18 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
           }
         }
 
+        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))){
+          return Status::InvalidArgument("set size overflow");
+        }
         parsed_sets_meta_value.ModifyCount(static_cast<int32_t>(-cnt));
         batch.Put(handles_[0], key, meta_value);
         delete iter;
-
       }
-      
     }
   } else {
     return s;
   }
-  uint64_t count = 0;
-  uint64_t duration = pstd::NowMicros() - start_us;
-  AddAndGetSpopCount(key.ToString(), &count);
-  if (duration >= SPOP_COMPACT_THRESHOLD_DURATION
-    || count >= SPOP_COMPACT_THRESHOLD_COUNT) {
-    *need_compact = true;
-    ResetSpopCount(key.ToString());
-  }
   return db_->Write(default_write_options_, &batch);
-}
-
-rocksdb::Status RedisSets::ResetSpopCount(const std::string& key) { return spop_counts_store_->Remove(key); }
-
-rocksdb::Status RedisSets::AddAndGetSpopCount(const std::string& key, uint64_t* count) {
-  size_t old_count = 0;
-  spop_counts_store_->Lookup(key, &old_count);
-  spop_counts_store_->Insert(key, old_count + 1);
-  *count = old_count + 1;
-  return rocksdb::Status::OK();
 }
 
 rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vector<std::string>* members) {
@@ -923,6 +973,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
       int32_t cur_index = 0;
       int32_t idx = 0;
       SetsMemberKey sets_member_key(key, version, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       auto iter = db_->NewIterator(default_read_options_, handles_[1]);
       for (iter->Seek(sets_member_key.Encode()); iter->Valid() && cur_index < size; iter->Next(), cur_index++) {
         if (static_cast<size_t>(idx) >= targets.size()) {
@@ -974,6 +1025,9 @@ rocksdb::Status RedisSets::SRem(const Slice& key, const std::vector<std::string>
         }
       }
       *ret = cnt;
+      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)){
+        return Status::InvalidArgument("set size overflow");
+      }
       parsed_sets_meta_value.ModifyCount(-cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -1019,6 +1073,7 @@ rocksdb::Status RedisSets::SUnion(const std::vector<std::string>& keys, std::vec
   for (const auto& key_version : vaild_sets) {
     SetsMemberKey sets_member_key(key_version.key, key_version.version, Slice());
     prefix = sets_member_key.Encode();
+    KeyStatisticsDurationGuard guard(this, key_version.key);
     auto iter = db_->NewIterator(read_options, handles_[1]);
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
       ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -1068,6 +1123,7 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
   for (const auto& key_version : vaild_sets) {
     SetsMemberKey sets_member_key(key_version.key, key_version.version, Slice());
     prefix = sets_member_key.Encode();
+    KeyStatisticsDurationGuard guard(this, key_version.key);
     auto iter = db_->NewIterator(read_options, handles_[1]);
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
       ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -1086,6 +1142,9 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     statistic = parsed_sets_meta_value.count();
     version = parsed_sets_meta_value.InitialMetaValue();
+    if (!parsed_sets_meta_value.check_set_count(static_cast<int32_t>(members.size()))) {
+      return Status::InvalidArgument("set size overflow");
+    }
     parsed_sets_meta_value.set_count(static_cast<int32_t>(members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else if (s.IsNotFound()) {
@@ -1149,6 +1208,7 @@ rocksdb::Status RedisSets::SScan(const Slice& key, int64_t cursor, const std::st
       SetsMemberKey sets_member_prefix(key, version, sub_member);
       SetsMemberKey sets_member_key(key, version, start_point);
       std::string prefix = sets_member_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(sets_member_key.Encode()); iter->Valid() && rest > 0 && iter->key().starts_with(prefix);
            iter->Next()) {

@@ -63,12 +63,8 @@
                         <td>[[codis_sessions]]</td>
                     </tr>
                     <tr>
-                        <td>Redis Memory</td>
-                        <td>[[redis_mem]]</td>
-                    </tr>
-                    <tr>
-                        <td>Redis Keys</td>
-                        <td>[[redis_keys]]</td>
+                        <td>Pika Memory</td>
+                        <td>[[pika_mem]]</td>
                     </tr>
                     <tr>
                         <td>Slot Nums</td>
@@ -542,7 +538,10 @@
                             </span>
                         </td>
                         <td>
-                            <a ng-href="http://[[codis_addr]]/api/topom/group/info/[[server.server]]" target="_blank" class="btn btn-default btn-xs active" role="button">S</a>
+                            <span ng-switch="$index">
+                                <a ng-switch-when="0" ng-href="http://[[codis_addr]]/api/topom/group/info/[[server.server]]" target="_blank" class="btn btn-default btn-xs active" role="button">Master</a>
+                                <a ng-switch-default ng-href="http://[[codis_addr]]/api/topom/group/info/[[server.server]]" target="_blank" class="btn btn-default btn-xs active" role="button">Slave</a>
+                            </span>
                             <span ng-switch="server.ha_status">
                                 <span ng-switch-when="ha_master" style="color: darkgreen"
                                     data-toggle="tooltip" data-placement="right" title="HA: MASTER">

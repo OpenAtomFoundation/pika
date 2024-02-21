@@ -31,6 +31,7 @@ RedisZSets::RedisZSets(Storage* const s, const DataType& type) : Redis(s, type) 
 Status RedisZSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
+  small_compaction_duration_threshold_ = storage_options.small_compaction_duration_threshold;
 
   rocksdb::Options ops(storage_options.options);
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
@@ -229,6 +230,7 @@ Status RedisZSets::ZPopMax(const Slice& key, const int64_t count, std::vector<Sc
       num = num <= count ? num : count;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       int32_t del_cnt = 0;
       for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && del_cnt < num; iter->Prev()) {
@@ -242,6 +244,9 @@ Status RedisZSets::ZPopMax(const Slice& key, const int64_t count, std::vector<Sc
         batch.Delete(handles_[2], iter->key());
       }
       delete iter;
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
       s = db_->Write(default_write_options_, &batch);
@@ -271,6 +276,7 @@ Status RedisZSets::ZPopMin(const Slice& key, const int64_t count, std::vector<Sc
       num = num <= count ? num : count;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       int32_t del_cnt = 0;
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && del_cnt < num; iter->Next()) {
@@ -284,6 +290,9 @@ Status RedisZSets::ZPopMin(const Slice& key, const int64_t count, std::vector<Sc
         batch.Delete(handles_[2], iter->key());
       }
       delete iter;
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
       s = db_->Write(default_write_options_, &batch);
@@ -360,6 +369,9 @@ Status RedisZSets::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_
         cnt++;
       }
     }
+    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)){
+      return Status::InvalidArgument("zset size overflow");
+    }
     parsed_zsets_meta_value.ModifyCount(cnt);
     batch.Put(handles_[0], key, meta_value);
     *ret = cnt;
@@ -430,6 +442,7 @@ Status RedisZSets::ZCount(const Slice& key, double min, double max, bool left_cl
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, min, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         bool left_pass = false;
@@ -494,6 +507,9 @@ Status RedisZSets::ZIncrby(const Slice& key, const Slice& member, double increme
       statistic++;
     } else if (s.IsNotFound()) {
       score = increment;
+      if (!parsed_zsets_meta_value.CheckModifyCount(1)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(1);
       batch.Put(handles_[0], key, meta_value);
     } else {
@@ -551,8 +567,69 @@ Status RedisZSets::ZRange(const Slice& key, int32_t start, int32_t stop, std::ve
       int32_t cur_index = 0;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
+        if (cur_index >= start_index) {
+          ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+          score_member.score = parsed_zsets_score_key.score();
+          score_member.member = parsed_zsets_score_key.member().ToString();
+          score_members->push_back(score_member);
+        }
+      }
+      delete iter;
+    }
+  }
+  return s;
+}
+
+Status RedisZSets::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                 int64_t* ttl) {
+  score_members->clear();
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot = nullptr;
+
+  std::string meta_value;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+
+  Status s = db_->Get(read_options, key, &meta_value);
+  if (s.ok()) {
+    ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
+    if (parsed_zsets_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else if (parsed_zsets_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else {
+      // ttl
+      *ttl = parsed_zsets_meta_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      int32_t count = parsed_zsets_meta_value.count();
+      int32_t version = parsed_zsets_meta_value.version();
+      int32_t start_index = start >= 0 ? start : count + start;
+      int32_t stop_index  = stop  >= 0 ? stop  : count + stop;
+      start_index = start_index <= 0 ? 0 : start_index;
+      stop_index = stop_index >= count ? count - 1 : stop_index;
+      if (start_index > stop_index
+          || start_index >= count
+          || stop_index < 0) {
+        return s;
+      }
+      int32_t cur_index = 0;
+      ScoreMember score_member;
+      ZSetsScoreKey zsets_score_key(key, version,
+                                    std::numeric_limits<double>::lowest(), Slice());
+      rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
+      for (iter->Seek(zsets_score_key.Encode());
+           iter->Valid() && cur_index <= stop_index;
+           iter->Next(), ++cur_index) {
         if (cur_index >= start_index) {
           ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
           score_member.score = parsed_zsets_score_key.score();
@@ -589,6 +666,7 @@ Status RedisZSets::ZRangebyscore(const Slice& key, double min, double max, bool 
       int64_t skipped = 0;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, min, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && index <= stop_index; iter->Next(), ++index) {
         bool left_pass = false;
@@ -653,6 +731,7 @@ Status RedisZSets::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && index <= stop_index; iter->Next(), ++index) {
         ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
@@ -717,6 +796,9 @@ Status RedisZSets::ZRem(const Slice& key, const std::vector<std::string>& member
         }
       }
       *ret = del_cnt;
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -755,6 +837,7 @@ Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop
         return s;
       }
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         if (cur_index >= start_index) {
@@ -768,6 +851,9 @@ Status RedisZSets::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop
       }
       delete iter;
       *ret = del_cnt;
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -800,6 +886,7 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, min, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[2]);
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         bool left_pass = false;
@@ -832,6 +919,9 @@ Status RedisZSets::ZRemrangebyscore(const Slice& key, double min, double max, bo
       }
       delete iter;
       *ret = del_cnt;
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
     }
@@ -872,6 +962,7 @@ Status RedisZSets::ZRevrange(const Slice& key, int32_t start, int32_t stop, std:
       int32_t cur_index = count - 1;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && cur_index >= start_index;
            iter->Prev(), --cur_index) {
@@ -910,6 +1001,7 @@ Status RedisZSets::ZRevrangebyscore(const Slice& key, double min, double max, bo
       int64_t skipped = 0;
       ScoreMember score_member;
       ZSetsScoreKey zsets_score_key(key, version, std::nextafter(max, std::numeric_limits<double>::max()), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left > 0; iter->Prev(), --left) {
         bool left_pass = false;
@@ -974,6 +1066,7 @@ Status RedisZSets::ZRevrank(const Slice& key, const Slice& member, int32_t* rank
       int32_t left = parsed_zsets_meta_value.count();
       int32_t version = parsed_zsets_meta_value.version();
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
       for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left >= 0; iter->Prev(), --left, ++rev_index) {
         ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
@@ -1056,6 +1149,7 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
         double weight = idx < weights.size() ? weights[idx] : 1;
         version = parsed_zsets_meta_value.version();
         ZSetsScoreKey zsets_score_key(keys[idx], version, std::numeric_limits<double>::lowest(), Slice());
+        KeyStatisticsDurationGuard guard(this, keys[idx]);
         rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
         for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index;
              iter->Next(), ++cur_index) {
@@ -1093,6 +1187,9 @@ Status RedisZSets::ZUnionstore(const Slice& destination, const std::vector<std::
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.count();
     version = parsed_zsets_meta_value.InitialMetaValue();
+    if (!parsed_zsets_meta_value.check_set_count(static_cast<int32_t>(member_score_map.size()))) {
+      return Status::InvalidArgument("zset size overflow");
+    }
     parsed_zsets_meta_value.set_count(static_cast<int32_t>(member_score_map.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else {
@@ -1169,6 +1266,7 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
   if (!have_invalid_zsets) {
     ZSetsScoreKey zsets_score_key(vaild_zsets[0].key, vaild_zsets[0].version, std::numeric_limits<double>::lowest(),
                                   Slice());
+    KeyStatisticsDurationGuard guard(this, vaild_zsets[0].key);
     rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[2]);
     for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
       ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
@@ -1220,6 +1318,9 @@ Status RedisZSets::ZInterstore(const Slice& destination, const std::vector<std::
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.count();
     version = parsed_zsets_meta_value.InitialMetaValue();
+    if (!parsed_zsets_meta_value.check_set_count(static_cast<int32_t>(final_score_members.size()))) {
+      return Status::InvalidArgument("zset size overflow");
+    }
     parsed_zsets_meta_value.set_count(static_cast<int32_t>(final_score_members.size()));
     batch.Put(handles_[0], destination, meta_value);
   } else {
@@ -1270,6 +1371,7 @@ Status RedisZSets::ZRangebylex(const Slice& key, const Slice& min, const Slice& 
       int32_t cur_index = 0;
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       ZSetsMemberKey zsets_member_key(key, version, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(zsets_member_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         bool left_pass = false;
@@ -1330,6 +1432,7 @@ Status RedisZSets::ZRemrangebylex(const Slice& key, const Slice& min, const Slic
       int32_t cur_index = 0;
       int32_t stop_index = parsed_zsets_meta_value.count() - 1;
       ZSetsMemberKey zsets_member_key(key, version, Slice());
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(zsets_member_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         bool left_pass = false;
@@ -1360,6 +1463,9 @@ Status RedisZSets::ZRemrangebylex(const Slice& key, const Slice& min, const Slic
       delete iter;
     }
     if (del_cnt > 0) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+        return Status::InvalidArgument("zset size overflow");
+      }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
       batch.Put(handles_[0], key, meta_value);
       *ret = del_cnt;
@@ -1551,6 +1657,7 @@ Status RedisZSets::ZScan(const Slice& key, int64_t cursor, const std::string& pa
       ZSetsMemberKey zsets_member_prefix(key, version, sub_member);
       ZSetsMemberKey zsets_member_key(key, version, start_point);
       std::string prefix = zsets_member_prefix.Encode().ToString();
+      KeyStatisticsDurationGuard guard(this, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
       for (iter->Seek(zsets_member_key.Encode()); iter->Valid() && rest > 0 && iter->key().starts_with(prefix);
            iter->Next()) {

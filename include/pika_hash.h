@@ -7,114 +7,142 @@
 #define PIKA_HASH_H_
 
 #include "storage/storage.h"
-
+#include "include/acl.h"
 #include "include/pika_command.h"
-#include "include/pika_slot.h"
+#include "include/pika_db.h"
+#include "storage/storage.h"
 
 /*
  * hash
  */
 class HDelCmd : public Cmd {
  public:
-  HDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HDelCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HDelCmd(*this); }
 
  private:
   std::string key_;
   std::vector<std::string> fields_;
+  int32_t deleted_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HGetCmd : public Cmd {
  public:
-  HGetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HGetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HGetCmd(*this); }
 
  private:
   std::string key_, field_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HGetallCmd : public Cmd {
  public:
-  HGetallCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HGetallCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HGetallCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HSetCmd : public Cmd {
  public:
-  HSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HSetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HSetCmd(*this); }
 
  private:
   std::string key_, field_, value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HExistsCmd : public Cmd {
  public:
-  HExistsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HExistsCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HExistsCmd(*this); }
 
  private:
   std::string key_, field_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HIncrbyCmd : public Cmd {
  public:
-  HIncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HIncrbyCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HIncrbyCmd(*this); }
 
@@ -122,72 +150,91 @@ class HIncrbyCmd : public Cmd {
   std::string key_, field_;
   int64_t by_ = 0;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HIncrbyfloatCmd : public Cmd {
  public:
-  HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HIncrbyfloatCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HIncrbyfloatCmd(*this); }
 
  private:
   std::string key_, field_, by_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HKeysCmd : public Cmd {
  public:
-  HKeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HKeysCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HKeysCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HLenCmd : public Cmd {
  public:
-  HLenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HLenCmd(*this); }
 
  private:
   std::string key_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HMgetCmd : public Cmd {
  public:
-  HMgetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HMgetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HMgetCmd(*this); }
 
@@ -195,18 +242,22 @@ class HMgetCmd : public Cmd {
   std::string key_;
   std::vector<std::string> fields_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HMsetCmd : public Cmd {
  public:
-  HMsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HMsetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HMsetCmd(*this); }
 
@@ -214,77 +265,93 @@ class HMsetCmd : public Cmd {
   std::string key_;
   std::vector<storage::FieldValue> fvs_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HSetnxCmd : public Cmd {
  public:
-  HSetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HSetnxCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HSetnxCmd(*this); }
 
  private:
   std::string key_, field_, value_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HStrlenCmd : public Cmd {
  public:
-  HStrlenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HStrlenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HStrlenCmd(*this); }
 
  private:
   std::string key_, field_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HValsCmd : public Cmd {
  public:
-  HValsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  HValsCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void ReadCache() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HValsCmd(*this); }
 
  private:
   std::string key_, field_;
   void DoInitial() override;
+  rocksdb::Status s_;
 };
 
 class HScanCmd : public Cmd {
  public:
-  HScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  HScanCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HScanCmd(*this); }
 
  private:
-  std::string key_; 
+  std::string key_;
   std::string pattern_;
   int64_t cursor_;
   int64_t count_{10};
@@ -297,14 +364,15 @@ class HScanCmd : public Cmd {
 
 class HScanxCmd : public Cmd {
  public:
-  HScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*") {}
+  HScanxCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HScanxCmd(*this); }
 
@@ -322,15 +390,15 @@ class HScanxCmd : public Cmd {
 
 class PKHScanRangeCmd : public Cmd {
  public:
-  PKHScanRangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*") {}
+  PKHScanRangeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKHScanRangeCmd(*this); }
 
@@ -349,15 +417,15 @@ class PKHScanRangeCmd : public Cmd {
 
 class PKHRScanRangeCmd : public Cmd {
  public:
-  PKHRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*") {}
+  PKHRScanRangeCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)), pattern_("*") {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Slot> slot = nullptr) override;
-  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKHRScanRangeCmd(*this); }
 

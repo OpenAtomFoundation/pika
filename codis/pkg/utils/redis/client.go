@@ -46,7 +46,7 @@ func NewClient(addr string, auth string, timeout time.Duration) (*Client, error)
 		redigo.DialReadTimeout(timeout), redigo.DialWriteTimeout(timeout),
 	}...)
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err
 	}
 	return &Client{
 		conn: c, Addr: addr, Auth: auth,
@@ -157,6 +157,24 @@ func (c *Client) Info() (map[string]string, error) {
 	return info, nil
 }
 
+func (c *Client) InfoReplicationIpPort() (map[string]string, error) {
+	text, err := redigo.String(c.Do("INFO", "replication"))
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	info := make(map[string]string)
+	for _, line := range strings.Split(text, "\n") {
+		kv := strings.SplitN(line, ":", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		if key := strings.TrimSpace(kv[0]); key != "" {
+			info[key] = strings.TrimSpace(kv[1])
+		}
+	}
+	return info, nil
+}
+
 func (c *Client) InfoKeySpace() (map[int]string, error) {
 	text, err := redigo.String(c.Do("INFO", "keyspace"))
 	if err != nil {
@@ -185,11 +203,16 @@ func (c *Client) InfoReplication() (*InfoReplication, error) {
 		return nil, errors.Trace(err)
 	}
 
+	return parseInfoReplication(text)
+}
+
+func parseInfoReplication(text string) (*InfoReplication, error) {
 	var (
 		info            = make(map[string]string)
 		slaveMap        = make([]map[string]string, 0)
 		infoReplication InfoReplication
 		slaves          []InfoSlave
+		err             error
 	)
 
 	for _, line := range strings.Split(text, "\n") {
@@ -213,6 +236,21 @@ func (c *Client) InfoReplication() (*InfoReplication, error) {
 				}
 
 				slaveMap = append(slaveMap, slave)
+			} else if strings.HasPrefix(key, "db0") {
+				// consider only the case of having one DB (db0)
+				kvArray := strings.Split(kv[1], ",")
+				for _, kvStr := range kvArray {
+					subKvArray := strings.Split(kvStr, "=")
+					if len(subKvArray) != 2 {
+						continue
+					}
+
+					if subKvArray[0] == "binlog_offset" {
+						fileNumAndOffset := strings.Split(subKvArray[1], " ")
+						info["binlog_file_num"] = strings.TrimSpace(fileNumAndOffset[0])
+						info["binlog_offset"] = strings.TrimSpace(fileNumAndOffset[1])
+					}
+				}
 			} else {
 				info[key] = strings.TrimSpace(kv[1])
 			}
@@ -262,7 +300,33 @@ func (c *Client) InfoFull() (map[string]string, error) {
 	}
 }
 
-func (c *Client) SetMaster(master string) error {
+func (c *Client) InfoFullv2() (map[string]string, error) {
+	if info, err := c.InfoReplicationIpPort(); err != nil {
+		return nil, errors.Trace(err)
+	} else {
+		host := info["master_host"]
+		port := info["master_port"]
+		if host != "" || port != "" {
+			info["master_addr"] = net.JoinHostPort(host, port)
+		}
+		r, err := c.Do("CONFIG", "GET", "maxmemory")
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		p, err := redigo.Values(r, nil)
+		if err != nil || len(p) != 2 {
+			return nil, errors.Errorf("invalid response = %v", r)
+		}
+		v, err := redigo.Int(p[1], nil)
+		if err != nil {
+			return nil, errors.Errorf("invalid response = %v", r)
+		}
+		info["maxmemory"] = strconv.Itoa(v)
+		return info, nil
+	}
+}
+
+func (c *Client) SetMaster(master string, force bool) error {
 	if master == "" || strings.ToUpper(master) == "NO:ONE" {
 		if _, err := c.Do("SLAVEOF", "NO", "ONE"); err != nil {
 			return err
@@ -275,8 +339,15 @@ func (c *Client) SetMaster(master string) error {
 		if _, err := c.Do("CONFIG", "set", "masterauth", c.Auth); err != nil {
 			return err
 		}
-		if _, err := c.Do("SLAVEOF", host, port); err != nil {
-			return err
+
+		if force {
+			if _, err := c.Do("SLAVEOF", host, port, "-f"); err != nil {
+				return err
+			}
+		} else {
+			if _, err := c.Do("SLAVEOF", host, port); err != nil {
+				return err
+			}
 		}
 	}
 	if _, err := c.Do("CONFIG", "REWRITE"); err != nil {
@@ -507,6 +578,15 @@ func (p *Pool) InfoFull(addr string) (_ map[string]string, err error) {
 	}
 	defer p.PutClient(c)
 	return c.InfoFull()
+}
+
+func (p *Pool) InfoFullv2(addr string) (_ map[string]string, err error) {
+	c, err := p.GetClient(addr)
+	if err != nil {
+		return nil, err
+	}
+	defer p.PutClient(c)
+	return c.InfoFullv2()
 }
 
 type InfoCache struct {

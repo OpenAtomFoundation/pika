@@ -11,7 +11,7 @@ useLegacyCompDef: false
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 2
+groupCount: 2
 
 slaveCount: 1
 

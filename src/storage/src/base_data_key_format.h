@@ -113,9 +113,17 @@ class ParsedZSetsMemberKey : public ParsedBaseDataKey {
   Slice member() { return data_; }
 };
 
+class ParsedStreamDataKey : public ParsedBaseDataKey {
+ public:
+  explicit ParsedStreamDataKey(const std::string* key) : ParsedBaseDataKey(key) {}
+  explicit ParsedStreamDataKey(const Slice& key) : ParsedBaseDataKey(key) {}
+  Slice id() { return data_; }
+};
+
 using HashesDataKey = BaseDataKey;
 using SetsMemberKey = BaseDataKey;
 using ZSetsMemberKey = BaseDataKey;
+using StreamDataKey = BaseDataKey;
 
 }  //  namespace storage
 #endif  // SRC_BASE_DATA_KEY_FORMAT_H_

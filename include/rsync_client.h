@@ -33,6 +33,7 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 
 const std::string kDumpMetaFileName = "DUMP_META_DATA";
 const std::string kUuidPrefix = "snapshot-uuid:";
+const size_t kInvalidOffset = 0xFFFFFFFF;
 
 namespace rsync {
 
@@ -41,14 +42,17 @@ class Session;
 class WaitObject;
 class WaitObjectManager;
 
+using pstd::Status;
+
+using ResponseSPtr = std::shared_ptr<RsyncService::RsyncResponse>;
 class RsyncClient : public net::Thread {
-public:
+ public:
   enum State {
       IDLE,
       RUNNING,
       STOP,
   };
-  RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id);
+  RsyncClient(const std::string& dir, const std::string& db_name);
   void* ThreadMain() override;
   void Copy(const std::set<std::string>& file_set, int index);
   bool Init();
@@ -65,9 +69,9 @@ public:
   void OnReceive(RsyncService::RsyncResponse* resp);
 
 private:
-  bool Recover();
+  bool ComparisonUpdate();
   Status CopyRemoteFile(const std::string& filename, int index);
-  Status CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
+  Status PullRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set);
   Status LoadLocalMeta(std::string* snapshot_uuid, std::map<std::string, std::string>* file_map);
   std::string GetLocalMetaFilePath();
   Status FlushMetaTable();
@@ -78,13 +82,11 @@ private:
 
 private:
   typedef std::unique_ptr<RsyncClientThread> NetThreadUPtr;
-
   std::map<std::string, std::string> meta_table_;
   std::set<std::string> file_set_;
   std::string snapshot_uuid_;
   std::string dir_;
   std::string db_name_;
-  uint32_t slot_id_ = 0;
 
   NetThreadUPtr client_thread_;
   std::vector<std::thread> work_threads_;
@@ -102,7 +104,7 @@ private:
 };
 
 class RsyncWriter {
-public:
+ public:
   RsyncWriter(const std::string& filepath) {
     filepath_ = filepath;
     fd_ = open(filepath.c_str(), O_RDWR | O_APPEND | O_CREAT, 0644);
@@ -136,30 +138,30 @@ public:
     return Status::OK();
   }
 
-private:
+ private:
   std::string filepath_;
   int fd_ = -1;
 };
 
 class WaitObject {
-public:
+ public:
   WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
   ~WaitObject() {}
 
   void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
     std::lock_guard<std::mutex> guard(mu_);
-    resp_ = nullptr;
+    resp_.reset();
     filename_ = filename;
     type_ = t;
     offset_ = offset;
   }
 
-  pstd::Status Wait(RsyncService::RsyncResponse*& resp) {
+  pstd::Status Wait(ResponseSPtr& resp) {
     pstd::Status s = Status::Timeout("rsync timeout", "timeout");
     {
       std::unique_lock<std::mutex> lock(mu_);
       auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
-          return resp_ != nullptr;
+          return resp_.get() != nullptr;
       });
       if (!cv_s) {
         return s;
@@ -172,25 +174,25 @@ public:
 
   void WakeUp(RsyncService::RsyncResponse* resp) {
     std::unique_lock<std::mutex> lock(mu_);
-    resp_ = resp;
+    resp_.reset(resp);
+    offset_ = kInvalidOffset;
     cond_.notify_all();
   }
 
-  RsyncService::RsyncResponse* Response() {return resp_;}
   std::string Filename() {return filename_;}
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
-private:
+ private:
   std::string filename_;
   RsyncService::Type type_;
-  size_t offset_ = 0xFFFFFFFF;
-  RsyncService::RsyncResponse* resp_ = nullptr;
+  size_t offset_ = kInvalidOffset;
+  ResponseSPtr resp_ = nullptr;
   std::condition_variable cond_;
   std::mutex mu_;
 };
 
 class WaitObjectManager {
-public:
+ public:
   WaitObjectManager() {
     wo_vec_.resize(kMaxRsyncParallelNum);
     for (int i = 0; i < kMaxRsyncParallelNum; i++) {
@@ -218,15 +220,22 @@ public:
       delete resp;
       return;
     }
+    if (resp->code() != RsyncService::kOk) {
+      LOG(WARNING) << "rsync response error";
+      wo_vec_[index]->WakeUp(resp);
+      return;
+    }
+
     if (resp->type() == RsyncService::kRsyncFile &&
-        (resp->file_resp().filename() != wo_vec_[index]->Filename())) {
+        ((resp->file_resp().filename() != wo_vec_[index]->Filename()) ||
+	 (resp->file_resp().offset() != wo_vec_[index]->Offset()))) {
       delete resp;
       return;
     }
     wo_vec_[index]->WakeUp(resp);
   }
 
-private:
+ private:
   std::vector<WaitObject*> wo_vec_;
   std::mutex mu_;
 };

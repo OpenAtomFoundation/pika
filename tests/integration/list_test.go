@@ -2,6 +2,7 @@ package pika_integration
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
@@ -10,9 +11,33 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+func issueBLPop(ctx *context.Context, client *redis.Client, lists []string, timeout time.Duration) {
+	client.BLPop(*ctx, timeout, lists...)
+}
+
+func issueBRPop(ctx *context.Context, client *redis.Client, lists []string, timeout time.Duration) {
+	client.BRPop(*ctx, timeout, lists...)
+}
+
+func issueLPush(ctx *context.Context, client *redis.Client, list string, value string) {
+	defer GinkgoRecover()
+	LPush := client.LPush(*ctx, list, value)
+	Expect(LPush.Err()).NotTo(HaveOccurred())
+	Expect(LPush.Val()).To(Equal([]string{list, "v"}))
+}
+
+func issueRPush(ctx *context.Context, client *redis.Client, list string, value string) {
+	defer GinkgoRecover()
+	RPush := client.RPush(*ctx, list, value)
+	Expect(RPush.Err()).NotTo(HaveOccurred())
+	Expect(RPush.Val()).To(Equal([]string{list, "v"}))
+}
+
 var _ = Describe("List Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
+	var blocked bool
+	var blockedLock sync.Mutex
 
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
@@ -120,6 +145,507 @@ var _ = Describe("List Commands", func() {
 				// ok
 			}
 		})
+
+		It("should BLPopBlocks Timeout Auto UnBlock", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+			blocked = true
+
+			go func() {
+				val, err := client.BLPop(ctx, time.Second, "list").Result()
+				Expect(err).To(Equal(redis.Nil))
+				Expect(val).To(BeNil())
+				blockedLock.Lock()
+				blocked = false
+				blockedLock.Unlock()
+			}()
+
+			time.Sleep(2 * time.Second)
+			blockedLock.Lock()
+			Expect(blocked).To(Equal(false))
+			blockedLock.Unlock()
+		})
+
+		It("should BRPopBlocks Timeout Auto UnBlock", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+			blocked = true
+
+			go func() {
+				val, err := client.BRPop(ctx, time.Second, "list").Result()
+				Expect(err).To(Equal(redis.Nil))
+				Expect(val).To(BeNil())
+				blockedLock.Lock()
+				blocked = false
+				blockedLock.Unlock()
+			}()
+
+			time.Sleep(2 * time.Second)
+			blockedLock.Lock()
+			Expect(blocked).To(Equal(false))
+			blockedLock.Unlock()
+		})
+
+		It("should BLPopBlocks LPush UnBlock", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := client.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			lPush := client.LPush(ctx, "list", "a")
+			Expect(lPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should BRPopBlocks LPush UnBlock", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bRPop := client.BRPop(ctx, 0, "list")
+				Expect(bRPop.Err()).NotTo(HaveOccurred())
+				Expect(bRPop.Val()).To(Equal([]string{"list", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BRPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			lPush := client.LPush(ctx, "list", "a")
+			Expect(lPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BRPop is still blocked")
+			}
+		})
+
+		It("should BLPopBlocks RPopLPush UnBlock", func() {
+			err := client.Del(ctx, "list1", "list2")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			lPush := client.LPush(ctx, "list1", "a")
+			Expect(lPush.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := client.BLPop(ctx, 0, "list2")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list2", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			rPopLPush := client.RPopLPush(ctx, "list1", "list2")
+			Expect(rPopLPush.Err()).NotTo(HaveOccurred())
+			Expect(rPopLPush.Val()).To(Equal("a"))
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should BRPopBlocks RPopLPush UnBlock", func() {
+			err := client.Del(ctx, "list1", "list2")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			lPush := client.LPush(ctx, "list1", "a")
+			Expect(lPush.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := client.BRPop(ctx, 0, "list2")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list2", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BRPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			rPopLPush := client.RPopLPush(ctx, "list1", "list2")
+			Expect(rPopLPush.Err()).NotTo(HaveOccurred())
+			Expect(rPopLPush.Val()).To(Equal("a"))
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BRPop is still blocked")
+			}
+		})
+
+		It("should BLPop BRPop Lists", func() {
+			err := client.Del(ctx, "list1", "list2", "list3")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			rPush := client.RPush(ctx, "list1", "a", "large", "c")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list2", "d", "large", "f")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+
+			bLPop := client.BLPop(ctx, time.Second, "list1", "list2")
+			Expect(bLPop.Err()).NotTo(HaveOccurred())
+			Expect(bLPop.Val()).To(Equal([]string{"list1", "a"}))
+
+			bRPop := client.BRPop(ctx, time.Second, "list1", "list2")
+			Expect(bRPop.Err()).NotTo(HaveOccurred())
+			Expect(bRPop.Val()).To(Equal([]string{"list1", "c"}))
+
+			lLen := client.LLen(ctx, "list1")
+			Expect(lLen.Err()).NotTo(HaveOccurred())
+			Expect(lLen.Val()).To(Equal(int64(1)))
+
+			lLen = client.LLen(ctx, "list2")
+			Expect(lLen.Err()).NotTo(HaveOccurred())
+			Expect(lLen.Val()).To(Equal(int64(3)))
+
+			bLPop = client.BLPop(ctx, time.Second, "list2", "list1")
+			Expect(bLPop.Err()).NotTo(HaveOccurred())
+			Expect(bLPop.Val()).To(Equal([]string{"list2", "d"}))
+
+			bRPop = client.BRPop(ctx, time.Second, "list2", "list1")
+			Expect(bRPop.Err()).NotTo(HaveOccurred())
+			Expect(bRPop.Val()).To(Equal([]string{"list2", "f"}))
+
+			//lLen = client.LLen(ctx, "list1")
+			//Expect(lLen.Err()).NotTo(HaveOccurred())
+			//Expect(lLen.Val()).To(Equal(int64(1)))
+
+			//lLen = client.LLen(ctx, "list2")
+			//Expect(lLen.Err()).NotTo(HaveOccurred())
+			//Expect(lLen.Val()).To(Equal(int64(1)))
+
+			bLPop = client.BLPop(ctx, time.Second, "list3", "list2")
+			Expect(bLPop.Err()).NotTo(HaveOccurred())
+			Expect(bLPop.Val()).To(Equal([]string{"list2", "large"}))
+
+			bRPop = client.BRPop(ctx, time.Second, "list3", "list1")
+			Expect(bRPop.Err()).NotTo(HaveOccurred())
+			Expect(bRPop.Val()).To(Equal([]string{"list1", "large"}))
+		})
+
+		It("should BLPop Same Key Multiple Times", func() {
+			err := client.Del(ctx, "list1", "list2")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := client.BLPop(ctx, 0, "list1", "list2", "list2", "list1")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list1", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BLPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			LPush := client.LPush(ctx, "list1", "a")
+			Expect(LPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BLPop is still blocked")
+			}
+		})
+
+		It("should BRPop Same Key Multiple Times", func() {
+			err := client.Del(ctx, "list1", "list2")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bRPop := client.BRPop(ctx, 0, "list1", "list2", "list2", "list1")
+				Expect(bRPop.Err()).NotTo(HaveOccurred())
+				Expect(bRPop.Val()).To(Equal([]string{"list2", "a"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BRPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			RPush := client.RPush(ctx, "list2", "a")
+			Expect(RPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BRPop is still blocked")
+			}
+		})
+
+		It("should BLPop After Push Multi Value", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bLPop := client.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "bar"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BRPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			lPush := client.LPush(ctx, "list", "foo", "bar")
+			Expect(lPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BRPop is still blocked")
+			}
+		})
+
+		It("should BRPop After Push Multi Value", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			started := make(chan bool)
+			done := make(chan bool)
+			go func() {
+				defer GinkgoRecover()
+
+				started <- true
+				bRPop := client.BRPop(ctx, 0, "list")
+				Expect(bRPop.Err()).NotTo(HaveOccurred())
+				Expect(bRPop.Val()).To(Equal([]string{"list", "bar"}))
+				done <- true
+			}()
+			<-started
+
+			select {
+			case <-done:
+				Fail("BRPop is not blocked")
+			case <-time.After(time.Second):
+				// ok
+			}
+
+			rPush := client.RPush(ctx, "list", "foo", "bar")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+
+			select {
+			case <-done:
+				// ok
+			case <-time.After(time.Second):
+				Fail("BRPop is still blocked")
+			}
+		})
+
+		It("should BLPop Serve Priority", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			go func() {
+				defer GinkgoRecover()
+
+				bLPop := client.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "v1"}))
+			}()
+			time.Sleep(500 * time.Millisecond)
+
+			go func() {
+				defer GinkgoRecover()
+
+				bLPop := client.BLPop(ctx, 0, "list")
+				Expect(bLPop.Err()).NotTo(HaveOccurred())
+				Expect(bLPop.Val()).To(Equal([]string{"list", "v2"}))
+			}()
+			time.Sleep(500 * time.Millisecond)
+
+			rPush := client.RPush(ctx, "list", "v1", "v2")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			time.Sleep(1 * time.Second)
+		})
+
+		It("should BRPop Serve Priority", func() {
+			err := client.Del(ctx, "list")
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			go func() {
+				defer GinkgoRecover()
+
+				bRPop := client.BRPop(ctx, 0, "list")
+				Expect(bRPop.Err()).NotTo(HaveOccurred())
+				Expect(bRPop.Val()).To(Equal([]string{"list", "v4"}))
+			}()
+			time.Sleep(500 * time.Millisecond)
+
+			go func() {
+				defer GinkgoRecover()
+
+				bRPop := client.BRPop(ctx, 0, "list")
+				Expect(bRPop.Err()).NotTo(HaveOccurred())
+				Expect(bRPop.Val()).To(Equal([]string{"list", "v3"}))
+			}()
+			time.Sleep(500 * time.Millisecond)
+
+			rPush := client.RPush(ctx, "list", "v3", "v4")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			time.Sleep(1 * time.Second)
+		})
+
+		/**
+		It("should Concurrency Block UnBlock", func() {
+			lists1 := []string{"blist100", "blist101", "blist102", "blist103"}
+			lists2 := []string{"blist0", "blist1", "blist2", "blist3"}
+
+			err := client.Del(ctx, lists1...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+			err = client.Del(ctx, lists2...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			// Add some blocking connections
+			timeout := 30 * time.Second
+			for i := 1; i <= 25; i++ {
+				go issueBLPop(&ctx, client, lists1, timeout)
+				go issueBRPop(&ctx, client, lists1, timeout)
+			}
+
+			// Concurrent timeout test
+			timeout = 2 * time.Second
+			for i := 1; i <= 50; i++ {
+				go issueBLPop(&ctx, client, lists2, timeout)
+				go issueBRPop(&ctx, client, lists2, timeout)
+			}
+			time.Sleep(6 * time.Second)
+
+			// Add 100 threads to execute blpop/brpop, and they will be blocked at the same time
+			timeout = 0
+			for i := 1; i <= 50; i++ {
+				go issueBLPop(&ctx, client, lists2, timeout)
+				go issueBRPop(&ctx, client, lists2, timeout)
+			}
+
+			// Push 200 data to ensure that the blocking of the 100 connections can be removed
+			for i := 1; i <= 50; i++ {
+				go issueLPush(&ctx, client, "blist2", "v")
+				go issueRPush(&ctx, client, "blist0", "v")
+				go issueLPush(&ctx, client, "blist1", "v")
+				go issueRPush(&ctx, client, "blist3", "v")
+			}
+			time.Sleep(5 * time.Second)
+		})
+
+		It("should Mixed Concurrency Block UnBlock", func() {
+			lists1 := []string{"list0", "list1"}
+			lists2 := []string{"list2", "list3"}
+			err := client.Del(ctx, lists1...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+			err = client.Del(ctx, lists2...)
+			Expect(err.Err()).NotTo(HaveOccurred())
+
+			for i := 1; i <= 25; i++ {
+				go issueBLPop(&ctx, client, lists1, 3 * time.Second)
+				go issueBRPop(&ctx, client, lists1, 3 * time.Second)
+				go issueBLPop(&ctx, client, lists2, 0)
+				go issueBRPop(&ctx, client, lists2, 0)
+			}
+			// Ensure that both blpop/brpop have been executed, and that 50 of the connections are about to start timing out and unblocking
+			time.Sleep(3 * time.Second)
+			// And push 100 pieces of data concurrently to ensure that the blocking of the first 50 connections can be removed
+			for i := 1; i <= 25; i++ {
+				go issueLPush(&ctx, client, "list2", "v")
+				go issueRPush(&ctx, client, "list3", "v")
+				go issueLPush(&ctx, client, "list2", "v")
+				go issueRPush(&ctx, client, "list3", "v")
+			}
+			time.Sleep(10 * time.Second)
+		})
+		**/
 
 		//It("should BRPopLPush", func() {
 		//	_, err := client.BRPopLPush(ctx, "list1", "list2", time.Second).Result()
@@ -389,6 +915,9 @@ var _ = Describe("List Commands", func() {
 			lRange := client.LRange(ctx, "list", 0, -1)
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
+
+            err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
+            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
 		})
 
 		It("should LPopCount", func() {
@@ -554,6 +1083,29 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Val()).To(Equal([]string{"hello", "key"}))
 		})
 
+		It("should LRem binary", func() {
+			rPush := client.RPush(ctx, "list", "\x00\xa2\x00")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+			rPush = client.RPush(ctx, "list", "\x00\x9d")
+			Expect(rPush.Err()).NotTo(HaveOccurred())
+
+			lInsert := client.LInsert(ctx, "list", "BEFORE", "\x00\x9d", "\x00\x5f")
+			Expect(lInsert.Err()).NotTo(HaveOccurred())
+			Expect(lInsert.Val()).To(Equal(int64(3)))
+
+			lRange := client.LRange(ctx, "list", 0, -1)
+			Expect(lRange.Err()).NotTo(HaveOccurred())
+			Expect(lRange.Val()).To(Equal([]string{"\x00\xa2\x00", "\x00\x5f", "\x00\x9d"}))
+
+			lRem := client.LRem(ctx, "list", -1, "\x00\x5f")
+			Expect(lRem.Err()).NotTo(HaveOccurred())
+			Expect(lRem.Val()).To(Equal(int64(1)))
+
+			lRange = client.LRange(ctx, "list", 0, -1)
+			Expect(lRange.Err()).NotTo(HaveOccurred())
+			Expect(lRange.Val()).To(Equal([]string{"\x00\xa2\x00", "\x00\x9d"}))
+		})
+
 		It("should LSet", func() {
 			rPush := client.RPush(ctx, "list", "one")
 			Expect(rPush.Err()).NotTo(HaveOccurred())
@@ -608,6 +1160,9 @@ var _ = Describe("List Commands", func() {
 			lRange := client.LRange(ctx, "list", 0, -1)
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
+
+			err := client.Do(ctx, "RPOP", "list", 1, 2).Err()
+            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
 		})
 
 		It("should RPopCount", func() {

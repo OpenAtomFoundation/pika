@@ -216,14 +216,116 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	switch key {
-	case "proxy_max_clients":
-		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.ProxyMaxClients)))
+	case "jodis":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("jodis_name")),
+			redis.NewBulkBytes([]byte(p.config.JodisName)),
+			redis.NewBulkBytes([]byte("jodis_addr")),
+			redis.NewBulkBytes([]byte(p.config.JodisAddr)),
+			redis.NewBulkBytes([]byte("jodis_auth")),
+			redis.NewBulkBytes([]byte(p.config.JodisAuth)),
+			redis.NewBulkBytes([]byte("jodis_timeout")),
+			redis.NewBulkBytes([]byte(p.config.JodisTimeout.Duration().String())),
+			redis.NewBulkBytes([]byte("jodis_compatible")),
+			redis.NewBulkBytes([]byte(strconv.FormatBool(p.config.JodisCompatible))),
+		})
+	case "proxy":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("proxy_datacenter")),
+			redis.NewBulkBytes([]byte(p.config.ProxyDataCenter)),
+			redis.NewBulkBytes([]byte("proxy_max_clients")),
+			redis.NewBulkBytes([]byte(strconv.Itoa(p.config.ProxyMaxClients))),
+			redis.NewBulkBytes([]byte("proxy_max_offheap_size")),
+			redis.NewBulkBytes([]byte(p.config.ProxyMaxOffheapBytes.HumanString())),
+			redis.NewBulkBytes([]byte("proxy_heap_placeholder")),
+			redis.NewBulkBytes([]byte(p.config.ProxyHeapPlaceholder.HumanString())),
+		})
+	case "backend_ping_period":
+		return redis.NewBulkBytes([]byte(p.config.BackendPingPeriod.Duration().String()))
+	case "backend_buffer_size":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("backend_recv_bufsize")),
+			redis.NewBulkBytes([]byte(p.config.BackendRecvBufsize.HumanString())),
+			redis.NewBulkBytes([]byte("backend_send_bufsize")),
+			redis.NewBulkBytes([]byte(p.config.BackendSendBufsize.HumanString())),
+		})
+	case "backend_timeout":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("backend_recv_timeout")),
+			redis.NewBulkBytes([]byte(p.config.BackendRecvTimeout.Duration().String())),
+			redis.NewBulkBytes([]byte("backend_send_timeout")),
+			redis.NewBulkBytes([]byte(p.config.BackendSendTimeout.Duration().String())),
+		})
+	case "backend_max_pipeline":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendMaxPipeline)))
 	case "backend_primary_only":
 		return redis.NewBulkBytes([]byte(strconv.FormatBool(p.config.BackendPrimaryOnly)))
+	case "max_slot_num":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.MaxSlotNum)))
+	case "backend_primary_parallel":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendPrimaryParallel)))
+	case "backend_replica_parallel":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendReplicaParallel)))
+	case "backend_primary_quick":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendPrimaryQuick)))
+	case "backend_replica_quick":
+		return redis.NewBulkBytes([]byte(strconv.Itoa(p.config.BackendReplicaQuick)))
+	case "backend_keepalive_period":
+		return redis.NewBulkBytes([]byte(p.config.BackendKeepAlivePeriod.Duration().String()))
+	case "backend_number_databases":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(int64(p.config.BackendNumberDatabases), 10)))
+	case "session_buffer_size":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("session_recv_bufsize")),
+			redis.NewBulkBytes([]byte(p.config.SessionRecvBufsize.HumanString())),
+			redis.NewBulkBytes([]byte("session_send_bufsize")),
+			redis.NewBulkBytes([]byte(p.config.SessionSendBufsize.HumanString())),
+		})
+	case "session_timeout":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("session_recv_timeout")),
+			redis.NewBulkBytes([]byte(p.config.SessionRecvTimeout.Duration().String())),
+			redis.NewBulkBytes([]byte("session_send_timeout")),
+			redis.NewBulkBytes([]byte(p.config.SessionSendTimeout.Duration().String())),
+		})
 	case "slowlog_log_slower_than":
 		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.SlowlogLogSlowerThan, 10)))
-	case "slowlog_max_len":
-		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.SlowlogMaxLen, 10)))
+	case "metrics_report_server":
+		return redis.NewBulkBytes([]byte(p.config.MetricsReportServer))
+	case "metrics_report_period":
+		return redis.NewBulkBytes([]byte(p.config.MetricsReportPeriod.Duration().String()))
+	case "metrics_report_influxdb":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("metrics_report_influxdb_server")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportInfluxdbServer)),
+			redis.NewBulkBytes([]byte("metrics_report_influxdb_period")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportInfluxdbPeriod.Duration().String())),
+			redis.NewBulkBytes([]byte("metrics_report_influxdb_username")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportInfluxdbUsername)),
+			redis.NewBulkBytes([]byte("metrics_report_influxdb_database")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportInfluxdbDatabase)),
+		})
+	case "metrics_report_statsd":
+		return redis.NewArray([]*redis.Resp{
+			redis.NewBulkBytes([]byte("metrics_report_statsd_server")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportStatsdServer)),
+			redis.NewBulkBytes([]byte("metrics_report_statsd_period")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportStatsdPeriod.Duration().String())),
+			redis.NewBulkBytes([]byte("metrics_report_statsd_prefix")),
+			redis.NewBulkBytes([]byte(p.config.MetricsReportStatsdPrefix)),
+		})
+	case "quick_cmd_list":
+		return redis.NewBulkBytes([]byte(p.config.QuickCmdList))
+	case "slow_cmd_list":
+		return redis.NewBulkBytes([]byte(p.config.SlowCmdList))
+	case "quick_slow_cmd":
+		return getCmdFlag()
+	case "max_delay_refresh_time_interval":
+		if text, err := p.config.MaxDelayRefreshTimeInterval.MarshalText(); err != nil {
+			return redis.NewErrorf("cant get max_delay_refresh_time_interval value.")
+		} else {
+			return redis.NewBulkBytes(text)
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -233,6 +335,9 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	switch key {
+	case "product_name":
+		p.config.ProductName = value
+		return redis.NewString([]byte("OK"))
 	case "proxy_max_clients":
 		n, err := strconv.Atoi(value)
 		if err != nil {
@@ -255,20 +360,62 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		}
 		p.config.SlowlogLogSlowerThan = n
 		return redis.NewString([]byte("OK"))
-	case "slowlog_max_len":
-		n, err := strconv.ParseInt(value, 10, 64)
+	case "quick_cmd_list":
+		err := setCmdListFlag(value, FlagQuick)
 		if err != nil {
-			return redis.NewErrorf("err：%s", err)
+			log.Warnf("setQuickCmdList config[%s] failed, recover old config[%s].", value, p.config.QuickCmdList)
+			setCmdListFlag(p.config.QuickCmdList, FlagQuick)
+			return redis.NewErrorf("err：%s.", err)
+		}
+		p.config.QuickCmdList = value
+		return redis.NewString([]byte("OK"))
+	case "slow_cmd_list":
+		err := setCmdListFlag(value, FlagSlow)
+		if err != nil {
+			log.Warnf("setSlowCmdList config[%s] failed, recover old config[%s].", value, p.config.SlowCmdList)
+			setCmdListFlag(p.config.SlowCmdList, FlagSlow)
+			return redis.NewErrorf("err：%s.", err)
+		}
+		p.config.SlowCmdList = value
+		return redis.NewString([]byte("OK"))
+	case "backend_replica_quick":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
 		}
 
-		if n < 0 {
-			return redis.NewErrorf("invalid slowlog_max_len")
+		if n < 0 || n >= p.config.BackendReplicaParallel {
+			return redis.NewErrorf("invalid backend_replica_quick")
+		} else {
+			p.config.BackendReplicaQuick = n
+			p.router.SetReplicaQuickConn(p.config.BackendReplicaQuick)
+			return redis.NewString([]byte("OK"))
 		}
-		p.config.SlowlogMaxLen = n
-		if p.config.SlowlogMaxLen > 0 {
-			SlowLogSetMaxLen(p.config.SlowlogMaxLen)
+	case "backend_primary_quick":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
 		}
-		return redis.NewString([]byte("OK"))
+
+		if n < 0 || n >= p.config.BackendPrimaryParallel {
+			return redis.NewErrorf("invalid backend_primary_quick")
+		} else {
+			p.config.BackendPrimaryQuick = n
+			p.router.SetPrimaryQuickConn(p.config.BackendPrimaryQuick)
+			return redis.NewString([]byte("OK"))
+		}
+	case "max_delay_refresh_time_interval":
+		s := &(p.config.MaxDelayRefreshTimeInterval)
+		err := s.UnmarshalText([]byte(value))
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if d := p.config.MaxDelayRefreshTimeInterval.Duration(); d <= 0 {
+			return redis.NewErrorf("max_delay_refresh_time_interval must be greater than 0")
+		} else {
+			RefreshPeriod.Set(int64(d))
+			return redis.NewString([]byte("OK"))
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -401,6 +548,13 @@ func (p *Proxy) serveProxy() {
 		go p.keepAlive(d)
 	}
 
+	if err := setCmdListFlag(p.config.QuickCmdList, FlagQuick); err != nil {
+		log.PanicErrorf(err, "setQuickCmdList [%s] failed", p.config.QuickCmdList)
+	}
+	if err := setCmdListFlag(p.config.SlowCmdList, FlagSlow); err != nil {
+		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
+	}
+
 	select {
 	case <-p.exit.C:
 		log.Warnf("[%p] proxy shutdown", p)
@@ -485,7 +639,8 @@ type Stats struct {
 		PrimaryOnly bool `json:"primary_only"`
 	} `json:"backend"`
 
-	Runtime *RuntimeStats `json:"runtime,omitempty"`
+	Runtime      *RuntimeStats `json:"runtime,omitempty"`
+	SlowCmdCount int64         `json:"slow_cmd_count"` // Cumulative count of slow log
 }
 
 type RuntimeStats struct {
@@ -594,5 +749,6 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
+	stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
 }

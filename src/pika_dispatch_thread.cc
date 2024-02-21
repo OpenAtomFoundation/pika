@@ -9,6 +9,7 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
+#include "net/src/dispatch_thread.h"
 #include "pstd/include/testutil.h"
 
 extern PikaServer* g_pika_server;
@@ -43,6 +44,20 @@ uint64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo>* clients) 
 bool PikaDispatchThread::ClientKill(const std::string& ip_port) { return thread_rep_->KillConn(ip_port); }
 
 void PikaDispatchThread::ClientKillAll() { thread_rep_->KillAllConns(); }
+
+void PikaDispatchThread::UnAuthUserAndKillClient(const std::set<std::string>& users,
+                                                 const std::shared_ptr<User>& defaultUser) {
+  auto dispatchThread = dynamic_cast<net::DispatchThread*>(thread_rep_);
+  if (dispatchThread) {
+    dispatchThread->AllConn([&](const std::shared_ptr<net::NetConn>& conn) {
+      auto pikaClientConn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+      if (pikaClientConn && users.count(pikaClientConn->UserName())) {
+        pikaClientConn->UnAuth(defaultUser);
+        conn->SetClose(true);
+      }
+    });
+  }
+}
 
 bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {

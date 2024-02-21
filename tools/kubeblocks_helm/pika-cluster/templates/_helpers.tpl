@@ -66,7 +66,7 @@ Define pika group with shardingSpec
 */}}
 {{- define "pika-group.shardingSpec" }}
 - name: group
-  shards: {{ .Values.replicaCount }}
+  shards: {{ .Values.groupCount }}
   template:
     name: pika
     componentDef: pika-group

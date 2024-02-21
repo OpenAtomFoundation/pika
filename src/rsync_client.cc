@@ -22,8 +22,8 @@ const int kBytesPerRequest = 4 << 20;
 const int kThrottleCheckCycle = 10;
 
 namespace rsync {
-RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name, const uint32_t slot_id)
-    : snapshot_uuid_(""), dir_(dir), db_name_(db_name), slot_id_(slot_id),
+RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name)
+    : snapshot_uuid_(""), dir_(dir), db_name_(db_name),
       state_(IDLE), max_retries_(10), master_ip_(""), master_port_(0),
       parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
@@ -62,7 +62,7 @@ bool RsyncClient::Init() {
   master_port_ = g_pika_server->master_port() + kPortShiftRsync2;
   file_set_.clear();
   client_thread_->StartThread();
-  bool ret = Recover();
+  bool ret = ComparisonUpdate();
   if (!ret) {
     LOG(WARNING) << "RsyncClient recover failed";
     client_thread_->StopThread();
@@ -95,11 +95,18 @@ void* RsyncClient::ThreadMain() {
   std::string meta_file_path = GetLocalMetaFilePath();
   std::ofstream outfile;
   outfile.open(meta_file_path, std::ios_base::app);
+  if (!outfile.is_open()) {
+    LOG(FATAL) << "unable to open meta file " << meta_file_path << ", error:"  << strerror(errno);
+    return nullptr;
+  }
+  DEFER {
+    outfile.close();
+  };
+
   std::string meta_rep;
   uint64_t start_time = pstd::NowMicros();
 
   while (state_.load() == RUNNING) {
-    uint64_t now = pstd::NowMicros();
     uint64_t elapse = pstd::NowMicros() - start_time;
     if (elapse < kFlushIntervalUs) {
       int wait_for_us = kFlushIntervalUs - elapse;
@@ -140,7 +147,8 @@ void* RsyncClient::ThreadMain() {
 }
 
 Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
-    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(dir_ + "/" + filename));
+    const std::string filepath = dir_ + "/" + filename;
+    std::unique_ptr<RsyncWriter> writer(new RsyncWriter(filepath));
     Status s = Status::OK();
     size_t offset = 0;
     int retries = 0;
@@ -151,14 +159,14 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         writer.reset();
       }
       if (!s.ok()) {
-        DeleteFile(filename);
+        DeleteFile(filepath);
       }
     };
 
     while (retries < max_retries_) {
       if (state_.load() != RUNNING) {
         break;
-        }
+      }
       size_t copy_file_begin_time = pstd::NowMicros();
       size_t count = Throttle::GetInstance().ThrottledByThroughput(kBytesPerRequest);
       if (count == 0) {
@@ -169,7 +177,12 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       request.set_reader_index(index);
       request.set_type(kRsyncFile);
       request.set_db_name(db_name_);
-      request.set_slot_id(slot_id_);
+      /*
+       * Since the slot field is written in protobuffer,
+       * slot_id is set to the default value 0 for compatibility
+       * with older versions, but slot_id is not used
+       */
+      request.set_slot_id(0);
       FileRequest* file_req = request.mutable_file_req();
       file_req->set_filename(filename);
       file_req->set_offset(offset);
@@ -184,12 +197,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         continue;
       }
 
-      RsyncResponse* resp = nullptr;
-      DEFER {
-        if (resp) {
-          delete resp;
-        }
-      };
+      std::shared_ptr<RsyncResponse> resp = nullptr;
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
         LOG(WARNING) << "rsync request timeout";
@@ -197,14 +205,13 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         continue;
       }
 
+      if (resp->code() != RsyncService::kOk) {
+        return Status::IOError("kRsyncFile request failed, master response error code");
+      }
+
       size_t ret_count = resp->file_resp().count();
       size_t elaspe_time_us = pstd::NowMicros() - copy_file_begin_time;
       Throttle::GetInstance().ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
-
-      if (resp->code() != RsyncService::kOk) {
-        //TODO: handle different error
-        continue;
-      }
 
       if (resp->snapshot_uuid() != snapshot_uuid_) {
         LOG(WARNING) << "receive newer dump, reset state to STOP, local_snapshot_uuid:"
@@ -224,12 +231,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
         s = writer->Fsync();
         if (!s.ok()) {
             return s;
-        }
-        s = writer->Close();
-        if (!s.ok()) {
-            return s;
-        }
-        writer.reset();
+        } 
         mu_.lock();
         meta_table_[filename] = "";
         mu_.unlock();
@@ -261,16 +263,16 @@ Status RsyncClient::Stop() {
   return Status::OK();
 }
 
-bool RsyncClient::Recover() {
+bool RsyncClient::ComparisonUpdate() {
   std::string local_snapshot_uuid;
   std::string remote_snapshot_uuid;
   std::set<std::string> local_file_set;
   std::set<std::string> remote_file_set;
   std::map<std::string, std::string> local_file_map;
 
-  Status s = CopyRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
+  Status s = PullRemoteMeta(&remote_snapshot_uuid, &remote_file_set);
   if (!s.ok()) {
-    LOG(WARNING) << "copy remote meta failed";
+    LOG(WARNING) << "copy remote meta failed! error:" << s.ToString();
     return false;
   }
 
@@ -311,7 +313,7 @@ bool RsyncClient::Recover() {
   }
 
   state_ = RUNNING;
-  LOG(INFO) << "copy meta data done, slot_id: " << slot_id_
+  LOG(INFO) << "copy meta data done, db name: " << db_name_
             << " snapshot_uuid: " << snapshot_uuid_
             << " file count: " << file_set_.size()
             << " expired file count: " << expired_files.size()
@@ -325,38 +327,38 @@ bool RsyncClient::Recover() {
   return true;
 }
 
-Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set) {
+Status RsyncClient::PullRemoteMeta(std::string* snapshot_uuid, std::set<std::string>* file_set) {
   Status s;
   int retries = 0;
   RsyncRequest request;
   request.set_reader_index(0);
   request.set_db_name(db_name_);
-  request.set_slot_id(slot_id_);
+  /*
+   * Since the slot field is written in protobuffer,
+   * slot_id is set to the default value 0 for compatibility
+   * with older versions, but slot_id is not used
+   */
+  request.set_slot_id(0);
   request.set_type(kRsyncMeta);
   std::string to_send;
   request.SerializeToString(&to_send);
   while (retries < max_retries_) {
-    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, 0xFFFFFFFF);
+    WaitObject* wo = wo_mgr_->UpdateWaitObject(0, "", kRsyncMeta, kInvalidOffset);
     s = client_thread_->Write(master_ip_, master_port_, to_send);
     if (!s.ok()) {
       retries++;
     }
-    RsyncResponse* resp = nullptr;
-    DEFER {
-      if (resp) {
-        delete resp;
-      }
-    };
+    std::shared_ptr<RsyncResponse> resp;
     s = wo->Wait(resp);
-    if (s.IsTimeout() || resp == nullptr) {
-      LOG(WARNING) << "rsync CopyRemoteMeta request timeout, "
+    if (s.IsTimeout()) {
+      LOG(WARNING) << "rsync PullRemoteMeta request timeout, "
                    << "retry times: " << retries;
       retries++;
       continue;
     }
 
-    if (resp->code() != RsyncService::kOk) {
-      //TODO: handle different error
+    if (resp.get() == nullptr || resp->code() != RsyncService::kOk) {
+      s = Status::IOError("kRsyncMeta request failed! unknown reason");
       continue;
     }
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()
@@ -366,6 +368,7 @@ Status RsyncClient::CopyRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
 
     *snapshot_uuid = resp->snapshot_uuid();
+    s = Status::OK();
     break;
   }
   return s;
@@ -386,7 +389,8 @@ Status RsyncClient::LoadLocalMeta(std::string* snapshot_uuid, std::map<std::stri
 
   std::atomic_int8_t retry_times = 5;
 
-  while (retry_times-- > 0) {
+  while (retry_times > 0) {
+    retry_times--;
     fp = fopen(meta_file_path.c_str(), "r");
     if (fp == nullptr) {
       LOG(WARNING) << "open meta file failed, meta_path: " << dir_;
@@ -456,6 +460,10 @@ Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, const std::set<std
 
 Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std::set<std::string>& expired_files,
                                     std::map<std::string, std::string>* localFileMap) {
+  if (localFileMap->empty()) {
+    return Status::OK();
+  }
+  
   for (const auto& item : expired_files) {
     localFileMap->erase(item);
   }
@@ -475,7 +483,7 @@ Status RsyncClient::UpdateLocalMeta(const std::string& snapshot_uuid, const std:
     std::string line = item.first + ":" + item.second + "\n";
     file->Append(line);
   }
-  s = file->Flush();
+  s = file->Close();
   if (!s.ok()) {
     LOG(WARNING) << "flush meta file failed, meta_file_path: " << meta_file_path;
     return s;

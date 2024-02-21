@@ -19,9 +19,9 @@ void PfAddCmd::DoInitial() {
   }
 }
 
-void PfAddCmd::Do(std::shared_ptr<Slot> slot) {
+void PfAddCmd::Do() {
   bool update = false;
-  rocksdb::Status s = slot->db()->PfAdd(key_, values_, &update);
+  rocksdb::Status s = db_->storage()->PfAdd(key_, values_, &update);
   if (s.ok() && update) {
     res_.AppendInteger(1);
   } else if (s.ok() && !update) {
@@ -42,9 +42,9 @@ void PfCountCmd::DoInitial() {
   }
 }
 
-void PfCountCmd::Do(std::shared_ptr<Slot> slot) {
+void PfCountCmd::Do() {
   int64_t value_ = 0;
-  rocksdb::Status s = slot->db()->PfCount(keys_, &value_);
+  rocksdb::Status s = db_->storage()->PfCount(keys_, &value_);
   if (s.ok()) {
     res_.AppendInteger(value_);
   } else {
@@ -63,15 +63,15 @@ void PfMergeCmd::DoInitial() {
   }
 }
 
-void PfMergeCmd::Do(std::shared_ptr<Slot> slot) {
-  rocksdb::Status s = slot->db()->PfMerge(keys_, value_to_dest_);
+void PfMergeCmd::Do() {
+  rocksdb::Status s = db_->storage()->PfMerge(keys_, value_to_dest_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
-void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+void PfMergeCmd::DoBinlog() {
   PikaCmdArgsType set_args;
   //used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_args.emplace_back("set");
@@ -81,5 +81,5 @@ void PfMergeCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
   //value of this binlog might be strange, it's an string with size of 128KB
-  set_cmd_->DoBinlog(slot);
+  set_cmd_->DoBinlog();
 }

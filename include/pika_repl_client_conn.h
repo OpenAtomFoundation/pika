@@ -14,8 +14,8 @@
 #include "include/pika_conf.h"
 #include "pika_inner_message.pb.h"
 
-class SyncMasterSlot;
-class SyncSlaveSlot;
+class SyncMasterDB;
+class SyncSlaveDB;
 
 class PikaReplClientConn : public net::PbConn {
  public:
@@ -27,24 +27,13 @@ class PikaReplClientConn : public net::PbConn {
   static void HandleDBSyncResponse(void* arg);
   static void HandleTrySyncResponse(void* arg);
   static void HandleRemoveSlaveNodeResponse(void* arg);
-
-  static pstd::Status TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
-                                      const std::shared_ptr<SyncMasterSlot>& slot,
-                                      const std::shared_ptr<SyncSlaveSlot>& slave_slot);
   static bool IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
                                       const std::vector<DBStruct>& expect_tables);
   int DealMessage() override;
 
  private:
-  // dispatch binlog by its table_name + slot
+  // dispatch binlog by its db_name
   void DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& response);
-
-  struct ReplRespArg {
-    std::shared_ptr<InnerMessage::InnerResponse> resp;
-    std::shared_ptr<net::PbConn> conn;
-    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn)
-        : resp(std::move(_resp)), conn(std::move(_conn)) {}
-  };
 };
 
 #endif

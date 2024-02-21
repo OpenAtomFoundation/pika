@@ -50,12 +50,12 @@ var _ = Describe("Server", func() {
 			Expect(r.Val()).To(Equal("OK"))
 
 			r = client.Do(ctx, "AUTH", "wrong!")
-			Expect(r.Err()).To(MatchError("ERR invalid password"))
+			Expect(r.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
-			r = client.Do(ctx, "AUTH", "foo", "bar")
-			Expect(r.Err()).To(MatchError("ERR wrong number of arguments for 'auth' command"))
+			// r = client.Do(ctx, "AUTH", "foo", "bar")
+			// Expect(r.Err()).To(MatchError("ERR wrong number of arguments for 'auth' command"))
 
-			r = client.Do(ctx, "AUTH", "foobar")
+			r = client.Do(ctx, "AUTH", "default", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
 			r = client.Do(ctx, "config", "set", "requirepass", "")
@@ -73,7 +73,7 @@ var _ = Describe("Server", func() {
 			_, err1 := cmds[0].(*redis.MapStringInterfaceCmd).Result()
 			m2, err2 := cmds[1].(*redis.MapStringInterfaceCmd).Result()
 			m3, err3 := cmds[2].(*redis.MapStringInterfaceCmd).Result()
-			Expect(err1).To(MatchError("ERR -NOPROTO unsupported protocol version"))
+			Expect(err1).To(MatchError("NOPROTO unsupported protocol version"))
 
 			Expect(err2).NotTo(HaveOccurred())
 			Expect(m2["proto"]).To(Equal(int64(2)))
@@ -93,11 +93,11 @@ var _ = Describe("Server", func() {
 			r = client.Do(ctx, "config", "set", "requirepass", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
-			r = client.Do(ctx, "hello", "3", "auth", "wrong")
-			Expect(r.Err()).To(MatchError("ERR invalid password"))
-
-			r = client.Do(ctx, "hello", "3", "auth", "foobar")
-			Expect(r.Err()).NotTo(HaveOccurred())
+			// r = client.Do(ctx, "hello", "3", "auth", "wrong")
+			// Expect(r.Err()).To(MatchError("ERR invalid password"))
+			//
+			// r = client.Do(ctx, "hello", "3", "auth", "foobar")
+			// Expect(r.Err()).NotTo(HaveOccurred())
 
 			r = client.Do(ctx, "config", "set", "requirepass", "")
 		})
@@ -390,11 +390,24 @@ var _ = Describe("Server", func() {
 		//	Expect(info.Val()).To(ContainSubstring(`memory`))
 		//})
 		//
-		//It("should LastSave", func() {
-		//	lastSave := client.LastSave(ctx)
-		//	Expect(lastSave.Err()).NotTo(HaveOccurred())
-		//	Expect(lastSave.Val()).NotTo(Equal(0))
-		//})
+		It("should LastSave", func() {
+			lastSave := client.LastSave(ctx)
+			Expect(lastSave.Err()).NotTo(HaveOccurred())
+			//Expect(lastSave.Val()).To(Equal(int64(0)))
+
+			bgSaveTime1 := time.Now().Unix()
+			bgSave, err := client.BgSave(ctx).Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bgSave).To(ContainSubstring("Background saving started"))
+			time.Sleep(1 * time.Second)
+			bgSaveTime2 := time.Now().Unix()
+
+			lastSave = client.LastSave(ctx)
+			Expect(lastSave.Err()).NotTo(HaveOccurred())
+			Expect(lastSave.Val()).To(BeNumerically(">=", bgSaveTime1))
+			Expect(lastSave.Val()).To(BeNumerically("<=", bgSaveTime2))
+
+		})
 
 		//It("should Save", func() {
 		//
@@ -407,16 +420,17 @@ var _ = Describe("Server", func() {
 		//	}, "10s").Should(Equal("OK"))
 		//})
 
-		// todo 待回滚
-		//It("should SlaveOf", func() {
-		//	slaveOf := client.SlaveOf(ctx, "localhost", "8888")
-		//	Expect(slaveOf.Err()).NotTo(HaveOccurred())
-		//	Expect(slaveOf.Val()).To(Equal("OK"))
-		//
-		//	slaveOf = client.SlaveOf(ctx, "NO", "ONE")
-		//	Expect(slaveOf.Err()).NotTo(HaveOccurred())
-		//	Expect(slaveOf.Val()).To(Equal("OK"))
-		//})
+		// fix: https://github.com/OpenAtomFoundation/pika/issues/2168
+		It("should SlaveOf itself", func() {
+			slaveOf := client.SlaveOf(ctx, "127.0.0.1", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+
+			slaveOf = client.SlaveOf(ctx, "localhost", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+
+			slaveOf = client.SlaveOf(ctx, "loCalHoSt", "9221")
+			Expect(slaveOf.Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+		})
 
 		It("should Time", func() {
 			tm, err := client.Time(ctx).Result()
@@ -601,7 +615,7 @@ var _ = Describe("Server", func() {
 		It("should pexpire", func() {
 			Expect(client.Set(ctx, "key_3000ms", "value", 0).Val()).To(Equal("OK"))
 			Expect(client.PExpire(ctx, "key_3000ms", 3000*time.Millisecond).Val()).To(Equal(true))
-			Expect(client.PTTL(ctx, "key").Val()).NotTo(Equal(int64(-2)))
+			Expect(client.PTTL(ctx, "key_3000ms").Val()).NotTo(Equal(time.Duration(-2)))
 
 			time.Sleep(4 * time.Second)
 			Expect(client.PTTL(ctx, "key_3000ms").Val()).To(Equal(time.Duration(-2)))

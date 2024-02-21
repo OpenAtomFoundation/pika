@@ -8,8 +8,8 @@
 #include <sys/stat.h>
 #include <algorithm>
 
-#include <glog/logging.h>
 #include <fmt/core.h>
+#include <glog/logging.h>
 
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
@@ -52,10 +52,13 @@ int BaseConf::LoadConf() {
         break;
       }
       switch (line[i]) {
-        case SPACE:
         case '\r':
         case '\n':
           break;
+        case SPACE:
+          if (value_len == 0) {  // Allow spaces in value
+            break;
+          }
         case COLON:
           if (sep_sign == 0) {
             type = Rep::kConf;
@@ -93,7 +96,7 @@ int BaseConf::ReloadConf() {
 }
 
 bool BaseConf::GetConfInt(const std::string& name, int* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -106,7 +109,7 @@ bool BaseConf::GetConfInt(const std::string& name, int* value) const {
 }
 
 bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -128,7 +131,7 @@ bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
 }
 
 bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -150,7 +153,7 @@ bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const 
 }
 
 bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -163,7 +166,7 @@ bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
 }
 
 bool BaseConf::GetConfStr(const std::string& name, std::string* val) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == 1) {
       continue;
     }
@@ -176,7 +179,7 @@ bool BaseConf::GetConfStr(const std::string& name, std::string* val) const {
 }
 
 bool BaseConf::GetConfStrVec(const std::string& name, std::vector<std::string>* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -199,7 +202,7 @@ bool BaseConf::GetConfStrVec(const std::string& name, std::vector<std::string>* 
 }
 
 bool BaseConf::GetConfBool(const std::string& name, bool* value) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -228,8 +231,20 @@ bool BaseConf::GetConfDouble(const std::string& name, double* value) const {
   return false;
 }
 
+bool BaseConf::GetConfStrMulti(const std::string& name, std::vector<std::string>* values) const {
+  for (auto& i : rep_->item) {
+    if (i.type == Rep::kComment) {
+      continue;
+    }
+    if (name == i.name) {
+      values->emplace_back(i.value);
+    }
+  }
+  return true;
+}
+
 bool BaseConf::SetConfInt(const std::string& name, const int value) {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -242,7 +257,7 @@ bool BaseConf::SetConfInt(const std::string& name, const int value) {
 }
 
 bool BaseConf::SetConfInt64(const std::string& name, const int64_t value) {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -255,7 +270,7 @@ bool BaseConf::SetConfInt64(const std::string& name, const int64_t value) {
 }
 
 bool BaseConf::SetConfStr(const std::string& name, const std::string& value) {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -268,7 +283,7 @@ bool BaseConf::SetConfStr(const std::string& name, const std::string& value) {
 }
 
 bool BaseConf::SetConfBool(const std::string& name, const bool value) {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -290,7 +305,7 @@ bool BaseConf::SetConfStrVec(const std::string& name, const std::vector<std::str
 }
 
 bool BaseConf::SetConfDouble(const std::string& name, const double value) {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -303,7 +318,7 @@ bool BaseConf::SetConfDouble(const std::string& name, const double value) {
 }
 
 bool BaseConf::CheckConfExist(const std::string& name) const {
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {
       continue;
     }
@@ -316,7 +331,7 @@ bool BaseConf::CheckConfExist(const std::string& name) const {
 
 void BaseConf::DumpConf() const {
   int cnt = 1;
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kConf) {
       LOG(INFO) << fmt::format("{:2} {} {}", cnt++, i.name, i.value);
     }
@@ -332,7 +347,7 @@ bool BaseConf::WriteBack() {
     return false;
   }
   std::string tmp;
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kConf) {
       tmp = i.name + " : " + i.value + "\n";
       write_file->Append(tmp);
@@ -351,7 +366,7 @@ void BaseConf::WriteSampleConf() const {
   std::string sample_path = rep_->path + ".sample";
   Status ret = NewWritableFile(sample_path, write_file);
   std::string tmp;
-  for (auto & i : rep_->item) {
+  for (auto& i : rep_->item) {
     if (i.type == Rep::kConf) {
       tmp = i.name + " :\n";
       write_file->Append(tmp);

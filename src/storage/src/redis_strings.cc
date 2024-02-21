@@ -387,6 +387,34 @@ Status RedisStrings::Get(const Slice& key, std::string* value) {
   return s;
 }
 
+Status RedisStrings::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
+  value->clear();
+  Status s = db_->Get(default_read_options_, key, value);
+  if (s.ok()) {
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      *ttl = -2;
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+      *ttl = parsed_strings_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+    }
+  } else if (s.IsNotFound()) {
+    value->clear();
+    *ttl = -2;
+  }
+
+  return s;
+}
+
 Status RedisStrings::GetBit(const Slice& key, int64_t offset, int32_t* ret) {
   std::string meta_value;
   Status s = db_->Get(default_read_options_, key, &meta_value);
@@ -445,6 +473,56 @@ Status RedisStrings::Getrange(const Slice& key, int64_t start_offset, int64_t en
   } else {
     return s;
   }
+}
+
+Status RedisStrings::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                                       std::string* ret, std::string* value, int64_t* ttl) {
+  *ret = "";
+  Status s = db_->Get(default_read_options_, key, value);
+  if (s.ok()) {
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      *ttl = -2;
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+      // get ttl
+      *ttl = parsed_strings_value.timestamp();
+      if (*ttl == 0) {
+        *ttl = -1;
+      } else {
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+      }
+
+      int64_t size = value->size();
+      int64_t start_t = start_offset >= 0 ? start_offset : size + start_offset;
+      int64_t end_t = end_offset >= 0 ? end_offset : size + end_offset;
+      if (start_t > size - 1 ||
+          (start_t != 0 && start_t > end_t) ||
+          (start_t != 0 && end_t < 0)
+      ) {
+        return Status::OK();
+      }
+      if (start_t < 0) {
+        start_t  = 0;
+      }
+      if (end_t >= size) {
+        end_t = size - 1;
+      }
+      if (start_t == 0 && end_t < 0) {
+        end_t = 0;
+      }
+      *ret = value->substr(start_t, end_t-start_t+1);
+      return Status::OK();
+    }
+  } else if (s.IsNotFound()) {
+    value->clear();
+    *ttl = -2;
+  }
+  return s;
 }
 
 Status RedisStrings::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
@@ -575,10 +653,46 @@ Status RedisStrings::MGet(const std::vector<std::string>& keys, std::vector<Valu
   return Status::OK();
 }
 
+Status RedisStrings::MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss) {
+  vss->clear();
+
+  Status s;
+  std::string value;
+  rocksdb::ReadOptions read_options;
+  const rocksdb::Snapshot* snapshot;
+  ScopeSnapshot ss(db_, &snapshot);
+  read_options.snapshot = snapshot;
+  for (const auto& key : keys) {
+    s = db_->Get(read_options, key, &value);
+    if (s.ok()) {
+      ParsedStringsValue parsed_strings_value(&value);
+      if (parsed_strings_value.IsStale()) {
+        vss->push_back({std::string(), Status::NotFound("Stale"), -2});
+      } else {
+        if (parsed_strings_value.timestamp() == 0) {
+          vss->push_back({parsed_strings_value.user_value().ToString(), Status::OK(), -1});
+        } else {
+          int64_t curtime;
+          rocksdb::Env::Default()->GetCurrentTime(&curtime);
+          vss->push_back(
+              {parsed_strings_value.user_value().ToString(), Status::OK(),
+               parsed_strings_value.timestamp() - curtime >= 0 ? parsed_strings_value.timestamp() - curtime : -2});
+        }
+      }
+    } else if (s.IsNotFound()) {
+      vss->push_back({std::string(), Status::NotFound(), -2});
+    } else {
+      vss->clear();
+      return s;
+    }
+  }
+  return Status::OK();
+}
+
 Status RedisStrings::MSet(const std::vector<KeyValue>& kvs) {
   std::vector<std::string> keys;
   keys.reserve(kvs.size());
-for (const auto& kv : kvs) {
+  for (const auto& kv : kvs) {
     keys.push_back(kv.key);
   }
 
@@ -821,7 +935,7 @@ Status RedisStrings::Setrange(const Slice& key, int64_t start_offset, const Slic
       } else {
         std::string head = old_value.substr(0, start_offset);
         std::string tail;
-        if (start_offset + value.size() - 1 < old_value.length() - 1) {
+        if ((start_offset + value.size()) < old_value.length()) {
           tail = old_value.substr(start_offset + value.size());
         }
         new_value = head + value.data() + tail;

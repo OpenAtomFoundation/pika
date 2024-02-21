@@ -39,6 +39,7 @@ inline const std::string HASHES_DB = "hashes";
 inline const std::string LISTS_DB = "lists";
 inline const std::string ZSETS_DB = "zsets";
 inline const std::string SETS_DB = "sets";
+inline const std::string STREAMS_DB = "streams";
 
 inline constexpr size_t BATCH_DELETE_LIMIT = 100;
 inline constexpr size_t COMPACT_THRESHOLD_COUNT = 2000;
@@ -53,8 +54,15 @@ class RedisHashes;
 class RedisSets;
 class RedisLists;
 class RedisZSets;
+class RedisStreams;
 class HyperLogLog;
 enum class OptionType;
+
+struct StreamAddTrimArgs;
+struct StreamReadGroupReadArgs;
+struct StreamScanArgs;
+struct streamID;
+struct StreamInfoResult;
 
 template <typename T1, typename T2>
 class LRUCache;
@@ -66,6 +74,7 @@ struct StorageOptions {
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
+  size_t small_compaction_duration_threshold = 10000;
   Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
 };
 
@@ -86,13 +95,20 @@ struct KeyInfo {
 struct ValueStatus {
   std::string value;
   Status status;
-  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status); }
+  int64_t  ttl;
+  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status && vs.ttl == ttl); }
 };
 
 struct FieldValue {
   std::string field;
   std::string value;
   bool operator==(const FieldValue& fv) const { return (fv.field == field && fv.value == value); }
+};
+
+struct IdMessage {
+  std::string field;
+  std::string value;
+  bool operator==(const IdMessage& fv) const { return (fv.field == field && fv.value == value); }
 };
 
 struct KeyVersion {
@@ -109,9 +125,9 @@ struct ScoreMember {
 
 enum BeforeOrAfter { Before, After };
 
-enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets };
+enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets, kStreams };
 
-const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's'};
+const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's', 'x'};
 
 enum class OptionType {
   kDB,
@@ -124,15 +140,26 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactKey };
+enum Operation {
+  kNone = 0,
+  kCleanAll,
+  kCleanStrings,
+  kCleanHashes,
+  kCleanZSets,
+  kCleanSets,
+  kCleanLists,
+  kCleanStreams,
+  kCompactRange
+};
 
 struct BGTask {
   DataType type;
   Operation operation;
-  std::string argv;
+  std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone, std::string _argv = "")
-      : type(_type), operation(_opeation), argv(std::move(_argv)) {}
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {})
+      : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
@@ -159,6 +186,10 @@ class Storage {
   // the special value nil is returned
   Status Get(const Slice& key, std::string* value);
 
+  // Get the value and ttl of key. If the key does not exist
+  // the special value nil is returned. If the key has no ttl, ttl is -1
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+
   // Atomically sets key to value and returns the old value stored at key
   // Returns an error when key exists but does not hold a string value.
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
@@ -177,6 +208,11 @@ class Storage {
   // that does not hold a string value or does not exist, the
   // special value nil is returned
   Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
+
+  // Returns the values of all specified keyswithTTL. For every key
+  // that does not hold a string value or does not exist, the
+  // special value nil is returned
+  Status MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
 
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
@@ -207,6 +243,9 @@ class Storage {
   // Returns the substring of the string value stored at key,
   // determined by the offsets start and end (both are inclusive)
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
+
+  Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
+                           std::string* ret, std::string* value, int64_t* ttl);
 
   // If key already exists and is a string, this command appends the value at
   // the end of the string
@@ -284,6 +323,8 @@ class Storage {
   // value, every field name is followed by its value, so the length of the
   // reply is twice the size of the hash.
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
+
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
 
   // Returns all field names in the hash stored at key.
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
@@ -416,6 +457,8 @@ class Storage {
   // This has the same effect as running SINTER with one argument key.
   Status SMembers(const Slice& key, std::vector<std::string>* members);
 
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl);
+
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
   // treated as an empty set and this command returns 0.
@@ -486,6 +529,8 @@ class Storage {
   // and stop are zero-based indexes, with 0 being the first element of the list
   // (the head of the list), 1 being the next element and so on.
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
+
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -646,6 +691,9 @@ class Storage {
   // libraries are free to return a more appropriate data type (suggestion: an
   // array with (value, score) arrays/tuples).
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
+
+  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
+                                int64_t *ttl);
 
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
@@ -884,6 +932,15 @@ class Storage {
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
 
+  Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
+  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XLen(const Slice& key, int32_t& len);
+  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+               std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult &result);
   // Keys Commands
 
   // Note:
@@ -942,6 +999,10 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys existing
   int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+
+  // Return the key exists type count
+  // return param type_status: return every type status
+  int64_t IsExist(const Slice& key, std::map<DataType, Status>* type_status);
 
   // EXPIREAT has the same effect and semantic as EXPIRE, but instead of
   // specifying the number of seconds representing the TTL (time to live), it
@@ -1007,11 +1068,13 @@ class Storage {
   Status AddBGTask(const BGTask& bg_task);
 
   Status Compact(const DataType& type, bool sync = false);
+  Status CompactRange(const DataType& type, const std::string& start, const std::string& end, bool sync = false);
   Status DoCompact(const DataType& type);
-  Status CompactKey(const DataType& type, const std::string& key);
+  Status DoCompactRange(const DataType& type, const std::string& start, const std::string& end);
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  Status SetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold);
 
   std::string GetCurrentTaskType();
   Status GetUsage(const std::string& property, uint64_t* result);
@@ -1025,6 +1088,11 @@ class Storage {
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
+  void SetCompactRangeOptions(const bool is_canceled);
+  Status EnableDymayticOptions(const OptionType& option_type, 
+                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
+  Status EnableAutoCompaction(const OptionType& option_type, 
+                    const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
  private:
@@ -1033,6 +1101,7 @@ class Storage {
   std::unique_ptr<RedisSets> sets_db_;
   std::unique_ptr<RedisZSets> zsets_db_;
   std::unique_ptr<RedisLists> lists_db_;
+  std::unique_ptr<RedisStreams> streams_db_;
   std::atomic<bool> is_opened_ = false;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;

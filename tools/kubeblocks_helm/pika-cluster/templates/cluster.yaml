@@ -20,7 +20,7 @@ spec:
   {{- end }}
   componentSpecs:
     {{- if .Values.useLegacyCompDef }}
-    {{- range $i := until (int .Values.replicaCount) }}
+    {{- range $i := until (int .Values.groupCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
       componentDefRef: pika-group # ref clusterDefinition.componentDefs[x].name
       monitor: {{ $.Values.monitor.enabled | default false }}
@@ -76,7 +76,7 @@ spec:
       {{- end }}
       {{- if .Values.persistence.enabled }}
       volumeClaimTemplates:
-        {{- with  $.Values.persistence.pikaData }}
+        {{- with  $.Values.persistence.etcdData }}
         - name: data # ref clusterdefinition components.containers.volumeMounts.name
           spec:
             storageClassName: {{ .storageClassName }}

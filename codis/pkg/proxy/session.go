@@ -236,12 +236,14 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		} else {
 			s.incrOpStats(r, resp.Type)
 		}
+		nowTime := time.Now().UnixNano()
+		duration := int64((nowTime - r.ReceiveTime) / 1e3)
+		s.updateMaxDelay(duration, r)
 		if fflush {
 			s.flushOpStats(false)
 		}
-		nowTime := time.Now().UnixNano()
-		duration := int64((nowTime - r.ReceiveTime) / 1e3)
 		if duration >= s.config.SlowlogLogSlowerThan {
+			SlowCmdCount.Incr() // Atomic global variable, increment by 1 when slow log occurs.
 			//client -> proxy -> server -> porxy -> client
 			//Record the waiting time from receiving the request from the client to sending it to the backend server
 			//the waiting time from sending the request to the backend server to receiving the response from the server
@@ -257,12 +259,8 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
 			}
 			index := getWholeCmd(r.Multi, cmd)
-			cmdLog := fmt.Sprintf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
+			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
 				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
-			log.Warnf("%s", cmdLog)
-			if s.config.SlowlogMaxLen > 0 {
-				SlowLogPush(&SlowLogEntry{SlowLogGetCurLogId(), r.ReceiveTime / 1e3, duration, cmdLog})
-			}
 		}
 		return nil
 	})
@@ -328,8 +326,6 @@ func (s *Session) handleRequest(r *Request, d *Router) error {
 		return s.handleRequestExists(r, d)
 	case "PCONFIG":
 		return s.handlePConfig(r)
-	case "PSLOWLOG":
-		return s.handlePSlowLog(r)
 	case "SLOTSINFO":
 		return s.handleRequestSlotsInfo(r, d)
 	case "SLOTSSCAN":
@@ -726,61 +722,6 @@ func (s *Session) flushOpStats(force bool) {
 	}
 }
 
-func (s *Session) handlePSlowLog(r *Request) error {
-	if len(r.Multi) < 2 || len(r.Multi) > 4 {
-		r.Resp = redis.NewErrorf("ERR slowLog parameters")
-		return nil
-	}
-	var subCmd = strings.ToUpper(string(r.Multi[1].Value))
-	switch subCmd {
-	case "GET":
-		if len(r.Multi) == 3 {
-			num, err := strconv.ParseInt(string(r.Multi[2].Value), 10, 64)
-			if err != nil {
-				r.Resp = redis.NewErrorf("ERR invalid slowLog number")
-				break
-			}
-
-			r.Resp = SlowLogGetByNum(num)
-		} else if len(r.Multi) == 4 {
-			var (
-				id  int64
-				num int64
-				err error
-			)
-			id, err = strconv.ParseInt(string(r.Multi[2].Value), 10, 64)
-			if err != nil {
-				r.Resp = redis.NewErrorf("ERR invalid slowLog start logId")
-				break
-			}
-			num, err = strconv.ParseInt(string(r.Multi[3].Value), 10, 64)
-			if err != nil {
-				r.Resp = redis.NewErrorf("ERR invalid slowLog number")
-				break
-			}
-
-			r.Resp = SlowLogGetByIdAndNUm(id, num)
-		} else {
-			r.Resp = SlowLogGetByNum(10)
-		}
-	case "LEN":
-		if len(r.Multi) == 2 {
-			r.Resp = SlowLogGetLen()
-		} else {
-			r.Resp = redis.NewErrorf("ERR slowLog parameters")
-		}
-	case "RESET":
-		if len(r.Multi) == 2 {
-			r.Resp = SlowLogReset()
-		} else {
-			r.Resp = redis.NewErrorf("ERR slowLog parameters")
-		}
-	default:
-		r.Resp = redis.NewErrorf("ERR Unknown SLOWLOG subcommand or wrong args. Try GET, RESET, LEN.")
-	}
-	return nil
-}
-
 func (s *Session) handlePConfig(r *Request) error {
 	if len(r.Multi) < 2 || len(r.Multi) > 4 {
 		r.Resp = redis.NewErrorf("ERR config parameters")
@@ -818,4 +759,11 @@ func (s *Session) handlePConfig(r *Request) error {
 		r.Resp = redis.NewErrorf("ERR Unknown CONFIG subcommand or wrong args. Try GET, SET, REWRITE.")
 	}
 	return nil
+}
+
+func (s *Session) updateMaxDelay(duration int64, r *Request) {
+	e := s.getOpStats(r.OpStr) // There is no race condition in the session
+	if duration > e.maxDelay.Int64() {
+		e.maxDelay.Set(duration)
+	}
 }

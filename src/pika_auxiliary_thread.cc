@@ -24,7 +24,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_rm->SendMetaSyncRequest();
     } else if (g_pika_server->MetaSyncDone()) {
-      g_pika_rm->RunSyncSlaveSlotStateMachine();
+      g_pika_rm->RunSyncSlaveDBStateMachine();
     }
 
     pstd::Status s = g_pika_rm->CheckSyncTimeout(pstd::NowMicros());

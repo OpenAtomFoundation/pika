@@ -66,7 +66,7 @@ func (s *Topom) RefreshRedisStats(timeout time.Duration) (*sync2.Future, error) 
 	for _, g := range ctx.group {
 		for _, x := range g.Servers {
 			goStats(x.Addr, func(addr string) (*RedisStats, error) {
-				m, err := s.stats.redisp.InfoFull(addr)
+				m, err := s.stats.redisp.InfoFullv2(addr)
 				if err != nil {
 					return nil, err
 				}
@@ -167,7 +167,7 @@ func (s *Topom) newMastersAndSlavesStats(timeout time.Duration, filter func(inde
 
 	go func() {
 		defer close(ch)
-		err := s.CheckAndSwitchSlavesAndMasters(filter)
+		err := s.CheckStateAndSwitchSlavesAndMasters(filter)
 		if err != nil {
 			log.Errorf("refresh masters and slaves failed, %v", err)
 			stats.Error = err
@@ -189,19 +189,31 @@ func (s *Topom) CheckMastersAndSlavesState(timeout time.Duration) (*sync.WaitGro
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
-		return index != 0 || g.State == models.GroupServerStateNormal
+		return g.State == models.GroupServerStateNormal
 	}, wg)
 	return wg, nil
 }
 
-func (s *Topom) CheckPreOffineMastersState(timeout time.Duration) (*sync.WaitGroup, error) {
+func (s *Topom) CheckPreOfflineMastersState(timeout time.Duration) (*sync.WaitGroup, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
-		return index == 0 && g.State != models.GroupServerStateNormal
+		return g.State == models.GroupServerStateSubjectiveOffline
+	}, wg)
+	return wg, nil
+}
+
+func (s *Topom) CheckOfflineMastersAndSlavesState(timeout time.Duration) (*sync.WaitGroup, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
+		return g.State == models.GroupServerStateOffline
 	}, wg)
 	return wg, nil
 }

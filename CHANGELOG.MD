@@ -1,6 +1,125 @@
+# v3.5.3
+
+## New features
+
+- Pika supports ACL[#2013](https://github.com/OpenAtomFoundation/pika/pull/2013) @[lqxhub](https://github.com/lqxhub)
+
+- Automatically resume service when Codis dashboard coroutine panics[#2349](https://github.com/OpenAtomFoundation/pika/pull/2349)@[chengyu-l](https://github.com/chengyu-l)
+
+- During the full replication process, the slave node of the pika service does not receive read traffic requests.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
+
+- Pika cache adds bimap data type.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+- Delete the remaining Slots in Sharing mode. There is only DB under Pika, and there are multiple DBs under one Pika.[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
+
+- Pika exporter exposes cache-related data collection indicators.[#2318](https://github.com/OpenAtomFoundation/pika/pull/2318) @[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- Pika supports separation of fast and slow commands.[#2162](https://github.com/OpenAtomFoundation/pika/pull/2162) @[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- After pika executes bgsave, retain the unix timepoint.[#2167](https://github.com/OpenAtomFoundation/pika/pull/2167) @[hero-heng](https://github.com/hero-heng)
+
+- Pika supports dynamic configuration of the disable_auto_compations parameter.[#2257](https://github.com/OpenAtomFoundation/pika/pull/2257) @[hero-heng](https://github.com/hero-heng)
+
+- Pika supports Redis Stream.[#1955](https://github.com/OpenAtomFoundation/pika/pull/1955) @[KKorpse](https://github.com/KKorpse)
+
+- Pika supports large key analysis tools[#2195](https://github.com/OpenAtomFoundation/pika/pull/2195) @[sjcsjc123](https://github.com/sjcsjc123)
+
+- Pika supports dynamic adjustment of Pika cache parameters[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+- Updated Pika benchmark tool to support more interface stress tests.[#2222](https://github.com/OpenAtomFoundation/pika/pull/2222)@[wangshao1](https://github.com/wangshao1)
+
+- Pika Operator supports automatic expansion of pika clusters.[#2121](https://github.com/OpenAtomFoundation/pika/pull/2121)@[machinly](https://github.com/machinly/)
+
+- Add the CompactRange command to support compacting keys within a certain range.[#2163](https://github.com/OpenAtomFoundation/pika/pull/2163)@[u6th9d](https://github.com/u6th9d)
+
+- Add small time cost compaction policy.[#2172](https://github.com/OpenAtomFoundation/pika/pull/2172)@[u6th9d](https://github.com/u6th9d)
+
+- Upgrade RocksDB version to v8.7.3.[#2157](https://github.com/OpenAtomFoundation/pika/pull/2157)@[JasirVoriya](https://github.com/JasirVoriya)
+
+- Pika distributed cluster Codis proxy adds new observable indicators.[#2199](https://github.com/OpenAtomFoundation/pika/pull/2199)@[dingxiaoshuai](https://github.com/dingxiaoshuai123)
+
+- Pika distributed cluster supports automatic failover.[#2386](https://github.com/OpenAtomFoundation/pika/pull/2386)@[chengyu-l](https://github.com/chengyu-l)
+
+## bugfix
+
+- Fixed an issue where Pika would accidentally delete dump files during full replication from the node.[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed the processing logic after the slave node receives an abnormal response packet from the master during the master-slave replication process.[#2319](https://github.com/OpenAtomFoundation/pika/pull/2319)@[wangshao1](https://github.com/wangshao1)
+
+- Call disable compaction when pika executes the shutdown command to improve the process exit speed. [#2345](https://github.com/OpenAtomFoundation/pika/pull/2345) @[panlei-coder](https://github.com/panlei-coder)
+
+- Fix the problem of inaccurate Codis-dashboard Redis Memory value.[#2337](https://github.com/OpenAtomFoundation/pika/pull/2337) @[Mixficsol](https://github.com/Mixficsol)
+
+- The INFO command is time-consuming and optimized to reduce the frequency of disk checks. [#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+
+- Fixed the issue where rsync deletes temporary files with incorrect paths and fails to delete them, causing rocksdb to fail to open.[#2186](https://github.com/OpenAtomFoundation/pika/pull/2186)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed the problem that the compact, bgsave, and info keyspace commands did not specify the db name, resulting in some coredump commands.[#2194](https://github.com/OpenAtomFoundation/pika/pull/2194)@[u6th9d](https://github.com/u6th9d)
+
+- Codis dashboard uses info replication instead of info command to search master ip to reduce the performance impact on Pika. [#2198](https://github.com/OpenAtomFoundation/pika/pull/2198)  @[chenbt-hz](https://github.com/chenbt-hz)
+
+- Fix Pika cache to use edge cases to solve the problem of cache and DB data inconsistency in some scenarios.[#2225](https://github.com/OpenAtomFoundation/pika/pull/2225)  @[chejinge](https://github.com/chejinge)
+
+- Fixed the issue where Segmentation fault would be reported when the dump folder is empty.[#2265](https://github.com/OpenAtomFoundation/pika/pull/2265)  @[chenbt-hz](https://github.com/chenbt-hz)
+
+- Fixed the problem that some command caches did not take effect due to flag calculation errors.[#2217](https://github.com/OpenAtomFoundation/pika/pull/2217) @[lqxhub](https://github.com/lqxhub)
+
+- Fixed the problem that in master-slave replication mode, after the master instance flushdb, the slave instance cannot be accessed due to deadlock.[#2249](https://github.com/OpenAtomFoundation/pika/pull/2249)@[ForestLH](https://github.com/ForestLH)
+
+- Fixed the issue where some commands did not judge the return value of RocksDB.[#2187](https://github.com/OpenAtomFoundation/pika/pull/2187)@[callme-taota](https://github.com/callme-taota)
+
+- Fixed the problem that some command caches did not take effect due to flag calculation errors.[#2217](https://github.com/OpenAtomFoundation/pika/pull/2217) @[lqxhub](https://github.com/lqxhub)
+
+- Fixed the problem that in master-slave replication mode, after the master instance flushdb, the slave instance cannot be accessed due to deadlock.[#2249](https://github.com/OpenAtomFoundation/pika/pull/2249)@[ForestLH](https://github.com/ForestLH)
+
+- Fixed the issue where some commands did not judge the return value of RocksDB.[#2187](https://github.com/OpenAtomFoundation/pika/pull/2187)@[callme-taota](https://github.com/callme-taota)
+
+- Fix the problem of info keyspace returning wrong results.[#2369](https://github.com/OpenAtomFoundation/pika/pull/2369)@[Mixficsol](https://github.com/Mixficsol)
+
+- Standard function return value and initial value.[#2176](https://github.com/OpenAtomFoundation/pika/pull/2176)@[Mixficsol](https://github.com/Mixficsol)
+
+- Fixed the problem of inaccurate network monitoring indicator statistics.[#2234](https://github.com/OpenAtomFoundation/pika/pull/2234)@[chengyu-l](https://github.com/chengyu-l)
+
+- Fixed an issue where some parameters in configuration file loading were abnormal.[#2218](https://github.com/OpenAtomFoundation/pika/pull/2218)@[jettcc](https://github.com/jettcc)
+
+- Fix Codis dashboard cpu used 100%.[#2393](https://github.com/OpenAtomFoundation/pika/pull/2393)@[chengyu-l](https://github.com/chengyu-l)
+
+- Fix the problem of abnormal display of master and slave roles in Codis fe of pika.[#2387](https://github.com/OpenAtomFoundation/pika/pull/2387)@[chengyu-l](https://github.com/chengyu-l)
+
+
+# v3.5.2
+
+## New features
+
+- Pika supports Redis transactions.  [#2124](https://github.com/OpenAtomFoundation/pika/pull/2124) @[ForestLH](https://github.com/ForestLH)
+
+- Pika adds a cache layer for hot and cold data separation, improving read performance. [#2133](https://github.com/OpenAtomFoundation/pika/pull/2133) @[chejinge](https://github.com/chejinge)@[Mixficsol](https://github.com/Mixficsol)
+
+- Codis-Proxy supports dynamic configuration parameter modification.  [#2103](https://github.com/OpenAtomFoundation/pika/pull/2103) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Completing Go Test cases.  [#2063](https://github.com/OpenAtomFoundation/pika/pull/2063)@[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Adds cache to improve compilation speed on CI.  [#2088](https://github.com/OpenAtomFoundation/pika/pull/2088)@[baerwang](https://github.com/baerwang)
+
+## bugfix
+
+- Fixed coredump issue when using SETRANGE command in Pika.  [#2125](https://github.com/OpenAtomFoundation/pika/issues/2125) @[chejinge](https://github.com/chejinge)
+
+- Fixed full replication issue caused by deleting Clearreplicationid from binlog.  [#2136](https://github.com/OpenAtomFoundation/pika/issues/2136) @[Mixficsol](https://github.com/Mixficsol)
+
+- Modified lock granularity to improve binlog writing performance in Pika.  [#2129](https://github.com/OpenAtomFoundation/pika/pull/2129) @[wangshao1](https://github.com/wangshao1)
+
+- Added redis-copy traffic replication tool.  [#2044](https://github.com/OpenAtomFoundation/pika/issues/2044) @[Mixficsol](https://github.com/Mixficsol)
+
+- Fixed potential data overflow issue in complex data types member variables.  [#2016](https://github.com/OpenAtomFoundation/pika/pull/2106)  @[u6th9d](https://github.com/u6th9d)
+
+- Fixed incorrect return value issue in decr command. [#2092](https://github.com/OpenAtomFoundation/pika/pull/2092) @[dingxiaoshuai123](https://github.com/dingxiaoshuai123)
+
+- Fixed issue where SETRANGE and SETBIT commands did not retain the original key's expiration time. [#2095](https://github.com/OpenAtomFoundation/pika/pull/2095) @[u6th9d](https://github.com/u6th9d)
+
+
+
 # v3.5.1
-
-
 
 ## New features
 

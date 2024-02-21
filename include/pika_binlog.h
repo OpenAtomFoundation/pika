@@ -63,11 +63,7 @@ class Binlog : public pstd::noncopyable {
   // Need to hold Lock();
   pstd::Status Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index);
 
-  uint64_t file_size() { return file_size_; }
-
   std::string filename() { return filename_; }
-
-  bool IsBinlogIoError() { return binlog_io_error_; }
 
   // need to hold mutex_
   void SetTerm(uint32_t term) {
@@ -85,11 +81,9 @@ class Binlog : public pstd::noncopyable {
 
  private:
   pstd::Status Put(const char* item, int len);
-  static pstd::Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
-  // pstd::WritableFile *queue() { return queue_; }
-
-  void InitLogFile();
   pstd::Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
+  static pstd::Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
+  void InitLogFile();
 
   /*
    * Produce
@@ -109,8 +103,6 @@ class Binlog : public pstd::noncopyable {
 
   int block_offset_ = 0;
 
-  char* pool_ = nullptr;
-  bool exit_all_consume_ = false;
   const std::string binlog_path_;
 
   uint64_t file_size_ = 0;
@@ -118,8 +110,6 @@ class Binlog : public pstd::noncopyable {
   std::string filename_;
 
   std::atomic<bool> binlog_io_error_;
-  // Not use
-  // int32_t retry_;
 };
 
 #endif

@@ -20,6 +20,7 @@ TEST_F(StringTest, StringTrim) {
   ASSERT_EQ(StringTrim("   computer  "), "computer");
   ASSERT_EQ(StringTrim("  comp  uter  "), "comp  uter");
   ASSERT_EQ(StringTrim(" \n  computer \n ", "\n "), "computer");
+  ASSERT_EQ(StringTrim(" \n", "\r\n "), "");
 }
 
 TEST_F(StringTest, ParseIpPort) {

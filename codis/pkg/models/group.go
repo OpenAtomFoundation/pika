@@ -25,12 +25,51 @@ func (g *Group) GetServersMap() map[string]*GroupServer {
 	return results
 }
 
+// SelectNewMaster choose a new master node in the group
+func (g *Group) SelectNewMaster() (string, int) {
+	var newMasterServer *GroupServer
+	var newMasterIndex = -1
+
+	for index, server := range g.Servers {
+		if index == 0 || server.State != GroupServerStateNormal {
+			continue
+		}
+
+		if newMasterServer == nil {
+			newMasterServer = server
+			newMasterIndex = index
+		} else if server.DbBinlogFileNum > newMasterServer.DbBinlogFileNum {
+			// Select the slave node with the latest offset as the master node
+			newMasterServer = server
+			newMasterIndex = index
+		} else if server.DbBinlogFileNum == newMasterServer.DbBinlogFileNum {
+			if server.DbBinlogOffset > newMasterServer.DbBinlogOffset {
+				newMasterServer = server
+				newMasterIndex = index
+			}
+		}
+	}
+
+	if newMasterServer == nil {
+		return "", newMasterIndex
+	}
+
+	return newMasterServer.Addr, newMasterIndex
+}
+
 type GroupServerState int8
 
 const (
 	GroupServerStateNormal GroupServerState = iota
 	GroupServerStateSubjectiveOffline
 	GroupServerStateOffline
+)
+
+type GroupServerRole string
+
+const (
+	RoleMaster GroupServerRole = "master"
+	RoleSlave  GroupServerRole = "slave"
 )
 
 type GroupServer struct {
@@ -43,9 +82,11 @@ type GroupServer struct {
 	} `json:"action"`
 
 	// master or slave
-	Role string `json:"role"`
+	Role GroupServerRole `json:"role"`
 	// If it is a master node, take the master_repl_offset field, otherwise take the slave_repl_offset field
-	ReplyOffset int `json:"reply_offset"`
+	DbBinlogFileNum uint64 `json:"binlog_file_num"` // db0
+	DbBinlogOffset  uint64 `json:"binlog_offset"`   // db0
+
 	// Monitoring status, 0 normal, 1 subjective offline, 2 actual offline
 	// If marked as 2 , no service is provided
 	State GroupServerState `json:"state"`

@@ -6,9 +6,12 @@
 #include "include/pika_bit.h"
 
 #include "pstd/include/pstd_string.h"
+#include "include/pika_db.h"
+
 
 #include "include/pika_define.h"
 #include "include/pika_slot_command.h"
+#include "include/pika_cache.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -39,17 +42,29 @@ void BitSetCmd::DoInitial() {
   }
 }
 
-void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
+void BitSetCmd::Do() {
   std::string value;
   int32_t bit_val = 0;
-  rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, static_cast<int32_t>(on_), &bit_val);
-  if (s.ok()) {
+  s_ = db_->storage()->SetBit(key_, bit_offset_, static_cast<int32_t>(on_), &bit_val);
+  if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
-    AddSlotKey("k", key_, slot);
+    AddSlotKey("k", key_, db_);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
+
+void BitSetCmd::DoThroughDB() {
+  Do();
+}
+
+void BitSetCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+    db_->cache()->SetBitIfKeyExist(CachePrefixKeyK, bit_offset_, on_);
+  }
+}
+
 
 void BitGetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -67,13 +82,37 @@ void BitGetCmd::DoInitial() {
   }
 }
 
-void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
+void BitGetCmd::Do() {
   int32_t bit_val = 0;
-  rocksdb::Status s = slot->db()->GetBit(key_, bit_offset_, &bit_val);
-  if (s.ok()) {
+  s_ = db_->storage()->GetBit(key_, bit_offset_, &bit_val);
+  if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void BitGetCmd::ReadCache() {
+  int64_t bit_val = 0;
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+  auto s = db_->cache()->GetBit(CachePrefixKeyK, bit_offset_, &bit_val);
+  if (s.ok()) {
+    res_.AppendInteger(bit_val);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void BitGetCmd::DoThroughDB() {
+  res_.clear();
+  Do();
+}
+
+void BitGetCmd::DoUpdateCache(){
+  if (s_.ok()) {
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, db_);
   }
 }
 
@@ -100,19 +139,50 @@ void BitCountCmd::DoInitial() {
   }
 }
 
-void BitCountCmd::Do(std::shared_ptr<Slot> slot) {
+void BitCountCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s;
   if (count_all_) {
-    s = slot->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
+    s_ = db_->storage()->BitCount(key_, start_offset_, end_offset_, &count, false);
   } else {
-    s = slot->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
+    s_ = db_->storage()->BitCount(key_, start_offset_, end_offset_, &count, true);
   }
 
-  if (s.ok() || s.IsNotFound()) {
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void BitCountCmd::ReadCache() {
+  int64_t count = 0;
+  int64_t start = static_cast<long>(start_offset_);
+  int64_t end = static_cast<long>(end_offset_);
+  rocksdb::Status s;
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+  if (count_all_) {
+    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 0);
+  } else {
+    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 1);
+  }
+
+  if (s.ok()) {
+    res_.AppendInteger(count);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void BitCountCmd::DoThroughDB() {
+  res_.clear();
+  Do();
+}
+
+void BitCountCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, db_);
   }
 }
 
@@ -156,20 +226,54 @@ void BitPosCmd::DoInitial() {
   }
 }
 
-void BitPosCmd::Do(std::shared_ptr<Slot> slot) {
+void BitPosCmd::Do() {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), &pos);
+    s_ = db_->storage()->BitPos(key_, static_cast<int32_t>(bit_val_), &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, &pos);
+    s_ = db_->storage()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = slot->db()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, end_offset_, &pos);
+    s_ = db_->storage()->BitPos(key_, static_cast<int32_t>(bit_val_), start_offset_, end_offset_, &pos);
   }
-  if (s.ok()) {
+  if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(pos));
   } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void BitPosCmd::ReadCache() {
+  int64_t pos = 0;
+  rocksdb::Status s;
+  int64_t bit = static_cast<long>(bit_val_);
+  int64_t start = static_cast<long>(start_offset_);
+  int64_t end = static_cast<long>(end_offset_);\
+  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+  if (pos_all_) {
+    s = db_->cache()->BitPos(CachePrefixKeyK, bit, &pos);
+  } else if (!pos_all_ && !endoffset_set_) {
+    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, &pos);
+  } else if (!pos_all_ && endoffset_set_) {
+    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, end, &pos);
+  }
+  if (s.ok()) {
+    res_.AppendInteger(pos);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void BitPosCmd::DoThroughDB() {
+  res_.clear();
+  Do();
+}
+
+void BitPosCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, db_);
   }
 }
 
@@ -203,21 +307,34 @@ void BitOpCmd::DoInitial() {
   }
 
   dest_key_ = argv_[2];
-  for (unsigned int i = 3; i <= argv_.size() - 1; i++) {
+  for (size_t i = 3; i <= argv_.size() - 1; i++) {
     src_keys_.emplace_back(argv_[i].data());
   }
 }
 
-void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
-  int64_t result_length;
-  rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
-  if (s.ok()) {
+void BitOpCmd::Do() {
+  int64_t result_length = 0;
+  s_ = db_->storage()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
+  if (s_.ok()) {
     res_.AppendInteger(result_length);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
-void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
+
+void BitOpCmd::DoThroughDB() {
+  Do();
+}
+
+void BitOpCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    std::vector<std::string> v;
+    v.emplace_back(PCacheKeyPrefixK + dest_key_);
+    db_->cache()->Del(v);
+  }
+}
+
+void BitOpCmd::DoBinlog() {
   PikaCmdArgsType set_args;
   //used "set" instead of "SET" to distinguish the binlog of SetCmd
   set_args.emplace_back("set");
@@ -227,5 +344,5 @@ void BitOpCmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
   //value of this binlog might be strange if you print it out(eg. set bitkey_out1 «ѦFO<t·), but it's ok.
-  set_cmd_->DoBinlog(slot);
+  set_cmd_->DoBinlog();
 }
