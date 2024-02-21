@@ -14,9 +14,37 @@ spec:
   {{- with $.Values.tolerations }}
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
+  ## define pika group with shardingSpecs API which is supported in KubeBlocks v0.8.2
   {{- if not .Values.useLegacyCompDef }}
   shardingSpecs:
-  {{- include "pika-group.shardingSpec" . | indent 6 }}
+  - name: group
+    shards: {{ .Values.groupCount }}
+    template:
+      name: pika
+      componentDef: pika-group
+      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+      {{- with  $.Values.resources.pikaGroup }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if $.Values.persistence.enabled }}
+      volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
+        - name: data
+          spec:
+            storageClassName: {{ .storageClassName }}
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .size }}
+        {{- end }}
+      {{- end }}
   {{- end }}
   componentSpecs:
     {{- if .Values.useLegacyCompDef }}
