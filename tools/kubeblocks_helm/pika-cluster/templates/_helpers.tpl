@@ -60,3 +60,37 @@ Create the name of the service account to use
 {{- define "pika-cluster.serviceAccountName" -}}
 {{- default (printf "kb-%s" (include "clustername" .)) .Values.serviceAccount.name }}
 {{- end }}
+
+{{/*
+Define pika group with shardingSpec
+*/}}
+{{- define "pika-group.shardingSpec" }}
+- name: group
+  shards: {{ .Values.replicaCount }}
+  template:
+    name: pika
+    componentDef: pika-group
+    replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+    {{- with  $.Values.resources.pikaGroup }}
+    resources:
+      limits:
+        cpu: {{ .limits.cpu | quote }}
+        memory: {{ .limits.memory | quote }}
+      requests:
+        cpu: {{ .requests.cpu | quote }}
+        memory: {{ .requests.memory | quote }}
+    {{- end }}
+    {{- if $.Values.persistence.enabled }}
+    volumeClaimTemplates:
+      {{- with  $.Values.persistence.pikaData }}
+      - name: data
+        spec:
+          storageClassName: {{ .storageClassName }}
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: {{ .size }}
+      {{- end }}
+    {{- end }}
+{{- end }}
