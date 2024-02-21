@@ -19,10 +19,10 @@ spec:
   {{- include "pika-group.shardingSpec" . | indent 6 }}
   {{- end }}
   componentSpecs:
-    {{- if not .Values.useLegacyCompDef }}
+    {{- if .Values.useLegacyCompDef }}
     {{- range $i := until (int .Values.replicaCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
-      componentDefRef: pika-group # ref clusterDefinition componentDefs.name
+      componentDefRef: pika-group # ref clusterDefinition.componentDefs[x].name
       monitor: {{ $.Values.monitor.enabled | default false }}
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
