@@ -40,6 +40,15 @@ spec:
             - "-c"
             - "/script/admin.sh --rebalance"
         preCondition: ComponentReady
+  vars:
+    ## reference to the pika-codis-dashboard service
+    - name: PIKA_CODIS_DASHBOARD_SVC_NAME
+      valueFrom:
+        serviceVarRef:
+          compDef: pika-codis-dashboard
+          name: dashboard
+          optional: true
+          host: Optional
   runtime:
     containers:
       - name: pika
