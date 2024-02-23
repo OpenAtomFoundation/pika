@@ -333,7 +333,8 @@ PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, cons
       timeout_ms_(3000),
       mgrtkeys_num_(64),
       should_exit_(false),
-      migrate_thread_(migrate_thread) {}
+      migrate_thread_(migrate_thread),
+      db_(db) {}
 
 PikaParseSendThread::~PikaParseSendThread() {
   if (is_running()) {
