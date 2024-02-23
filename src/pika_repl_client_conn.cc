@@ -30,6 +30,7 @@ bool PikaReplClientConn::IsDBStructConsistent(const std::vector<DBStruct>& curre
   }
   for (const auto& db_struct : current_dbs) {
     if (find(expect_dbs.begin(), expect_dbs.end(), db_struct) == expect_dbs.end()) {
+      LOG(WARNING) << "DB struct mismatch";
       return false;
     }
   }
@@ -109,7 +110,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::vector<DBStruct> master_db_structs;
   for (int idx = 0; idx < meta_sync.dbs_info_size(); ++idx) {
     const InnerMessage::InnerResponse_MetaSync_DBInfo& db_info = meta_sync.dbs_info(idx);
-    master_db_structs.push_back({db_info.db_name()});
+    master_db_structs.push_back({db_info.db_name(), db_info.db_instance_num()});
   }
 
   std::vector<DBStruct> self_db_structs = g_pika_conf->db_structs();

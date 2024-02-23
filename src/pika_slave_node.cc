@@ -4,7 +4,6 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_slave_node.h"
-
 #include "include/pika_conf.h"
 
 using pstd::Status;
@@ -61,7 +60,7 @@ int SyncWindow::Remaining() {
 
 SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id)
     : RmNode(ip, port, db_name, session_id)
-      
+
       {}
 
 SlaveNode::~SlaveNode() = default;
