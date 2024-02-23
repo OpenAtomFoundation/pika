@@ -20,8 +20,8 @@ using TaskFunc = void (*)(void *);
 
 struct Task {
   Task() = default;
-  TaskFunc func;
-  void* arg;
+  TaskFunc func = nullptr;
+  void* arg = nullptr;
   Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
 };
 
