@@ -14,7 +14,7 @@
 namespace storage {
 
 static const uint64_t kDefaultStreamValueLength =
-    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(int32_t);
+    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(uint64_t);
 class StreamMetaValue {
  public:
   explicit StreamMetaValue() = default;
@@ -62,7 +62,7 @@ class StreamMetaValue {
     EncodeFixed32(dst, length_);
     dst += sizeof(length_);
 
-    EncodeFixed32(dst, version_);
+    EncodeFixed64(dst, version_);
   }
 
   // used only when parse a existed stream meta
@@ -99,10 +99,10 @@ class StreamMetaValue {
     length_ = static_cast<int32_t>(DecodeFixed32(pos));
     pos += sizeof(length_);
 
-    version_ = static_cast<int32_t>(DecodeFixed32(pos));
+    version_ = static_cast<uint64_t>(DecodeFixed64(pos));
   }
 
-  int32_t version() const { return version_; }
+  uint64_t version() const { return version_; }
 
   tree_id_t groups_id() const { return groups_id_; }
 
@@ -176,12 +176,12 @@ class StreamMetaValue {
     EncodeFixed32(dst, length_);
   }
 
-  void set_version(int32_t version) {
+  void set_version(uint64_t version) {
     assert(value_.size() == kDefaultStreamValueLength);
     version_ = version;
     char* dst =
         const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(length_);
-    EncodeFixed32(dst, version_);
+    EncodeFixed64(dst, version_);
   }
 
  private:
@@ -191,7 +191,7 @@ class StreamMetaValue {
   streamID last_id_;
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
-  int32_t version_{0};
+  uint64_t version_{0};
 
   std::string value_{};
 };
@@ -230,10 +230,10 @@ class ParsedStreamMetaValue {
     length_ = static_cast<int32_t>(DecodeFixed32(pos));
     pos += sizeof(length_);
 
-    version_ = static_cast<int32_t>(DecodeFixed32(pos));
+    version_ = static_cast<uint64_t>(DecodeFixed64(pos));
   }
 
-  int32_t version() const { return version_; }
+  uint64_t version() const { return version_; }
 
   tree_id_t groups_id() const { return groups_id_; }
 
@@ -262,7 +262,7 @@ class ParsedStreamMetaValue {
   streamID last_id_;
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
-  int32_t version_{0};
+  uint64_t version_{0};
 };
 
 static const uint64_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t);

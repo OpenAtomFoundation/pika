@@ -5,8 +5,8 @@ project (storage)
 
 # Other CMake modules
 add_subdirectory(tests)
-add_subdirectory(examples)
-add_subdirectory(benchmark)
+# add_subdirectory(examples)
+# add_subdirectory(benchmark)
 
 add_definitions(-DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX)
 add_compile_options("-fno-builtin-memcmp")
@@ -23,6 +23,7 @@ add_library(storage STATIC ${DIR_SRCS} )
 add_dependencies(storage rocksdb gtest glog gflags fmt ${LIBUNWIND_NAME} pstd)
 # TODO fix rocksdb include path
 target_include_directories(storage
+    PUBLIC ${CMAKE_SOURCE_DIR}
     PUBLIC ${PROJECT_SOURCE_DIR}
     PUBLIC ${PROJECT_SOURCE_DIR}/include
            ${INSTALL_INCLUDEDIR}

@@ -37,7 +37,8 @@ DB::DB(std::string db_name, const std::string& db_path,
   bgsave_sub_path_ = db_name;
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), db_name);
   log_path_ = DBPath(log_path, "log_" + db_name_);
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
@@ -218,7 +219,8 @@ bool DB::FlushDBWithoutLock() {
   dbpath.append("_deleting/");
   pstd::RenameFile(db_path_, dbpath);
 
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
@@ -245,7 +247,8 @@ bool DB::FlushSubDBWithoutLock(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   pstd::RenameFile(sub_dbpath, del_dbpath);
 
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
@@ -343,7 +346,7 @@ bool DB::InitBgsaveEnv() {
 // Prepare bgsave env, need bgsave_protector protect
 bool DB::InitBgsaveEngine() {
   bgsave_engine_.reset();
-  rocksdb::Status s = storage::BackupEngine::Open(storage().get(), bgsave_engine_);
+  rocksdb::Status s = storage::BackupEngine::Open(storage().get(), bgsave_engine_, g_pika_conf->db_instance_num());
   if (!s.ok()) {
     LOG(WARNING) << db_name_ << " open backup engine failed " << s.ToString();
     return false;
@@ -385,22 +388,22 @@ void DB::Init() {
 void DB::GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid) {
   const std::string dbPath = bgsave_info().path;
 
-  std::string types[] = {storage::STRINGS_DB, storage::HASHES_DB, storage::LISTS_DB, storage::ZSETS_DB, storage::SETS_DB};
-  for (const auto& type : types) {
-    std::string typePath = dbPath + ((dbPath.back() != '/') ? "/" : "") + type;
-    if (!pstd::FileExists(typePath)) {
+  int db_instance_num = g_pika_conf->db_instance_num();
+  for (int index = 0; index < db_instance_num; index++) {
+    std::string instPath = dbPath + ((dbPath.back() != '/') ? "/" : "") + std::to_string(index);
+    if (!pstd::FileExists(instPath)) {
       continue ;
     }
 
     std::vector<std::string> tmpFileNames;
-    int ret = pstd::GetChildren(typePath, tmpFileNames);
+    int ret = pstd::GetChildren(instPath, tmpFileNames);
     if (ret) {
-      LOG(WARNING) << dbPath << " read dump meta files failed, path " << typePath;
+      LOG(WARNING) << dbPath << " read dump meta files failed, path " << instPath;
       return;
     }
 
     for (const std::string fileName : tmpFileNames) {
-      fileNames -> push_back(type + "/" + fileName);
+      fileNames -> push_back(std::to_string(index) + "/" + fileName);
     }
   }
   fileNames->push_back(kBgsaveInfoFile);
@@ -521,11 +524,10 @@ bool DB::TryUpdateMasterOffset() {
 
 void DB::PrepareRsync() {
   pstd::DeleteDirIfExist(dbsync_path_);
-  pstd::CreatePath(dbsync_path_ + "strings");
-  pstd::CreatePath(dbsync_path_ + "hashes");
-  pstd::CreatePath(dbsync_path_ + "lists");
-  pstd::CreatePath(dbsync_path_ + "sets");
-  pstd::CreatePath(dbsync_path_ + "zsets");
+  int db_instance_num = g_pika_conf->db_instance_num();
+  for (int index = 0; index < db_instance_num; index++) {
+    pstd::CreatePath(dbsync_path_ + std::to_string(index));
+  }
 }
 
 bool DB::IsBgSaving() {
@@ -562,7 +564,8 @@ bool DB::ChangeDb(const std::string& new_path) {
     return false;
   }
 
-  storage_ = std::make_shared<storage::Storage>();
+  storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
+      g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
