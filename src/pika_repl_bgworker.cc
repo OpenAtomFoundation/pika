@@ -12,6 +12,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_defer.h"
+#include "src/pstd/include/scope_record_lock.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -216,6 +218,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     start_us = pstd::NowMicros();
   }
   // Add read lock for no suspend command
+  pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
+  record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
     c_ptr->GetDB()->DbRWLockReader();
   }
@@ -236,7 +240,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (!c_ptr->IsSuspend()) {
     c_ptr->GetDB()->DbRWUnLock();
   }
-
+  record_lock.Unlock(c_ptr->current_key());
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     auto start_time = static_cast<int32_t>(start_us / 1000000);
     auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);
