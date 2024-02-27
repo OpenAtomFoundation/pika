@@ -361,7 +361,6 @@ int PikaConf::Load() {
     small_compaction_duration_threshold_ = 1000000;
   }
 
-  max_background_flushes_ = 1;
   GetConfInt("max-background-flushes", &max_background_flushes_);
   if (max_background_flushes_ <= 0) {
     max_background_flushes_ = 1;
@@ -370,7 +369,6 @@ int PikaConf::Load() {
     max_background_flushes_ = 6;
   }
 
-  max_background_compactions_ = 2;
   GetConfInt("max-background-compactions", &max_background_compactions_);
   if (max_background_compactions_ <= 0) {
     max_background_compactions_ = 2;
