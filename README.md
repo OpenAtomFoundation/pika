@@ -233,6 +233,26 @@ Users can directly download the latest binary version package from [releases](ht
   ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
   ```
 
+* #### 3.3 Running with  docker-compose
+  
+docker-compose.yaml
+```yaml
+  pikadb:
+    image: pikadb/pika:lastest
+    container_name: pikadb
+    ports:
+      - "6379:9221"
+    volumes:
+      - ./data/pika:/pika/log
+      # Specify the configuration file path. If you need to specify a configuration file, specify it here.
+      # Note: pika.conf should be in the ./deploy/pika directory
+      #- ./deploy/pika:/pika/conf
+      - ./data/pika/db:/pika/db
+      - ./data/pika/dump:/pika/dump
+      - ./data/pika/dbsync:/pika/dbsync
+    privileged: true
+    restart: always
+```
 
 ## Performance test 
 

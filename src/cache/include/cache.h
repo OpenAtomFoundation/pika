@@ -40,7 +40,7 @@ public:
   static void ResetHitAndMissNum(void);
   Status Open(void);
   int32_t ActiveExpireCycle(void);
-    
+
   // Normal Commands
   bool Exists(std::string& key);
   int64_t DbSize(void);
@@ -163,7 +163,7 @@ protected:
   void FreeHitemList(hitem *items, uint32_t size);
   void FreeZitemList(zitem *items, uint32_t size);
   void ConvertObjectToString(robj *obj, std::string *value);
-    
+
 private:
   RedisCache(const RedisCache&);
   RedisCache& operator=(const RedisCache&);

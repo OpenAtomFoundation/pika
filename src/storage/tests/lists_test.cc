@@ -7,6 +7,10 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
@@ -16,6 +20,7 @@ static bool elements_match(storage::Storage* const db, const Slice& key,
                            const std::vector<std::string>& expect_elements) {
   std::vector<std::string> elements_out;
   Status s = db->LRange(key, 0, -1, &elements_out);
+  LOG(WARNING) << "status: " << s.ToString() << " elements_out size: " << elements_out.size();
   if (!s.ok() && !s.IsNotFound()) {
     return false;
   }
@@ -26,6 +31,7 @@ static bool elements_match(storage::Storage* const db, const Slice& key,
     return true;
   }
   for (uint64_t idx = 0; idx < elements_out.size(); ++idx) {
+    LOG(WARNING) << "element: " << elements_out[idx];
     if (strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) {
       return false;
     }
@@ -75,9 +81,8 @@ class ListsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/lists";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
     if (!s.ok()) {
@@ -2582,6 +2587,7 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, num);
   ASSERT_TRUE(len_match(&db, "GP6_RPUSH_KEY", 3));
+  LOG(WARNING) << "-------------";
   ASSERT_TRUE(elements_match(&db, "GP6_RPUSH_KEY", {"t", "h", "e"}));
 
   type_status.clear();
@@ -2700,6 +2706,14 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  if (!pstd::FileExists("./log")) {
+    pstd::CreatePath("./log");
+  }
+  FLAGS_log_dir = "./log";
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("lists_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
