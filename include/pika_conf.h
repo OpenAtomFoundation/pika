@@ -735,8 +735,8 @@ class PikaConf : public pstd::BaseConf {
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int small_compaction_duration_threshold_ = 0;
-  int max_background_flushes_ = 0;
-  int max_background_compactions_ = 0;
+  int max_background_flushes_ = 1;
+  int max_background_compactions_ = 2;
   int max_background_jobs_ = 0;
   int max_cache_files_ = 0;
   std::atomic<uint64_t> rocksdb_ttl_second_ = 0;
