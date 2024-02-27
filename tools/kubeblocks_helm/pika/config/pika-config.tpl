@@ -220,9 +220,8 @@ slave-priority : 100
 sync-window-size : 9000
 
 # Maximum buffer size of a client connection.
-# Only three values are valid here: [67108864(64MB) | 268435456(256MB) | 536870912(512MB)].
 # [NOTICE] Master and slaves must have exactly the same value for the max-conn-rbuf-size.
-# Supported Units [K|M|G]. Its default unit is in [bytes] and its default value is 268435456(256MB).
+# Supported Units [K|M|G]. Its default unit is in [bytes] and its default value is 268435456(256MB). The [minimum] value is 67108864(64MB).
 max-conn-rbuf-size : 268435456
 
 

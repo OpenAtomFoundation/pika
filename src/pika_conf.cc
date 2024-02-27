@@ -538,10 +538,12 @@ int PikaConf::Load() {
   // max conn rbuf size
   int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
   GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
-  if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
-    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
+  if (tmp_max_conn_rbuf_size <= PIKA_MAX_CONN_RBUF_LB) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_LB);
+  } else if (tmp_max_conn_rbuf_size >= PIKA_MAX_CONN_RBUF_HB * 2) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_HB * 2);
   } else {
-    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
+    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
   }
 
   // rocksdb blob configure
@@ -656,6 +658,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
   SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
+  SetConfInt("max-conn-rbuf-size", max_conn_rbuf_size_.load());
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
