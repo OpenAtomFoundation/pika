@@ -21,6 +21,9 @@
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 #include "rocksdb/table.h"
+#ifdef USE_S3
+#include "rocksdb/cloud/cloud_file_system.h"
+#endif
 
 #include "slot_indexer.h"
 #include "pstd/include/pstd_mutex.h"
@@ -70,6 +73,9 @@ struct StorageOptions {
   size_t statistics_max_size = 0;
   size_t small_compaction_threshold = 5000;
   size_t small_compaction_duration_threshold = 10000;
+#ifdef USE_S3
+  rocksdb::CloudFileSystemOptions cloud_fs_options;  // rocksdb-cloud option
+#endif
   Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
 };
 

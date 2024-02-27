@@ -578,6 +578,19 @@ int PikaConf::Load() {
     max_rsync_parallel_num_ = 4;
   }
 
+#ifdef USE_S3
+  // rocksdb-cloud options
+  GetConfStr("cloud-endpoint-override", &cloud_endpoint_override_);
+  GetConfStr("cloud-access-key", &cloud_access_key_);
+  GetConfStr("cloud-secret-key", &cloud_secret_key_);
+  GetConfStr("cloud-src-bucket-prefix", &cloud_src_bucket_prefix_);
+  GetConfStr("cloud-src-bucket-suffix", &cloud_src_bucket_suffix_);
+  GetConfStr("cloud-src-bucket-region", &cloud_src_bucket_region_);
+  GetConfStr("cloud-dest-bucket-prefix", &cloud_dest_bucket_prefix_);
+  GetConfStr("cloud-dest-bucket-suffix", &cloud_dest_bucket_suffix_);
+  GetConfStr("cloud-dest-bucket-region", &cloud_dest_bucket_region_);
+#endif
+
   return ret;
 }
 
