@@ -29,7 +29,17 @@ class KeysTest : public ::testing::Test {
     pstd::DeleteDirIfExist(path);
     mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
+#ifdef USE_S3
+    auto& cloud_fs_opts = storage_options.cloud_fs_options;
+    cloud_fs_opts.endpoint_override = "http://127.0.0.1:9000";
+    cloud_fs_opts.credentials.InitializeSimple("minioadmin", "minioadmin");
+    ASSERT_TRUE(cloud_fs_opts.credentials.HasValid().ok());
+    cloud_fs_opts.src_bucket.SetBucketName("database.unit.test", "pika.");
+    cloud_fs_opts.dest_bucket.SetBucketName("database.unit.test", "pika.");
+    storage_options.options.max_log_file_size = 0;
+#endif
     s = db.Open(storage_options, path);
+    ASSERT_TRUE(s.ok());
   }
 
   void TearDown() override {
