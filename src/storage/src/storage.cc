@@ -2315,7 +2315,11 @@ Status Storage::StopScanKeyNum() {
   return Status::OK();
 }
 
+#ifdef USE_S3
+rocksdb::DBCloud* Storage::GetDBByIndex(int index) {
+#else
 rocksdb::DB* Storage::GetDBByIndex(int index) {
+#endif
   if (index < 0 || index >= db_instance_num_) {
     LOG(WARNING) << "Invalid DB Index: " << index << "total: "
                  << db_instance_num_;

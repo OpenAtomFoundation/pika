@@ -22,6 +22,7 @@
 #include "rocksdb/status.h"
 #include "rocksdb/table.h"
 #ifdef USE_S3
+#include "rocksdb/cloud/db_cloud.h"
 #include "rocksdb/cloud/cloud_file_system.h"
 #endif
 
@@ -1101,7 +1102,11 @@ class Storage {
   Status GetKeyNum(std::vector<KeyInfo>* key_infos);
   Status StopScanKeyNum();
 
+#ifdef USE_S3
+  rocksdb::DBCloud* GetDBByIndex(int index);
+#else
   rocksdb::DB* GetDBByIndex(int index);
+#endif
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);

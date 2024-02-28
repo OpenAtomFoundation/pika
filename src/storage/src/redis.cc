@@ -8,6 +8,7 @@
 #include "rocksdb/env.h"
 
 #include "src/redis.h"
+#include "rocksdb/options.h"
 #include "src/strings_filter.h"
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
@@ -62,7 +63,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
 
-  rocksdb::DBOptions db_ops(storage_options.options);
+  rocksdb::Options db_ops(storage_options.options);
   db_ops.create_missing_column_families = true;
   // db_ops.env = env_;
 
@@ -175,7 +176,18 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   // stream CF
   column_families.emplace_back("stream_meta_cf", stream_meta_cf_ops);
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
+
+#ifdef USE_S3
+  Status s = OpenCloudEnv(storage_options.cloud_fs_options, db_path);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to create AWS S3 cloud environment";
+    return s;
+  }
+  db_ops.env = cloud_env_.get();
+  return rocksdb::DBCloud::Open(db_ops, db_path, column_families, "", 0, &handles_, &db_);
+#else
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
+#endif
 }
 
 Status Redis::GetScanStartPoint(const DataType& type, const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
@@ -464,5 +476,25 @@ void Redis::ScanDatabase() {
   ScanZsets();
   ScanSets();
 }
+
+#ifdef USE_S3
+Status Redis::OpenCloudEnv(rocksdb::CloudFileSystemOptions opts, const std::string& db_path) { 
+  std::string s3_path = db_path[0] == '.' ? db_path.substr(1) : db_path;
+  opts.src_bucket.SetObjectPath(s3_path);
+  opts.dest_bucket.SetObjectPath(s3_path);
+  rocksdb::CloudFileSystem* cfs = nullptr;
+  Status s = rocksdb::CloudFileSystem::NewAwsFileSystem(
+    rocksdb::FileSystem::Default(), 
+    opts, 
+    nullptr, 
+    &cfs
+  );
+  if (s.ok()) {
+    std::shared_ptr<rocksdb::CloudFileSystem> cloud_fs(cfs);
+    cloud_env_ = NewCompositeEnv(cloud_fs);
+  }
+  return s;
+}
+#endif
 
 }  // namespace storage

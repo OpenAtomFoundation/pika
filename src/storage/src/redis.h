@@ -10,7 +10,11 @@
 #include <string>
 #include <vector>
 
+#ifdef USE_S3
+#include "rocksdb/cloud/db_cloud.h"
+#else
 #include "rocksdb/db.h"
+#endif
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 
@@ -38,7 +42,11 @@ class Redis {
   Redis(Storage* storage, int32_t index);
   virtual ~Redis();
 
+#ifdef USE_S3
+  rocksdb::DBCloud* GetDB() { return db_; }
+#else
   rocksdb::DB* GetDB() { return db_; }
+#endif
 
   struct KeyStatistics {
     size_t window_size;
@@ -420,7 +428,11 @@ private:
   int32_t index_ = 0;
   Storage* const storage_;
   std::shared_ptr<LockMgr> lock_mgr_;
+#ifdef USE_S3
+  rocksdb::DBCloud* db_ = nullptr;
+#else
   rocksdb::DB* db_ = nullptr;
+#endif
   //TODO(wangshaoyi): seperate env for each rocksdb instance
   // rocksdb::Env* env_ = nullptr;
 
@@ -444,6 +456,12 @@ private:
   Status UpdateSpecificKeyStatistics(const DataType& dtype, const std::string& key, uint64_t count);
   Status UpdateSpecificKeyDuration(const DataType& dtype, const std::string& key, uint64_t duration);
   Status AddCompactKeyTaskIfNeeded(const DataType& dtype, const std::string& key, uint64_t count, uint64_t duration);
+
+#ifdef USE_S3
+  // rocksdb-cloud
+  Status OpenCloudEnv(rocksdb::CloudFileSystemOptions opts, const std::string& db_path);
+  std::unique_ptr<rocksdb::Env> cloud_env_;
+#endif
 };
 
 }  //  namespace storage
