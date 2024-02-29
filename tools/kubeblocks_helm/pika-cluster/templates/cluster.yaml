@@ -14,10 +14,43 @@ spec:
   {{- with $.Values.tolerations }}
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
+  ## define pika group with shardingSpecs API which is supported in KubeBlocks v0.8.2
+  {{- if not .Values.useLegacyCompDef }}
+  shardingSpecs:
+  - name: group
+    shards: {{ .Values.groupCount }}
+    template:
+      name: pika
+      componentDef: pika-group
+      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+      {{- with  $.Values.resources.pikaGroup }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if $.Values.persistence.enabled }}
+      volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
+        - name: data
+          spec:
+            storageClassName: {{ .storageClassName }}
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .size }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
   componentSpecs:
+    {{- if .Values.useLegacyCompDef }}
     {{- range $i := until (int .Values.groupCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
-      componentDefRef: pika-group # ref clusterDefinition componentDefs.name
+      componentDefRef: pika-group # ref clusterDefinition.componentDefs[x].name
       monitor: {{ $.Values.monitor.enabled | default false }}
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
@@ -46,9 +79,14 @@ spec:
                 storage: {{ .size }}
         {{- end }}
       {{- end }}
-    {{- end }}
+      {{- end }}
+      {{- end }}
     - name: etcd # user-defined
-      componentDefRef: etcd # ref clusterdefinition components.name
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: etcd # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-etcd # ref componentDefinition name
+      {{- end }}
       monitor: {{ .Values.monitor.enabled | default false }}
       replicas: {{ .Values.etcdReplicaCount| default 3 }}
       {{- with  .Values.resources.etcd }}
@@ -78,7 +116,11 @@ spec:
         {{- end }}
       {{- end }}
     - name: codis-proxy
-      componentDefRef: codis-proxy # ref clusterDefinition componentDefs.name
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: codis-proxy # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-codis-proxy # ref componentDefinition name
+      {{- end }}
       replicas: {{ .Values.codisProxyReplicaCount | default 2 }}
       {{- with  .Values.resources.codisProxy }}
       resources:
@@ -90,7 +132,11 @@ spec:
           memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-fe
-      componentDefRef: codis-fe # ref clusterDefinition componentDefs.name
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: codis-fe # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-codis-fe # ref componentDefinition name
+      {{- end }}
       replicas: {{ .Values.codisFeReplicaCount | default 1 }}
       {{- with  .Values.resources.codisFe }}
       resources:
@@ -102,7 +148,11 @@ spec:
           memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-dashboard
-      componentDefRef: codis-dashboard # ref clusterDefinition componentDefs.name
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: codis-dashboard # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-codis-dashboard # ref componentDefinition name
+      {{- end }}
       replicas: 1
     {{- with  .Values.resources.codisFe }}
       resources:
