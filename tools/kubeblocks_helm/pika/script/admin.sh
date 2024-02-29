@@ -16,6 +16,9 @@ set_group_id() {
 # set codis dashboard
 set_codis_dashboard() {
   CODIS_DASHBOARD="${KB_CLUSTER_NAME}-codis-dashboard"
+  if [ ! -z "$PIKA_CODIS_DASHBOARD_SVC_NAME" ]; then
+    CODIS_DASHBOARD=$PIKA_CODIS_DASHBOARD_SVC_NAME
+  fi
   echo "CODIS_DASHBOARD: "${CODIS_DASHBOARD}
   CODIS_ADMIN="/codis/bin/codis-admin --dashboard=${CODIS_DASHBOARD}:18080"
   echo "CODIS_ADMIN: "${CODIS_ADMIN}
