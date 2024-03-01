@@ -7,12 +7,10 @@
 #include <memory>
 
 #include "include/pika_command.h"
-#include "include/pika_stream_base.h"
-#include "pstd/include/pstd_string.h"
-
+#include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
 #include "include/pika_conf.h"
-#include "include/pika_slot_command.h"
+#include "pstd/include/pstd_string.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
@@ -69,16 +67,16 @@ void SetCmd::Do() {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s_ = db_->storage()->Setxx(key_, value_, &res, static_cast<int32_t>(sec_));
+      s_ = db_->storage()->Setxx(key_, value_, &res, sec_);
       break;
     case SetCmd::kNX:
-      s_ = db_->storage()->Setnx(key_, value_, &res, static_cast<int32_t>(sec_));
+      s_ = db_->storage()->Setnx(key_, value_, &res, sec_);
       break;
     case SetCmd::kVX:
-      s_ = db_->storage()->Setvx(key_, target_, value_, &success_, static_cast<int32_t>(sec_));
+      s_ = db_->storage()->Setvx(key_, target_, value_, &success_, sec_);
       break;
     case SetCmd::kEXORPX:
-      s_ = db_->storage()->Setex(key_, value_, static_cast<int32_t>(sec_));
+      s_ = db_->storage()->Setex(key_, value_, sec_);
       break;
     default:
       s_ = db_->storage()->Set(key_, value_);
@@ -134,7 +132,7 @@ std::string SetCmd::ToRedisProtocol() {
     RedisAppendContent(content, key_);
     // time_stamp
     char buf[100];
-    auto time_stamp = static_cast<int32_t>(time(nullptr) + sec_);
+    auto time_stamp = time(nullptr) + sec_;
     pstd::ll2string(buf, 100, time_stamp);
     std::string at(buf);
     RedisAppendLenUint64(content, at.size(), "$");
@@ -202,14 +200,9 @@ void DelCmd::DoInitial() {
 
 void DelCmd::Do() {
   std::map<storage::DataType, storage::Status> type_status;
+
   int64_t count = db_->storage()->Del(keys_, &type_status);
-  
-  // stream's destory need to be treated specially
-  auto s = StreamStorage::DestoryStreams(keys_, db_.get());
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, "stream delete error: " + s.ToString());
-    return;
-  }
+
   if (count >= 0) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
@@ -617,6 +610,8 @@ void KeysCmd::DoInitial() {
       type_ = storage::DataType::kLists;
     } else if (strcasecmp(opt.data(), "hash") == 0) {
       type_ = storage::DataType::kHashes;
+    } else if (strcasecmp(opt.data(), "stream") == 0) {
+      type_ = storage::DataType::kStreams;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
@@ -702,7 +697,7 @@ void SetexCmd::DoInitial() {
 }
 
 void SetexCmd::Do() {
-  s_ = db_->storage()->Setex(key_, value_, static_cast<int32_t>(sec_));
+  s_ = db_->storage()->Setex(key_, value_, sec_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
     AddSlotKey("k", key_, db_);
@@ -736,7 +731,7 @@ std::string SetexCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  auto time_stamp = static_cast<int32_t>(time(nullptr) + sec_);
+  auto time_stamp = time(nullptr) + sec_;
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -761,7 +756,7 @@ void PsetexCmd::DoInitial() {
 }
 
 void PsetexCmd::Do() {
-  s_ = db_->storage()->Setex(key_, value_, static_cast<int32_t>(usec_ / 1000));
+  s_ = db_->storage()->Setex(key_, value_, usec_ / 1000);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -776,7 +771,7 @@ void PsetexCmd::DoThroughDB() {
 void PsetexCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Setxx(CachePrefixKeyK, value_,  static_cast<int32_t>(usec_ / 1000));
+    db_->cache()->Setxx(CachePrefixKeyK, value_,  usec_ / 1000);
   }
 }
 
@@ -794,7 +789,7 @@ std::string PsetexCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  auto time_stamp = static_cast<int32_t>(time(nullptr) + usec_ / 1000);
+  auto time_stamp = time(nullptr) + usec_ / 1000;
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1174,7 +1169,7 @@ void ExpireCmd::DoInitial() {
 
 void ExpireCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t res = db_->storage()->Expire(key_, static_cast<int32_t>(sec_), &type_status);
+  int64_t res = db_->storage()->Expire(key_, sec_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1238,7 +1233,7 @@ void PexpireCmd::DoInitial() {
 
 void PexpireCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t res = db_->storage()->Expire(key_, static_cast<int32_t>(msec_ / 1000), &type_status);
+  int64_t res = db_->storage()->Expire(key_, msec_ / 1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1302,7 +1297,7 @@ void ExpireatCmd::DoInitial() {
 
 void ExpireatCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int32_t res = db_->storage()->Expireat(key_, static_cast<int32_t>(time_stamp_), &type_status);
+  int32_t res = db_->storage()->Expireat(key_, time_stamp_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();

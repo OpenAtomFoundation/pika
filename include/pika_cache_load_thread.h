@@ -38,7 +38,7 @@ class PikaCacheLoadThread : public net::Thread {
  private:
   std::atomic_bool should_exit_;
   std::deque<std::tuple<const char, std::string, const std::shared_ptr<DB>>> loadkeys_queue_;
-  
+
   pstd::CondVar loadkeys_cond_;
   pstd::Mutex loadkeys_mutex_;
 

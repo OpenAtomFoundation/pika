@@ -213,10 +213,7 @@ class PikaServer : public pstd::noncopyable {
    */
   pstd::Status GetDumpUUID(const std::string& db_name, std::string* snapshot_uuid);
   pstd::Status GetDumpMeta(const std::string& db_name, std::vector<std::string>* files, std::string* snapshot_uuid);
-  void DBSync(const std::string& ip, int port, const std::string& db_name);
   void TryDBSync(const std::string& ip, int port, const std::string& db_name, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& db_name);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& db_name);
 
   /*
    * Keyscan used
@@ -564,12 +561,6 @@ class PikaServer : public pstd::noncopyable {
    * Purgelogs use
    */
   net::BGThread purge_thread_;
-
-  /*
-   * DBSync used
-   */
-  pstd::Mutex db_sync_protector_;
-  std::unordered_set<std::string> db_sync_slaves_;
 
   /*
    * Keyscan used

@@ -15,10 +15,11 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_conf.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+#include "include/pika_conf.h"
 #include "pstd/include/rsync.h"
 
 using pstd::Status;
@@ -629,20 +630,8 @@ void FlushdbCmd::DoInitial() {
   if (argv_.size() == 1) {
     db_name_ = "all";
   } else {
-    std::string struct_type = argv_[1];
-    if (strcasecmp(struct_type.data(), "string") == 0) {
-      db_name_ = "strings";
-    } else if (strcasecmp(struct_type.data(), "hash") == 0) {
-      db_name_ = "hashes";
-    } else if (strcasecmp(struct_type.data(), "set") == 0) {
-      db_name_ = "sets";
-    } else if (strcasecmp(struct_type.data(), "zset") == 0) {
-      db_name_ = "zsets";
-    } else if (strcasecmp(struct_type.data(), "list") == 0) {
-      db_name_ = "lists";
-    } else {
-      res_.SetRes(CmdRes::kInvalidDbType);
-    }
+    LOG(WARNING) << "not supported to flushdb with specific type in Floyd";
+    res_.SetRes(CmdRes::kInvalidParameter, "not supported to flushdb with specific type in Floyd");
   }
 }
 
@@ -653,7 +642,8 @@ void FlushdbCmd::Do() {
     if (db_name_ == "all") {
       db_->FlushDB();
     } else {
-      db_->FlushSubDB(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
     }
   }
 }
@@ -687,7 +677,8 @@ void FlushdbCmd::DoWithoutLock() {
     if (db_name_ == "all") {
       db_->FlushDBWithoutLock();
     } else {
-      db_->FlushSubDBWithoutLock(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
     }
     DoUpdateCache();
   }
@@ -823,7 +814,7 @@ void ShutdownCmd::DoInitial() {
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  db_->DBUnlock();
+  db_->DBUnlockShared();
   g_pika_server->Exit();
   db_->DBLockShared();
   res_.SetRes(CmdRes::kNone);
@@ -1190,7 +1181,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       info.append("ERR: server role is error\r\n");
       return;
   }
-  tmp_stream << "ReplicationID: " << g_pika_conf->replication_id() << "\r\n";
+  tmp_stream << "ReplicationID:" << g_pika_conf->replication_id() << "\r\n";
   std::string slaves_list_str;
   switch (host_role) {
     case PIKA_ROLE_SLAVE:
@@ -1235,7 +1226,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
-    tmp_stream << db_name << " binlog_offset=" << filenum << " " << offset;
+    tmp_stream << db_name << ":binlog_offset=" << filenum << " " << offset;
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
@@ -1334,7 +1325,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::map<std::string, uint64_t> background_errors;
+  std::map<int, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
@@ -2307,7 +2298,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     if (value != "true" && value != "false") {
       res_.AppendStringRaw("-ERR invalid disable_auto_compactions (true or false)\r\n");
       return;
-    } 
+    }
     std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
@@ -2446,6 +2437,32 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "rocksdb-periodic-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-periodic-second'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"periodic_compaction_seconds", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetRocksdbPeriodicSecond(static_cast<uint64_t>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "rocksdb-ttl-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-ttl-second'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"ttl", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetRocksdbTTLSecond(static_cast<uint64_t>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-background-jobs") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -3081,7 +3098,7 @@ void DiskRecoveryCmd::Do() {
     db_item.second->DBUnlockShared();
     for (const auto &item: background_errors_) {
       if (item.second != 0) {
-        rocksdb::Status s = db_item.second->storage()->GetDBByType(item.first)->Resume();
+        rocksdb::Status s = db_item.second->storage()->GetDBByIndex(item.first)->Resume();
         if (!s.ok()) {
           res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
         }

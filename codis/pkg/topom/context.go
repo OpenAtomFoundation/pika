@@ -40,7 +40,7 @@ func (ctx *context) getSlotMapping(sid int) (*models.SlotMapping, error) {
 }
 
 func (ctx *context) getSlotMappingsByGroupId(gid int) []*models.SlotMapping {
-	var slots = []*models.SlotMapping{}
+	var slots []*models.SlotMapping
 	for _, m := range ctx.slots {
 		if m.GroupId == gid || m.Action.TargetId == gid {
 			slots = append(slots, m)
