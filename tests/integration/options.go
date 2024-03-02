@@ -29,22 +29,9 @@ func (t *TimeValue) ScanRedis(s string) (err error) {
 	return
 }
 
-func pikaOptions1() *redis.Options {
+func PikaOption(addr string) *redis.Options {
 	return &redis.Options{
-		Addr:         "127.0.0.1:9221",
-		DB:           0,
-		DialTimeout:  10 * time.Second,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		MaxRetries:   -1,
-		PoolSize:     30,
-		PoolTimeout:  60 * time.Second,
-	}
-}
-
-func pikaOptions2() *redis.Options {
-	return &redis.Options{
-		Addr:         "127.0.0.1:9231",
+		Addr:         addr,
 		DB:           0,
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  30 * time.Second,
