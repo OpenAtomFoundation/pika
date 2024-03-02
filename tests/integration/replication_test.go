@@ -371,8 +371,8 @@ var _ = Describe("should replication ", func() {
 		var clientMaster *redis.Client
 
 		BeforeEach(func() {
-			clientMaster = redis.NewClient(pikaOptions1())
-			clientSlave = redis.NewClient(pikaOptions2())
+			clientMaster = redis.NewClient(PikaOption(MASTERADDR))
+			clientSlave = redis.NewClient(PikaOption(SLAVEADDR))
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
@@ -395,11 +395,11 @@ var _ = Describe("should replication ", func() {
 			infoRes = clientMaster.Info(ctx, "replication")
 			Expect(infoRes.Err()).NotTo(HaveOccurred())
 			Expect(infoRes.Val()).To(ContainSubstring("role:master"))
-			Expect(clientSlave.Do(ctx, "slaveof", "127.0.0.1", "9231").Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
+			Expect(clientSlave.Do(ctx, "slaveof", LOCALHOST, SLAVEPORT).Err()).To(MatchError("ERR The master ip:port and the slave ip:port are the same"))
 
 			var count = 0
 			for {
-				res := trySlave(ctx, clientSlave, "127.0.0.1", "9221")
+				res := trySlave(ctx, clientSlave, LOCALHOST, MASTERPORT)
 				if res {
 					break
 				} else if count > 4 {
