@@ -2174,6 +2174,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "zset-cache-start-direction",
         "zset-cache-field-num-per-key",
         "cache-lfu-decay-time",
+        "max-conn-rbuf-size",
     });
     res_.AppendStringVector(replyVt);
     return;
@@ -2645,6 +2646,13 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "max-conn-rbuf-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < PIKA_MAX_CONN_RBUF_LB || ival > PIKA_MAX_CONN_RBUF_HB * 2) {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-conn-rbuf-size'\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxConnRbufSize(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else {
     res_.AppendStringRaw("-ERR Unsupported CONFIG parameter: " + set_item + "\r\n");
