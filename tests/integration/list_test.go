@@ -40,7 +40,7 @@ var _ = Describe("List Commands", func() {
 	var blockedLock sync.Mutex
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})
@@ -916,8 +916,8 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Err()).NotTo(HaveOccurred())
 			Expect(lRange.Val()).To(Equal([]string{"two", "three"}))
 
-            err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
+			err := client.Do(ctx, "LPOP", "list", 1, 2).Err()
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'lpop' command")))
 		})
 
 		It("should LPopCount", func() {
@@ -1162,7 +1162,7 @@ var _ = Describe("List Commands", func() {
 			Expect(lRange.Val()).To(Equal([]string{"one", "two"}))
 
 			err := client.Do(ctx, "RPOP", "list", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'rpop' command")))
 		})
 
 		It("should RPopCount", func() {
