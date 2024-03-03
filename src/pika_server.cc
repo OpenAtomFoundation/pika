@@ -601,6 +601,8 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
               master_boffset.offset - sent_slave_boffset.offset;
           tmp_stream << "(" << db->DBName() << ":" << lag << ")";
         }
+      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync){
+        tmp_stream << "(" << db->DBName() << ":full syncing)";
       } else {
         tmp_stream << "(" << db->DBName() << ":not syncing)";
       }
