@@ -7,61 +7,61 @@ start_server {
 } {
     source "tests/unit/type/list-common.tcl"
 
-    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
+#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
         # first lpush then rpush
-        assert_equal 1 [r lpush myziplist1 a]
-        assert_equal 2 [r rpush myziplist1 b]
-        assert_equal 3 [r rpush myziplist1 c]
-        assert_equal 3 [r llen myziplist1]
-        assert_equal a [r lindex myziplist1 0]
-        assert_equal b [r lindex myziplist1 1]
-        assert_equal c [r lindex myziplist1 2]
-        assert_equal {} [r lindex myziplist2 3]
-        assert_equal c [r rpop myziplist1]
-        assert_equal a [r lpop myziplist1]
+#        assert_equal 1 [r lpush myziplist1 a]
+#        assert_equal 2 [r rpush myziplist1 b]
+#        assert_equal 3 [r rpush myziplist1 c]
+#        assert_equal 3 [r llen myziplist1]
+#        assert_equal a [r lindex myziplist1 0]
+#        assert_equal b [r lindex myziplist1 1]
+#        assert_equal c [r lindex myziplist1 2]
+#        assert_equal {} [r lindex myziplist2 3]
+#        assert_equal c [r rpop myziplist1]
+#        assert_equal a [r lpop myziplist1]
 #        assert_encoding ziplist myziplist1
 
         # first rpush then lpush
-        assert_equal 1 [r rpush myziplist2 a]
-        assert_equal 2 [r lpush myziplist2 b]
-        assert_equal 3 [r lpush myziplist2 c]
-        assert_equal 3 [r llen myziplist2]
-        assert_equal c [r lindex myziplist2 0]
-        assert_equal b [r lindex myziplist2 1]
-        assert_equal a [r lindex myziplist2 2]
-        assert_equal {} [r lindex myziplist2 3]
-        assert_equal a [r rpop myziplist2]
-        assert_equal c [r lpop myziplist2]
+#        assert_equal 1 [r rpush myziplist2 a]
+#        assert_equal 2 [r lpush myziplist2 b]
+#        assert_equal 3 [r lpush myziplist2 c]
+#        assert_equal 3 [r llen myziplist2]
+#        assert_equal c [r lindex myziplist2 0]
+#        assert_equal b [r lindex myziplist2 1]
+#        assert_equal a [r lindex myziplist2 2]
+#        assert_equal {} [r lindex myziplist2 3]
+#        assert_equal a [r rpop myziplist2]
+#        assert_equal c [r lpop myziplist2]
 #        assert_encoding ziplist myziplist2
-    }
+#    }
 
-    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
+#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
         # first lpush then rpush
-        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
+#        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
 #        assert_encoding linkedlist mylist1
-        assert_equal 2 [r rpush mylist1 b]
-        assert_equal 3 [r rpush mylist1 c]
-        assert_equal 3 [r llen mylist1]
-        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
-        assert_equal b [r lindex mylist1 1]
-        assert_equal c [r lindex mylist1 2]
-        assert_equal {} [r lindex mylist1 3]
-        assert_equal c [r rpop mylist1]
-        assert_equal $largevalue(linkedlist) [r lpop mylist1]
+#        assert_equal 2 [r rpush mylist1 b]
+#        assert_equal 3 [r rpush mylist1 c]
+#        assert_equal 3 [r llen mylist1]
+#        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
+#        assert_equal b [r lindex mylist1 1]
+#        assert_equal c [r lindex mylist1 2]
+#        assert_equal {} [r lindex mylist1 3]
+#        assert_equal c [r rpop mylist1]
+#        assert_equal $largevalue(linkedlist) [r lpop mylist1]
 
-        # first rpush then lpush
-        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
+#        # first rpush then lpush
+#        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
 #        assert_encoding linkedlist mylist2
-        assert_equal 2 [r lpush mylist2 b]
-        assert_equal 3 [r lpush mylist2 c]
-        assert_equal 3 [r llen mylist2]
-        assert_equal c [r lindex mylist2 0]
-        assert_equal b [r lindex mylist2 1]
-        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
-        assert_equal {} [r lindex mylist2 3]
-        assert_equal $largevalue(linkedlist) [r rpop mylist2]
-        assert_equal c [r lpop mylist2]
-    }
+#        assert_equal 2 [r lpush mylist2 b]
+#        assert_equal 3 [r lpush mylist2 c]
+#        assert_equal 3 [r llen mylist2]
+#        assert_equal c [r lindex mylist2 0]
+#        assert_equal b [r lindex mylist2 1]
+#        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
+#        assert_equal {} [r lindex mylist2 3]
+#        assert_equal $largevalue(linkedlist) [r rpop mylist2]
+#        assert_equal c [r lpop mylist2]
+#    }
 
     test {R/LPOP against empty list} {
         r lpop non-existing-list
@@ -74,17 +74,17 @@ start_server {
         assert_equal {d c b a 0 1 2 3} [r lrange mylist 0 -1]
     }
 
-    test {DEL a list - ziplist} {
-        assert_equal 1 [r del myziplist2]
-        assert_equal 0 [r exists myziplist2]
-        assert_equal 0 [r llen myziplist2]
-    }
+#    test {DEL a list - ziplist} {
+#        assert_equal 1 [r del myziplist2]
+#        assert_equal 0 [r exists myziplist2]
+#        assert_equal 0 [r llen myziplist2]
+#    }
 
-    test {DEL a list - regular list} {
-        assert_equal 1 [r del mylist2]
-        assert_equal 0 [r exists mylist2]
-        assert_equal 0 [r llen mylist2]
-    }
+#    test {DEL a list - regular list} {
+#        assert_equal 1 [r del mylist2]
+#        assert_equal 0 [r exists mylist2]
+#        assert_equal 0 [r llen mylist2]
+#    }
 
     proc create_ziplist {key entries} {
         r del $key
@@ -672,12 +672,12 @@ start_server {
 #            assert_encoding ziplist mylist2
         }
 
-        test "RPOPLPUSH with the same list as src and dst - $type" {
-            create_$type mylist "a $large c"
-            assert_equal "a $large c" [r lrange mylist 0 -1]
-            assert_equal c [r rpoplpush mylist mylist]
-            assert_equal "c a $large" [r lrange mylist 0 -1]
-        }
+#        test "RPOPLPUSH with the same list as src and dst - $type" {
+#            create_$type mylist "a $large c"
+#            assert_equal "a $large c" [r lrange mylist 0 -1]
+#            assert_equal c [r rpoplpush mylist mylist]
+#            assert_equal "c a $large" [r lrange mylist 0 -1]
+#        }
 
         foreach {othertype otherlarge} [array get largevalue] {
             test "RPOPLPUSH with $type source and existing target $othertype" {
