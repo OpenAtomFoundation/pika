@@ -3,17 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_client_conn.h"
-
 #include <fmt/format.h>
-#include <algorithm>
+#include <glog/logging.h>
 #include <utility>
 #include <vector>
 
-#include <glog/logging.h>
-
-#include "include/pika_client_conn.h"
 #include "include/pika_admin.h"
+#include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
@@ -450,21 +446,19 @@ void PikaClientConn::DoAuth(const std::shared_ptr<User>& user) {
 
 void PikaClientConn::UnAuth(const std::shared_ptr<User>& user) {
   user_ = user;
-  authenticated_ = false;
+  // If the user does not have a password, and the user is valid, then the user does not need authentication
+  authenticated_ = user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS)) &&
+                   !user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));
 }
 
 bool PikaClientConn::IsAuthed() const { return authenticated_; }
 
 bool PikaClientConn::AuthRequired() const {
-  if (IsAuthed()) {  // the user is authed, not required
-    return false;
-  }
-
-  if (user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {  // the user is no password
-    return false;
-  }
-
-  return user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));  // user disabled
+  // If the user does not have a password, and the user is valid, then the user does not need authentication
+  // Otherwise, you need to determine whether go has been authenticated
+  return (!user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS)) ||
+          user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) &&
+         !IsAuthed();
 }
 std::string PikaClientConn::UserName() const { return user_->Name(); }
 
