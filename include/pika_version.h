@@ -8,6 +8,6 @@
 
 #define PIKA_MAJOR 3
 #define PIKA_MINOR 5
-#define PIKA_PATCH 2
+#define PIKA_PATCH 3
 
 #endif  // INCLUDE_PIKA_VERSION_H_
