@@ -1,0 +1,36 @@
+FROM golang:1.20 AS builder
+
+LABEL maintainer="pikiwidb@gmail.com"
+
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PIKA_EXPORTER_BUILD_DIR=/tmp/pika/tools/pika_exporter \
+    PATH=${PIKA}:${PIKA}/bin:${PATH} 
+
+ARG ENABLE_PROXY=false
+RUN if [ "${ENABLE_PROXY}" = "true" ] ; \
+    then go env -w GOPROXY=https://goproxy.io,direct; \
+    fi 
+
+COPY . ${PIKA_BUILD_DIR}
+
+WORKDIR ${PIKA_EXPORTER_BUILD_DIR}
+
+RUN go env && make
+
+FROM ubuntu:22.04
+
+LABEL maintainer="pikiwidb@gmail.com"
+
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PATH=${PIKA}:${PIKA}/bin:${PATH}
+
+WORKDIR ${PIKA}
+
+COPY --from=builder ${PIKA_BUILD_DIR}/tools/pika_exporter/bin/pika_exporter ${PIKA}/bin/pika_exporter
+COPY --from=builder ${PIKA_BUILD_DIR}/tools/pika_exporter/config/info.toml ${PIKA}/conf/info.toml
+
+EXPOSE 9121
+
+CMD ["/pika/bin/pika_exporter", "--config", "/pika/conf/info.toml"]
