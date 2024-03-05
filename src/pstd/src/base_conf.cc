@@ -178,6 +178,19 @@ bool BaseConf::GetConfStr(const std::string& name, std::string* val) const {
   return false;
 }
 
+bool BaseConf::GetConfStr(const std::string& name, std::vector<std::string>* values) const {
+  for (const auto& i : rep_->item) {
+    if (i.type == 1) {
+      continue;
+    }
+    if (name == i.name) {
+      values->push_back(i.value);
+    }
+  }
+
+  return !values->empty();
+}
+
 bool BaseConf::GetConfStrVec(const std::string& name, std::vector<std::string>* value) const {
   for (auto& i : rep_->item) {
     if (i.type == Rep::kComment) {

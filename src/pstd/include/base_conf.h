@@ -50,7 +50,7 @@ class BaseConf {
   bool GetConfIntHuman(const std::string& name, int* value) const;
   bool GetConfInt64(const std::string& name, int64_t* value) const;
   bool GetConfInt64Human(const std::string& name, int64_t* value) const;
-
+  bool GetConfStr(const std::string& name, std::vector<std::string>* values) const;
   bool GetConfStr(const std::string& name, std::string* value) const;
   bool GetConfBool(const std::string& name, bool* value) const;
   bool GetConfStrVec(const std::string& name, std::vector<std::string>* value) const;

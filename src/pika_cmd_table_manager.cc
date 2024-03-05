@@ -50,6 +50,14 @@ void PikaCmdTableManager::InitCmdTable(void) {
   }
 }
 
+void PikaCmdTableManager::RenameCommand(const std::string before, const std::string after) {
+  auto it = cmds_->find(before);
+  if (it != cmds_->end()) {
+    cmds_->insert(std::pair<std::string, std::unique_ptr<Cmd>>(after, std::move(it->second)));
+    cmds_->erase(it);
+  }
+}
+
 std::unordered_map<std::string, CommandStatistics>* PikaCmdTableManager::GetCommandStatMap() {
   return &cmdstat_map_;
 }
