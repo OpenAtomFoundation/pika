@@ -358,7 +358,9 @@ Status RsyncClient::PullRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
 
     if (resp.get() == nullptr || resp->code() != RsyncService::kOk) {
-      s = Status::IOError("kRsyncMeta request failed! unknown reason");
+      s = Status::IOError("kRsyncMeta request failed! db is not exist or doing bgsave");
+      sleep(1);
+      retries++;
       continue;
     }
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()
