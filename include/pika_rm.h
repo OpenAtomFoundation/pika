@@ -115,7 +115,7 @@ class SyncSlaveDB : public SyncDB {
   void SetMasterSessionId(int32_t session_id);
   void SetLocalIp(const std::string& local_ip);
   void StopRsync();
-  void ActivateRsync();
+  pstd::Status ActivateRsync();
   bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
 
  private:
