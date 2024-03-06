@@ -10,10 +10,12 @@
 
 #include "cache/include/config.h"
 #include "include/acl.h"
-#include "include/pika_define.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path) {}
@@ -465,7 +467,23 @@ int PikaConf::Load() {
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
