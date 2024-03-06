@@ -293,11 +293,15 @@ std::vector<std::string> User::AllChannelKey() {
 // class Acl
 pstd::Status Acl::Initialization() {
   AddUser(CreateDefaultUser());
-  UpdateDefaultUserPassword(g_pika_conf->requirepass());
+  UpdateDefaultUserPassword(g_pika_conf->userpass());
+
+  AddUser(CreatedUser(Admin));
+  InitAdminUser();
   auto status = LoadUsersAtStartup();
   if (!status.ok()) {
     return status;
   }
+  InitDefaultUser(g_pika_conf->GetUserBlackList());
   return status;
 }
 
@@ -469,6 +473,31 @@ void Acl::UpdateDefaultUserPassword(const std::string& pass) {
     u->SetUser("nopass");
   } else {
     u->SetUser(">" + pass);
+  }
+}
+
+void Acl::InitAdminUser() {
+  auto pass = g_pika_conf->requirepass();
+  std::unique_lock wl(mutex_);
+  auto u = GetUser(Admin);
+  if (pass.empty()) {
+    u->SetUser("nopass");
+  } else {
+    u->SetUser(">"+pass);
+  }
+  u->SetUser("+@all");
+  u->SetUser("~*");
+  u->SetUser("&*");
+  u->SetUser("on");
+}
+
+void Acl::InitDefaultUser(const std::string& bl) {
+  std::unique_lock wl(mutex_);
+  auto defaultUser = GetUser(DefaultUser);
+  std::vector<std::string> blacklist;
+  pstd::StringSplit(bl, ',', blacklist);
+  for(auto& i : blacklist) {
+    defaultUser->SetUser("-"+i);
   }
 }
 
@@ -725,6 +754,7 @@ std::array<std::pair<std::string, uint32_t>, 3> Acl::SelectorFlags = {{
 }};
 
 const std::string Acl::DefaultUser = "default";
+const std::string Acl::Admin = "admin";
 const int64_t Acl::LogGroupingMaxTimeDelta = 60000;
 
 void Acl::AddLogEntry(int32_t reason, int32_t context, const std::string& username, const std::string& object,

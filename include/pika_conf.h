@@ -168,6 +168,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return masterauth_;
   }
+  std::string userpass() {
+    std::shared_lock l(rwlock_);
+    return userpass_;
+  }
   std::string bgsave_path() {
     std::shared_lock l(rwlock_);
     return bgsave_path_;
@@ -365,6 +369,11 @@ class PikaConf : public pstd::BaseConf {
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
     return pstd::Set2String(slow_cmd_set_, ',');
+  }
+
+  const std::string GetUserBlackList() {
+    std::shared_lock l(rwlock_);
+    return userblacklist_;
   }
 
   bool is_slow_cmd(const std::string& cmd) {
@@ -689,6 +698,7 @@ class PikaConf : public pstd::BaseConf {
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
+  std::string userpass_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 1;
@@ -740,6 +750,7 @@ class PikaConf : public pstd::BaseConf {
 
   std::string network_interface_;
 
+  std::string userblacklist_;
   std::vector<std::string> users_;  // acl user rules
 
   std::string aclFile_;
