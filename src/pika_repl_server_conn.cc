@@ -201,6 +201,13 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>&
     return false;
   }
 
+  if (boffset.filenum == slave_boffset.filenum() && slave_boffset.filenum() == 0 && 
+      boffset.offset == slave_boffset.offset() && slave_boffset.offset() == 0) {
+    LOG(INFO) << "maybe a new master and slave, there is no binlog, but has db data, this need full sync";
+    try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
+    return false;
+  }
+
   PikaBinlogReader reader;
   reader.Seek(db->Logger(), slave_boffset.filenum(), slave_boffset.offset());
   BinlogOffset seeked_offset;
