@@ -67,7 +67,7 @@ build: deps
 ifeq ($(OS), Linux)
 ifeq ($(ARCH), x86_64)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$(PROJNAME)
-else ifeq ($(ARCH), arm6411)
+else ifeq ($(ARCH), arm64)
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/$(PROJNAME)
 endif
 else ifeq ($(OS), Darwin)
