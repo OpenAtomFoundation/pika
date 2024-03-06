@@ -66,6 +66,7 @@ bool RsyncClient::Init() {
   if (!ret) {
     LOG(WARNING) << "RsyncClient recover failed";
     client_thread_->StopThread();
+    state_.store(IDLE);
     return false;
   }
   finished_work_cnt_.store(0);
