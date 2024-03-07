@@ -3,9 +3,9 @@ module pika-integration
 go 1.19
 
 require (
-	github.com/bsm/ginkgo/v2 v2.7.0
-	github.com/bsm/gomega v1.26.0
-	github.com/redis/go-redis/v9 v9.0.4
+	github.com/bsm/ginkgo/v2 v2.12.0
+	github.com/bsm/gomega v1.27.10
+	github.com/redis/go-redis/v9 v9.4.0
 )
 
 require (
