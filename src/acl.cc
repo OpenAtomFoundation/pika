@@ -293,15 +293,14 @@ std::vector<std::string> User::AllChannelKey() {
 // class Acl
 pstd::Status Acl::Initialization() {
   AddUser(CreateDefaultUser());
-  UpdateDefaultUserPassword(g_pika_conf->userpass());
+  UpdateDefaultUserPassword(g_pika_conf->requirepass());
 
-  AddUser(CreatedUser(Admin));
-  InitAdminUser();
+  AddUser(CreatedUser(Limit));
+  InitLimitUser(g_pika_conf->GetUserBlackList());
   auto status = LoadUsersAtStartup();
   if (!status.ok()) {
     return status;
   }
-  InitDefaultUser(g_pika_conf->GetUserBlackList());
   return status;
 }
 
@@ -476,31 +475,27 @@ void Acl::UpdateDefaultUserPassword(const std::string& pass) {
   }
 }
 
-void Acl::InitAdminUser() {
-  auto pass = g_pika_conf->requirepass();
+void Acl::InitLimitUser(const std::string& bl) {
+  auto pass = g_pika_conf->userpass();
+  std::vector<std::string> blacklist;
+  pstd::StringSplit(bl, ',', blacklist);
   std::unique_lock wl(mutex_);
-  auto u = GetUser(Admin);
+  auto u = GetUser(Limit);
   if (pass.empty()) {
     u->SetUser("nopass");
   } else {
     u->SetUser(">"+pass);
   }
+  u->SetUser("on");
   u->SetUser("+@all");
   u->SetUser("~*");
   u->SetUser("&*");
-  u->SetUser("on");
-}
 
-void Acl::InitDefaultUser(const std::string& bl) {
-  std::unique_lock wl(mutex_);
-  auto defaultUser = GetUser(DefaultUser);
-  std::vector<std::string> blacklist;
-  pstd::StringSplit(bl, ',', blacklist);
   for(auto& i : blacklist) {
-    defaultUser->SetUser("-"+i);
+    u->SetUser("-"+i);
   }
-}
 
+}
 // bool Acl::CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) { cmd->name(); }
 
 std::shared_ptr<User> Acl::CreateDefaultUser() {
@@ -754,7 +749,7 @@ std::array<std::pair<std::string, uint32_t>, 3> Acl::SelectorFlags = {{
 }};
 
 const std::string Acl::DefaultUser = "default";
-const std::string Acl::Admin = "admin";
+const std::string Acl::Limit = "limit";
 const int64_t Acl::LogGroupingMaxTimeDelta = 60000;
 
 void Acl::AddLogEntry(int32_t reason, int32_t context, const std::string& username, const std::string& object,

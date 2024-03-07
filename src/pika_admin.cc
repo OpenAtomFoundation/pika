@@ -278,11 +278,11 @@ void AuthCmd::Do() {
 
   AuthResult authResult;
   if (userName == "") {
-    //  admin
-    authResult = AuthenticateUser(name(), Acl::Admin, pwd, conn, defaultAuth);
+    //  default
+    authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
     if (authResult != AuthResult::OK) {
-      //  default。
-        authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
+      //  Limit
+      authResult = AuthenticateUser(name(), Acl::Limit, pwd, conn, defaultAuth);
     }
   } else {
     authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
