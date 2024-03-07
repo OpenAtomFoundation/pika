@@ -499,126 +499,63 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
 }
 
 Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret) {
-  *ret = 0;
-  rocksdb::WriteBatch batch;
-  std::string meta_value;
+    *ret = 0;
+    rocksdb::WriteBatch batch;
+    rocksdb::ReadOptions read_options;
+    ScopeRecordLock l(lock_mgr_, key);
+    std::string meta_value;
+    Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+    if (!s.ok()) return s;
 
-  BaseMetaKey base_meta_key(key);
-  Status s = db_->Get(default_read_options_, handles_[kListsMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
     if (parsed_lists_meta_value.IsStale()) {
-      return Status::NotFound("Stale");
+        return Status::NotFound("Stale");
     } else if (parsed_lists_meta_value.Count() == 0) {
-      return Status::NotFound();
-    } else {
-      uint64_t current_index;
-      std::vector<uint64_t> target_index;
-      std::vector<uint64_t> delete_index;
-      uint64_t rest = (count < 0) ? -count : count;
-      uint64_t version = parsed_lists_meta_value.Version();
-      uint64_t start_index = parsed_lists_meta_value.LeftIndex() + 1;
-      uint64_t stop_index = parsed_lists_meta_value.RightIndex() - 1;
-      ListsDataKey start_data_key(key, version, start_index);
-      ListsDataKey stop_data_key(key, version, stop_index);
-      if (count >= 0) {
-        current_index = start_index;
-        rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[kListsDataCF]);
-        for (iter->Seek(start_data_key.Encode());
-             iter->Valid() && current_index <= stop_index && ((count == 0) || rest != 0);
-             iter->Next(), current_index++) {
-          ParsedBaseDataValue parsed_value(iter->value());
-          if (value.compare(parsed_value.UserValue()) == 0) {
-            target_index.push_back(current_index);
-            if (count != 0) {
-              rest--;
-            }
-          }
-        }
-        delete iter;
-      } else {
-        current_index = stop_index;
-        rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[kListsDataCF]);
-        for (iter->Seek(stop_data_key.Encode());
-             iter->Valid() && current_index >= start_index && ((count == 0) || rest != 0);
-             iter->Prev(), current_index--) {
-          ParsedBaseDataValue parsed_value(iter->value());
-          if (value.compare(parsed_value.UserValue()) == 0) {
-            target_index.push_back(current_index);
-            if (count != 0) {
-              rest--;
-            }
-          }
-        }
-        delete iter;
-      }
-      if (target_index.empty()) {
-        *ret = 0;
         return Status::NotFound();
-      } else {
-        rest = target_index.size();
-        uint64_t sublist_left_index = (count >= 0) ? target_index[0] : target_index[target_index.size() - 1];
-        uint64_t sublist_right_index = (count >= 0) ? target_index[target_index.size() - 1] : target_index[0];
-        uint64_t left_part_len = sublist_right_index - start_index;
-        uint64_t right_part_len = stop_index - sublist_left_index;
-        if (left_part_len <= right_part_len) {
-          uint64_t left = sublist_right_index;
-          current_index = sublist_right_index;
-          ListsDataKey sublist_right_key(key, version, sublist_right_index);
-          rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[kListsDataCF]);
-          for (iter->Seek(sublist_right_key.Encode()); iter->Valid() && current_index >= start_index;
-               iter->Prev(), current_index--) {
-            ParsedBaseDataValue parsed_value(iter->value());
-            if (value.compare(parsed_value.UserValue()) == 0 && rest > 0) {
-              rest--;
-            } else {
-              ListsDataKey lists_data_key(key, version, left--);
-              batch.Put(handles_[kListsDataCF], lists_data_key.Encode(), iter->value());
-            }
-          }
-          delete iter;
-          uint64_t left_index = parsed_lists_meta_value.LeftIndex();
-          for (uint64_t idx = 0; idx < target_index.size(); ++idx) {
-            delete_index.push_back(left_index + idx + 1);
-          }
-          parsed_lists_meta_value.ModifyLeftIndex(-target_index.size());
-        } else {
-          uint64_t right = sublist_left_index;
-          current_index = sublist_left_index;
-          ListsDataKey sublist_left_key(key, version, sublist_left_index);
-          rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[kListsDataCF]);
-          for (iter->Seek(sublist_left_key.Encode()); iter->Valid() && current_index <= stop_index;
-               iter->Next(), current_index++) {
-            ParsedBaseDataValue parsed_value(iter->value());
-            if ((value.compare(parsed_value.UserValue()) == 0) && rest > 0) {
-              rest--;
-            } else {
-              ListsDataKey lists_data_key(key, version, right++);
-              batch.Put(handles_[kListsDataCF], lists_data_key.Encode(), iter->value());
-            }
-          }
-          delete iter;
-          uint64_t right_index = parsed_lists_meta_value.RightIndex();
-          for (uint64_t idx = 0; idx < target_index.size(); ++idx) {
-            delete_index.push_back(right_index - idx - 1);
-          }
-          parsed_lists_meta_value.ModifyRightIndex(-target_index.size());
-        }
-        parsed_lists_meta_value.ModifyCount(-target_index.size());
-        batch.Put(handles_[kListsMetaCF], base_meta_key.Encode(), meta_value);
-        for (const auto& idx : delete_index) {
-          ListsDataKey lists_data_key(key, version, idx);
-          batch.Delete(handles_[kListsDataCF], lists_data_key.Encode());
-        }
-        *ret = target_index.size();
-        return db_->Write(default_write_options_, &batch);
-      }
     }
-  } else if (s.IsNotFound()) {
-    *ret = 0;
-  }
-  return s;
+
+    uint64_t rest = std::abs(count);
+    uint32_t version = parsed_lists_meta_value.Version();
+    uint64_t start_index = parsed_lists_meta_value.LeftIndex() + 1;
+    uint64_t stop_index = parsed_lists_meta_value.RightIndex() - 1;
+    uint64_t next_version_index = parsed_lists_meta_value.RightIndex();
+    ListsDataKey next_version_data_key(key, version + 1, next_version_index);
+    Slice next_version_prefix_key = next_version_data_key.Encode();
+    rocksdb::Slice upper_bound(next_version_prefix_key);
+    read_options.iterate_upper_bound = &upper_bound;
+    read_options.fill_cache = false;
+
+    // Simplified lambda function for element processing
+    auto processElements = [&](bool forward) {
+        std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(read_options, handles_[1]));
+        uint64_t current_index = forward ? start_index : stop_index;
+        for (forward ? iter->Seek(ListsDataKey(key, version, current_index).Encode()) :
+                       iter->SeekForPrev(ListsDataKey(key, version, current_index).Encode());
+             iter->Valid() && ((forward && current_index <= stop_index) || (!forward && current_index >= start_index)) && rest != 0;
+             forward ? iter->Next(), current_index++ : iter->Prev(), current_index--) {
+            if (iter->value().ToString() == value.ToString()) {
+                batch.Delete(handles_[1], ListsDataKey(key, version, current_index).Encode());
+                --rest;
+                ++(*ret);
+            }
+        }
+    };
+
+    // Decide direction based on count value and process elements
+    count >= 0 ? processElements(true) : processElements(false);
+
+    if (*ret > 0) {
+        // Adjust meta values only if elements were deleted
+        count >= 0 ? parsed_lists_meta_value.ModifyLeftIndex(-static_cast<int64_t>(*ret)) :
+                     parsed_lists_meta_value.ModifyRightIndex(-static_cast<int64_t>(*ret));
+        parsed_lists_meta_value.ModifyCount(-static_cast<int64_t>(*ret));
+        batch.Put(handles_[0], key, meta_value);
+        return db_->Write(default_write_options_, &batch);
+    }
+
+    return Status::NotFound();
 }
+
 
 Status Redis::LSet(const Slice& key, int64_t index, const Slice& value) {
   uint32_t statistic = 0;

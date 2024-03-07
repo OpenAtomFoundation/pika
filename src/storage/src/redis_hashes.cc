@@ -219,8 +219,16 @@ Status Redis::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
       return Status::NotFound();
     } else {
       version = parsed_hashes_meta_value.Version();
-      HashesDataKey hashes_data_key(key, version, "");
-      Slice prefix = hashes_data_key.EncodeSeekKey();
+      // Encode the start key for seeking
+      HashesDataKey start_hashes_data_key(key, version, "");
+      Slice prefix = start_hashes_data_key.EncodeSeekKey();
+
+      // Define the upper bound for iteration to improve efficiency
+      // Assuming the version is incremented for new hashes, using version+1 as upper bound
+      HashesDataKey end_hashes_data_key(key, version + 1, "");
+      Slice upper_bound = end_hashes_data_key.EncodeSeekKey();
+      read_options.iterate_upper_bound = &upper_bound;
+
       KeyStatisticsDurationGuard guard(this, DataType::kHashes, key.ToString());
       auto iter = db_->NewIterator(read_options, handles_[kHashesDataCF]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
@@ -233,6 +241,7 @@ Status Redis::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
   }
   return s;
 }
+
 
 Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl) {
   rocksdb::ReadOptions read_options;

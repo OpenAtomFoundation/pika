@@ -72,3 +72,5 @@ deps
 !codis/cmd/fe/assets/**
 
 tests/tmp
+
+.DS_Store
