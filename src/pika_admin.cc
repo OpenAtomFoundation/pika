@@ -282,7 +282,7 @@ void AuthCmd::Do() {
     authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
     if (authResult != AuthResult::OK) {
       //  Limit
-      authResult = AuthenticateUser(name(), Acl::Limit, pwd, conn, defaultAuth);
+      authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
     }
   } else {
     authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
