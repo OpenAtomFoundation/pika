@@ -30,6 +30,7 @@ class PikaCmdTableManager {
   PikaCmdTableManager();
   virtual ~PikaCmdTableManager() = default;
   void InitCmdTable(void);
+  void RenameCommand(const std::string before, const std::string after);
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   bool CmdExist(const std::string& cmd) const;
   CmdTable* GetCmdTable();

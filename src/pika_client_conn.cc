@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <fmt/format.h>
+#include <algorithm>
 #include <glog/logging.h>
 #include <utility>
 #include <vector>
@@ -12,7 +13,6 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
-#include "include/pika_conf.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
