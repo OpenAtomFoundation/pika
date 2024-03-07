@@ -382,7 +382,7 @@ class Acl {
   static std::vector<std::string> GetAllCategoryName();
 
   static const std::string DefaultUser;
-  static const std::string Limit;
+  static const std::string DefaultLimitUser;
   static const int64_t LogGroupingMaxTimeDelta;
 
   // Adds a new entry in the ACL log, making sure to delete the old entry

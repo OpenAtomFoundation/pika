@@ -282,7 +282,7 @@ void AuthCmd::Do() {
     authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
     if (authResult != AuthResult::OK) {
       //  Limit
-      authResult = AuthenticateUser(name(), Acl::Limit, pwd, conn, defaultAuth);
+      authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
     }
   } else {
     authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
@@ -1587,7 +1587,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-thread-pool-size");
     EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
-
+  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userblacklist");
+    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+  }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slow-cmd-list");

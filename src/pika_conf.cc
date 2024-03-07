@@ -645,7 +645,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
-//    SetConfStr("userblacklist", userblacklist_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
