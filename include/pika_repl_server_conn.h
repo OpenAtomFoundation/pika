@@ -32,7 +32,6 @@ class PikaReplServerConn : public net::PbConn {
                                      const InnerMessage::InnerRequest::TrySync& try_sync_request,
                                      const std::shared_ptr<net::PbConn>& conn,
                                      InnerMessage::InnerResponse::TrySync* try_sync_response);
-
   static void HandleDBSyncRequest(void* arg);
   static void HandleBinlogSyncRequest(void* arg);
   static void HandleRemoveSlaveNodeRequest(void* arg);

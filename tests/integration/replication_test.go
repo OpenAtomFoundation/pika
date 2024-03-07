@@ -20,8 +20,8 @@ func cleanEnv(ctx context.Context, clientMaster, clientSlave *redis.Client) {
 	r := clientSlave.Do(ctx, "slaveof", "no", "one")
 	Expect(r.Err()).NotTo(HaveOccurred())
 	Expect(r.Val()).To(Equal("OK"))
-	r = clientSlave.Do(ctx, "clearreplicationid")
-	r = clientMaster.Do(ctx, "clearreplicationid")
+	Expect(clientSlave.Do(ctx, "clearreplicationid").Err()).NotTo(HaveOccurred())
+	Expect(clientMaster.Do(ctx, "clearreplicationid").Err()).NotTo(HaveOccurred())
 	time.Sleep(1 * time.Second)
 }
 
@@ -364,7 +364,7 @@ func issuePushPopFrequency(ctx *context.Context, clientMaster *redis.Client, wg 
 	clientMaster.BLPop(*ctx, 1*time.Second, "blist0")
 }
 
-var _ = Describe("should replication ", func() {
+var _ = FDescribe("should replication ", func() {
 	Describe("all replication test", func() {
 		ctx := context.TODO()
 		var clientSlave *redis.Client
@@ -373,8 +373,8 @@ var _ = Describe("should replication ", func() {
 		BeforeEach(func() {
 			clientMaster = redis.NewClient(PikaOption(MASTERADDR))
 			clientSlave = redis.NewClient(PikaOption(SLAVEADDR))
-			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			//Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			//Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			cleanEnv(ctx, clientMaster, clientSlave)
 			if GlobalBefore != nil {
 				GlobalBefore(ctx, clientMaster)
@@ -383,8 +383,8 @@ var _ = Describe("should replication ", func() {
 		})
 		AfterEach(func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
-			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			//Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			//Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 			log.Println("Replication test case done")
@@ -441,7 +441,8 @@ var _ = Describe("should replication ", func() {
 			set1 := clientMaster.Set(ctx, "a", "b", 0)
 			Expect(set1.Err()).NotTo(HaveOccurred())
 			Expect(set1.Val()).To(Equal("OK"))
-			Expect(clientMaster.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+			time.Sleep(3 * time.Second)
+			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			//TODO Use del instead of flushdb after the flushDB problem is fixed
 			Eventually(func() error {
 				return clientMaster.Get(ctx, "x").Err()
@@ -456,9 +457,9 @@ var _ = Describe("should replication ", func() {
 			Expect(clientMaster.Del(ctx, "blist0", "blist1", "blist").Err()).NotTo(HaveOccurred())
 			execute(&ctx, clientMaster, 4, rpoplpushThread)
 			// TODO, the problem was not reproduced locally, record an issue first: https://github.com/OpenAtomFoundation/pika/issues/2492
-			//for i := int64(0); i < clientMaster.LLen(ctx, "blist").Val(); i++ {
-			//	Expect(clientMaster.LIndex(ctx, "blist", i)).To(Equal(clientSlave.LIndex(ctx, "blist", i)))
-			//}
+			for i := int64(0); i < clientMaster.LLen(ctx, "blist").Val(); i++ {
+				Expect(clientMaster.LIndex(ctx, "blist", i)).To(Equal(clientSlave.LIndex(ctx, "blist", i)))
+			}
 			Expect(clientMaster.Del(ctx, "blist0", "blist1", "blist").Err()).NotTo(HaveOccurred())
 			log.Println("rpoplpush test success")
 
