@@ -280,7 +280,7 @@ void AuthCmd::Do() {
   if (userName == "") {
     //  default
     authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
-    if (authResult != AuthResult::OK) {
+    if (authResult != AuthResult::OK && authResult != AuthResult::NO_REQUIRE_PASS) {
       //  Limit
       authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
     }
