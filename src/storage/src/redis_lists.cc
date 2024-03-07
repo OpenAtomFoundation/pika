@@ -141,7 +141,6 @@ Status Redis::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, co
                       const std::string& value, int64_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -266,7 +265,6 @@ Status Redis::LPop(const Slice& key, int64_t count, std::vector<std::string>* el
   elements->clear();
 
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   std::string meta_value;
 
@@ -312,7 +310,6 @@ Status Redis::LPop(const Slice& key, int64_t count, std::vector<std::string>* el
 Status Redis::LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t index = 0;
   uint64_t version = 0;
@@ -360,7 +357,6 @@ Status Redis::LPush(const Slice& key, const std::vector<std::string>& values, ui
 Status Redis::LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len) {
   *len = 0;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   std::string meta_value;
 
@@ -505,7 +501,6 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
 Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -627,7 +622,6 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
 
 Status Redis::LSet(const Slice& key, int64_t index, const Slice& value) {
   uint32_t statistic = 0;
-  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -659,7 +653,6 @@ Status Redis::LSet(const Slice& key, int64_t index, const Slice& value) {
 
 Status Redis::LTrim(const Slice& key, int64_t start, int64_t stop) {
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   uint32_t statistic = 0;
   std::string meta_value;
@@ -723,7 +716,6 @@ Status Redis::RPop(const Slice& key, int64_t count, std::vector<std::string>* el
   elements->clear();
 
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   std::string meta_value;
 
@@ -771,7 +763,6 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
   uint32_t statistic = 0;
   Status s;
   rocksdb::WriteBatch batch;
-  MultiScopeRecordLock l(lock_mgr_, {source.ToString(), destination.ToString()});
   if (source.compare(destination) == 0) {
     std::string meta_value;
     BaseMetaKey base_source(source);
@@ -937,7 +928,6 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
   *len = 0;
   rocksdb::WriteBatch batch;
 
-  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -968,8 +958,6 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
 
 Status Redis::ListsExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kListsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -993,8 +981,6 @@ Status Redis::ListsExpire(const Slice& key, int64_t ttl) {
 
 Status Redis::ListsDel(const Slice& key) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kListsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1015,8 +1001,6 @@ Status Redis::ListsDel(const Slice& key) {
 
 Status Redis::ListsExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kListsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1039,7 +1023,6 @@ Status Redis::ListsExpireat(const Slice& key, int64_t timestamp) {
 
 Status Redis::ListsPersist(const Slice& key) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kListsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
