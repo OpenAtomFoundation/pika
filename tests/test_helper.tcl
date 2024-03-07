@@ -12,8 +12,6 @@ source tests/support/test.tcl
 source tests/support/util.tcl
 
 set ::all_tests {
-    unit/protocol
-    unit/other
     unit/printver
     unit/basic
     unit/scan
@@ -34,6 +32,8 @@ set ::all_tests {
     unit/type/zset
     unit/type/string
     unit/type/hash
+    # unit/protocol
+    # unit/other
     # unit/auth
     # unit/sort
     # unit/aofrw

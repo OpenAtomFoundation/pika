@@ -110,8 +110,6 @@ Status Redis::StringsPKPatternMatchDel(const std::string& pattern, int32_t* ret)
 Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
   std::string old_value;
   *ret = 0;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
@@ -280,7 +278,6 @@ Status Redis::BitOp(BitOpType op, const std::string& dest_key, const std::vector
   *ret = static_cast<int64_t>(dest_value.size());
 
   StringsValue strings_value(Slice(dest_value.c_str(), max_len));
-  ScopeRecordLock l(lock_mgr_, dest_key);
   BaseKey base_dest_key(dest_key);
   return db_->Put(default_write_options_, base_dest_key.Encode(), strings_value.Encode());
 }
@@ -288,8 +285,6 @@ Status Redis::BitOp(BitOpType op, const std::string& dest_key, const std::vector
 Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret) {
   std::string old_value;
   std::string new_value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
@@ -488,8 +483,6 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
 }
 
 Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), old_value);
   if (s.ok()) {
@@ -509,8 +502,6 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
 Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
   std::string old_value;
   std::string new_value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   char buf[32] = {0};
@@ -557,7 +548,6 @@ Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret
   }
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -637,8 +627,6 @@ Status Redis::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
 
 Status Redis::Set(const Slice& key, const Slice& value) {
   StringsValue strings_value(value);
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
@@ -649,7 +637,6 @@ Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   StringsValue strings_value(value);
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(old_value);
@@ -679,7 +666,6 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
   }
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &meta_value);
   if (s.ok() || s.IsNotFound()) {
     std::string data_value;
@@ -732,7 +718,6 @@ Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl) {
   }
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
@@ -741,7 +726,6 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   std::string old_value;
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -774,7 +758,6 @@ Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value
   std::string old_value;
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -808,7 +791,6 @@ Status Redis::Delvx(const Slice& key, const Slice& value, int32_t* ret) {
   std::string old_value;
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -835,8 +817,6 @@ Status Redis::Setrange(const Slice& key, int64_t start_offset, const Slice& valu
   if (start_offset < 0) {
     return Status::InvalidArgument("offset < 0");
   }
-
-  ScopeRecordLock l(lock_mgr_, key);
 
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
@@ -1084,7 +1064,6 @@ Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp)
   StringsValue strings_value(value);
 
   BaseKey base_key(key);
-  ScopeRecordLock l(lock_mgr_, key);
   strings_value.SetEtime(uint64_t(timestamp));
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
@@ -1112,8 +1091,6 @@ Status Redis::StringsExpire(const Slice& key, int64_t ttl) {
 
 Status Redis::StringsDel(const Slice& key) {
   std::string value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
@@ -1128,8 +1105,6 @@ Status Redis::StringsDel(const Slice& key) {
 
 Status Redis::StringsExpireat(const Slice& key, int64_t timestamp) {
   std::string value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
@@ -1150,8 +1125,6 @@ Status Redis::StringsExpireat(const Slice& key, int64_t timestamp) {
 
 Status Redis::StringsPersist(const Slice& key) {
   std::string value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
@@ -1173,8 +1146,6 @@ Status Redis::StringsPersist(const Slice& key) {
 
 Status Redis::StringsTTL(const Slice& key, int64_t* timestamp) {
   std::string value;
-  ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {

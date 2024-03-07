@@ -216,23 +216,6 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterDB>&
   return true;
 }
 
-void PikaReplServerConn::BuildConsensusMeta(const bool& reject, const std::vector<LogOffset>& hints,
-                                            const uint32_t& term, InnerMessage::InnerResponse* response) {
-  InnerMessage::ConsensusMeta* consensus_meta = response->mutable_consensus_meta();
-  consensus_meta->set_term(term);
-  consensus_meta->set_reject(reject);
-  if (!reject) {
-    return;
-  }
-  for (const auto& hint : hints) {
-    InnerMessage::BinlogOffset* offset = consensus_meta->add_hint();
-    offset->set_filenum(hint.b_offset.filenum);
-    offset->set_offset(hint.b_offset.offset);
-    offset->set_term(hint.l_offset.term);
-    offset->set_index(hint.l_offset.index);
-  }
-}
-
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
