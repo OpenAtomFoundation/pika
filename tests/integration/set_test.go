@@ -16,6 +16,7 @@ var _ = Describe("Set Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		GlobalBefore(ctx, client)
 		time.Sleep(1 * time.Second)
 	})
 
@@ -276,8 +277,8 @@ var _ = Describe("Set Commands", func() {
 			Expect(sMembers.Err()).NotTo(HaveOccurred())
 			Expect(sMembers.Val()).To(HaveLen(3))
 
-            err := client.Do(ctx, "SPOP", "set", 1, 2).Err()
-            Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
+			err := client.Do(ctx, "SPOP", "set", 1, 2).Err()
+			Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'spop' command")))
 		})
 
 		It("should SPopN", func() {

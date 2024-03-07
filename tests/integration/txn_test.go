@@ -30,6 +30,9 @@ var _ = Describe("Text Txn", func() {
 	BeforeEach(func() {
 		txnClient = redis.NewClient(pikaOptions1())
 		cmdClient = redis.NewClient(pikaOptions1())
+
+		GlobalBefore(ctx, txnClient)
+		GlobalBefore(ctx, cmdClient)
 	})
 	Describe("test watch", func() {
 		It("basic watch", func() {

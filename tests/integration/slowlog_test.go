@@ -20,6 +20,7 @@ var _ = Describe("Slowlog Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		GlobalBefore(ctx, client)
 		time.Sleep(1 * time.Second)
 	})
 

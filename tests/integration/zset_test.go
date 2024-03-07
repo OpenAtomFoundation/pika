@@ -17,6 +17,7 @@ var _ = Describe("Zset Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(pikaOptions1())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		GlobalBefore(ctx, client)
 		time.Sleep(1 * time.Second)
 	})
 
@@ -1086,7 +1087,7 @@ var _ = Describe("Zset Commands", func() {
 			Member: "three",
 		}}))
 		err = client.Do(ctx, "ZPOPMIN", "zset", 1, 2).Err()
-        Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'zpopmin' command")))
+		Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'zpopmin' command")))
 	})
 
 	It("should ZRange", func() {
