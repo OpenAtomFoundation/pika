@@ -365,7 +365,7 @@ class Acl {
 
   void UpdateDefaultUserPassword(const std::string& pass);
 
-  void InitLimitUser(const std::string& bl);
+  void InitLimitUser(const std::string& bl, bool limit_exist);
 
   // After the user channel is modified, determine whether the current channel needs to be disconnected
   void KillPubsubClientsIfNeeded(const std::shared_ptr<User>& origin, const std::shared_ptr<User>& newUser);

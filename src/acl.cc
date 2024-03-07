@@ -295,9 +295,15 @@ pstd::Status Acl::Initialization() {
   AddUser(CreateDefaultUser());
   UpdateDefaultUserPassword(g_pika_conf->requirepass());
 
-  AddUser(CreatedUser(Limit));
-  InitLimitUser(g_pika_conf->GetUserBlackList());
   auto status = LoadUsersAtStartup();
+  auto u = GetUser(Limit);
+  bool limit_exist = true;
+  if (nullptr == u) {
+    AddUser(CreatedUser(Limit));
+    limit_exist = false;
+  }
+  InitLimitUser(g_pika_conf->GetUserBlackList(), limit_exist);
+
   if (!status.ok()) {
     return status;
   }
@@ -475,26 +481,34 @@ void Acl::UpdateDefaultUserPassword(const std::string& pass) {
   }
 }
 
-void Acl::InitLimitUser(const std::string& bl) {
+void Acl::InitLimitUser(const std::string& bl, bool limit_exist) {
   auto pass = g_pika_conf->userpass();
   std::vector<std::string> blacklist;
   pstd::StringSplit(bl, ',', blacklist);
   std::unique_lock wl(mutex_);
   auto u = GetUser(Limit);
-  if (pass.empty()) {
-    u->SetUser("nopass");
+  if (limit_exist) {
+    if (!bl.empty()) {
+      u->SetUser("+@all");
+      for(auto& i : blacklist) {
+        u->SetUser("-"+i);
+      }
+    }
   } else {
-    u->SetUser(">"+pass);
-  }
-  u->SetUser("on");
-  u->SetUser("+@all");
-  u->SetUser("~*");
-  u->SetUser("&*");
+    if (pass.empty()) {
+      u->SetUser("nopass");
+    } else {
+      u->SetUser(">"+pass);
+    }
+    u->SetUser("on");
+    u->SetUser("+@all");
+    u->SetUser("~*");
+    u->SetUser("&*");
 
-  for(auto& i : blacklist) {
-    u->SetUser("-"+i);
+    for(auto& i : blacklist) {
+      u->SetUser("-"+i);
+    }
   }
-
 }
 // bool Acl::CheckUserCanExec(const std::shared_ptr<Cmd>& cmd, const PikaCmdArgsType& argv) { cmd->name(); }
 
