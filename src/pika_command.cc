@@ -640,7 +640,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSRem, std::move(sremptr)));
   ////SUnionCmd
   std::unique_ptr<Cmd> sunionptr = std::make_unique<SUnionCmd>(
-      kCmdNameSUnion, -2, kCmdFlagsRead | kCmdFlagsSet | kCmdFlagsSlow);
+      kCmdNameSUnion, -2, kCmdFlagsWrite | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSUnion, std::move(sunionptr)));
   ////SUnionstoreCmd
   std::unique_ptr<Cmd> sunionstoreptr =
@@ -648,7 +648,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSUnionstore, std::move(sunionstoreptr)));
   ////SInterCmd
   std::unique_ptr<Cmd> sinterptr = std::make_unique<SInterCmd>(
-      kCmdNameSInter, -2, kCmdFlagsRead | kCmdFlagsSet | kCmdFlagsSlow);
+      kCmdNameSInter, -2, kCmdFlagsWrite | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSInter, std::move(sinterptr)));
   ////SInterstoreCmd
   std::unique_ptr<Cmd> sinterstoreptr =
@@ -660,7 +660,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSIsmember, std::move(sismemberptr)));
   ////SDiffCmd
   std::unique_ptr<Cmd> sdiffptr =
-      std::make_unique<SDiffCmd>(kCmdNameSDiff, -2, kCmdFlagsRead | kCmdFlagsSet | kCmdFlagsSlow);
+      std::make_unique<SDiffCmd>(kCmdNameSDiff, -2, kCmdFlagsWrite | kCmdFlagsSet | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSDiff, std::move(sdiffptr)));
   ////SDiffstoreCmd
   std::unique_ptr<Cmd> sdiffstoreptr =
@@ -889,11 +889,11 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
   if (!IsSuspend()) {
-    db_->DbRWLockReader();
+    db_->DBLockShared();
   }
   DEFER {
     if (!IsSuspend()) {
-      db_->DbRWUnLock();
+      db_->DBUnlockShared();
     }
   };
   if (IsNeedCacheDo()

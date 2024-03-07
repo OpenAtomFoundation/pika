@@ -8,7 +8,6 @@
 #include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
-#include "include/pika_define.h"
 #include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -146,22 +145,22 @@ void ExecCmd::Lock() {
     g_pika_rm->DBLock();
   }
 
-  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
-    if (lock_db_keys_.count(need_lock_slot) != 0) {
-      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Lock(lock_db_keys_[need_lock_slot]);
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_db) {
+    if (lock_db_keys_.count(need_lock_db) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
+      record_lock.Lock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_slot->DbRWLockReader();
+    need_lock_db->DBLockShared();
   });
 }
 
 void ExecCmd::Unlock() {
-  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
-    if (lock_db_keys_.count(need_lock_slot) != 0) {
-      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Unlock(lock_db_keys_[need_lock_slot]);
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_db) {
+    if (lock_db_keys_.count(need_lock_db) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
+      record_lock.Unlock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_slot->DbRWUnLock();
+    need_lock_db->DBUnlockShared();
   });
   if (is_lock_rm_dbs_) {
     g_pika_rm->DBUnlock();

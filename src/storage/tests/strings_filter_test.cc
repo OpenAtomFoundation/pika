@@ -19,7 +19,7 @@ TEST(StringsFilterTest, FilterTest) {
   bool value_changed;
   auto filter = std::make_unique<StringsFilter>();
 
-  int32_t ttl = 1;
+  int64_t ttl = 1;
   StringsValue strings_value("FILTER_VALUE");
   strings_value.SetRelativeTimestamp(ttl);
   is_stale = filter->Filter(0, "FILTER_KEY", strings_value.Encode(), &new_value, &value_changed);

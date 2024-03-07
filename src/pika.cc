@@ -8,18 +8,19 @@
 #include <csignal>
 #include <memory.h>
 
-#include "include/build_version.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_command.h"
-#include "include/pika_conf.h"
-#include "include/pika_define.h"
-#include "include/pika_rm.h"
-#include "include/pika_server.h"
-#include "include/pika_slot_command.h"
-#include "include/pika_version.h"
 #include "net/include/net_stats.h"
-#include "pstd/include/env.h"
+#include "pstd/include/pika_codis_slot.h"
+#include "include/pika_define.h"
 #include "pstd/include/pstd_defer.h"
+#include "include/pika_conf.h"
+#include "pstd/include/env.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_slot_command.h"
+#include "include/build_version.h"
+#include "include/pika_command.h"
+#include "include/pika_server.h"
+#include "include/pika_version.h"
+#include "include/pika_rm.h"
 
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
@@ -204,7 +205,6 @@ int main(int argc, char* argv[]) {
 
   PikaGlogInit();
   PikaSignalSetup();
-  InitCRC32Table();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();

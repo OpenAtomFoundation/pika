@@ -536,7 +536,7 @@ class DiskRecoveryCmd : public Cmd {
 
  private:
   void DoInitial() override;
-  std::map<std::string, uint64_t> background_errors_;
+  std::map<int, uint64_t> background_errors_;
 };
 
 class ClearReplicationIDCmd : public Cmd {
