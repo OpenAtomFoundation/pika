@@ -376,6 +376,8 @@ var _ = Describe("should replication ", func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
 			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			GlobalBefore(ctx, clientMaster)
+			GlobalBefore(ctx, clientSlave)
 			time.Sleep(3 * time.Second)
 		})
 		AfterEach(func() {

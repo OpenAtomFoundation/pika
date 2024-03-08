@@ -122,6 +122,7 @@ var _ = Describe("Stream Commands", func() {
 	var client *redis.Client
 	client = redis.NewClient(PikaOption(SINGLEADDR))
 	client.FlushDB(ctx)
+	GlobalBefore(ctx, client)
 
 	BeforeEach(func() {
 		// client = redis.NewClient(pikaOptions1())
