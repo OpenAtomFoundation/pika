@@ -735,8 +735,8 @@ class PikaConf : public pstd::BaseConf {
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int small_compaction_duration_threshold_ = 0;
-  int max_background_flushes_ = 0;
-  int max_background_compactions_ = 0;
+  int max_background_flushes_ = 1;
+  int max_background_compactions_ = 2;
   int max_background_jobs_ = 0;
   int max_cache_files_ = 0;
   std::atomic<uint64_t> rocksdb_ttl_second_ = 0;
@@ -765,7 +765,7 @@ class PikaConf : public pstd::BaseConf {
   std::vector<std::string> users_;  // acl user rules
 
   std::string aclFile_;
-
+  std::vector<std::string> cmds_;
   std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
   std::atomic<uint32_t> acl_Log_max_len_ = 0;      // default acl log max len
 

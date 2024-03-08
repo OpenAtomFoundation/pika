@@ -63,16 +63,6 @@ if [[ "${ARGS[0]}" = "codis" ]]; then
   exit 0
 fi
 
-if [[ "${ARGS[0]}" = "operator" ]]; then
-  pushd tools/pika_operator
-  if [[ "${CLEAN_BUILD}" = "true" ]]; then
-    rm -rf bin
-  fi
-  make -j ${CPU_CORE} "${ARGS[@]:1}"
-  popd
-  exit 0
-fi
-
 source ./utils/Get_OS_Version.sh
 
 function version_compare() {

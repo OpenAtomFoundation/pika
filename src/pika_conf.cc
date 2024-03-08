@@ -10,10 +10,12 @@
 
 #include "cache/include/config.h"
 #include "include/acl.h"
-#include "include/pika_define.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path) {}
@@ -361,16 +363,14 @@ int PikaConf::Load() {
     small_compaction_duration_threshold_ = 1000000;
   }
 
-  max_background_flushes_ = 1;
   GetConfInt("max-background-flushes", &max_background_flushes_);
   if (max_background_flushes_ <= 0) {
     max_background_flushes_ = 1;
   }
-  if (max_background_flushes_ >= 4) {
-    max_background_flushes_ = 4;
+  if (max_background_flushes_ >= 6) {
+    max_background_flushes_ = 6;
   }
 
-  max_background_compactions_ = 2;
   GetConfInt("max-background-compactions", &max_background_compactions_);
   if (max_background_compactions_ <= 0) {
     max_background_compactions_ = 2;
@@ -379,13 +379,13 @@ int PikaConf::Load() {
     max_background_compactions_ = 8;
   }
 
-  max_background_jobs_ = (1 + 2);
+  max_background_jobs_ = max_background_flushes_ + max_background_compactions_;
   GetConfInt("max-background-jobs", &max_background_jobs_);
   if (max_background_jobs_ <= 0) {
     max_background_jobs_ = (1 + 2);
   }
-  if (max_background_jobs_ >= (8 + 4)) {
-    max_background_jobs_ = (8 + 4);
+  if (max_background_jobs_ >= (8 + 6)) {
+    max_background_jobs_ = (8 + 6);
   }
 
   max_cache_files_ = 5000;
@@ -467,7 +467,23 @@ int PikaConf::Load() {
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
@@ -540,10 +556,12 @@ int PikaConf::Load() {
   // max conn rbuf size
   int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
   GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
-  if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
-    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
+  if (tmp_max_conn_rbuf_size <= PIKA_MAX_CONN_RBUF_LB) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_LB);
+  } else if (tmp_max_conn_rbuf_size >= PIKA_MAX_CONN_RBUF_HB * 2) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_HB * 2);
   } else {
-    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
+    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
   }
 
   // rocksdb blob configure
@@ -658,6 +676,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
   SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
+  SetConfInt("max-conn-rbuf-size", max_conn_rbuf_size_.load());
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);

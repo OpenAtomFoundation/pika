@@ -2269,7 +2269,7 @@ Status Storage::GetUsage(const std::string& property, uint64_t* const result) {
 Status Storage::GetUsage(const std::string& property, std::map<int, uint64_t>* const inst_result) {
   inst_result->clear();
   for (const auto& inst : insts_) {
-    uint64_t value;
+    uint64_t value = 0;
     inst->GetProperty(property, &value);
     (*inst_result)[inst->GetIndex()] = value;
   }

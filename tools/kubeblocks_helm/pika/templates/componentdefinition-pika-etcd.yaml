@@ -1,0 +1,115 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-etcd
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika etcd component definition
+  serviceKind: pika-etcd
+  serviceVersion: 3.5.1
+  services:
+    - name: etcd
+      serviceName: etcd
+      spec:
+        ports:
+          - name: client
+            port: 2379
+            targetPort: client
+          - name: peer
+            port: 2380
+            targetPort: peer
+  updateStrategy: Serial
+  runtime:
+    initContainers:
+      - name: volume-permissions
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -ec
+          - |
+            chown -R 1001:1001 /bitnami/etcd
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+          - name: data
+            mountPath: /bitnami/etcd
+    containers:
+      - name: etcd
+        image:  {{ include "etcd.image" . }}
+        imagePullPolicy: "IfNotPresent"
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+          - mountPath: /bitnami/etcd
+            name: data
+        ports:
+          - name: client
+            containerPort: 2379
+          - name: peer
+            containerPort: 2380
+        env:
+          - name: BITNAMI_DEBUG
+            value: "true"
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: MY_STS_NAME
+            value: $(KB_CLUSTER_COMP_NAME)
+          - name: ETCDCTL_API
+            value: "3"
+          - name: ETCD_ON_K8S
+            value: "yes"
+          - name: ETCD_START_FROM_SNAPSHOT
+            value: "no"
+          - name: ETCD_DISASTER_RECOVERY
+            value: "no"
+          - name: ETCD_NAME
+            value: $(MY_POD_NAME)
+          - name: ETCD_DATA_DIR
+            value: /bitnami/etcd/data
+          - name: ETCD_LOG_LEVEL
+            value: info
+          - name: ALLOW_NONE_AUTHENTICATION
+            value: "yes"
+          - name: ETCD_INITIAL_CLUSTER_TOKEN
+            value: "$(KB_CLUSTER_NAME)"
+          - name: ETCD_INITIAL_CLUSTER_STATE
+            value: "new"
+          - name: ETCD_INITIAL_CLUSTER
+            value: "{{ include "etcd.initialCluster" .}}"
+          - name: ETCD_CLUSTER_DOMAIN
+            value: "{{ include "etcd.clusterDomain" .}}"
+          - name: ETCD_AUTO_COMPACTION_MODE
+            value: "periodic"
+          - name: ETCD_AUTO_COMPACTION_RETENTION
+            value: "1h"
+          - name: ETCD_ADVERTISE_CLIENT_URLS
+            value: "{{ include "etcd.advertiseClientURLs" .}}"
+          - name: ETCD_LISTEN_CLIENT_URLS
+            value: http://0.0.0.0:2379
+          - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+            value: http://$(KB_POD_FQDN){{ .Values.clusterDomain }}:2380
+          - name: ETCD_LISTEN_PEER_URLS
+            value: http://0.0.0.0:2380
+          - name: ETCD_QUOTA_BACKEND_BYTES
+            value: "4294967296"
+          - name: ETCD_HEARTBEAT_INTERVAL
+            value: "500"
+          - name: ETCD_ELECTION_TIMEOUT
+            value: "2500"
+          - name: ETCD_ENABLE_V2
+            value: "true"
