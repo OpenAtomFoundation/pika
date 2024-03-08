@@ -115,6 +115,23 @@ spec:
                 storage: {{ .size }}
         {{- end }}
       {{- end }}
+    - name: pika-exporter
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: pika-exporter # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-exporter # ref componentDefinition name
+      {{- end }}
+      monitor: {{ .Values.monitor.enabled | default false }}
+      replicas: 1
+      {{- with  .Values.resources.pikaExporter }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
     - name: codis-proxy
       {{- if .Values.useLegacyCompDef }}
       componentDefRef: codis-proxy # ref clusterDefinition.componentDefs[x].name
