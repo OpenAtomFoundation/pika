@@ -490,9 +490,11 @@ void Acl::InitLimitUser(const std::string& bl, bool limit_exist) {
   if (limit_exist) {
     if (!bl.empty()) {
       u->SetUser("+@all");
-      for(auto& i : blacklist) {
-        u->SetUser("-"+i);
+      for(auto& cmd : blacklist) {
+        cmd = pstd::StringTrim(cmd, " ");
+        u->SetUser("-" + cmd);
       }
+      u->SetUser("on");
       if (!pass.empty()) {
         u->SetUser(">"+pass);
       }
