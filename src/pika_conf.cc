@@ -47,7 +47,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  //  GetConfStr("userpass", &userpass_);
+  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -463,6 +463,8 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // userblacklist
+  GetConfStr("userblacklist", &userblacklist_);
   // acl users
   GetConfStrMulti("user", &users_);
 
@@ -643,8 +645,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  //  SetConfStr("userpass", userpass_);
-  //  SetConfStr("userblacklist", userblacklist);
+  SetConfStr("userpass", userpass_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
