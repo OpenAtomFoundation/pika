@@ -269,15 +269,24 @@ void AuthCmd::Do() {
   std::string pwd = "";
   bool defaultAuth = false;
   if (argv_.size() == 2) {
-    userName = Acl::DefaultUser;
     pwd = argv_[1];
-    defaultAuth = true;
+//    defaultAuth = true;
   } else {
     userName = argv_[1];
     pwd = argv_[2];
   }
 
-  auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  AuthResult authResult;
+  if (userName == "") {
+    //  default
+    authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
+    if (authResult != AuthResult::OK && authResult != AuthResult::NO_REQUIRE_PASS) {
+      //  Limit
+      authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
+    }
+  } else {
+    authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  }
 
   switch (authResult) {
     case AuthResult::INVALID_CONN:
@@ -1578,7 +1587,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-thread-pool-size");
     EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
-
+  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userblacklist");
+    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+  }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slow-cmd-list");
