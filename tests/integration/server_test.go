@@ -49,7 +49,7 @@ var _ = Describe("Server", func() {
 			r = client.Do(ctx, "config", "set", "requirepass", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
-			r = client.Do(ctx, "AUTH", "wrong!")
+			r = client.Do(ctx, "AUTH", "default", "wrong!")
 			Expect(r.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
 			// r = client.Do(ctx, "AUTH", "foo", "bar")
