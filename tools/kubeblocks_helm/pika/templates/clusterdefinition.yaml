@@ -70,6 +70,13 @@ spec:
             args:
               - "-c"
               - "/script/admin.sh --register-server;tail -f /dev/null"
+            lifecycle:
+              preStop:
+                exec:
+                  command:
+                    - "/bin/bash"
+                    - "-c"
+                    - "/script/admin.sh --remove-server"
     - name: etcd
       workloadType: Stateful
       characterType: etcd
