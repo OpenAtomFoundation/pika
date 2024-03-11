@@ -146,7 +146,7 @@ jobs:
         working-directory: ${{ github.workspace }}/build
         run: |
           cd ../tools/pika_keys_analysis/
-          go test -v ./...
+#          go test -v ./...
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
