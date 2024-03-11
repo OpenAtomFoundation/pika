@@ -197,6 +197,54 @@ spec:
                 value: "2500"
               - name: ETCD_ENABLE_V2
                 value: "true"
+    - name: pika-exporter
+      workloadType: Stateless
+      characterType: pika
+      monitor:
+        builtIn: false
+        exporterConfig:
+          scrapePath: /metrics
+          scrapePort: 9121
+      service:
+        ports:
+          - name: exporter
+            targetPort: exporter
+            port: 9121
+      configSpecs:
+        - name: pika-config
+          templateRef: pika-conf-template
+          namespace: {{ .Release.Namespace }}
+          volumeName: config
+      podSpec:
+        initContainers:
+          - name: wait-codis-dashboard
+            env:
+              - name: DASHBOARD_ADDR
+                value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+            image: busybox:1.28
+            command:
+              - 'sh'
+              - '-c'
+              - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for codis dashboard; sleep 2; done;"
+        containers:
+          - name: pika-exporter
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 9121
+                name: exporter
+            volumeMounts:
+              - name: config
+                mountPath: /etc/pika
+            env:
+              - name: DASHBOARD_ADDR
+                value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+            command:
+              - "/pika/bin/pika_exporter"
+            args:
+              - "-config"
+              - "/etc/pika/info.toml"
+              - "-codis.addr"
+              - "http://$(DASHBOARD_ADDR):18080/topom"
     - name: codis-proxy
       workloadType: Stateful
       characterType: pika

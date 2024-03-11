@@ -6,7 +6,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 # if useLegacyCompDef is false ,cluster will be rendered by component definition rather than componentDefRef in cluster definition
-useLegacyCompDef: false
+useLegacyCompDef: true
 
 nameOverride: ""
 fullnameOverride: ""
@@ -46,6 +46,13 @@ resources:
       cpu: 500m
       memory: 1Gi
   etcd:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  pikaExporter:
     limits:
       cpu: 500m
       memory: 3Gi
