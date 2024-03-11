@@ -649,8 +649,7 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
     if (type == 0) {
       return 0;
     }
-    int ret = SlotsMgrtOne(host, port, timeout, key, type, detail, db);
-    return ret;
+    return SlotsMgrtOne(host, port, timeout, key, type, detail, db);
   }
 
   std::string tag_key = GetSlotsTagKey(crc);
