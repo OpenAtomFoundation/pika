@@ -11,14 +11,22 @@
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 
-const size_t MaxKeySendSize = 10 * 1024;
+extern uint32_t crc32tab[256];
 
-int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db);
+void CRC32TableInit(uint32_t poly);
+
+extern void InitCRC32Table();
+
+extern uint32_t CRC32Update(uint32_t crc, const char* buf, int len);
+extern uint32_t CRC32CheckSum(const char* buf, int len);
+
+int GetSlotID(const std::string &str);
+int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db);
+int GetSlotsID(const std::string& str, uint32_t* pcrc, int* phastag);
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
-std::string GetSlotKey(uint32_t slot);
+std::string GetSlotKey(int slot);
 std::string GetSlotsTagKey(uint32_t crc);
 
 class PikaMigrate {
@@ -39,17 +47,17 @@ class PikaMigrate {
   void Unlock() {
     mutex_.unlock();
   }
-  net::NetCli* GetMigrateClient(const std::string& host, const int port, int timeout);
+  std::unique_ptr<net::NetCli> GetMigrateClient(const std::string& host, const int port, int timeout);
 
  private:
   std::map<std::string, void*> migrate_clients_;
   pstd::Mutex mutex_;
-  void KillMigrateClient(net::NetCli* migrate_cli);
+  void KillMigrateClient(std::unique_ptr<net::NetCli> migrate_cli);
   void KillAllMigrateClient();
   int64_t TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db);
-  int MigrateSend(net::NetCli* migrate_cli, const std::string& key, const char type, std::string& detail,
+  int MigrateSend(std::unique_ptr<net::NetCli> migrate_cli, const std::string& key, const char type, std::string& detail,
                   const std::shared_ptr<DB>& db);
-  bool MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::string& detail);
+  bool MigrateRecv(std::unique_ptr<net::NetCli> migrate_cli, int need_receive, std::string& detail);
   int ParseKey(const std::string& key, const char type, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseKKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);

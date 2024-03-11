@@ -3,26 +3,24 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <algorithm>
+#include "include/pika_slot_command.h"
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "include/pika_slot_command.h"
 #include "include/pika_command.h"
+#include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
+#include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
 #include "include/pika_server.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
+#include "storage/include/storage/storage.h"
+
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/pstd_string.h"
-#include "include/pika_conf.h"
-#include "pstd/include/pika_codis_slot.h"
-#include "include/pika_define.h"
-#include "storage/include/storage/storage.h"
-
+#include "src/utils/include/pika_redis.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
@@ -31,6 +29,35 @@ extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+
+uint32_t crc32tab[256];
+void CRC32TableInit(uint32_t poly) {
+  int i, j;
+  for (i = 0; i < 256; i++) {
+    uint32_t crc = i;
+    for (j = 0; j < 8; j++) {
+      if (crc & 1) {
+        crc = (crc >> 1) ^ poly;
+      } else {
+        crc = (crc >> 1);
+      }
+    }
+    crc32tab[i] = crc;
+  }
+}
+
+void InitCRC32Table() {
+  CRC32TableInit(IEEE_POLY);
+}
+
+uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
+  int i;
+  crc = ~crc;
+  for (i = 0; i < len; i++) {
+    crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^ (crc >> 8);
+  }
+  return ~crc;
+}
 
 PikaMigrate::PikaMigrate() { migrate_clients_.clear(); }
 
@@ -41,28 +68,26 @@ PikaMigrate::~PikaMigrate() {
   KillAllMigrateClient();
 }
 
-net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int port, int timeout) {
+std::unique_ptr<net::NetCli> PikaMigrate::GetMigrateClient(const std::string &host, const int port, int timeout) {
   std::string ip_port = host + ":" + std::to_string(port);
-  net::NetCli *migrate_cli;
+  std::unique_ptr<net::NetCli> migrate_cli;
   pstd::Status s;
 
   auto migrate_clients_iter = migrate_clients_.find(ip_port);
   if (migrate_clients_iter == migrate_clients_.end()) {
-    migrate_cli = net::NewRedisCli();
+    auto migrate_cli = net::NewRedisCli();
     s = migrate_cli->Connect(host, port, g_pika_server->host());
     if (!s.ok()) {
       LOG(ERROR) << "GetMigrateClient: new  migrate_cli[" << ip_port.c_str() << "] failed";
-
-      delete migrate_cli;
       return nullptr;
     }
 
-    LOG(INFO) << "GetMigrateClient: new  migrate_cli[" << ip_port.c_str() << "]";
+    LOG(INFO) << "GetMigrateClient: new migrate_cli[" << ip_port.c_str() << "]";
 
     // add a new migrate client to the map
-    migrate_clients_[ip_port] = migrate_cli;
+    migrate_clients_[ip_port] = &migrate_cli;
   } else {
-    migrate_cli = static_cast<net::NetCli *>(migrate_clients_iter->second);
+    auto migrate_cli = migrate_clients_iter->second;
   }
 
   // set the client connect timeout
@@ -75,21 +100,14 @@ net::NetCli *PikaMigrate::GetMigrateClient(const std::string &host, const int po
   return migrate_cli;
 }
 
-void PikaMigrate::KillMigrateClient(net::NetCli *migrate_cli) {
-  auto migrate_clients_iter = migrate_clients_.begin();
-  while (migrate_clients_iter != migrate_clients_.end()) {
-    if (migrate_cli == static_cast<net::NetCli *>(migrate_clients_iter->second)) {
+void PikaMigrate::KillMigrateClient(std::unique_ptr<net::NetCli> migrate_cli) {
+  for(auto migrate_clients_iter = migrate_clients_.begin();
+       migrate_clients_iter != migrate_clients_.end(); ++migrate_clients_iter) {
+    if (migrate_cli.get() == migrate_clients_iter->second) {
       LOG(INFO) << "KillMigrateClient: kill  migrate_cli[" << migrate_clients_iter->first.c_str() << "]";
-
-      migrate_cli->Close();
-      delete migrate_cli;
-      migrate_cli = nullptr;
-
       migrate_clients_.erase(migrate_clients_iter);
       break;
     }
-
-    ++migrate_clients_iter;
   }
 }
 
@@ -146,26 +164,26 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
                             const char type, std::string &detail, const std::shared_ptr<DB>& db) {
   int send_command_num = -1;
 
-  net::NetCli *migrate_cli = GetMigrateClient(host, port, timeout);
+  std::unique_ptr<net::NetCli> migrate_cli = GetMigrateClient(host, port, timeout);
   if (!migrate_cli) {
     detail = "IOERR error or timeout connecting to the client";
     LOG(INFO) << "GetMigrateClient failed, key: " << key;
     return -1;
   }
 
-  send_command_num = MigrateSend(migrate_cli, key, type, detail, db);
+  send_command_num = MigrateSend(std::move(migrate_cli), key, type, detail, db);
   if (send_command_num <= 0) {
     return send_command_num;
   }
 
-  if (MigrateRecv(migrate_cli, send_command_num, detail)) {
+  if (MigrateRecv(std::move(migrate_cli), send_command_num, detail)) {
     return send_command_num;
   }
 
   return -1;
 }
 
-int PikaMigrate::MigrateSend(net::NetCli* migrate_cli, const std::string& key, const char type, std::string& detail,
+int PikaMigrate::MigrateSend(std::unique_ptr<net::NetCli> migrate_cli, const std::string& key, const char type, std::string& detail,
                              const std::shared_ptr<DB>& db) {
   std::string wbuf_str;
   pstd::Status s;
@@ -191,14 +209,14 @@ int PikaMigrate::MigrateSend(net::NetCli* migrate_cli, const std::string& key, c
   if (!s.ok()) {
     LOG(ERROR) << "Connect slots target, Send error: " << s.ToString();
     detail = "Connect slots target, Send error: " + s.ToString();
-    KillMigrateClient(migrate_cli);
+    KillMigrateClient(std::move(migrate_cli));
     return -1;
   }
 
   return command_num;
 }
 
-bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::string& detail) {
+bool PikaMigrate::MigrateRecv(std::unique_ptr<net::NetCli> migrate_cli, int need_receive, std::string& detail) {
   pstd::Status s;
   std::string reply;
   int64_t ret;
@@ -213,7 +231,7 @@ bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::s
     if (!s.ok()) {
       LOG(ERROR) << "Connect slots target, Recv error: " << s.ToString();
       detail = "Connect slots target, Recv error: " + s.ToString();
-      KillMigrateClient(migrate_cli);
+      KillMigrateClient(std::move(migrate_cli));
       return false;
     }
 
@@ -612,7 +630,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   uint32_t crc;
   int hastag;
-  uint32_t slotNum = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
+  int slotNum = GetSlotsID(key, &crc, &hastag);
 
   std::string slot_key = GetSlotKey(slotNum);
   int32_t res = 0;
@@ -646,7 +664,7 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   int count = 0;
   uint32_t crc;
   int hastag;
-  GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
+  GetSlotsID(key, &crc, &hastag);
   if (!hastag) {
     if (type == 0) {
       return 0;
@@ -691,9 +709,56 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   return count;
 }
 
-std::string GetSlotKey(uint32_t slot) {
-  return SlotKeyPrefix + std::to_string(slot);
+// get slot tag
+static const char *GetSlotsTag(const std::string& str, int* plen) {
+  const char *s = str.data();
+  int i, j, n = static_cast<int32_t>(str.length());
+  for (i = 0; i < n && s[i] != '{'; i++) {
+  }
+  if (i == n) {
+    return nullptr;
+  }
+  i++;
+  for (j = i; j < n && s[j] != '}'; j++) {
+  }
+  if (j == n) {
+    return nullptr;
+  }
+  if (plen != nullptr) {
+    *plen = j - i;
+  }
+  return s + i;
 }
+
+std::string GetSlotKey(int db) {
+  return SlotKeyPrefix + std::to_string(db);
+}
+
+// get slot number of the key
+int GetSlotID(const std::string& str) { return GetSlotsID(str, nullptr, nullptr); }
+
+// get the slot number by key
+int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
+  const char *s = str.data();
+  int taglen;
+  int hastag = 0;
+  const char *tag = GetSlotsTag(str, &taglen);
+  if (tag == nullptr) {
+    tag = s, taglen = static_cast<int32_t>(str.length());
+  } else {
+    hastag = 1;
+  }
+  uint32_t crc = CRC32CheckSum(tag, taglen);
+  if (pcrc != nullptr) {
+    *pcrc = crc;
+  }
+  if (phastag != nullptr) {
+    *phastag = hastag;
+  }
+  return crc % g_pika_conf->default_slot_num();
+}
+
+uint32_t CRC32CheckSum(const char* buf, int len) { return CRC32Update(0, buf, len); }
 
 // add key to slotkey
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
@@ -705,7 +770,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   int32_t res = -1;
   uint32_t crc;
   int hastag;
-  uint32_t slotID = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
+  int slotID = GetSlotsID(key, &crc, &hastag);
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);
@@ -737,7 +802,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
     LOG(WARNING) << "SRem key: " << key << " from slotKey error";
     return;
   }
-  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
+  std::string slotKey = GetSlotKey(GetSlotID(key));
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
   rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
@@ -776,41 +841,6 @@ int GetKeyType(const std::string& key, std::string& key_type, const std::shared_
 // get slotstagkey by key
 std::string GetSlotsTagKey(uint32_t crc) {
   return SlotTagPrefix + std::to_string(crc);
-}
-
-// delete key from db
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
-  LOG(INFO) << "Del key Srem key " << key;
-  int32_t res = 0;
-  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
-  LOG(INFO) << "Del key Srem key " << key;
-
-  // delete key from slot
-  std::vector<std::string> members;
-  members.emplace_back(key_type + key);
-  rocksdb::Status s = db->storage()->SRem(slotKey, members, &res);
-  if (!s.ok()) {
-    if (s.IsNotFound()) {
-      LOG(INFO) << "Del key Srem key " << key << " not found";
-      return 0;
-    } else {
-      LOG(WARNING) << "Del key Srem key: " << key << " from slotKey, error: " << strerror(errno);
-      return -1;
-    }
-  }
-
-  // delete key from db
-  members.clear();
-  members.emplace_back(key);
-  std::map<storage::DataType, storage::Status> type_status;
-  int64_t del_nums = db->storage()->Del(members, &type_status);
-  if (0 > del_nums) {
-    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(g_pika_conf->default_slot_num(), key) << " error";
-    return -1;
-  }
-  WriteDelKeyToBinlog(key, db);
-
-  return 1;
 }
 
 void SlotsMgrtTagSlotCmd::DoInitial() {
@@ -1011,7 +1041,7 @@ void SlotsMgrtTagOneCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // if you need migrates key, if the key is not existed, return
-  GetSlotsID(g_pika_conf->default_slot_num(), key_, &crc, &hastag);
+  GetSlotsID(key_, &crc, &hastag);
   if (!hastag) {
     std::vector<std::string> keys;
     keys.emplace_back(key_);
@@ -1298,6 +1328,7 @@ void SlotsMgrtAsyncStatusCmd::Do() {
 void SlotsMgrtAsyncCancelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
+    return;
   }
   return;
 }
@@ -1354,7 +1385,7 @@ void SlotsHashKeyCmd::Do() {
 
   res_.AppendArrayLenUint64(keys_.size());
   for (keys_it = keys_.begin(); keys_it != keys_.end(); ++keys_it) {
-    res_.AppendInteger(GetSlotsID(g_pika_conf->default_slot_num(), *keys_it, nullptr, nullptr));
+    res_.AppendInteger(GetSlotsID(*keys_it, nullptr, nullptr));
   }
 
   return;
