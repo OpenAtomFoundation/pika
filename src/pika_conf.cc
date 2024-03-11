@@ -3,24 +3,22 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_conf.h"
-
-#include <glog/logging.h>
-
 #include <strings.h>
 #include <algorithm>
 
-#include "pstd/include/env.h"
-#include "pstd/include/pstd_string.h"
+#include <glog/logging.h>
 
 #include "cache/include/config.h"
 #include "include/acl.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_conf.h"
 #include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
-    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
+    : pstd::BaseConf(path), conf_path_(path) {}
 
 int PikaConf::Load() {
   int ret = LoadConf();
@@ -49,7 +47,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  //  GetConfStr("userpass", &userpass_);
+  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -122,11 +120,17 @@ int PikaConf::Load() {
   }
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
+  GetConfInt("db-instance-num", &db_instance_num_);
+  int64_t t_val = 0;
+  GetConfInt64("rocksdb-ttl-second", &t_val);
+  rocksdb_ttl_second_.store(uint64_t(t_val));
+  t_val = 0;
+  GetConfInt64("rocksdb-periodic-second", &t_val);
+  rocksdb_periodic_second_.store(uint64_t(t_val));
   db_path_ = db_path_.empty() ? "./db/" : db_path_;
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
-  local_meta_->SetPath(db_path_);
 
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -171,7 +175,7 @@ int PikaConf::Load() {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
-      db_structs_.push_back({"db" + std::to_string(idx)});
+      db_structs_.push_back({"db" + std::to_string(idx), db_instance_num_});
     }
   }
   default_db_ = db_structs_[0].db_name;
@@ -339,7 +343,7 @@ int PikaConf::Load() {
   if (max_cache_statistic_keys_ <= 0) {
     max_cache_statistic_keys_ = 0;
   }
-  
+
   // disable_auto_compactions
   GetConfBool("disable_auto_compactions", &disable_auto_compactions_);
 
@@ -359,16 +363,14 @@ int PikaConf::Load() {
     small_compaction_duration_threshold_ = 1000000;
   }
 
-  max_background_flushes_ = 1;
   GetConfInt("max-background-flushes", &max_background_flushes_);
   if (max_background_flushes_ <= 0) {
     max_background_flushes_ = 1;
   }
-  if (max_background_flushes_ >= 4) {
-    max_background_flushes_ = 4;
+  if (max_background_flushes_ >= 6) {
+    max_background_flushes_ = 6;
   }
 
-  max_background_compactions_ = 2;
   GetConfInt("max-background-compactions", &max_background_compactions_);
   if (max_background_compactions_ <= 0) {
     max_background_compactions_ = 2;
@@ -377,13 +379,13 @@ int PikaConf::Load() {
     max_background_compactions_ = 8;
   }
 
-  max_background_jobs_ = (1 + 2);
+  max_background_jobs_ = max_background_flushes_ + max_background_compactions_;
   GetConfInt("max-background-jobs", &max_background_jobs_);
   if (max_background_jobs_ <= 0) {
     max_background_jobs_ = (1 + 2);
   }
-  if (max_background_jobs_ >= (8 + 4)) {
-    max_background_jobs_ = (8 + 4);
+  if (max_background_jobs_ >= (8 + 6)) {
+    max_background_jobs_ = (8 + 6);
   }
 
   max_cache_files_ = 5000;
@@ -461,11 +463,29 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // userblacklist
+  GetConfStr("userblacklist", &userblacklist_);
   // acl users
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
@@ -482,7 +502,7 @@ int PikaConf::Load() {
   // slaveof
   slaveof_ = "";
   GetConfStr("slaveof", &slaveof_);
-  
+
   int cache_num = 16;
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
@@ -538,10 +558,12 @@ int PikaConf::Load() {
   // max conn rbuf size
   int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
   GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
-  if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
-    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
+  if (tmp_max_conn_rbuf_size <= PIKA_MAX_CONN_RBUF_LB) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_LB);
+  } else if (tmp_max_conn_rbuf_size >= PIKA_MAX_CONN_RBUF_HB * 2) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_HB * 2);
   } else {
-    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
+    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
   }
 
   // rocksdb blob configure
@@ -623,8 +645,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  //  SetConfStr("userpass", userpass_);
-  //  SetConfStr("userblacklist", userblacklist);
+  SetConfStr("userpass", userpass_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
@@ -656,6 +678,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
   SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
+  SetConfInt("max-conn-rbuf-size", max_conn_rbuf_size_.load());
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);

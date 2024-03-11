@@ -3,15 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_repl_bgworker.h"
-
 #include <glog/logging.h>
 
+#include "include/pika_repl_bgworker.h"
 #include "include/pika_cmd_table_manager.h"
-#include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_defer.h"
+#include "src/pstd/include/scope_record_lock.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -49,7 +49,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  DEFER { 
+  DEFER {
     delete index;
     delete task_arg;
   };
@@ -216,8 +216,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     start_us = pstd::NowMicros();
   }
   // Add read lock for no suspend command
+  pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
+  record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWLockReader();
+    c_ptr->GetDB()->DBLockShared();
   }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
@@ -234,9 +236,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWUnLock();
+    c_ptr->GetDB()->DBUnlockShared();
   }
-
+  record_lock.Unlock(c_ptr->current_key());
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     auto start_time = static_cast<int32_t>(start_us / 1000000);
     auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);

@@ -3,18 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_stable_log.h"
-
-#include <glog/logging.h>
-
 #include <memory>
 #include <utility>
 
-#include "include/pika_conf.h"
+#include <glog/logging.h>
+
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-
+#include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
+#include "include/pika_conf.h"
 
 using pstd::Status;
 

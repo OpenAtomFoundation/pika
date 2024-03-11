@@ -1,9 +1,0 @@
-apiVersion: pika.openatom.org/v1alpha1
-kind: Pika
-metadata:
-  name: pika-pvc
-spec:
-  pikaExternalConfig: pika-config
-  storageType: "pvc"
-  storageClassName: "nfs-client"
-  storageSize: "10Gi"

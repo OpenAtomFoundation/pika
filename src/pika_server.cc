@@ -17,6 +17,7 @@
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
+#include "pstd/include/pika_codis_slot.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_dispatch_thread.h"
@@ -346,9 +347,9 @@ bool PikaServer::IsKeyScaning() {
 bool PikaServer::IsCompacting() {
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     std::string task_type = db_item.second->storage()->GetCurrentTaskType();
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     if (strcasecmp(task_type.data(), "no") != 0) {
       return true;
     }
@@ -445,27 +446,27 @@ void PikaServer::PrepareDBTrySync() {
 void PikaServer::DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
   }
 }
 
 void PikaServer::DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->SetSmallCompactionThreshold(small_compaction_threshold);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
   }
 }
 
 void PikaServer::DBSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
   }
 }
 
@@ -601,6 +602,8 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
               master_boffset.offset - sent_slave_boffset.offset;
           tmp_stream << "(" << db->DBName() << ":" << lag << ")";
         }
+      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync){
+        tmp_stream << "(" << db->DBName() << ":full syncing)";
       } else {
         tmp_stream << "(" << db->DBName() << ":not syncing)";
       }
@@ -1372,6 +1375,10 @@ void PikaServer::InitStorageOptions() {
           rocksdb::NewLRUCache(g_pika_conf->blob_cache(), static_cast<int>(g_pika_conf->blob_num_shard_bits()));
     }
   }
+
+  // for column-family options
+  storage_options_.options.ttl = g_pika_conf->rocksdb_ttl_second();
+  storage_options_.options.periodic_compaction_seconds = g_pika_conf->rocksdb_periodic_compaction_second();
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
@@ -1379,9 +1386,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
   storage::Status s;
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DbRWLockWriter();
     s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
-    db_item.second->DbRWUnLock();
     if (!s.ok()) {
       return s;
     }
@@ -1560,9 +1565,9 @@ void PikaServer::DisableCompact() {
   /* cancel in-progress manual compactions */
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-      db_item.second->DbRWLockWriter();
+      db_item.second->DBLock();
       db_item.second->SetCompactRangeOptions(true);
-      db_item.second->DbRWUnLock();
+      db_item.second->DBUnlock();
   }
 }
 
@@ -1583,13 +1588,13 @@ void DoBgslotscleanup(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
-      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(*iter)) != cleanupSlots.end()){
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()){
         if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
-          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(*iter) << " key " << *iter << " error";
+          LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key " << *iter << " error";
           continue;
         }
         if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
-          LOG(WARNING) << "slots clean del for slot " << GetSlotID(*iter) << " key "<< *iter << " error";
+          LOG(WARNING) << "slots clean del for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key "<< *iter << " error";
         }
       }
     }

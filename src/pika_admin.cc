@@ -15,10 +15,11 @@
 #include <glog/logging.h>
 
 #include "include/build_version.h"
-#include "include/pika_conf.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
+#include "include/pika_conf.h"
 #include "pstd/include/rsync.h"
 
 using pstd::Status;
@@ -269,15 +270,24 @@ void AuthCmd::Do() {
   std::string pwd = "";
   bool defaultAuth = false;
   if (argv_.size() == 2) {
-    userName = Acl::DefaultUser;
     pwd = argv_[1];
-    defaultAuth = true;
+//    defaultAuth = true;
   } else {
     userName = argv_[1];
     pwd = argv_[2];
   }
 
-  auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  AuthResult authResult;
+  if (userName == "") {
+    //  default
+    authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
+    if (authResult != AuthResult::OK && authResult != AuthResult::NO_REQUIRE_PASS) {
+      //  Limit
+      authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
+    }
+  } else {
+    authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  }
 
   switch (authResult) {
     case AuthResult::INVALID_CONN:
@@ -629,20 +639,8 @@ void FlushdbCmd::DoInitial() {
   if (argv_.size() == 1) {
     db_name_ = "all";
   } else {
-    std::string struct_type = argv_[1];
-    if (strcasecmp(struct_type.data(), "string") == 0) {
-      db_name_ = "strings";
-    } else if (strcasecmp(struct_type.data(), "hash") == 0) {
-      db_name_ = "hashes";
-    } else if (strcasecmp(struct_type.data(), "set") == 0) {
-      db_name_ = "sets";
-    } else if (strcasecmp(struct_type.data(), "zset") == 0) {
-      db_name_ = "zsets";
-    } else if (strcasecmp(struct_type.data(), "list") == 0) {
-      db_name_ = "lists";
-    } else {
-      res_.SetRes(CmdRes::kInvalidDbType);
-    }
+    LOG(WARNING) << "not supported to flushdb with specific type in Floyd";
+    res_.SetRes(CmdRes::kInvalidParameter, "not supported to flushdb with specific type in Floyd");
   }
 }
 
@@ -653,7 +651,8 @@ void FlushdbCmd::Do() {
     if (db_name_ == "all") {
       db_->FlushDB();
     } else {
-      db_->FlushSubDB(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
     }
   }
 }
@@ -687,7 +686,8 @@ void FlushdbCmd::DoWithoutLock() {
     if (db_name_ == "all") {
       db_->FlushDBWithoutLock();
     } else {
-      db_->FlushSubDBWithoutLock(db_name_);
+      //Floyd does not support flushdb by type
+      LOG(ERROR) << "cannot flushdb by type in floyd";
     }
     DoUpdateCache();
   }
@@ -823,9 +823,9 @@ void ShutdownCmd::DoInitial() {
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  db_->DbRWUnLock();
+  db_->DBUnlockShared();
   g_pika_server->Exit();
-  db_->DbRWLockReader();
+  db_->DBLockShared();
   res_.SetRes(CmdRes::kNone);
 }
 
@@ -1334,7 +1334,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::map<std::string, uint64_t> background_errors;
+  std::map<int, uint64_t> background_errors;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
@@ -1347,11 +1347,11 @@ void InfoCmd::InfoData(std::string& info) {
     }
     background_errors.clear();
     memtable_usage = table_reader_usage = 0;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     total_memtable_usage += memtable_usage;
     total_table_reader_usage += table_reader_usage;
     for (const auto& item : background_errors) {
@@ -1385,9 +1385,9 @@ void InfoCmd::InfoRocksDB(std::string& info) {
       continue;
     }
     std::string rocksdb_info;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetRocksDBInfo(rocksdb_info);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     tmp_stream << rocksdb_info;
   }
   info.append(tmp_stream.str());
@@ -1578,7 +1578,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-thread-pool-size");
     EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
-
+  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userblacklist");
+    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+  }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slow-cmd-list");
@@ -2183,6 +2187,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "zset-cache-start-direction",
         "zset-cache-field-num-per-key",
         "cache-lfu-decay-time",
+        "max-conn-rbuf-size",
     });
     res_.AppendStringVector(replyVt);
     return;
@@ -2307,7 +2312,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     if (value != "true" && value != "false") {
       res_.AppendStringRaw("-ERR invalid disable_auto_compactions (true or false)\r\n");
       return;
-    } 
+    }
     std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
@@ -2446,6 +2451,32 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetMaxBackgroudCompactions(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "rocksdb-periodic-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-periodic-second'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"periodic_compaction_seconds", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set rocksdb-periodic-second wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetRocksdbPeriodicSecond(static_cast<uint64_t>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "rocksdb-ttl-second") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rocksdb-ttl-second'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"ttl", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set rocksdb-ttl-second wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetRocksdbTTLSecond(static_cast<uint64_t>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-background-jobs") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
@@ -2628,6 +2659,13 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "max-conn-rbuf-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < PIKA_MAX_CONN_RBUF_LB || ival > PIKA_MAX_CONN_RBUF_HB * 2) {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-conn-rbuf-size'\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxConnRbufSize(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else {
     res_.AppendStringRaw("-ERR Unsupported CONFIG parameter: " + set_item + "\r\n");
@@ -3076,12 +3114,12 @@ void DiskRecoveryCmd::Do() {
     }
     db_item.second->SetBinlogIoErrorrelieve();
     background_errors_.clear();
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     for (const auto &item: background_errors_) {
       if (item.second != 0) {
-        rocksdb::Status s = db_item.second->storage()->GetDBByType(item.first)->Resume();
+        rocksdb::Status s = db_item.second->storage()->GetDBByIndex(item.first)->Resume();
         if (!s.ok()) {
           res_.SetRes(CmdRes::kErrOther, "The restore operation failed.");
         }

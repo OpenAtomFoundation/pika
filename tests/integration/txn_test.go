@@ -28,8 +28,11 @@ var _ = Describe("Text Txn", func() {
 	var cmdCost time.Duration
 
 	BeforeEach(func() {
-		txnClient = redis.NewClient(pikaOptions1())
-		cmdClient = redis.NewClient(pikaOptions1())
+		txnClient = redis.NewClient(PikaOption(SINGLEADDR))
+		cmdClient = redis.NewClient(PikaOption(SINGLEADDR))
+
+		GlobalBefore(ctx, txnClient)
+		GlobalBefore(ctx, cmdClient)
 	})
 	Describe("test watch", func() {
 		It("basic watch", func() {

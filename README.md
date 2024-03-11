@@ -162,7 +162,7 @@ Users can directly download the latest binary version package from [releases](ht
       cd output && make
     ```
 
-    Other components, such as codis and pika_operator, can also be compiled using build.sh.
+    Other components, such as codis, can also be compiled using build.sh.
 
     ```bash
       # Compile codis, default target, build-all
@@ -171,8 +171,6 @@ Users can directly download the latest binary version package from [releases](ht
       # Compile codis, but only build codis-proxy
       ./build.sh codis codis-proxy
 
-      # Compile pika_operator
-      ./build.sh operator
     ```
 
 * #### 2.4 Start Pika
@@ -235,46 +233,26 @@ Users can directly download the latest binary version package from [releases](ht
   ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
   ```
 
-* #### 3.3 Deployment with Pika-operator
-
-  Using pika-operator simplifies the deployment of a single-instance pika in a Kubernetes environment.
+* #### 3.3 Running with  docker-compose
   
-  >Note: Do not use this feature in a production environment.
-
-  Local installation:
-
-  1. Install [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
-
-  2. Deploy Pika-operator
-
-    ```bash
-    cd tools/pika_operator
-    make minikube-up # run this if you don't have a minikube cluster
-    make local-deploy
-    ```
-
-  3. Create a Pika instance
-
-    ```bash
-    cd tools/pika_operator
-    kubectl apply -f examples/pika-sample/
-    ```
-
-  4. Check the Pika status
-
-    ```bash
-      kubectl get pika pika-sample
-    ```
-
-  5. Get Pika instance information
-
-    ```bash
-    kubectl run pika-sample-test \
-      --image redis -it --rm --restart=Never \
-      -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
-    ```  
-
-
+docker-compose.yaml
+```yaml
+  pikadb:
+    image: pikadb/pika:lastest
+    container_name: pikadb
+    ports:
+      - "6379:9221"
+    volumes:
+      - ./data/pika:/pika/log
+      # Specify the configuration file path. If you need to specify a configuration file, specify it here.
+      # Note: pika.conf should be in the ./deploy/pika directory
+      #- ./deploy/pika:/pika/conf
+      - ./data/pika/db:/pika/db
+      - ./data/pika/dump:/pika/dump
+      - ./data/pika/dbsync:/pika/dbsync
+    privileged: true
+    restart: always
+```
 
 ## Performance test 
 

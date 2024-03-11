@@ -3,15 +3,17 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "src/redis_streams.h"
 #include <sys/types.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
+
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
+
+#include "src/redis.h"
 #include "src/base_data_key_format.h"
 #include "src/base_filter.h"
 #include "src/debug.h"
@@ -23,7 +25,7 @@
 
 namespace storage {
 
-Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args) {
+Status Redis::XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args) {
   // With the lock, we do not need snapshot for read.
   // And it's bugy to use snapshot for read when we try to add message with trim.
   // such as: XADD key 1-0 field value MINID 1-0
@@ -65,7 +67,7 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
 #endif
 
   StreamDataKey stream_data_key(key, stream_meta.version(), args.id.Serialize());
-  s = db_->Put(default_write_options_, handles_[1], stream_data_key.Encode(), serialized_message);
+  s = db_->Put(default_write_options_, handles_[kStreamsDataCF], stream_data_key.Encode(), serialized_message);
   if (!s.ok()) {
     return Status::Corruption("error from XADD, insert stream message failed 1: " + s.ToString());
   }
@@ -89,7 +91,8 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
   }
 
   // 5 update stream meta
-  s = db_->Put(default_write_options_, handles_[0], key, stream_meta.value());
+  BaseMetaKey base_meta_key(key);
+  s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta.value());
   if (!s.ok()) {
     return s;
   }
@@ -97,7 +100,7 @@ Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_messag
   return Status::OK();
 }
 
-Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
+Status Redis::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
 
   // 1 get stream meta
   rocksdb::Status s;
@@ -115,7 +118,8 @@ Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& c
   }
 
   // 3 update stream meta
-  s = db_->Put(default_write_options_, handles_[0], key, stream_meta.value());
+  BaseMetaKey base_meta_key(key);
+  s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta.value());
   if (!s.ok()) {
     return s;
   }
@@ -123,7 +127,7 @@ Status RedisStreams::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& c
   return Status::OK();
 }
 
-Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count) {
+Status Redis::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count) {
 
   // 1 try to get stream meta
   StreamMetaValue stream_meta;
@@ -140,7 +144,7 @@ Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, in
   std::string unused;
   for (auto id : ids) {
     StreamDataKey stream_data_key(key, stream_meta.version(), id.Serialize());
-    s = db_->Get(default_read_options_, handles_[1], stream_data_key.Encode(), &unused);
+    s = db_->Get(default_read_options_, handles_[kStreamsDataCF], stream_data_key.Encode(), &unused);
     if (s.IsNotFound()) {
       --count;
       continue;
@@ -168,11 +172,11 @@ Status RedisStreams::XDel(const Slice& key, const std::vector<streamID>& ids, in
       return s;
     }
   }
-
-  return db_->Put(default_write_options_, handles_[0], key, stream_meta.value());
+  
+  return db_->Put(default_write_options_, handles_[kStreamsMetaCF], BaseMetaKey(key).Encode(), stream_meta.value());
 }
 
-Status RedisStreams::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
+Status Redis::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -196,7 +200,7 @@ Status RedisStreams::XRange(const Slice& key, const StreamScanArgs& args, std::v
   return s;
 }
 
-Status RedisStreams::XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
+Status Redis::XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -220,7 +224,7 @@ Status RedisStreams::XRevrange(const Slice& key, const StreamScanArgs& args, std
   return s;
 }
 
-Status RedisStreams::XLen(const Slice& key, int32_t& len) {
+Status Redis::XLen(const Slice& key, int32_t& len) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -238,8 +242,8 @@ Status RedisStreams::XLen(const Slice& key, int32_t& len) {
   return Status::OK();
 }
 
-Status RedisStreams::XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
-                           std::vector<std::string>& reserved_keys) {
+Status Redis::XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+                    std::vector<std::string>& reserved_keys) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -304,7 +308,7 @@ Status RedisStreams::XRead(const StreamReadGroupReadArgs& args, std::vector<std:
   return Status::OK();
 }
 
-Status RedisStreams::XInfo(const Slice& key, StreamInfoResult& result) {
+Status Redis::XInfo(const Slice& key, StreamInfoResult& result) {
   // 1 get stream meta
   rocksdb::Status s;
   StreamMetaValue stream_meta;
@@ -323,71 +327,7 @@ Status RedisStreams::XInfo(const Slice& key, StreamInfoResult& result) {
   return Status::OK();
 }
 
-Status RedisStreams::Open(const StorageOptions& storage_options, const std::string& db_path) {
-  statistics_store_->SetCapacity(storage_options.statistics_max_size);
-  small_compaction_threshold_ = storage_options.small_compaction_threshold;
-
-  rocksdb::Options ops(storage_options.options);
-  Status s = rocksdb::DB::Open(ops, db_path, &db_);
-  if (s.ok()) {
-    // create column family
-    rocksdb::ColumnFamilyHandle* cf;
-    s = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(), "data_cf", &cf);
-    if (!s.ok()) {
-      return s;
-    }
-    // close DB
-    delete cf;
-    delete db_;
-  }
-
-  // Open
-  rocksdb::DBOptions db_ops(storage_options.options);
-  rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
-  rocksdb::ColumnFamilyOptions data_cf_ops(storage_options.options);
-  // Notice: Stream's Meta dose not have timestamp and version, so it does not need to be filtered.
-
-  // use the bloom filter policy to reduce disk reads
-  rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
-  table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
-  rocksdb::BlockBasedTableOptions meta_cf_table_ops(table_ops);
-  rocksdb::BlockBasedTableOptions data_cf_table_ops(table_ops);
-  if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
-    data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
-  }
-  meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(meta_cf_table_ops));
-  data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(data_cf_table_ops));
-
-  std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
-  // Meta CF
-  column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
-  // Data CF
-  column_families.emplace_back("data_cf", data_cf_ops);
-  return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
-}
-
-Status RedisStreams::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end,
-                                  const ColumnFamilyType& type) {
-  if (type == kMeta || type == kMetaAndData) {
-    db_->CompactRange(default_compact_range_options_, handles_[0], begin, end);
-  }
-  if (type == kData || type == kMetaAndData) {
-    db_->CompactRange(default_compact_range_options_, handles_[1], begin, end);
-  }
-  return Status::OK();
-}
-
-Status RedisStreams::GetProperty(const std::string& property, uint64_t* out) {
-  std::string value;
-  db_->GetProperty(handles_[0], property, &value);
-  *out = std::strtoull(value.c_str(), nullptr, 10);
-  db_->GetProperty(handles_[1], property, &value);
-  *out += std::strtoull(value.c_str(), nullptr, 10);
-  return Status::OK();
-}
-
-Status RedisStreams::ScanKeyNum(KeyInfo* key_info) {
+Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
   uint64_t keys = 0;
   uint64_t expires = 0;
   uint64_t ttl_sum = 0;
@@ -402,7 +342,7 @@ Status RedisStreams::ScanKeyNum(KeyInfo* key_info) {
   int64_t curtime;
   rocksdb::Env::Default()->GetCurrentTime(&curtime);
 
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kStreamsMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
     ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
     if (parsed_stream_meta_value.length() == 0) {
@@ -418,51 +358,30 @@ Status RedisStreams::ScanKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status RedisStreams::ScanKeys(const std::string& pattern, std::vector<std::string>* keys) {
-  std::string key;
+Status Redis::StreamsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
-  for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
-    if (parsed_stream_meta_value.length() != 0) {
-      key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
-        keys->push_back(key);
-      }
-    }
-  }
-  delete iter;
-  return Status::OK();
-}
-
-Status RedisStreams::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  std::string key;
+  std::string encoded_key;
   std::string meta_value;
   int32_t total_delete = 0;
   Status s;
   rocksdb::WriteBatch batch;
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kStreamsMetaCF]);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    key = iter->key().ToString();
+    encoded_key = iter->key().ToString();
     meta_value = iter->value().ToString();
+    ParsedBaseMetaKey parsed_meta_key(iter->key());
     StreamMetaValue stream_meta_value;
     stream_meta_value.ParseFrom(meta_value);
     if ((stream_meta_value.length() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
       stream_meta_value.InitMetaValue();
-      batch.Put(handles_[0], key, stream_meta_value.value());
+      batch.Put(handles_[kStreamsMetaCF], encoded_key, stream_meta_value.value());
     }
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
@@ -488,115 +407,10 @@ Status RedisStreams::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
   return s;
 }
 
-rocksdb::Status RedisStreams::PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern,
-                                       int32_t limit, std::vector<std::string>* keys, std::string* next_key) {
-  next_key->clear();
-
-  std::string key;
-  int32_t remain = limit;
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  bool start_no_limit = key_start.compare("") == 0;
-  bool end_no_limit = key_end.compare("") == 0;
-
-  if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) > 0)) {
-    return rocksdb::Status::InvalidArgument("error in given range");
-  }
-
-  rocksdb::Iterator* it = db_->NewIterator(iterator_options, handles_[0]);
-  if (start_no_limit) {
-    it->SeekToFirst();
-  } else {
-    it->Seek(key_start);
-  }
-
-  while (it->Valid() && remain > 0 && (end_no_limit || it->key().compare(key_end) <= 0)) {
-    ParsedStreamMetaValue parsed_meta_value(it->value());
-    if (parsed_meta_value.length() == 0) {
-      it->Next();
-    } else {
-      key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
-        keys->push_back(key);
-      }
-      remain--;
-      it->Next();
-    }
-  }
-
-  while (it->Valid() && (end_no_limit || it->key().compare(key_end) <= 0)) {
-    ParsedStreamMetaValue parsed_meta_value(it->value());
-    if (parsed_meta_value.length() == 0) {
-      it->Next();
-    } else {
-      *next_key = it->key().ToString();
-      break;
-    }
-  }
-  delete it;
-  return rocksdb::Status::OK();
-}
-
-Status RedisStreams::PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
-                                 std::vector<std::string>* keys, std::string* next_key) {
-  next_key->clear();
-
-  std::string key;
-  int32_t remain = limit;
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  bool start_no_limit = key_start.compare("") == 0;
-  bool end_no_limit = key_end.compare("") == 0;
-
-  if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) < 0)) {
-    return Status::InvalidArgument("error in given range");
-  }
-
-  rocksdb::Iterator* it = db_->NewIterator(iterator_options, handles_[0]);
-  if (start_no_limit) {
-    it->SeekToLast();
-  } else {
-    it->SeekForPrev(key_start);
-  }
-
-  while (it->Valid() && remain > 0 && (end_no_limit || it->key().compare(key_end) >= 0)) {
-    ParsedStreamMetaValue parsed_streams_meta_value(it->value());
-    if (parsed_streams_meta_value.length() == 0) {
-      it->Prev();
-    } else {
-      key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
-        keys->push_back(key);
-      }
-      remain--;
-      it->Prev();
-    }
-  }
-
-  while (it->Valid() && (end_no_limit || it->key().compare(key_end) >= 0)) {
-    ParsedStreamMetaValue parsed_streams_meta_value(it->value());
-    if (parsed_streams_meta_value.length() == 0) {
-      it->Prev();
-    } else {
-      *next_key = it->key().ToString();
-      break;
-    }
-  }
-  delete it;
-  return Status::OK();
-}
-
-Status RedisStreams::Del(const Slice& key) {
+Status Redis::StreamsDel(const Slice& key) {
   std::string meta_value;
-  Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  BaseMetaKey base_meta_key(key);
+  Status s = db_->Get(default_read_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     StreamMetaValue stream_meta_value;
     stream_meta_value.ParseFrom(meta_value);
@@ -605,82 +419,18 @@ Status RedisStreams::Del(const Slice& key) {
     } else {
       uint32_t statistic = stream_meta_value.length();
       stream_meta_value.InitMetaValue();
-      s = db_->Put(default_write_options_, handles_[0], key, stream_meta_value.value());
-      UpdateSpecificKeyStatistics(key.ToString(), statistic);
+      s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta_value.value());
+      UpdateSpecificKeyStatistics(DataType::kStreams, key.ToString(), statistic);
     }
   }
   return s;
 }
 
-bool RedisStreams::Scan(const std::string& start_key, const std::string& pattern, std::vector<std::string>* keys,
-                        int64_t* count, std::string* next_key) {
-  std::string meta_key;
-  bool is_finish = true;
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  rocksdb::Iterator* it = db_->NewIterator(iterator_options, handles_[0]);
-
-  it->Seek(start_key);
-  while (it->Valid() && (*count) > 0) {
-    ParsedStreamMetaValue parsed_stream_meta_value(it->value());
-    if (parsed_stream_meta_value.length() == 0) {
-      it->Next();
-      continue;
-    } else {
-      meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
-        keys->push_back(meta_key);
-      }
-      (*count)--;
-      it->Next();
-    }
-  }
-
-  std::string prefix = isTailWildcard(pattern) ? pattern.substr(0, pattern.size() - 1) : "";
-  if (it->Valid() && (it->key().compare(prefix) <= 0 || it->key().starts_with(prefix))) {
-    *next_key = it->key().ToString();
-    is_finish = false;
-  } else {
-    *next_key = "";
-  }
-  delete it;
-  return is_finish;
-}
-
-Status RedisStreams::Expire(const Slice& key, int32_t ttl) {
-  rocksdb::Status s(rocksdb::Status::NotSupported("RedisStreams::Expire not supported by stream"));
-  return Status::Corruption(s.ToString());
-}
-
-bool RedisStreams::PKExpireScan(const std::string& start_key, int32_t min_timestamp, int32_t max_timestamp,
-                                std::vector<std::string>* keys, int64_t* leftover_visits, std::string* next_key) {
-  TRACE("RedisStreams::PKExpireScan not supported by stream");
-  return false;
-}
-
-Status RedisStreams::Expireat(const Slice& key, int32_t timestamp) {
-  rocksdb::Status s(rocksdb::Status::NotSupported("RedisStreams::Expireat not supported by stream"));
-  return Status::Corruption(s.ToString());
-}
-
-Status RedisStreams::Persist(const Slice& key) {
-  rocksdb::Status s(rocksdb::Status::NotSupported("RedisStreams::Persist not supported by stream"));
-  return Status::Corruption(s.ToString());
-}
-
-Status RedisStreams::TTL(const Slice& key, int64_t* timestamp) {
-  rocksdb::Status s(rocksdb::Status::NotSupported("RedisStreams::TTL not supported by stream"));
-  return Status::Corruption(s.ToString());
-}
-
-Status RedisStreams::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& key,
-                                   rocksdb::ReadOptions& read_options) {
+Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                            rocksdb::ReadOptions& read_options) {
   std::string value;
-  auto s = db_->Get(read_options, handles_[0], key, &value);
+  BaseMetaKey base_meta_key(key);
+  auto s = db_->Get(read_options, handles_[kStreamsMetaCF], base_meta_key.Encode(), &value);
   if (s.ok()) {
     stream_meta.ParseFrom(value);
     return Status::OK();
@@ -688,8 +438,8 @@ Status RedisStreams::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::
   return s;
 }
 
-Status RedisStreams::TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
-                                StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
+Status Redis::TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                         StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
   count = 0;
   // 1 do the trim
   TrimRet trim_ret;
@@ -731,8 +481,8 @@ Status RedisStreams::TrimStream(int32_t& count, StreamMetaValue& stream_meta, co
   return Status::OK();
 }
 
-Status RedisStreams::ScanStream(const ScanStreamOptions& op, std::vector<IdMessage>& field_values,
-                                std::string& next_field, rocksdb::ReadOptions& read_options) {
+Status Redis::ScanStream(const ScanStreamOptions& op, std::vector<IdMessage>& field_values,
+                         std::string& next_field, rocksdb::ReadOptions& read_options) {
   std::string start_field;
   std::string end_field;
   Slice pattern = "*";  // match all the fields from start_field to end_field
@@ -746,8 +496,8 @@ Status RedisStreams::ScanStream(const ScanStreamOptions& op, std::vector<IdMessa
     } else {
       start_field = op.start_sid.Serialize();
     }
-    s = ReScanRange(op.key, op.version, start_field, end_field, pattern, op.limit, field_values, next_field,
-                    read_options);
+    s = StreamReScanRange(op.key, op.version, start_field, end_field, pattern, op.limit, field_values, next_field,
+                          read_options);
   } else {
     start_field = op.start_sid.Serialize();
     if (op.end_sid == kSTREAMID_MAX) {
@@ -755,8 +505,8 @@ Status RedisStreams::ScanStream(const ScanStreamOptions& op, std::vector<IdMessa
     } else {
       end_field = op.end_sid.Serialize();
     }
-    s = ScanRange(op.key, op.version, start_field, end_field, pattern, op.limit, field_values, next_field,
-                  read_options);
+    s = StreamScanRange(op.key, op.version, start_field, end_field, pattern, op.limit, field_values, next_field,
+                        read_options);
   }
 
   // 2 exclude the start_sid and end_sid if needed
@@ -779,7 +529,7 @@ Status RedisStreams::ScanStream(const ScanStreamOptions& op, std::vector<IdMessa
   return s;
 }
 
-Status RedisStreams::GenerateStreamID(const StreamMetaValue& stream_meta, StreamAddTrimArgs& args) {
+Status Redis::GenerateStreamID(const StreamMetaValue& stream_meta, StreamAddTrimArgs& args) {
   auto& id = args.id;
   if (args.id_given && args.seq_given && id.ms == 0 && id.seq == 0) {
     return Status::InvalidArgument("The ID specified in XADD must be greater than 0-0");
@@ -825,8 +575,8 @@ Status RedisStreams::GenerateStreamID(const StreamMetaValue& stream_meta, Stream
   return Status::OK();
 }
 
-Status RedisStreams::TrimByMaxlen(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
-                                  const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
+Status Redis::TrimByMaxlen(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                           const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
   Status s;
   // we delete the message in batchs, prevent from using too much memory
   while (stream_meta.length() - trim_ret.count > args.maxlen) {
@@ -834,9 +584,9 @@ Status RedisStreams::TrimByMaxlen(TrimRet& trim_ret, StreamMetaValue& stream_met
         (std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count - args.maxlen), kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<IdMessage> id_messages;
 
-    RedisStreams::ScanStreamOptions options(key, stream_meta.version(), stream_meta.first_id(), kSTREAMID_MAX,
-                                            cur_batch, false, false, false);
-    s = RedisStreams::ScanStream(options, id_messages, trim_ret.next_field, read_options);
+    ScanStreamOptions options(key, stream_meta.version(), stream_meta.first_id(), kSTREAMID_MAX,
+                              cur_batch, false, false, false);
+    s = ScanStream(options, id_messages, trim_ret.next_field, read_options);
     if (!s.ok()) {
       assert(!s.IsNotFound());
       return s;
@@ -862,8 +612,8 @@ Status RedisStreams::TrimByMaxlen(TrimRet& trim_ret, StreamMetaValue& stream_met
   return s;
 }
 
-Status RedisStreams::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
-                                 const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
+Status Redis::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta, const rocksdb::Slice& key,
+                          const StreamAddTrimArgs& args, rocksdb::ReadOptions& read_options) {
   Status s;
   std::string serialized_min_id;
   trim_ret.next_field = stream_meta.first_id().Serialize();
@@ -875,9 +625,9 @@ Status RedisStreams::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta
         std::min(static_cast<int32_t>(stream_meta.length() - trim_ret.count), kDEFAULT_TRIM_BATCH_SIZE));
     std::vector<IdMessage> id_messages;
 
-    RedisStreams::ScanStreamOptions options(key, stream_meta.version(), stream_meta.first_id(), args.minid, cur_batch,
-                                            false, false, false);
-    s = RedisStreams::ScanStream(options, id_messages, trim_ret.next_field, read_options);
+    ScanStreamOptions options(key, stream_meta.version(), stream_meta.first_id(), args.minid, cur_batch,
+                              false, false, false);
+    s = ScanStream(options, id_messages, trim_ret.next_field, read_options);
     if (!s.ok()) {
       assert(!s.IsNotFound());
       return s;
@@ -915,10 +665,10 @@ Status RedisStreams::TrimByMinid(TrimRet& trim_ret, StreamMetaValue& stream_meta
   return s;
 }
 
-Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                               const std::string& id_end, const Slice& pattern, int32_t limit,
-                               std::vector<IdMessage>& id_messages, std::string& next_id,
-                               rocksdb::ReadOptions& read_options) {
+Status Redis::StreamScanRange(const Slice& key, const uint64_t version, const Slice& id_start,
+                              const std::string& id_end, const Slice& pattern, int32_t limit,
+                              std::vector<IdMessage>& id_messages, std::string& next_id,
+                              rocksdb::ReadOptions& read_options) {
   next_id.clear();
   id_messages.clear();
 
@@ -934,8 +684,8 @@ Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Sl
 
   StreamDataKey streams_data_prefix(key, version, Slice());
   StreamDataKey streams_start_data_key(key, version, id_start);
-  std::string prefix = streams_data_prefix.Encode().ToString();
-  rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
+  std::string prefix = streams_data_prefix.EncodeSeekKey().ToString();
+  rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kStreamsDataCF]);
   for (iter->Seek(start_no_limit ? prefix : streams_start_data_key.Encode());
        iter->Valid() && remain > 0 && iter->key().starts_with(prefix); iter->Next()) {
     ParsedStreamDataKey parsed_streams_data_key(iter->key());
@@ -960,10 +710,10 @@ Status RedisStreams::ScanRange(const Slice& key, const int32_t version, const Sl
   return Status::OK();
 }
 
-Status RedisStreams::ReScanRange(const Slice& key, const int32_t version, const Slice& id_start,
-                                 const std::string& id_end, const Slice& pattern, int32_t limit,
-                                 std::vector<IdMessage>& id_messages, std::string& next_id,
-                                 rocksdb::ReadOptions& read_options) {
+Status Redis::StreamReScanRange(const Slice& key, const uint64_t version, const Slice& id_start,
+                                const std::string& id_end, const Slice& pattern, int32_t limit,
+                                std::vector<IdMessage>& id_messages, std::string& next_id,
+                                rocksdb::ReadOptions& read_options) {
   next_id.clear();
   id_messages.clear();
 
@@ -977,12 +727,12 @@ Status RedisStreams::ReScanRange(const Slice& key, const int32_t version, const 
     return Status::InvalidArgument("error in given range");
   }
 
-  int32_t start_key_version = start_no_limit ? version + 1 : version;
+  uint64_t start_key_version = start_no_limit ? version + 1 : version;
   std::string start_key_id = start_no_limit ? "" : id_start.ToString();
   StreamDataKey streams_data_prefix(key, version, Slice());
   StreamDataKey streams_start_data_key(key, start_key_version, start_key_id);
-  std::string prefix = streams_data_prefix.Encode().ToString();
-  rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[1]);
+  std::string prefix = streams_data_prefix.EncodeSeekKey().ToString();
+  rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kStreamsDataCF]);
   for (iter->SeekForPrev(streams_start_data_key.Encode().ToString());
        iter->Valid() && remain > 0 && iter->key().starts_with(prefix); iter->Prev()) {
     ParsedStreamDataKey parsed_streams_data_key(iter->key());
@@ -1007,8 +757,8 @@ Status RedisStreams::ReScanRange(const Slice& key, const int32_t version, const 
   return Status::OK();
 }
 
-Status RedisStreams::DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
-                                          const std::vector<streamID>& ids, rocksdb::ReadOptions& read_options) {
+Status Redis::DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
+                                   const std::vector<streamID>& ids, rocksdb::ReadOptions& read_options) {
   std::vector<std::string> serialized_ids;
   serialized_ids.reserve(ids.size());
   for (const auto& id : ids) {
@@ -1017,29 +767,29 @@ Status RedisStreams::DeleteStreamMessages(const rocksdb::Slice& key, const Strea
   return DeleteStreamMessages(key, stream_meta, serialized_ids, read_options);
 }
 
-Status RedisStreams::DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
-                                          const std::vector<std::string>& serialized_ids,
-                                          rocksdb::ReadOptions& read_options) {
+Status Redis::DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,
+                                   const std::vector<std::string>& serialized_ids,
+                                   rocksdb::ReadOptions& read_options) {
   rocksdb::WriteBatch batch;
   for (auto& sid : serialized_ids) {
     StreamDataKey stream_data_key(key, stream_meta.version(), sid);
-    batch.Delete(handles_[1], stream_data_key.Encode());
+    batch.Delete(handles_[kStreamsDataCF], stream_data_key.Encode());
   }
   return db_->Write(default_write_options_, &batch);
 }
 
-inline Status RedisStreams::SetFirstID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
-                                       rocksdb::ReadOptions& read_options) {
+inline Status Redis::SetFirstID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
+                                rocksdb::ReadOptions& read_options) {
   return SetFirstOrLastID(key, stream_meta, true, read_options);
 }
 
-inline Status RedisStreams::SetLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
-                                      rocksdb::ReadOptions& read_options) {
+inline Status Redis::SetLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta,
+                               rocksdb::ReadOptions& read_options) {
   return SetFirstOrLastID(key, stream_meta, false, read_options);
 }
 
-inline Status RedisStreams::SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
-                                             rocksdb::ReadOptions& read_options) {
+inline Status Redis::SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
+                                      rocksdb::ReadOptions& read_options) {
   if (stream_meta.length() == 0) {
     stream_meta.set_first_id(kSTREAMID_MIN);
     return Status::OK();

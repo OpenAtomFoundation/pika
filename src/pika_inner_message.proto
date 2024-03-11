@@ -113,6 +113,7 @@ message InnerResponse {
     message DBInfo {
       required string        db_name    = 1;
       required int32         slot_num = 2;
+      required int32         db_instance_num = 3;
     }
     required bool      classic_mode = 1;
     repeated DBInfo    dbs_info  = 2;

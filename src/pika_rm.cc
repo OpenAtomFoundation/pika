@@ -502,15 +502,18 @@ void SyncSlaveDB::StopRsync() {
   rsync_cli_->Stop();
 }
 
-void SyncSlaveDB::ActivateRsync() {
+pstd::Status SyncSlaveDB::ActivateRsync() {
+  Status s = Status::OK();
   if (!rsync_cli_->IsIdle()) {
-    return;
+    return s;
   }
   LOG(WARNING) << "ActivateRsync ...";
   if (rsync_cli_->Init()) {
     rsync_cli_->Start();
+    return s;
   } else {
     SetReplState(ReplState::kError);
+    return Status::Error("rsync client init failed!");;
   }
 }
 
@@ -960,7 +963,13 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
     } else if (s_db->State() == ReplState::kWaitReply) {
       continue;
     } else if (s_db->State() == ReplState::kWaitDBSync) {
-      s_db->ActivateRsync();
+      Status s = s_db->ActivateRsync();
+      if (!s.ok()) {
+        g_pika_server->SetForceFullSync(true);
+        LOG(WARNING) << "Slave DB: " << s_db->DBName() << " rsync failed! full synchronization will be retried later";
+        continue;
+      }
+
       std::shared_ptr<DB> db =
           g_pika_server->GetDB(p_info.db_name_);
       if (db) {
