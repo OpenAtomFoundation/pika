@@ -75,6 +75,9 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          export GOBIN=~
+          export PATH=$PATH:$GOBIN
+          go install github.com/bsm/ginkgo/v2/ginkgo@v2.12.0
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
@@ -145,6 +148,9 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          export GOBIN=~
+          export PATH=$PATH:$GOBIN
+          go install github.com/bsm/ginkgo/v2/ginkgo@v2.12.0
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
@@ -205,6 +211,9 @@ jobs:
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          export GOBIN=~
+          export PATH=$PATH:$GOBIN
+          go install github.com/bsm/ginkgo/v2/ginkgo@v2.12.0
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
