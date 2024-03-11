@@ -792,6 +792,43 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   }
 }
 
+// delete key from db
+static int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
+  int32_t res = 0;
+  std::string slotKey = GetSlotKey(GetSlotID(key));
+
+  std::vector<std::string> members;
+  members.emplace_back(key_type + key);
+  // delete from cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()) {
+    db->cache()->Del(members);
+  }
+
+  // delete key from slot
+  rocksdb::Status s = db->storage()->SRem(slotKey, members, &res);
+  if (!s.ok()) {
+    if (s.IsNotFound()) {
+      LOG(INFO) << "Del key Srem key " << key << " not found";
+      return 0;
+    } else {
+      LOG(WARNING) << "Del key Srem key: " << key << " from slotKey, error: " << strerror(errno);
+      return -1;
+    }
+  }
+
+  // delete key from db
+  members.clear();
+  members.emplace_back(key);
+  std::map<storage::DataType, storage::Status> type_status;
+  int64_t del_nums = db->storage()->Del(members, &type_status);
+  if (0 > del_nums) {
+    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(key) << " error";
+    return -1;
+  }
+
+  return 1;
+}
 // del key from slotkey
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
   if (g_pika_conf->slotmigrate() != true) {
