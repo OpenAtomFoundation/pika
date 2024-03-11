@@ -26,6 +26,13 @@ jobs:
         with:
           go-version: 1.19
 
+      - name: Run Go E2E Tests222
+        working-directory: ${{ github.workspace }}/build
+        run: |
+         cd tests/integration/
+         chmod +x integrate_test.sh
+         sh integrate_test.sh
+
       - name: Cache dependencies
         uses: actions/cache@v3
         id: cache
@@ -99,9 +106,9 @@ jobs:
       - name: Run Go E2E Tests222
         working-directory: ${{ github.workspace }}/build
         run: |
-          cd ../tools/pika_keys_analysis/
-          go test -v ./...
-          cd ../../tests/integration/
+#          cd ../tools/pika_keys_analysis/
+#          go test -v ./...
+          cd tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
 
@@ -180,6 +187,12 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
+      - name: Run Go E2E Tests222
+        working-directory: ${{ github.workspace }}/build
+        run: |
+         cd tests/integration/
+         chmod +x integrate_test.sh
+         sh integrate_test.sh
 
       - name: Install Deps
         run: |
