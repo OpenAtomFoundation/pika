@@ -6,23 +6,19 @@
 go mod tidy
 #go test -timeout 30m
 
-go install github.com/bsm/ginkgo/v2
-go install github.com/bsm/gomega
+export GOPATH=~
+export PATH=$PATH:$GOPATH/bin
 
-echo "GOPATH = $GOPATH"
+go install github.com/bsm/ginkgo/v2@v2.12.0
+#go install github.com/bsm/gomega/..
+
 echo "GO111MODULE = $GO111MODULE"
+echo "GOPATH = $GOPATH"
 echo "whoami = $(whoami)"
 
 find / -name ginkgo | grep ginkgo
 
-echo "before $(which ginkgo)"
-
-
-#export PATH=$PATH:/usr/local/share/vcpkg/ports
-
-echo "after $(which ginkgo)"
-
-#chmod 777 ginkgo
+echo "before=$(which ginkgo)"
 
 ginkgo --until-it-fails
 
