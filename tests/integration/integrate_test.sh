@@ -6,10 +6,10 @@
 go mod tidy
 #go test -timeout 30m
 
-export GOPATH=~
-export PATH=$PATH:$GOPATH/bin
+export GOBIN=~
+export PATH=$PATH:$GOBIN
 
-go install github.com/bsm/ginkgo/v2@v2.12.0
+go install github.com/bsm/ginkgo/v2/ginkgo@v2.12.0
 #go install github.com/bsm/gomega/..
 
 echo "GO111MODULE = $GO111MODULE"
