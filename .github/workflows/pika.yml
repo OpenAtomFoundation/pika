@@ -108,7 +108,7 @@ jobs:
       - name: Run Go E2E Tests222
         working-directory: ${{ github.workspace }}
         run: |
-          cd ../tests/integration/
+          cd tests/integration
           chmod +x integrate_test.sh
           sh integrate_test.sh
 
@@ -179,7 +179,7 @@ jobs:
       - name: Run Go E2E Tests222
         working-directory: ${{ github.workspace }}
         run: |
-          cd ../tests/integration/
+          cd tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
 

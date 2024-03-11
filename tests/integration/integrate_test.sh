@@ -14,6 +14,6 @@ echo "GO111MODULE = $GO111MODULE"
 
 find / -name ginkgo | grep ginkgo
 
-export PATH=$PATH:$GOPATH/bin
+export PATH=$PATH:/usr/local/share/vcpkg/ports
 
 ./ginkgo --until-it-fails
