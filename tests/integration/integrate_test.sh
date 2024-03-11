@@ -9,6 +9,9 @@ go mod tidy
 go get -u github.com/bsm/ginkgo/v2
 go get -u github.com/bsm/gomega
 
+echo "GOPATH = $GOPATH"
+echo "GO111MODULE = $GO111MODULE"
+
 find / -name ginkgo | grep ginkgo
 
 export PATH=$PATH:$GOPATH/bin
