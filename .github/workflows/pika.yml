@@ -46,32 +46,6 @@ jobs:
             ${{ github.workspace }}/buildtrees
             ${{ github.workspace }}/deps
 
-#      - name: Build
-#        # Build your program with the given configuration
-#        run: cmake --build build --config ${{ env.BUILD_TYPE }}
-#
-#      - uses: actions/upload-artifact@v3
-#        with:
-#          name: ${{ env.ARTIFACT_PIKA_NAME }}
-#          path: ${{ github.workspace }}/build/pika
-#
-#      - name: Test
-#        working-directory: ${{ github.workspace }}/build
-#        # Execute tests defined by the CMake configuration.
-#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-#        run: ctest -C ${{ env.BUILD_TYPE }}
-#
-#      - name: Unit Test
-#        working-directory: ${{ github.workspace }}
-#        run: ./pikatests.sh all
-#
-#        # master on port 9221, slave on port 9231, all with 2 db
-#      - name: Start pika master and slave
-#        working-directory: ${{ github.workspace }}/build
-#        run: |
-#          chmod +x ../tests/integration/start_master_and_slave.sh
-#          ../tests/integration/start_master_and_slave.sh
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -124,25 +98,6 @@ jobs:
           path: ${{ github.workspace }}/buildtrees
           key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
 
-#      - name: Build
-#        run: |
-#          source /opt/rh/devtoolset-10/enable
-#          cmake --build build --config ${{ env.BUILD_TYPE }}
-#
-#      - name: Test
-#        working-directory: ${{ github.workspace }}/build
-#        run: ctest -C ${{ env.BUILD_TYPE }}
-#
-#      - name: Unit Test
-#        working-directory: ${{ github.workspace }}
-#        run: ./pikatests.sh all
-#
-#      - name: Start pika master and slave
-#        working-directory: ${{ github.workspace }}/build
-#        run: |
-#          chmod +x ../tests/integration/start_master_and_slave.sh
-#          ../tests/integration/start_master_and_slave.sh
-
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -184,25 +139,6 @@ jobs:
         with:
           path: ${{ github.workspace }}/buildtrees
           key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
-#
-#      - name: Build
-#        run: |
-#          cmake --build build --config ${{ env.BUILD_TYPE }}
-#
-#      - name: Test
-#        working-directory: ${{ github.workspace }}/build
-#        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
-#
-#      - name: Unit Test
-#        working-directory: ${{ github.workspace }}
-#        run: |
-#          ./pikatests.sh all
-#
-#      - name: Start pika master and slave
-#        working-directory: ${{ github.workspace }}/build
-#        run: |
-#          chmod +x ../tests/integration/start_master_and_slave.sh
-#          ../tests/integration/start_master_and_slave.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
