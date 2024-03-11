@@ -476,6 +476,7 @@ void *PikaParseSendThread::ThreadMain() {
       }
 
       if (should_exit_) {
+        LOG(INFO) << "PikaParseSendThread::ThreadMain :" << pthread_self() << " exit !!!";
         return nullptr;
       }
 
