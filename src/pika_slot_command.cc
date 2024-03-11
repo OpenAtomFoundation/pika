@@ -778,14 +778,19 @@ std::string GetSlotsTagKey(uint32_t crc) {
   return SlotTagPrefix + std::to_string(crc);
 }
 
-// delete key from db
+// delete key from db && cache
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
-  LOG(INFO) << "Del key Srem key " << key;
+
   int32_t res = 0;
   std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
-  LOG(INFO) << "Del key Srem key " << key;
 
-  // delete key from slot
+  // delete from cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()) {
+      db->cache()->Del(key);
+  }
+
+  // delete key from db
   std::vector<std::string> members;
   members.emplace_back(key_type + key);
   rocksdb::Status s = db->storage()->SRem(slotKey, members, &res);
@@ -808,7 +813,6 @@ int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr
     LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(g_pika_conf->default_slot_num(), key) << " error";
     return -1;
   }
-  WriteDelKeyToBinlog(key, db);
 
   return 1;
 }
