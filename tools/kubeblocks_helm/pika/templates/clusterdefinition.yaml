@@ -46,6 +46,20 @@ spec:
         scriptSpecSelectors:
           - name: pika-script
       podSpec:
+        initContainers:
+          - name: init-config
+            image: busybox:1.28
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/sh
+              - -ec
+              - |
+                if [ ! -f "/data/pika.conf" ];then cp /etc/pika/pika.conf /data/pika.conf; fi
+            volumeMounts:
+              - name: config
+                mountPath: /etc/pika
+              - name: data
+                mountPath: /data
         containers:
           - name: pika
             ports:
@@ -60,7 +74,7 @@ spec:
               - "/pika/bin/pika"
             args:
               - "-c"
-              - "/etc/pika/pika.conf"
+              - "/data/pika.conf"
           - name: codis-admin
             volumeMounts:
               - name: script
@@ -70,6 +84,13 @@ spec:
             args:
               - "-c"
               - "/script/admin.sh --register-server;tail -f /dev/null"
+            lifecycle:
+              preStop:
+                exec:
+                  command:
+                    - "/bin/bash"
+                    - "-c"
+                    - "/script/admin.sh --remove-server"
     - name: etcd
       workloadType: Stateful
       characterType: etcd

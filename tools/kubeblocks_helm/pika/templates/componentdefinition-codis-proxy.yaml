@@ -24,7 +24,6 @@ spec:
   configs:
     - name: codis-proxy-config
       templateRef: pika-conf-template
-      namespace: {{ .Release.Namespace }}
       volumeName: config
   runtime:
     initContainers:

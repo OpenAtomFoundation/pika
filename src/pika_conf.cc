@@ -10,10 +10,12 @@
 
 #include "cache/include/config.h"
 #include "include/acl.h"
-#include "include/pika_define.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path) {}
@@ -45,7 +47,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  //  GetConfStr("userpass", &userpass_);
+  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -461,11 +463,29 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // userblacklist
+  GetConfStr("userblacklist", &userblacklist_);
   // acl users
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
@@ -625,8 +645,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  //  SetConfStr("userpass", userpass_);
-  //  SetConfStr("userblacklist", userblacklist);
+  SetConfStr("userpass", userpass_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
