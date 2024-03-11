@@ -26,13 +26,6 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          cd tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
-
       - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
@@ -52,6 +45,13 @@ jobs:
           path: |
             ${{ github.workspace }}/buildtrees
             ${{ github.workspace }}/deps
+
+      - name: Run Go E2E Tests222
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
 
       - name: Build
         # Build your program with the given configuration
@@ -105,13 +105,6 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          cd tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
-
       - name: Install cmake
         run: |
           wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
@@ -136,6 +129,13 @@ jobs:
         with:
           path: ${{ github.workspace }}/buildtrees
           key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Run Go E2E Tests222
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
 
       - name: Build
         run: |
@@ -176,13 +176,6 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          cd tests/integration/
-          chmod +x integrate_test.sh
-          sh integrate_test.sh
-
       - name: Install Deps
         run: |
           brew update
@@ -203,6 +196,13 @@ jobs:
         with:
           path: ${{ github.workspace }}/buildtrees
           key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Run Go E2E Tests222
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
 
       - name: Build
         run: |
