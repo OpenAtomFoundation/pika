@@ -33,7 +33,19 @@
 make_config.mk
 log/
 lib/
-tools/
+tools/aof_to_pika
+tools/benchmark_client
+tools/binlog_sender
+tools/codis2pika
+tools/kubeblocks_helm
+tools/manifest_generator
+tools/pika-port
+tools/pika_keys_analysis
+tools/pika_to_txt
+tools/rdb_to_pika
+tools/redis-copy
+tools/txt_to_pika
+docker/
 output/
 
 # DB
