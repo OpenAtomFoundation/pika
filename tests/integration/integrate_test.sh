@@ -11,6 +11,6 @@ export PATH=$PATH:$GOPATH/bin
 go get -u github.com/bsm/ginkgo/v2
 go get -u github.com/bsm/gomega
 
-find / -name ginkgo
+find / -name ginkgo | grep ginkgo
 
-ginkgo --until-it-fails
+/home/runner/go/pkg/mod/github.com/bsm/ginkgo --until-it-fails
