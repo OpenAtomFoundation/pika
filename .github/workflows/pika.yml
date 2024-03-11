@@ -26,15 +26,6 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-            ~/.cache/pip
-          key: ${{ runner.os }}-dependencies
-
       - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
