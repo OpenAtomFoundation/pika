@@ -29,6 +29,8 @@ jobs:
       - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
+          find / -name integration | grep integration
+
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
           sudo apt-get install -y clang-tidy-12
 
@@ -49,6 +51,7 @@ jobs:
       - name: Run Go E2E Tests222
         working-directory: ${{ github.workspace }}/build
         run: |
+          export PATH=$PATH:/usr/local/go/bin
           cd ../tools/pika_keys_analysis/
           cd tests/integration/
           chmod +x integrate_test.sh
@@ -97,6 +100,7 @@ jobs:
     steps:
       - name: Install deps
         run: |
+          find / -name integration | grep integration
           yum install -y wget git autoconf centos-release-scl gcc
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
           yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which 
@@ -180,6 +184,7 @@ jobs:
 
       - name: Install Deps
         run: |
+          find / -name integration | grep integration
           brew update
           brew install --overwrite autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
