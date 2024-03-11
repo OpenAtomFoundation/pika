@@ -4,4 +4,5 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
-ginkgo --until-it-fails
+go test -run=TestPikaWithCache
+go test -run=TestPikaWithoutCache
