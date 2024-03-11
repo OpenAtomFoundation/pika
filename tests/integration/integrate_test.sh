@@ -4,4 +4,7 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
-go test -timeout 30m
+
+go get github.com/onsi/ginkgo/ginkgo
+
+ginkgo --randomize-all --seed=23456 --fail-on-pending --cover --progress --trace --race --skipPackage=foo --until-it-fails
