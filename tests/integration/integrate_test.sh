@@ -11,11 +11,15 @@ go get -u github.com/bsm/gomega
 
 echo "GOPATH = $GOPATH"
 echo "GO111MODULE = $GO111MODULE"
+echo "whoami = $(whoami)"
 
 find / -name ginkgo | grep ginkgo
+
+which ginkgo | ls -l
 
 export PATH=$PATH:/usr/local/share/vcpkg/ports
 
 chmod 777 ginkgo
 
 ginkgo --until-it-fails
+
