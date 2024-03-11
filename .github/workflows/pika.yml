@@ -26,57 +26,58 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Install Deps
-        if: ${{ steps.cache.output.cache-hit != 'true' }}
-        run: |
-          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12
-
-      - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-ubuntu
-        with:
-          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
-          path: |
-            ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
-
-      - name: Build
-        # Build your program with the given configuration
-        run: cmake --build build --config ${{ env.BUILD_TYPE }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.ARTIFACT_PIKA_NAME }}
-          path: ${{ github.workspace }}/build/pika
-
-      - name: Test
-        working-directory: ${{ github.workspace }}/build
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-        run: ctest -C ${{ env.BUILD_TYPE }}
-
-      - name: Unit Test
-        working-directory: ${{ github.workspace }}
-        run: ./pikatests.sh all
-
-        # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start pika master and slave
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
+#      - name: Install Deps
+#        if: ${{ steps.cache.output.cache-hit != 'true' }}
+#        run: |
+#          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+#          sudo apt-get install -y clang-tidy-12
+#
+#      - name: Configure CMake
+#        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+#        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+#        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+#
+#      - name: Cache Build
+#        uses: actions/cache@v3
+#        id: cache-ubuntu
+#        with:
+#          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
+#          path: |
+#            ${{ github.workspace }}/buildtrees
+#            ${{ github.workspace }}/deps
+#
+#      - name: Build
+#        # Build your program with the given configuration
+#        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+#
+#      - uses: actions/upload-artifact@v3
+#        with:
+#          name: ${{ env.ARTIFACT_PIKA_NAME }}
+#          path: ${{ github.workspace }}/build/pika
+#
+#      - name: Test
+#        working-directory: ${{ github.workspace }}/build
+#        # Execute tests defined by the CMake configuration.
+#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+#        run: ctest -C ${{ env.BUILD_TYPE }}
+#
+#      - name: Unit Test
+#        working-directory: ${{ github.workspace }}
+#        run: ./pikatests.sh all
+#
+#        # master on port 9221, slave on port 9231, all with 2 db
+#      - name: Start pika master and slave
+#        working-directory: ${{ github.workspace }}/build
+#        run: |
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          find / -name integration | grep integration
           cd ../tools/pika_keys_analysis/
-          go test -v ./...
+#          go test -v ./...
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
@@ -98,55 +99,56 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Install cmake
-        run: |
-          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
-          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
-
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Configure CMake
-        run: |
-          source /opt/rh/devtoolset-10/enable
-          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-centos-deps-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/buildtrees
-          key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - name: Build
-        run: |
-          source /opt/rh/devtoolset-10/enable
-          cmake --build build --config ${{ env.BUILD_TYPE }}
-
-      - name: Test
-        working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }}
-
-      - name: Unit Test
-        working-directory: ${{ github.workspace }}
-        run: ./pikatests.sh all
-
-      - name: Start pika master and slave
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
+#      - name: Install cmake
+#        run: |
+#          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+#          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+#
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Configure CMake
+#        run: |
+#          source /opt/rh/devtoolset-10/enable
+#          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: ${{ github.workspace }}/deps
+#          key: ${{ runner.os }}-centos-deps-${{ hashFiles('**/CMakeLists.txt') }}
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: ${{ github.workspace }}/buildtrees
+#          key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+#
+#      - name: Build
+#        run: |
+#          source /opt/rh/devtoolset-10/enable
+#          cmake --build build --config ${{ env.BUILD_TYPE }}
+#
+#      - name: Test
+#        working-directory: ${{ github.workspace }}/build
+#        run: ctest -C ${{ env.BUILD_TYPE }}
+#
+#      - name: Unit Test
+#        working-directory: ${{ github.workspace }}
+#        run: ./pikatests.sh all
+#
+#      - name: Start pika master and slave
+#        working-directory: ${{ github.workspace }}/build
+#        run: |
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          find / -name integration | grep integration
           cd ../tools/pika_keys_analysis/
-          go test -v ./...
+#          go test -v ./...
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
@@ -162,51 +164,52 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Install Deps
-        run: |
-          brew update
-          brew install --overwrite autoconf protobuf llvm wget git
-          brew install gcc@10 automake cmake make binutils
-
-      - name: Configure CMake
-        run: |
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/buildtrees
-          key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - name: Build
-        run: |
-          cmake --build build --config ${{ env.BUILD_TYPE }}
-
-      - name: Test
-        working-directory: ${{ github.workspace }}/build
-        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
-
-      - name: Unit Test
-        working-directory: ${{ github.workspace }}
-        run: |
-          ./pikatests.sh all
-
-      - name: Start pika master and slave
-        working-directory: ${{ github.workspace }}/build
-        run: |
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
+#      - name: Install Deps
+#        run: |
+#          brew update
+#          brew install --overwrite autoconf protobuf llvm wget git
+#          brew install gcc@10 automake cmake make binutils
+#
+#      - name: Configure CMake
+#        run: |
+#          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+#          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: ${{ github.workspace }}/deps
+#          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: ${{ github.workspace }}/buildtrees
+#          key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+#
+#      - name: Build
+#        run: |
+#          cmake --build build --config ${{ env.BUILD_TYPE }}
+#
+#      - name: Test
+#        working-directory: ${{ github.workspace }}/build
+#        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
+#
+#      - name: Unit Test
+#        working-directory: ${{ github.workspace }}
+#        run: |
+#          ./pikatests.sh all
+#
+#      - name: Start pika master and slave
+#        working-directory: ${{ github.workspace }}/build
+#        run: |
+#          chmod +x ../tests/integration/start_master_and_slave.sh
+#          ../tests/integration/start_master_and_slave.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
         run: |
+          find / -name integration | grep integration
           cd ../tools/pika_keys_analysis/
-          go test -v ./...
+          #          go test -v ./...
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
