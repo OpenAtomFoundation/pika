@@ -15,11 +15,11 @@ echo "whoami = $(whoami)"
 
 find / -name ginkgo | grep ginkgo
 
-which ginkgo | ls -l
+which ginkgo
 
 export PATH=$PATH:/usr/local/share/vcpkg/ports
 
-which ginkgo | ls -l
+which ginkgo
 
 chmod 777 ginkgo
 
