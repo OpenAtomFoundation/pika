@@ -6,8 +6,8 @@
 go mod tidy
 #go test -timeout 30m
 
-go get -u github.com/bsm/ginkgo/v2
-go get -u github.com/bsm/gomega
+go install github.com/bsm/ginkgo/v2
+go install github.com/bsm/gomega
 
 echo "GOPATH = $GOPATH"
 echo "GO111MODULE = $GO111MODULE"
