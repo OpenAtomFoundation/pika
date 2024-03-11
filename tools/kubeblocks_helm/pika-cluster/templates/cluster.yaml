@@ -2,6 +2,7 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: Cluster
 metadata:
   name: {{ include "clustername" . }}
+  namespace: {{ .Release.Namespace }}
   labels: {{ include "pika-cluster.labels" . | nindent 4 }}
 spec:
   clusterDefinitionRef: pika  # ref clusterDefinition.name
