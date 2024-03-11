@@ -62,6 +62,18 @@ Define image
 {{- end }}
 
 {{/*
+Define Pika Exporter image
+*/}}
+
+{{- define "pikaExporter.image" -}}
+{{ .Values.image.pikaExporter.registry | default "docker.io" }}/{{ .Values.image.pikaExporter.repository }}:{{ .Values.image.pikaExporter.tag }}
+{{- end }}
+
+{{- define "pikaExporter.imagePullPolicy" -}}
+{{ .Values.image.pikaExporter.pullPolicy | default "IfNotPresent" }}
+{{- end }}
+
+{{/*
 Define codis image
 */}}
 
