@@ -149,7 +149,6 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
   net::NetCli *migrate_cli = GetMigrateClient(host, port, timeout);
   if (!migrate_cli) {
     detail = "IOERR error or timeout connecting to the client";
-    LOG(INFO) << "GetMigrateClient failed, key: " << key;
     return -1;
   }
 
@@ -587,7 +586,6 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 
   // the key is migrated to target, delete key and slotsinfo
   if (send_command_num >= 1) {
-    LOG(INFO) << "【send command success】Migrate key: " << key << " success, host: " << host << ", port: " << port;
     std::vector<std::string> keys;
     keys.emplace_back(key);
     int64_t count = db->storage()->Del(keys, &type_status);
@@ -652,9 +650,6 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
       return 0;
     }
     int ret = SlotsMgrtOne(host, port, timeout, key, type, detail, db);
-    if (ret == 0) {
-      LOG(INFO) << "slots migrate without tag failed, key: " << key << ", detail: " << detail;
-    }
     return ret;
   }
 
@@ -780,10 +775,8 @@ std::string GetSlotsTagKey(uint32_t crc) {
 
 // delete key from db
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
-  LOG(INFO) << "Del key Srem key " << key;
   int32_t res = 0;
   std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
-  LOG(INFO) << "Del key Srem key " << key;
 
   // delete key from slot
   std::vector<std::string> members;
@@ -880,7 +873,6 @@ void SlotsMgrtTagSlotCmd::Do() {
 
   // first, get the count of slot_key, prevent to sscan key very slowly when the key is not found
   rocksdb::Status s = db_->storage()->SCard(slot_key, &len);
-  LOG(INFO) << "【SlotsMgrtTagSlotCmd::Do】Get count, slot_key: " << slot_key << ", len: " << len;
   if (len < 0) {
     detail = "Get the len of slot Error";
   }
@@ -925,7 +917,7 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
   rocksdb::Status s = db->storage()->GetType(key_, true, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
-      LOG(INFO) << "Migrate slot key " << key_ << " not found";
+      LOG(WARNING) << "Migrate slot key " << key_ << " not found";
       res_.AppendInteger(0);
     } else {
       LOG(WARNING) << "Migrate slot key: " << key_ << " error: " << s.ToString();
