@@ -27,9 +27,9 @@ jobs:
           go-version: 1.19
 
       - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
+        working-directory: ${{ github.workspace }}
         run: |
-          cd ../tests/integration/
+          cd tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
 
@@ -106,7 +106,7 @@ jobs:
           go-version: 1.19
 
       - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
+        working-directory: ${{ github.workspace }}
         run: |
           cd ../tests/integration/
           chmod +x integrate_test.sh
@@ -177,7 +177,7 @@ jobs:
           go-version: 1.19
 
       - name: Run Go E2E Tests222
-        working-directory: ${{ github.workspace }}/build
+        working-directory: ${{ github.workspace }}
         run: |
           cd ../tests/integration/
           chmod +x integrate_test.sh
