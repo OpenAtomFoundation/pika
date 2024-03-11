@@ -26,26 +26,26 @@ jobs:
         with:
           go-version: 1.19
 
-#      - name: Install Deps
-#        if: ${{ steps.cache.output.cache-hit != 'true' }}
-#        run: |
-#          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-#          sudo apt-get install -y clang-tidy-12
-#
-#      - name: Configure CMake
-#        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-#        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-#        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-#
-#      - name: Cache Build
-#        uses: actions/cache@v3
-#        id: cache-ubuntu
-#        with:
-#          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
-#          path: |
-#            ${{ github.workspace }}/buildtrees
-#            ${{ github.workspace }}/deps
-#
+      - name: Install Deps
+        if: ${{ steps.cache.output.cache-hit != 'true' }}
+        run: |
+          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+          sudo apt-get install -y clang-tidy-12
+
+      - name: Configure CMake
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+
+      - name: Cache Build
+        uses: actions/cache@v3
+        id: cache-ubuntu
+        with:
+          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
+          path: |
+            ${{ github.workspace }}/buildtrees
+            ${{ github.workspace }}/deps
+
 #      - name: Build
 #        # Build your program with the given configuration
 #        run: cmake --build build --config ${{ env.BUILD_TYPE }}
@@ -99,31 +99,31 @@ jobs:
         with:
           go-version: 1.19
 
-#      - name: Install cmake
-#        run: |
-#          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
-#          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
-#
-#      - name: Checkout
-#        uses: actions/checkout@v3
-#        with:
-#          fetch-depth: 0
-#
-#      - name: Configure CMake
-#        run: |
-#          source /opt/rh/devtoolset-10/enable
-#          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-#
-#      - uses: actions/cache@v3
-#        with:
-#          path: ${{ github.workspace }}/deps
-#          key: ${{ runner.os }}-centos-deps-${{ hashFiles('**/CMakeLists.txt') }}
-#
-#      - uses: actions/cache@v3
-#        with:
-#          path: ${{ github.workspace }}/buildtrees
-#          key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
-#
+      - name: Install cmake
+        run: |
+          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: |
+          source /opt/rh/devtoolset-10/enable
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-centos-deps-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/buildtrees
+          key: ${{ runner.os }}-centos-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
 #      - name: Build
 #        run: |
 #          source /opt/rh/devtoolset-10/enable
@@ -164,26 +164,26 @@ jobs:
         with:
           go-version: 1.19
 
-#      - name: Install Deps
-#        run: |
-#          brew update
-#          brew install --overwrite autoconf protobuf llvm wget git
-#          brew install gcc@10 automake cmake make binutils
-#
-#      - name: Configure CMake
-#        run: |
-#          export CC=/usr/local/opt/gcc@10/bin/gcc-10
-#          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-#
-#      - uses: actions/cache@v3
-#        with:
-#          path: ${{ github.workspace }}/deps
-#          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
-#
-#      - uses: actions/cache@v3
-#        with:
-#          path: ${{ github.workspace }}/buildtrees
-#          key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+      - name: Install Deps
+        run: |
+          brew update
+          brew install --overwrite autoconf protobuf llvm wget git
+          brew install gcc@10 automake cmake make binutils
+
+      - name: Configure CMake
+        run: |
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/buildtrees
+          key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
 #
 #      - name: Build
 #        run: |
