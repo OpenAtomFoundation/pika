@@ -792,6 +792,27 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   }
 }
 
+
+// del key from slotkey
+void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
+  if (g_pika_conf->slotmigrate() != true) {
+    return;
+  }
+  std::string type;
+  if (GetKeyType(key, type, db) < 0) {
+    LOG(WARNING) << "SRem key: " << key << " from slotKey error";
+    return;
+  }
+  std::string slotKey = GetSlotKey(GetSlotID(key));
+  int32_t count = 0;
+  std::vector<std::string> members(1, type + key);
+  rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
+  if (!s.ok()) {
+    LOG(WARNING) << "SRem key: " << key << " from slotKey, error: " << s.ToString();
+    return;
+  }
+}
+
 // delete key from db
 static int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
   int32_t res = 0;
@@ -828,25 +849,6 @@ static int DeleteKey(const std::string& key, const char key_type, const std::sha
   }
 
   return 1;
-}
-// del key from slotkey
-void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
-  if (g_pika_conf->slotmigrate() != true) {
-    return;
-  }
-  std::string type;
-  if (GetKeyType(key, type, db) < 0) {
-    LOG(WARNING) << "SRem key: " << key << " from slotKey error";
-    return;
-  }
-  std::string slotKey = GetSlotKey(GetSlotID(key));
-  int32_t count = 0;
-  std::vector<std::string> members(1, type + key);
-  rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
-  if (!s.ok()) {
-    LOG(WARNING) << "SRem key: " << key << " from slotKey, error: " << s.ToString();
-    return;
-  }
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
