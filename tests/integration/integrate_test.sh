@@ -5,7 +5,10 @@
 
 go mod tidy
 
-go get github.com/bsm/ginkgo/v2
-go get github.com/bsm/gomega
+echo "GO PATH = $GOPATH"
+export PATH=$PATH:$GOPATH/bin
+
+go get -u github.com/bsm/ginkgo/v2
+go get -u github.com/bsm/gomega
 
 ginkgo --until-it-fails
