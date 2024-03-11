@@ -13,4 +13,6 @@ go get -u github.com/bsm/gomega
 
 find / -name ginkgo | grep ginkgo
 
-/home/runner/go/pkg/mod/github.com/bsm/ginkgo --until-it-fails
+export PATH=$PATH:$GOPATH/bin
+
+./ginkgo --until-it-fails
