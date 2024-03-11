@@ -4,6 +4,7 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_command.h"
 #include "net/include/net_cli.h"
+#include "utils/include/pika_redis.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
 #include "strings.h"
@@ -267,5 +268,27 @@ class SlotsCleanupOffCmd : public Cmd {
  private:
   void DoInitial() override;
 };
+
+
+////slotsrestore key ttl(ms) value(rdb)
+struct RestoreKey {
+  std::string key;
+  int64_t ttlms;
+  std::string value;
+};
+
+class SlotsrestoreCmd : public Cmd {
+ public:
+  SlotsrestoreCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new SlotsrestoreCmd(*this); }
+
+ private:
+  void DoInitial() override;
+  std::vector<struct RestoreKey> restore_keys_;
+};
+
 
 #endif

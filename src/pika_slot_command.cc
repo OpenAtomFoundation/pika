@@ -1532,3 +1532,220 @@ void SlotsCleanupOffCmd::Do() {
   res_.SetRes(CmdRes::kOk);
   return;
 }
+
+static rocksdb::Status RestoreKV(const std::string &key, const restore_value &dbvalue, std::shared_ptr<DB> db) {
+  if(dbvalue.type != storage::kStrings){
+    return rocksdb::Status::Corruption("dbvalue format error");
+  }
+
+  rocksdb::Status s;
+  s = db->storage()->Set(key, dbvalue.kvv);
+  if (!s.ok()) {
+    return s;
+  }
+
+  AddSlotKey("k", key, db);
+
+  return s;
+}
+
+static rocksdb::Status RestoreList(const std::string &key, const restore_value &dbvalue, std::shared_ptr<DB> db) {
+  if(dbvalue.type != storage::kLists){
+    return rocksdb::Status::Corruption("dbvalue format error");
+  }
+
+  uint64_t llen = 0;
+  rocksdb::Status s;
+
+  //std::vector<std::string>::const_iterator iter = dbvalue.listv.begin();
+  s = db->storage()->RPush(key, dbvalue.listv, &llen);
+  if (!s.ok()) {
+    return s;
+  }
+
+  AddSlotKey("l", key, db);
+
+  return s;
+}
+
+static rocksdb::Status RestoreSet(const std::string &key, const restore_value &dbvalue, std::shared_ptr<DB> db) {
+  if(dbvalue.type != storage::kSets){
+    return rocksdb::Status::Corruption("dbvalue format error");
+  }
+
+  int32_t res = 0;
+  rocksdb::Status s;
+  s = db->storage()->SAdd(key, dbvalue.setv, &res);
+  if (!s.ok()) {
+    return s;
+  }
+
+  AddSlotKey("s", key, db);
+
+  return s;
+}
+
+static rocksdb::Status RestoreZset(const std::string &key, const restore_value &dbvalue, std::shared_ptr<DB> db) {
+  if(dbvalue.type != storage::kZSets){
+    return rocksdb::Status::Corruption("dbvalue format error");
+  }
+
+  int32_t res = 0;
+  rocksdb::Status s;
+
+
+  s = db->storage()->ZAdd(key, dbvalue.zsetv, &res);;
+  if (!s.ok()) {
+    return s;
+  }
+
+  AddSlotKey("z", key, db);
+
+  return s;
+}
+
+static rocksdb::Status RestoreHash(const std::string &key, const restore_value &dbvalue, std::shared_ptr<DB> db) {
+  if(dbvalue.type != storage::kHashes){
+    return rocksdb::Status::Corruption("dbvalue format error");
+  }
+
+  int32_t ret = 0;
+  rocksdb::Status s;
+
+  std::vector<storage::FieldValue>::const_iterator iter = dbvalue.hashv.begin();
+  for (; iter != dbvalue.hashv.end(); iter++) {
+    s = db->storage()->HSet(key, iter->field, iter->value, &ret);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  AddSlotKey("h", key, db);
+
+  return s;
+}
+
+/* *
+ * slotsrestore key ttlms value
+ * ttlms is 0 or >=1, 0 indicates no expire
+ * */
+void SlotsrestoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size()) || (argv_.size() - 1) % 3 != 0) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsrestore);
+    return;
+  }
+
+  restore_keys_.clear();
+
+  size_t index = 1;
+  int64_t ttlms;
+
+  for (; index < argv_.size(); index += 3){
+    if (!pstd::string2int(argv_[index+1].data(), argv_[index+1].size(), &ttlms)) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+
+    if (ttlms < 0){
+      res_.SetRes(CmdRes::kErrOther, "invalid ttl value, ttl must be >= 0");
+      return;
+    }
+
+    restore_keys_.push_back({argv_[index], ttlms, argv_[index+2]});
+  }
+}
+
+void SlotsrestoreCmd::Do() {
+  rocksdb::Status s;
+  std::vector<struct RestoreKey>::const_iterator iter = restore_keys_.begin();
+  for (; iter != restore_keys_.end(); iter++) {
+
+    if (verifyDumpPayload((unsigned char *)iter->value.data(), iter->value.size()) != REDIS_OK) {
+      std::string detail = "dump payload version or checksum are wrong";
+      LOG(ERROR) << detail;
+      res_.SetRes(CmdRes::kErrOther, detail);
+      return;
+    }
+
+    rio payload;
+    int rdbtype;
+    restore_value dbvalue;
+    rioInitWithBuffer(&payload, iter->value.data(), iter->value.size());
+
+    //check the type of rdb, and parse rdb
+    if ((rdbtype = rdbLoadObjectType(&payload)) == -1) {
+      std::string detail = "load object type failed";
+      LOG(ERROR) << detail;
+      res_.SetRes(CmdRes::kErrOther, detail);
+      return;
+    }
+    // not support quicklist, just skip
+    if (rdbtype == REDIS_RDB_TYPE_LIST_QUICKLIST) {
+      res_.SetRes(CmdRes::kOk);
+      return;
+    }
+    if (rdbLoadObject(rdbtype, &payload, &dbvalue) != REDIS_OK) {
+      std::string detail = "bad slotsrestore rdb format";
+      LOG(ERROR) << detail;
+      res_.SetRes(CmdRes::kErrOther, detail);
+      return;
+    }
+    switch (dbvalue.type){
+      case storage::kStrings :
+        s = RestoreKV(iter->key, dbvalue, db_);
+        break;
+      case storage::kLists :
+      {
+        //del old key, prevent last migrate failed
+        int64_t count = 0;
+        std::vector<std::string> keys;
+        std::map<storage::DataType, storage::Status> type_status;
+        keys.push_back(iter->key);
+        count = db_->storage()->Del(keys, &type_status);
+        if (count < 0) {
+          res_.SetRes(CmdRes::kErrOther, "delete error");
+          return;
+        }
+
+        s = RestoreList(iter->key, dbvalue, db_);
+      }
+      break;
+      case storage::kSets :
+        s = RestoreSet(iter->key, dbvalue, db_);
+        break;
+      case storage::kZSets :
+        s = RestoreZset(iter->key, dbvalue, db_);
+        break;
+      case storage::kHashes :
+        s = RestoreHash(iter->key, dbvalue, db_);
+        break;
+      default:
+        std::string detail = "error db type";
+        res_.SetRes(CmdRes::kErrOther, detail);
+        return;
+    }
+
+    if (!s.ok()) {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+
+    //set ttl, ttlms is 0 or >=1, 0 indicates no expire
+    if (iter->ttlms > 0){
+      std::map<storage::DataType, rocksdb::Status> type_status;
+      int32_t ret = db_->storage()->Expire(iter->key, iter->ttlms/1000, &type_status);
+      if (ret == -1) {
+        std::string detail = "expire exec failed";
+        res_.SetRes(CmdRes::kErrOther, detail);
+        return;
+      }
+
+    }
+
+    //write binlog
+    //del key and add key, or send restore command
+    WriteDelKeyToBinlog(iter->key, db_);
+  }
+
+  res_.SetRes(CmdRes::kOk);
+  return;
+}
