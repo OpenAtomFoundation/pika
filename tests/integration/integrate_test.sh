@@ -16,4 +16,6 @@ find / -name ginkgo | grep ginkgo
 
 export PATH=$PATH:/usr/local/share/vcpkg/ports
 
+chmod 777 ginkgo
+
 ginkgo --until-it-fails
