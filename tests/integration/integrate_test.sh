@@ -5,6 +5,7 @@
 
 go mod tidy
 
-go get github.com/onsi/ginkgo/ginkgo
+go get github.com/bsm/ginkgo/v2
+go github.com/bsm/gomega
 
 ginkgo --randomize-all --seed=23456 --fail-on-pending --cover --progress --trace --race --skipPackage=foo --until-it-fails
