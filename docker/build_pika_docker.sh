@@ -91,11 +91,11 @@ then
        docker buildx use pika-builder
     fi
 
-    docker buildx build --platform ${PLATFORM} -t ${TAG} --build-arg ENABLE_PROXY=${PROXY} .
+    docker buildx build --platform ${PLATFORM} -t ${TAG} -f Dockerfile_pika --build-arg ENABLE_PROXY=${PROXY} ..
 
 else
     # build single-arch image
-    docker build -t ${TAG} --build-arg ENABLE_PROXY=${PROXY} .
+    docker build -t ${TAG} -f Dockerfile_pika --build-arg ENABLE_PROXY=${PROXY} ..
 fi
 
 

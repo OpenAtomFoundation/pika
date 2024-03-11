@@ -26,15 +26,6 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-            ~/.cache/pip
-          key: ${{ runner.os }}-dependencies
-
       - name: Install Deps
         if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
@@ -174,7 +165,7 @@ jobs:
       - name: Install Deps
         run: |
           brew update
-          brew install --overwrite python@3.12 autoconf protobuf llvm wget git
+          brew install --overwrite autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
 
       - name: Configure CMake

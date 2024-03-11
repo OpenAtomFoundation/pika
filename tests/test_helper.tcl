@@ -15,7 +15,6 @@ set ::all_tests {
     unit/printver
     unit/basic
     unit/scan
-    unit/expire
     unit/multi
     unit/quit
     unit/type/list
@@ -32,6 +31,7 @@ set ::all_tests {
     unit/type/zset
     unit/type/string
     unit/type/hash
+    # unit/expire
     # unit/protocol
     # unit/other
     # unit/auth

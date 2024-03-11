@@ -11,3 +11,5 @@ data:
     {{- .Files.Get "config/codis-dashboard.tpl" | nindent 4 }}
   proxy.toml: |-
     {{- .Files.Get "config/codis-proxy.tpl" | nindent 4 }}
+  info.toml: |-
+    {{- .Files.Get "config/exporter-info.tpl" | nindent 4 }}
