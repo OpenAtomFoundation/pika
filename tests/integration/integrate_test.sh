@@ -19,6 +19,8 @@ which ginkgo | ls -l
 
 export PATH=$PATH:/usr/local/share/vcpkg/ports
 
+which ginkgo | ls -l
+
 chmod 777 ginkgo
 
 ginkgo --until-it-fails
