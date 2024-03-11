@@ -4,4 +4,13 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
-go test -timeout 30m
+#go test -timeout 30m
+
+go get -u github.com/bsm/ginkgo/v2
+go get -u github.com/bsm/gomega
+
+find / -name ginkgo | grep ginkgo
+
+export PATH=$PATH:$GOPATH/bin
+
+./ginkgo --until-it-fails
