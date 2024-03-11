@@ -15,13 +15,14 @@ echo "whoami = $(whoami)"
 
 find / -name ginkgo | grep ginkgo
 
-which ginkgo
+echo "before $(which ginkgo)"
 
-export PATH=$PATH:/usr/local/share/vcpkg/ports
 
-which ginkgo
+#export PATH=$PATH:/usr/local/share/vcpkg/ports
 
-chmod 777 ginkgo
+echo "after $(which ginkgo)"
+
+#chmod 777 ginkgo
 
 ginkgo --until-it-fails
 
