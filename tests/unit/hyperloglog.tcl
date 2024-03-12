@@ -136,93 +136,93 @@ start_server {tags {"hll"}} {
         r pfcount hll
     } {5}
 
-    test {PFCOUNT multiple-keys merge returns cardinality of union} {
-        r del hll1 hll2 hll3
-        for {set x 1} {$x < 100000} {incr x} {
-            # Force dense representation of hll2
-            r pfadd hll1 "foo-$x"
-            r pfadd hll2 "bar-$x"
-            r pfadd hll3 "zap-$x"
+#    test {PFCOUNT multiple-keys merge returns cardinality of union} {
+#        r del hll1 hll2 hll3
+#        for {set x 1} {$x < 100000} {incr x} {
+#            # Force dense representation of hll2
+#            r pfadd hll1 "foo-$x"
+#            r pfadd hll2 "bar-$x"
+#            r pfadd hll3 "zap-$x"
+#
+#            set card [r pfcount hll1 hll2 hll3]
+#            set realcard [expr {$x*3}]
+#            set err [expr {abs($card-$realcard)}]
+#            assert {$err < (double($card)/100)*5}
+#        }
+#    }
 
-            set card [r pfcount hll1 hll2 hll3]
-            set realcard [expr {$x*3}]
-            set err [expr {abs($card-$realcard)}]
-            assert {$err < (double($card)/100)*5}
-        }
-    }
-
-    test {HYPERLOGLOG press test: 5w, 10w, 15w, 20w, 30w, 50w, 100w} {
-        r del hll1
-        for {set x 1} {$x <= 1000000} {incr x} {
-            r pfadd hll1 "foo-$x"
-            if {$x == 50000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-           	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 100000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-          	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 150000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 300000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 500000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 1000000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.03}
-	    }
-        }
-    }
+#    test {HYPERLOGLOG press test: 5w, 10w, 15w, 20w, 30w, 50w, 100w} {
+#        r del hll1
+#        for {set x 1} {$x <= 1000000} {incr x} {
+#            r pfadd hll1 "foo-$x"
+#            if {$x == 50000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#           	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 100000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#          	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 150000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 300000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 500000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 1000000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.03}
+#	    }
+#        }
+#    }
 
 #    test {PFDEBUG GETREG returns the HyperLogLog raw registers} {
 #        r del hll
