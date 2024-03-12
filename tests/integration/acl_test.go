@@ -9,16 +9,9 @@ import (
 
 var _ = Describe("Acl test", func() {
 	ctx := context.TODO()
-	var client *redis.Client
-
-	BeforeEach(func() {
-	})
-
-	AfterEach(func() {
-	})
 
 	It("has requirepass & userpass & blacklist", func() {
-		client = redis.NewClient(PikaOption(ACLADDR_1))
+		client := redis.NewClient(PikaOption(ACLADDR_1))
 		authRes := client.Do(ctx, "auth", "wrong!")
 		Expect(authRes.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
@@ -114,16 +107,12 @@ var _ = Describe("Acl test", func() {
 		adminRes = client.Do(ctx, "flushdb")
 		Expect(adminRes.Err()).NotTo(HaveOccurred())
 		Expect(adminRes.Val()).To(Equal("OK"))
-	})
 
-	It("should acl dryrun", func() {
 		dryRun := client.ACLDryRun(ctx, "default", "get", "randomKey")
 
 		Expect(dryRun.Err()).NotTo(HaveOccurred())
 		Expect(dryRun.Val()).To(Equal("OK"))
-	})
 
-	It("should ACL LOG RESET", Label("NonRedisEnterprise"), func() {
 		// Call ACL LOG RESET
 		resetCmd := client.ACLLogReset(ctx)
 		Expect(resetCmd.Err()).NotTo(HaveOccurred())
@@ -134,4 +123,5 @@ var _ = Describe("Acl test", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(logEntries)).To(Equal(0))
 	})
+
 })
