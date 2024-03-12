@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = Describe("Acl test", func() {
+var _ = FDescribe("Acl test", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
@@ -20,7 +20,7 @@ var _ = Describe("Acl test", func() {
 		}
 	})
 
-	FIt("has requirepass & userpass & blacklist", func() {
+	It("has requirepass & userpass & blacklist", func() {
 		Client := redis.NewClient(PikaOption(ACLADDR_1))
 		authRes := Client.Do(ctx, "auth", "wrong!")
 		Expect(authRes.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
@@ -50,7 +50,7 @@ var _ = Describe("Acl test", func() {
 		Expect(adminRes.Val()).To(Equal("OK"))
 
 	})
-	FIt("has requirepass & blacklist", func() {
+	It("has requirepass & blacklist", func() {
 		Client := redis.NewClient(PikaOption(ACLADDR_2))
 
 		// user:limit
@@ -77,7 +77,7 @@ var _ = Describe("Acl test", func() {
 		Expect(adminRes.Val()).To(Equal("OK"))
 
 	})
-	FIt("has other acl user", func() {
+	It("has other acl user", func() {
 		client := redis.NewClient(PikaOption(ACLADDR_3))
 
 		authRes := client.Do(ctx, "auth", "wrong!")
