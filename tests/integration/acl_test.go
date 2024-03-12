@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = FDescribe("Acl test", func() {
+var _ = Describe("Acl test", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
