@@ -31,8 +31,10 @@ var _ = Describe("Text Txn", func() {
 		txnClient = redis.NewClient(PikaOption(SINGLEADDR))
 		cmdClient = redis.NewClient(PikaOption(SINGLEADDR))
 
-		GlobalBefore(ctx, txnClient)
-		GlobalBefore(ctx, cmdClient)
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, txnClient)
+			GlobalBefore(ctx, cmdClient)
+		}
 	})
 	Describe("test watch", func() {
 		It("basic watch", func() {

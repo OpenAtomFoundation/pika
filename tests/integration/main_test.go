@@ -19,7 +19,7 @@ func TestPikaWithCache(t *testing.T) {
 		Expect(client.ConfigSet(ctx, "cache-model", "1").Err()).NotTo(HaveOccurred())
 	}
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pika integration test with cache done")
+	RunSpecs(t, "Pika integration test with cache")
 }
 
 func TestPikaWithoutCache(t *testing.T) {
@@ -29,5 +29,5 @@ func TestPikaWithoutCache(t *testing.T) {
 		Expect(client.ConfigSet(ctx, "cache-model", "0").Err()).NotTo(HaveOccurred())
 	}
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pika integration test without cache done")
+	RunSpecs(t, "Pika integration test without cache")
 }
