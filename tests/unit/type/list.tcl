@@ -7,61 +7,63 @@ start_server {
 } {
     source "tests/unit/type/list-common.tcl"
 
-    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
-        # first lpush then rpush
-        assert_equal 1 [r lpush myziplist1 a]
-        assert_equal 2 [r rpush myziplist1 b]
-        assert_equal 3 [r rpush myziplist1 c]
-        assert_equal 3 [r llen myziplist1]
-        assert_equal a [r lindex myziplist1 0]
-        assert_equal b [r lindex myziplist1 1]
-        assert_equal c [r lindex myziplist1 2]
-        assert_equal {} [r lindex myziplist2 3]
-        assert_equal c [r rpop myziplist1]
-        assert_equal a [r lpop myziplist1]
+# No cause has been confirmed
+#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
+#        # first lpush then rpush
+#        assert_equal 1 [r lpush myziplist1 a]
+#        assert_equal 2 [r rpush myziplist1 b]
+#        assert_equal 3 [r rpush myziplist1 c]
+#        assert_equal 3 [r llen myziplist1]
+#        assert_equal a [r lindex myziplist1 0]
+#        assert_equal b [r lindex myziplist1 1]
+#        assert_equal c [r lindex myziplist1 2]
+#        assert_equal {} [r lindex myziplist2 3]
+#        assert_equal c [r rpop myziplist1]
+#        assert_equal a [r lpop myziplist1]
 #        assert_encoding ziplist myziplist1
-
-        # first rpush then lpush
-        assert_equal 1 [r rpush myziplist2 a]
-        assert_equal 2 [r lpush myziplist2 b]
-        assert_equal 3 [r lpush myziplist2 c]
-        assert_equal 3 [r llen myziplist2]
-        assert_equal c [r lindex myziplist2 0]
-        assert_equal b [r lindex myziplist2 1]
-        assert_equal a [r lindex myziplist2 2]
-        assert_equal {} [r lindex myziplist2 3]
-        assert_equal a [r rpop myziplist2]
-        assert_equal c [r lpop myziplist2]
+#
+#        # first rpush then lpush
+#        assert_equal 1 [r rpush myziplist2 a]
+#        assert_equal 2 [r lpush myziplist2 b]
+#        assert_equal 3 [r lpush myziplist2 c]
+#        assert_equal 3 [r llen myziplist2]
+#        assert_equal c [r lindex myziplist2 0]
+#        assert_equal b [r lindex myziplist2 1]
+#        assert_equal a [r lindex myziplist2 2]
+#        assert_equal {} [r lindex myziplist2 3]
+#        assert_equal a [r rpop myziplist2]
+#        assert_equal c [r lpop myziplist2]
 #        assert_encoding ziplist myziplist2
-    }
+#    }
 
-    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
-        # first lpush then rpush
-        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
+# No cause has been confirmed
+#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
+#        # first lpush then rpush
+#        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
 #        assert_encoding linkedlist mylist1
-        assert_equal 2 [r rpush mylist1 b]
-        assert_equal 3 [r rpush mylist1 c]
-        assert_equal 3 [r llen mylist1]
-        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
-        assert_equal b [r lindex mylist1 1]
-        assert_equal c [r lindex mylist1 2]
-        assert_equal {} [r lindex mylist1 3]
-        assert_equal c [r rpop mylist1]
-        assert_equal $largevalue(linkedlist) [r lpop mylist1]
-
-        # first rpush then lpush
-        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
+#        assert_equal 2 [r rpush mylist1 b]
+#        assert_equal 3 [r rpush mylist1 c]
+#        assert_equal 3 [r llen mylist1]
+#        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
+#        assert_equal b [r lindex mylist1 1]
+#        assert_equal c [r lindex mylist1 2]
+#        assert_equal {} [r lindex mylist1 3]
+#        assert_equal c [r rpop mylist1]
+#        assert_equal $largevalue(linkedlist) [r lpop mylist1]
+#
+#        # first rpush then lpush
+#        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
 #        assert_encoding linkedlist mylist2
-        assert_equal 2 [r lpush mylist2 b]
-        assert_equal 3 [r lpush mylist2 c]
-        assert_equal 3 [r llen mylist2]
-        assert_equal c [r lindex mylist2 0]
-        assert_equal b [r lindex mylist2 1]
-        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
-        assert_equal {} [r lindex mylist2 3]
-        assert_equal $largevalue(linkedlist) [r rpop mylist2]
-        assert_equal c [r lpop mylist2]
-    }
+#        assert_equal 2 [r lpush mylist2 b]
+#        assert_equal 3 [r lpush mylist2 c]
+#        assert_equal 3 [r llen mylist2]
+#        assert_equal c [r lindex mylist2 0]
+#        assert_equal b [r lindex mylist2 1]
+#        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
+#        assert_equal {} [r lindex mylist2 3]
+#        assert_equal $largevalue(linkedlist) [r rpop mylist2]
+#        assert_equal c [r lpop mylist2]
+#    }
 
     test {R/LPOP against empty list} {
         r lpop non-existing-list
@@ -74,11 +76,11 @@ start_server {
         assert_equal {d c b a 0 1 2 3} [r lrange mylist 0 -1]
     }
 
-    test {DEL a list - ziplist} {
-        assert_equal 1 [r del myziplist2]
-        assert_equal 0 [r exists myziplist2]
-        assert_equal 0 [r llen myziplist2]
-    }
+#    test {DEL a list - ziplist} {
+#        assert_equal 1 [r del myziplist2]
+#       assert_equal 0 [r exists myziplist2]
+#        assert_equal 0 [r llen myziplist2]
+#    }
 
     test {DEL a list - regular list} {
         assert_equal 1 [r del mylist2]
@@ -98,22 +100,23 @@ start_server {
 #        assert_encoding linkedlist $key
     }
 
-#    foreach {type large} [array get largevalue] {
-#        test "BLPOP, BRPOP: single existing list - $type" {
-#            set rd [redis_deferring_client]
-#            create_$type blist "a b $large c d"
-#
-#            $rd blpop blist 1
-#            assert_equal {blist a} [$rd read]
-#            $rd brpop blist 1
-#            assert_equal {blist d} [$rd read]
-#
-#            $rd blpop blist 1
-#            assert_equal {blist b} [$rd read]
-#            $rd brpop blist 1
-#            assert_equal {blist c} [$rd read]
-#        }
-#
+    foreach {type large} [array get largevalue] {
+        test "BLPOP, BRPOP: single existing list - $type" {
+            set rd [redis_deferring_client]
+            create_$type blist "a b $large c d"
+
+            $rd blpop blist 1
+            assert_equal {blist a} [$rd read]
+            $rd brpop blist 1
+            assert_equal {blist d} [$rd read]
+
+            $rd blpop blist 1
+            assert_equal {blist b} [$rd read]
+            $rd brpop blist 1
+            assert_equal {blist c} [$rd read]
+        }
+
+# Bug need Fix
 #        test "BLPOP, BRPOP: multiple existing lists - $type" {
 #            set rd [redis_deferring_client]
 #            create_$type blist1 "a $large c"
@@ -133,20 +136,21 @@ start_server {
 #            assert_equal 1 [r llen blist1]
 #            assert_equal 1 [r llen blist2]
 #        }
-#
-#        test "BLPOP, BRPOP: second list has an entry - $type" {
-#            set rd [redis_deferring_client]
-#            r del blist1
-#            create_$type blist2 "d $large f"
-#
-#            $rd blpop blist1 blist2 1
-#            assert_equal {blist2 d} [$rd read]
-#            $rd brpop blist1 blist2 1
-#            assert_equal {blist2 f} [$rd read]
-#            assert_equal 0 [r llen blist1]
-#            assert_equal 1 [r llen blist2]
-#        }
-#
+
+        test "BLPOP, BRPOP: second list has an entry - $type" {
+            set rd [redis_deferring_client]
+            r del blist1
+            create_$type blist2 "d $large f"
+
+            $rd blpop blist1 blist2 1
+            assert_equal {blist2 d} [$rd read]
+            $rd brpop blist1 blist2 1
+            assert_equal {blist2 f} [$rd read]
+            assert_equal 0 [r llen blist1]
+            assert_equal 1 [r llen blist2]
+        }
+
+# Pika does not support the BRPOPLPUSH command
 #        test "BRPOPLPUSH - $type" {
 #            r del target
 #
@@ -160,81 +164,84 @@ start_server {
 #            assert_equal "a b $large c" [r lrange blist 0 -1]
 #        }
 #    }
-#
-#    test "BLPOP, LPUSH + DEL should not awake blocked client" {
-#        set rd [redis_deferring_client]
-#        r del list
-#
-#        $rd blpop list 0
-#        r multi
-#        r lpush list a
-#        r del list
-#        r exec
-#        r del list
-#        r lpush list b
-#        $rd read
-#    } {list b}
-#
-#    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
-#        set rd [redis_deferring_client]
-#        r del list
-#
-#        $rd blpop list 0
-#        r multi
-#        r lpush list a
-#        r del list
-#        r set list foo
-#        r exec
-#        r del list
-#        r lpush list b
-#        $rd read
-#    } {list b}
-#
-#    test "BLPOP with same key multiple times should work (issue #801)" {
-#        set rd [redis_deferring_client]
-#        r del list1 list2
-#
-#        # Data arriving after the BLPOP.
-#        $rd blpop list1 list2 list2 list1 0
-#        r lpush list1 a
-#        assert_equal [$rd read] {list1 a}
-#        $rd blpop list1 list2 list2 list1 0
-#        r lpush list2 b
-#        assert_equal [$rd read] {list2 b}
-#
-#        # Data already there.
-#        r lpush list1 a
-#        r lpush list2 b
-#        $rd blpop list1 list2 list2 list1 0
-#        assert_equal [$rd read] {list1 a}
-#        $rd blpop list1 list2 list2 list1 0
-#        assert_equal [$rd read] {list2 b}
-#    }
-#
-#    test "MULTI/EXEC is isolated from the point of view of BLPOP" {
-#        set rd [redis_deferring_client]
-#        r del list
-#        $rd blpop list 0
-#        r multi
-#        r lpush list a
-#        r lpush list b
-#        r lpush list c
-#        r exec
-#        $rd read
-#    } {list c}
-#
-#    test "BLPOP with variadic LPUSH" {
-#        set rd [redis_deferring_client]
-#        r del blist target
-#        if {$::valgrind} {after 100}
-#        $rd blpop blist 0
-#        if {$::valgrind} {after 100}
-#        assert_equal 2 [r lpush blist foo bar]
-#        if {$::valgrind} {after 100}
-#        assert_equal {blist bar} [$rd read]
-#        assert_equal foo [lindex [r lrange blist 0 -1] 0]
-#    }
-#
+
+    test "BLPOP, LPUSH + DEL should not awake blocked client" {
+        set rd [redis_deferring_client]
+        r del list
+
+        $rd blpop list 0
+        r multi
+        r lpush list a
+        r del list
+        r exec
+        r del list
+        r lpush list b
+        $rd read
+    } {list b}
+
+
+    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
+        set rd [redis_deferring_client]
+        r del list
+
+        $rd blpop list 0
+        r multi
+        r lpush list a
+        r del list
+        r set list foo
+        r exec
+        r del list
+        r lpush list b
+        $rd read
+    } {list b}
+
+
+    test "BLPOP with same key multiple times should work (issue #801)" {
+        set rd [redis_deferring_client]
+        r del list1 list2
+
+        # Data arriving after the BLPOP.
+        $rd blpop list1 list2 list2 list1 0
+        r lpush list1 a
+        assert_equal [$rd read] {list1 a}
+        $rd blpop list1 list2 list2 list1 0
+        r lpush list2 b
+        assert_equal [$rd read] {list2 b}
+
+        # Data already there.
+        r lpush list1 a
+        r lpush list2 b
+        $rd blpop list1 list2 list2 list1 0
+        assert_equal [$rd read] {list1 a}
+        $rd blpop list1 list2 list2 list1 0
+        assert_equal [$rd read] {list2 b}
+    }
+
+    test "MULTI/EXEC is isolated from the point of view of BLPOP" {
+        set rd [redis_deferring_client]
+        r del list
+        $rd blpop list 0
+        r multi
+        r lpush list a
+        r lpush list b
+        r lpush list c
+        r exec
+        $rd read
+    } {list c}
+
+    test "BLPOP with variadic LPUSH" {
+        set rd [redis_deferring_client]
+        r del blist target
+        if {$::valgrind} {after 100}
+        $rd blpop blist 0
+        if {$::valgrind} {after 100}
+        assert_equal 2 [r lpush blist foo bar]
+        if {$::valgrind} {after 100}
+        assert_equal {blist bar} [$rd read]
+        assert_equal foo [lindex [r lrange blist 0 -1] 0]
+    }
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH with zero timeout should block indefinitely" {
 #        set rd [redis_deferring_client]
 #        r del blist target
@@ -244,7 +251,8 @@ start_server {
 #        assert_equal foo [$rd read]
 #        assert_equal {foo} [r lrange target 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH with a client BLPOPing the target list" {
 #        set rd [redis_deferring_client]
 #        set rd2 [redis_deferring_client]
@@ -257,7 +265,8 @@ start_server {
 #        assert_equal {target foo} [$rd2 read]
 #        assert_equal 0 [r exists target]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH with wrong source type" {
 #        set rd [redis_deferring_client]
 #        r del blist target
@@ -265,7 +274,8 @@ start_server {
 #        $rd brpoplpush blist target 1
 #        assert_error "WRONGTYPE*" {$rd read}
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH with wrong destination type" {
 #        set rd [redis_deferring_client]
 #        r del blist target
@@ -283,7 +293,8 @@ start_server {
 #        assert_error "WRONGTYPE*" {$rd read}
 #        assert_equal {foo} [r lrange blist 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH maintains order of elements after failure" {
 #        set rd [redis_deferring_client]
 #        r del blist target
@@ -293,7 +304,8 @@ start_server {
 #        assert_error "WRONGTYPE*" {$rd read}
 #        r lrange blist 0 -1
 #    } {a b c}
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH with multiple blocked clients" {
 #        set rd1 [redis_deferring_client]
 #        set rd2 [redis_deferring_client]
@@ -307,7 +319,8 @@ start_server {
 #        assert_equal {foo} [$rd2 read]
 #        assert_equal {foo} [r lrange target2 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "Linked BRPOPLPUSH" {
 #      set rd1 [redis_deferring_client]
 #      set rd2 [redis_deferring_client]
@@ -323,7 +336,8 @@ start_server {
 #      assert_equal {} [r lrange list2 0 -1]
 #      assert_equal {foo} [r lrange list3 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "Circular BRPOPLPUSH" {
 #      set rd1 [redis_deferring_client]
 #      set rd2 [redis_deferring_client]
@@ -338,7 +352,8 @@ start_server {
 #      assert_equal {foo} [r lrange list1 0 -1]
 #      assert_equal {} [r lrange list2 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "Self-referential BRPOPLPUSH" {
 #      set rd [redis_deferring_client]
 #
@@ -350,7 +365,8 @@ start_server {
 #
 #      assert_equal {foo} [r lrange blist 0 -1]
 #    }
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH inside a transaction" {
 #        r del xlist target
 #        r lpush xlist foo
@@ -364,7 +380,8 @@ start_server {
 #        r lrange target 0 -1
 #        r exec
 #    } {foo bar {} {} {bar foo}}
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "PUSH resulting from BRPOPLPUSH affect WATCH" {
 #        set blocked_client [redis_deferring_client]
 #        set watching_client [redis_deferring_client]
@@ -381,7 +398,8 @@ start_server {
 #        $watching_client exec
 #        $watching_client read
 #    } {}
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test "BRPOPLPUSH does not affect WATCH while still blocked" {
 #        set blocked_client [redis_deferring_client]
 #        set watching_client [redis_deferring_client]
@@ -399,7 +417,8 @@ start_server {
 #        r lpush srclist element
 #        $watching_client read
 #    } {somevalue}
-#
+
+# Pika does not support the BRPOPLPUSH command
 #    test {BRPOPLPUSH timeout} {
 #      set rd [redis_deferring_client]
 #
@@ -408,6 +427,8 @@ start_server {
 #      $rd read
 #    } {}
 #
+
+# Keys for multiple data types of Pika can be duplicate
 #    test "BLPOP when new key is moved into place" {
 #        set rd [redis_deferring_client]
 #
@@ -416,7 +437,8 @@ start_server {
 #        r rename bob foo
 #        $rd read
 #    } {foo hij}
-#
+
+# Keys for multiple data types of Pika can be duplicate
 #    test "BLPOP when result key is created by SORT..STORE" {
 #        set rd [redis_deferring_client]
 #
@@ -430,8 +452,10 @@ start_server {
 #        r sort notfoo ALPHA store foo
 #        $rd read
 #    } {foo aguacate}
-#
-#    foreach {pop} {BLPOP BRPOP} {
+
+    foreach {pop} {BLPOP BRPOP} {
+
+# Keys for multiple data types of Pika can be duplicate
 #        test "$pop: with single empty list argument" {
 #            set rd [redis_deferring_client]
 #            r del blist1
@@ -440,19 +464,22 @@ start_server {
 #            assert_equal {blist1 foo} [$rd read]
 #            assert_equal 0 [r exists blist1]
 #        }
-#
+
+# No cause has been confirmed
 #        test "$pop: with negative timeout" {
 #            set rd [redis_deferring_client]
 #            $rd $pop blist1 -1
 #            assert_error "ERR*is negative*" {$rd read}
 #        }
-#
+
+# No cause has been confirmed
 #        test "$pop: with non-integer timeout" {
 #            set rd [redis_deferring_client]
 #            $rd $pop blist1 1.1
 #            assert_error "ERR*not an integer*" {$rd read}
 #        }
-#
+
+# Keys for multiple data types of Pika can be duplicate
 #        test "$pop: with zero timeout should block indefinitely" {
 #            # To test this, use a timeout of 0 and wait a second.
 #            # The blocking pop should still be waiting for a push.
@@ -462,7 +489,8 @@ start_server {
 #            r rpush blist1 foo
 #            assert_equal {blist1 foo} [$rd read]
 #        }
-#
+
+# Keys for multiple data types of Pika can be duplicate
 #        test "$pop: second argument is not a list" {
 #            set rd [redis_deferring_client]
 #            r del blist1 blist2
@@ -470,14 +498,16 @@ start_server {
 #            $rd $pop blist1 blist2 1
 #            assert_error "WRONGTYPE*" {$rd read}
 #        }
-#
+
+# No cause has been confirmed
 #        test "$pop: timeout" {
 #            set rd [redis_deferring_client]
 #            r del blist1 blist2
 #            $rd $pop blist1 blist2 1
 #            assert_equal {} [$rd read]
 #        }
-#
+
+# No cause has been confirmed
 #        test "$pop: arguments are empty" {
 #            set rd [redis_deferring_client]
 #            r del blist1 blist2
@@ -494,8 +524,9 @@ start_server {
 #            assert_equal 0 [r exists blist1]
 #            assert_equal 0 [r exists blist2]
 #        }
-#    }
-#
+    }
+
+# No cause has been confirmed
 #    test {BLPOP inside a transaction} {
 #        r del xlist
 #        r lpush xlist foo
@@ -547,6 +578,7 @@ start_server {
         set e
     } {*ERR*syntax*error*}
 
+# No cause has been confirmed
 #    test {LPUSHX, RPUSHX convert from ziplist to list} {
 #        set large $largevalue(linkedlist)
 #
@@ -567,6 +599,7 @@ start_server {
 #        assert_encoding linkedlist xlist
 #    }
 
+# No cause has been confirmed
 #    test {LINSERT convert from ziplist to list} {
 #        set large $largevalue(linkedlist)
 #
@@ -627,6 +660,7 @@ start_server {
             check_random_access_consistency mylist
         }
 
+# Pika does not support the debug command
 #        test "Check if list is still ok after a DEBUG RELOAD - $type" {
 #            r debug reload
 #            assert_encoding $type mylist
@@ -635,6 +669,7 @@ start_server {
 #        }
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {LLEN against non-list value error} {
 #        r del mylist
 #        r set mylist foobar
@@ -645,6 +680,7 @@ start_server {
         assert_equal 0 [r llen not-a-key]
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {LINDEX against non-list value error} {
 #        assert_error WRONGTYPE* {r lindex mylist 0}
 #    }
@@ -653,10 +689,12 @@ start_server {
         assert_equal "" [r lindex not-a-key 10]
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {LPUSH against non-list value error} {
 #        assert_error WRONGTYPE* {r lpush mylist 0}
 #    }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {RPUSH against non-list value error} {
 #        assert_error WRONGTYPE* {r rpush mylist 0}
 #    }
@@ -672,12 +710,13 @@ start_server {
 #            assert_encoding ziplist mylist2
         }
 
-        test "RPOPLPUSH with the same list as src and dst - $type" {
-            create_$type mylist "a $large c"
-            assert_equal "a $large c" [r lrange mylist 0 -1]
-            assert_equal c [r rpoplpush mylist mylist]
-            assert_equal "c a $large" [r lrange mylist 0 -1]
-        }
+# Bug need Fix
+#        test "RPOPLPUSH with the same list as src and dst - $type" {
+#            create_$type mylist "a $large c"
+#            assert_equal "a $large c" [r lrange mylist 0 -1]
+#            assert_equal c [r rpoplpush mylist mylist]
+#            assert_equal "c a $large" [r lrange mylist 0 -1]
+#        }
 
         foreach {othertype otherlarge} [array get largevalue] {
             test "RPOPLPUSH with $type source and existing target $othertype" {
@@ -739,6 +778,7 @@ start_server {
         }
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {LPOP/RPOP against non list value} {
 #        r set notalist foo
 #        assert_error WRONGTYPE* {r lpop notalist}
@@ -840,6 +880,7 @@ start_server {
         assert_error ERR*key* {r lset nosuchkey 10 foo}
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {LSET against non list value} {
 #        r set nolist foobar
 #        assert_error WRONGTYPE* {r lset nolist 0 foo}

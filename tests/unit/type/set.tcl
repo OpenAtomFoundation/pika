@@ -33,6 +33,7 @@ start_server {
         assert_equal {16 17} [lsort [r smembers myset]]
     }
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {SADD against non set} {
 #        r lpush mylist foo
 #        assert_error WRONGTYPE* {r sadd mylist bar}
@@ -66,6 +67,7 @@ start_server {
         assert_equal [lsort {A a b c B}] [lsort [r smembers myset]]
     }
 
+# Pika does not support the debug command
 #    test "Set encoding after DEBUG RELOAD" {
 #        r del myintset myhashset mylargeintset
 #        for {set i 0} {$i <  100} {incr i} { r sadd myintset $i }
@@ -140,6 +142,7 @@ start_server {
             r sadd [format "set%d" $i] $large
         }
 
+# Pika does not support the debug command
 #        test "Generated sets must be encoded as $type" {
 #            for {set i 1} {$i <= 5} {incr i} {
 #                assert_encoding $type [format "set%d" $i]
@@ -156,6 +159,7 @@ start_server {
             assert_equal [list 195 196 197 198 199 $large] [lsort [r smembers setres]]
         }
 
+# Pika does not support the debug command
 #        test "SINTERSTORE with two sets, after a DEBUG RELOAD - $type" {
 #            r debug reload
 #            r sinterstore setres set1 set2
@@ -246,11 +250,13 @@ start_server {
         }
     }
 
+# Bug need Fix
 #    test "SINTER against non-set should throw error" {
 #        r set key1 x
 #        assert_error "WRONGTYPE*" {r sinter key1 noset}
 #    }
 
+# Bug need Fix
 #    test "SUNION against non-set should throw error" {
 #        r set key1 x
 #        assert_error "WRONGTYPE*" {r sunion key1 noset}
@@ -476,11 +482,13 @@ start_server {
 #        assert_encoding intset myset3
     }
 
+# Bug need Fix
 #    test "SMOVE wrong src key type" {
 #        r set x 10
 #        assert_error "WRONGTYPE*" {r smove x myset2 foo}
 #    }
 
+# Bug need Fix
 #    test "SMOVE wrong dst key type" {
 #        r set x 10
 #        assert_error "WRONGTYPE*" {r smove myset2 x foo}

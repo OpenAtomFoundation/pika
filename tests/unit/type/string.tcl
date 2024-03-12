@@ -102,6 +102,7 @@ start_server {tags {"string"}} {
         assert_equal 20 [r get x]
     }
 
+# Pika does not support the getex command
    # test "GETEX EX option" {
    #     r del foo
    #     r set foo bar
@@ -109,6 +110,7 @@ start_server {tags {"string"}} {
    #     assert_range [r ttl foo] 5 10
    # }
 
+# Pika does not support the getex command
    # test "GETEX PX option" {
    #     r del foo
    #     r set foo bar
@@ -116,6 +118,7 @@ start_server {tags {"string"}} {
    #     assert_range [r pttl foo] 5000 10000
    # }
 
+# Pika does not support the getex command
    # test "GETEX EXAT option" {
    #     r del foo
    #     r set foo bar
@@ -123,6 +126,7 @@ start_server {tags {"string"}} {
    #     assert_range [r ttl foo] 5 10
    # }
 
+# Pika does not support the getex command
    # test "GETEX PXAT option" {
    #     r del foo
    #     r set foo bar
@@ -130,6 +134,7 @@ start_server {tags {"string"}} {
    #     assert_range [r pttl foo] 5000 10000
    # }
 
+# Pika does not support the getex command
    # test "GETEX PERSIST option" {
    #     r del foo
    #     r set foo bar ex 10
@@ -138,6 +143,7 @@ start_server {tags {"string"}} {
    #     assert_equal -1 [r ttl foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX no option" {
    #     r del foo
    #     r set foo bar
@@ -145,12 +151,14 @@ start_server {tags {"string"}} {
    #     assert_equal bar [r getex foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX syntax errors" {
    #     set ex {}
    #     catch {r getex foo non-existent-option} ex
    #     set ex
    # } {*syntax*}
 
+# Pika does not support the getex command
    # test "GETEX and GET expired key or not exist" {
    #     r del foo
    #     r set foo bar px 1
@@ -159,12 +167,14 @@ start_server {tags {"string"}} {
    #     assert_equal {} [r get foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX no arguments" {
    #      set ex {}
    #      catch {r getex} ex
    #      set ex
    #  } {*wrong number of arguments for 'getex' command}
 
+# Pika does not support the getdel command
    # test "GETDEL command" {
    #     r del foo
    #     r set foo bar
@@ -172,6 +182,7 @@ start_server {tags {"string"}} {
    #     assert_equal {} [r getdel foo ]
    # }
 
+# Pika does not support the getdel command
    # test {GETDEL propagate as DEL command to replica} {
    #     set repl [attach_to_replication_stream]
    #     r set foo bar
@@ -184,6 +195,7 @@ start_server {tags {"string"}} {
    #     close_replication_stream $repl
    # } {} {needs:repl}
 
+# Pika does not support the getex command
    # test {GETEX without argument does not propagate to replica} {
    #     set repl [attach_to_replication_stream]
    #     r set foo bar
@@ -286,6 +298,7 @@ start_server {tags {"string"}} {
         assert_equal [binary format B* 00100000] [r get mykey]
     }
 
+# Currently Redis and Pika are consistent
    # test "SETBIT against integer-encoded key" {
    #     # Ascii "1" is integer 49 = 00 11 00 01
    #     r set mykey 1
@@ -297,18 +310,21 @@ start_server {tags {"string"}} {
    #     assert_equal [binary format B* 00010011] [r get mykey]
    # }
 
+# Currently Redis and Pika are consistent
    # test "SETBIT against key with wrong type" {
    #     r del mykey
    #     r lpush mykey "foo"
    #     assert_error "WRONGTYPE*" {r setbit mykey 0 1}
    # }
 
+# Currently Redis and Pika are consistent
    # test "SETBIT with out of range bit offset" {
    #     r del mykey
    #     assert_error "*out of range*" {r setbit mykey [expr 4*1024*1024*1024] 1}
    #     assert_error "*out of range*" {r setbit mykey -1 1}
    # }
 
+# Currently Redis and Pika are consistent
    # test "SETBIT with non-bit argument" {
    #     r del mykey
    #     assert_error "*out of range*" {r setbit mykey 0 -1}
@@ -317,6 +333,7 @@ start_server {tags {"string"}} {
    #     assert_error "*out of range*" {r setbit mykey 0 20}
    # }
 
+# Currently Redis and Pika are consistent
    # test "SETBIT fuzzing" {
    #     set str ""
    #     set len [expr 256*8]
@@ -335,11 +352,13 @@ start_server {tags {"string"}} {
    #     }
    # }
 
+# Bug need Fix
    # test "GETBIT against non-existing key" {
    #     r del mykey
    #     assert_equal 0 [r getbit mykey 0]
    # }
 
+# Bug need Fix
    # test "GETBIT against string-encoded key" {
    #     # Single byte with 2nd and 3rd bit set
    #     r set mykey "`"
@@ -356,6 +375,7 @@ start_server {tags {"string"}} {
    #     assert_equal 0 [r getbit mykey 10000]
    # }
 
+# Bug need Fix
    # test "GETBIT against integer-encoded key" {
    #     r set mykey 1
    #     assert_encoding int mykey
@@ -372,6 +392,7 @@ start_server {tags {"string"}} {
    #     assert_equal 0 [r getbit mykey 10000]
    # }
 
+# Bug need Fix
    # test "SETRANGE against non-existing key" {
    #     r del mykey
    #     assert_equal 3 [r setrange mykey 0 foo]
@@ -386,6 +407,7 @@ start_server {tags {"string"}} {
    #     assert_equal "\000foo" [r get mykey]
    # }
 
+# Bug need Fix
    # test "SETRANGE against string-encoded key" {
    #     r set mykey "foo"
    #     assert_equal 3 [r setrange mykey 0 b]
@@ -404,6 +426,7 @@ start_server {tags {"string"}} {
    #     assert_equal "foo\000bar" [r get mykey]
    # }
 
+# Pika does not support the debug command
    # test "SETRANGE against integer-encoded key" {
    #     r set mykey 1234
    #     assert_encoding int mykey
@@ -431,12 +454,14 @@ start_server {tags {"string"}} {
    #     assert_equal "1234\0002" [r get mykey]
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "SETRANGE against key with wrong type" {
    #     r del mykey
    #     r lpush mykey "foo"
    #     assert_error "WRONGTYPE*" {r setrange mykey 0 bar}
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "SETRANGE with out of range offset" {
    #     r del mykey
    #     assert_error "*maximum allowed size*" {r setrange mykey [expr 512*1024*1024-4] world}
@@ -446,16 +471,19 @@ start_server {tags {"string"}} {
    #     assert_error "*maximum allowed size*" {r setrange mykey [expr 512*1024*1024-4] world}
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "GETRANGE against non-existing key" {
    #     r del mykey
    #     assert_equal "" [r getrange mykey 0 -1]
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "GETRANGE against wrong key type" {
    #     r lpush lkey1 "list"
    #     assert_error {WRONGTYPE Operation against a key holding the wrong kind of value*} {r getrange lkey1 0 -1}
    # }
 
+# No cause has been confirmed
    # test "GETRANGE against string value" {
    #     r set mykey "Hello World"
    #     assert_equal "Hell" [r getrange mykey 0 3]
@@ -466,6 +494,7 @@ start_server {tags {"string"}} {
    #     assert_equal "Hello World" [r getrange mykey -5000 10000]
    # }
 
+# No cause has been confirmed
    # test "GETRANGE against integer-encoded value" {
    #     r set mykey 1234
    #     assert_equal "123" [r getrange mykey 0 2]
@@ -476,6 +505,7 @@ start_server {tags {"string"}} {
    #     assert_equal "1234" [r getrange mykey -5000 10000]
    # }
 
+# No cause has been confirmed
    # test "GETRANGE fuzzing" {
    #     for {set i 0} {$i < 1000} {incr i} {
    #         r set bin [set bin [randstring 0 1024 binary]]
@@ -487,6 +517,7 @@ start_server {tags {"string"}} {
    #     }
    # }
 
+# No cause has been confirmed
    # test "Coverage: SUBSTR" {
    #     r set key abcde
    #     assert_equal "a" [r substr key 0 0]
@@ -514,6 +545,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         set e
     } {*syntax*}
 
+# No cause has been confirmed
    # test {Extended SET NX option} {
    #     r del foo
    #     set v1 [r set foo 1 nx]
@@ -529,6 +561,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         list $v1 $v2 [r get foo]
     } {{} OK 2}
 
+# Currently Redis and Pika are consistent
    # test {Extended SET GET option} {
    #     r del foo
    #     r set foo bar
@@ -537,6 +570,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar bar2}
 
+# Currently Redis and Pika are consistent
    # test {Extended SET GET option with no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET]
@@ -544,6 +578,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
+# Bug need Fix
    # test {Extended SET GET option with XX} {
    #     r del foo
    #     r set foo bar
@@ -552,6 +587,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar baz}
 
+# Bug need Fix
    # test {Extended SET GET option with XX and no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET XX]
@@ -559,6 +595,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} {}}
 
+# Currently Redis and Pika are consistent
    # test {Extended SET GET option with NX} {
    #     r del foo
    #     set old_value [r set foo bar GET NX]
@@ -566,6 +603,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
+# Currently Redis and Pika are consistent
    # test {Extended SET GET option with NX and previous value} {
    #     r del foo
    #     r set foo bar
@@ -574,6 +612,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar bar}
 
+# Currently Redis and Pika are consistent
    # test {Extended SET GET with incorrect type should result in wrong type error} {
    #   r del foo
    #   r rpush foo waffle
@@ -596,17 +635,21 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
        assert {$ttl <= 10 && $ttl > 5}
    }
 
+# No cause has been confirmed
    # test "Extended SET EXAT option" {
    #     r del foo
    #     r set foo bar exat [expr [clock seconds] + 10]
    #     assert_range [r ttl foo] 5 10
    # }
 
+# No cause has been confirmed
    # test "Extended SET PXAT option" {
    #     r del foo
    #     r set foo bar pxat [expr [clock milliseconds] + 10000]
    #     assert_range [r ttl foo] 5 10
    # }
+
+# No cause has been confirmed
    # test {Extended SET using multiple options at once} {
    #     r set foo val
    #     assert {[r set foo bar xx px 10000] eq {OK}}
@@ -619,6 +662,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         r getrange foo 0 4294967297
     } {bar}
 
+# Pika does not support the lcs command
    # set rna1 {CACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTCGTCCGGGTGTG}
    # set rna2 {ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTT}
    # set rnalcs {ACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTT}

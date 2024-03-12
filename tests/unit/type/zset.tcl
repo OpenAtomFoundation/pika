@@ -6,6 +6,7 @@ start_server {tags {"zset"}} {
         }
     }
 
+# This parameter is not available in Pika
     proc basics {encoding} {
         #if {$encoding == "ziplist"} {
         #    r config set zset-max-ziplist-entries 128
@@ -527,6 +528,7 @@ start_server {tags {"zset"}} {
             assert_equal {b 2 c 3} [r zrange zsetc 0 -1 withscores]
         }
 
+# Bug need Fix
         foreach cmd {ZUNIONSTORE ZINTERSTORE} {
            # test "$cmd with 999999999/-999999999 scores - $encoding" {
            #     r del zsetinf1 zsetinf2
@@ -580,6 +582,7 @@ start_server {tags {"zset"}} {
         r zrange out 0 -1 withscores
     } {neginf 0}
 
+# Bug need Fix
    # test {ZINTERSTORE #516 regression, mixed sets and ziplist zsets} {
    #     r sadd one 100 101 102 103
    #     r sadd two 100 200 201 202
