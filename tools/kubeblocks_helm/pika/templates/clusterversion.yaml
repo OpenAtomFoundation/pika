@@ -22,6 +22,12 @@ spec:
         - name: etcd
           image: {{ include "etcd.image" . }}
           imagePullPolicy: {{ include "etcd.imagePullPolicy" . }}
+  - componentDefRef: pika-exporter
+    versionsContext:
+      containers:
+        - name: pika-exporter
+          image: {{ include "pikaExporter.image" . }}
+          imagePullPolicy: {{ include "pikaExporter.imagePullPolicy" . }}
   - componentDefRef: codis-proxy
     versionsContext:
       containers:
