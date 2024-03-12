@@ -13,45 +13,45 @@ source tests/support/util.tcl
 
 set ::all_tests {
     unit/printver
-    # unit/auth
-    # unit/protocol
-    # unit/basic
-    # unit/scan
-    # unit/type/list
+    unit/basic
+    unit/scan
+    unit/multi
+    unit/quit
+    unit/type/list
+    unit/pubsub
+    unit/slowlog
+    unit/maxmemory
+    unit/bitops
+    unit/hyperloglog
+    unit/type
+    unit/acl
     unit/type/list-2
     unit/type/list-3
     unit/type/set
     unit/type/zset
     unit/type/string
-    # unit/type/hash
-    # unit/sort
+    unit/type/hash
     # unit/expire
+    # unit/protocol
     # unit/other
-    # unit/multi
-    # unit/quit
+    # unit/auth
+    # unit/sort
     # unit/aofrw
-    # integration/replication
-    # integration/replication-2
-    # integration/replication-3
-    # integration/replication-4
-    # integration/replication-psync
-    # integration/aof
-    # integration/rdb
-    # integration/convert-zipmap-hash-on-load
-    # unit/pubsub
-    # unit/slowlog
     # unit/scripting
-    unit/maxmemory
     # unit/introspection
     # unit/limits
     # unit/obuf-limits
     # unit/dump
-    # unit/bitops
     # unit/memefficiency
-    # unit/hyperloglog
     # unit/command
-    unit/type
-    unit/acl
+    # unit/tcl/replication
+    # unit/tcl/replication-2
+    # unit/tcl/replication-3
+    # unit/tcl/replication-4
+    # unit/tcl/replication-psync
+    # unit/tcl/aof
+    # unit/tcl/rdb
+    # unit/tcl/convert-zipmap-hash-on-load
 }
 
 # because the comment not works in tcl list, use regsub to ignore the item starting with '#'
