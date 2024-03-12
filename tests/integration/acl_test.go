@@ -15,64 +15,61 @@ var _ = Describe("Acl test", func() {
 	})
 
 	AfterEach(func() {
-		if client != nil {
-			Expect(client.Close()).NotTo(HaveOccurred())
-		}
 	})
 
 	It("has requirepass & userpass & blacklist", func() {
-		Client := redis.NewClient(PikaOption(ACLADDR_1))
-		authRes := Client.Do(ctx, "auth", "wrong!")
+		client = redis.NewClient(PikaOption(ACLADDR_1))
+		authRes := client.Do(ctx, "auth", "wrong!")
 		Expect(authRes.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
 		// user:limit
-		authRes = Client.Do(ctx, "auth", "userpass")
+		authRes = client.Do(ctx, "auth", "userpass")
 		Expect(authRes.Err()).NotTo(HaveOccurred())
 		Expect(authRes.Val()).To(Equal("OK"))
 
-		limitRes := Client.Do(ctx, "flushall")
+		limitRes := client.Do(ctx, "flushall")
 		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
 
-		limitRes = Client.Do(ctx, "flushdb")
+		limitRes = client.Do(ctx, "flushdb")
 		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
 
 		// user:default
-		authRes = Client.Do(ctx, "auth", "requirepass")
+		authRes = client.Do(ctx, "auth", "requirepass")
 		Expect(authRes.Err()).NotTo(HaveOccurred())
 		Expect(authRes.Val()).To(Equal("OK"))
 
-		adminRes := Client.Do(ctx, "flushall")
+		adminRes := client.Do(ctx, "flushall")
 		Expect(adminRes.Err()).NotTo(HaveOccurred())
 		Expect(adminRes.Val()).To(Equal("OK"))
 
-		adminRes = Client.Do(ctx, "flushdb")
+		adminRes = client.Do(ctx, "flushdb")
 		Expect(adminRes.Err()).NotTo(HaveOccurred())
 		Expect(adminRes.Val()).To(Equal("OK"))
 
 	})
 	It("has requirepass & blacklist", func() {
-		Client := redis.NewClient(PikaOption(ACLADDR_2))
+		client := redis.NewClient(PikaOption(ACLADDR_2))
 
 		// user:limit
-		authRes := Client.Do(ctx, "auth", "anypass")
+		authRes := client.Do(ctx, "auth", "anypass")
 		Expect(authRes.Err()).NotTo(HaveOccurred())
 
-		limitRes := Client.Do(ctx, "flushall")
+		limitRes := client.Do(ctx, "flushall")
 		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
 
-		limitRes = Client.Do(ctx, "flushdb")
+		limitRes = client.Do(ctx, "flushdb")
 		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
 
 		// user:default
-		authRes = Client.Do(ctx, "auth", "requirepass")
+		authRes = client.Do(ctx, "auth", "requirepass")
 		Expect(authRes.Err()).NotTo(HaveOccurred())
 		Expect(authRes.Val()).To(Equal("OK"))
 
-		adminRes := Client.Do(ctx, "flushall")
+		adminRes := client.Do(ctx, "flushall")
 		Expect(adminRes.Err()).NotTo(HaveOccurred())
 		Expect(adminRes.Val()).To(Equal("OK"))
 
-		adminRes = Client.Do(ctx, "flushdb")
+		adminRes = client.Do(ctx, "flushdb")
 		Expect(adminRes.Err()).NotTo(HaveOccurred())
 		Expect(adminRes.Val()).To(Equal("OK"))
 
