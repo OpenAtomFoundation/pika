@@ -868,9 +868,9 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
 
 void SlotsMgrtTagSlotCmd::Do() {
   if (g_pika_conf->slotmigrate() != true) {
-    LOG(WARNING) << "Not in slotmigrate mode";
-    res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
-    return;
+    res_.SetRes(CmdRes::kErrOther, "not set slotmigrate, know auto open slotmigrate");
+    g_pika_conf->SetSlotMigrate("yes");
+    g_pika_server->Bgslotsreload(db_);
   }
 
   int32_t len = 0;
@@ -996,10 +996,10 @@ void SlotsMgrtTagOneCmd::DoInitial() {
 }
 
 void SlotsMgrtTagOneCmd::Do() {
-  if (!g_pika_conf->slotmigrate()) {
-    LOG(WARNING) << "Not in slotmigrate mode";
-    res_.SetRes(CmdRes::kErrOther, "not set slotmigrate");
-    return;
+  if (g_pika_conf->slotmigrate() != true) {
+    res_.SetRes(CmdRes::kErrOther, "not set slotmigrate, know auto open slotmigrate");
+    g_pika_conf->SetSlotMigrate("yes");
+    g_pika_server->Bgslotsreload(db_);
   }
 
   int64_t ret = 0;
@@ -1227,9 +1227,10 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
 void SlotsMgrtTagSlotAsyncCmd::Do() {
   // check whether open slotmigrate
-  if (!g_pika_conf->slotmigrate()) {
-    res_.SetRes(CmdRes::kErrOther, "please open slotmigrate and reload slot");
-    return;
+  if (g_pika_conf->slotmigrate() != true) {
+    res_.SetRes(CmdRes::kErrOther, "not set slotmigrate, know auto open slotmigrate");
+    g_pika_conf->SetSlotMigrate("yes");
+    g_pika_server->Bgslotsreload(db_);
   }
 
   int32_t remained = 0;
