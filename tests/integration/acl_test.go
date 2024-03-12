@@ -2,8 +2,6 @@ package pika_integration
 
 import (
 	"context"
-	"time"
-
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -14,13 +12,111 @@ var _ = Describe("Acl test", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(PikaOption(SINGLEADDR))
-		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-		time.Sleep(1 * time.Second)
 	})
 
 	AfterEach(func() {
-		Expect(client.Close()).NotTo(HaveOccurred())
+		if client != nil {
+			Expect(client.Close()).NotTo(HaveOccurred())
+		}
+	})
+
+	FIt("has requirepass & userpass & blacklist", func() {
+		Client := redis.NewClient(PikaOption(ACLADDR_1))
+		authRes := Client.Do(ctx, "auth", "wrong!")
+		Expect(authRes.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
+
+		// user:limit
+		authRes = Client.Do(ctx, "auth", "userpass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		limitRes := Client.Do(ctx, "flushall")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
+
+		limitRes = Client.Do(ctx, "flushdb")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
+
+		// user:default
+		authRes = Client.Do(ctx, "auth", "requirepass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		adminRes := Client.Do(ctx, "flushall")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
+
+		adminRes = Client.Do(ctx, "flushdb")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
+
+	})
+	FIt("has requirepass & blacklist", func() {
+		Client := redis.NewClient(PikaOption(ACLADDR_2))
+
+		// user:limit
+		authRes := Client.Do(ctx, "auth", "anypass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+
+		limitRes := Client.Do(ctx, "flushall")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
+
+		limitRes = Client.Do(ctx, "flushdb")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
+
+		// user:default
+		authRes = Client.Do(ctx, "auth", "requirepass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		adminRes := Client.Do(ctx, "flushall")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
+
+		adminRes = Client.Do(ctx, "flushdb")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
+
+	})
+	FIt("has other acl user", func() {
+		client := redis.NewClient(PikaOption(ACLADDR_3))
+
+		authRes := client.Do(ctx, "auth", "wrong!")
+		Expect(authRes.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
+
+		// user:limit
+		authRes = client.Do(ctx, "auth", "userpass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		limitRes := client.Do(ctx, "flushall")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
+
+		limitRes = client.Do(ctx, "flushdb")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
+
+		// user:limit
+		authRes = client.Do(ctx, "auth", "limitpass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		limitRes = client.Do(ctx, "flushall")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushall' command"))
+
+		limitRes = client.Do(ctx, "flushdb")
+		Expect(limitRes.Err()).To(MatchError("NOPERM this user has no permissions to run the 'flushdb' command"))
+
+		// user:default
+		authRes = client.Do(ctx, "auth", "requirepass")
+		Expect(authRes.Err()).NotTo(HaveOccurred())
+		Expect(authRes.Val()).To(Equal("OK"))
+
+		adminRes := client.Do(ctx, "flushall")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
+
+		adminRes = client.Do(ctx, "flushdb")
+		Expect(adminRes.Err()).NotTo(HaveOccurred())
+		Expect(adminRes.Val()).To(Equal("OK"))
 	})
 
 	It("should acl dryrun", func() {

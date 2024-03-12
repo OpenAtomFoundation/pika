@@ -130,8 +130,8 @@ var _ = Describe("Stream Commands", func() {
 	})
 
 	AfterEach(func() {
-		// Expect(client.Close()).NotTo(HaveOccurred())
-		// Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+		Expect(client.Close()).NotTo(HaveOccurred())
+		Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
 	})
 
 	Describe("passed tests", func() {
