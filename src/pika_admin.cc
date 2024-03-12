@@ -2725,6 +2725,20 @@ void DbsizeCmd::DoInitial() {
 
 void DbsizeCmd::Do() {
   std::shared_ptr<DB> dbs = g_pika_server->GetDB(db_name_);
+  if (g_pika_conf->slotmigrate()){
+    int64_t dbsize = 0;
+    for (int i = 0; i < g_pika_conf->default_slot_num(); ++i){
+      int32_t card = 0;
+      rocksdb::Status s = dbs->storage()->SCard(SlotKeyPrefix+std::to_string(i), &card);
+      if (s.ok() && card >= 0) {
+        dbsize += card;
+      }else {
+        res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
+        return;
+      }
+    }
+    res_.AppendInteger(dbsize);
+  }
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
