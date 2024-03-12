@@ -21,12 +21,10 @@ spec:
   configs:
     - name: pika-config
       templateRef: pika-conf-template
-      namespace: {{ .Release.Namespace }}
       volumeName: config
   scripts:
     - name: pika-script
       templateRef: pika-script-template
-      namespace: {{ .Release.Namespace }}
       volumeName: script
       defaultMode: 0555
   lifecycleActions:
