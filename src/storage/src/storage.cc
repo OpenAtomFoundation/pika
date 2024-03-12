@@ -93,6 +93,7 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   mkpath(db_path.c_str(), 0755);
 
   int inst_count = db_instance_num_;
+  storage_options_ = storage_options;
   for (int index = 0; index < inst_count; index++) {
     insts_.emplace_back(std::make_unique<Redis>(this, index));
     Status s = insts_.back()->Open(storage_options, AppendSubDirectory(db_path, index));
@@ -2119,7 +2120,9 @@ Status Storage::RunBGTask() {
     }
 
     if (task.operation == kCleanAll) {
-      DoCompactRange(task.type, "", "");
+      FullCompact(true);
+    } else if (task.operation == kCompactOldestOrBestDeleteRatioSst) {
+      LongestNotCompactiontSstCompact(task.type, true);
     } else if (task.operation == kCompactRange) {
       if (task.argv.size() == 1) {
         DoCompactSpecificKey(task.type, task.argv[0]);
@@ -2141,6 +2144,44 @@ Status Storage::Compact(const DataType& type, bool sync) {
   return Status::OK();
 }
 
+Status Storage::FullCompact(bool sync) {
+  if (sync) {
+    Status s;
+    for (const auto& inst : insts_) {
+      std::vector<rocksdb::Status> compact_result_vec;
+      s = inst->FullCompact(&compact_result_vec);
+      for (auto compact_result : compact_result_vec) {
+        if (!compact_result.ok()) {
+          LOG(ERROR) << compact_result.ToString();
+        }
+      }
+    }
+    return s;
+  } else {
+    AddBGTask({DataType::kAll, Operation::kCleanAll});
+  }
+  return Status::OK();
+}
+
+Status Storage::LongestNotCompactiontSstCompact(const DataType &type, bool sync) {
+  if (sync) {
+    Status s;
+    for (const auto& inst : insts_) {
+      std::vector<rocksdb::Status> compact_result_vec;
+      s = inst->LongestNotCompactiontSstCompact(type, &compact_result_vec);
+      for (auto compact_result : compact_result_vec) {
+        if (!compact_result.ok()) {
+          LOG(ERROR) << compact_result.ToString();
+        }
+      }
+    }
+    return s;
+  } else {
+    AddBGTask({type, kCompactOldestOrBestDeleteRatioSst});
+  }
+  return Status::OK();
+}
+
 // run compactrange for all rocksdb instance
 Status Storage::DoCompactRange(const DataType& type, const std::string& start, const std::string& end) {
   if (type != kAll && type != kStrings && type != kHashes && type != kSets && type != kZSets && type != kLists) {
@@ -2157,34 +2198,37 @@ Status Storage::DoCompactRange(const DataType& type, const std::string& start, c
 
   Status s;
   for (const auto& inst : insts_) {
+    std::vector<rocksdb::Status> compact_result_vec;
     switch (type) {
       case DataType::kStrings:
         current_task_type_ = Operation::kCleanStrings;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
+        s = inst->CompactRange(type, start_ptr, end_ptr, &compact_result_vec);
         break;
       case DataType::kHashes:
         current_task_type_ = Operation::kCleanHashes;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
+        s = inst->CompactRange(type, start_ptr, end_ptr, &compact_result_vec);
         break;
       case DataType::kLists:
         current_task_type_ = Operation::kCleanLists;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
+        s = inst->CompactRange(type, start_ptr, end_ptr, &compact_result_vec);
         break;
       case DataType::kSets:
         current_task_type_ = Operation::kCleanSets;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
+        s = inst->CompactRange(type, start_ptr, end_ptr, &compact_result_vec);
         break;
       case DataType::kZSets:
         current_task_type_ = Operation::kCleanZSets;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
+        s = inst->CompactRange(type, start_ptr, end_ptr, &compact_result_vec);
         break;
       default:
         current_task_type_ = Operation::kCleanAll;
-        s = inst->CompactRange(DataType::kStrings, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kHashes, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kLists, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kSets, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kZSets, start_ptr, end_ptr);
+        s = inst->FullCompact(&compact_result_vec);
+        break;
+    }
+    for (auto compact_result : compact_result_vec) {
+      if (!compact_result.ok()) {
+        LOG(ERROR) << "DoCompactRange error: " << compact_result.ToString();
+      }
     }
   }
   current_task_type_ = Operation::kNone;
@@ -2209,7 +2253,7 @@ Status Storage::DoCompactSpecificKey(const DataType& type, const std::string& ke
   CalculateStartAndEndKey(key, &start_key, &end_key);
   Slice slice_begin(start_key);
   Slice slice_end(end_key);
-  s = inst->CompactRange(type, &slice_begin, &slice_end, kMeta);
+  s = inst->CompactRange(type, &slice_begin, &slice_end, nullptr, kMeta);
   return s;
 }
 
@@ -2400,6 +2444,10 @@ void Storage::GetRocksDBInfo(std::string& info) {
     snprintf(temp, sizeof(temp), "instance:%2d", inst->GetIndex());
     inst->GetRocksDBInfo(info, temp);
   }
+}
+
+const StorageOptions& Storage::GetStorageOptions() {
+  return storage_options_;
 }
 
 int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_status) {

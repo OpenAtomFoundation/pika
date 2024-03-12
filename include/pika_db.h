@@ -125,6 +125,8 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   // Compact use;
   void Compact(const storage::DataType& type);
   void CompactRange(const storage::DataType& type, const std::string& start, const std::string& end);
+  void FullCompact();
+  void LongestNotCompactiontSstCompact(const storage::DataType& type);
 
   void SetCompactRangeOptions(const bool is_canceled);
 

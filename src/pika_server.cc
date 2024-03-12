@@ -381,7 +381,7 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
     }
     switch (arg.type) {
       case TaskType::kCompactAll:
-        db_item.second->Compact(storage::DataType::kAll);
+        db_item.second->FullCompact();
         break;
       case TaskType::kCompactStrings:
         db_item.second->Compact(storage::DataType::kStrings);
@@ -421,6 +421,9 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
         break;
       case TaskType::kCompactRangeList:
         db_item.second->CompactRange(storage::DataType::kLists, arg.argv[0], arg.argv[1]);
+        break;
+      case TaskType::kCompactOldestOrBestDeleteRatioSst:
+        db_item.second->LongestNotCompactiontSstCompact(storage::DataType::kAll);
         break;
       default:
         break;
@@ -505,7 +508,7 @@ Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
         break;
       }
       case TaskType::kCompactAll:
-        db_item.second->Compact(storage::kAll);
+        db_item.second->FullCompact();
         break;
       default:
         break;
@@ -1119,7 +1122,12 @@ void PikaServer::AutoCompactRange() {
       gettimeofday(&last_check_compact_time_, nullptr);
       if ((static_cast<double>(free_size) / static_cast<double>(total_size)) * 100 >= usage) {
         std::set<std::string> dbs = g_pika_server->GetAllDBName();
-        Status s = DoSameThingSpecificDB(dbs, {TaskType::kCompactAll});
+        Status s;
+        if (g_pika_conf->compaction_strategy() == PikaConf::FullCompact) {
+          s = DoSameThingSpecificDB(dbs, {TaskType::kCompactAll});
+        } else if (g_pika_conf->compaction_strategy() == PikaConf::OldestOrBestDeleteRatioSstCompact) {
+          s = DoSameThingSpecificDB(dbs, {TaskType::kCompactOldestOrBestDeleteRatioSst});
+        }
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size / 1048576
                     << "MB, disksize: " << total_size / 1048576 << "MB";
@@ -1359,6 +1367,13 @@ void PikaServer::InitStorageOptions() {
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   storage_options_.small_compaction_threshold = g_pika_conf->small_compaction_threshold();
+
+  // For Storage compaction
+  storage_options_.compact_param_.best_delete_min_ratio_ = g_pika_conf->best_delete_min_ratio();
+  storage_options_.compact_param_.dont_compact_sst_created_in_seconds_ = g_pika_conf->dont_compact_sst_created_in_seconds();
+  storage_options_.compact_param_.force_compact_file_age_seconds_ = g_pika_conf->force_compact_file_age_seconds();
+  storage_options_.compact_param_.force_compact_min_delete_ratio_ = g_pika_conf->force_compact_min_delete_ratio();
+  storage_options_.compact_param_.num_sst_docompact_once_ = g_pika_conf->num_sst_docompact_once();
 
   // rocksdb blob
   if (g_pika_conf->enable_blob_files()) {

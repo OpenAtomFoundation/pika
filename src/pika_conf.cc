@@ -251,6 +251,41 @@ int PikaConf::Load() {
     }
   }
 
+  GetConfInt("num_sst_docompact_once", &num_sst_docompact_once_);
+  if (num_sst_docompact_once_ < 1) {
+    num_sst_docompact_once_ = 1;
+  }
+
+  GetConfInt("force_compact_file_age_seconds", &force_compact_file_age_seconds_);
+  if (force_compact_file_age_seconds_ < 300) {
+    force_compact_file_age_seconds_ = 300;
+  }
+
+  GetConfInt("force_compact_min_delete_ratio", &force_compact_min_delete_ratio_);
+  if (force_compact_min_delete_ratio_ < 5) {
+    force_compact_min_delete_ratio_ = 5;
+  }
+
+  GetConfInt("dont_compact_sst_created_in_seconds", &dont_compact_sst_created_in_seconds_);
+  if (dont_compact_sst_created_in_seconds_ < 300) {
+    dont_compact_sst_created_in_seconds_ = 300;
+  }
+
+  GetConfInt("best_delete_min_ratio", &best_delete_min_ratio_);
+  if (best_delete_min_ratio_ < 10) {
+    best_delete_min_ratio_ = 10;
+  }
+
+  std::string cs_;
+  GetConfStr("compaction_strategy", &cs_);
+  if (cs_ == "full_compact") {
+    compaction_strategy_ = FullCompact;
+  } else if (cs_ == "obd_compact") {
+    compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
+  } else {
+    compaction_strategy_ = FullCompact;
+  }
+
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
   if (least_free_disk_to_resume_ <= 0) {
@@ -662,8 +697,40 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("small-compaction-duration-threshold", small_compaction_duration_threshold_);
   SetConfInt("max-client-response-size", static_cast<int32_t>(max_client_response_size_));
   SetConfInt("db-sync-speed", db_sync_speed_);
+  // compact
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
+  SetConfInt("num_sst_docompact_once", num_sst_docompact_once_);
+  if (num_sst_docompact_once_ < 1) {
+    num_sst_docompact_once_ = 1;
+  }
+  SetConfInt("force_compact_file_age_seconds", force_compact_file_age_seconds_);
+  if (force_compact_file_age_seconds_ < 300) {
+    force_compact_file_age_seconds_ = 300;
+  }
+  SetConfInt("force_compact_min_delete_ratio", force_compact_min_delete_ratio_);
+  if (force_compact_min_delete_ratio_ < 5) {
+    force_compact_min_delete_ratio_ = 5;
+  }
+  SetConfInt("dont_compact_sst_created_in_seconds", dont_compact_sst_created_in_seconds_);
+  if (dont_compact_sst_created_in_seconds_ < 300) {
+    dont_compact_sst_created_in_seconds_ = 300;
+  }
+  SetConfInt("best_delete_min_ratio", best_delete_min_ratio_);
+  if (best_delete_min_ratio_ < 10) {
+    best_delete_min_ratio_ = 10;
+  }
+
+  std::string cs_;
+  SetConfStr("compaction_strategy", cs_);
+  if (cs_ == "full_compact") {
+    compaction_strategy_ = FullCompact;
+  } else if (cs_ == "obd_compact") {
+    compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
+  } else {
+    compaction_strategy_ = FullCompact;
+  }
+
   SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");
   SetConfStr("cache-type", scachetype);
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);

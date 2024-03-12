@@ -29,6 +29,12 @@ const uint32_t configReplicationIDSize = 50;
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
  public:
+  enum CompactionStrategy {
+    FullCompact,
+    OldestOrBestDeleteRatioSstCompact
+  };
+
+public:
   PikaConf(const std::string& path);
   ~PikaConf() override = default;
 
@@ -560,6 +566,30 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("disable_auto_compactions", value);
     disable_auto_compactions_ = value == "true";
   }
+  int num_sst_docompact_once() {
+    std::shared_lock l(rwlock_);
+    return num_sst_docompact_once_;
+  }
+  int force_compact_file_age_seconds() {
+    std::shared_lock l(rwlock_);
+    return force_compact_file_age_seconds_;
+  }
+  int force_compact_min_delete_ratio() {
+    std::shared_lock l(rwlock_);
+    return force_compact_min_delete_ratio_;
+  }
+  int dont_compact_sst_created_in_seconds() {
+    std::shared_lock l(rwlock_);
+    return dont_compact_sst_created_in_seconds_;
+  }
+  int best_delete_min_ratio() {
+    std::shared_lock l(rwlock_);
+    return best_delete_min_ratio_;
+  }
+  CompactionStrategy compaction_strategy() {
+    std::shared_lock l(rwlock_);
+    return compaction_strategy_;
+  }
   void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
@@ -689,9 +719,18 @@ class PikaConf : public pstd::BaseConf {
   std::string db_path_;
   int db_instance_num_ = 0;
   std::string db_sync_path_;
+
+  // compact
   std::string compact_cron_;
   std::string compact_interval_;
   bool disable_auto_compactions_ = false;
+  int num_sst_docompact_once_;
+  int force_compact_file_age_seconds_;
+  int force_compact_min_delete_ratio_;
+  int dont_compact_sst_created_in_seconds_;
+  int best_delete_min_ratio_;
+  CompactionStrategy compaction_strategy_;
+
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
   double min_check_resume_ratio_ = 0.7;
