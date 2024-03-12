@@ -2735,7 +2735,7 @@ void DbsizeCmd::Do() {
         rocksdb::Status s = dbs->storage()->SCard(SlotKeyPrefix+std::to_string(i), &card);
         if (s.ok() && card >= 0) {
           dbsize += card;
-        }else {
+        } else {
           res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
           return;
         }
