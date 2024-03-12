@@ -421,7 +421,7 @@ var _ = Describe("should replication ", func() {
 			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 
 			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
-			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
+			Expect(slaveWrite.Err()).To(MatchError("ERR READONLY You can't write against a read only replica."))
 
 			log.Println("Replication test 1 start")
 			err1 := clientMaster.SetEx(ctx, "key", "hello", 60*time.Second).Err()
@@ -638,6 +638,99 @@ var _ = Describe("should replication ", func() {
 				Expect(clientMaster.LIndex(ctx, "blist0", i)).To(Equal(clientSlave.LIndex(ctx, "blist0", i)))
 			}
 			err = clientMaster.Del(ctx, lists...)
+
+			// transaction replication test
+			log.Println("transaction replication test start")
+			clientMaster.Set(ctx, "txkey1", "txvalue1", 0)
+			time.Sleep(time.Second)
+
+			// transaction: multi/get/get/exec
+			r := clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get := clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			get = clientSlave.Get(ctx, "txkey2")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{"txvalue1", nil}))
+
+			// transaction: multi/get/get/exec
+			pipeline := clientSlave.TxPipeline()
+			pipeline.Get(ctx, "txkey1")
+			pipeline.Get(ctx, "txkey2")
+			result, perr := pipeline.Exec(ctx)
+			Expect(perr).To(Equal(redis.Nil))
+			AssertEqualRedisString("txvalue1", result[0])
+			Expect(result[1].Err()).To(Equal(redis.Nil))
+
+			// transaction: multi/get/set/exec
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			set = clientSlave.Set(ctx, "txkey2", "txvalue2", 0)
+			Expect(set.Err().Error()).To(Equal("ERR READONLY You can't write against a read only replica."))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err().Error()).To(Equal("EXECABORT Transaction discarded because of previous errors."))
+
+			// transaction: multi/get/set/exec
+			pipeline = clientSlave.TxPipeline()
+			pipeline.Get(ctx, "txkey1")
+			pipeline.Set(ctx, "txkey2", "txvalue2", 0)
+			result, perr = pipeline.Exec(ctx)
+			Expect(perr.Error()).To(Equal("EXECABORT Transaction discarded because of previous errors."))
+
+			// transaction: watch/multi/master-set/exec
+			r = clientSlave.Do(ctx, "WATCH", "txkey1")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			set = clientMaster.Set(ctx, "txkey1", "txvalue11", 0)
+			Expect(set.Err()).NotTo(HaveOccurred())
+			Expect(set.Val()).To(Equal("OK"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{}))
+
+			// transaction: multi/get/discard
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "DISCARD")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
+
+			// transaction: watch/unwatch
+			r = clientSlave.Do(ctx, "WATCH", "txkey1")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
+			r = clientSlave.Do(ctx, "UNWATCH")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
+
+			// transaction: times-multi/get/exec
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).To(MatchError("ERR MULTI calls can not be nested"))
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{"txvalue11"}))
+
+			// transaction: exec without multi
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).To(MatchError("ERR EXEC without MULTI"))
+
+			err = clientMaster.Del(ctx, "txkey1")
 			log.Println("master-slave replication test success")
 		})
 
