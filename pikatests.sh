@@ -2,8 +2,8 @@
 
 # clear the log file
 function cleanup() {
-    rm -rf ./log
-    rm -rf db
+    rm -rf ./log[0-9]*
+    rm -rf ./db[0-9]*
     rm -rf dbsync/
     rm src/redis-server
 }
@@ -70,4 +70,9 @@ if [ $? -ne 0 ]; then
     cleanup
     exit 1
 fi
-cleanup
+
+# You can use './pikatests.sh all clean 'to ensure that the
+# data can be deleted immediately after the test
+if [ "$2" == "clean" ]; then
+   cleanup
+fi
