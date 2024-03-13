@@ -21,6 +21,7 @@ spec:
   configs:
     - name: codis-dashboard-config
       templateRef: pika-conf-template
+      namespace: {{ .Release.Namespace }}
       volumeName: config
   runtime:
     initContainers:
