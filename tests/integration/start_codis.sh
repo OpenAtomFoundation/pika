@@ -12,6 +12,7 @@ CODIS_GROUP_1_MASTER=127.0.0.1:8000
 CODIS_GROUP_2_MASTER=127.0.0.1:8001
 
 # startup pika server
+cp -f ../../output/pika ./pika
 cp -f ../conf/pika.conf ./pika_8000.conf
 cp -f ../conf/pika.conf ./pika_8001.conf
 cp -f ../conf/pika.conf ./pika_8002.conf
@@ -24,12 +25,12 @@ mkdir codis_data_2
 sed -i '' -e 's|databases : 1|databases : 2|' -e 's|port : 9221|port : 8000|' -e 's|log-path : ./log/|log-path : ./codis_data_1/log/|' -e 's|db-path : ./db/|db-path : ./codis_data_1/db/|' -e 's|dump-path : ./dump/|dump-path : ./codis_data_1/dump/|' -e 's|pidfile : ./pika.pid|pidfile : ./codis_data_1/pika.pid|' -e 's|db-sync-path : ./dbsync/|db-sync-path : ./codis_data_1/dbsync/|' -e 's|#daemonize : yes|daemonize : yes|' ./pika_8000.conf
 sed -i '' -e 's|databases : 1|databases : 2|' -e 's|port : 9221|port : 8001|' -e 's|log-path : ./log/|log-path : ./codis_data_2/log/|' -e 's|db-path : ./db/|db-path : ./codis_data_2/db/|' -e 's|dump-path : ./dump/|dump-path : ./codis_data_2/dump/|' -e 's|pidfile : ./pika.pid|pidfile : ./codis_data_2/pika.pid|' -e 's|db-sync-path : ./dbsync/|db-sync-path : ./codis_data_2/dbsync/|' -e 's|#daemonize : yes|daemonize : yes|' ./pika_8001.conf
 # Start three nodes
-../../output/pika -c ./pika_8000.conf
-../../output/pika -c ./pika_8001.conf
+./pika -c ./pika_8000.conf
+./pika -c ./pika_8001.conf
 #ensure both master and slave are ready
 sleep 10
 
-cd ../../codis
+cd ../codis
 make
 
 echo 'startup codis dashboard and codis proxy'

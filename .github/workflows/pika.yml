@@ -66,11 +66,13 @@ jobs:
         run: ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start pika master and slave
+      - name: Start codis、pika master and slave
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_codis.sh
+          ../tests/integration/start_codis.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
@@ -136,11 +138,13 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./pikatests.sh all
 
-      - name: Start pika master and slave
+      - name: Start codis、pika master and slave
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_codis.sh
+          ../tests/integration/start_codis.sh
 
       - name: Run Go E2E Tests
         working-directory: ${{ github.workspace }}/build
