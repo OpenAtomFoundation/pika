@@ -2728,6 +2728,20 @@ void DbsizeCmd::Do() {
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
+    if (g_pika_conf->slotmigrate()){
+      int64_t dbsize = 0;
+      for (int i = 0; i < g_pika_conf->default_slot_num(); ++i){
+        int32_t card = 0;
+        rocksdb::Status s = dbs->storage()->SCard(SlotKeyPrefix+std::to_string(i), &card);
+        if (s.ok() && card >= 0) {
+          dbsize += card;
+        } else {
+          res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
+          return;
+        }
+      }
+      res_.AppendInteger(dbsize);
+    }
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
