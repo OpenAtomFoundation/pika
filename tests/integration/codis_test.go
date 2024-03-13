@@ -2,13 +2,14 @@ package pika_integration
 
 import (
 	"context"
+	"sort"
+	"strconv"
+	"time"
+
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"sort"
-	"strconv"
-	"time"
 )
 
 var _ = Describe("List Commands Codis", func() {
