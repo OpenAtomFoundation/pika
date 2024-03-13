@@ -2729,7 +2729,7 @@ void DbsizeCmd::Do() {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
-    std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
+    std::vector<storage::KeyInfo> &key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
