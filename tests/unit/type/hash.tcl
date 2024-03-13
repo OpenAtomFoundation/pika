@@ -14,6 +14,7 @@ start_server {tags {"hash"}} {
         list [r hlen smallhash]
     } {8}
 
+# Pika does not support the debug command
 #    test {Is the small hash encoded with a ziplist?} {
 #        assert_encoding ziplist smallhash
 #    }
@@ -33,6 +34,7 @@ start_server {tags {"hash"}} {
         list [r hlen bighash]
     } {1024}
 
+# Pika does not support the debug command
 #    test {Is the big hash encoded with a ziplist?} {
 #        assert_encoding hashtable bighash
 #    }
@@ -140,6 +142,7 @@ start_server {tags {"hash"}} {
         set _ $rv
     } {{{} {}} {{} {}} {{} {}}}
 
+# Keys for multiple data types of Pika can be duplicate
 #    test {HMGET against wrong type} {
 #        r set wrongtype somevalue
 #        assert_error "*wrong*" {r hmget wrongtype field1 field2}
@@ -252,6 +255,7 @@ start_server {tags {"hash"}} {
         lappend rv [r hexists bighash nokey]
     } {1 0 1 0}
 
+# Pika does not support the debug command
 #    test {Is a ziplist encoded Hash promoted on big payload?} {
 #        r hset smallhash foo [string repeat a 1024]
 #        r debug object smallhash
@@ -457,6 +461,8 @@ start_server {tags {"hash"}} {
         }
     }
 
+# Pika does not support the debug command
+#    The hash-max-ziplist-entries parameter is not available in Pika
 #    test {Stress test the hash ziplist -> hashtable encoding conversion} {
 #        r config set hash-max-ziplist-entries 32
 #        for {set j 0} {$j < 100} {incr j} {

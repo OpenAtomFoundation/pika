@@ -13,6 +13,11 @@ const (
 	SINGLEADDR = "127.0.0.1:9221"
 	SLAVEADDR  = "127.0.0.1:9231"
 	MASTERADDR = "127.0.0.1:9241"
+	RenameADDR = "127.0.0.1:9251"
+
+	ACLADDR_1 = "127.0.0.1:9261"
+	ACLADDR_2 = "127.0.0.1:9271"
+	ACLADDR_3 = "127.0.0.1:9281"
 )
 
 type TimeValue struct {
