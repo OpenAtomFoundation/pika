@@ -208,7 +208,6 @@ rocksdb::Status RedisSets::SAdd(const Slice& key, const std::vector<std::string>
   }
 
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
   int32_t version = 0;
   std::string meta_value;
   rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
@@ -841,7 +840,6 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
 
   std::string meta_value;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t start_us = pstd::NowMicros();
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
@@ -935,7 +933,6 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
 
   std::string meta_value;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
   std::vector<int32_t> targets;
   std::unordered_set<int32_t> unique;
 
@@ -996,7 +993,6 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
 rocksdb::Status RedisSets::SRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
-  ScopeRecordLock l(lock_mgr_, key);
 
   int32_t version = 0;
   uint32_t statistic = 0;
@@ -1345,7 +1341,6 @@ rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key
 
 rocksdb::Status RedisSets::Expire(const Slice& key, int32_t ttl) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1368,7 +1363,6 @@ rocksdb::Status RedisSets::Expire(const Slice& key, int32_t ttl) {
 
 rocksdb::Status RedisSets::Del(const Slice& key) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1462,7 +1456,6 @@ bool RedisSets::PKExpireScan(const std::string& start_key, int32_t min_timestamp
 
 rocksdb::Status RedisSets::Expireat(const Slice& key, int32_t timestamp) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1484,7 +1477,6 @@ rocksdb::Status RedisSets::Expireat(const Slice& key, int32_t timestamp) {
 
 rocksdb::Status RedisSets::Persist(const Slice& key) {
   std::string meta_value;
-  ScopeRecordLock l(lock_mgr_, key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
