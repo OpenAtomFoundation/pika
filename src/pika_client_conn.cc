@@ -116,6 +116,11 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
+    if (c_ptr->is_write() && g_pika_server->readonly(current_db_)) {
+      SetTxnInitFailState(true);
+      c_ptr->res().SetRes(CmdRes::kErrOther, "READONLY You can't write against a read only replica.");
+      return c_ptr;
+    }
     PushCmdToQue(c_ptr);
     c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
@@ -160,8 +165,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
-    if (g_pika_server->readonly(current_db_)) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
+    if (g_pika_server->readonly(current_db_) && opt != kCmdNameExec) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "READONLY You can't write against a read only replica.");
       return c_ptr;
     }
   } else if (c_ptr->is_read() && c_ptr->flag_ == 0) {

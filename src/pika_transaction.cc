@@ -25,7 +25,7 @@ void MultiCmd::Do() {
     return;
   }
   if (client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "ERR MULTI calls can not be nested");
+    res_.SetRes(CmdRes::kErrOther, "MULTI calls can not be nested");
     return;
   }
   client_conn->SetTxnStartState(true);
@@ -246,7 +246,7 @@ void WatchCmd::Do() {
     return;
   }
   if (client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::CmdRet::kErrOther, "ERR WATCH inside MULTI is not allowed");
+    res_.SetRes(CmdRes::CmdRet::kErrOther, "WATCH inside MULTI is not allowed");
     return;
   }
   client_conn->AddKeysToWatch(db_keys_);
@@ -305,7 +305,7 @@ void DiscardCmd::Do() {
     return;
   }
   if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "ERR DISCARD without MULTI");
+    res_.SetRes(CmdRes::kErrOther, "DISCARD without MULTI");
     return;
   }
   client_conn->ExitTxn();

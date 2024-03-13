@@ -661,48 +661,140 @@ var _ = Describe("should replication ", func() {
 			}
 			err = clientMaster.Del(ctx, lists...)
 
-			//The test below is related with issue: https://github.com/OpenAtomFoundation/pika/issues/2643
-			r1 := clientMaster.Do(ctx, "MULTI")
-			Expect(r1.Err()).NotTo(HaveOccurred())
+			// transaction replication test
+			log.Println("transaction replication test start")
+			clientMaster.Set(ctx, "txkey1", "txvalue1", 0)
+			time.Sleep(time.Second)
 
-			setkey1 := clientMaster.Set(ctx, "Tnxkey1", "Tnxvalue1", 0)
-			Expect(setkey1.Err()).NotTo(HaveOccurred())
-			Expect(setkey1.Val()).To(Equal("QUEUED"))
+			// transaction: multi/get/get/exec
+			r := clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get := clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			get = clientSlave.Get(ctx, "txkey2")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{"txvalue1", nil}))
 
-			setkey2 := clientMaster.Set(ctx, "Tnxkey2", "Tnxvalue2", 0)
-			Expect(setkey2.Err()).NotTo(HaveOccurred())
-			Expect(setkey2.Val()).To(Equal("QUEUED"))
+			// transaction: multi/get/get/exec
+			pipeline := clientSlave.TxPipeline()
+			pipeline.Get(ctx, "txkey1")
+			pipeline.Get(ctx, "txkey2")
+			result, perr := pipeline.Exec(ctx)
+			Expect(perr).To(Equal(redis.Nil))
+			AssertEqualRedisString("txvalue1", result[0])
+			Expect(result[1].Err()).To(Equal(redis.Nil))
 
-			r2 := clientMaster.Do(ctx, "EXEC")
-			Expect(r2.Err()).NotTo(HaveOccurred())
-			Expect(r2.Val()).To(Equal([]interface{}{"OK", "OK"}))
+			// transaction: multi/get/set/exec
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			set = clientSlave.Set(ctx, "txkey2", "txvalue2", 0)
+			Expect(set.Err().Error()).To(Equal("ERR READONLY You can't write against a read only replica."))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err().Error()).To(Equal("EXECABORT Transaction discarded because of previous errors."))
 
-			time.Sleep(3 * time.Second)
+			// transaction: multi/get/set/exec
+			pipeline = clientSlave.TxPipeline()
+			pipeline.Get(ctx, "txkey1")
+			pipeline.Set(ctx, "txkey2", "txvalue2", 0)
+			result, perr = pipeline.Exec(ctx)
+			Expect(perr.Error()).To(Equal("EXECABORT Transaction discarded because of previous errors."))
 
-			getkey1 := clientSlave.Get(ctx, "Tnxkey1")
-			Expect(getkey1.Err()).NotTo(HaveOccurred())
-			Expect(getkey1.Val()).To(Equal("Tnxvalue1"))
+			// transaction: watch/multi/master-set/exec
+			r = clientSlave.Do(ctx, "WATCH", "txkey1")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			set = clientMaster.Set(ctx, "txkey1", "txvalue11", 0)
+			Expect(set.Err()).NotTo(HaveOccurred())
+			Expect(set.Val()).To(Equal("OK"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{}))
 
-			getkey2 := clientSlave.Get(ctx, "Tnxkey2")
-			Expect(getkey2.Err()).NotTo(HaveOccurred())
-			Expect(getkey2.Val()).To(Equal("Tnxvalue2"))
+			// transaction: multi/get/discard
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "DISCARD")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
 
-			ticker := time.NewTicker(500 * time.Millisecond)
-			defer ticker.Stop()
-			loopCount := 0
+			// transaction: watch/unwatch
+			r = clientSlave.Do(ctx, "WATCH", "txkey1")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
+			r = clientSlave.Do(ctx, "UNWATCH")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal("OK"))
 
-			for loopCount < 10 {
-				select {
-				case <-ticker.C:
-					infoResExec := clientSlave.Info(ctx, "replication")
-					Expect(infoResExec.Err()).NotTo(HaveOccurred())
-					Expect(infoResExec.Val()).To(ContainSubstring("master_link_status:up"))
-					loopCount++
-					if loopCount >= 10 {
-						ticker.Stop()
-					}
-				}
-			}
+			// transaction: times-multi/get/exec
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			r = clientSlave.Do(ctx, "MULTI")
+			Expect(r.Err()).To(MatchError("ERR MULTI calls can not be nested"))
+			get = clientSlave.Get(ctx, "txkey1")
+			Expect(get.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).NotTo(HaveOccurred())
+			Expect(r.Val()).To(Equal([]interface{}{"txvalue11"}))
+
+			// transaction: exec without multi
+			r = clientSlave.Do(ctx, "EXEC")
+			Expect(r.Err()).To(MatchError("ERR EXEC without MULTI"))
+
+			err = clientMaster.Del(ctx, "txkey1")
+			/The test below is related with issue: https://github.com/OpenAtomFoundation/pika/issues/2643
+            			r1 := clientMaster.Do(ctx, "MULTI")
+            			Expect(r1.Err()).NotTo(HaveOccurred())
+
+            			setkey1 := clientMaster.Set(ctx, "Tnxkey1", "Tnxvalue1", 0)
+            			Expect(setkey1.Err()).NotTo(HaveOccurred())
+            			Expect(setkey1.Val()).To(Equal("QUEUED"))
+
+            			setkey2 := clientMaster.Set(ctx, "Tnxkey2", "Tnxvalue2", 0)
+            			Expect(setkey2.Err()).NotTo(HaveOccurred())
+            			Expect(setkey2.Val()).To(Equal("QUEUED"))
+
+            			r2 := clientMaster.Do(ctx, "EXEC")
+            			Expect(r2.Err()).NotTo(HaveOccurred())
+            			Expect(r2.Val()).To(Equal([]interface{}{"OK", "OK"}))
+
+            			time.Sleep(3 * time.Second)
+
+            			getkey1 := clientSlave.Get(ctx, "Tnxkey1")
+            			Expect(getkey1.Err()).NotTo(HaveOccurred())
+            			Expect(getkey1.Val()).To(Equal("Tnxvalue1"))
+
+            			getkey2 := clientSlave.Get(ctx, "Tnxkey2")
+            			Expect(getkey2.Err()).NotTo(HaveOccurred())
+            			Expect(getkey2.Val()).To(Equal("Tnxvalue2"))
+
+            			ticker := time.NewTicker(500 * time.Millisecond)
+            			defer ticker.Stop()
+            			loopCount := 0
+
+            			for loopCount < 10 {
+            				select {
+            				case <-ticker.C:
+            					infoResExec := clientSlave.Info(ctx, "replication")
+            					Expect(infoResExec.Err()).NotTo(HaveOccurred())
+            					Expect(infoResExec.Val()).To(ContainSubstring("master_link_status:up"))
+            					loopCount++
+            					if loopCount >= 10 {
+            						ticker.Stop()
+            					}
+            				}
+            			}
 			log.Println("master-slave replication test success")
 		})
 		It("should simulate the master node setex and incr operation", func() {
