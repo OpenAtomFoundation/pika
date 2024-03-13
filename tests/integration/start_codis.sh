@@ -38,7 +38,7 @@ echo 'startup codis dashboard and codis proxy'
 ./admin/codis-proxy-admin.sh start
 ./admin/codis-fe-admin.sh start
 
-sleep 10
+sleep 20
 
 echo 'assign codis slots to groups and resync groups'
 ./bin/codis-admin --dashboard=$CODIS_DASHBOARD_ADDR --create-group --gid=1

@@ -66,7 +66,7 @@ jobs:
         run: ./pikatests.sh all
 
         # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start codis、pika master and slave
+      - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
@@ -138,7 +138,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./pikatests.sh all
 
-      - name: Start codis、pika master and slave
+      - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
@@ -200,7 +200,7 @@ jobs:
         run: |
           ./pikatests.sh all
 
-      - name: Start codis、pika master and slave
+      - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
