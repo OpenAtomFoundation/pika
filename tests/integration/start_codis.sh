@@ -1,10 +1,10 @@
 #!/bin/bash
 
-pkill -9 pika
-pkill -9 codis
-rm -rf /tmp/codis
-rm -rf codis_data_1
-rm -rf codis_data_2
+#pkill -9 pika
+#pkill -9 codis
+#rm -rf /tmp/codis
+#rm -rf codis_data_1
+#rm -rf codis_data_2
 
 CODIS_DASHBOARD_ADDR=127.0.0.1:18080
 
@@ -35,7 +35,7 @@ make
 
 echo 'startup codis dashboard and codis proxy'
 ./admin/codis-dashboard-admin.sh start
-#./admin/codis-proxy-admin.sh start
+./admin/codis-proxy-admin.sh start
 ./admin/codis-fe-admin.sh start
 
 sleep 20
