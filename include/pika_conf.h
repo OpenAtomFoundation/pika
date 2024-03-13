@@ -514,6 +514,14 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes");
   }
+  void SetSlotMigrateThreadNum(const int value) {
+    std::lock_guard l(rwlock_);
+    slotmigrate_thread_num_ = value;
+  }
+  void SetThreadMigrateKeysNum(const int value) {
+    std::lock_guard l(rwlock_);
+    thread_migrate_keys_num_ = value;
+  }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
