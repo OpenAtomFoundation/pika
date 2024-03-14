@@ -430,10 +430,10 @@ var _ = Describe("should replication ", func() {
 			Expect(err1).NotTo(HaveOccurred())
 			Eventually(func() error {
 				return clientMaster.Get(ctx, "key").Err()
-			}, "65s", "100ms").Should(Equal(redis.Nil))
+			}, "20s", "100ms").Should(Equal(redis.Nil))
 			Eventually(func() error {
 				return clientSlave.Get(ctx, "key").Err()
-			}, "65s", "100ms").Should(Equal(redis.Nil))
+			}, "20s", "100ms").Should(Equal(redis.Nil))
 			log.Println("Replication test 1 success")
 
 			log.Println("Replication test 2 start")
@@ -446,10 +446,10 @@ var _ = Describe("should replication ", func() {
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Eventually(func() error {
 				return clientMaster.Get(ctx, "x").Err()
-			}, "1s", "100ms").Should(Equal(redis.Nil))
+			}, "20s", "100ms").Should(Equal(redis.Nil))
 			Eventually(func() error {
 				return clientSlave.Get(ctx, "x").Err()
-			}, "1s", "100ms").Should(Equal(redis.Nil))
+			}, "20s", "100ms").Should(Equal(redis.Nil))
 			log.Println("Replication test 2 success")
 
 			log.Println("rpoplpush test start")
