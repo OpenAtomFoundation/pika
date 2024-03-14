@@ -2,12 +2,13 @@ package pika_integration
 
 import (
 	"context"
-	. "github.com/bsm/ginkgo/v2"
-	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 	"strings"
 	"sync"
 	"time"
+
+	. "github.com/bsm/ginkgo/v2"
+	. "github.com/bsm/gomega"
+	"github.com/redis/go-redis/v9"
 )
 
 func AssertEqualRedisString(expected string, result redis.Cmder) {
@@ -31,8 +32,10 @@ var _ = Describe("Text Txn", func() {
 		txnClient = redis.NewClient(PikaOption(SINGLEADDR))
 		cmdClient = redis.NewClient(PikaOption(SINGLEADDR))
 
-		GlobalBefore(ctx, txnClient)
-		GlobalBefore(ctx, cmdClient)
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, txnClient)
+			GlobalBefore(ctx, cmdClient)
+		}
 	})
 	Describe("test watch", func() {
 		It("basic watch", func() {
