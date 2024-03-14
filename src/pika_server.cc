@@ -1727,7 +1727,6 @@ void PikaServer::ProcessCronTask() {
     auto cache = dbs.second->cache();
     cache->ProcessCronTask();
   }
-  LOG(INFO) << "hit rate:" << HitRatio() << std::endl;
 }
 
 double PikaServer::HitRatio(void) {
