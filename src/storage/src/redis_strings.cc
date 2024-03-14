@@ -435,7 +435,8 @@ Status Redis::Getrange(const Slice& key, int64_t start_offset, int64_t end_offse
 Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
                                 std::string* ret, std::string* value, int64_t* ttl) {
   *ret = "";
-  Status s = db_->Get(default_read_options_, key, value);
+  BaseKey base_key(key);
+  Status s = db_->Get(default_read_options_, base_key.Encode(), value);
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(value);
     if (parsed_strings_value.IsStale()) {
