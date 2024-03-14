@@ -124,15 +124,21 @@ func (s *Store) Release() error {
 }
 
 func (s *Store) ReleaseByToken(token string) error {
-	if b, err := s.client.Read(s.LockPath(),false); err != nil {
+	b, err := s.client.Read(s.LockPath(),false)
+	if err != nil {
 		return err
-	} else if b != nil {
-		if t, err := Decode(b); err != nil {
+	}
+	
+	if b != nil {
+		t, err := Decode(b); 
+		if err != nil {
 			return err
-		} else if t.Token == token {
+		}
+		if t.Token == token {
 			return s.Release()
 		}
 	}
+	
 	return nil
 }
 
