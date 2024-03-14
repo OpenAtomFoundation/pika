@@ -25,10 +25,8 @@ const DefaultConfig = `
 # Set Coordinator, only accept "zookeeper" & "etcd" & "filesystem".
 # for zookeeper/etcd, coorinator_auth accept "user:password" 
 # Quick Start
-coordinator_name = "etcd"
-coordinator_addr = "127.0.0.1:2379"
-#coordinator_name = "filesystem"
-#coordinator_addr = "/tmp/codis"
+coordinator_name = "filesystem"
+coordinator_addr = "/tmp/codis"
 #coordinator_name = "zookeeper"
 #coordinator_addr = "127.0.0.1:2181"
 #coordinator_auth = ""
@@ -52,9 +50,10 @@ migration_async_numkeys = 500
 migration_timeout = "30s"
 
 # Set configs for redis sentinel.
-sentinel_check_server_state_interval = "5s"
-sentinel_check_master_failover_interval = "1s"
-sentinel_master_dead_check_times = 5
+sentinel_check_server_state_interval = "10s"
+sentinel_check_master_failover_interval = "2s"
+sentinel_master_dead_check_times = 10
+sentinel_check_offline_server_interval = "2s"
 sentinel_client_timeout = "10s"
 sentinel_quorum = 2
 sentinel_parallel_syncs = 1
@@ -88,6 +87,7 @@ type Config struct {
 	SentinelCheckServerStateInterval    timesize.Duration `toml:"sentinel_check_server_state_interval" json:"sentinel_client_timeout"`
 	SentinelCheckMasterFailoverInterval timesize.Duration `toml:"sentinel_check_master_failover_interval" json:"sentinel_check_master_failover_interval"`
 	SentinelMasterDeadCheckTimes        int8              `toml:"sentinel_master_dead_check_times" json:"sentinel_master_dead_check_times"`
+	SentinelCheckOfflineServerInterval  timesize.Duration `toml:"sentinel_check_offline_server_interval" json:"sentinel_check_offline_server_interval"`
 	SentinelClientTimeout               timesize.Duration `toml:"sentinel_client_timeout" json:"sentinel_client_timeout"`
 	SentinelQuorum                      int               `toml:"sentinel_quorum" json:"sentinel_quorum"`
 	SentinelParallelSyncs               int               `toml:"sentinel_parallel_syncs" json:"sentinel_parallel_syncs"`
