@@ -101,6 +101,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::shared_mutex& GetDBLock() {
     return dbs_rw_;
   }
+  std::shared_mutex& GetDBLocks() {
+    return db_rwlock_;
+  }
   void DBLock() {
     dbs_rw_.lock();
   }
