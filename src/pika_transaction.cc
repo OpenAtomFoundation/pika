@@ -150,7 +150,7 @@ void ExecCmd::Lock() {
       pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
       record_lock.Lock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_db->DBLockShared();
+    need_lock_db->DbRWLockReader();
   });
 }
 
@@ -160,7 +160,7 @@ void ExecCmd::Unlock() {
       pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
       record_lock.Unlock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_db->DBUnlockShared();
+    need_lock_db->DbRWUnLock();
   });
   if (is_lock_rm_dbs_) {
     g_pika_rm->DBUnlock();

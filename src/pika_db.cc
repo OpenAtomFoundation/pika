@@ -72,6 +72,9 @@ void DB::SetBinlogIoError() { return binlog_io_error_.store(true); }
 void DB::SetBinlogIoErrorrelieve() { return binlog_io_error_.store(false); }
 bool DB::IsBinlogIoError() { return binlog_io_error_.load(); }
 std::shared_ptr<pstd::lock::LockMgr> DB::LockMgr() { return lock_mgr_; }
+void DB::DbRWLockReader() { db_rwlock_.lock_shared(); }
+void DB::DbRWUnLock() { db_rwlock_.unlock(); }
+void DB::DbRWLockWriter() { db_rwlock_.lock(); }
 std::shared_ptr<PikaCache> DB::cache() const { return cache_; }
 std::shared_ptr<storage::Storage> DB::storage() const { return storage_; }
 
@@ -356,7 +359,7 @@ bool DB::InitBgsaveEngine() {
   }
 
   {
-    std::lock_guard lock(dbs_rw_);
+    std::lock_guard lock(db_rwlock_);
     LogOffset bgsave_offset;
     // term, index are 0
     db->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
@@ -544,7 +547,7 @@ bool DB::ChangeDb(const std::string& new_path) {
   tmp_path += "_bak";
   pstd::DeleteDirIfExist(tmp_path);
 
-  std::lock_guard l(dbs_rw_);
+  std::lock_guard l(db_rwlock_);
   LOG(INFO) << "DB: " << db_name_ << ", Prepare change db from: " << tmp_path;
   storage_.reset();
 
@@ -576,7 +579,7 @@ void DB::ClearBgsave() {
 }
 
 bool DB::FlushSubDB(const std::string& db_name) {
-  std::lock_guard rwl(dbs_rw_);
+  std::lock_guard rwl(db_rwlock_);
   return FlushSubDBWithoutLock(db_name);
 }
 
@@ -630,7 +633,7 @@ void DB::ResetDisplayCacheInfo(int status) {
 }
 
 bool DB::FlushDB() {
-  std::lock_guard rwl(dbs_rw_);
+  std::lock_guard rwl(db_rwlock_);
   std::lock_guard l(bgsave_protector_);
   return FlushDBWithoutLock();
 }

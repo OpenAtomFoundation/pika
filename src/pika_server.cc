@@ -347,9 +347,9 @@ bool PikaServer::IsKeyScaning() {
 bool PikaServer::IsCompacting() {
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DBLockShared();
+    db_item.second->DbRWLockReader();
     std::string task_type = db_item.second->storage()->GetCurrentTaskType();
-    db_item.second->DBUnlockShared();
+    db_item.second->DbRWUnLock();
     if (strcasecmp(task_type.data(), "no") != 0) {
       return true;
     }
@@ -446,27 +446,27 @@ void PikaServer::PrepareDBTrySync() {
 void PikaServer::DBSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DBLockShared();
+    db_item.second->DbRWLockReader();
     db_item.second->storage()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
-    db_item.second->DBUnlockShared();
+    db_item.second->DbRWUnLock();
   }
 }
 
 void PikaServer::DBSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DBLockShared();
+    db_item.second->DbRWLockReader();
     db_item.second->storage()->SetSmallCompactionThreshold(small_compaction_threshold);
-    db_item.second->DBUnlockShared();
+    db_item.second->DbRWUnLock();
   }
 }
 
 void PikaServer::DBSetSmallCompactionDurationThreshold(uint32_t small_compaction_duration_threshold) {
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-    db_item.second->DBLockShared();
+    db_item.second->DbRWLockReader();
     db_item.second->storage()->SetSmallCompactionDurationThreshold(small_compaction_duration_threshold);
-    db_item.second->DBUnlockShared();
+    db_item.second->DbRWUnLock();
   }
 }
 
@@ -1386,7 +1386,9 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
   storage::Status s;
   std::shared_lock db_rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
+    db_item.second->DbRWLockWriter();
     s = db_item.second->storage()->SetOptions(option_type, storage::ALL_DB, options_map);
+    db_item.second->DbRWUnLock();
     if (!s.ok()) {
       return s;
     }
@@ -1565,9 +1567,9 @@ void PikaServer::DisableCompact() {
   /* cancel in-progress manual compactions */
   std::shared_lock rwl(dbs_rw_);
   for (const auto& db_item : dbs_) {
-      db_item.second->DBLock();
+      db_item.second->DbRWLockWriter();
       db_item.second->SetCompactRangeOptions(true);
-      db_item.second->DBUnlock();
+      db_item.second->DbRWUnLock();
   }
 }
 
