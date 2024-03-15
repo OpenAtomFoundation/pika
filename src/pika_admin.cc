@@ -709,7 +709,7 @@ void FlushdbCmd::Execute() {
     if (db_->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db_->GetDBLock());
+      std::lock_guard l_prw(db_->GetDBLocks());
       std::lock_guard s_prw(g_pika_rm->GetDBLock());
       FlushAllDBsWithoutLock();
       res_.SetRes(CmdRes::kOk);
