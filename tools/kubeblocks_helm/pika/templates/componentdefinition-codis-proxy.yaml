@@ -1,0 +1,91 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-codis-proxy
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika codis proxy component definition
+  serviceKind: pika-codis-proxy
+  serviceVersion: 3.5.1
+  services:
+    - name: proxy
+      serviceName: proxy
+      spec:
+        ports:
+          - name: proxy
+            targetPort: proxy
+            port: 11080
+          - name: admin
+            targetPort: admin
+            port: 19000
+  updateStrategy: Serial
+  configs:
+    - name: codis-proxy-config
+      templateRef: pika-conf-template
+      volumeName: config
+  runtime:
+    initContainers:
+      - name: wait-etcd
+        env:
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}"
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+        image: busybox:1.28
+        command:
+          - 'sh'
+          - '-c'
+          - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
+          - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
+    containers:
+      - name: codis-proxy
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 11080
+            name: proxy
+          - containerPort: 19000
+            name: admin
+        volumeMounts:
+          - name: config
+            mountPath: /etc/codis
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}:2379"
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard:18080"
+          - name: PRODUCT_NAME
+            value: "$(KB_CLUSTER_NAME)"
+        command:
+          - "/codis/bin/codis-proxy"
+        args:
+          - "-c"
+          - "/etc/codis/proxy.toml"
+          - "--host-admin"
+          - "$(POD_IP):11080"
+          - "--host-proxy"
+          - "$(POD_IP):19000"
+          - "--etcd"
+          - "$(ETCD_ADDR)"
+          - "--product_name"
+          - "$(PRODUCT_NAME)"
+          - "--pidfile"
+          - "log/proxy.pid"
+          - "--log-level=DEBUG"
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "/codis/bin/codis-admin --dashboard=${DASHBOARD_ADDR} --remove-proxy --addr=${POD_IP}:11080 1>/dev/null 2>&1"

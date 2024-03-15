@@ -116,10 +116,6 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
-  if (!db || db->IsBgSaving()) {
-    LOG(WARNING) << "waiting bgsave done...";
-    return;
-  }
 
   RsyncService::RsyncResponse response;
   response.set_reader_index(req->reader_index());
@@ -133,8 +129,16 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
    */
   response.set_slot_id(0);
 
-  std::vector<std::string> filenames;
   std::string snapshot_uuid;
+  if (!db || db->IsBgSaving()) {
+    LOG(WARNING) << "waiting bgsave done...";
+    response.set_snapshot_uuid(snapshot_uuid);
+    response.set_code(RsyncService::kErr);
+    RsyncWriteResp(response, conn);
+    return;
+  }
+
+  std::vector<std::string> filenames;
   g_pika_server->GetDumpMeta(db_name, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 

@@ -270,15 +270,24 @@ void AuthCmd::Do() {
   std::string pwd = "";
   bool defaultAuth = false;
   if (argv_.size() == 2) {
-    userName = Acl::DefaultUser;
     pwd = argv_[1];
-    defaultAuth = true;
+//    defaultAuth = true;
   } else {
     userName = argv_[1];
     pwd = argv_[2];
   }
 
-  auto authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  AuthResult authResult;
+  if (userName == "") {
+    //  default
+    authResult = AuthenticateUser(name(), Acl::DefaultUser, pwd, conn, true);
+    if (authResult != AuthResult::OK && authResult != AuthResult::NO_REQUIRE_PASS) {
+      //  Limit
+      authResult = AuthenticateUser(name(), Acl::DefaultLimitUser, pwd, conn, defaultAuth);
+    }
+  } else {
+    authResult = AuthenticateUser(name(), userName, pwd, conn, defaultAuth);
+  }
 
   switch (authResult) {
     case AuthResult::INVALID_CONN:
@@ -814,9 +823,9 @@ void ShutdownCmd::DoInitial() {
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  db_->DbRWUnLock();
+  db_->DBUnlockShared();
   g_pika_server->Exit();
-  db_->DbRWLockReader();
+  db_->DBLockShared();
   res_.SetRes(CmdRes::kNone);
 }
 
@@ -1338,11 +1347,11 @@ void InfoCmd::InfoData(std::string& info) {
     }
     background_errors.clear();
     memtable_usage = table_reader_usage = 0;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     total_memtable_usage += memtable_usage;
     total_table_reader_usage += table_reader_usage;
     for (const auto& item : background_errors) {
@@ -1376,9 +1385,9 @@ void InfoCmd::InfoRocksDB(std::string& info) {
       continue;
     }
     std::string rocksdb_info;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetRocksDBInfo(rocksdb_info);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     tmp_stream << rocksdb_info;
   }
   info.append(tmp_stream.str());
@@ -1569,7 +1578,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-thread-pool-size");
     EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
-
+  if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userblacklist");
+    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+  }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "slow-cmd-list");
@@ -2174,6 +2187,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "zset-cache-start-direction",
         "zset-cache-field-num-per-key",
         "cache-lfu-decay-time",
+        "max-conn-rbuf-size",
     });
     res_.AppendStringVector(replyVt);
     return;
@@ -2646,6 +2660,13 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     }
     g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "max-conn-rbuf-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < PIKA_MAX_CONN_RBUF_LB || ival > PIKA_MAX_CONN_RBUF_HB * 2) {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-conn-rbuf-size'\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxConnRbufSize(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
   } else {
     res_.AppendStringRaw("-ERR Unsupported CONFIG parameter: " + set_item + "\r\n");
   }
@@ -3093,9 +3114,9 @@ void DiskRecoveryCmd::Do() {
     }
     db_item.second->SetBinlogIoErrorrelieve();
     background_errors_.clear();
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     for (const auto &item: background_errors_) {
       if (item.second != 0) {
         rocksdb::Status s = db_item.second->storage()->GetDBByIndex(item.first)->Resume();

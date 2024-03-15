@@ -1,0 +1,80 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-codis-dashboard
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika codis dashboard component definition
+  serviceKind: pika-codis-dashboard
+  serviceVersion: 3.5.1
+  services:
+    - name: dashboard
+      serviceName: dashboard
+      spec:
+        ports:
+          - name: dashboard
+            targetPort: dashboard
+            port: 18080
+  updateStrategy: Serial
+  configs:
+    - name: codis-dashboard-config
+      templateRef: pika-conf-template
+      volumeName: config
+  runtime:
+    initContainers:
+      - name: wait-etcd
+        env:
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}"
+        image: busybox:1.28
+        command:
+          - 'sh'
+          - '-c'
+          - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
+    containers:
+      - name: codis-dashboard
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 18080
+            name: dashboard
+        volumeMounts:
+          - name: config
+            mountPath: /etc/codis
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}:2379"
+          - name: PRODUCT_NAME
+            value: "$(KB_CLUSTER_NAME)"
+        command:
+          - "/codis/bin/codis-dashboard"
+        args:
+          - "-c"
+          - "/etc/codis/dashboard.toml"
+          - "--host-admin"
+          - "$(POD_IP):18080"
+          - "--etcd"
+          - "$(ETCD_ADDR)"
+          - "--product_name"
+          - "$(PRODUCT_NAME)"
+          - "--pidfile"
+          - "log/dashboard.pid"
+          - "--remove-lock"
+          - "--log-level=DEBUG"
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/bash", "-c", "/codis/bin/codis-admin --dashboard-list  --etcd=${ETCD_ADDR}" ]
+          preStop:
+            exec:
+              command: [ "/bin/sh", "-c", "PID=$(cat log/dashboard.pid) && kill $PID && while ps -p 1 > /dev/null; do sleep 1; done" ]

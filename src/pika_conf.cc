@@ -10,10 +10,12 @@
 
 #include "cache/include/config.h"
 #include "include/acl.h"
-#include "include/pika_define.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path) {}
@@ -45,7 +47,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  //  GetConfStr("userpass", &userpass_);
+  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -461,11 +463,29 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // userblacklist
+  GetConfStr("userblacklist", &userblacklist_);
   // acl users
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
@@ -538,10 +558,12 @@ int PikaConf::Load() {
   // max conn rbuf size
   int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
   GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
-  if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
-    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
+  if (tmp_max_conn_rbuf_size <= PIKA_MAX_CONN_RBUF_LB) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_LB);
+  } else if (tmp_max_conn_rbuf_size >= PIKA_MAX_CONN_RBUF_HB * 2) {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF_HB * 2);
   } else {
-    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
+    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
   }
 
   // rocksdb blob configure
@@ -636,8 +658,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  //  SetConfStr("userpass", userpass_);
-  //  SetConfStr("userblacklist", userblacklist);
+  SetConfStr("userpass", userpass_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
@@ -669,6 +691,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
   SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
+  SetConfInt("max-conn-rbuf-size", max_conn_rbuf_size_.load());
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);

@@ -14,7 +14,7 @@ var _ = Describe("Server", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})
@@ -49,7 +49,7 @@ var _ = Describe("Server", func() {
 			r = client.Do(ctx, "config", "set", "requirepass", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
-			r = client.Do(ctx, "AUTH", "wrong!")
+			r = client.Do(ctx, "AUTH", "default", "wrong!")
 			Expect(r.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
 			// r = client.Do(ctx, "AUTH", "foo", "bar")

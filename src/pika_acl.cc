@@ -106,6 +106,10 @@ void PikaAclCmd::DelUser() {
       res().SetRes(CmdRes::kErrOther, "The 'default' user cannot be removed");
       return;
     }
+    if (it->data() == Acl::DefaultLimitUser) {
+      res().SetRes(CmdRes::kErrOther, "The 'limit' user cannot be removed");
+      return;
+    }
   }
 
   std::vector<std::string> userNames(argv_.begin() + 2, argv_.end());
