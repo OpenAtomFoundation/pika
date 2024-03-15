@@ -219,7 +219,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
   record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DBLockShared();
+    c_ptr->GetDB()->DbRWLockReader();
   }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
@@ -236,7 +236,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DBUnlockShared();
+    c_ptr->GetDB()->DbRWUnLock();
   }
 
   if (c_ptr->res().ok()

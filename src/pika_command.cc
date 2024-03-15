@@ -889,11 +889,11 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
   if (!IsSuspend()) {
-    db_->DBLockShared();
+    db_->DbRWLockReader();
   }
   DEFER {
     if (!IsSuspend()) {
-      db_->DBUnlockShared();
+      db_->DbRWUnLock();
     }
   };
   if (IsNeedCacheDo()
