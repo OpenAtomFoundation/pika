@@ -72,6 +72,7 @@ void SPopCmd::Do() {
     for (const auto& member : members_) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
+      // rem_members_.emplace_back(member);
     }
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
@@ -89,6 +90,30 @@ void SPopCmd::DoUpdateCache() {
     std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
     db_->cache()->SRem(CachePrefixKeyS, members_);
   }
+}
+
+void SPopCmd::DoBinlog() {
+  if (!s_.ok()) {
+    return;
+  }
+  PikaCmdArgsType srem_args;
+  std::shared_ptr<SRemCmd> srem_cmd_;
+  //SPopCmd use "SREM"
+  srem_args.emplace_back("srem");
+  srem_args.emplace_back(key_);
+  // for (auto m = rem_members_.begin(); m != rem_members_.end(); ++m) {
+  //   srem_args.emplace_back(*m);
+  // }
+  for (auto m = members_.begin(); m != members_.end(); ++m) {
+    srem_args.emplace_back(*m);
+  }
+  
+  srem_cmd_->Initial(srem_args, db_name_);
+
+  srem_cmd_->SetConn(GetConn());
+  srem_cmd_->SetResp(resp_.lock());
+
+  srem_cmd_->DoBinlog();
 }
 
 void SCardCmd::DoInitial() {

@@ -51,10 +51,12 @@ class SPopCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SPopCmd(*this); }
+  void DoBinlog() override;
 
  private:
   std::string key_;
   std::vector<std::string> members_;
+  std::vector<std::string> rem_members_;
   int64_t count_ = 1;
   rocksdb::Status s_;
   void DoInitial() override;
