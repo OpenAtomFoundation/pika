@@ -373,20 +373,18 @@ var _ = Describe("should replication ", func() {
 		BeforeEach(func() {
 			clientMaster = redis.NewClient(PikaOption(MASTERADDR))
 			clientSlave = redis.NewClient(PikaOption(SLAVEADDR))
-			cleanEnv(ctx, clientMaster, clientSlave)
-			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			cleanEnv(ctx, clientMaster, clientSlave)
 			if GlobalBefore != nil {
 				GlobalBefore(ctx, clientMaster)
 				GlobalBefore(ctx, clientSlave)
 			}
-			time.Sleep(3 * time.Second)
 		})
 		AfterEach(func() {
 			cleanEnv(ctx, clientMaster, clientSlave)
-			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-			time.Sleep(3 * time.Second)
+			Expect(clientSlave.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 			Expect(clientSlave.Close()).NotTo(HaveOccurred())
 			Expect(clientMaster.Close()).NotTo(HaveOccurred())
 			log.Println("Replication test case done")
@@ -443,15 +441,16 @@ var _ = Describe("should replication ", func() {
 			set1 := clientMaster.Set(ctx, "a", "b", 0)
 			Expect(set1.Err()).NotTo(HaveOccurred())
 			Expect(set1.Val()).To(Equal("OK"))
-			Expect(clientMaster.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+			Expect(clientMaster.Del(ctx, "x").Err()).NotTo(HaveOccurred())
+			//TODO Use del instead of flushdb after the flushDB problem is fixed
 			Eventually(func() error {
 				return clientMaster.Get(ctx, "x").Err()
-			}, "61s", "100ms").Should(Equal(redis.Nil))
-			// TODO some bug here, refer to issue: https://github.com/OpenAtomFoundation/pika/issues/2524
-			//Eventually(func() error {
-			//	return clientSlave.Get(ctx, "x").Err()
-			//}, "61s", "100ms").Should(Equal(redis.Nil))
-			//log.Println("Replication test 2 success")
+			}, "60s", "100ms").Should(Equal(redis.Nil))
+			//TODO some bug here, refer to issue: https://github.com/OpenAtomFoundation/pika/issues/2524
+			Eventually(func() error {
+				return clientSlave.Get(ctx, "x").Err()
+			}, "60s", "100ms").Should(Equal(redis.Nil))
+			log.Println("Replication test 2 success")
 
 			log.Println("rpoplpush test start")
 			Expect(clientMaster.Del(ctx, "blist0", "blist1", "blist").Err()).NotTo(HaveOccurred())
