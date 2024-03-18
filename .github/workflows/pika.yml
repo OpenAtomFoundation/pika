@@ -141,6 +141,7 @@ jobs:
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
+          rm -rf ../deps
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
           chmod +x ../tests/integration/start_codis.sh
