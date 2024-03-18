@@ -17,7 +17,6 @@ set ::all_tests {
     unit/scan
     unit/multi
     unit/quit
-    unit/type/list
     unit/pubsub
     unit/slowlog
     unit/maxmemory
@@ -25,12 +24,15 @@ set ::all_tests {
     unit/hyperloglog
     unit/type
     unit/acl
+    unit/type/geo
+    unit/type/list
     unit/type/list-2
     unit/type/list-3
     unit/type/set
     unit/type/zset
     unit/type/string
     unit/type/hash
+    unit/type/stream
     # unit/expire
     # unit/protocol
     # unit/other

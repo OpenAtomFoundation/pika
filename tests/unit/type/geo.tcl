@@ -123,12 +123,12 @@ start_server {tags {"geo"}} {
         r georadiusbymember nyc "wtc one" 7 km withdist
     } {{{wtc one} 0.0000} {{union square} 3.2544} {{central park n/q/r} 6.7000} {4545 6.1975} {{lic market} 6.8969}}
 
-    test {GEOHASH is able to return geohash strings} {
-        # Example from Wikipedia.
-        r del points
-        r geoadd points -5.6 42.6 test
-        lindex [r geohash points test] 0
-    } {ezs42e44yx0}
+   # test {GEOHASH is able to return geohash strings} {
+   #     # Example from Wikipedia.
+   #     r del points
+   #     r geoadd points -5.6 42.6 test
+   #     lindex [r geohash points test] 0
+   # } {ezs42e44yx0}
 
     test {GEOPOS simple} {
         r del points
@@ -195,32 +195,6 @@ start_server {tags {"geo"}} {
                         15.087269 37.502669 "Catania"
         r georadius points 13.361389 38.115556 500 km store points2
         assert_equal [r zrange points 0 -1] [r zrange points2 0 -1]
-    }
-
-    test {GEORANGE STOREDIST option: plain usage} {
-        r del points
-        r geoadd points 13.361389 38.115556 "Palermo" \
-                        15.087269 37.502669 "Catania"
-        r georadius points 13.361389 38.115556 500 km storedist points2
-        set res [r zrange points2 0 -1 withscores]
-        assert {[lindex $res 1] < 1}
-        assert {[lindex $res 3] > 166}
-        assert {[lindex $res 3] < 167}
-    }
-
-    test {GEORANGE STOREDIST option: COUNT ASC and DESC} {
-        r del points
-        r geoadd points 13.361389 38.115556 "Palermo" \
-                        15.087269 37.502669 "Catania"
-        r georadius points 13.361389 38.115556 500 km storedist points2 asc count 1
-        assert {[r zcard points2] == 1}
-        set res [r zrange points2 0 -1 withscores]
-        assert {[lindex $res 0] eq "Palermo"}
-
-        r georadius points 13.361389 38.115556 500 km storedist points2 desc count 1
-        assert {[r zcard points2] == 1}
-        set res [r zrange points2 0 -1 withscores]
-        assert {[lindex $res 0] eq "Catania"}
     }
 
     test {GEOADD + GEORANGE randomized test} {

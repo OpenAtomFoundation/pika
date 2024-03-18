@@ -243,15 +243,15 @@ start_server {tags {"scan"}} {
         assert_equal 100 [llength $keys2]
     }
 
-#    test "SSCAN with integer encoded object (issue #1345)" {
-#        set objects {1 a}
-#        r del set
-#        r sadd set {*}$objects
-#        set res [r sscan set 0 MATCH *a* COUNT 100]
-#        assert_equal [lsort -unique [lindex $res 1]] {a}
-#        set res [r sscan set 0 MATCH *1* COUNT 100]
-#        assert_equal [lsort -unique [lindex $res 1]] {1}
-#    }
+    test "SSCAN with integer encoded object (issue #1345)" {
+        set objects {1 a}
+        r del set
+        r sadd set {*}$objects
+        set res [r sscan set 0 MATCH *a* COUNT 100]
+        assert_equal [lsort -unique [lindex $res 1]] {a}
+        set res [r sscan set 0 MATCH *1* COUNT 100]
+        assert_equal [lsort -unique [lindex $res 1]] {1}
+    }
 
     test "SSCAN with PATTERN" {
         r del mykey

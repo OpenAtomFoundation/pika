@@ -39,6 +39,7 @@ start_server {tags {"hll"}} {
         set res
     } {5 10}
 
+# This parameter is not available in Pika
 #    test {HyperLogLogs are promote from sparse to dense} {
 #        r del hll
 #        r config set hll-sparse-max-bytes 3000
@@ -59,6 +60,7 @@ start_server {tags {"hll"}} {
 #        }
 #   }
 
+# Pika does not support the pfdebug command
 #    test {HyperLogLog sparse encoding stress test} {
 #        for {set x 0} {$x < 1000} {incr x} {
 #            r del hll1 hll2
@@ -74,7 +76,7 @@ start_server {tags {"hll"}} {
 #            r pfadd hll2 {*}$elements
 #            assert {[r pfdebug encoding hll1] eq {sparse}}
 #            assert {[r pfdebug encoding hll2] eq {dense}}
-            # Cardinality estimated should match exactly.
+#            # Cardinality estimated should match exactly.
 #            assert {[r pfcount hll1] eq [r pfcount hll2]}
 #        }
 #   }
@@ -224,13 +226,14 @@ start_server {tags {"hll"}} {
 #        }
 #    }
 
+# Pika does not support the pfdebug command
 #    test {PFDEBUG GETREG returns the HyperLogLog raw registers} {
 #        r del hll
 #        r pfadd hll 1 2 3
 #        llength [r pfdebug getreg hll]
 #   } {16384}
 
-
+# Pika does not support the pfdebug command
 #    test {PFDEBUG GETREG returns the HyperLogLog raw registers} {
 #        r del hll
 #        r pfadd hll 1 2 3

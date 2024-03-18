@@ -8,62 +8,62 @@ start_server {
     source "tests/unit/type/list-common.tcl"
 
 # No cause has been confirmed
-#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
-        # first lpush then rpush
-#        assert_equal 1 [r lpush myziplist1 a]
-#        assert_equal 2 [r rpush myziplist1 b]
-#        assert_equal 3 [r rpush myziplist1 c]
-#        assert_equal 3 [r llen myziplist1]
-#        assert_equal a [r lindex myziplist1 0]
-#        assert_equal b [r lindex myziplist1 1]
-#        assert_equal c [r lindex myziplist1 2]
-#        assert_equal {} [r lindex myziplist2 3]
-#        assert_equal c [r rpop myziplist1]
-#        assert_equal a [r lpop myziplist1]
-#        assert_encoding ziplist myziplist1
+    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - ziplist} {
+       # first lpush then rpush
+        assert_equal 1 [r lpush myziplist1 a]
+        assert_equal 2 [r rpush myziplist1 b]
+        assert_equal 3 [r rpush myziplist1 c]
+        assert_equal 3 [r llen myziplist1]
+        assert_equal a [r lindex myziplist1 0]
+        assert_equal b [r lindex myziplist1 1]
+        assert_equal c [r lindex myziplist1 2]
+        assert_equal {} [r lindex myziplist2 3]
+        assert_equal c [r rpop myziplist1]
+        assert_equal a [r lpop myziplist1]
+        #assert_encoding ziplist myziplist1
 
-        # first rpush then lpush
-#        assert_equal 1 [r rpush myziplist2 a]
-#        assert_equal 2 [r lpush myziplist2 b]
-#        assert_equal 3 [r lpush myziplist2 c]
-#        assert_equal 3 [r llen myziplist2]
-#        assert_equal c [r lindex myziplist2 0]
-#        assert_equal b [r lindex myziplist2 1]
-#        assert_equal a [r lindex myziplist2 2]
-#        assert_equal {} [r lindex myziplist2 3]
-#        assert_equal a [r rpop myziplist2]
-#        assert_equal c [r lpop myziplist2]
-#        assert_encoding ziplist myziplist2
-#    }
+       # first rpush then lpush
+        assert_equal 1 [r rpush myziplist2 a]
+        assert_equal 2 [r lpush myziplist2 b]
+        assert_equal 3 [r lpush myziplist2 c]
+        assert_equal 3 [r llen myziplist2]
+        assert_equal c [r lindex myziplist2 0]
+        assert_equal b [r lindex myziplist2 1]
+        assert_equal a [r lindex myziplist2 2]
+        assert_equal {} [r lindex myziplist2 3]
+        assert_equal a [r rpop myziplist2]
+        assert_equal c [r lpop myziplist2]
+        #assert_encoding ziplist myziplist2
+    }
 
 # No cause has been confirmed
-#    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
-        # first lpush then rpush
-#        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
-#        assert_encoding linkedlist mylist1
-#        assert_equal 2 [r rpush mylist1 b]
-#        assert_equal 3 [r rpush mylist1 c]
-#        assert_equal 3 [r llen mylist1]
-#        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
-#        assert_equal b [r lindex mylist1 1]
-#        assert_equal c [r lindex mylist1 2]
-#        assert_equal {} [r lindex mylist1 3]
-#        assert_equal c [r rpop mylist1]
-#        assert_equal $largevalue(linkedlist) [r lpop mylist1]
+    test {LPUSH, RPUSH, LLENGTH, LINDEX, LPOP - regular list} {
+       # first lpush then rpush
+        assert_equal 1 [r lpush mylist1 $largevalue(linkedlist)]
+        #assert_encoding linkedlist mylist1
+        assert_equal 2 [r rpush mylist1 b]
+        assert_equal 3 [r rpush mylist1 c]
+        assert_equal 3 [r llen mylist1]
+        assert_equal $largevalue(linkedlist) [r lindex mylist1 0]
+        assert_equal b [r lindex mylist1 1]
+        assert_equal c [r lindex mylist1 2]
+        assert_equal {} [r lindex mylist1 3]
+        assert_equal c [r rpop mylist1]
+        assert_equal $largevalue(linkedlist) [r lpop mylist1]
 
-#        # first rpush then lpush
-#        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
-#        assert_encoding linkedlist mylist2
-#        assert_equal 2 [r lpush mylist2 b]
-#        assert_equal 3 [r lpush mylist2 c]
-#        assert_equal 3 [r llen mylist2]
-#        assert_equal c [r lindex mylist2 0]
-#        assert_equal b [r lindex mylist2 1]
-#        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
-#        assert_equal {} [r lindex mylist2 3]
-#        assert_equal $largevalue(linkedlist) [r rpop mylist2]
-#        assert_equal c [r lpop mylist2]
-#    }
+        # first rpush then lpush
+        assert_equal 1 [r rpush mylist2 $largevalue(linkedlist)]
+        #assert_encoding linkedlist mylist2
+        assert_equal 2 [r lpush mylist2 b]
+        assert_equal 3 [r lpush mylist2 c]
+        assert_equal 3 [r llen mylist2]
+        assert_equal c [r lindex mylist2 0]
+        assert_equal b [r lindex mylist2 1]
+        assert_equal $largevalue(linkedlist) [r lindex mylist2 2]
+        assert_equal {} [r lindex mylist2 3]
+        assert_equal $largevalue(linkedlist) [r rpop mylist2]
+        assert_equal c [r lpop mylist2]
+    }
 
     test {R/LPOP against empty list} {
         r lpop non-existing-list
@@ -75,20 +75,6 @@ start_server {
         assert_equal 8 [r rpush mylist 0 1 2 3]
         assert_equal {d c b a 0 1 2 3} [r lrange mylist 0 -1]
     }
-# No cause has been confirmed
-#    test {DEL a list - ziplist} {
-#        assert_equal 1 [r del myziplist2]
-#        assert_equal 0 [r exists myziplist2]
-#        assert_equal 0 [r llen myziplist2]
-#    }
-
-# No cause has been confirmed
-#    test {DEL a list - regular list} {
-#        assert_equal 1 [r del mylist2]
-#        assert_equal 0 [r exists mylist2]
-#        assert_equal 0 [r llen mylist2]
-#    }
-
     proc create_ziplist {key entries} {
         r del $key
         foreach entry $entries { r rpush $key $entry }
@@ -472,13 +458,13 @@ start_server {
            assert_equal {blist1 foo} [$rd read]
            assert_equal 0 [r exists blist1]
        }
-# No cause has been confirmed
-#        test "$pop: with negative timeout" {
-#            set rd [redis_deferring_client]
-#            $rd $pop blist1 -1
-#            assert_error "ERR*is negative*" {$rd read}
-#        }
-#
+# No cause has been confirmed(fix)
+        test "$pop: with negative timeout" {
+            set rd [redis_deferring_client]
+            $rd $pop blist1 -1
+            assert_error "ERR timeout can't be a negative value and can't exceed the number of seconds in 10 years" {$rd read}
+        }
+
         test "$pop: with non-integer timeout" {
             set rd [redis_deferring_client]
             $rd $pop blist1 1.1
@@ -580,55 +566,55 @@ start_server {
         set e
     } {*ERR*syntax*error*}
 
-# No cause has been confirmed
-#    test {LPUSHX, RPUSHX convert from ziplist to list} {
-#        set large $largevalue(linkedlist)
-#
-#        # convert when a large value is pushed
-#        create_ziplist xlist a
-#        assert_equal 2 [r rpushx xlist $large]
-#        assert_encoding linkedlist xlist
-#        create_ziplist xlist a
-#        assert_equal 2 [r lpushx xlist $large]
-#        assert_encoding linkedlist xlist
-#
-#        # convert when the length threshold is exceeded
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal 257 [r rpushx xlist b]
-#        assert_encoding linkedlist xlist
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal 257 [r lpushx xlist b]
-#        assert_encoding linkedlist xlist
-#    }
+# No cause has been confirmed(fix)
+    test {LPUSHX, RPUSHX convert from ziplist to list} {
+        set large $largevalue(linkedlist)
 
-# No cause has been confirmed
-#    test {LINSERT convert from ziplist to list} {
-#        set large $largevalue(linkedlist)
-#
-#        # convert when a large value is inserted
-#        create_ziplist xlist a
-#        assert_equal 2 [r linsert xlist before a $large]
-#        assert_encoding linkedlist xlist
-#        create_ziplist xlist a
-#        assert_equal 2 [r linsert xlist after a $large]
-#        assert_encoding linkedlist xlist
-#
-#        # convert when the length threshold is exceeded
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal 257 [r linsert xlist before a a]
-#        assert_encoding linkedlist xlist
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal 257 [r linsert xlist after a a]
-#        assert_encoding linkedlist xlist
-#
-#        # don't convert when the value could not be inserted
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal -1 [r linsert xlist before foo a]
-#        assert_encoding ziplist xlist
-#        create_ziplist xlist [lrepeat 256 a]
-#        assert_equal -1 [r linsert xlist after foo a]
-#        assert_encoding ziplist xlist
-#    }
+        # convert when a large value is pushed
+        create_ziplist xlist a
+        assert_equal 2 [r rpushx xlist $large]
+        # assert_encoding linkedlist xlist
+        create_ziplist xlist a
+        assert_equal 2 [r lpushx xlist $large]
+        # assert_encoding linkedlist xlist
+
+        # convert when the length threshold is exceeded
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal 257 [r rpushx xlist b]
+        # assert_encoding linkedlist xlist
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal 257 [r lpushx xlist b]
+        # assert_encoding linkedlist xlist
+    }
+
+# No cause has been confirmed(fix)
+    test {LINSERT convert from ziplist to list} {
+        set large $largevalue(linkedlist)
+
+        # convert when a large value is inserted
+        create_ziplist xlist a
+        assert_equal 2 [r linsert xlist before a $large]
+        # assert_encoding linkedlist xlist
+        create_ziplist xlist a
+        assert_equal 2 [r linsert xlist after a $large]
+        # assert_encoding linkedlist xlist
+
+        # convert when the length threshold is exceeded
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal 257 [r linsert xlist before a a]
+        # assert_encoding linkedlist xlist
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal 257 [r linsert xlist after a a]
+        # assert_encoding linkedlist xlist
+
+        # don't convert when the value could not be inserted
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal -1 [r linsert xlist before foo a]
+        # assert_encoding ziplist xlist
+        create_ziplist xlist [lrepeat 256 a]
+        assert_equal -1 [r linsert xlist after foo a]
+        # assert_encoding ziplist xlist
+    }
 
     foreach {type num} {ziplist 250 linkedlist 500} {
         proc check_numbered_list_consistency {key} {
