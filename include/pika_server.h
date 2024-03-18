@@ -105,6 +105,9 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
+  std::unique_ptr<PikaDispatchThread>& pika_dispatch_thread() {
+    return pika_dispatch_thread_;
+  }
 
   /*
    * DB use

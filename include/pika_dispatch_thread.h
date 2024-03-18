@@ -23,6 +23,7 @@ class PikaDispatchThread {
   void SetQueueLimit(int queue_limit) { thread_rep_->SetQueueLimit(queue_limit); }
 
   void UnAuthUserAndKillClient(const std::set<std::string> &users, const std::shared_ptr<User>& defaultUser);
+  net::ServerThread* server_thread() { return thread_rep_; }
 
  private:
   class ClientConnFactory : public net::ConnFactory {
