@@ -576,6 +576,60 @@ set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
+if (USE_S3)
+ExternalProject_Add(rocksdb
+  DEPENDS
+  gflags
+  gtest
+  snappy
+  zstd
+  lz4
+  zlib
+  ${LIBGPERF_NAME}
+  ${LIBJEMALLOC_NAME}
+  URL
+  https://github.com/longfar-ncy/rocksdb-cloud/archive/refs/heads/pika.zip
+  URL_HASH
+  MD5=761d1f7ccd6ea9aa86c1f2ce0e246a26
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  BUILD_ALWAYS
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  -DUSE_RTTI=1
+  -DWITH_BENCHMARK=OFF
+  -DWITH_BENCHMARK_TOOLS=OFF
+  -DWITH_TOOLS=OFF
+  -DWITH_CORE_TOOLS=OFF
+  -DWITH_TESTS=OFF
+  -DWITH_TRACE_TOOLS=OFF
+  -DWITH_EXAMPLES=OFF
+  -DROCKSDB_BUILD_SHARED=OFF
+  -DWITH_JEMALLOC=${JEMALLOC_ON}
+  -DWITH_LZ4=ON
+  -DWITH_SNAPPY=ON
+  -DWITH_ZLIB=ON
+  -DWITH_ZSTD=ON
+  -DWITH_GFLAGS=ON
+  -DFAIL_ON_WARNINGS=OFF
+  -DWITH_LIBURING=OFF
+  -DPORTABLE=1
+  -DWITH_AWS=ON
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+else()
 ExternalProject_Add(rocksdb
   DEPENDS
   gflags
@@ -627,6 +681,7 @@ ExternalProject_Add(rocksdb
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
+endif()
 
 ExternalProject_Add(rediscache
   URL
@@ -724,6 +779,10 @@ endif()
 
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
+
+if(USE_S3)
+	add_compile_definitions(USE_S3)
+endif()
 
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
@@ -828,6 +887,15 @@ target_link_libraries(${PROJECT_NAME}
   librediscache.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
+
+if (USE_S3)
+  target_link_libraries(${PROJECT_NAME}
+    libaws-cpp-sdk-core.so 
+    libaws-cpp-sdk-transfer.so
+    libaws-cpp-sdk-kinesis.so
+    libaws-cpp-sdk-s3.so
+  )
+endif()
 
 option(USE_SSL "Enable SSL support" OFF)
 add_custom_target(

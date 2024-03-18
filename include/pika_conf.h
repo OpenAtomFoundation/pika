@@ -405,6 +405,19 @@ class PikaConf : public pstd::BaseConf {
   uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(); }
   uint32_t acl_log_max_len() { return acl_Log_max_len_.load(); }
 
+#ifdef USE_S3
+  // rocksdb-cloud options
+  std::string cloud_endpoint_override() { return cloud_endpoint_override_; }
+  std::string cloud_access_key() { return cloud_access_key_; }
+  std::string cloud_secret_key() { return cloud_secret_key_; }
+  std::string cloud_src_bucket_prefix() { return cloud_src_bucket_prefix_; }
+  std::string cloud_src_bucket_suffix() { return cloud_src_bucket_suffix_; }
+  std::string cloud_src_bucket_region() { return cloud_src_bucket_region_; }
+  std::string cloud_dest_bucket_prefix() { return cloud_dest_bucket_prefix_; }
+  std::string cloud_dest_bucket_suffix() { return cloud_dest_bucket_suffix_; }
+  std::string cloud_dest_bucket_region() { return cloud_dest_bucket_region_; }
+#endif
+
   // Setter
   void SetPort(const int value) {
     std::lock_guard l(rwlock_);
@@ -819,6 +832,21 @@ class PikaConf : public pstd::BaseConf {
   int64_t blob_num_shard_bits_ = 0;
   int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
   std::string blob_compression_type_ = "none";
+
+#ifdef USE_S3
+  // rocksdb-cloud options
+  std::string cloud_endpoint_override_;
+  std::string cloud_access_key_;
+  std::string cloud_secret_key_;
+  // rocksdb-cloud src bucket
+  std::string cloud_src_bucket_prefix_ = "pika.";
+  std::string cloud_src_bucket_suffix_ = "database";
+  std::string cloud_src_bucket_region_;
+  // rocksdb-cloud dest bucket
+  std::string cloud_dest_bucket_prefix_ = "pika.";
+  std::string cloud_dest_bucket_suffix_ = "database";
+  std::string cloud_dest_bucket_region_;
+#endif
 
   std::shared_mutex rwlock_;
 

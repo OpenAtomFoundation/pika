@@ -10,9 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "rocksdb/compaction_filter.h"
-#include "rocksdb/db.h"
-#include "src/debug.h"
+#include "base_filter.h"
 #include "src/lists_data_key_format.h"
 #include "src/lists_meta_value_format.h"
 
@@ -60,7 +58,11 @@ class ListsMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
+#ifdef USE_S3
+  ListsDataFilter(rocksdb::DBCloud* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, int meta_cf_index)
+#else
   ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, int meta_cf_index)
+#endif
       : db_(db),
         cf_handles_ptr_(cf_handles_ptr),
         meta_cf_index_(meta_cf_index)
@@ -145,7 +147,11 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
   const char* Name() const override { return "ListsDataFilter"; }
 
  private:
+#ifdef USE_S3
+  rocksdb::DBCloud* db_ = nullptr;
+#else
   rocksdb::DB* db_ = nullptr;
+#endif
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
   rocksdb::ReadOptions default_read_options_;
   mutable std::string cur_key_;
@@ -157,7 +163,11 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
 
 class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
+#ifdef USE_S3
+  ListsDataFilterFactory(rocksdb::DBCloud** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, int meta_cf_index)
+#else
   ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, int meta_cf_index)
+#endif
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), meta_cf_index_(meta_cf_index) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
@@ -167,7 +177,11 @@ class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
   const char* Name() const override { return "ListsDataFilterFactory"; }
 
  private:
+#ifdef USE_S3
+  rocksdb::DBCloud** db_ptr_ = nullptr;
+#else
   rocksdb::DB** db_ptr_ = nullptr;
+#endif
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
   int meta_cf_index_ = 0;
 };
