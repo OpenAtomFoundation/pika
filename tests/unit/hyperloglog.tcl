@@ -81,6 +81,7 @@ start_server {tags {"hll"}} {
 #        }
 #   }
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Additionl at tail} {
 #        r del hll
 #        r pfadd hll a b c
@@ -90,6 +91,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*INVALIDOBJ*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Broken magic} {
 #        r del hll
 #        r pfadd hll a b c
@@ -99,6 +101,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Invalid encoding} {
 #        r del hll
 #        r pfadd hll a b c
@@ -108,6 +111,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted dense HyperLogLogs are detected: Wrong length} {
 #        r del hll
 #        r pfadd hll a b c
@@ -117,6 +121,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {PFADD, PFCOUNT, PFMERGE type checking works} {
 #        r set foo bar
 #        catch {r pfadd foo 1} e
@@ -138,6 +143,7 @@ start_server {tags {"hll"}} {
         r pfcount hll
     } {5}
 
+# The return value of Pika is inconsistent with Redis
 #    test {PFCOUNT multiple-keys merge returns cardinality of union} {
 #        r del hll1 hll2 hll3
 #        for {set x 1} {$x < 100000} {incr x} {
@@ -153,6 +159,7 @@ start_server {tags {"hll"}} {
 #        }
 #    }
 
+# The return value of Pika is inconsistent with Redis
 #    test {HYPERLOGLOG press test: 5w, 10w, 15w, 20w, 30w, 50w, 100w} {
 #        r del hll1
 #        for {set x 1} {$x <= 1000000} {incr x} {
@@ -240,6 +247,7 @@ start_server {tags {"hll"}} {
 #        llength [r pfdebug getreg hll]
 #   } {16384}
 
+# The return value of Pika is inconsistent with Redis
 #    test {PFADD / PFCOUNT cache invalidation works} {
 #        r del hll
 #        r pfadd hll a b c

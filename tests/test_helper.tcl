@@ -20,11 +20,11 @@ set ::all_tests {
     unit/pubsub
     unit/slowlog
     unit/maxmemory
-    unit/bitops
     unit/hyperloglog
     unit/type
     unit/acl
-    unit/type/geo
+    unit/geo
+    unit/type/bitops
     unit/type/list
     unit/type/list-2
     unit/type/list-3

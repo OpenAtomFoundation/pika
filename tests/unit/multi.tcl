@@ -94,7 +94,7 @@ start_server {tags {"multi"}} {
         r exec
     } {PONG}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified (1 key of 1 watched)} {
 #        r set x 30
 #        r watch x
@@ -104,7 +104,7 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified (1 key of 5 watched)} {
 #        r set x 30
 #        r watch a b x k z
@@ -114,7 +114,7 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified by SORT with STORE even if the result is empty} {
 #        r flushdb
 #        r lpush foo barsync"
@@ -164,7 +164,7 @@ start_server {tags {"multi"}} {
         r unwatch
     } {OK}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {FLUSHALL is able to touch the watched keys} {
 #        r set x 30
 #        r watch x
@@ -183,7 +183,7 @@ start_server {tags {"multi"}} {
         r exec
     } {PONG}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {FLUSHDB is able to touch the watched keys} {
 #        r set x 30
 #        r watch x
@@ -202,7 +202,7 @@ start_server {tags {"multi"}} {
         r exec
     } {PONG}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {WATCH is able to remember the DB a key belongs to} {
 #        r select 5
 #        r set x 30
@@ -218,7 +218,7 @@ start_server {tags {"multi"}} {
 #        set res
 #    } {PONG}
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test {WATCH will consider touched keys target of EXPIRE} {
 #        r del x
 #        r set x foo

@@ -47,7 +47,7 @@ start_server {tags {"pubsub"}} {
         __consume_subscribe_messages $client punsubscribe $channels
     }
 
-# bug need fix
+# The return value of Pika is inconsistent with Redis
 #    test "Pub/Sub PING" {
 #        set rd1 [redis_deferring_client]
 #        subscribe $rd1 somechannel

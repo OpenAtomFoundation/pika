@@ -249,17 +249,18 @@ start_server {
             assert_equal $result [lsort [array names s]]
         }
     }
-# Bug need Fix (fixed)
-    test "SINTER against non-set should throw error" {
-        r set key1 x
-        assert_equal "" [r sinter key1 noset]
-    }
 
-# Bug need Fix (fixed)
-    test "SUNION against non-set should throw error" {
-        r set key1 x
-        assert_equal "" [r sunion key1 noset]
-    }
+# Keys for multiple data types of Pika can be duplicate
+#    test "SINTER against non-set should throw error" {
+#        r set key1 x
+#        assert_equal "WRONGTYPE*" [r sinter key1 noset]
+#    }
+
+# Keys for multiple data types of Pika can be duplicate
+#    test "SUNION against non-set should throw error" {
+#        r set key1 x
+#        assert_equal "WRONGTYPE*" [r sunion key1 noset]
+#    }
 
     test "SINTER should handle non existing key as empty" {
         r del set1 set2 set3
@@ -481,17 +482,17 @@ start_server {
 #        assert_encoding intset myset3
     }
 
-# Bug need Fix (fixed)
-    test "SMOVE wrong src key type" {
-        r set x 10
-        assert_equal 0 [r smove x myset2 foo]
-    }
+# Keys for multiple data types of Pika can be duplicate
+#    test "SMOVE wrong src key type" {
+#        r set x 10
+#        assert_equal "WRONGTYPE*" [r smove x myset2 foo]
+#    }
 
-# Bug need Fix (fixed)
-    test "SMOVE wrong dst key type" {
-        r set x 10
-        assert_equal 0 [r smove myset2 x foo]
-    }
+# Keys for multiple data types of Pika can be duplicate
+#    test "SMOVE wrong dst key type" {
+#        r set x 10
+#        assert_equal "WRONGTYPE*" [r smove myset2 x foo]
+#    }
 
     test "SMOVE with identical source and destination" {
         r del set

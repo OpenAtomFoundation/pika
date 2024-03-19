@@ -158,6 +158,7 @@ start_server {
         assert {[r XLEN mystream] == 5}
     }
 
+# The return value of Pika is inconsistent with Redis
     test {XADD with MAXLEN option and the '~' argument} {
     #    r DEL mystream
     #    r config set stream-node-max-entries 100
@@ -171,6 +172,7 @@ start_server {
     #    assert {[r XLEN mystream] == 600}
     }
 
+# The return value of Pika is inconsistent with Redis
     test {XADD with NOMKSTREAM option} {
     #    r DEL mystream
     #    assert_equal "" [r XADD mystream NOMKSTREAM * item 1 value a]
@@ -335,6 +337,7 @@ start_server {
         assert {[lrange [lindex $res 0 1 0 1] 0 1] eq {item 0}}
     }
 
+# The return value of Pika is inconsistent with Redis
    # test {Blocking XREAD waiting new data} {
    #     r XADD s2{t} * old abcd1234
    #     set rd [redis_deferring_client]
@@ -347,6 +350,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {Blocking XREAD waiting old data} {
    #     set rd [redis_deferring_client]
    #     $rd XREAD BLOCK 20000 STREAMS s1{t} s2{t} s3{t} $ 0-0 $
@@ -357,6 +361,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {Blocking XREAD will not reply with an empty array} {
    #     r del s1
    #     r XADD s1 666 f v
@@ -369,6 +374,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test "Blocking XREAD for stream that ran dry (issue #5299)" {
    #     set rd [redis_deferring_client]
 
@@ -394,6 +400,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element from non-empty stream} {
    #     # should return last entry
 
@@ -420,6 +427,7 @@ start_server {
    #     assert_equal $res {{lestream {{3-18446744073709551615 {k5 v5}}}}}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element from empty stream} {
    #     # should return nil
 
@@ -437,6 +445,7 @@ start_server {
    #     assert_equal [r XREAD STREAMS lestream +] {}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element blocking from empty stream} {
    #     # should block until a new entry is available
 
@@ -457,6 +466,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element blocking from non-empty stream} {
    #     # should return last element immediately, w/o blocking
 
@@ -473,6 +483,7 @@ start_server {
    #     assert_equal $res {{lestream {{3-0 {k3 v3}}}}}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element from multiple streams} {
    #     # should return last element only from non-empty streams
 
@@ -494,6 +505,7 @@ start_server {
    #     assert_equal $res {{{{lestream}1} {{3-0 {k3 v3}}}} {{{lestream}2} {{3-0 {k3 v6}}}}}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD last element with count > 1} {
    #     # Should return only the last element - count has no affect here
 
@@ -510,6 +522,7 @@ start_server {
    #     assert_equal $res {{lestream {{3-0 {k3 v3}}}}}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test "XREAD: XADD + DEL should not awake client" {
    #     set rd [redis_deferring_client]
    #     r del s1
@@ -526,6 +539,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test "XREAD: XADD + DEL + LPUSH should not awake client" {
    #     set rd [redis_deferring_client]
    #     r del s1
@@ -544,6 +558,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD with same stream name multiple times should work} {
    #     r XADD s2 * old abcd1234
    #     set rd [redis_deferring_client]
@@ -556,6 +571,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD + multiple XADD inside transaction} {
    #     r XADD s2 * old abcd1234
    #     set rd [redis_deferring_client]
@@ -573,6 +589,7 @@ start_server {
    #     $rd close
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XDEL basic test} {
    #     r del somestream
    #     r xadd somestream * foo value0
@@ -585,6 +602,7 @@ start_server {
    #     assert {[lindex $result 1 1 1] eq {value2}}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XDEL multiply id test} {
    #     r del somestream
    #     r xadd somestream 1-1 a 1
@@ -634,6 +652,7 @@ start_server {
    #     }
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XRANGE fuzzing} {
    #     set items [r XRANGE mystream{t} - +]
    #     set low_id [lindex $items 0 0]
@@ -680,6 +699,7 @@ start_server {
         assert {[lindex $res 0 1 0] == {2-1 {f v}}}
     }
 
+# The return value of Pika is inconsistent with Redis
    # test {XREAD streamID edge (blocking)} {
    #     r del x
    #     set rd [redis_deferring_client]
@@ -700,6 +720,7 @@ start_server {
         assert_equal [r XRANGE x - +] {{2577343934890-18446744073709551615 {f v}} {2577343934891-0 {f2 v2}}}
     }
 
+# The return value of Pika is inconsistent with Redis
    # test {XTRIM with MAXLEN option basic test} {
    #     r DEL mystream
    #     for {set j 0} {$j < 1000} {incr j} {
@@ -719,6 +740,7 @@ start_server {
    #     assert {[r XLEN mystream] == 400}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XADD with LIMIT consecutive calls} {
    #     r del mystream
    #     r config set stream-node-max-entries 10
@@ -732,6 +754,7 @@ start_server {
    #     r config set stream-node-max-entries 100
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XTRIM with ~ is limited} {
    #     r del mystream
    #     r config set stream-node-max-entries 1
@@ -743,6 +766,7 @@ start_server {
    #     r config set stream-node-max-entries 100
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XTRIM without ~ is not limited} {
    #     r del mystream
    #     r config set stream-node-max-entries 1
@@ -754,6 +778,7 @@ start_server {
    #     r config set stream-node-max-entries 100
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XTRIM without ~ and with LIMIT} {
    #     r del mystream
    #     r config set stream-node-max-entries 1
@@ -763,6 +788,7 @@ start_server {
    #     assert_error ERR* {r XTRIM mystream MAXLEN 1 LIMIT 30}
    # }
 
+# The return value of Pika is inconsistent with Redis
    # test {XTRIM with LIMIT delete entries no more than limit} {
    #     r del mystream
    #     r config set stream-node-max-entries 2
@@ -774,6 +800,7 @@ start_server {
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes}} {
    # test {XADD with MAXLEN > xlen can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -789,6 +816,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes}} {
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes}} {
    # test {XADD with MINID > lastid can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -805,6 +833,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes}} {
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-max-entries 100}} {
    # test {XADD with ~ MAXLEN can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -821,6 +850,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-max-entries 10}} {
    # test {XADD with ~ MAXLEN and LIMIT can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -835,6 +865,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-max-entries 100}} {
    # test {XADD with ~ MINID can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -852,6 +883,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-max-entries 10}} {
    # test {XADD with ~ MINID and LIMIT can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -867,6 +899,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-max-entries 10}} {
    # test {XTRIM with ~ MAXLEN can propagate correctly} {
    #     for {set j 0} {$j < 100} {incr j} {
@@ -882,6 +915,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes stream-node-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream"}} {
    # test {XADD can CREATE an empty stream} {
    #     r XADD mystream MAXLEN 0 * a b
@@ -954,6 +988,7 @@ start_server {tags {"stream"}} {
    # } {ERR *smaller*}
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream"}} {
    # test {XADD advances the entries-added counter and sets the recorded-first-entry-id} {
    #     r DEL x
@@ -1020,6 +1055,8 @@ start_server {tags {"stream"}} {
 }
 
 start_server {tags {"stream needs:debug"} overrides {appendonly yes aof-use-rdb-preamble no}} {
+
+# Pika does not support the debug command
    # test {Empty stream can be rewrite into AOF correctly} {
    #     r XADD mystream MAXLEN 0 * a b
    #     assert {[dict get [r xinfo stream mystream] length] == 0}
@@ -1029,6 +1066,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes aof-use-rdb-
    #     assert {[dict get [r xinfo stream mystream] length] == 0}
    # }
 
+# Pika does not support the debug command
    # test {Stream can be rewrite into AOF correctly after XDEL lastid} {
    #     r XSETID mystream 0-0
    #     r XADD mystream 1-1 a b
@@ -1043,6 +1081,7 @@ start_server {tags {"stream needs:debug"} overrides {appendonly yes aof-use-rdb-
    # }
 }
 
+# The return value of Pika is inconsistent with Redis
 start_server {tags {"stream"}} {
    # test {XGROUP HELP should not have unexpected options} {
    #     catch {r XGROUP help xxx} e

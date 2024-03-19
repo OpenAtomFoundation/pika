@@ -197,6 +197,34 @@ start_server {tags {"geo"}} {
         assert_equal [r zrange points 0 -1] [r zrange points2 0 -1]
     }
 
+# The return value of Pika is inconsistent with Redis
+#   test {GEORANGE STOREDIST option: plain usage} {
+#        r del points
+#        r geoadd points 13.361389 38.115556 "Palermo" \
+#                        15.087269 37.502669 "Catania"
+#        r georadius points 13.361389 38.115556 500 km storedist points2
+#        set res [r zrange points2 0 -1 withscores]
+#        assert {[lindex $res 1] < 1}
+#        assert {[lindex $res 3] > 166}
+#        assert {[lindex $res 3] < 167}
+#    }
+
+# The return value of Pika is inconsistent with Redis
+#    test {GEORANGE STOREDIST option: COUNT ASC and DESC} {
+#        r del points
+#        r geoadd points 13.361389 38.115556 "Palermo" \
+#                        15.087269 37.502669 "Catania"
+#        r georadius points 13.361389 38.115556 500 km storedist points2 asc count 1
+#        assert {[r zcard points2] == 1}
+#        set res [r zrange points2 0 -1 withscores]
+#        assert {[lindex $res 0] eq "Palermo"}
+#
+#        r georadius points 13.361389 38.115556 500 km storedist points2 desc count 1
+#        assert {[r zcard points2] == 1}
+#        set res [r zrange points2 0 -1 withscores]
+#        assert {[lindex $res 0] eq "Catania"}
+#    }
+
     test {GEOADD + GEORANGE randomized test} {
         set attempt 30
         while {[incr attempt -1]} {

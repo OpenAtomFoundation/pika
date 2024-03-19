@@ -43,6 +43,7 @@ start_server {tags {"bitops"}} {
         r bitcount no-key
     } 0
 
+# Note The cause is to be confirmed
 #    catch {unset num}
 #    foreach vec [list "" "\xaa" "\x00\x00\xff" "foobar" "123"] {
 #        incr num
@@ -52,6 +53,7 @@ start_server {tags {"bitops"}} {
 #        }
 #    }
 
+# Note The cause is to be confirmed
 #    test {BITCOUNT fuzzing without start/end} {
 #        for {set j 0} {$j < 100} {incr j} {
 #            set str [randstring 0 3000]
@@ -60,6 +62,7 @@ start_server {tags {"bitops"}} {
 #        }
 #    }
 
+# Note The cause is to be confirmed
 #    test {BITCOUNT fuzzing with start/end} {
 #        for {set j 0} {$j < 100} {incr j} {
 #            set str [randstring 0 3000]
@@ -189,6 +192,7 @@ start_server {tags {"bitops"}} {
         r get dest
     } {2}
 
+# Note The cause is to be confirmed
 #    test {BITOP with non string source key} {
 #        r del c
 #        r set a 1
@@ -204,36 +208,43 @@ start_server {tags {"bitops"}} {
         r bitop or x a b
     } {32}
 
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 with empty key returns 0} {
 #        r del str
 #        r bitpos str 0
 #    } {0}
 
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 with empty key returns -1} {
 #        r del str
 #        r bitpos str 1
 #    } {-1}
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 with string less than 1 word works} {
 #        r set str "\xff\xf0\x00"
 #        r bitpos str 0
 #    } {12}
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 with string less than 1 word works} {
 #        r set str "\x00\x0f\x00"
 #        r bitpos str 1
 #    } {12}
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 starting at unaligned address} {
 #        r set str "\xff\xf0\x00"
 #        r bitpos str 0 1
 #    } {12}
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 starting at unaligned address} {
 #        r set str "\x00\x0f\xff"
 #        r bitpos str 1 1
 #    } {12}
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 unaligned+full word+reminder} {
 #        r del str
 #        r set str "\xff\xff\xff" ; # Prefix
@@ -253,7 +264,8 @@ start_server {tags {"bitops"}} {
 #        assert {[r bitpos str 0 7] == 216}
 #        assert {[r bitpos str 0 8] == 216}
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 unaligned+full word+reminder} {
 #        r del str
 #        r set str "\x00\x00\x00" ; # Prefix
@@ -273,7 +285,8 @@ start_server {tags {"bitops"}} {
 #        assert {[r bitpos str 1 7] == 216}
 #        assert {[r bitpos str 1 8] == 216}
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 returns -1 if string is all 0 bits} {
 #        r set str ""
 #        for {set j 0} {$j < 20} {incr j} {
@@ -281,7 +294,8 @@ start_server {tags {"bitops"}} {
 #            r append str "\x00"
 #        }
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 works with intervals} {
 #        r set str "\x00\xff\x00"
 #        assert {[r bitpos str 0 0 -1] == 0}
@@ -290,7 +304,8 @@ start_server {tags {"bitops"}} {
 #        assert {[r bitpos str 0 2 200] == 16}
 #        assert {[r bitpos str 0 1 1] == -1}
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 works with intervals} {
 #        r set str "\x00\xff\x00"
 #        assert {[r bitpos str 1 0 -1] == 8}
@@ -299,14 +314,16 @@ start_server {tags {"bitops"}} {
 #        assert {[r bitpos str 1 2 200] == -1}
 #        assert {[r bitpos str 1 1 1] == 8}
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 changes behavior if end is given} {
 #        r set str "\xff\xff\xff"
 #        assert {[r bitpos str 0] == 24}
 #        assert {[r bitpos str 0 0] == 24}
 #        assert {[r bitpos str 0 0 -1] == -1}
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=1 fuzzy testing using SETBIT} {
 #        r del str
 #        set max 524288; # 64k
@@ -322,7 +339,8 @@ start_server {tags {"bitops"}} {
 #            }
 #        }
 #    }
-#
+
+# Note The cause is to be confirmed
 #    test {BITPOS bit=0 fuzzy testing using SETBIT} {
 #        set max 524288; # 64k
 #        set first_zero_pos $max
