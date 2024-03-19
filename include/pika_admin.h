@@ -189,7 +189,6 @@ class FlushallCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
-  void Execute() override;
   void FlushAllWithoutLock();
   void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
 
@@ -212,7 +211,6 @@ class FlushdbCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
-  void Execute() override;
   std::string GetFlushDname() { return db_name_; }
 
  private:
@@ -265,7 +263,6 @@ class InfoCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
-  void Execute() override;
 
  private:
   InfoSection info_section_;
@@ -336,7 +333,6 @@ class ConfigCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
-  void Execute() override;
 
  private:
   std::vector<std::string> config_args_v_;

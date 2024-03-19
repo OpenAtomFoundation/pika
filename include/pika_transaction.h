@@ -31,7 +31,6 @@ class ExecCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
   void Do() override;
   Cmd* Clone() override { return new ExecCmd(*this); }
-  void Execute() override;
   void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
   std::vector<std::string> current_key() const override { return {}; }
@@ -79,7 +78,6 @@ class WatchCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::TRANSACTION)) {}
 
   void Do() override;
-  void Execute() override;
   void Split(const HintKeys& hint_keys) override {}
   Cmd* Clone() override { return new WatchCmd(*this); }
   void Merge() override {}

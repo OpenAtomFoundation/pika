@@ -527,10 +527,24 @@ void FlushallCmd::DoInitial() {
   }
 }
 void FlushallCmd::Do() {
-  if (!db_) {
-    LOG(INFO) << "Flushall, but DB not found";
-  } else {
-    db_->FlushDB();
+  std::lock_guard l_trw(g_pika_server->GetDBLock());
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    if (db_item.second->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+      return;
+    }
+  }
+  g_pika_rm->DBLock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->DBLock();
+  }
+  FlushAllWithoutLock();
+  for (const auto& db_item : g_pika_server->GetDB()) {
+    db_item.second->DBUnlock();
+  }
+  g_pika_rm->DBUnlock();
+  if (res_.ok()) {
+    res_.SetRes(CmdRes::kOk);
   }
 }
 
@@ -556,28 +570,6 @@ std::string FlushallCmd::ToRedisProtocol() {
   RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
   RedisAppendContent(content, flushdb_cmd);
   return content;
-}
-
-void FlushallCmd::Execute() {
-  std::lock_guard l_trw(g_pika_server->GetDBLock());
-  for (const auto& db_item : g_pika_server->GetDB()) {
-    if (db_item.second->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-      return;
-    }
-  }
-  g_pika_rm->DBLock();
-  for (const auto& db_item : g_pika_server->GetDB()) {
-    db_item.second->DBLock();
-  }
-  FlushAllWithoutLock();
-  for (const auto& db_item : g_pika_server->GetDB()) {
-    db_item.second->DBUnlock();
-  }
-  g_pika_rm->DBUnlock();
-  if (res_.ok()) {
-    res_.SetRes(CmdRes::kOk);
-  }
 }
 
 void FlushallCmd::FlushAllWithoutLock() {
@@ -646,13 +638,15 @@ void FlushdbCmd::DoInitial() {
 
 void FlushdbCmd::Do() {
   if (!db_) {
-    LOG(INFO) << "Flushdb, but DB not found";
+    res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    if (db_name_ == "all") {
-      db_->FlushDB();
+    if (db_->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      //Floyd does not support flushdb by type
-      LOG(ERROR) << "cannot flushdb by type in floyd";
+      std::lock_guard l_prw(db_->GetDBLock());
+      std::lock_guard s_prw(g_pika_rm->GetDBLock());
+      FlushAllDBsWithoutLock();
+      res_.SetRes(CmdRes::kOk);
     }
   }
 }
@@ -690,21 +684,6 @@ void FlushdbCmd::DoWithoutLock() {
       LOG(ERROR) << "cannot flushdb by type in floyd";
     }
     DoUpdateCache();
-  }
-}
-
-void FlushdbCmd::Execute() {
-  if (!db_) {
-    res_.SetRes(CmdRes::kInvalidDB);
-  } else {
-    if (db_->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-    } else {
-      std::lock_guard l_prw(db_->GetDBLock());
-      std::lock_guard s_prw(g_pika_rm->GetDBLock());
-      FlushAllDBsWithoutLock();
-      res_.SetRes(CmdRes::kOk);
-    }
   }
 }
 
@@ -1473,11 +1452,6 @@ std::string InfoCmd::CacheStatusToString(int status) {
     default:
       return std::string("Unknown");
   }
-}
-
-void InfoCmd::Execute() {
-  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
-  Do();
 }
 
 void ConfigCmd::DoInitial() {
@@ -2721,10 +2695,6 @@ void ConfigCmd::ConfigRewriteReplicationID(std::string& ret) {
 void ConfigCmd::ConfigResetstat(std::string& ret) {
   g_pika_server->ResetStat();
   ret = "+OK\r\n";
-}
-
-void ConfigCmd::Execute() {
-  Do();
 }
 
 void MonitorCmd::DoInitial() {
