@@ -709,7 +709,7 @@ void FlushdbCmd::Execute() {
     if (db_->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db_->GetDBLocks());
+      std::lock_guard l_prw(db_->GetDBLock());
       std::lock_guard s_prw(g_pika_rm->GetDBLock());
       FlushAllDBsWithoutLock();
       res_.SetRes(CmdRes::kOk);
@@ -832,9 +832,9 @@ void ShutdownCmd::DoInitial() {
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  db_->DbRWUnLock();
+  db_->DBUnlockShared();
   g_pika_server->Exit();
-  db_->DbRWLockReader();
+  db_->DBLockShared();
   res_.SetRes(CmdRes::kNone);
 }
 
@@ -1356,11 +1356,11 @@ void InfoCmd::InfoData(std::string& info) {
     }
     background_errors.clear();
     memtable_usage = table_reader_usage = 0;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     total_memtable_usage += memtable_usage;
     total_table_reader_usage += table_reader_usage;
     for (const auto& item : background_errors) {
@@ -1394,9 +1394,9 @@ void InfoCmd::InfoRocksDB(std::string& info) {
       continue;
     }
     std::string rocksdb_info;
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetRocksDBInfo(rocksdb_info);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     tmp_stream << rocksdb_info;
   }
   info.append(tmp_stream.str());
@@ -3141,9 +3141,9 @@ void DiskRecoveryCmd::Do() {
     }
     db_item.second->SetBinlogIoErrorrelieve();
     background_errors_.clear();
-    db_item.second->DbRWLockReader();
+    db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors_);
-    db_item.second->DbRWUnLock();
+    db_item.second->DBUnlockShared();
     for (const auto &item: background_errors_) {
       if (item.second != 0) {
         rocksdb::Status s = db_item.second->storage()->GetDBByType(item.first)->Resume();
