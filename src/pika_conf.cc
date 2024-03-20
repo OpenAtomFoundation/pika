@@ -251,6 +251,11 @@ int PikaConf::Load() {
     }
   }
 
+  GetConfInt("max-subcompactions", &max_subcompactions_);
+  if (max_subcompactions_ < 1) {
+    max_subcompactions_ = 1;
+  }
+
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
   if (least_free_disk_to_resume_ <= 0) {
@@ -273,6 +278,26 @@ int PikaConf::Load() {
     write_buffer_size_ = 268435456;  // 256Mb
   }
 
+  GetConfInt("level0-stop-writes-trigger", &level0_stop_writes_trigger_);
+  if (level0_stop_writes_trigger_ < 36) {
+    level0_stop_writes_trigger_ = 36;
+  }
+
+  GetConfInt("level0-slowdown-writes-trigger", &level0_slowdown_writes_trigger_);
+  if (level0_slowdown_writes_trigger_ < 20) {
+    level0_slowdown_writes_trigger_ = 20;
+  }
+
+  GetConfInt("level0-file-num-compaction-trigger", &level0_file_num_compaction_trigger_);
+  if (level0_file_num_compaction_trigger_ < 4) {
+    level0_file_num_compaction_trigger_ = 4;
+  }
+
+  GetConfInt("min-write-buffer-number-to-merge", &min_write_buffer_number_to_merge_);
+  if (min_write_buffer_number_to_merge_ < 1) {
+    min_write_buffer_number_to_merge_ = 1;  // 1 for immutable memtable to merge
+  }
+  
   // arena_block_size
   GetConfInt64Human("arena-block-size", &arena_block_size_);
   if (arena_block_size_ <= 0) {
@@ -685,6 +710,10 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-jobs", max_background_jobs_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
+  SetConfInt("min-write-buffer-number-to-merge", min_write_buffer_number_to_merge_);
+  SetConfInt("level0-stop-writes-trigger", level0_stop_writes_trigger_);
+  SetConfInt("level0-slowdown-writes-trigger", level0_slowdown_writes_trigger_);
+  SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
