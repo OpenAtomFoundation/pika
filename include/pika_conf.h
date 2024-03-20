@@ -103,7 +103,7 @@ class PikaConf : public pstd::BaseConf {
     return compact_interval_;
   }
   int max_subcompactions() {
-    std::lock_guard l(rwlock_);
+    std::shared_lock l(rwlock_);
     return max_subcompactions_;
   }
   bool disable_auto_compactions() {
@@ -597,6 +597,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("disable_auto_compactions", value);
     disable_auto_compactions_ = value == "true";
   }
+  void SetMaxSubcompactions(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-subcompactions", std::to_string(value));
+    max_subcompactions_ = value;
+  }
   void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
@@ -639,6 +644,26 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
     write_buffer_size_ = value;
+  }
+  void SetMinWriteBufferNumberToMerge(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("min-write-buffer-number-to-merge", std::to_string(value));
+    min_write_buffer_number_to_merge_ = value;
+  }
+  void SetLevel0StopWritesTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-stop-writes-trigger", std::to_string(value));
+    level0_stop_writes_trigger_ = value;
+  }
+  void SetLevel0SlowdownWritesTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-slowdown-writes-trigger", std::to_string(value));
+    level0_slowdown_writes_trigger_ = value;
+  }
+  void SetLevel0FileNumCompactionTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-file-num-compaction-trigger", std::to_string(value));
+    level0_file_num_compaction_trigger_ = value;
   }
   void SetMaxWriteBufferNumber(const int& value) {
     std::lock_guard l(rwlock_);
