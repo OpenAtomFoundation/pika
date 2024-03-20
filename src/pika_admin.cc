@@ -1858,6 +1858,30 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->max_write_buffer_size());
   }
 
+  if (pstd::stringmatch(pattern.data(), "min-write-buffer-number-to-merge", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "min-write-buffer-number-to-merge");
+    EncodeNumber(&config_body, g_pika_conf->min_write_buffer_number_to_merge());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "level0-stop-writes-trigger", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "level0-stop-writes-trigger");
+    EncodeNumber(&config_body, g_pika_conf->level0_stop_writes_trigger());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "level0-slowdown-writes-trigger", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "level0-slowdown-writes-trigger");
+    EncodeNumber(&config_body, g_pika_conf->level0_slowdown_writes_trigger());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "level0-file-num-compaction-trigger", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "level0-file-num-compaction-trigger");
+    EncodeNumber(&config_body, g_pika_conf->level0_file_num_compaction_trigger());
+  }
+
   if (pstd::stringmatch(pattern.data(), "max-client-response-size", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "max-client-response-size");
@@ -2193,6 +2217,10 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         // MutableColumnFamilyOptions
         "write-buffer-size",
         "max-write-buffer-num",
+        "min-write-buffer-number-to-merge",
+        "level0-slowdown-writes-trigger",
+        "level0-stop-writes-trigger",
+        "level0-file-num-compaction-trigger",
         "arena-block-size",
         "throttle-bytes-per-second",
         "max-rsync-parallel-num",
@@ -2546,6 +2574,58 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetMaxWriteBufferNumber(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "min-write-buffer-number-to-merge") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'min-write-buffer-number-to-merge'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"min_write_buffer_number_to_merge", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set min-write-buffer-number-to-merge wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetMinWriteBufferNumberToMerge(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "level0-stop-writes-trigger") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'level0-stop-writes-trigger'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"level0_stop_writes_trigger", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set level0-stop-writes-trigger wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetLevel0StopWritesTrigger(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "level0-slowdown-writes-trigger") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'level0-slowdown-writes-trigger'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"level0_slowdown_writes_trigger", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set level0-slowdown-writes-trigger wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetLevel0SlowdownWritesTrigger(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "level0-file-num-compaction-trigger") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'level0-file-num-compaction-trigger'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"level0_file_num_compaction_trigger", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set level0-file-num-compaction-trigger wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetLevel0FileNumCompactionTrigger(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "arena-block-size") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {

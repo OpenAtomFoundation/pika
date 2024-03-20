@@ -710,6 +710,10 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-jobs", max_background_jobs_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
+  SetConfInt("min-write-buffer-number-to-merge", min_write_buffer_number_to_merge_);
+  SetConfInt("level0-stop-writes-trigger", level0_stop_writes_trigger_);
+  SetConfInt("level0-slowdown-writes-trigger", level0_slowdown_writes_trigger_);
+  SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
   SetConfInt64("slotmigrate", slotmigrate_);
   // slaveof config item is special
