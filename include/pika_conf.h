@@ -102,6 +102,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  int max_subcompactions() {
+    std::lock_guard l(rwlock_);
+    return max_subcompactions_;
+  }
   bool disable_auto_compactions() {
     std::shared_lock l(rwlock_);
     return disable_auto_compactions_;
@@ -121,6 +125,22 @@ class PikaConf : public pstd::BaseConf {
   int64_t write_buffer_size() {
     std::shared_lock l(rwlock_);
     return write_buffer_size_;
+  }
+  int min_write_buffer_number_to_merge() {
+    std::shared_lock l(rwlock_);
+    return min_write_buffer_number_to_merge_;
+  }
+  int level0_stop_writes_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_stop_writes_trigger_;
+  }
+  int level0_slowdown_writes_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_slowdown_writes_trigger_;
+  }
+  int level0_file_num_compaction_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_file_num_compaction_trigger_;
   }
   int64_t arena_block_size() {
     std::shared_lock l(rwlock_);
@@ -706,8 +726,11 @@ class PikaConf : public pstd::BaseConf {
   std::string db_path_;
   int db_instance_num_ = 0;
   std::string db_sync_path_;
+
+  // compact
   std::string compact_cron_;
   std::string compact_interval_;
+  int max_subcompactions_ = 1;
   bool disable_auto_compactions_ = false;
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
@@ -718,6 +741,10 @@ class PikaConf : public pstd::BaseConf {
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
   int max_write_buffer_num_ = 0;
+  int min_write_buffer_number_to_merge_ = 1;
+  int level0_stop_writes_trigger_ =  36;
+  int level0_slowdown_writes_trigger_ = 20;
+  int level0_file_num_compaction_trigger_ = 4;
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
   int timeout_ = 0;
