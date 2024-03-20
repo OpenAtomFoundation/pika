@@ -38,7 +38,6 @@ sed -i ''  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave.conf
 
 sed -i ''  \
-  -e 's|# rename-command : FLUSHALL 360flushall|rename-command : FLUSHALL 360flushall|'  \
   -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
   -e 's|databases : 1|databases : 2|'  \
   -e 's|port : 9221|port : 9251|'  \
