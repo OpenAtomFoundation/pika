@@ -96,23 +96,17 @@ void SPopCmd::DoBinlog() {
   if (!s_.ok()) {
     return;
   }
+  
   PikaCmdArgsType srem_args;
-  std::shared_ptr<SRemCmd> srem_cmd_;
-  //SPopCmd use "SREM"
   srem_args.emplace_back("srem");
   srem_args.emplace_back(key_);
-  // for (auto m = rem_members_.begin(); m != rem_members_.end(); ++m) {
-  //   srem_args.emplace_back(*m);
-  // }
   for (auto m = members_.begin(); m != members_.end(); ++m) {
     srem_args.emplace_back(*m);
   }
   
   srem_cmd_->Initial(srem_args, db_name_);
-
   srem_cmd_->SetConn(GetConn());
   srem_cmd_->SetResp(resp_.lock());
-
   srem_cmd_->DoBinlog();
 }
 
