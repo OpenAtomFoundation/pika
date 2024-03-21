@@ -40,5 +40,4 @@ var _ = Describe("Rename Command test", func() {
 		r = client.Do(ctx, "flushdb")
 		Expect(r.Val()).NotTo(Equal("OK"))
 	})
-
 })
