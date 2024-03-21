@@ -40,23 +40,4 @@ var _ = Describe("Rename Command test", func() {
 		r = client.Do(ctx, "flushdb")
 		Expect(r.Val()).NotTo(Equal("OK"))
 	})
-
-	It("should 360FlushAll", func() {
-		set := client.Set(ctx, "key", "foobar", 0)
-		Expect(set.Err()).NotTo(HaveOccurred())
-		Expect(set.Val()).To(Equal("OK"))
-
-		bitCount := client.BitCount(ctx, "key", nil)
-		Expect(bitCount.Err()).NotTo(HaveOccurred())
-		Expect(bitCount.Val()).To(Equal(int64(26)))
-		_, err := client.Do(ctx, "360flushall").Result()
-		Expect(err).NotTo(HaveOccurred())
-		r := client.Do(ctx, "360flushall")
-		Expect(r.Val()).To(Equal("OK"))
-		n, err := client.Exists(ctx, "key").Result()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(n).To(Equal(int64(0)))
-		r = client.Do(ctx, "flushall")
-		Expect(r.Val()).NotTo(Equal("OK"))
-	})
 })

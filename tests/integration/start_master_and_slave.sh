@@ -6,6 +6,8 @@ cp ../conf/pika.conf ./pika_single.conf
 cp ../conf/pika.conf ./pika_master.conf
 cp ../conf/pika.conf ./pika_slave.conf
 cp ../conf/pika.conf ./pika_rename.conf
+cp ../conf/pika.conf ./pika_master_rename.conf
+cp ../conf/pika.conf ./pika_slave_rename.conf
 cp ../conf/pika.conf ./pika_acl_both_password.conf
 cp ../conf/pika.conf ./pika_acl_only_admin_password.conf
 cp ../conf/pika.conf ./pika_has_other_acl_user.conf
@@ -38,7 +40,6 @@ sed -i ''  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave.conf
 
 sed -i ''  \
-  -e 's|# rename-command : FLUSHALL 360flushall|rename-command : FLUSHALL 360flushall|'  \
   -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
   -e 's|databases : 1|databases : 2|'  \
   -e 's|port : 9221|port : 9251|'  \
@@ -73,6 +74,7 @@ sed -i ''  \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl2_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl2_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_acl_only_admin_password.conf
+
 sed -i ''  \
   -e 's|requirepass :|requirepass : requirepass|'  \
   -e 's|masterauth :|masterauth : requirepass|'  \
@@ -87,6 +89,26 @@ sed -i ''  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_has_other_acl_user.conf
 echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.conf
 
+sed -i ''  \
+  -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
+  -e 's|port : 9221|port : 9291|'   \
+  -e 's|log-path : ./log/|log-path : ./master_rename_data/log/|'  \
+  -e 's|db-path : ./db/|db-path : ./master_rename_data/db/|'  \
+  -e 's|dump-path : ./dump/|dump-path : ./master_rename_data/dump/|'  \
+  -e 's|pidfile : ./pika.pid|pidfile : ./master_rename_data/pika.pid|'  \
+  -e 's|db-sync-path : ./dbsync/|db-sync-path : ./master_rename_data/dbsync/|'  \
+  -e 's|#daemonize : yes|daemonize : yes|' ./pika_master_rename.conf
+
+sed -i ''  \
+  -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
+  -e 's|port : 9221|port : 9301|'   \
+  -e 's|log-path : ./log/|log-path : ./slave_rename_data/log/|'  \
+  -e 's|db-path : ./db/|db-path : ./slave_rename_data/db/|'  \
+  -e 's|dump-path : ./dump/|dump-path : ./slave_rename_data/dump/|'  \
+  -e 's|pidfile : ./pika.pid|pidfile : ./slave_rename_data/pika.pid|'  \
+  -e 's|db-sync-path : ./dbsync/|db-sync-path : ./slave_rename_data/dbsync/|'  \
+  -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave_rename.conf
+
 # Start three nodes
 ./pika -c ./pika_single.conf
 ./pika -c ./pika_master.conf
@@ -95,5 +117,7 @@ echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.
 ./pika -c ./pika_acl_both_password.conf
 ./pika -c ./pika_acl_only_admin_password.conf
 ./pika -c ./pika_has_other_acl_user.conf
+./pika -c ./pika_master_rename.conf
+./pika -c ./pika_slave_rename.conf
 #ensure both master and slave are ready
 sleep 10
