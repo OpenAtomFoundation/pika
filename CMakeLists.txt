@@ -25,8 +25,8 @@ endif()
 
 ############# You should enable sanitizer if you are developing pika #############
 # Uncomment the following two lines to enable AddressSanitizer to detect memory leaks and other memory-related bugs.
-# set(CMAKE_BUILD_TYPE "Debug")
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address  -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+#set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address  -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
 # [Notice] AddressSanitizer and ThreadSanitizer can not be enabled at the same time.
 
@@ -51,9 +51,7 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
   set(LIB_BUILD_TYPE RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RELEASE)
-  # set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address  -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
-
+  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -DNDEBUG")
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
