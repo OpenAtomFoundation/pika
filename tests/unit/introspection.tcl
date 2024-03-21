@@ -11,7 +11,7 @@ start_server {tags {"introspection"}} {
         list [$rd read] [$rd read] [$rd read]
     } {*OK*"set" "foo"*"get" "foo"*}
 
-    # Not available
+    # Pika does not support the debug command
     # test {MONITOR can log commands issued by the scripting engine} {
     #    set rd [redis_deferring_client]
     #    $rd monitor
