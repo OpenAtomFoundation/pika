@@ -123,6 +123,7 @@ start_server {tags {"geo"}} {
         r georadiusbymember nyc "wtc one" 7 km withdist
     } {{{wtc one} 0.0000} {{union square} 3.2544} {{central park n/q/r} 6.7000} {4545 6.1975} {{lic market} 6.8969}}
 
+# The return value of Pika is inconsistent with Redis
    # test {GEOHASH is able to return geohash strings} {
    #     # Example from Wikipedia.
    #     r del points
