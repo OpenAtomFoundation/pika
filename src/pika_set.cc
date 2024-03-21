@@ -72,7 +72,6 @@ void SPopCmd::Do() {
     for (const auto& member : members_) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
-      // rem_members_.emplace_back(member);
     }
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
@@ -96,7 +95,7 @@ void SPopCmd::DoBinlog() {
   if (!s_.ok()) {
     return;
   }
-  
+
   PikaCmdArgsType srem_args;
   srem_args.emplace_back("srem");
   srem_args.emplace_back(key_);
