@@ -559,19 +559,6 @@ void FlushallCmd::DoUpdateCache() {
   }
 }
 
-// flushall convert flushdb writes to every db binlog
-std::string FlushallCmd::ToRedisProtocol() {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 1, "*");
-
-  // to flushdb cmd
-  std::string flushdb_cmd("flushdb");
-  RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
-  RedisAppendContent(content, flushdb_cmd);
-  return content;
-}
-
 void FlushallCmd::FlushAllWithoutLock() {
   for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_ptr<DB> db = db_item.second;
@@ -581,36 +568,9 @@ void FlushallCmd::FlushAllWithoutLock() {
       return;
     }
     DoWithoutLock(db);
-    DoBinlog(g_pika_rm->GetSyncMasterDBs()[p_info]);
   }
   if (res_.ok()) {
     res_.SetRes(CmdRes::kOk);
-  }
-}
-
-void FlushallCmd::DoBinlog(std::shared_ptr<SyncMasterDB> sync_db) {
-  if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
-    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
-    std::shared_ptr<std::string> resp_ptr = GetResp();
-    // Consider that dummy cmd appended by system, both conn and resp are null.
-    if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
-      if (!conn_ptr) {
-        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " conn empty.";
-      }
-      if (!resp_ptr) {
-        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " resp empty.";
-      }
-      res().SetRes(CmdRes::kErrOther);
-      return;
-    }
-
-    Status s = sync_db->ConsensusProposeLog(shared_from_this());
-    if (!s.ok()) {
-      LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
-                   << s.ToString();
-      res().SetRes(CmdRes::kErrOther, s.ToString());
-      return;
-    }
   }
 }
 
@@ -619,7 +579,6 @@ void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
     LOG(INFO) << "Flushall, but DB not found";
   } else {
     db->FlushDBWithoutLock();
-    DoUpdateCache();
   }
 }
 
@@ -643,14 +602,13 @@ void FlushdbCmd::Do() {
     if (db_->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      std::lock_guard l_prw(db_->GetDBLock());
       std::lock_guard s_prw(g_pika_rm->GetDBLock());
+      std::lock_guard l_prw(db_->GetDBLock());
       FlushAllDBsWithoutLock();
       res_.SetRes(CmdRes::kOk);
     }
   }
 }
-
 
 void FlushdbCmd::DoThroughDB() {
   Do();
@@ -670,7 +628,6 @@ void FlushdbCmd::FlushAllDBsWithoutLock() {
     return;
   }
   DoWithoutLock();
-  DoBinlog();
 }
 
 void FlushdbCmd::DoWithoutLock() {
@@ -683,7 +640,6 @@ void FlushdbCmd::DoWithoutLock() {
       //Floyd does not support flushdb by type
       LOG(ERROR) << "cannot flushdb by type in floyd";
     }
-    DoUpdateCache();
   }
 }
 

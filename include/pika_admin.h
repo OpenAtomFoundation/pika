@@ -190,11 +190,9 @@ class FlushallCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
   void FlushAllWithoutLock();
-  void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
 
  private:
   void DoInitial() override;
-  std::string ToRedisProtocol() override;
   void DoWithoutLock(std::shared_ptr<DB> db);
 };
 
@@ -211,7 +209,7 @@ class FlushdbCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
-  std::string GetFlushDname() { return db_name_; }
+  std::string GetFlushDBname() { return db_name_; }
 
  private:
   std::string db_name_;
