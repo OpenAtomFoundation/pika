@@ -92,6 +92,24 @@ void SPopCmd::DoUpdateCache() {
   }
 }
 
+void SPopCmd::DoBinlog() {
+  if (!s_.ok()) {
+    return;
+  }
+
+  PikaCmdArgsType srem_args;
+  srem_args.emplace_back("srem");
+  srem_args.emplace_back(key_);
+  for (auto m = members_.begin(); m != members_.end(); ++m) {
+    srem_args.emplace_back(*m);
+  }
+  
+  srem_cmd_->Initial(srem_args, db_name_);
+  srem_cmd_->SetConn(GetConn());
+  srem_cmd_->SetResp(resp_.lock());
+  srem_cmd_->DoBinlog();
+}
+
 void SCardCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSCard);

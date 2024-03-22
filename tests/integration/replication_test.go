@@ -284,6 +284,27 @@ func randomSunionstroeThread(ctx *context.Context, clientMaster *redis.Client, w
 	}
 }
 
+func randomSpopstroeThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := 0; i < 5; i++ {
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SAdd(*ctx, "set1", randomString(5))
+		clientMaster.SPop(*ctx, "set1")
+
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SAdd(*ctx, "set2", randomString(5))
+		clientMaster.SPopN(*ctx, "set2", int64(randomInt(5)))
+	}
+}
+
 func randomXaddThread(ctx *context.Context, clientMaster *redis.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := 0; i < 5; i++ {
@@ -566,6 +587,21 @@ var _ = Describe("should replication ", func() {
 			Expect(master_unionstore_set.Val()).To(Equal(slave_unionstore_set.Val()))
 			clientMaster.Del(ctx, "set1", "set2", "set_out")
 			log.Println("randomSunionstore test success")
+
+			log.Println("randomSpopstore test start")
+			execute(&ctx, clientMaster, 4, randomSpopstroeThread)
+			master_spopstore_set := clientMaster.SMembers(ctx, "set1")
+			Expect(master_spopstore_set.Err()).NotTo(HaveOccurred())
+			slave_spopstore_set := clientSlave.SMembers(ctx, "set1")
+			Expect(slave_spopstore_set.Err()).NotTo(HaveOccurred())
+			Expect(master_spopstore_set.Val()).To(Equal(slave_spopstore_set.Val()))
+			master_spopstore_set2 := clientMaster.SMembers(ctx, "set2")
+			Expect(master_spopstore_set2.Err()).NotTo(HaveOccurred())
+			slave_spopstore_set2 := clientSlave.SMembers(ctx, "set2")
+			Expect(slave_spopstore_set2.Err()).NotTo(HaveOccurred())
+			Expect(master_spopstore_set2.Val()).To(Equal(slave_spopstore_set2.Val()))
+			clientMaster.Del(ctx, "set1", "set2")
+			log.Println("randomSpopstore test success")
 
 			// Stream replication test
 			log.Println("randomXadd test start")
