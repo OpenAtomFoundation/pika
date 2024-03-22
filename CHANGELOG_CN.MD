@@ -8,7 +8,7 @@
 
 - 在全量复制的过程中，pika 服务的从节点不接收读流量请求 [#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
 
-- Pika cache 新增 bimap数据类型[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+- Pika cache 新增 bimap数据类型[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
 
 - 删除 Sharing 模式残留的 Slot，Pika 下只有 DB，一个 Pika 下有多个 DB[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
 
@@ -39,6 +39,22 @@
 - Pika 分布式集群 Codis proxy 新增可观测指标[#2199](https://github.com/OpenAtomFoundation/pika/pull/2199)@[dingxiaoshuai](https://github.com/dingxiaoshuai123)
 
 - Pika 分布式集群支持自动 failover[#2386](https://github.com/OpenAtomFoundation/pika/pull/2386)@[chengyu-l](https://github.com/chengyu-l)
+
+- Pika 支持 redis rename-command 功能[#2455](https://github.com/OpenAtomFoundation/pika/pull/2455)@[Mixficsol](https://github.com/Mixficsol)
+
+- 优化 codis slot 迁移速度，支持动态修改迁移线程和速度[#2486](https://github.com/OpenAtomFoundation/pika/pull/2486) @[chejinge](https://github.com/chejinge)
+
+- Pika 支持动态调整 max-conn-rbuf-size 参数[#2434](https://github.com/OpenAtomFoundation/pika/pull/2434) @[HappyUncle](https://github.com/HappyUncle)
+
+- Pika-operator 支持 namespace，可以在不同的 namespace 下部署不同的集群[#2480](https://github.com/OpenAtomFoundation/pika/pull/2480) @[Y-Rookie](https://github.com/Y-Rookie)
+
+- Pika-operator 支持监控指标采集，自动拉起 Pika-expoter[#2451](https://github.com/OpenAtomFoundation/pika/pull/2451) @[chengyu-l](https://github.com/chengyu-l)
+
+- ACL 向前兼容 userblacklist[#2459](https://github.com/OpenAtomFoundation/pika/pull/2459) @[dingxiaoshuai](https://github.com/dingxiaoshuail)
+
+- 丰富了 Pika TCL 测试集[#2497](https://github.com/OpenAtomFoundation/pika/pull/2497) @[Mixficsol](https://github.com/Mixficsol)
+
+- 丰富了 Pika Gotest 测试集[#2502](https://github.com/OpenAtomFoundation/pika/pull/2502) @[Mixficsol](https://github.com/Mixficsol)
 
 ## bugfix
 
@@ -78,6 +94,29 @@
 
 - 修复 Codis fe pika 主从角色显示异常的问题[#2387](https://github.com/OpenAtomFoundation/pika/pull/2387)@[chengyu-l](https://github.com/chengyu-l)
 
+- 修复迁移数据后数据不一致的问题[#2485](https://github.com/OpenAtomFoundation/pika/pull/2485)@[chejinge](https://github.com/chejinge)
+
+- 修复dbsize 计算错误问题[#2494](https://github.com/OpenAtomFoundation/pika/pull/2494)@[chejinge](https://github.com/chejinge)
+
+- 修复扩缩容或者 pod 起停后，Codis-dashboard 界面显示不准确的问题[#2475](https://github.com/OpenAtomFoundation/pika/pull/2475)@[chengyu-l](https://github.com/chengyu-l)
+
+- 修复 DB 层重复上锁的问题[#2372](https://github.com/OpenAtomFoundation/pika/pull/2372) @[Mixficsol](https://github.com/Mixficsol)
+
+- 修复全量复制失败后，未做处理导致数据丢失问题[#2439](https://github.com/OpenAtomFoundation/pika/pull/2439)@[wangshao1](https://github.com/wangshao1)
+
+- 修复主从复制过程中，主实例执行 bgsave 过程中，没有正确回应从的同步请求[#2437](https://github.com/OpenAtomFoundation/pika/pull/2437)@[wangshao1](https://github.com/wangshao1)
+
+- 全量复制过程中，添加数据同步状态，明确数据同步进度[#2430](https://github.com/OpenAtomFoundation/pika/pull/2430)@[baixin01](https://github.com/baixin01)
+
+- 修复从库在 Apply binlog 时，没有对操作的 key 加锁，导致数据不一致的问题[#2409](https://github.com/OpenAtomFoundation/pika/pull/2490) @[chejinge](https://github.com/chejinge)
+
+- 修复 codis slot 迁移过程中 master 实例 coredump 的问题[#2415](https://github.com/OpenAtomFoundation/pika/pull/2415) @[chejinge](https://github.com/chejinge)
+
+- 修复在主从复制过程中，删除正在使用的 dump 文件的问题[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
+
+- 修复主从复制过程中从实例 rsync 响应错误的问题[#2319](https://github.com/OpenAtomFoundation/pika/pull/2319)@[wangshao1](https://github.com/wangshao1)
+
+- 修复主从复制模式下，主实例flushdb后，从实例因死锁而无法访问的问题[#2372](https://github.com/OpenAtomFoundation/pika/pull/2372) @[Mixficsol](https://github.com/Mixficsol)
 
 # v3.5.2
 
