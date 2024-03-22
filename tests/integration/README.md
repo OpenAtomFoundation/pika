@@ -34,8 +34,8 @@ sh integrate_test.sh
 
 添加环境变量  
 ```
-go env |grep GOPATH  
-export PATH="$PATH:$GOPATH"
+go env |grep GOBIN  
+export PATH="$PATH:$GOBIN"
 ```
 
 执行`ginkgo --focus-file="slowlog_test.go" -vv`
