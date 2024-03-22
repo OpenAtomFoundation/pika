@@ -279,7 +279,7 @@ int PikaConf::Load() {
   }
 
   // arena_block_size
-  GetConfInt64Human("slotmigrate-thread-num_", &slotmigrate_thread_num_);
+  GetConfInt64Human("slotmigrate-thread-num", &slotmigrate_thread_num_);
   if (slotmigrate_thread_num_ < 0 || slotmigrate_thread_num_ > 24) {
     slotmigrate_thread_num_ = 8;  // 1/8 of the write_buffer_size_
   }
