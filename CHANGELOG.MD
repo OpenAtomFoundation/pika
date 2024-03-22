@@ -8,7 +8,7 @@
 
 - During the full replication process, the slave node of the pika service does not receive read traffic requests.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
 
-- Pika cache adds bimap data type.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
+- Pika cache adds bimap data type.[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
 
 - Delete the remaining Slots in Sharing mode. There is only DB under Pika, and there are multiple DBs under one Pika.[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
 

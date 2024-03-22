@@ -8,7 +8,7 @@
 
 - 在全量复制的过程中，pika 服务的从节点不接收读流量请求 [#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
 
-- Pika cache 新增 bimap数据类型[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
+- Pika cache 新增 bimap 数据类型[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
 
 - 删除 Sharing 模式残留的 Slot，Pika 下只有 DB，一个 Pika 下有多个 DB[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
 
