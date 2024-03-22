@@ -24,7 +24,7 @@
 
 - Pika 支持大 key 分析工具[#2195](https://github.com/OpenAtomFoundation/pika/pull/2195) @[sjcsjc123](https://github.com/sjcsjc123)
 
-- Pika 支持动态调整 Pika cache 参数[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+- Pika 支持动态调整 Pika cache 参数[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253) @[chejinge](https://github.com/chejinge)
 
 - 更新 Pika benchmark 工具支持更多的接口压测[#2222](https://github.com/OpenAtomFoundation/pika/pull/2222)@[wangshao1](https://github.com/wangshao1)
 
