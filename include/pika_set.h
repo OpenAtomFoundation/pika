@@ -53,11 +53,13 @@ class SRemCmd : public Cmd {
   Cmd* Clone() override { return new SRemCmd(*this); }
 
  private:
+  void DoInitial() override;
+
+ private:
   std::string key_;
   std::vector<std::string> members_;
   rocksdb::Status s_;
   int32_t deleted_ = 0;
-  void DoInitial() override;
 };
 
 class SPopCmd : public Cmd {
@@ -80,13 +82,15 @@ class SPopCmd : public Cmd {
   void DoBinlog() override;
 
  private:
+  void DoInitial() override;
+
+ private:
   std::string key_;
   std::vector<std::string> members_;
   // used for write binlog
   std::shared_ptr<SRemCmd> srem_cmd_;
   int64_t count_ = 1;
   rocksdb::Status s_;
-  void DoInitial() override;
 };
 
 class SCardCmd : public Cmd {
