@@ -101,6 +101,7 @@ start_server {tags {"string"}} {
         assert_equal 1 [r setnx x 20]
         assert_equal 20 [r get x]
     }
+
 # Pika does not support the getex command
    # test "GETEX EX option" {
    #     r del foo
@@ -546,7 +547,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         list $v1 $v2 [r get foo]
     } {{} OK 2}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option} {
    #     r del foo
    #     r set foo bar
@@ -555,7 +556,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar bar2}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option with no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET]
@@ -563,7 +564,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option with XX} {
    #     r del foo
    #     r set foo bar
@@ -572,7 +573,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar baz}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option with XX and no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET XX]
@@ -580,7 +581,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} {}}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option with NX} {
    #     r del foo
    #     set old_value [r set foo bar GET NX]
@@ -588,7 +589,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
-# Bug need Fix
+# Pika does not support the setget command
    # test {Extended SET GET option with NX and previous value} {
    #     r del foo
    #     r set foo bar
@@ -620,21 +621,21 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
        assert {$ttl <= 10 && $ttl > 5}
    }
 
-# No cause has been confirmed
+# The Set command does not support the ttl setting
    # test "Extended SET EXAT option" {
    #     r del foo
    #     r set foo bar exat [expr [clock seconds] + 10]
    #     assert_range [r ttl foo] 5 10
    # }
 
-# No cause has been confirmed
+# The Set command does not support the ttl setting
    # test "Extended SET PXAT option" {
    #     r del foo
    #     r set foo bar pxat [expr [clock milliseconds] + 10000]
    #     assert_range [r ttl foo] 5 10
    # }
 
-# No cause has been confirmed
+# The Set command does not support the ttl setting
    # test {Extended SET using multiple options at once} {
    #     r set foo val
    #     assert {[r set foo bar xx px 10000] eq {OK}}
