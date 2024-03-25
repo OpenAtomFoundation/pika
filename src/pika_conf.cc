@@ -715,7 +715,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("level0-slowdown-writes-trigger", level0_slowdown_writes_trigger_);
   SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
-  SetConfInt64("slotmigrate", slotmigrate_);
+  SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config
