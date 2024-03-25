@@ -526,6 +526,7 @@ void FlushallCmd::DoInitial() {
     return;
   }
 }
+
 void FlushallCmd::Do() {
   std::lock_guard l_trw(g_pika_server->GetDBLock());
   for (const auto& db_item : g_pika_server->GetDB()) {
