@@ -207,7 +207,6 @@ void PikaServer::Start() {
 
 void PikaServer::Exit() {
   g_pika_server->DisableCompact();
-  exit_mutex_.unlock();
   exit_ = true;
 }
 

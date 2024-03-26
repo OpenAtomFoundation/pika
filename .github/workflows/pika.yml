@@ -44,7 +44,6 @@ jobs:
           key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
           path: |
             ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
 
       - name: Build
         # Build your program with the given configuration
