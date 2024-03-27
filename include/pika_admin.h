@@ -213,7 +213,7 @@ class FlushdbCmd : public Cmd {
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
   void Execute() override;
-  std::string GetFlushDname() { return db_name_; }
+  std::string GetFlushDBname() { return db_name_; }
 
  private:
   std::string db_name_;
