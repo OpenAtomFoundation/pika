@@ -191,7 +191,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
     if (c_ptr->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
-      SetTxnFailedFromDBs(flushdb->GetFlushDname());
+      SetTxnFailedFromDBs(flushdb->GetFlushDBname());
     } else if (c_ptr->name() == kCmdNameFlushall) {
       SetAllTxnFailed();
     } else {
