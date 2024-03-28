@@ -1098,11 +1098,12 @@ void PikaServer::DoTimingTask() {
 
 void PikaServer::StatDiskUsage() {
   thread_local uint64_t last_update_time = 0;
-  if (pstd::NowMicros() - last_update_time < 60 * 1000 * 1000) {
+  auto current_time = pstd::NowMicros();
+  if (current_time - last_update_time < 60 * 1000 * 1000) {
     return;
   }
+  last_update_time = current_time;
 
-  last_update_time = pstd::NowMicros();
   disk_statistic_.db_size_.store(pstd::Du(g_pika_conf->db_path()));
   disk_statistic_.log_size_.store(pstd::Du(g_pika_conf->log_path()));
 }
