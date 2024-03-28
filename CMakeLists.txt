@@ -34,8 +34,7 @@ endif()
 #set(CMAKE_BUILD_TYPE "Debug")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
-execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
-string(TOLOWER ${HOST_ARCH} HOST_ARCH)
+string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} HOST_ARCH)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE)
