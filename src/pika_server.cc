@@ -1103,16 +1103,8 @@ void PikaServer::StatDiskUsage() {
   }
 
   last_update_time = pstd::NowMicros();
-  std::stringstream tmp_stream;
-  std::stringstream db_fatal_msg_stream;
-  uint64_t db_size = 0;
-  time_t current_time_s = time(nullptr);
-  uint64_t log_size = 0;
-
-  db_size = pstd::Du(g_pika_conf->db_path());
-  disk_statistic_.db_size_.store(db_size);
-  log_size = pstd::Du(g_pika_conf->log_path());
-  disk_statistic_.log_size_.store(log_size);
+  disk_statistic_.db_size_.store(pstd::Du(g_pika_conf->db_path()));
+  disk_statistic_.log_size_.store(pstd::Du(g_pika_conf->log_path()));
 }
 
 void PikaServer::AutoCompactRange() {
