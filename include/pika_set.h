@@ -36,9 +36,9 @@ class SAddCmd : public Cmd {
   void DoInitial() override;
 };
 
-class SPopCmd : public Cmd {
+class SRemCmd : public Cmd {
  public:
-  SPopCmd(const std::string& name, int arity, uint32_t flag)
+  SRemCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
@@ -50,14 +50,47 @@ class SPopCmd : public Cmd {
   void DoThroughDB() override;
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
-  Cmd* Clone() override { return new SPopCmd(*this); }
+  Cmd* Clone() override { return new SRemCmd(*this); }
+
+ private:
+  void DoInitial() override;
 
  private:
   std::string key_;
   std::vector<std::string> members_;
+  rocksdb::Status s_;
+  int32_t deleted_ = 0;
+};
+
+class SPopCmd : public Cmd {
+ public:
+  SPopCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {
+        srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite |  kCmdFlagsSet);
+      }
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new SPopCmd(*this); }
+  void DoBinlog() override;
+
+ private:
+  void DoInitial() override;
+
+ private:
+  std::string key_;
+  std::vector<std::string> members_;
+  // used for write binlog
+  std::shared_ptr<SRemCmd> srem_cmd_;
   int64_t count_ = 1;
   rocksdb::Status s_;
-  void DoInitial() override;
 };
 
 class SCardCmd : public Cmd {
@@ -129,30 +162,6 @@ class SScanCmd : public Cmd {
     pattern_ = "*";
     count_ = 10;
   }
-};
-
-class SRemCmd : public Cmd {
- public:
-  SRemCmd(const std::string& name, int arity, uint32_t flag)
-      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
-  void Do() override;
-  void DoUpdateCache() override;
-  void DoThroughDB() override;
-  void Split(const HintKeys& hint_keys) override{};
-  void Merge() override{};
-  Cmd* Clone() override { return new SRemCmd(*this); }
-
- private:
-  std::string key_;
-  std::vector<std::string> members_;
-  rocksdb::Status s_;
-  int32_t deleted_ = 0;
-  void DoInitial() override;
 };
 
 class SUnionCmd : public Cmd {

@@ -581,7 +581,7 @@ start_server {tags {"zset"}} {
         r zrange out 0 -1 withscores
     } {neginf 0}
 
-# Bug need Fix
+# Keys for multiple data types of Pika can be duplicate
    # test {ZINTERSTORE #516 regression, mixed sets and ziplist zsets} {
    #     r sadd one 100 101 102 103
    #     r sadd two 100 200 201 202

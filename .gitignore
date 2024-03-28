@@ -48,6 +48,7 @@ tags
 
 # IDE
 .vscode
+.DS_Store
 
 # generate
 make_config.mk

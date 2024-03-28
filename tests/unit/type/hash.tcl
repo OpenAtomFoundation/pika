@@ -15,10 +15,10 @@ start_server {tags {"hash"}} {
     } {8}
 
 # Pika does not support the debug command
-#    test {Is the small hash encoded with a ziplist?} {
-#        assert_encoding ziplist smallhash
-#    }
-
+   # test {Is the small hash encoded with a ziplist?} {
+   #     assert_encoding ziplist smallhash
+   # }
+   #
     test {HSET/HLEN - Big hash creation} {
         array set bighash {}
         for {set i 0} {$i < 1024} {incr i} {
@@ -461,7 +461,7 @@ start_server {tags {"hash"}} {
         }
     }
 
-# Pika does not support the debug command
+# This parameter is not available in Pika
 #    The hash-max-ziplist-entries parameter is not available in Pika
 #    test {Stress test the hash ziplist -> hashtable encoding conversion} {
 #        r config set hash-max-ziplist-entries 32

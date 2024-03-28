@@ -8,7 +8,7 @@
 
 - During the full replication process, the slave node of the pika service does not receive read traffic requests.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[tedli](https://github.com/tedli)
 
-- Pika cache adds bimap data type.[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+- Pika cache adds bimap data type.[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
 
 - Delete the remaining Slots in Sharing mode. There is only DB under Pika, and there are multiple DBs under one Pika.[#2251](https://github.com/OpenAtomFoundation/pika/pull/2251) @[Mixficsol](https://github.com/Mixficsol)
 
@@ -24,7 +24,7 @@
 
 - Pika supports large key analysis tools[#2195](https://github.com/OpenAtomFoundation/pika/pull/2195) @[sjcsjc123](https://github.com/sjcsjc123)
 
-- Pika supports dynamic adjustment of Pika cache parameters[#2197](https://github.com/OpenAtomFoundation/pika/pull/2197)  @[chejinge](https://github.com/chejinge)
+- Pika supports dynamic adjustment of Pika cache parameters[#2253](https://github.com/OpenAtomFoundation/pika/pull/2253)  @[chejinge](https://github.com/chejinge)
 
 - Updated Pika benchmark tool to support more interface stress tests.[#2222](https://github.com/OpenAtomFoundation/pika/pull/2222)@[wangshao1](https://github.com/wangshao1)
 
@@ -39,6 +39,22 @@
 - Pika distributed cluster Codis proxy adds new observable indicators.[#2199](https://github.com/OpenAtomFoundation/pika/pull/2199)@[dingxiaoshuai](https://github.com/dingxiaoshuai123)
 
 - Pika distributed cluster supports automatic failover.[#2386](https://github.com/OpenAtomFoundation/pika/pull/2386)@[chengyu-l](https://github.com/chengyu-l)
+
+- Pika supports redis rename-command function.[#2455](https://github.com/OpenAtomFoundation/pika/pull/2455)@[Mixficsol](https://github.com/Mixficsol)
+
+- Optimize codis slot migration speed and support dynamic modification of migration thread and speed.[#2486](https://github.com/OpenAtomFoundation/pika/pull/2486) @[chejinge](https://github.com/chejinge)
+
+- Pika supports dynamic adjustment of the max-conn-rbuf-size parameter.[#2434](https://github.com/OpenAtomFoundation/pika/pull/2434) @[HappyUncle](https://github.com/HappyUncle)
+
+- Pika-operator supports namespace and can deploy different clusters under different namespaces.[#2480](https://github.com/OpenAtomFoundation/pika/pull/2480) @[Y-Rookie](https://github.com/Y-Rookie)
+
+- Pika-operator supports monitoring indicator collection and automatically launches Pika-experter.[#2451](https://github.com/OpenAtomFoundation/pika/pull/2451) @[chengyu-l](https://github.com/chengyu-l)
+
+- ACL forward compatible with userblacklist.[#2459](https://github.com/OpenAtomFoundation/pika/pull/2459) @[dingxiaoshuai](https://github.com/dingxiaoshuai)
+
+- Enriched Pika TCL test set .[#2497](https://github.com/OpenAtomFoundation/pika/pull/2497) @[Mixficsol](https://github.com/Mixficsol)
+
+- Enriched Pika Gotest test set.[#2502](https://github.com/OpenAtomFoundation/pika/pull/2502) @[Mixficsol](https://github.com/Mixficsol)
 
 ## bugfix
 
@@ -85,6 +101,30 @@
 - Fix Codis dashboard cpu used 100%.[#2393](https://github.com/OpenAtomFoundation/pika/pull/2393)@[chengyu-l](https://github.com/chengyu-l)
 
 - Fix the problem of abnormal display of master and slave roles in Codis fe of pika.[#2387](https://github.com/OpenAtomFoundation/pika/pull/2387)@[chengyu-l](https://github.com/chengyu-l)
+
+- Fix the problem of data inconsistency after migrating data.[#2485](https://github.com/OpenAtomFoundation/pika/pull/2485)@[chejinge](https://github.com/chejinge)
+
+- Fix dbsize calculation error problem.[#2494](https://github.com/OpenAtomFoundation/pika/pull/2494)@[chejinge](https://github.com/chejinge)
+
+- Fixed the issue of inaccurate display of the Codis-dashboard interface after scaling up or down or starting and stopping pods.[#2475](https://github.com/OpenAtomFoundation/pika/pull/2475)@[chengyu-l](https://github.com/chengyu-l)
+
+- Fix the problem of repeated locking of DB layer.[#2372](https://github.com/OpenAtomFoundation/pika/pull/2372) @[Mixficsol](https://github.com/Mixficsol)
+
+- Fixed the problem of data loss caused by failure to perform full copy.[#2439](https://github.com/OpenAtomFoundation/pika/pull/2439)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed the problem that during the master-slave replication process, the master instance did not correctly respond to the slave's synchronization request when executing bgsave.[#2437](https://github.com/OpenAtomFoundation/pika/pull/2437)@[wangshao1](https://github.com/wangshao1)
+
+- During the full copy process, add data synchronization status to clarify the data synchronization progress.[#2430](https://github.com/OpenAtomFoundation/pika/pull/2430)@[baixin01](https://github.com/baixin01)
+
+- Fixed the issue where the slave database did not lock the key of the operation when applying binlog, resulting in data inconsistency.[#2409](https://github.com/OpenAtomFoundation/pika/pull/2490) @[chejinge](https://github.com/chejinge)
+
+- Fix the problem of master instance coredump during codis slot migration process.[#2415](https://github.com/OpenAtomFoundation/pika/pull/2415) @[chejinge](https://github.com/chejinge)
+
+- Fixed the problem of deleting the dump file being used during the master-slave replication process.[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed the problem of rsync response error from slave instance during master-slave replication process.[#2319](https://github.com/OpenAtomFoundation/pika/pull/2319)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed the problem that in master-slave replication mode, after the master instance flushdb, the slave instance cannot be accessed due to deadlock.[#2372](https://github.com/OpenAtomFoundation/pika/pull/2372) @[Mixficsol](https://github.com/Mixficsol)
 
 
 # v3.5.2

@@ -142,6 +142,7 @@ start_server {
             r sadd [format "set%d" $i] $large
         }
 
+# Pika does not support the debug command
 #        test "Generated sets must be encoded as $type" {
 #            for {set i 1} {$i <= 5} {incr i} {
 #                assert_encoding $type [format "set%d" $i]
@@ -157,6 +158,7 @@ start_server {
 #            assert_encoding $type setres
             assert_equal [list 195 196 197 198 199 $large] [lsort [r smembers setres]]
         }
+
 # Pika does not support the debug command
 #        test "SINTERSTORE with two sets, after a DEBUG RELOAD - $type" {
 #            r debug reload
@@ -247,16 +249,17 @@ start_server {
             assert_equal $result [lsort [array names s]]
         }
     }
-# Bug need Fix
+
+# Keys for multiple data types of Pika can be duplicate
 #    test "SINTER against non-set should throw error" {
 #        r set key1 x
-#        assert_error "WRONGTYPE*" {r sinter key1 noset}
+#        assert_equal "WRONGTYPE*" [r sinter key1 noset]
 #    }
 
-# Bug need Fix
+# Keys for multiple data types of Pika can be duplicate
 #    test "SUNION against non-set should throw error" {
 #        r set key1 x
-#        assert_error "WRONGTYPE*" {r sunion key1 noset}
+#        assert_equal "WRONGTYPE*" [r sunion key1 noset]
 #    }
 
     test "SINTER should handle non existing key as empty" {
@@ -479,16 +482,16 @@ start_server {
 #        assert_encoding intset myset3
     }
 
-# Bug need Fix
+# Keys for multiple data types of Pika can be duplicate
 #    test "SMOVE wrong src key type" {
 #        r set x 10
-#        assert_error "WRONGTYPE*" {r smove x myset2 foo}
+#        assert_equal "WRONGTYPE*" [r smove x myset2 foo]
 #    }
 
-# Bug need Fix
+# Keys for multiple data types of Pika can be duplicate
 #    test "SMOVE wrong dst key type" {
 #        r set x 10
-#        assert_error "WRONGTYPE*" {r smove myset2 x foo}
+#        assert_equal "WRONGTYPE*" [r smove myset2 x foo]
 #    }
 
     test "SMOVE with identical source and destination" {

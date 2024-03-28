@@ -57,6 +57,7 @@ start_server {tags {"multi"}} {
         list [r exists foo1] [r exists foo2]
     } {0 0}
 
+# This parameter is not available in Pika
 #    test {EXEC fails if there are errors while queueing commands #2} {
 #        set rd [redis_deferring_client]
 #        r del foo1 foo2
@@ -74,25 +75,26 @@ start_server {tags {"multi"}} {
 #        list [r exists foo1] [r exists foo2]
 #    } {0 0}
 
-#    test {If EXEC aborts, the client MULTI state is cleared} {
-#        r del foo1 foo2
-#        r multi
-#        r set foo1 bar1
-#        catch {r non-existing-command}
-#        r set foo2 bar2
-#        catch {r exec} e
-#        assert_match {EXECABORT*} $e
-#        r ping
-#    } {PONG}
+    test {If EXEC aborts, the client MULTI state is cleared} {
+        r del foo1 foo2
+        r multi
+        r set foo1 bar1
+        catch {r non-existing-command}
+        r set foo2 bar2
+        catch {r exec} e
+        assert_match {EXECABORT*} $e
+        r ping
+    } {PONG}
 
-#    test {EXEC works on WATCHed key not modified} {
-#        r watch x y z
-#        r watch k
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {EXEC works on WATCHed key not modified} {
+        r watch x y z
+        r watch k
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified (1 key of 1 watched)} {
 #        r set x 30
 #        r watch x
@@ -102,6 +104,7 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified (1 key of 5 watched)} {
 #        r set x 30
 #        r watch a b x k z
@@ -111,6 +114,7 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
+# The return value of Pika is inconsistent with Redis
 #    test {EXEC fail on WATCHed key modified by SORT with STORE even if the result is empty} {
 #        r flushdb
 #        r lpush foo barsync"
@@ -121,45 +125,46 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-#    test {After successful EXEC key is no longer watched} {
-#        r set x 30
-#        r watch x
-#        r multi
-#        r ping
-#        r exec
-#        r set x 40
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {After successful EXEC key is no longer watched} {
+        r set x 30
+        r watch x
+        r multi
+        r ping
+        r exec
+        r set x 40
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
-#    test {After failed EXEC key is no longer watched} {
-#        r set x 30
-#        r watch x
-#        r set x 40
-#        r multi
-#        r ping
-#        r exec
-#        r set x 40
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {After failed EXEC key is no longer watched} {
+        r set x 30
+        r watch x
+        r set x 40
+        r multi
+        r ping
+        r exec
+        r set x 40
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
-#    test {It is possible to UNWATCH} {
-#        r set x 30
-#        r watch x
-#        r set x 40
-#        r unwatch
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {It is possible to UNWATCH} {
+        r set x 30
+        r watch x
+        r set x 40
+        r unwatch
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
     test {UNWATCH when there is nothing watched works as expected} {
         r unwatch
     } {OK}
 
+# The return value of Pika is inconsistent with Redis
 #    test {FLUSHALL is able to touch the watched keys} {
 #        r set x 30
 #        r watch x
@@ -169,15 +174,16 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-#    test {FLUSHALL does not touch non affected keys} {
-#        r del x
-#        r watch x
-#        r flushall
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {FLUSHALL does not touch non affected keys} {
+        r del x
+        r watch x
+        r flushall
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
+# The return value of Pika is inconsistent with Redis
 #    test {FLUSHDB is able to touch the watched keys} {
 #        r set x 30
 #        r watch x
@@ -187,15 +193,16 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-#    test {FLUSHDB does not touch non affected keys} {
-#        r del x
-#        r watch x
-#        r flushdb
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {FLUSHDB does not touch non affected keys} {
+        r del x
+        r watch x
+        r flushdb
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
+# The return value of Pika is inconsistent with Redis
 #    test {WATCH is able to remember the DB a key belongs to} {
 #        r select 5
 #        r set x 30
@@ -211,6 +218,7 @@ start_server {tags {"multi"}} {
 #        set res
 #    } {PONG}
 
+# The return value of Pika is inconsistent with Redis
 #    test {WATCH will consider touched keys target of EXPIRE} {
 #        r del x
 #        r set x foo
@@ -221,16 +229,16 @@ start_server {tags {"multi"}} {
 #        r exec
 #    } {}
 
-#    test {WATCH will not consider touched expired keys} {
-#        r del x
-#        r set x foo
-#        r expire x 1
-#        r watch x
-#        after 1100
-#        r multi
-#        r ping
-#        r exec
-#    } {PONG}
+    test {WATCH will not consider touched expired keys} {
+        r del x
+        r set x foo
+        r expire x 1
+        r watch x
+        after 1100
+        r multi
+        r ping
+        r exec
+    } {PONG}
 
     test {DISCARD should clear the WATCH dirty flag on the client} {
         r watch x
@@ -253,6 +261,7 @@ start_server {tags {"multi"}} {
         r exec
     } {11}
 
+# Pika does not support the sync command
 #    test {MULTI / EXEC is propagated correctly (single write command)} {
 #        set repl [attach_to_replication_stream]
 #        r multi
@@ -265,8 +274,9 @@ start_server {tags {"multi"}} {
 #            {exec}
 #        }
 #        close_replication_stream $repl
-#    }
-#
+#   }
+
+# Pika does not support the sync command
 #    test {MULTI / EXEC is propagated correctly (empty transaction)} {
 #        set repl [attach_to_replication_stream]
 #        r multi
@@ -278,7 +288,8 @@ start_server {tags {"multi"}} {
 #        }
 #        close_replication_stream $repl
 #    }
-#
+
+# Pika does not support the sync command
 #    test {MULTI / EXEC is propagated correctly (read-only commands)} {
 #        r set foo value1
 #        set repl [attach_to_replication_stream]
@@ -292,9 +303,10 @@ start_server {tags {"multi"}} {
 #        }
 #        close_replication_stream $repl
 #    }
-#
+
+# Pika does not support the sync command
 #    test {MULTI / EXEC is propagated correctly (write command, no effect)} {
-#        r del bar foo bar
+#       r del bar foo bar
 #        set repl [attach_to_replication_stream]
 #        r multi
 #        r del foo
