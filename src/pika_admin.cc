@@ -1320,20 +1320,10 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
-  uint64_t db_size = 0;
-  time_t current_time_s = time(nullptr);
-  uint64_t log_size = 0;
 
-  if (current_time_s - 60 >= db_size_last_time_) {
-    db_size_last_time_ = current_time_s;
-    db_size = pstd::Du(g_pika_conf->db_path());
-    db_size_ = db_size;
-    log_size = pstd::Du(g_pika_conf->log_path());
-    log_size_ = log_size;
-  } else {
-    db_size = db_size_;
-    log_size = log_size_;
-  }
+  uint64_t db_size = g_pika_server->GetDBSize();
+  uint64_t log_size = g_pika_server->GetLogSize();
+
   tmp_stream << "# Data"
              << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";

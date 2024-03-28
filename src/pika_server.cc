@@ -1092,7 +1092,19 @@ void PikaServer::DoTimingTask() {
   UpdateCacheInfo();
   // Print the queue status periodically
   PrintThreadPoolQueueStatus();
+  StatDiskUsage();
+}
 
+void PikaServer::StatDiskUsage() {
+  thread_local uint64_t last_update_time = 0;
+  auto current_time = pstd::NowMicros();
+  if (current_time - last_update_time < 60 * 1000 * 1000) {
+    return;
+  }
+  last_update_time = current_time;
+
+  disk_statistic_.db_size_.store(pstd::Du(g_pika_conf->db_path()));
+  disk_statistic_.log_size_.store(pstd::Du(g_pika_conf->log_path()));
 }
 
 void PikaServer::AutoCompactRange() {
