@@ -262,7 +262,7 @@ class PikaServer : public pstd::noncopyable {
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
 
   /*
-   * Memory and Disk usage statistic
+   * Disk usage statistic
    */
   uint64_t GetDBSize() const {
     return disk_statistic_.db_size_.load();
