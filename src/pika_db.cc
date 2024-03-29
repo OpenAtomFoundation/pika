@@ -200,6 +200,7 @@ DisplayCacheInfo DB::GetCacheInfo() {
 }
 
 bool DB::FlushDBWithoutLock() {
+  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -220,33 +221,6 @@ bool DB::FlushDBWithoutLock() {
   assert(s.ok());
   LOG(INFO) << db_name_ << " Open new db success";
   g_pika_server->PurgeDir(dbpath);
-  return true;
-}
-
-bool DB::FlushSubDBWithoutLock(const std::string& db_name) {
-  std::lock_guard l(bgsave_protector_);
-  if (bgsave_info_.bgsaving) {
-    return false;
-  }
-
-  LOG(INFO) << db_name_ << " Delete old " + db_name + " db...";
-  storage_.reset();
-
-  std::string dbpath = db_path_;
-  if (dbpath[dbpath.length() - 1] != '/') {
-    dbpath.append("/");
-  }
-
-  std::string sub_dbpath = dbpath + db_name;
-  std::string del_dbpath = dbpath + db_name + "_deleting";
-  pstd::RenameFile(sub_dbpath, del_dbpath);
-
-  storage_ = std::make_shared<storage::Storage>();
-  rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
-  assert(storage_);
-  assert(s.ok());
-  LOG(INFO) << db_name_ << " open new " + db_name + " db success";
-  g_pika_server->PurgeDir(del_dbpath);
   return true;
 }
 
@@ -572,11 +546,6 @@ void DB::ClearBgsave() {
   bgsave_info_.Clear();
 }
 
-bool DB::FlushSubDB(const std::string& db_name) {
-  std::lock_guard rwl(dbs_rw_);
-  return FlushSubDBWithoutLock(db_name);
-}
-
 void DB::UpdateCacheInfo(CacheInfo& cache_info) {
   std::unique_lock<std::shared_mutex> lock(cache_info_rwlock_);
 
@@ -624,10 +593,4 @@ void DB::ResetDisplayCacheInfo(int status) {
   cache_info_.load_keys_per_sec = 0;
   cache_info_.waitting_load_keys_num = 0;
   cache_usage_ = 0;
-}
-
-bool DB::FlushDB() {
-  std::lock_guard rwl(dbs_rw_);
-  std::lock_guard l(bgsave_protector_);
-  return FlushDBWithoutLock();
 }

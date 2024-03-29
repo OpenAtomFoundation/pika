@@ -139,12 +139,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void Init();
   bool TryUpdateMasterOffset();
   /*
-   * FlushDB & FlushSubDB use
+   * FlushDB used
    */
-  bool FlushDB();
-  bool FlushSubDB(const std::string& db_name);
   bool FlushDBWithoutLock();
-  bool FlushSubDBWithoutLock(const std::string& db_name);
   bool ChangeDb(const std::string& new_path);
   pstd::Status GetBgSaveUUID(std::string* snapshot_uuid);
   void PrepareRsync();
