@@ -553,10 +553,10 @@ void FlushallCmd::DoThroughDB() {
   Do();
 }
 
-void FlushallCmd::DoUpdateCache() {
+void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   // clear cache
   if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
-    g_pika_server->ClearCacheDbAsync(db_);
+    g_pika_server->ClearCacheDbAsync(db);
   }
 }
 
@@ -580,6 +580,7 @@ void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
     LOG(INFO) << "Flushall, but DB not found";
   } else {
     db->FlushDBWithoutLock();
+    DoUpdateCache(db);
   }
 }
 

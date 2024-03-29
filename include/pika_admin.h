@@ -185,7 +185,7 @@ class FlushallCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do() override;
   void DoThroughDB() override;
-  void DoUpdateCache() override;
+  void DoUpdateCache(std::shared_ptr<DB> db);
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
