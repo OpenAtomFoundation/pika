@@ -185,17 +185,14 @@ class FlushallCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do() override;
   void DoThroughDB() override;
-  void DoUpdateCache() override;
+  void DoUpdateCache(std::shared_ptr<DB> db);
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
-  void Execute() override;
   void FlushAllWithoutLock();
-  void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
 
  private:
   void DoInitial() override;
-  std::string ToRedisProtocol() override;
   void DoWithoutLock(std::shared_ptr<DB> db);
 };
 
@@ -212,7 +209,6 @@ class FlushdbCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
-  void Execute() override;
   std::string GetFlushDBname() { return db_name_; }
 
  private:
@@ -265,7 +261,6 @@ class InfoCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
-  void Execute() override;
 
  private:
   InfoSection info_section_;
@@ -333,7 +328,6 @@ class ConfigCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
-  void Execute() override;
 
  private:
   std::vector<std::string> config_args_v_;
