@@ -57,4 +57,9 @@ struct Statistic {
   std::unordered_map<std::string, QpsStatistic> db_stat;
 };
 
+struct DiskStatistic {
+  std::atomic<uint64_t> db_size_ = 0;
+  std::atomic<uint64_t> log_size_ = 0;
+};
+
 #endif  // PIKA_STATISTIC_H_
