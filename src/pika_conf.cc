@@ -719,9 +719,6 @@ int PikaConf::ConfigRewrite() {
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config
-  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
-  SetConfInt("block-size", block_size_);
-  SetConfInt("block-cache", block_cache_);
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
   SetConfInt("cache-model", cache_model_);
   SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);
