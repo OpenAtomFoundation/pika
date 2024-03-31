@@ -1780,6 +1780,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->max_write_buffer_size());
   }
 
+  if (pstd::stringmatch(pattern.data(), "max-total-wal-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-total-wal-size");
+    EncodeNumber(&config_body, g_pika_conf->MaxTotalWalSize());
+  }
+
   if (pstd::stringmatch(pattern.data(), "min-write-buffer-number-to-merge", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "min-write-buffer-number-to-merge");
@@ -2140,6 +2146,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "write-buffer-size",
         "max-write-buffer-num",
         "min-write-buffer-number-to-merge",
+        "max-total-wal-size",
         "level0-slowdown-writes-trigger",
         "level0-stop-writes-trigger",
         "level0-file-num-compaction-trigger",
@@ -2535,6 +2542,20 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetLevel0SlowdownWritesTrigger(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+
+  } else if (set_item == "max-total-wal-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-total-wal-size'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_total_wal_size", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set max-total-wal-size: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxTotalWalSize(static_cast<uint64_t>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "level0-file-num-compaction-trigger") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
