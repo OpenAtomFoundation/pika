@@ -536,10 +536,12 @@ class PikaConf : public pstd::BaseConf {
   }
   void SetSlotMigrateThreadNum(const int value) {
     std::lock_guard l(rwlock_);
+    TryPushDiffCommands("slotmigrate-thread-num", std::to_string(value));
     slotmigrate_thread_num_ = value;
   }
   void SetThreadMigrateKeysNum(const int value) {
     std::lock_guard l(rwlock_);
+    TryPushDiffCommands("thread-migrate-keys-num", std::to_string(value));
     thread_migrate_keys_num_ = value;
   }
   void SetExpireLogsNums(const int value) {

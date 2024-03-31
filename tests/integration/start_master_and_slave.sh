@@ -9,9 +9,11 @@ cp ../conf/pika.conf ./pika_rename.conf
 cp ../conf/pika.conf ./pika_acl_both_password.conf
 cp ../conf/pika.conf ./pika_acl_only_admin_password.conf
 cp ../conf/pika.conf ./pika_has_other_acl_user.conf
+cp ../conf/pika.conf ./slotmigrate.conf
 # Create folders for storing data on the primary and secondary nodes
 mkdir master_data
 mkdir slave_data
+mkdir master2_data
 # Example Change the location for storing data on primary and secondary nodes in the configuration file
 sed -i ''  \
   -e 's|databases : 1|databases : 2|'  \
@@ -85,7 +87,17 @@ sed -i ''  \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl3_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl3_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_has_other_acl_user.conf
-echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.conf
+
+  sed -i ''  \
+    -e 's|databases : 1|databases : 2|'  \
+    -e 's|port : 9221|port : 9291|'  \
+    -e 's|log-path : ./log/|log-path : ./master2_data/log/|'  \
+    -e 's|db-path : ./db/|db-path : ./master2_data/db/|'  \
+    -e 's|dump-path : ./dump/|dump-path : ./master2_data2/dump/|'  \
+    -e 's|pidfile : ./pika.pid|pidfile : ./master2_data/pika.pid|'  \
+    -e 's|db-sync-path : ./dbsync/|db-sync-path : ./master2_data/dbsync/|'  \
+    -e 's|#daemonize : yes|daemonize : yes|' ./pika_master.conf
+echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_master.conf
 
 # Start three nodes
 ./pika -c ./pika_single.conf
@@ -95,5 +107,6 @@ echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.
 ./pika -c ./pika_acl_both_password.conf
 ./pika -c ./pika_acl_only_admin_password.conf
 ./pika -c ./pika_has_other_acl_user.conf
+./pika -c ./pika_master.conf
 #ensure both master and slave are ready
 sleep 10

@@ -1595,13 +1595,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->slotmigrate() ? "yes" : "no");
   }
 
-  if (pstd::stringmatch(pattern.data(), "slotmigrate-thread-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slotmigrate-thread-num", 1)!= 0) {
     elements += 2;
     EncodeString(&config_body, "slotmigrate-thread-num");
     EncodeNumber(&config_body, g_pika_conf->slotmigrate_thread_num());
   }
 
-  if (pstd::stringmatch(pattern.data(), "thread-migrate-keys-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "thread-migrate-keys-num", 1)!= 0) {
     elements += 2;
     EncodeString(&config_body, "thread-migrate-keys-num");
     EncodeNumber(&config_body, g_pika_conf->thread_migrate_keys_num());
@@ -2223,19 +2223,19 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slotmigrate-thread-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
-      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n");
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slotmigrate-thread-num'\r\n");
       return;
     }
-    long int migrate_thread_num = (0 > ival || 24 < ival) ? 8 : ival;
-    g_pika_conf->SetSlotMigrateThreadNum(static_cast<int>(ival));
+    long int migrate_thread_num = (1 > ival || 24 < ival) ? 8 : ival;
+    g_pika_conf->SetSlotMigrateThreadNum(migrate_thread_num);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "thread-migrate-keys-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
-      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n");
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'thread-migrate-keys-num'\r\n");
       return;
     }
     long int thread_migrate_keys_num = (8 > ival || 128 < ival) ? 64 : ival;
-    g_pika_conf->SetThreadMigrateKeysNum(static_cast<int>(ival));
+    g_pika_conf->SetThreadMigrateKeysNum(thread_migrate_keys_num);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-write-errorlog") {
     bool is_write_errorlog;
