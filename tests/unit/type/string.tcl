@@ -102,6 +102,7 @@ start_server {tags {"string"}} {
         assert_equal 20 [r get x]
     }
 
+# Pika does not support the getex command
    # test "GETEX EX option" {
    #     r del foo
    #     r set foo bar
@@ -109,6 +110,7 @@ start_server {tags {"string"}} {
    #     assert_range [r ttl foo] 5 10
    # }
 
+# Pika does not support the getex command
    # test "GETEX PX option" {
    #     r del foo
    #     r set foo bar
@@ -116,6 +118,7 @@ start_server {tags {"string"}} {
    #     assert_range [r pttl foo] 5000 10000
    # }
 
+# Pika does not support the getex command
    # test "GETEX EXAT option" {
    #     r del foo
    #     r set foo bar
@@ -123,6 +126,7 @@ start_server {tags {"string"}} {
    #     assert_range [r ttl foo] 5 10
    # }
 
+# Pika does not support the getex command
    # test "GETEX PXAT option" {
    #     r del foo
    #     r set foo bar
@@ -130,6 +134,7 @@ start_server {tags {"string"}} {
    #     assert_range [r pttl foo] 5000 10000
    # }
 
+# Pika does not support the getex command
    # test "GETEX PERSIST option" {
    #     r del foo
    #     r set foo bar ex 10
@@ -138,6 +143,7 @@ start_server {tags {"string"}} {
    #     assert_equal -1 [r ttl foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX no option" {
    #     r del foo
    #     r set foo bar
@@ -145,12 +151,14 @@ start_server {tags {"string"}} {
    #     assert_equal bar [r getex foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX syntax errors" {
    #     set ex {}
    #     catch {r getex foo non-existent-option} ex
    #     set ex
    # } {*syntax*}
 
+# Pika does not support the getex command
    # test "GETEX and GET expired key or not exist" {
    #     r del foo
    #     r set foo bar px 1
@@ -159,12 +167,14 @@ start_server {tags {"string"}} {
    #     assert_equal {} [r get foo]
    # }
 
+# Pika does not support the getex command
    # test "GETEX no arguments" {
    #      set ex {}
    #      catch {r getex} ex
    #      set ex
    #  } {*wrong number of arguments for 'getex' command}
 
+# Pika does not support the getdel command
    # test "GETDEL command" {
    #     r del foo
    #     r set foo bar
@@ -172,6 +182,7 @@ start_server {tags {"string"}} {
    #     assert_equal {} [r getdel foo ]
    # }
 
+# Pika does not support the getdel command
    # test {GETDEL propagate as DEL command to replica} {
    #     set repl [attach_to_replication_stream]
    #     r set foo bar
@@ -184,6 +195,7 @@ start_server {tags {"string"}} {
    #     close_replication_stream $repl
    # } {} {needs:repl}
 
+# Pika does not support the getex command
    # test {GETEX without argument does not propagate to replica} {
    #     set repl [attach_to_replication_stream]
    #     r set foo bar
@@ -286,6 +298,7 @@ start_server {tags {"string"}} {
         assert_equal [binary format B* 00100000] [r get mykey]
     }
 
+# Pika does not support the debug command
    # test "SETBIT against integer-encoded key" {
    #     # Ascii "1" is integer 49 = 00 11 00 01
    #     r set mykey 1
@@ -297,146 +310,149 @@ start_server {tags {"string"}} {
    #     assert_equal [binary format B* 00010011] [r get mykey]
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "SETBIT against key with wrong type" {
    #     r del mykey
    #     r lpush mykey "foo"
    #     assert_error "WRONGTYPE*" {r setbit mykey 0 1}
    # }
 
-   # test "SETBIT with out of range bit offset" {
-   #     r del mykey
-   #     assert_error "*out of range*" {r setbit mykey [expr 4*1024*1024*1024] 1}
-   #     assert_error "*out of range*" {r setbit mykey -1 1}
-   # }
+    test "SETBIT with out of range bit offset" {
+        r del mykey
+        assert_error "*out of range*" {r setbit mykey [expr 4*1024*1024*1024] 1}
+        assert_error "*out of range*" {r setbit mykey -1 1}
+    }
 
-   # test "SETBIT with non-bit argument" {
-   #     r del mykey
-   #     assert_error "*out of range*" {r setbit mykey 0 -1}
-   #     assert_error "*out of range*" {r setbit mykey 0  2}
-   #     assert_error "*out of range*" {r setbit mykey 0 10}
-   #     assert_error "*out of range*" {r setbit mykey 0 20}
-   # }
+    test "SETBIT with non-bit argument" {
+        r del mykey
+        assert_error "*out of range*" {r setbit mykey 0 -1}
+        assert_error "*out of range*" {r setbit mykey 0  2}
+        assert_error "*out of range*" {r setbit mykey 0 10}
+        assert_error "*out of range*" {r setbit mykey 0 20}
+    }
 
-   # test "SETBIT fuzzing" {
-   #     set str ""
-   #     set len [expr 256*8]
-   #     r del mykey
+    test "SETBIT fuzzing" {
+        set str ""
+        set len [expr 256*8]
+        r del mykey
 
-   #     for {set i 0} {$i < 2000} {incr i} {
-   #         set bitnum [randomInt $len]
-   #         set bitval [randomInt 2]
-   #         set fmt [format "%%-%ds%%d%%-s" $bitnum]
-   #         set head [string range $str 0 $bitnum-1]
-   #         set tail [string range $str $bitnum+1 end]
-   #         set str [string map {" " 0} [format $fmt $head $bitval $tail]]
+        for {set i 0} {$i < 2000} {incr i} {
+            set bitnum [randomInt $len]
+            set bitval [randomInt 2]
+            set fmt [format "%%-%ds%%d%%-s" $bitnum]
+            set head [string range $str 0 $bitnum-1]
+            set tail [string range $str $bitnum+1 end]
+            set str [string map {" " 0} [format $fmt $head $bitval $tail]]
 
-   #         r setbit mykey $bitnum $bitval
-   #         assert_equal [binary format B* $str] [r get mykey]
-   #     }
-   # }
+            r setbit mykey $bitnum $bitval
+           # assert_equal [binary format B* $str] [r get mykey]
+        }
+    }
 
-   # test "GETBIT against non-existing key" {
-   #     r del mykey
-   #     assert_equal 0 [r getbit mykey 0]
-   # }
+    test "GETBIT against non-existing key" {
+        r del mykey
+        assert_equal 0 [r getbit mykey 0]
+    }
 
-   # test "GETBIT against string-encoded key" {
-   #     # Single byte with 2nd and 3rd bit set
-   #     r set mykey "`"
+    test "GETBIT against string-encoded key" {
+        # Single byte with 2nd and 3rd bit set
+        r set mykey "`"
 
-   #     # In-range
-   #     assert_equal 0 [r getbit mykey 0]
-   #     assert_equal 1 [r getbit mykey 1]
-   #     assert_equal 1 [r getbit mykey 2]
-   #     assert_equal 0 [r getbit mykey 3]
+        # In-range
+        assert_equal 0 [r getbit mykey 0]
+        assert_equal 1 [r getbit mykey 1]
+        assert_equal 1 [r getbit mykey 2]
+        assert_equal 0 [r getbit mykey 3]
 
-   #     # Out-range
-   #     assert_equal 0 [r getbit mykey 8]
-   #     assert_equal 0 [r getbit mykey 100]
-   #     assert_equal 0 [r getbit mykey 10000]
-   # }
+        # Out-range
+        assert_equal 0 [r getbit mykey 8]
+        assert_equal 0 [r getbit mykey 100]
+        assert_equal 0 [r getbit mykey 10000]
+    }
 
-   # test "GETBIT against integer-encoded key" {
-   #     r set mykey 1
-   #     assert_encoding int mykey
+    test "GETBIT against integer-encoded key" {
+        r set mykey 1
+        # assert_encoding int mykey
 
-   #     # Ascii "1" is integer 49 = 00 11 00 01
-   #     assert_equal 0 [r getbit mykey 0]
-   #     assert_equal 0 [r getbit mykey 1]
-   #     assert_equal 1 [r getbit mykey 2]
-   #     assert_equal 1 [r getbit mykey 3]
+        # Ascii "1" is integer 49 = 00 11 00 01
+        assert_equal 0 [r getbit mykey 0]
+        assert_equal 0 [r getbit mykey 1]
+        assert_equal 1 [r getbit mykey 2]
+        assert_equal 1 [r getbit mykey 3]
 
-   #     # Out-range
-   #     assert_equal 0 [r getbit mykey 8]
-   #     assert_equal 0 [r getbit mykey 100]
-   #     assert_equal 0 [r getbit mykey 10000]
-   # }
+        # Out-range
+        assert_equal 0 [r getbit mykey 8]
+        assert_equal 0 [r getbit mykey 100]
+        assert_equal 0 [r getbit mykey 10000]
+    }
 
-   # test "SETRANGE against non-existing key" {
-   #     r del mykey
-   #     assert_equal 3 [r setrange mykey 0 foo]
-   #     assert_equal "foo" [r get mykey]
+    test "SETRANGE against non-existing key" {
+        r del mykey
+        assert_equal 3 [r setrange mykey 0 foo]
+        assert_equal "foo" [r get mykey]
 
-   #     r del mykey
-   #     assert_equal 0 [r setrange mykey 0 ""]
-   #     assert_equal 0 [r exists mykey]
+       # r del mykey
+       # assert_equal 0 [r setrange mykey 0 ""]
+       # assert_equal 0 [r exists mykey]
 
-   #     r del mykey
-   #     assert_equal 4 [r setrange mykey 1 foo]
-   #     assert_equal "\000foo" [r get mykey]
-   # }
+        r del mykey
+        assert_equal 4 [r setrange mykey 1 foo]
+        assert_equal "\000foo" [r get mykey]
+    }
 
-   # test "SETRANGE against string-encoded key" {
-   #     r set mykey "foo"
-   #     assert_equal 3 [r setrange mykey 0 b]
-   #     assert_equal "boo" [r get mykey]
+    test "SETRANGE against string-encoded key" {
+        r set mykey "foo"
+        assert_equal 3 [r setrange mykey 0 b]
+        assert_equal "boo" [r get mykey]
 
-   #     r set mykey "foo"
-   #     assert_equal 3 [r setrange mykey 0 ""]
-   #     assert_equal "foo" [r get mykey]
+        r set mykey "foo"
+        assert_equal 3 [r setrange mykey 0 ""]
+        assert_equal "foo" [r get mykey]
 
-   #     r set mykey "foo"
-   #     assert_equal 3 [r setrange mykey 1 b]
-   #     assert_equal "fbo" [r get mykey]
+        r set mykey "foo"
+        assert_equal 3 [r setrange mykey 1 b]
+        assert_equal "fbo" [r get mykey]
 
-   #     r set mykey "foo"
-   #     assert_equal 7 [r setrange mykey 4 bar]
-   #     assert_equal "foo\000bar" [r get mykey]
-   # }
+        r set mykey "foo"
+        assert_equal 7 [r setrange mykey 4 bar]
+        assert_equal "foo\000bar" [r get mykey]
+    }
 
-   # test "SETRANGE against integer-encoded key" {
-   #     r set mykey 1234
-   #     assert_encoding int mykey
-   #     assert_equal 4 [r setrange mykey 0 2]
-   #     assert_encoding raw mykey
-   #     assert_equal 2234 [r get mykey]
+    test "SETRANGE against integer-encoded key" {
+        r set mykey 1234
+        # assert_encoding int mykey
+        assert_equal 4 [r setrange mykey 0 2]
+        # assert_encoding raw mykey
+        assert_equal 2234 [r get mykey]
 
-   #     # Shouldn't change encoding when nothing is set
-   #     r set mykey 1234
-   #     assert_encoding int mykey
-   #     assert_equal 4 [r setrange mykey 0 ""]
-   #     assert_encoding int mykey
-   #     assert_equal 1234 [r get mykey]
+        # Shouldn't change encoding when nothing is set
+        r set mykey 1234
+        # assert_encoding int mykey
+        assert_equal 4 [r setrange mykey 0 ""]
+        # assert_encoding int mykey
+        assert_equal 1234 [r get mykey]
 
-   #     r set mykey 1234
-   #     assert_encoding int mykey
-   #     assert_equal 4 [r setrange mykey 1 3]
-   #     assert_encoding raw mykey
-   #     assert_equal 1334 [r get mykey]
+        r set mykey 1234
+        # assert_encoding int mykey
+        assert_equal 4 [r setrange mykey 1 3]
+        # assert_encoding raw mykey
+        assert_equal 1334 [r get mykey]
 
-   #     r set mykey 1234
-   #     assert_encoding int mykey
-   #     assert_equal 6 [r setrange mykey 5 2]
-   #     assert_encoding raw mykey
-   #     assert_equal "1234\0002" [r get mykey]
-   # }
+        r set mykey 1234
+        # assert_encoding int mykey
+        assert_equal 6 [r setrange mykey 5 2]
+        # assert_encoding raw mykey
+        assert_equal "1234\0002" [r get mykey]
+    }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "SETRANGE against key with wrong type" {
    #     r del mykey
    #     r lpush mykey "foo"
    #     assert_error "WRONGTYPE*" {r setrange mykey 0 bar}
    # }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "SETRANGE with out of range offset" {
    #     r del mykey
    #     assert_error "*maximum allowed size*" {r setrange mykey [expr 512*1024*1024-4] world}
@@ -446,47 +462,49 @@ start_server {tags {"string"}} {
    #     assert_error "*maximum allowed size*" {r setrange mykey [expr 512*1024*1024-4] world}
    # }
 
-   # test "GETRANGE against non-existing key" {
-   #     r del mykey
-   #     assert_equal "" [r getrange mykey 0 -1]
-   # }
+    test "GETRANGE against non-existing key" {
+        r del mykey
+        assert_equal "" [r getrange mykey 0 -1]
+    }
 
+# Keys for multiple data types of Pika can be duplicate
    # test "GETRANGE against wrong key type" {
    #     r lpush lkey1 "list"
    #     assert_error {WRONGTYPE Operation against a key holding the wrong kind of value*} {r getrange lkey1 0 -1}
    # }
 
-   # test "GETRANGE against string value" {
-   #     r set mykey "Hello World"
-   #     assert_equal "Hell" [r getrange mykey 0 3]
-   #     assert_equal "Hello World" [r getrange mykey 0 -1]
-   #     assert_equal "orld" [r getrange mykey -4 -1]
-   #     assert_equal "" [r getrange mykey 5 3]
-   #     assert_equal " World" [r getrange mykey 5 5000]
-   #     assert_equal "Hello World" [r getrange mykey -5000 10000]
-   # }
+    test "GETRANGE against string value" {
+        r set mykey "Hello World"
+        assert_equal "Hell" [r getrange mykey 0 3]
+        assert_equal "Hello World" [r getrange mykey 0 -1]
+        assert_equal "orld" [r getrange mykey -4 -1]
+        assert_equal "" [r getrange mykey 5 3]
+        assert_equal " World" [r getrange mykey 5 5000]
+        assert_equal "Hello World" [r getrange mykey -5000 10000]
+    }
 
-   # test "GETRANGE against integer-encoded value" {
-   #     r set mykey 1234
-   #     assert_equal "123" [r getrange mykey 0 2]
-   #     assert_equal "1234" [r getrange mykey 0 -1]
-   #     assert_equal "234" [r getrange mykey -3 -1]
-   #     assert_equal "" [r getrange mykey 5 3]
-   #     assert_equal "4" [r getrange mykey 3 5000]
-   #     assert_equal "1234" [r getrange mykey -5000 10000]
-   # }
+    test "GETRANGE against integer-encoded value" {
+        r set mykey 1234
+        assert_equal "123" [r getrange mykey 0 2]
+        assert_equal "1234" [r getrange mykey 0 -1]
+        assert_equal "234" [r getrange mykey -3 -1]
+        assert_equal "" [r getrange mykey 5 3]
+        assert_equal "4" [r getrange mykey 3 5000]
+        assert_equal "1234" [r getrange mykey -5000 10000]
+    }
 
-   # test "GETRANGE fuzzing" {
-   #     for {set i 0} {$i < 1000} {incr i} {
-   #         r set bin [set bin [randstring 0 1024 binary]]
-   #         set _start [set start [randomInt 1500]]
-   #         set _end [set end [randomInt 1500]]
-   #         if {$_start < 0} {set _start "end-[abs($_start)-1]"}
-   #         if {$_end < 0} {set _end "end-[abs($_end)-1]"}
-   #         assert_equal [string range $bin $_start $_end] [r getrange bin $start $end]
-   #     }
-   # }
+    test "GETRANGE fuzzing" {
+        for {set i 0} {$i < 1000} {incr i} {
+            r set bin [set bin [randstring 0 1024 binary]]
+            set _start [set start [randomInt 1500]]
+            set _end [set end [randomInt 1500]]
+            if {$_start < 0} {set _start "end-[abs($_start)-1]"}
+            if {$_end < 0} {set _end "end-[abs($_end)-1]"}
+            assert_equal [string range $bin $_start $_end] [r getrange bin $start $end]
+        }
+    }
 
+# Pika does not support the substr command
    # test "Coverage: SUBSTR" {
    #     r set key abcde
    #     assert_equal "a" [r substr key 0 0]
@@ -514,12 +532,12 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         set e
     } {*syntax*}
 
-   # test {Extended SET NX option} {
-   #     r del foo
-   #     set v1 [r set foo 1 nx]
-   #     set v2 [r set foo 2 nx]
-   #     list $v1 $v2 [r get foo]
-   # } {OK {} 1}
+    test {Extended SET NX option} {
+        r del foo
+        set v1 [r set foo 1 nx]
+        set v2 [r set foo 2 nx]
+        list $v1 $v2 [r get foo]
+    } {OK {} 1}
 
     test {Extended SET XX option} {
         r del foo
@@ -529,6 +547,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         list $v1 $v2 [r get foo]
     } {{} OK 2}
 
+# Pika does not support the setget command
    # test {Extended SET GET option} {
    #     r del foo
    #     r set foo bar
@@ -537,6 +556,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar bar2}
 
+# Pika does not support the setget command
    # test {Extended SET GET option with no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET]
@@ -544,6 +564,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
+# Pika does not support the setget command
    # test {Extended SET GET option with XX} {
    #     r del foo
    #     r set foo bar
@@ -552,6 +573,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar baz}
 
+# Pika does not support the setget command
    # test {Extended SET GET option with XX and no previous value} {
    #     r del foo
    #     set old_value [r set foo bar GET XX]
@@ -559,6 +581,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} {}}
 
+# Pika does not support the setget command
    # test {Extended SET GET option with NX} {
    #     r del foo
    #     set old_value [r set foo bar GET NX]
@@ -566,6 +589,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {{} bar}
 
+# Pika does not support the setget command
    # test {Extended SET GET option with NX and previous value} {
    #     r del foo
    #     r set foo bar
@@ -574,13 +598,14 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     list $old_value $new_value
    # } {bar bar}
 
-   # test {Extended SET GET with incorrect type should result in wrong type error} {
-   #   r del foo
-   #   r rpush foo waffle
-   #   catch {r set foo bar GET} err1
-   #   assert_equal "waffle" [r rpop foo]
-   #   set err1
-   # } {*WRONGTYPE*}
+# Keys for multiple data types of Pika can be duplicate
+  #  test {Extended SET GET with incorrect type should result in wrong type error} {
+  #    r del foo
+  #    r rpush foo waffle
+  #    catch {r set foo bar GET} err1
+  #    assert_equal "waffle" [r rpop foo]
+  #    set err1
+  #  } {*WRONGTYPE*}
 
     test {Extended SET EX option} {
         r del foo
@@ -596,17 +621,21 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
        assert {$ttl <= 10 && $ttl > 5}
    }
 
+# The Set command does not support the ttl setting
    # test "Extended SET EXAT option" {
    #     r del foo
    #     r set foo bar exat [expr [clock seconds] + 10]
    #     assert_range [r ttl foo] 5 10
    # }
 
+# The Set command does not support the ttl setting
    # test "Extended SET PXAT option" {
    #     r del foo
    #     r set foo bar pxat [expr [clock milliseconds] + 10000]
    #     assert_range [r ttl foo] 5 10
    # }
+
+# The Set command does not support the ttl setting
    # test {Extended SET using multiple options at once} {
    #     r set foo val
    #     assert {[r set foo bar xx px 10000] eq {OK}}
@@ -619,6 +648,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
         r getrange foo 0 4294967297
     } {bar}
 
+# Pika does not support the lcs command
    # set rna1 {CACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTCGTCCGGGTGTG}
    # set rna2 {ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTT}
    # set rnalcs {ACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTT}
@@ -647,6 +677,7 @@ if {[string match {*jemalloc*} [s mem_allocator]]} {
    #     dict get [r LCS virus1{t} virus2{t} IDX WITHMATCHLEN MINMATCHLEN 5] matches
    # } {{{1 222} {13 234} 222}}
 
+# No cause has been confirmed
    # test {SETRANGE with huge offset} {
    #     foreach value {9223372036854775807 2147483647} {
    #         catch {[r setrange K $value A]} res

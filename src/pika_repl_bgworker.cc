@@ -219,7 +219,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
   record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWLockReader();
+    c_ptr->GetDB()->DBLockShared();
   }
   if (c_ptr->IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_model()
@@ -236,8 +236,26 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWUnLock();
+    c_ptr->GetDB()->DBUnlockShared();
   }
+
+  if (c_ptr->res().ok()
+      && c_ptr->is_write()
+      && c_ptr->name() != kCmdNameFlushdb
+      && c_ptr->name() != kCmdNameFlushall
+      && c_ptr->name() != kCmdNameExec) {
+    auto table_keys = c_ptr->current_key();
+    for (auto& key : table_keys) {
+      key = c_ptr->db_name().append(key);
+    }
+    auto dispatcher = dynamic_cast<net::DispatchThread*>(g_pika_server->pika_dispatch_thread()->server_thread());
+    auto involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+    for (auto& conn : involved_conns) {
+      auto c = std::dynamic_pointer_cast<PikaClientConn>(conn);
+      c->SetTxnWatchFailState(true);
+    }
+  }
+
   record_lock.Unlock(c_ptr->current_key());
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     auto start_time = static_cast<int32_t>(start_us / 1000000);

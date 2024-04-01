@@ -2397,7 +2397,7 @@ Status Storage::EnableAutoCompaction(const OptionType& option_type,
 void Storage::GetRocksDBInfo(std::string& info) {
   char temp[12] = {0};
   for (const auto& inst : insts_) {
-    snprintf(temp, sizeof(temp), "instance:%2d", inst->GetIndex());
+    snprintf(temp, sizeof(temp), "instance%d_", inst->GetIndex());
     inst->GetRocksDBInfo(info, temp);
   }
 }

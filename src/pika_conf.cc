@@ -10,10 +10,12 @@
 
 #include "cache/include/config.h"
 #include "include/acl.h"
-#include "include/pika_define.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
 using pstd::Status;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path) {}
@@ -45,7 +47,7 @@ int PikaConf::Load() {
   GetConfStr("replication-id", &replication_id_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
-  //  GetConfStr("userpass", &userpass_);
+  GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
     maxclients_ = 20000;
@@ -253,6 +255,11 @@ int PikaConf::Load() {
     }
   }
 
+  GetConfInt("max-subcompactions", &max_subcompactions_);
+  if (max_subcompactions_ < 1) {
+    max_subcompactions_ = 1;
+  }
+
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
   if (least_free_disk_to_resume_ <= 0) {
@@ -275,6 +282,26 @@ int PikaConf::Load() {
     write_buffer_size_ = 268435456;  // 256Mb
   }
 
+  GetConfInt("level0-stop-writes-trigger", &level0_stop_writes_trigger_);
+  if (level0_stop_writes_trigger_ < 36) {
+    level0_stop_writes_trigger_ = 36;
+  }
+
+  GetConfInt("level0-slowdown-writes-trigger", &level0_slowdown_writes_trigger_);
+  if (level0_slowdown_writes_trigger_ < 20) {
+    level0_slowdown_writes_trigger_ = 20;
+  }
+
+  GetConfInt("level0-file-num-compaction-trigger", &level0_file_num_compaction_trigger_);
+  if (level0_file_num_compaction_trigger_ < 4) {
+    level0_file_num_compaction_trigger_ = 4;
+  }
+
+  GetConfInt("min-write-buffer-number-to-merge", &min_write_buffer_number_to_merge_);
+  if (min_write_buffer_number_to_merge_ < 1) {
+    min_write_buffer_number_to_merge_ = 1;  // 1 for immutable memtable to merge
+  }
+  
   // arena_block_size
   GetConfInt64Human("arena-block-size", &arena_block_size_);
   if (arena_block_size_ <= 0) {
@@ -282,8 +309,8 @@ int PikaConf::Load() {
   }
 
   // arena_block_size
-  GetConfInt64Human("slotmigrate-thread-num_", &slotmigrate_thread_num_);
-  if (slotmigrate_thread_num_ < 1 || slotmigrate_thread_num_ > 24) {
+  GetConfInt64Human("slotmigrate-thread-num", &slotmigrate_thread_num_);
+  if (slotmigrate_thread_num_ < 0 || slotmigrate_thread_num_ > 24) {
     slotmigrate_thread_num_ = 8;  // 1/8 of the write_buffer_size_
   }
 
@@ -465,11 +492,29 @@ int PikaConf::Load() {
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // userblacklist
+  GetConfStr("userblacklist", &userblacklist_);
   // acl users
   GetConfStrMulti("user", &users_);
 
   GetConfStr("aclfile", &aclFile_);
-
+  GetConfStrMulti("rename-command", &cmds_);
+  for (const auto & i : cmds_) {
+    std::string before, after;
+    std::istringstream iss(i);
+    iss >> before;
+    if (iss) {
+      iss >> after;
+      pstd::StringToLower(before);
+      pstd::StringToLower(after);
+      std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(before);
+      if (!c_ptr) {
+        LOG(ERROR) << "No such " << before << " command in pika-command";
+        return -1;
+      }
+      g_pika_cmd_table_manager->RenameCommand(before, after);
+    }
+  }
   std::string acl_pubsub_default;
   GetConfStr("acl-pubsub-default", &acl_pubsub_default);
   if (acl_pubsub_default == "allchannels") {
@@ -629,8 +674,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
-  //  SetConfStr("userpass", userpass_);
-  //  SetConfStr("userblacklist", userblacklist);
+  SetConfStr("userpass", userpass_);
+  SetConfStr("userblacklist", userblacklist_);
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("dump-expire", expire_dump_days_);
@@ -669,8 +714,12 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-jobs", max_background_jobs_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
+  SetConfInt("min-write-buffer-number-to-merge", min_write_buffer_number_to_merge_);
+  SetConfInt("level0-stop-writes-trigger", level0_stop_writes_trigger_);
+  SetConfInt("level0-slowdown-writes-trigger", level0_slowdown_writes_trigger_);
+  SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
-  SetConfInt64("slotmigrate", slotmigrate_);
+  SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config

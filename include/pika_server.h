@@ -105,6 +105,9 @@ class PikaServer : public pstd::noncopyable {
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
   storage::StorageOptions storage_options();
+  std::unique_ptr<PikaDispatchThread>& pika_dispatch_thread() {
+    return pika_dispatch_thread_;
+  }
 
   /*
    * DB use
@@ -257,6 +260,16 @@ class PikaServer : public pstd::noncopyable {
   void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
+
+  /*
+   * Disk usage statistic
+   */
+  uint64_t GetDBSize() const {
+    return disk_statistic_.db_size_.load();
+  }
+  uint64_t GetLogSize() const {
+    return disk_statistic_.log_size_.load();
+  }
 
   /*
    * Network Statistic used
@@ -501,6 +514,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoDeleteExpiredDump();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  void StatDiskUsage();
   int64_t GetLastSaveTime(const std::string& dump_dir);
 
   std::string host_;
@@ -606,6 +620,8 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  DiskStatistic disk_statistic_;
 
   net::BGThread common_bg_thread_;
 

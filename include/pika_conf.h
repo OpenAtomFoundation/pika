@@ -114,6 +114,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
+  int max_subcompactions() {
+    std::shared_lock l(rwlock_);
+    return max_subcompactions_;
+  }
   bool disable_auto_compactions() {
     std::shared_lock l(rwlock_);
     return disable_auto_compactions_;
@@ -133,6 +137,22 @@ class PikaConf : public pstd::BaseConf {
   int64_t write_buffer_size() {
     std::shared_lock l(rwlock_);
     return write_buffer_size_;
+  }
+  int min_write_buffer_number_to_merge() {
+    std::shared_lock l(rwlock_);
+    return min_write_buffer_number_to_merge_;
+  }
+  int level0_stop_writes_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_stop_writes_trigger_;
+  }
+  int level0_slowdown_writes_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_slowdown_writes_trigger_;
+  }
+  int level0_file_num_compaction_trigger() {
+    std::shared_lock l(rwlock_);
+    return level0_file_num_compaction_trigger_;
   }
   int64_t arena_block_size() {
     std::shared_lock l(rwlock_);
@@ -154,6 +174,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_write_buffer_num_;
   }
+  uint64_t MaxTotalWalSize() {
+    std::shared_lock l(rwlock_);
+    return max_total_wal_size_;
+  } 
   int64_t max_client_response_size() {
     std::shared_lock l(rwlock_);
     return max_client_response_size_;
@@ -189,6 +213,10 @@ class PikaConf : public pstd::BaseConf {
   std::string masterauth() {
     std::shared_lock l(rwlock_);
     return masterauth_;
+  }
+  std::string userpass() {
+    std::shared_lock l(rwlock_);
+    return userpass_;
   }
   std::string bgsave_path() {
     std::shared_lock l(rwlock_);
@@ -389,6 +417,11 @@ class PikaConf : public pstd::BaseConf {
     return pstd::Set2String(slow_cmd_set_, ',');
   }
 
+  const std::string GetUserBlackList() {
+    std::shared_lock l(rwlock_);
+    return userblacklist_;
+  }
+
   bool is_slow_cmd(const std::string& cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
@@ -517,6 +550,14 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     slotmigrate_ = (value == "yes");
   }
+  void SetSlotMigrateThreadNum(const int value) {
+    std::lock_guard l(rwlock_);
+    slotmigrate_thread_num_ = value;
+  }
+  void SetThreadMigrateKeysNum(const int value) {
+    std::lock_guard l(rwlock_);
+    thread_migrate_keys_num_ = value;
+  }
   void SetExpireLogsNums(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
@@ -572,6 +613,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("disable_auto_compactions", value);
     disable_auto_compactions_ = value == "true";
   }
+  void SetMaxSubcompactions(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-subcompactions", std::to_string(value));
+    max_subcompactions_ = value;
+  }
   void SetLeastResumeFreeDiskSize(const int64_t& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("least-free-disk-resume-size", std::to_string(value));
@@ -615,10 +661,35 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
     write_buffer_size_ = value;
   }
+  void SetMinWriteBufferNumberToMerge(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("min-write-buffer-number-to-merge", std::to_string(value));
+    min_write_buffer_number_to_merge_ = value;
+  }
+  void SetLevel0StopWritesTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-stop-writes-trigger", std::to_string(value));
+    level0_stop_writes_trigger_ = value;
+  }
+  void SetLevel0SlowdownWritesTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-slowdown-writes-trigger", std::to_string(value));
+    level0_slowdown_writes_trigger_ = value;
+  }
+  void SetLevel0FileNumCompactionTrigger(const int& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("level0-file-num-compaction-trigger", std::to_string(value));
+    level0_file_num_compaction_trigger_ = value;
+  }
   void SetMaxWriteBufferNumber(const int& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-write-buffer-num", std::to_string(value));
     max_write_buffer_num_ = value;
+  }
+  void SetMaxTotalWalSize(uint64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-total-wal-size", std::to_string(value));
+    max_total_wal_size_ = value;
   }
   void SetArenaBlockSize(const int& value) {
     std::lock_guard l(rwlock_);
@@ -704,8 +775,11 @@ class PikaConf : public pstd::BaseConf {
   std::string db_path_;
   int db_instance_num_ = 0;
   std::string db_sync_path_;
+
+  // compact
   std::string compact_cron_;
   std::string compact_interval_;
+  int max_subcompactions_ = 1;
   bool disable_auto_compactions_ = false;
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
@@ -715,7 +789,12 @@ class PikaConf : public pstd::BaseConf {
   int64_t slotmigrate_thread_num_ = 0;
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
+  int64_t max_total_wal_size_ = 0;
   int max_write_buffer_num_ = 0;
+  int min_write_buffer_number_to_merge_ = 1;
+  int level0_stop_writes_trigger_ =  36;
+  int level0_slowdown_writes_trigger_ = 20;
+  int level0_file_num_compaction_trigger_ = 4;
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
   int timeout_ = 0;
@@ -724,6 +803,7 @@ class PikaConf : public pstd::BaseConf {
   std::string replication_id_;
   std::string requirepass_;
   std::string masterauth_;
+  std::string userpass_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 1;
@@ -777,10 +857,11 @@ class PikaConf : public pstd::BaseConf {
 
   std::string network_interface_;
 
+  std::string userblacklist_;
   std::vector<std::string> users_;  // acl user rules
 
   std::string aclFile_;
-
+  std::vector<std::string> cmds_;
   std::atomic<uint32_t> acl_pubsub_default_ = 0;  // default channel pub/sub permission
   std::atomic<uint32_t> acl_Log_max_len_ = 0;      // default acl log max len
 

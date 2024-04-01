@@ -7,6 +7,7 @@ start_server {tags {"zset"}} {
     }
 
     proc basics {encoding} {
+# This parameter is not available in Pika
         #if {$encoding == "ziplist"} {
         #    r config set zset-max-ziplist-entries 128
         #    r config set zset-max-ziplist-value 64
@@ -528,29 +529,29 @@ start_server {tags {"zset"}} {
         }
 
         foreach cmd {ZUNIONSTORE ZINTERSTORE} {
-           # test "$cmd with 999999999/-999999999 scores - $encoding" {
-           #     r del zsetinf1 zsetinf2
+            test "$cmd with 999999999/-999999999 scores - $encoding" {
+                r del zsetinf1 zsetinf2
 
-           #     r zadd zsetinf1 999999999 key
-           #     r zadd zsetinf2 999999999 key
-           #     r $cmd zsetinf3 2 zsetinf1 zsetinf2
-           #     assert_equal 999999999 [r zscore zsetinf3 key]
+                r zadd zsetinf1 999999999 key
+                r zadd zsetinf2 999999999 key
+                r $cmd zsetinf3 2 zsetinf1 zsetinf2
+                assert_equal 1999999998 [r zscore zsetinf3 key]
 
-           #     r zadd zsetinf1 -999999999 key
-           #     r zadd zsetinf2 999999999 key
-           #     r $cmd zsetinf3 2 zsetinf1 zsetinf2
-           #     assert_equal 0 [r zscore zsetinf3 key]
+                r zadd zsetinf1 -999999999 key
+                r zadd zsetinf2 999999999 key
+                r $cmd zsetinf3 2 zsetinf1 zsetinf2
+                assert_equal 0 [r zscore zsetinf3 key]
 
-           #     r zadd zsetinf1 999999999 key
-           #     r zadd zsetinf2 -999999999 key
-           #     r $cmd zsetinf3 2 zsetinf1 zsetinf2
-           #     assert_equal 0 [r zscore zsetinf3 key]
+                r zadd zsetinf1 999999999 key
+                r zadd zsetinf2 -999999999 key
+                r $cmd zsetinf3 2 zsetinf1 zsetinf2
+                assert_equal 0 [r zscore zsetinf3 key]
 
-           #     r zadd zsetinf1 -999999999 key
-           #     r zadd zsetinf2 -999999999 key
-           #     r $cmd zsetinf3 2 zsetinf1 zsetinf2
-           #     assert_equal -999999999 [r zscore zsetinf3 key]
-           # }
+                r zadd zsetinf1 -999999999 key
+                r zadd zsetinf2 -999999999 key
+                r $cmd zsetinf3 2 zsetinf1 zsetinf2
+                assert_equal -1999999998 [r zscore zsetinf3 key]
+            }
 
             test "$cmd with NaN weights $encoding" {
                 r del zsetinf1 zsetinf2
@@ -580,6 +581,7 @@ start_server {tags {"zset"}} {
         r zrange out 0 -1 withscores
     } {neginf 0}
 
+# Keys for multiple data types of Pika can be duplicate
    # test {ZINTERSTORE #516 regression, mixed sets and ziplist zsets} {
    #     r sadd one 100 101 102 103
    #     r sadd two 100 200 201 202

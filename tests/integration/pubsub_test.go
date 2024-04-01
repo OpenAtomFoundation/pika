@@ -25,6 +25,10 @@ var _ = Describe("PubSub", func() {
 		client2 = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		Expect(client2.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, client)
+			GlobalBefore(ctx, client2)
+		}
 		time.Sleep(2 * time.Second)
 	})
 

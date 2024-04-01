@@ -14,22 +14,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            file_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-linux-amd64
-            file_ext: .tar.gz
-          - arch: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            file_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-linux-arm64
-            file_ext: .tar.gz
-          - arch: x86_64-apple-darwin
-            os: macos-latest
-            file_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-darwin-amd64
-            file_ext: .tar.gz
-          - arch: aarch64-apple-darwin
-            os: macos-latest
-            file_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-darwin-arm64
-            file_ext: .tar.gz
+          - os: ubuntu-latest
+            name: ${{ github.event.repository.name }}-${{ github.ref_name }}-ubuntu-amd64.tar.gz
+          - os: macos-latest
+            name: ${{ github.event.repository.name }}-${{ github.ref_name }}-macos-amd64.tar.gz
 
     runs-on: ${{ matrix.os }}
 
@@ -37,65 +25,75 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Install Deps - linux
-        if: contains(matrix.arch, 'linux')
+      - name: Release build os - ${{ matrix.os }}
         run: |
-          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12
-
-      - name: Install Deps - darwin
-        if: contains(matrix.os, 'macos')
-        run: |
-          brew update
-          brew install --overwrite autoconf protobuf llvm wget git
-          brew install gcc@10 automake cmake make binutils
-
-      - name: Configure CMake - linux
-        if: contains(matrix.arch, 'linux')
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS="-s" -DCMAKE_EXE_LINKER_FLAGS="-s"
-
-      - name: Configure CMake - darwin
-        if: contains(matrix.os, 'macos')
-        run: |
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-
-      - name: Cache Build - linux
-        if: contains(matrix.arch, 'linux')
-        uses: actions/cache@v3
-        id: cache-ubuntu
-        with:
-          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
-          path: |
-            ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
-
-      - name: Build
-        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+          chmod +x ci/release-build.sh
+          ./ci/release-build.sh install ${{ matrix.os }} ${{ env.BUILD_TYPE }}
 
       - name: Calculate checksum and rename binary
-        shell: bash
         run: |
-          cd build/
-          chmod +x ${{ github.event.repository.name }}
-          tar -zcvf ${{ matrix.file_name }}${{ matrix.file_ext }} ${{ github.event.repository.name }}
-          echo $(shasum -a 256 ${{ matrix.file_name }}${{ matrix.file_ext }} | cut -f1 -d' ') > ${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
+          chmod +x ci/release-build.sh
+          ./ci/release-build.sh checksum ${{ github.event.repository.name }} ${{ matrix.name }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.file_name }}${{ matrix.file_ext }}
-          path: build/${{ matrix.file_name }}${{ matrix.file_ext }}
+          name: ${{ matrix.name }}
+          path: build/${{ matrix.name }}
 
       - name: Upload checksum of artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
-          path: build/${{ matrix.file_name }}${{ matrix.file_ext }}.sha256sum
+          name: ${{ matrix.name }}.sha256sum
+          path: build/${{ matrix.name }}.sha256sum
+
+  centos:
+    runs-on: ubuntu-latest
+    container:
+      image: centos:7
+    env:
+      name: ${{ github.event.repository.name }}-${{ github.ref_name }}-centos-amd64.tar.gz
+    steps:
+      - name: Install deps
+        run: |
+          yum install -y wget git autoconf centos-release-scl gcc perl-Digest-SHA
+          yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which 
+
+      - name: Install cmake
+        run: |
+          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Release build os - centos
+        run: |
+          chmod +x ci/release-build.sh
+          ./ci/release-build.sh install centos ${{ env.BUILD_TYPE }} -xe
+
+      - name: Calculate checksum and rename binary
+        shell: bash
+        run: ./ci/release-build.sh checksum ${{ github.event.repository.name }} ${{ env.name }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.name }}
+          path: build/${{ env.name }}
+
+      - name: Upload checksum of artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.name }}.sha256sum
+          path: build/${{ env.name }}.sha256sum
 
   release:
     name: Release artifacts
-    needs: [ build ]
+    needs: [ build,centos ]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts

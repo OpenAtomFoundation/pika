@@ -6,6 +6,11 @@ image:
     repository: pikadb/pika
     tag: 3.5.2.0
     pullPolicy: IfNotPresent
+  pikaExporter:
+    registry: docker.io
+    repository: pikadb/pika-exporter
+    tag: 3.5.2.0
+    pullPolicy: IfNotPresent
   codis:
     registry: docker.io
     repository: pikadb/codis

@@ -2,6 +2,7 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: Cluster
 metadata:
   name: {{ include "clustername" . }}
+  namespace: {{ .Release.Namespace }}
   labels: {{ include "pika-cluster.labels" . | nindent 4 }}
 spec:
   clusterDefinitionRef: pika  # ref clusterDefinition.name
@@ -114,6 +115,23 @@ spec:
               requests:
                 storage: {{ .size }}
         {{- end }}
+      {{- end }}
+    - name: pika-exporter
+      {{- if .Values.useLegacyCompDef }}
+      componentDefRef: pika-exporter # ref clusterDefinition.componentDefs[x].name
+      {{- else }}
+      componentDef: pika-exporter # ref componentDefinition name
+      {{- end }}
+      monitor: {{ .Values.monitor.enabled | default false }}
+      replicas: 1
+      {{- with  .Values.resources.pikaExporter }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-proxy
       {{- if .Values.useLegacyCompDef }}

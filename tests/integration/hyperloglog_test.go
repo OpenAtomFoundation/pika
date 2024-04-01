@@ -16,6 +16,9 @@ var _ = Describe("Hyperloglog Commands", func() {
 	BeforeEach(func() {
 		client = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, client)
+		}
 		time.Sleep(1 * time.Second)
 	})
 

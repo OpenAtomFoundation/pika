@@ -25,7 +25,7 @@ void MultiCmd::Do() {
     return;
   }
   if (client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "ERR MULTI calls can not be nested");
+    res_.SetRes(CmdRes::kErrOther, "MULTI calls can not be nested");
     return;
   }
   client_conn->SetTxnStartState(true);
@@ -42,6 +42,22 @@ void MultiCmd::DoInitial() {
 void ExecCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn == nullptr) {
+    res_.SetRes(CmdRes::kErrOther, name());
+    return;
+  }
+  if (!client_conn->IsInTxn()) {
+    res_.SetRes(CmdRes::kErrOther, "EXEC without MULTI");
+    return;
+  }
+  if (IsTxnFailedAndSetState()) {
+    client_conn->ExitTxn();
+    return;
+  }
+  SetCmdsVec();
+  Lock();
+  conn = GetConn();
+  client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
   std::vector<std::shared_ptr<std::string>> resp_strs;
   for (size_t i = 0; i < cmds_.size(); ++i) {
@@ -83,26 +99,6 @@ void ExecCmd::Do() {
   for (auto &r : res_vec) {
     res_.AppendStringRaw(r.message());
   }
-}
-
-void ExecCmd::Execute() {
-  auto conn = GetConn();
-  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  if (client_conn == nullptr) {
-    res_.SetRes(CmdRes::kErrOther, name());
-    return;
-  }
-  if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "ERR EXEC without MULTI");
-    return;
-  }
-  if (IsTxnFailedAndSetState()) {
-    client_conn->ExitTxn();
-    return;
-  }
-  SetCmdsVec();
-  Lock();
-  Do();
   Unlock();
   ServeToBLrPopWithKeys();
   list_cmd_.clear();
@@ -145,22 +141,22 @@ void ExecCmd::Lock() {
     g_pika_rm->DBLock();
   }
 
-  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
-    if (lock_db_keys_.count(need_lock_slot) != 0) {
-      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Lock(lock_db_keys_[need_lock_slot]);
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_db) {
+    if (lock_db_keys_.count(need_lock_db) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
+      record_lock.Lock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_slot->DbRWLockReader();
+    need_lock_db->DBLockShared();
   });
 }
 
 void ExecCmd::Unlock() {
-  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_slot) {
-    if (lock_db_keys_.count(need_lock_slot) != 0) {
-      pstd::lock::MultiRecordLock record_lock(need_lock_slot->LockMgr());
-      record_lock.Unlock(lock_db_keys_[need_lock_slot]);
+  std::for_each(r_lock_dbs_.begin(), r_lock_dbs_.end(), [this](auto& need_lock_db) {
+    if (lock_db_keys_.count(need_lock_db) != 0) {
+      pstd::lock::MultiRecordLock record_lock(need_lock_db->LockMgr());
+      record_lock.Unlock(lock_db_keys_[need_lock_db]);
     }
-    need_lock_slot->DbRWUnLock();
+    need_lock_db->DBUnlockShared();
   });
   if (is_lock_rm_dbs_) {
     g_pika_rm->DBUnlock();
@@ -238,15 +234,11 @@ void WatchCmd::Do() {
     return;
   }
   if (client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::CmdRet::kErrOther, "ERR WATCH inside MULTI is not allowed");
+    res_.SetRes(CmdRes::CmdRet::kErrOther, "WATCH inside MULTI is not allowed");
     return;
   }
   client_conn->AddKeysToWatch(db_keys_);
   res_.SetRes(CmdRes::kOk);
-}
-
-void WatchCmd::Execute() {
-  Do();
 }
 
 void WatchCmd::DoInitial() {
@@ -301,7 +293,7 @@ void DiscardCmd::Do() {
     return;
   }
   if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "ERR DISCARD without MULTI");
+    res_.SetRes(CmdRes::kErrOther, "DISCARD without MULTI");
     return;
   }
   client_conn->ExitTxn();
