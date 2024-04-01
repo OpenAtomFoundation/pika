@@ -162,6 +162,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_write_buffer_num_;
   }
+  uint64_t MaxTotalWalSize() {
+    std::shared_lock l(rwlock_);
+    return max_total_wal_size_;
+  } 
   int64_t max_client_response_size() {
     std::shared_lock l(rwlock_);
     return max_client_response_size_;
@@ -670,6 +674,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-write-buffer-num", std::to_string(value));
     max_write_buffer_num_ = value;
   }
+  void SetMaxTotalWalSize(uint64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-total-wal-size", std::to_string(value));
+    max_total_wal_size_ = value;
+  }
   void SetArenaBlockSize(const int& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("arena-block-size", std::to_string(value));
@@ -765,6 +774,7 @@ class PikaConf : public pstd::BaseConf {
   int64_t slotmigrate_thread_num_ = 0;
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
+  int64_t max_total_wal_size_ = 0;
   int max_write_buffer_num_ = 0;
   int min_write_buffer_number_to_merge_ = 1;
   int level0_stop_writes_trigger_ =  36;
