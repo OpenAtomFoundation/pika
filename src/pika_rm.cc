@@ -519,9 +519,10 @@ void SyncSlaveDB::ActivateRsync() {
 PikaReplicaManager::PikaReplicaManager() {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
-  int port = g_pika_conf->port() + kPortShiftReplServer;
+//  int port = g_pika_conf->port() + kPortShiftReplServer; todo refactor
+  int pika_repl_port_ = g_pika_conf->replicaiton_port();
   pika_repl_client_ = std::make_unique<PikaReplClient>(3000, 60);
-  pika_repl_server_ = std::make_unique<PikaReplServer>(ips, port, 3000);
+  pika_repl_server_ = std::make_unique<PikaReplServer>(ips, pika_repl_port_, 3000);
   InitDB();
 }
 
