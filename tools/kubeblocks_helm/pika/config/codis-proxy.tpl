@@ -115,3 +115,10 @@ metrics_report_statsd_server = ""
 metrics_report_statsd_period = "1s"
 metrics_report_statsd_prefix = ""
 
+max_delay_refresh_time_interval = "15s"
+quick_cmd_list = ""
+slow_cmd_list = ""
+slowlog_log_slower_than = 10000
+backend_primary_quick = 1
+backend_replica_quick = 1
+
