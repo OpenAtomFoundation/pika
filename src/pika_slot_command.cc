@@ -769,7 +769,7 @@ int GetKeyType(const std::string& key, std::string& key_type, const std::shared_
 
 // get slotstagkey by key
 std::string GetSlotsTagKey(uint32_t crc) {
-  return SlotTagPrefix + std::to_string(crc);
+  return SlotTagPrefix + std::to_string(crc% g_pika_conf->default_slot_num());
 }
 
 // delete key from db && cache
