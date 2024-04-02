@@ -530,9 +530,10 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
-  void SetSlotMigrate(const std::string& value) {
+  void SetSlotMigrate(const bool value) {
     std::lock_guard l(rwlock_);
-    slotmigrate_ = (value == "yes");
+    TryPushDiffCommands("slowlog-write-errorlog", value ? "yes" : "no");
+    slotmigrate_.store(value);
   }
   void SetSlotMigrateThreadNum(const int value) {
     std::lock_guard l(rwlock_);

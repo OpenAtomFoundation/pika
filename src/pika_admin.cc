@@ -2172,9 +2172,6 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
     res_.AppendStringRaw("+OK\r\n");
-  } else if (set_item == "slotmigrate") {
-    g_pika_conf->SetSlotMigrate(value);
-    res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
     res_.AppendStringRaw("+OK\r\n");
@@ -2248,6 +2245,18 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "slotmigrate") {
+    bool slotmigrate;
+    if (value == "yes") {
+      slotmigrate = true;
+    } else if (value == "no") {
+      slotmigrate = false;
+    } else {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slotmigrate'\r\n");
+      return;
+    }
+    g_pika_conf->SetSlowlogWriteErrorlog(slotmigrate);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-log-slower-than") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

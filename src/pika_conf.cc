@@ -62,9 +62,9 @@ int PikaConf::Load() {
   slowlog_write_errorlog_.store(swe == "yes" ? true : false);
 
   // slot migrate
-  std::string smgrt = "no";
+  std::string smgrt;
   GetConfStr("slotmigrate", &smgrt);
-  slotmigrate_ = (smgrt == "yes") ? true : false;
+  slotmigrate_.store(smgrt == "yes" ? true : false);
 
   int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
@@ -715,7 +715,9 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("level0-slowdown-writes-trigger", level0_slowdown_writes_trigger_);
   SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
-  SetConfStr("slotmigrate", slotmigrate_? "yes" : "no");
+  SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
+  SetConfInt64("slotmigrate-thread-num", slotmigrate_thread_num_);
+  SetConfInt64("thread-migrate-keys-num", thread_migrate_keys_num_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config

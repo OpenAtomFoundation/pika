@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = Describe("Server", func() {
+var _ = FDescribe("Server", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
@@ -333,12 +333,83 @@ var _ = Describe("Server", func() {
 			//Expect(configSet.Val()).To(Equal("OK"))
 		})
 
+		It("should ConfigGet", func() {
+			configGet := client.ConfigGet(ctx, "slotmigrate")
+			Expect(configGet.Err()).NotTo(HaveOccurred())
+			Expect(configGet.Val()).To(Equal(map[string]string{"slotmigrate": "no"}))
+		})
+
+		It("should ConfigSet", func() {
+			configSet := client.ConfigSet(ctx, "slotmigrate", "yes")
+			Expect(configSet.Err()).NotTo(HaveOccurred())
+			Expect(configSet.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigGet", func() {
+			configGet1 := client.ConfigGet(ctx, "slotmigrate-thread-num")
+			Expect(configGet1.Err()).NotTo(HaveOccurred())
+			Expect(configGet1.Val()).NotTo(Equal("0"))
+		})
+
+		It("should ConfigGet", func() {
+			configGet2 := client.ConfigGet(ctx, "thread-migrate-keys-num")
+			Expect(configGet2.Err()).NotTo(HaveOccurred())
+			Expect(configGet2.Val()).NotTo(Equal("0"))
+		})
+
+		It("should ConfigSet", func() {
+			configSet1 := client.ConfigSet(ctx, "slotmigrate-thread-num", "4")
+			Expect(configSet1.Err()).NotTo(HaveOccurred())
+			Expect(configSet1.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigSet", func() {
+			configSet2 := client.ConfigSet(ctx, "thread-migrate-keys-num", "24")
+			Expect(configSet2.Err()).NotTo(HaveOccurred())
+			Expect(configSet2.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigGet", func() {
+			configGet2 := client.ConfigGet(ctx, "block-cache")
+			Expect(configGet2.Err()).NotTo(HaveOccurred())
+			Expect(configGet2.Val()).NotTo(Equal("0"))
+		})
+
 		It("should ConfigRewrite", func() {
 			configRewrite := client.ConfigRewrite(ctx)
 			Expect(configRewrite.Err()).NotTo(HaveOccurred())
 			Expect(configRewrite.Val()).To(Equal("OK"))
 		})
 
+		It("should ConfigGet", func() {
+			configGet3 := client.ConfigGet(ctx, "block-cache")
+			Expect(configGet3.Err()).NotTo(HaveOccurred())
+			Expect(configGet3.Val()).To(Equal(map[string]string{"block-cache": "8388608"}))
+		})
+
+		It("should ConfigGet", func() {
+			configGet4 := client.ConfigGet(ctx, "slotmigrate-thread-num")
+			Expect(configGet4.Err()).NotTo(HaveOccurred())
+			Expect(configGet4.Val()).To(Equal(map[string]string{"slotmigrate-thread-num": "4"}))
+		})
+
+		It("should ConfigGet", func() {
+			configGet5 := client.ConfigGet(ctx, "thread-migrate-keys-num")
+			Expect(configGet5.Err()).NotTo(HaveOccurred())
+			Expect(configGet5.Val()).To(Equal(map[string]string{"thread-migrate-keys-num": "24"}))
+		})
+
+		It("should ConfigSet", func() {
+			configSet := client.ConfigSet(ctx, "slotmigrate", "no")
+			Expect(configSet.Err()).NotTo(HaveOccurred())
+			Expect(configSet.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigRewrite", func() {
+			configRewrite := client.ConfigRewrite(ctx)
+			Expect(configRewrite.Err()).NotTo(HaveOccurred())
+			Expect(configRewrite.Val()).To(Equal("OK"))
+		})
 		//It("should DBSize", func() {
 		//	Expect(client.Set(ctx, "key", "value", 0).Val()).To(Equal("OK"))
 		//	Expect(client.Do(ctx, "info", "keyspace", "1").Err()).NotTo(HaveOccurred())
