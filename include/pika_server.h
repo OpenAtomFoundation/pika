@@ -247,8 +247,12 @@ class PikaServer : public pstd::noncopyable {
   uint64_t ServerQueryNum();
   uint64_t ServerCurrentQps();
   uint64_t accumulative_connections();
+  long long ServerKeyspaceHits();
+  long long ServerKeyspaceMisses();
   void ResetStat();
   void incr_accumulative_connections();
+  void incr_server_keyspace_hits();
+  void incr_server_keyspace_misses();
   void ResetLastSecQuerynum();
   void UpdateQueryNumAndExecCountDB(const std::string& db_name, const std::string& command, bool is_write);
   std::unordered_map<std::string, uint64_t> ServerExecCountDB();

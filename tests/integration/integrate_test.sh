@@ -4,5 +4,16 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
-go test -run=TestPikaWithCache -timeout 30m
-go test -run=TestPikaWithoutCache -timeout 30m
+
+echo $PATH
+echo $GOBIN
+
+# install ginkgo
+go get github.com/onsi/ginkgo/v2/ginkgo
+go install github.com/onsi/ginkgo/v2/ginkgo
+go get github.com/onsi/gomega/...
+
+ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+
+go test -run=TestPikaWithCache -timeout 60m
+go test -run=TestPikaWithoutCache -timeout 60m

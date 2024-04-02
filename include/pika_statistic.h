@@ -37,6 +37,8 @@ struct ServerStatistic {
 
   std::atomic<uint64_t> accumulative_connections;
   std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_db;
+  std::atomic<long long> keyspace_hits;
+  std::atomic<long long> keyspace_misses;
   QpsStatistic qps;
 };
 

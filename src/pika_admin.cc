@@ -1009,6 +1009,8 @@ void InfoCmd::InfoStats(std::string& info) {
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
+  tmp_stream << "keyspace_hits:" << g_pika_server->ServerKeyspaceHits() << "\r\n";
+  tmp_stream << "keyspace_misses:" << g_pika_server->ServerKeyspaceMisses() << "\r\n";
 
   // Network stats
   tmp_stream << "total_net_input_bytes:" << g_pika_server->NetInputBytes() + g_pika_server->NetReplInputBytes()
