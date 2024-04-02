@@ -1248,6 +1248,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do() {
   if (!ret) {
     LOG(WARNING) << "Slot batch migrate keys error";
     res_.SetRes(CmdRes::kErrOther, "Slot batch migrating keys error, may be currently migrating");
+    return;
   }
 
   res_.AppendArrayLen(2);

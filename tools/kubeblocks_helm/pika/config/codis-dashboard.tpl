@@ -33,9 +33,9 @@ migration_async_numkeys = 500
 migration_timeout = "30s"
 
 # Set configs for redis sentinel.
-sentinel_check_server_state_interval = "5s"
-sentinel_check_master_failover_interval = "1s"
-sentinel_master_dead_check_times = 5
+sentinel_check_server_state_interval = "10s"
+sentinel_check_master_failover_interval = "2s"
+sentinel_master_dead_check_times = 10
 sentinel_client_timeout = "10s"
 sentinel_quorum = 2
 sentinel_parallel_syncs = 1
@@ -43,3 +43,4 @@ sentinel_down_after = "30s"
 sentinel_failover_timeout = "5m"
 sentinel_notification_script = ""
 sentinel_client_reconfig_script = ""
+sentinel_check_offline_server_interval = "2s"

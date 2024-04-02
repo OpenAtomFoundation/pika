@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = FDescribe("Server", func() {
+var _ = Describe("Server", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
@@ -364,7 +364,7 @@ var _ = FDescribe("Server", func() {
 		})
 
 		It("should ConfigSet", func() {
-			configSet2 := client.ConfigSet(ctx, "thread-migrate-keys-num", "24")
+			configSet2 := client.ConfigSet(ctx, "thread-migrate-keys-num", "64")
 			Expect(configSet2.Err()).NotTo(HaveOccurred())
 			Expect(configSet2.Val()).To(Equal("OK"))
 		})
@@ -396,7 +396,7 @@ var _ = FDescribe("Server", func() {
 		It("should ConfigGet", func() {
 			configGet5 := client.ConfigGet(ctx, "thread-migrate-keys-num")
 			Expect(configGet5.Err()).NotTo(HaveOccurred())
-			Expect(configGet5.Val()).To(Equal(map[string]string{"thread-migrate-keys-num": "24"}))
+			Expect(configGet5.Val()).To(Equal(map[string]string{"thread-migrate-keys-num": "64"}))
 		})
 
 		It("should ConfigSet", func() {
