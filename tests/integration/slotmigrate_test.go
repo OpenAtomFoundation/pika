@@ -261,6 +261,7 @@ var _ = Describe("SlotMigrate test", func() {
 	})
 
 	It("should SlotsMgrtTagSlotAsync", func() {
+
 		set := clientMaster.Set(ctx, "key1tag1", "value1", 0)
 		Expect(set.Err()).NotTo(HaveOccurred())
 		Expect(set.Val()).To(Equal("OK"))
@@ -277,17 +278,21 @@ var _ = Describe("SlotMigrate test", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(n).To(Equal(int64(3)))
 
-		Expect(clientSlave.Do(ctx, "config", "set", "slotmigrate", "yes").Err()).NotTo(HaveOccurred())
-		Expect(clientMaster.Do(ctx, "config", "set", "slotmigrate", "yes").Err()).NotTo(HaveOccurred())
+		n1, err := clientSlave.Exists(ctx, "key1tag1", "key2tag2", "key3tag3").Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(n1).To(Equal(int64(0)))
 
-		SlotsMgrtTagOne := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "51", "1024")
-		Expect(SlotsMgrtTagOne.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
+		slotsmgrttagslotasync := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "51", "1024")
+		time.Sleep(1 * time.Second)
+		Expect(slotsmgrttagslotasync.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
 
-		SlotsMgrtTagOne1 := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "277", "1024")
-		Expect(SlotsMgrtTagOne1.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
+		slotsmgrttagslotasync1 := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "277", "1024")
+		time.Sleep(1 * time.Second)
+		Expect(slotsmgrttagslotasync1.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
 
-		SlotsMgrtTagOne2 := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "639", "1024")
-		Expect(SlotsMgrtTagOne2.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
+		slotsmgrttagslotasync2 := clientMaster.Do(ctx, "slotsmgrttagslot-async", "127.0.0.1", "9231", "5000", "200", "33554432", "639", "1024")
+		time.Sleep(1 * time.Second)
+		Expect(slotsmgrttagslotasync2.Val()).To(Equal([]interface{}{int64(0), int64(1)}))
 
 		Get1 := clientMaster.Get(ctx, "key1tag1")
 		Expect(Get1.Val()).To(Equal(""))
@@ -295,8 +300,20 @@ var _ = Describe("SlotMigrate test", func() {
 		Get2 := clientSlave.Get(ctx, "key1tag1")
 		Expect(Get2.Val()).To(Equal("value1"))
 
-		n1, err := clientMaster.Exists(ctx, "key1tag1", "key2tag2", "key3tag3").Result()
+		Get3 := clientMaster.Get(ctx, "key2tag2")
+		Expect(Get3.Val()).To(Equal(""))
+
+		Get4 := clientSlave.Get(ctx, "key2tag2")
+		Expect(Get4.Val()).To(Equal("value2"))
+
+		Get5 := clientMaster.Get(ctx, "key3tag3")
+		Expect(Get5.Val()).To(Equal(""))
+
+		Get6 := clientSlave.Get(ctx, "key3tag3")
+		Expect(Get6.Val()).To(Equal("value3"))
+
+		n2, err := clientMaster.Exists(ctx, "key1tag1", "key2tag2", "key3tag3").Result()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(n1).To(Equal(int64(0)))
+		Expect(n2).To(Equal(int64(0)))
 	})
 })
