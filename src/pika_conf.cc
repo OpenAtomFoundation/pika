@@ -113,7 +113,6 @@ int PikaConf::Load() {
   // Immutable Sections
   //
   GetConfInt("port", &port_);
-  GetConfInt("rsync-port", &rsync_port_);
   GetConfInt("replicaiton-port", &replicaiton_port_);
   GetConfInt("heartbeat-port", &heartbeat_port_);
 
