@@ -37,10 +37,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return port_;
   }
-  int rsync_port() {
-    std::shared_lock l(rwlock_);
-    return rsync_port_;
-  }
   int replicaiton_port() {
     std::shared_lock l(rwlock_);
     return replicaiton_port_;
@@ -758,7 +754,6 @@ class PikaConf : public pstd::BaseConf {
  private:
   // TODO: replace mutex with atomic value
   int port_ = 0;
-  int rsync_port_ = 0;
   int replicaiton_port_ = 0;
   int heartbeat_port_ = 0;
   int slave_priority_ = 0;
