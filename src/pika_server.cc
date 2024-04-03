@@ -74,8 +74,7 @@ PikaServer::PikaServer()
       std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   // TODO: remove pika_rsync_service_，reuse pika_rsync_service_ port
 //  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, port_ + kPortShiftRsync2);
-  int rsync_port_ = g_pika_conf->rsync_port();
-  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, rsync_port_);
+  rsync_server_ = std::make_unique<rsync::RsyncServer>(ips, g_pika_conf->replication_port());
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
   pika_migrate_ = std::make_unique<PikaMigrate>();
