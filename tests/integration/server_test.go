@@ -708,5 +708,16 @@ var _ = Describe("Server", func() {
 			Expect(client.Exists(ctx, "foo").Val()).To(Equal(int64(0)))
 
 		})
+		It("should Compact", func() {
+			Expect(client.Set(ctx, "foo", "bar", 0).Val()).To(Equal("OK"))
+			Expect(client.Set(ctx, "key1", "value1", 0).Val()).To(Equal("OK"))
+			Expect(client.Expire(ctx, "foo", 2*time.Second).Val()).To(Equal(true))
+			Expect(client.Expire(ctx, "key1", 2*time.Second).Val()).To(Equal(true))
+			time.Sleep(3 * time.Second)
+			Expect(client.Do(ctx, "compact").Val()).To(Equal("OK"))
+			Expect(client.Exists(ctx, "foo").Val()).To(Equal(int64(0)))
+			Expect(client.Get(ctx, "foo").Err()).To(MatchError(redis.Nil))
+			Expect(client.Get(ctx, "key1").Err()).To(MatchError(redis.Nil))
+		})
 	})
 })
