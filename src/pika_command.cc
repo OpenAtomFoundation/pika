@@ -54,10 +54,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBgsave, std::move(bgsaveptr)));
 
   std::unique_ptr<Cmd> compactptr =
-      std::make_unique<CompactCmd>(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow);
+      std::make_unique<CompactCmd>(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompact, std::move(compactptr)));
 
-  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompactRange, std::move(compactrangeptr)));
   std::unique_ptr<Cmd> purgelogsto =
       std::make_unique<PurgelogstoCmd>(kCmdNamePurgelogsto, -2, kCmdFlagsRead | kCmdFlagsAdmin);
