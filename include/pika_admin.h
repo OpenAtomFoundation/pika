@@ -185,17 +185,14 @@ class FlushallCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do() override;
   void DoThroughDB() override;
-  void DoUpdateCache() override;
+  void DoUpdateCache(std::shared_ptr<DB> db);
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
-  void Execute() override;
   void FlushAllWithoutLock();
-  void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
 
  private:
   void DoInitial() override;
-  std::string ToRedisProtocol() override;
   void DoWithoutLock(std::shared_ptr<DB> db);
 };
 
@@ -212,8 +209,7 @@ class FlushdbCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
-  void Execute() override;
-  std::string GetFlushDname() { return db_name_; }
+  std::string GetFlushDBname() { return db_name_; }
 
  private:
   std::string db_name_;
@@ -265,16 +261,12 @@ class InfoCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
-  void Execute() override;
 
  private:
   InfoSection info_section_;
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
   std::set<std::string> keyspace_scan_dbs_;
-  time_t db_size_last_time_ = 0;
-  uint64_t db_size_ = 0;
-  uint64_t log_size_ = 0;
   const static std::string kInfoSection;
   const static std::string kAllSection;
   const static std::string kServerSection;
@@ -336,7 +328,6 @@ class ConfigCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
-  void Execute() override;
 
  private:
   std::vector<std::string> config_args_v_;

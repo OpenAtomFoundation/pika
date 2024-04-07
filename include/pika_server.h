@@ -262,6 +262,16 @@ class PikaServer : public pstd::noncopyable {
   std::unordered_map<std::string, QpsStatistic> ServerAllDBStat();
 
   /*
+   * Disk usage statistic
+   */
+  uint64_t GetDBSize() const {
+    return disk_statistic_.db_size_.load();
+  }
+  uint64_t GetLogSize() const {
+    return disk_statistic_.log_size_.load();
+  }
+
+  /*
    * Network Statistic used
    */
   size_t NetInputBytes();
@@ -504,6 +514,7 @@ class PikaServer : public pstd::noncopyable {
   void AutoDeleteExpiredDump();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();
+  void StatDiskUsage();
   int64_t GetLastSaveTime(const std::string& dump_dir);
 
   std::string host_;
@@ -609,6 +620,8 @@ class PikaServer : public pstd::noncopyable {
    * Statistic used
    */
   Statistic statistic_;
+
+  DiskStatistic disk_statistic_;
 
   net::BGThread common_bg_thread_;
 

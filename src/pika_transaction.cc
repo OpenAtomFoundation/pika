@@ -42,6 +42,22 @@ void MultiCmd::DoInitial() {
 void ExecCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn == nullptr) {
+    res_.SetRes(CmdRes::kErrOther, name());
+    return;
+  }
+  if (!client_conn->IsInTxn()) {
+    res_.SetRes(CmdRes::kErrOther, "EXEC without MULTI");
+    return;
+  }
+  if (IsTxnFailedAndSetState()) {
+    client_conn->ExitTxn();
+    return;
+  }
+  SetCmdsVec();
+  Lock();
+  conn = GetConn();
+  client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
   std::vector<std::shared_ptr<std::string>> resp_strs;
   for (size_t i = 0; i < cmds_.size(); ++i) {
@@ -83,26 +99,6 @@ void ExecCmd::Do() {
   for (auto &r : res_vec) {
     res_.AppendStringRaw(r.message());
   }
-}
-
-void ExecCmd::Execute() {
-  auto conn = GetConn();
-  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  if (client_conn == nullptr) {
-    res_.SetRes(CmdRes::kErrOther, name());
-    return;
-  }
-  if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "EXEC without MULTI");
-    return;
-  }
-  if (IsTxnFailedAndSetState()) {
-    client_conn->ExitTxn();
-    return;
-  }
-  SetCmdsVec();
-  Lock();
-  Do();
   Unlock();
   ServeToBLrPopWithKeys();
   list_cmd_.clear();
@@ -243,10 +239,6 @@ void WatchCmd::Do() {
   }
   client_conn->AddKeysToWatch(db_keys_);
   res_.SetRes(CmdRes::kOk);
-}
-
-void WatchCmd::Execute() {
-  Do();
 }
 
 void WatchCmd::DoInitial() {
