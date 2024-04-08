@@ -533,7 +533,7 @@ int PikaConf::Load() {
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
 
   int cache_mode = 0;
-  GetConfInt("cache-mode", &cache_mode);
+  GetConfInt("cache-model", &cache_mode);
   cache_mode_ = (PIKA_CACHE_NONE > cache_mode || PIKA_CACHE_READ < cache_mode) ? PIKA_CACHE_NONE : cache_mode;
 
   std::string cache_type;
@@ -723,7 +723,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("block-size", block_size_);
   SetConfInt("block-cache", block_cache_);
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
-  SetConfInt("cache-mode", cache_mode_);
+  SetConfInt("cache-model", cache_mode_);
   SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);
   SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 

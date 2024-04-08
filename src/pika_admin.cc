@@ -2037,9 +2037,9 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->GetCacheNum());
   }
 
-  if (pstd::stringmatch(pattern.data(), "cache-mode", 1)) {
+  if (pstd::stringmatch(pattern.data(), "cache-model", 1)) {
     elements += 2;
-    EncodeString(&config_body, "cache-mode");
+    EncodeString(&config_body, "cache-model");
     EncodeNumber(&config_body, g_pika_conf->cache_mode());
   }
 
@@ -2146,7 +2146,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "arena-block-size",
         "throttle-bytes-per-second",
         "max-rsync-parallel-num",
-        "cache-mode",
+        "cache-model",
         "cache-type",
         "zset-cache-start-direction",
         "zset-cache-field-num-per-key",
@@ -2588,9 +2588,9 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       g_pika_server->ResetCacheAsync(cache_num, db);
     }
     res_.AppendStringRaw("+OK\r\n");
-  } else if (set_item == "cache-mode") {
+  } else if (set_item == "cache-model") {
     if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
-      res_.AppendStringRaw( "-ERR Invalid argument " + value + " for CONFIG SET 'cache-mode'\r\n");
+      res_.AppendStringRaw( "-ERR Invalid argument " + value + " for CONFIG SET 'cache-model'\r\n");
       return;
     }
     if (PIKA_CACHE_NONE > ival || PIKA_CACHE_READ < ival) {
