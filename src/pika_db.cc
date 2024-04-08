@@ -196,7 +196,7 @@ void DB::SetCompactRangeOptions(const bool is_canceled) {
 }
 
 DisplayCacheInfo DB::GetCacheInfo() {
-  std::lock_guard l(key_info_protector_);
+  std::lock_guard l(cache_info_rwlock_);
   return cache_info_;
 }
 
