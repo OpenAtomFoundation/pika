@@ -224,7 +224,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     c_ptr->GetDB()->DBLockShared();
   }
   if (c_ptr->IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
       c_ptr->DoThroughDB();

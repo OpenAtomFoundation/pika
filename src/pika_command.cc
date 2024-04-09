@@ -897,7 +897,7 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
     }
   };
   if (IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (IsNeedReadCache()) {
       ReadCache();

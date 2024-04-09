@@ -305,7 +305,7 @@ const int PIKA_ROLE_SLAVE = 1;
 const int PIKA_ROLE_MASTER = 2;
 
 /*
- * cache model
+ * cache mode
  */
 constexpr int PIKA_CACHE_NONE = 0;
 constexpr int PIKA_CACHE_READ = 1;

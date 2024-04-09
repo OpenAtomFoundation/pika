@@ -554,7 +554,7 @@ void FlushallCmd::DoThroughDB() {
 
 void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   // clear cache
-  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
     g_pika_server->ClearCacheDbAsync(db);
   }
 }
@@ -629,7 +629,7 @@ void FlushdbCmd::DoThroughDB() {
 
 void FlushdbCmd::DoUpdateCache() {
   // clear cache
-  if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
+  if (g_pika_conf->cache_mode() != PIKA_CACHE_NONE) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
 }
@@ -1373,7 +1373,7 @@ void InfoCmd::InfoCommandStats(std::string& info) {
 void InfoCmd::InfoCache(std::string& info, std::shared_ptr<DB> db) {
   std::stringstream tmp_stream;
   tmp_stream << "# Cache" << "\r\n";
-  if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE == g_pika_conf->cache_mode()) {
     tmp_stream << "cache_status:Disable" << "\r\n";
   } else {
     auto cache_info = db->GetCacheInfo();
@@ -2027,7 +2027,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "cache-model", 1)) {
     elements += 2;
     EncodeString(&config_body, "cache-model");
-    EncodeNumber(&config_body, g_pika_conf->cache_model());
+    EncodeNumber(&config_body, g_pika_conf->cache_mode());
   }
 
   if (pstd::stringmatch(pattern.data(), "cache-type", 1)) {
@@ -2510,7 +2510,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     if (PIKA_CACHE_NONE > ival || PIKA_CACHE_READ < ival) {
       res_.AppendStringRaw("-ERR Invalid cache model\r\n");
     } else {
-      g_pika_conf->SetCacheModel(ival);
+      g_pika_conf->SetCacheMode(ival);
       if (PIKA_CACHE_NONE == ival) {
         g_pika_server->ClearCacheDbAsync(db);
       }
@@ -3184,7 +3184,7 @@ void ClearCacheCmd::DoInitial() {
 
 void ClearCacheCmd::Do() {
   // clean cache
-  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
   res_.SetRes(CmdRes::kOk, "Cache is cleared");

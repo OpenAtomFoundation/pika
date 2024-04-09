@@ -866,7 +866,7 @@ int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr
   }
 
   // delete from cache
-  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()) {
     db->cache()->Del(members);
   }

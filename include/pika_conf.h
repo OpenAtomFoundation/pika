@@ -307,7 +307,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return network_interface_;
   }
-  int cache_model() { return cache_model_; }
+  int cache_mode() { return cache_mode_; }
   int sync_window_size() { return sync_window_size_.load(); }
   int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
   int consensus_level() { return consensus_level_.load(); }
@@ -337,7 +337,7 @@ class PikaConf : public pstd::BaseConf {
   int GetCacheBit() { return cache_bit_; }
   int GetCacheNum() { return cache_num_; }
   void SetCacheNum(const int value) { cache_num_ = value; }
-  void SetCacheModel(const int value) { cache_model_ = value; }
+  void SetCacheMode(const int value) { cache_mode_ = value; }
   void SetCacheStartDirection(const int value) { zset_cache_start_direction_ = value; }
   void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
   void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
@@ -785,7 +785,7 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_bool tmp_cache_disable_flag_;
   std::atomic_int64_t cache_maxmemory_;
   std::atomic_int cache_num_;
-  std::atomic_int cache_model_;
+  std::atomic_int cache_mode_;
   std::atomic_int cache_string_;
   std::atomic_int cache_set_;
   std::atomic_int cache_zset_;

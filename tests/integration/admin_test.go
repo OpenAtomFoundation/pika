@@ -20,6 +20,8 @@ var _ = Describe("admin test", func() {
 	})
 
 	AfterEach(func() {
+		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		time.Sleep(1 * time.Second)
 		Expect(client.Close()).NotTo(HaveOccurred())
 	})
 
