@@ -1595,13 +1595,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->slotmigrate() ? "yes" : "no");
   }
 
-  if (pstd::stringmatch(pattern.data(), "slotmigrate-thread-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slotmigrate-thread-num", 1)!= 0) {
     elements += 2;
     EncodeString(&config_body, "slotmigrate-thread-num");
     EncodeNumber(&config_body, g_pika_conf->slotmigrate_thread_num());
   }
 
-  if (pstd::stringmatch(pattern.data(), "thread-migrate-keys-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "thread-migrate-keys-num", 1)!= 0) {
     elements += 2;
     EncodeString(&config_body, "thread-migrate-keys-num");
     EncodeNumber(&config_body, g_pika_conf->thread_migrate_keys_num());
@@ -1778,6 +1778,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-size");
     EncodeNumber(&config_body, g_pika_conf->max_write_buffer_size());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "max-total-wal-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-total-wal-size");
+    EncodeNumber(&config_body, g_pika_conf->MaxTotalWalSize());
   }
 
   if (pstd::stringmatch(pattern.data(), "min-write-buffer-number-to-merge", 1) != 0) {
@@ -2140,6 +2146,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "write-buffer-size",
         "max-write-buffer-num",
         "min-write-buffer-number-to-merge",
+        "max-total-wal-size",
         "level0-slowdown-writes-trigger",
         "level0-stop-writes-trigger",
         "level0-file-num-compaction-trigger",
@@ -2171,9 +2178,6 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
-    res_.AppendStringRaw("+OK\r\n");
-  } else if (set_item == "slotmigrate") {
-    g_pika_conf->SetSlotMigrate(value);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
@@ -2223,19 +2227,19 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slotmigrate-thread-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
-      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n");
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slotmigrate-thread-num'\r\n");
       return;
     }
-    long int migrate_thread_num = (0 > ival || 24 < ival) ? 8 : ival;
-    g_pika_conf->SetSlotMigrateThreadNum(static_cast<int>(ival));
+    long int migrate_thread_num = (1 > ival || 24 < ival) ? 8 : ival;
+    g_pika_conf->SetSlotMigrateThreadNum(migrate_thread_num);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "thread-migrate-keys-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival <= 0) {
-      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n");
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'thread-migrate-keys-num'\r\n");
       return;
     }
     long int thread_migrate_keys_num = (8 > ival || 128 < ival) ? 64 : ival;
-    g_pika_conf->SetThreadMigrateKeysNum(static_cast<int>(ival));
+    g_pika_conf->SetThreadMigrateKeysNum(thread_migrate_keys_num);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-write-errorlog") {
     bool is_write_errorlog;
@@ -2248,6 +2252,18 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "slotmigrate") {
+    bool slotmigrate;
+    if (value == "yes") {
+      slotmigrate = true;
+    } else if (value == "no") {
+      slotmigrate = false;
+    } else {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slotmigrate'\r\n");
+      return;
+    }
+    g_pika_conf->SetSlotMigrate(slotmigrate);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-log-slower-than") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
@@ -2535,6 +2551,20 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetLevel0SlowdownWritesTrigger(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+
+  } else if (set_item == "max-total-wal-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-total-wal-size'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_total_wal_size", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set max-total-wal-size: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxTotalWalSize(static_cast<uint64_t>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "level0-file-num-compaction-trigger") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {

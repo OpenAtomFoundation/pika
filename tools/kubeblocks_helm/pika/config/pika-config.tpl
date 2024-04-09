@@ -9,7 +9,10 @@ port : 9221
 
 # Random value identifying the Pika server, its string length must be 40.
 # If not set, Pika will generate a random string with a length of 40 random characters.
-# run-id:
+# run-id :
+
+# Master's run-id
+# master-run-id :
 
 # The number of threads for running Pika.
 # It's not recommended to set this value exceeds
@@ -19,6 +22,13 @@ thread-num : 1
 # Size of the thread pool, The threads within this pool
 # are dedicated to handling user requests.
 thread-pool-size : 12
+
+# Size of the low level thread pool, The threads within this pool
+# are dedicated to handling slow user requests.
+slow-cmd-thread-pool-size : 4
+
+# Slow cmd list e.g. hgetall, mset
+slow-cmd-list :
 
 # The number of sync-thread for data replication from master, those are the threads work on slave nodes
 # and are used to execute commands sent from master node when replicating.
@@ -214,6 +224,27 @@ slave-priority : 100
 # [NOTICE]: compact-interval is prior than compact-cron.
 #compact-interval :
 
+# The disable_auto_compactions option is [true | false]
+disable_auto_compactions : false
+
+# Rocksdb max_subcompactions
+max-subcompactions : 1
+# The minimum disk usage ratio for checking resume.
+# If the disk usage ratio is lower than min-check-resume-ratio, it will not check resume, only higher will check resume.
+# Its default value is 0.7.
+#min-check-resume-ratio : 0.7
+
+# The minimum free disk space to trigger db resume.
+# If the db has a background error, only the free disk size is larger than this configuration can trigger manually resume db.
+# Its default value is 256MB.
+# [NOTICE]: least-free-disk-resume-size should not smaller than write-buffer-size!
+#least-free-disk-resume-size : 256M
+
+# Manually trying to resume db interval is configured by manually-resume-interval.
+# If db has a background error, it will try to manually call resume() to resume db if satisfy the least free disk to resume.
+# Its default value is 60 seconds.
+#manually-resume-interval : 60
+
 # This window-size determines the amount of data that can be transmitted in a single synchronization process.
 # [Tip] In the scenario of high network latency. Increasing this size can improve synchronization efficiency.
 # Its default value is 9000. the [maximum] value is 90000.
@@ -221,7 +252,7 @@ sync-window-size : 9000
 
 # Maximum buffer size of a client connection.
 # [NOTICE] Master and slaves must have exactly the same value for the max-conn-rbuf-size.
-# Supported Units [K|M|G]. Its default unit is in [bytes] and its default value is 268435456(256MB). The [minimum] value is 67108864(64MB).
+# Supported Units [K|M|G]. Its default unit is in [bytes] and its default value is 268435456(256MB). The value range is [64MB, 1GB].
 max-conn-rbuf-size : 268435456
 
 
@@ -248,6 +279,7 @@ max-cache-statistic-keys : 0
 # a small compact is triggered automatically if the small compaction feature is enabled.
 # small-compaction-threshold default value is 5000 and the value range is [1, 100000].
 small-compaction-threshold : 5000
+small-compaction-duration-threshold : 10000
 
 # The maximum total size of all live memtables of the RocksDB instance that owned by Pika.
 # Flushing from memtable to disk will be triggered if the actual memory usage of RocksDB
@@ -261,6 +293,25 @@ max-write-buffer-size : 10737418240
 # when it flushes the data of another write buffer to storage.
 # If max-write-buffer-num > 3, writing will be slowed down.
 max-write-buffer-num : 2
+
+# `min_write_buffer_number_to_merge` is the minimum number of memtables
+# that need to be merged before placing the order. For example, if the
+# option is set to 2, immutable memtables will only be flushed if there
+# are two of them - a single immutable memtable will never be flushed.
+# If multiple memtables are merged together, less data will be written
+# to storage because the two updates are merged into a single key. However,
+# each Get() must linearly traverse all unmodifiable memtables and check
+# whether the key exists. Setting this value too high may hurt performance.
+min-write-buffer-number-to-merge : 1
+
+# rocksdb level0_stop_writes_trigger
+level0-stop-writes-trigger : 36
+
+# rocksdb level0_slowdown_writes_trigger
+level0-slowdown-writes-trigger : 20
+
+# rocksdb level0_file_num_compaction_trigger
+level0-file-num-compaction-trigger : 4
 
 # The maximum size of the response package to client to prevent memory
 # exhaustion caused by commands like 'keys *' and 'Scan' which can generate huge response.
@@ -305,7 +356,13 @@ max-bytes-for-level-multiplier : 10
 # slotmigrate is mainly used to migrate slots, usually we will set it to no.
 # When you migrate slots, you need to set it to yes, and reload slotskeys before.
 # slotmigrate  [yes | no]
-slotmigrate : yes
+slotmigrate : no
+
+# slotmigrate thread num
+slotmigrate-thread-num : 8
+
+# thread-migrate-keys-num  1/8 of the write_buffer_size_
+thread-migrate-keys-num : 64
 
 # BlockBasedTable block_size, default 4k
 # block-size: 4096
@@ -343,7 +400,7 @@ default-slot-num : 1024
 # https://github.com/EighteenZi/rocksdb_wiki/blob/master/Rate-Limiter.md
 #######################################################################E#######
 
-# rate limiter bandwidth, default 200MB
+# rate limiter bandwidth, default 200MB/s
 #rate-limiter-bandwidth : 209715200
 
 #rate-limiter-refill-period-us : 100000
@@ -394,3 +451,102 @@ default-slot-num : 1024
 # blob-num-shard-bits default -1, the number of bits from cache keys to be use as shard id.
 # The cache will be sharded into 2^blob-num-shard-bits shards.
 # blob-num-shard-bits : -1
+
+# Rsync Rate limiting configuration 200MB/s
+throttle-bytes-per-second : 207200000
+max-rsync-parallel-num : 4
+
+# The synchronization mode of Pika primary/secondary replication is determined by ReplicationID. ReplicationID in one replication_cluster are the same
+# replication-id :
+
+###################
+## Cache Settings
+###################
+# the number of caches for every db
+cache-num : 16
+
+# cache-model 0:cache_none 1:cache_read
+cache-model : 1
+# cache-type: string, set, zset, list, hash, bit
+cache-type: string, set, zset, list, hash, bit
+
+# Maximum number of keys in the zset redis cache
+# On the disk DB, a zset field may have many fields. In the memory cache, we limit the maximum
+# number of keys that can exist in a zset,  which is zset-zset-cache-field-num-per-key, with a
+# default value of 512.
+zset-cache-field-num-per-key : 512
+
+# If the number of elements in a zset in the DB exceeds zset-cache-field-num-per-key,
+# we determine whether to cache the first 512[zset-cache-field-num-per-key] elements
+# or the last 512[zset-cache-field-num-per-key] elements in the zset based on zset-cache-start-direction.
+#
+# If zset-cache-start-direction is 0, cache the first 512[zset-cache-field-num-per-key] elements from the header
+# If zset-cache-start-direction is -1, cache the last 512[zset-cache-field-num-per-key] elements
+zset-cache-start-direction : 0
+
+# the cache maxmemory of every db, configuration 10G
+cache-maxmemory : 10737418240
+
+# cache-maxmemory-policy
+# 0: volatile-lru -> Evict using approximated LRU among the keys with an expire set.
+# 1: allkeys-lru -> Evict any key using approximated LRU.
+# 2: volatile-lfu -> Evict using approximated LFU among the keys with an expire set.
+# 3: allkeys-lfu -> Evict any key using approximated LFU.
+# 4: volatile-random -> Remove a random key among the ones with an expire set.
+# 5: allkeys-random -> Remove a random key, any key.
+# 6: volatile-ttl -> Remove the key with the nearest expire time (minor TTL)
+# 7: noeviction -> Don't evict anything, just return an error on write operations.
+cache-maxmemory-policy : 1
+
+# cache-maxmemory-samples
+cache-maxmemory-samples: 5
+
+# cache-lfu-decay-time
+cache-lfu-decay-time: 1
+
+
+# is possible to manage access to Pub/Sub channels with ACL rules as well. The
+# default Pub/Sub channels permission if new users is controlled by the
+# acl-pubsub-default configuration directive, which accepts one of these values:
+#
+# allchannels: grants access to all Pub/Sub channels
+# resetchannels: revokes access to all Pub/Sub channels
+#
+# acl-pubsub-default defaults to 'resetchannels' permission.
+# acl-pubsub-default : resetchannels
+
+# ACL users are defined in the following format:
+# user : <username> ... acl rules ...
+#
+# For example:
+#
+# user : worker on >password ~key* +@all
+
+# Using an external ACL file
+#
+# Instead of configuring users here in this file, it is possible to use
+# a stand-alone file just listing users. The two methods cannot be mixed:
+# if you configure users here and at the same time you activate the external
+# ACL file, the server will refuse to start.
+#
+# The format of the external ACL user file is exactly the same as the
+# format that is used inside pika.conf to describe users.
+#
+# aclfile : ../conf/users.acl
+
+# (experimental)
+# It is possible to change the name of dangerous commands in a shared environment.
+# For instance the CONFIG command may be renamed into something Warning: To prevent
+# data inconsistency caused by different configuration files, do not use the rename
+# command to modify write commands on the primary and secondary servers. If necessary,
+# ensure that the configuration files of the primary and secondary servers are consistent
+# In addition, when using the command rename, you must not use ""  to modify the command,
+# for example, rename-command: FLUSHDB "360flushdb" is incorrect; instead, use
+# rename-command: FLUSHDB 360flushdb is correct. After the rename command is executed,
+# it is most appropriate to use a numeric string with uppercase or lowercase letters
+# for example: rename-command : FLUSHDB joYAPNXRPmcarcR4ZDgC81TbdkSmLAzRPmcarcR
+# Warning: Currently only applies to flushdb, slaveof, bgsave, shutdown, config command
+# Warning: Ensure that the Settings of rename-command on the master and slave servers are consistent
+#
+# Example:
+# rename-command : FLUSHDB 360flushdb

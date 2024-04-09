@@ -62,9 +62,9 @@ int PikaConf::Load() {
   slowlog_write_errorlog_.store(swe == "yes" ? true : false);
 
   // slot migrate
-  std::string smgrt = "no";
+  std::string smgrt;
   GetConfStr("slotmigrate", &smgrt);
-  slotmigrate_ = (smgrt == "yes") ? true : false;
+  slotmigrate_.store(smgrt == "yes" ? true : false);
 
   int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
@@ -306,13 +306,13 @@ int PikaConf::Load() {
 
   // arena_block_size
   GetConfInt64Human("slotmigrate-thread-num", &slotmigrate_thread_num_);
-  if (slotmigrate_thread_num_ < 0 || slotmigrate_thread_num_ > 24) {
+  if (slotmigrate_thread_num_ < 1 || slotmigrate_thread_num_ > 24) {
     slotmigrate_thread_num_ = 8;  // 1/8 of the write_buffer_size_
   }
 
   // arena_block_size
   GetConfInt64Human("thread-migrate-keys-num", &thread_migrate_keys_num_);
-  if (thread_migrate_keys_num_ < 64 || thread_migrate_keys_num_ > 128) {
+  if (thread_migrate_keys_num_ < 8 || thread_migrate_keys_num_ > 128) {
     thread_migrate_keys_num_ = 64;  // 1/8 of the write_buffer_size_
   }
 
@@ -716,12 +716,11 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("level0-file-num-compaction-trigger", level0_file_num_compaction_trigger_);
   SetConfInt64("arena-block-size", arena_block_size_);
   SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
+  SetConfInt64("slotmigrate-thread-num", slotmigrate_thread_num_);
+  SetConfInt64("thread-migrate-keys-num", thread_migrate_keys_num_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config
-  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
-  SetConfInt("block-size", block_size_);
-  SetConfInt("block-cache", block_cache_);
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
   SetConfInt("cache-model", cache_mode_);
   SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);

@@ -1317,6 +1317,7 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.arena_block_size = g_pika_conf->arena_block_size();
   storage_options_.options.write_buffer_manager =
       std::make_shared<rocksdb::WriteBufferManager>(g_pika_conf->max_write_buffer_size());
+  storage_options_.options.max_total_wal_size = g_pika_conf->MaxTotalWalSize();
   storage_options_.options.max_write_buffer_number = g_pika_conf->max_write_buffer_number();
   storage_options_.options.level0_file_num_compaction_trigger = g_pika_conf->level0_file_num_compaction_trigger();
   storage_options_.options.level0_stop_writes_trigger = g_pika_conf->level0_stop_writes_trigger();
