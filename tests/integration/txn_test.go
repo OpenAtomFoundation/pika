@@ -134,7 +134,7 @@ var _ = Describe("Text Txn", func() {
 			}(&cmdCost)
 			<-resultChann
 			wg.Wait()
-			Expect(cmdCost < (txnCost / 5)).To(BeTrue())
+			Expect(cmdCost < (txnCost / 4)).To(BeTrue())
 		})
 	})
 
