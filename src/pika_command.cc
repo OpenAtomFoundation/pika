@@ -912,6 +912,30 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   }
 }
 
+// just read in cache
+bool Cmd::DoReadCommandInCache(const HintKeys& hint_keys) {
+  if (!IsSuspend()) {
+    db_->DBLockShared();
+  }
+  DEFER {
+    if (!IsSuspend()) {
+      db_->DBUnlockShared();
+    }
+  };
+  if (IsNeedCacheDo()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
+      && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      if (IsNeedReadCache()) {
+        ReadCache();
+      }
+      if (is_read() && res().CacheMiss()) {
+        return false;
+      }
+  }
+  return true;
+}
+
+
 void Cmd::DoBinlog() {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();

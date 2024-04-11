@@ -69,6 +69,7 @@ class PikaClientConn : public net::RedisConn {
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
+  bool BatchReadCmdInCache(const std::vector<net::RedisCmdArgsType>& argvs);
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);

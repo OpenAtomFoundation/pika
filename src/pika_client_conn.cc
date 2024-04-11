@@ -273,6 +273,20 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     pstd::StringToLower(opt);
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
     bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
+    bool read_status;
+    std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+    if ( c_ptr && c_ptr->is_read()){
+      // read in cache
+      read_status = BatchReadCmdInCache(argvs);
+      time_stat_->process_done_ts_ = pstd::NowMicros();
+      auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+      (*cmdstat_map)[opt].cmd_count.fetch_add(1);
+      (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
+      if (read_status){
+        return;
+      }
+    }
+
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;
   }
@@ -306,6 +320,30 @@ void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>&
   }
   time_stat_->process_done_ts_ = pstd::NowMicros();
   TryWriteResp();
+}
+
+bool PikaClientConn::BatchReadCmdInCache(const std::vector<net::RedisCmdArgsType>& argvs){
+  resp_num.store(static_cast<int32_t>(argvs.size()));
+  bool read_status = true;
+  for (const auto& argv : argvs) {
+    std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
+    resp_array.push_back(resp_ptr);
+    std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(argv[0]);
+    if (!c_ptr) {
+      return false;
+    }
+    // Initial
+    c_ptr->Initial(argv, current_db_);
+    if (!c_ptr->DoReadCommandInCache()) {
+      read_status =  false;
+    }
+    *resp_ptr = std::move(c_ptr->res().message());
+    resp_num--;
+  }
+  time_stat_->process_done_ts_ = pstd::NowMicros();
+  TryWriteResp();
+
+  return read_status;
 }
 
 void PikaClientConn::TryWriteResp() {
