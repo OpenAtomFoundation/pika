@@ -322,6 +322,13 @@ int PikaConf::Load() {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
+  // rate-limiter-mode
+  rate_limiter_mode_ = 1;
+  GetConfInt("rate_limiter_mode", &rate_limiter_mode_);
+  if (rate_limiter_mode_ < 0 or rate_limiter_mode_ > 2) {
+    rate_limiter_mode_ = 1;
+  }
+
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
