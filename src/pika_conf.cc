@@ -621,7 +621,7 @@ int PikaConf::Load() {
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
-  if (max_rsync_parallel_num_ <= 0) {
+  if (max_rsync_parallel_num_ <= 0 || max_rsync_parallel_num_ > 4) {
     max_rsync_parallel_num_ = 4;
   }
 
