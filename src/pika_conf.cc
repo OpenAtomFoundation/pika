@@ -87,7 +87,12 @@ int PikaConf::Load() {
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
   }
-
+  std::string user_blacklist;
+  GetConfStr("userblacklist", &user_blacklist);
+  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
+  for (auto& item : user_blacklist_) {
+    pstd::StringToLower(item);
+  }
   GetConfInt("default-slot-num", &default_slot_num_);
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
@@ -639,7 +644,7 @@ void PikaConf::SetCacheType(const std::string& value) {
 }
 
 int PikaConf::ConfigRewrite() {
-  //  std::string userblacklist = suser_blacklist();
+  std::string userblacklist = user_blacklist_string();
   std::string scachetype = scache_type();
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
