@@ -532,9 +532,9 @@ int PikaConf::Load() {
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
 
-  int cache_model = 0;
-  GetConfInt("cache-model", &cache_model);
-  cache_model_ = (PIKA_CACHE_NONE > cache_model || PIKA_CACHE_READ < cache_model) ? PIKA_CACHE_NONE : cache_model;
+  int cache_mode = 0;
+  GetConfInt("cache-model", &cache_mode);
+  cache_mode_ = (PIKA_CACHE_NONE > cache_mode || PIKA_CACHE_READ < cache_mode) ? PIKA_CACHE_NONE : cache_mode;
 
   std::string cache_type;
   GetConfStr("cache-type", &cache_type);
@@ -621,8 +621,8 @@ int PikaConf::Load() {
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
-  if (max_rsync_parallel_num_ <= 0) {
-    max_rsync_parallel_num_ = 4;
+  if (max_rsync_parallel_num_ <= 0 || max_rsync_parallel_num_ > kMaxRsyncParallelNum) {
+    max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
   return ret;
@@ -722,7 +722,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slaveof", slaveof_);
   // cache config
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
-  SetConfInt("cache-model", cache_model_);
+  SetConfInt("cache-model", cache_mode_);
   SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);
   SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
