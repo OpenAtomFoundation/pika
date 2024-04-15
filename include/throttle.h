@@ -25,6 +25,7 @@ class Throttle {
     return instance;
   }
   void SetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
+      std::lock_guard guard(keys_mutex_);
       throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
   };
  private:

@@ -140,6 +140,12 @@ void SlaveofCmd::DoInitial() {
 }
 
 void SlaveofCmd::Do() {
+  std::string s;
+  for(auto it : argv_){
+    s.append(it);
+    s.append(" ");
+  }
+  LOG(INFO) << "got slaveof cmd:" << s;
   // Check if we are already connected to the specified master
   if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
       g_pika_server->master_port() == master_port_) {
