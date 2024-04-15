@@ -18,6 +18,7 @@
 #include "include/pika_server.h"
 #include "net/src/dispatch_thread.h"
 #include "net/src/worker_thread.h"
+#include "src/pstd/include/scope_record_lock.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -273,17 +274,20 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     pstd::StringToLower(opt);
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
     bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
-    bool read_status;
+    bool read_status = false;
     std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
-    if ( c_ptr && c_ptr->is_read()){
-      // read in cache
-      read_status = BatchReadCmdInCache(argvs);
-      time_stat_->process_done_ts_ = pstd::NowMicros();
-      auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
-      (*cmdstat_map)[opt].cmd_count.fetch_add(1);
-      (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
-      if (read_status){
-        return;
+
+    if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()){
+      if ( c_ptr && c_ptr->is_cacheread() ){
+        // read in cache
+        read_status = BatchReadCmdInCache(argvs);
+        time_stat_->process_done_ts_ = pstd::NowMicros();
+        auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+        (*cmdstat_map)[opt].cmd_count.fetch_add(1);
+        (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
+        if (read_status){
+          return;
+        }
       }
     }
 
@@ -332,13 +336,26 @@ bool PikaClientConn::BatchReadCmdInCache(const std::vector<net::RedisCmdArgsType
     if (!c_ptr) {
       return false;
     }
+    // Check authed
+    if (AuthRequired()) {  // the user is not authed, need to do auth
+      if (!(c_ptr->flag() & kCmdFlagsNoAuth)) {
+        c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
+        return false;
+      }
+    }
     // Initial
     c_ptr->Initial(argv, current_db_);
+    pstd::lock::MultiRecordLock record_lock(c_ptr->db_->LockMgr());
+    auto cur_keys = c_ptr->current_key();
+    if (!cur_keys.empty()){
+      record_lock.Lock(cur_keys);
+    }
     if (!c_ptr->DoReadCommandInCache()) {
       read_status =  false;
     }
     *resp_ptr = std::move(c_ptr->res().message());
     resp_num--;
+    record_lock.Unlock(cur_keys);
   }
   time_stat_->process_done_ts_ = pstd::NowMicros();
   TryWriteResp();

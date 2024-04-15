@@ -766,20 +766,20 @@ void InitCmdTable(CmdTable* cmd_table) {
   // Transaction
   ////Multi
   std::unique_ptr<Cmd> multiptr =
-      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsFast);
+      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsFast | kCmdTransaction);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
   ////Exec
   std::unique_ptr<Cmd> execptr = std::make_unique<ExecCmd>(
-      kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsSlow);
+      kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsSlow | kCmdTransaction);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
   ////Discard
-  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsFast | kCmdTransaction);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
   ////Watch
-  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead | kCmdFlagsFast | kCmdTransaction);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameWatch, std::move(watchptr)));
   ////Unwatch
-  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead | kCmdFlagsFast | kCmdTransaction);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnWatch, std::move(unwatchptr)));
 
   // Stream
@@ -965,6 +965,7 @@ void Cmd::DoBinlog() {
 bool Cmd::hasFlag(uint32_t flag) const { return (flag_ & flag); }
 bool Cmd::is_read() const { return (flag_ & kCmdFlagsRead); }
 bool Cmd::is_write() const { return (flag_ & kCmdFlagsWrite); }
+bool Cmd::is_cacheread() const { return (flag_ & kCmdFlagsRead) && !(flag_ & kCmdFlagsAdmin)  && !(flag_ & kCmdTransaction); }
 bool Cmd::IsLocal() const { return (flag_ & kCmdFlagsLocal); }
 
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) {

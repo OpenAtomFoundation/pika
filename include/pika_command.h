@@ -290,6 +290,7 @@ enum CmdFlags {
   kCmdFlagsStream = (1 << 20),
   kCmdFlagsFast = (1 << 21),
   kCmdFlagsSlow = (1 << 22),
+  kCmdTransaction = (1 << 23),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -536,6 +537,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
+  bool is_cacheread() const;
 
   bool IsLocal() const;
   bool IsSuspend() const;
