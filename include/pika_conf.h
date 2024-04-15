@@ -897,7 +897,7 @@ class PikaConf : public pstd::BaseConf {
 
   // Rsync Rate limiting configuration
   int throttle_bytes_per_second_ = 207200000;
-  int max_rsync_parallel_num_ = 4;
+  int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
 };
 
 #endif
