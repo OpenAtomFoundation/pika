@@ -24,8 +24,11 @@ class Throttle {
     static Throttle instance(g_pika_conf->throttle_bytes_per_second(), 10);
     return instance;
   }
-
+  void SetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
+      throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
+  };
  private:
+  std::atomic<int32_t>calculate_count{0};
   std::atomic<size_t> throttle_throughput_bytes_ = 100 * 1024 * 1024;
   // the num of tasks doing install_snapshot
   std::atomic<size_t> last_throughput_check_time_us_;

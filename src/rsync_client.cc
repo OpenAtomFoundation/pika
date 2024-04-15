@@ -201,7 +201,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       std::shared_ptr<RsyncResponse> resp = nullptr;
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
-        LOG(WARNING) << "rsync request timeout";
+        LOG(WARNING) << s.ToString();
         retries++;
         continue;
       }
@@ -500,6 +500,9 @@ std::string RsyncClient::GetLocalMetaFilePath() {
 
 int RsyncClient::GetParallelNum() {
   return parallel_num_;
+}
+void RsyncClient::ResetRsyncTimeout(int64_t new_timeout_ms) {
+  wo_mgr_->ResetWaitTimeOut(new_timeout_ms);
 }
 
 }  // end namespace rsync

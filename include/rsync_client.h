@@ -67,7 +67,10 @@ class RsyncClient : public net::Thread {
   }
   bool IsIdle() { return state_.load() == IDLE;}
   void OnReceive(RsyncService::RsyncResponse* resp);
-
+  void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
+      Throttle::GetInstance().SetThrottleThroughputBytes(new_throughput_bytes_per_s);
+  };
+  void ResetRsyncTimeout(int64_t  new_timeout_ms);
 private:
   bool ComparisonUpdate();
   Status CopyRemoteFile(const std::string& filename, int index);
@@ -145,7 +148,8 @@ class RsyncWriter {
 
 class WaitObject {
  public:
-  WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
+  WaitObject(int64_t wait_timeout_ms) : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr), wait_timout_ms_(wait_timeout_ms) {}
+  WaitObject() = delete;
   ~WaitObject() {}
 
   void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
@@ -157,19 +161,21 @@ class WaitObject {
   }
 
   pstd::Status Wait(ResponseSPtr& resp) {
-    pstd::Status s = Status::Timeout("rsync timeout", "timeout");
-    {
-      std::unique_lock<std::mutex> lock(mu_);
-      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
-          return resp_.get() != nullptr;
-      });
-      if (!cv_s) {
-        return s;
-      }
-      resp = resp_;
-      s = Status::OK();
+    std::unique_lock<std::mutex> lock(mu_);
+    auto cv_s = cond_.wait_for(lock, std::chrono::milliseconds(wait_timout_ms_), [this] {
+      return resp_.get() != nullptr;
+    });
+    if (!cv_s) {
+      std::string timout_info("timeout during(in ms) is ");
+      timout_info.append(std::to_string(wait_timout_ms_));
+      return pstd::Status::Timeout("rsync timeout", timout_info);
     }
-    return s;
+    resp = resp_;
+    calcucount++;
+    if(calcucount % 25 == 0){
+      LOG(INFO) << "curr wait cucount:" << calcucount << " wait obj index:" << resp->reader_index() << " curr wait obj timeout_ms:" << wait_timout_ms_;
+    }
+    return pstd::Status::OK();
   }
 
   void WakeUp(RsyncService::RsyncResponse* resp) {
@@ -178,11 +184,16 @@ class WaitObject {
     offset_ = kInvalidOffset;
     cond_.notify_all();
   }
-
+  void ResetWaitTimeout(int64_t new_timeout_ms){
+    std::lock_guard guard(mu_);
+    wait_timout_ms_ = new_timeout_ms;
+  }
   std::string Filename() {return filename_;}
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
  private:
+  std::atomic<int32_t> calcucount{0};
+  int64_t wait_timout_ms_{1000};
   std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = kInvalidOffset;
@@ -196,7 +207,7 @@ class WaitObjectManager {
   WaitObjectManager() {
     wo_vec_.resize(kMaxRsyncParallelNum);
     for (int i = 0; i < kMaxRsyncParallelNum; i++) {
-      wo_vec_[i] = new WaitObject();
+      wo_vec_[i] = new WaitObject(g_pika_conf->rsync_timeout_ms());
     }
   }
   ~WaitObjectManager() {
@@ -234,7 +245,12 @@ class WaitObjectManager {
     }
     wo_vec_[index]->WakeUp(resp);
   }
-
+  void ResetWaitTimeOut(int64_t new_timeout_ms){
+    std::lock_guard guard(mu_);
+    for(auto wait_obj: wo_vec_){
+      wait_obj->ResetWaitTimeout(new_timeout_ms);
+    }
+  }
  private:
   std::vector<WaitObject*> wo_vec_;
   std::mutex mu_;
@@ -242,4 +258,3 @@ class WaitObjectManager {
 
 } // end namespace rsync
 #endif
-

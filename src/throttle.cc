@@ -19,6 +19,10 @@ Throttle::Throttle(size_t throttle_throughput_bytes, size_t check_cycle)
 Throttle::~Throttle() {}
 
 size_t Throttle::ThrottledByThroughput(size_t bytes) {
+  auto this_cal = calculate_count.fetch_add(1);
+  if(this_cal % 100 == 0){
+    LOG(INFO) << "throttle bytes now:" << (throttle_throughput_bytes_.load() >> 20) << " MB";
+  }
   size_t available_size = bytes;
   size_t now = pstd::NowMicros();
   size_t limit_throughput_bytes_s = std::max(static_cast<uint64_t>(throttle_throughput_bytes_),
