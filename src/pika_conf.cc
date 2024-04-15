@@ -668,7 +668,7 @@ void PikaConf::SetCacheType(const std::string& value) {
 }
 
 int PikaConf::ConfigRewrite() {
-  std::string userblacklist = suser_blacklist();
+  std::string userblacklist = user_blacklist_string();
   std::string scachetype = scache_type();
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.

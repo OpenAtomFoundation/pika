@@ -218,11 +218,11 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return bgsave_prefix_;
   }
-  std::string suser_blacklist() {
+  std::string user_blacklist_string() {
     std::shared_lock l(rwlock_);
     return pstd::StringConcat(user_blacklist_, COMMA);
   }
-  const std::vector<std::string>& vuser_blacklist() {
+  const std::vector<std::string>& user_blacklist_vector() {
     std::shared_lock l(rwlock_);
     return user_blacklist_;
   }

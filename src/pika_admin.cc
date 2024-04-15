@@ -1503,7 +1503,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
-    EncodeString(&config_body, g_pika_conf->suser_blacklist());
+    EncodeString(&config_body, g_pika_conf->user_blacklist_string());
   }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
