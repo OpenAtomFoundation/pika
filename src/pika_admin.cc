@@ -794,6 +794,7 @@ void InfoCmd::DoInitial() {
 
   if (strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
     info_section_ = kInfoAll;
+    keyspace_scan_dbs_ = g_pika_server->GetAllDBName();
   } else if (strcasecmp(argv_[1].data(), kServerSection.data()) == 0) {
     info_section_ = kInfoServer;
   } else if (strcasecmp(argv_[1].data(), kClientsSection.data()) == 0) {
@@ -1195,10 +1196,10 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   tmp_stream << "# Keyspace"
              << "\r\n";
 
-  if (argv_.size() == 3) {  // command => `info keyspace 1`
+  if (argv_.size() == 3 || strcasecmp(argv_[1].data(),"all")==0){  // command => `info keyspace 1`  or `info all`
     tmp_stream << "# Start async statistics"
                << "\r\n";
-  } else {  // command => `info keyspace` or `info`
+  } else {  // command => `info keyspace`
     tmp_stream << "# Use \"info keyspace 1\" do async statistics"
                << "\r\n";
   }
