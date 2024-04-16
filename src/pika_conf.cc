@@ -448,6 +448,10 @@ int PikaConf::Load() {
   GetConfStr("share-block-cache", &sbc);
   share_block_cache_ = sbc == "yes";
 
+  std::string epif;
+  GetConfStr("enable_partitioned_index_filters", &epif);
+  enable_partitioned_index_filters_ = epif == "yes";
+
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
   cache_index_and_filter_blocks_ = ciafb == "yes";
