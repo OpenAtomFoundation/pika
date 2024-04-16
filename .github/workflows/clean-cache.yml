@@ -13,8 +13,9 @@ jobs:
           gh extension install actions/gh-actions-cache
           for cacheKey in $(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
           do
-            gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
+            gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm &
           done
+          wait
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}

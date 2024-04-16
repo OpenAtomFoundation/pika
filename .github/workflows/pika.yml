@@ -80,7 +80,7 @@ jobs:
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
-          chmod +x integrate_test.sh
+          chmod +x integrate_test.sh 
           sh integrate_test.sh
 
   build_on_centos:
@@ -152,7 +152,7 @@ jobs:
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
-          chmod +x integrate_test.sh
+          chmod +x integrate_test.sh 
           sh integrate_test.sh
 
   build_on_macos:
@@ -214,7 +214,7 @@ jobs:
           cd ../tools/pika_keys_analysis/
           go test -v ./...
           cd ../../tests/integration/
-          chmod +x integrate_test.sh
+          chmod +x integrate_test.sh 
           sh integrate_test.sh
 
   build_pika_image:
