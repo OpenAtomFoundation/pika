@@ -502,7 +502,14 @@ int RsyncClient::GetParallelNum() {
   return parallel_num_;
 }
 void RsyncClient::ResetRsyncTimeout(int64_t new_timeout_ms) {
-  wo_mgr_->ResetWaitTimeOut(new_timeout_ms);
+  std::lock_guard guard(config_mu_);
+  if (last_rsync_config_updated_time_ms_ + 1000 < pstd::NowMilliSeconds()) {
+    // maximum update frequency of rsync config:1 time per sec
+    wo_mgr_->ResetWaitTimeOut(new_timeout_ms);
+    LOG(INFO) << "The conf item [rsync-timeout-ms] is changed by Config Set command. "
+                 "The rsync-timeout-ms now is " << new_timeout_ms << " ms";
+    last_rsync_config_updated_time_ms_ = pstd::NowMilliSeconds();
+  }
 }
 
 }  // end namespace rsync

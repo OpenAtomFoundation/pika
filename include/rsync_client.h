@@ -68,7 +68,15 @@ class RsyncClient : public net::Thread {
   bool IsIdle() { return state_.load() == IDLE;}
   void OnReceive(RsyncService::RsyncResponse* resp);
   void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
-      Throttle::GetInstance().SetThrottleThroughputBytes(new_throughput_bytes_per_s);
+      std::lock_guard guard(config_mu_);
+      if(last_rsync_config_updated_time_ms_ + 1000 < pstd::NowMilliSeconds()){
+        //maximum update frequency of rsync config:1 time per sec
+        Throttle::GetInstance().SetThrottleThroughputBytes(new_throughput_bytes_per_s);
+        LOG(INFO) << "The conf item [throttle-bytes-per-second] is changed by Config Set command. "
+                     "The rsync rate limit now is "
+                  << new_throughput_bytes_per_s << "(Which Is Around " << (new_throughput_bytes_per_s >> 20) << " MB/s)";
+        last_rsync_config_updated_time_ms_ = pstd::NowMilliSeconds();
+      }
   };
   void ResetRsyncTimeout(int64_t  new_timeout_ms);
 private:
@@ -100,6 +108,11 @@ private:
   std::unique_ptr<WaitObjectManager> wo_mgr_;
   std::condition_variable cond_;
   std::mutex mu_;
+
+  //1 when multi thread changing rsync rate and timeout at the same time,make them take effect sequentially
+  //2 maximum update frequency of rsync config: 1 time per sec
+  std::mutex config_mu_;
+  uint64_t last_rsync_config_updated_time_ms_{0};
 
   std::string master_ip_;
   int master_port_;
