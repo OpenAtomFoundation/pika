@@ -1,44 +1,44 @@
-# v3.5.4
+# v3.5.4-rc1
 
 ## bugfix
 
-- 修复 spop 可能会出现主从数据不一致的问题[#2541](https://github.com/OpenAtomFoundation/pika/pull/2541)@[chenbt-hz](https://github.com/chenbt-hz)
-
-- 修复 slotmigrate 动态修复后值错误的问题[#2548](https://github.com/OpenAtomFoundation/pika/pull/2548)@[chejinge](https://github.com/chejinge)
-
-- 修复 config rewrite 后 blockcache 数值异常的问题[#2561](https://github.com/OpenAtomFoundation/pika/pull/2561)@[chejinge](https://github.com/chejinge)
-
-- 修复 CloseFd(it->second[i]) 出现越界的问题[#2539](https://github.com/OpenAtomFoundation/pika/pull/2539)@[chejinge](https://github.com/chejinge)
-
-- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
-
--  修复 `Flushall` 和 `FlushDB` 中有一处由于加锁顺序的问题导致死锁的隐患，删除 FlushSubDB 接口[#2533](https://github.com/OpenAtomFoundation/pika/pull/2533)@[Mixficsol](https://github.com/Mixficsol)
-
-- 更新 `Pika-operater` 使用的 pika 版本[#2572](https://github.com/OpenAtomFoundation/pika/pull/2572)@[chejinge](https://github.com/chejinge)
-
-- slotmigrate 添加 go test [#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
-
-- 修复 `compact` 死锁的问题 [#2581](https://github.com/OpenAtomFoundation/pika/pull/2581) @[chejinge](https://github.com/chejinge)
-
-- 修复使用 `info keyspace` 后，`info all` 死锁的问题[#2584](https://github.com/OpenAtomFoundation/pika/pull/2584) @[chejinge](https://github.com/chejinge)
-
-- 修复 Pika 事务边缘测试 case 不通过的问题[#2586](https://github.com/OpenAtomFoundation/pika/pull/2586) @[chejinge](https://github.com/chejinge)
-
-- 调整不常用的线程池线程数，避免因为空跑导致性能损耗[#2590](https://github.com/OpenAtomFoundation/pika/pull/2590) @[chejinge](https://github.com/chejinge)
-
-- 修复当 max-rsync-parallel-num 大于4，slave 会在主从复制时 coredump 的问题[#2595](https://github.com/OpenAtomFoundation/pika/pull/2595)@[chejinge](https://github.com/chejinge)
+- 修复 userpass 和 userblacklist 动态修改参数功能异常问题[#2600](https://github.com/OpenAtomFoundation/pika/pull/2600)@[chejinge](https://github.com/chejinge)
 
 - 修复 scard sscan 结果不一致的问题[#2596](https://github.com/OpenAtomFoundation/pika/pull/2596)@[chejinge](https://github.com/chejinge)
 
-- 修复 userpass 和 userblacklist 动态修改参数功能异常问题[#2600](https://github.com/OpenAtomFoundation/pika/pull/2600)@[chejinge](https://github.com/chejinge)
+- 修复当 max-rsync-parallel-num 大于4，slave 会在主从复制时 coredump 的问题[#2595](https://github.com/OpenAtomFoundation/pika/pull/2595)@[chejinge](https://github.com/chejinge)
+
+- 调整不常用的线程池线程数，避免因为空跑导致性能损耗[#2590](https://github.com/OpenAtomFoundation/pika/pull/2590) @[chejinge](https://github.com/chejinge)
+
+- 修复 Pika 事务边缘测试 case 不通过的问题[#2586](https://github.com/OpenAtomFoundation/pika/pull/2586) @[chejinge](https://github.com/chejinge)
+
+- 将 cache-model 修改成 cache-mode[#2585](https://github.com/OpenAtomFoundation/pika/pull/2585)@[chejinge](https://github.com/chejinge)
+
+- 修复使用 `info keyspace` 后，`info all` 死锁的问题[#2584](https://github.com/OpenAtomFoundation/pika/pull/2584) @[chejinge](https://github.com/chejinge)
 
 - 修复因修改 zsetscorekeycomparatorimpl 字典序比较熟顺序，导致353 352极端场景不兼容的问题[#2583](https://github.com/OpenAtomFoundation/pika/pull/2583) @[wangshao1](https://github.com/wangshao1)
 
-- 增加参数控制是否清理 tcl 测试后产生的数据文件，防止废弃数据占据磁盘[#2507](https://github.com/OpenAtomFoundation/pika/pull/2507)@[Mixficsol](https://github.com/Mixficsol)
+- 修复 `compact` 死锁的问题 [#2581](https://github.com/OpenAtomFoundation/pika/pull/2581) @[chejinge](https://github.com/chejinge)
+
+- slotmigrate 添加 go test [#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
+
+- 更新 `Pika-operater` 使用的 pika 版本[#2572](https://github.com/OpenAtomFoundation/pika/pull/2572)@[chejinge](https://github.com/chejinge)
+
+- 修复 config rewrite 后 blockcache 数值异常的问题[#2561](https://github.com/OpenAtomFoundation/pika/pull/2561)@[chejinge](https://github.com/chejinge)
+
+- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
+
+- 修复 slotmigrate 动态修复后值错误的问题[#2548](https://github.com/OpenAtomFoundation/pika/pull/2548)@[chejinge](https://github.com/chejinge)
+
+- 修复 spop 可能会出现主从数据不一致的问题[#2541](https://github.com/OpenAtomFoundation/pika/pull/2541)@[chenbt-hz](https://github.com/chenbt-hz)
+
+- 修复 CloseFd(it->second[i]) 出现越界的问题[#2539](https://github.com/OpenAtomFoundation/pika/pull/2539)@[chejinge](https://github.com/chejinge)
+
+-  修复 `Flushall` 和 `FlushDB` 中有一处由于加锁顺序的问题导致死锁的隐患，删除 FlushSubDB 接口[#2533](https://github.com/OpenAtomFoundation/pika/pull/2533)@[Mixficsol](https://github.com/Mixficsol)
 
 - 五种基本数据类型命令增加 tcl 测试 case[#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
-- 将 cache-model 修改成 cache-mode[#2585](https://github.com/OpenAtomFoundation/pika/pull/2585)@[chejinge](https://github.com/chejinge)
+- 增加参数控制是否清理 tcl 测试后产生的数据文件，防止废弃数据占据磁盘[#2507](https://github.com/OpenAtomFoundation/pika/pull/2507)@[Mixficsol](https://github.com/Mixficsol)
 
 
 # v3.5.3
