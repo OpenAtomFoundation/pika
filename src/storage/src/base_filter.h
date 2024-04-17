@@ -26,23 +26,53 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     auto cur_time = static_cast<uint64_t>(unix_time);
-    ParsedBaseMetaValue parsed_base_meta_value(value);
-    TRACE("==========================START==========================");
-    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu", key.ToString().c_str(),
-          parsed_base_meta_value.Count(), parsed_base_meta_value.Etime(), cur_time,
-          parsed_base_meta_value.Version());
+    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
+    DEBUG("==========================START==========================");
+    if (type == Type::kString) {
+      ParsedStringsValue parsed_strings_value(value);
+      DEBUG("[StringsFilter]  key: {}, value = {}, timestamp: {}, cur_time: {}", key.ToString().c_str(),
+            parsed_strings_value.UserValue().ToString().c_str(), parsed_strings_value.Etime(), cur_time);
+      if (parsed_strings_value.Etime() != 0 && parsed_strings_value.Etime() < cur_time) {
+        DEBUG("Drop[Stale]");
+        return true;
+      } else {
+        DEBUG("Reserve");
+        return false;
+      }
+    } else if (type == Type::kList) {
+      ParsedListsMetaValue parsed_lists_meta_value(value);
+      DEBUG("[ListMetaFilter], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
+            parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
+            parsed_lists_meta_value.Version());
 
-    if (parsed_base_meta_value.Etime() != 0 && parsed_base_meta_value.Etime() < cur_time &&
-        parsed_base_meta_value.Version() < cur_time) {
-      TRACE("Drop[Stale & version < cur_time]");
-      return true;
+      if (parsed_lists_meta_value.Etime() != 0 && parsed_lists_meta_value.Etime() < cur_time &&
+          parsed_lists_meta_value.Version() < cur_time) {
+        DEBUG("Drop[Stale & version < cur_time]");
+        return true;
+      }
+      if (parsed_lists_meta_value.Count() == 0 && parsed_lists_meta_value.Version() < cur_time) {
+        DEBUG("Drop[Empty & version < cur_time]");
+        return true;
+      }
+      DEBUG("Reserve");
+      return false;
+    } else {
+      ParsedBaseMetaValue parsed_base_meta_value(value);
+      DEBUG("[MetaFilter]  key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
+            parsed_base_meta_value.Count(), parsed_base_meta_value.Etime(), cur_time, parsed_base_meta_value.Version());
+
+      if (parsed_base_meta_value.Etime() != 0 && parsed_base_meta_value.Etime() < cur_time &&
+          parsed_base_meta_value.Version() < cur_time) {
+        DEBUG("Drop[Stale & version < cur_time]");
+        return true;
+      }
+      if (parsed_base_meta_value.Count() == 0 && parsed_base_meta_value.Version() < cur_time) {
+        DEBUG("Drop[Empty & version < cur_time]");
+        return true;
+      }
+      DEBUG("Reserve");
+      return false;
     }
-    if (parsed_base_meta_value.Count() == 0 && parsed_base_meta_value.Version() < cur_time) {
-      TRACE("Drop[Empty & version < cur_time]");
-      return true;
-    }
-    TRACE("Reserve");
-    return false;
   }
 
   const char* Name() const override { return "BaseMetaFilter"; }
@@ -187,5 +217,7 @@ using ZSetsMetaFilterFactory = BaseMetaFilterFactory;
 using ZSetsDataFilter = BaseDataFilter;
 using ZSetsDataFilterFactory = BaseDataFilterFactory;
 
+using MetaFilter = BaseMetaFilter;
+using MetaFilterFactory = BaseMetaFilterFactory;
 }  //  namespace storage
 #endif  // SRC_BASE_FILTER_H_

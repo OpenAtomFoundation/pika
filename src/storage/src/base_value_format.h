@@ -17,12 +17,13 @@
 #include "pstd/include/env.h"
 
 namespace storage {
+
+enum class Type : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset = 4, kNulltype = 5 };
+
 class InternalValue {
 public:
-  explicit InternalValue(const rocksdb::Slice& user_value)
-      :  user_value_(user_value) {
-        ctime_ = pstd::NowMicros() / 1000000;
-      }
+  explicit InternalValue(Type type, const Slice& user_value) : type_(type), user_value_(user_value) { ctime_ = pstd::NowMicros() / 1000000;
+  }
   virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;
@@ -58,6 +59,7 @@ protected:
   char space_[200];
   char* start_ = nullptr;
   rocksdb::Slice user_value_;
+  Type type_;
   uint64_t version_ = 0;
   uint64_t etime_ = 0;
   uint64_t ctime_ = 0;
@@ -123,6 +125,7 @@ public:
   }
 
   virtual void StripSuffix() = 0;
+  bool IsSameType(const Type type) { return type_ == type; }
 
 protected:
   virtual void SetVersionToValue() = 0;
@@ -133,6 +136,7 @@ protected:
   uint64_t version_ = 0 ;
   uint64_t ctime_ = 0;
   uint64_t etime_ = 0;
+  Type type_;
   char reserve_[16] = {0}; //unused
 };
 

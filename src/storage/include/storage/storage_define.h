@@ -26,22 +26,17 @@ const int kVersionLength = 8;
 const int kScoreLength = 8;
 const int kSuffixReserveLength = 16;
 const int kListValueIndexLength = 16;
-
+const int kTypeLength = 1;
 const int kTimestampLength = 8;
 
 enum ColumnFamilyIndex {
-    kStringsCF = 0,
-    kHashesMetaCF = 1,
-    kHashesDataCF = 2,
-    kSetsMetaCF = 3,
-    kSetsDataCF = 4,
-    kListsMetaCF = 5,
-    kListsDataCF = 6,
-    kZsetsMetaCF = 7,
-    kZsetsDataCF = 8,
-    kZsetsScoreCF = 9,
-    kStreamsMetaCF = 10,
-    kStreamsDataCF = 11,
+  kMetaCF = 0,
+  kHashesDataCF = 1,
+  kSetsDataCF = 2,
+  kListsDataCF = 3,
+  kZsetsDataCF = 4,
+  kZsetsScoreCF = 5,
+  kStreamsDataCF = 6,
 };
 
 const static char kNeedTransformCharacter = '\u0000';
