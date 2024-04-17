@@ -109,7 +109,7 @@ func UpdateTimout(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-var _ = Describe("Rename Command test", func() {
+var _ = Describe("Rsync Reconfig Test", func() {
 	ctx := context.TODO()
 	var slave1 *redis.Client
 	var slave2 *redis.Client
@@ -127,7 +127,7 @@ var _ = Describe("Rename Command test", func() {
 		Expect(master1.Close()).NotTo(HaveOccurred())
 	})
 
-	It("rsync dynamic reconfig", func() {
+	It("rsync reconfig rsync-timeout-ms, throttle-bytes-per-second", func() {
 		slave1.SlaveOf(ctx, "no", "one")
 		slave1.FlushDB(ctx)
 		master1.FlushDB(ctx)
@@ -138,12 +138,12 @@ var _ = Describe("Rename Command test", func() {
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
-		r := master1.Set(ctx, key1, value1, 0).Err()
-		Expect(r).To(Equal(nil))
+		err1 := master1.Set(ctx, key1, value1, 0).Err()
+		Expect(err1).To(BeNil())
 
 		//limit the rsync to prevent the sync finished before test finished
-		r2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
-		Expect(r2).To(Equal(nil))
+		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
+		Expect(err2).To(BeNil())
 		var wg sync.WaitGroup
 		wg.Add(4)
 		time.Sleep(time.Second)
@@ -160,16 +160,16 @@ var _ = Describe("Rename Command test", func() {
 
 		key2 := "rekaljfdkslj;"
 		value2 := "ouifdhgisesdjkf"
-		err := master1.Set(ctx, key2, value2, 0).Err()
-		Expect(err).To(Equal(nil))
+		err3 := master1.Set(ctx, key2, value2, 0).Err()
+		Expect(err3).To(BeNil())
 
 		time.Sleep(time.Second * 5) //incr sync should also be done after 5s
 
-		getValue1, err := slave1.Get(ctx, key1).Result()
-		Expect(err).To(Equal(nil))          //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
+		getValue1, err4 := slave1.Get(ctx, key1).Result()
+		Expect(err4).To(BeNil())            //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
 		Expect(getValue1).To(Equal(value1)) //Slave Get OK, but didn't fetch expected resp after dynamic reset rsync rate/timeout
-		getValue2, err := slave1.Get(ctx, key2).Result()
-		Expect(err).To(Equal(nil))          //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
+		getValue2, err5 := slave1.Get(ctx, key2).Result()
+		Expect(err5).To(BeNil())            //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
 		Expect(getValue2).To(Equal(value2)) //Slave Get OK, but didn't fetch expected resp after dynamic reset rsync rate/timeout
 	})
 
