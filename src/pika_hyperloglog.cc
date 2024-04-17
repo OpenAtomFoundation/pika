@@ -26,6 +26,8 @@ void PfAddCmd::Do() {
     res_.AppendInteger(1);
   } else if (s.ok() && !update) {
     res_.AppendInteger(0);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -47,6 +49,8 @@ void PfCountCmd::Do() {
   rocksdb::Status s = db_->storage()->PfCount(keys_, &value_);
   if (s.ok()) {
     res_.AppendInteger(value_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -67,6 +71,8 @@ void PfMergeCmd::Do() {
   rocksdb::Status s = db_->storage()->PfMerge(keys_, value_to_dest_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

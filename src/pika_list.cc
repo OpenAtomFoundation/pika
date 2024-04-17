@@ -33,6 +33,8 @@ void LIndexCmd::Do() {
   s_ = db_->storage()->LIndex(key_, index_, &value);
   if (s_.ok()) {
     res_.AppendString(value);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -89,6 +91,8 @@ void LInsertCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(llen);
     AddSlotKey("l", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -118,6 +122,8 @@ void LLenCmd::Do() {
   s_ = db_->storage()->LLen(key_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -264,6 +270,8 @@ void LPushCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -366,6 +374,9 @@ void BLPopCmd::Do() {
       return;
     } else if (s.IsNotFound()) {
       continue;
+    } else if (s_.ToString() == ErrTypeMessage) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -422,6 +433,8 @@ void LPopCmd::Do() {
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -459,6 +472,8 @@ void LPushxCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -500,6 +515,8 @@ void LRangeCmd::Do() {
     for (const auto& value : values) {
       res_.AppendString(value);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendArrayLen(0);
   } else {
@@ -553,6 +570,8 @@ void LRemCmd::Do() {
   s_ = db_->storage()->LRem(key_, count_, value_, &res);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(res));
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -593,6 +612,8 @@ void LSetCmd::Do() {
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: index out of range") {
     // TODO(): refine return value
     res_.SetRes(CmdRes::kOutOfRange);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -630,6 +651,8 @@ void LTrimCmd::Do() {
   s_ = db_->storage()->LTrim(key_, start_, stop_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -663,6 +686,9 @@ void BRPopCmd::Do() {
       return;
     } else if (s_.IsNotFound()) {
       continue;
+    } else if (s_.ToString() == ErrTypeMessage) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
     } else {
       res_.SetRes(CmdRes::kErrOther, s_.ToString());
       return;
@@ -749,6 +775,8 @@ void RPopCmd::Do() {
     }
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -790,6 +818,9 @@ void RPopLPushCmd::Do() {
     // no actual write operation happened, will not write binlog
     res_.AppendStringLen(-1);
     is_write_binlog_ = false;
+    return;
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
     return;
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -844,6 +875,8 @@ void RPushCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -884,6 +917,8 @@ void RPushxCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }

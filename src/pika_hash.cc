@@ -27,8 +27,11 @@ void HDelCmd::DoInitial() {
 
 void HDelCmd::Do() {
   s_ = db_->storage()->HDel(key_, fields_, &deleted_);
+
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -61,6 +64,8 @@ void HSetCmd::Do() {
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
     AddSlotKey("h", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -92,6 +97,8 @@ void HGetCmd::Do() {
   if (s_.ok()) {
     res_.AppendStringLenUint64(value.size());
     res_.AppendContent(value);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
@@ -214,6 +221,8 @@ void HExistsCmd::Do() {
   s_ = db_->storage()->HExists(key_, field_);
   if (s_.ok()) {
     res_.AppendContent(":1");
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendContent(":0");
   } else {
@@ -263,6 +272,8 @@ void HIncrbyCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
     AddSlotKey("h", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s_.IsInvalidArgument()) {
@@ -300,6 +311,8 @@ void HIncrbyfloatCmd::Do() {
     res_.AppendStringLenUint64(new_value.size());
     res_.AppendContent(new_value);
     AddSlotKey("h", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s_.IsInvalidArgument()) {
@@ -339,6 +352,8 @@ void HKeysCmd::Do() {
     for (const auto& field : fields) {
       res_.AppendString(field);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -384,6 +399,8 @@ void HLenCmd::Do() {
   s_ = db_->storage()->HLen(key_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hlen");
   }
@@ -438,6 +455,8 @@ void HMgetCmd::Do() {
         res_.AppendContent("$-1");
       }
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -498,6 +517,8 @@ void HMsetCmd::Do() {
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
     AddSlotKey("h", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -530,6 +551,8 @@ void HSetnxCmd::Do() {
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
     AddSlotKey("h", key_, db_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -560,6 +583,8 @@ void HStrlenCmd::Do() {
   s_ = db_->storage()->HStrlen(key_, field_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hstrlen");
   }
@@ -607,6 +632,8 @@ void HValsCmd::Do() {
       res_.AppendStringLenUint64(value.size());
       res_.AppendContent(value);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -696,6 +723,8 @@ void HScanCmd::Do() {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -752,6 +781,8 @@ void HScanxCmd::Do() {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -805,6 +836,8 @@ void PKHScanRangeCmd::Do() {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -858,7 +891,9 @@ void PKHRScanRangeCmd::Do() {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
     }
-  } else {
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
+  }  else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }

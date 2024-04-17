@@ -968,12 +968,12 @@ class Storage {
   // Set a timeout on key
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, int64_t ttl, std::map<DataType, Status>* type_status);
+  int32_t Expire(const Slice& key, uint64_t ttl);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys that were removed
-  int64_t Del(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Del(const std::vector<std::string>& keys);
 
   // Removes the specified keys of the specified type
   // return -1 operation exception errors happen in database
@@ -1009,7 +1009,7 @@ class Storage {
   // Returns if key exists.
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys existing
-  int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Exists(const std::vector<std::string>& keys);
 
   // Return the key exists type count
   // return param type_status: return every type status
@@ -1022,7 +1022,7 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist
   // return >=1 if the timueout was set
-  int32_t Expireat(const Slice& key, int64_t timestamp, std::map<DataType, Status>* type_status);
+  int32_t Expireat(const Slice& key, uint64_t timestamp);
 
   // Remove the existing timeout on key, turning the key from volatile (a key
   // with an expire set) to persistent (a key that will never expire as no
@@ -1030,18 +1030,18 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist or does not have an associated timeout
   // return >=1 if the timueout was set
-  int32_t Persist(const Slice& key, std::map<DataType, Status>* type_status);
+  int32_t Persist(const Slice& key);
 
   // Returns the remaining time to live of a key that has a timeout.
   // return -3 operation exception errors happen in database
   // return -2 if the key does not exist
   // return -1 if the key exists but has not associated expire
   // return > 0 TTL in seconds
-  std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
+  int32_t TTL(const Slice& key);
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
-  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
+  Status GetType(const std::string& key, std::string& types);
 
   // Reutrns the data all type of the key
   Status Type(const std::string& key, std::vector<std::string>& types);

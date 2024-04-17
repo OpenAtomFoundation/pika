@@ -248,6 +248,8 @@ const std::string kCmdNameXInfo = "xinfo";
 
 const std::string kClusterPrefix = "pkcluster";
 
+constexpr const char* ErrTypeMessage = "Invalid argument: WRONGTYPE Operation against a key holding the wrong kind of value";
+
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
@@ -326,6 +328,7 @@ class CmdRes {
     kInvalidTransaction,
     kTxnQueued,
     kTxnAbort,
+    kMultiKey
   };
 
   CmdRes() = default;
@@ -418,6 +421,10 @@ class CmdRes {
       case KIncrByOverFlow:
         result = "-ERR increment would produce NaN or Infinity";
         result.append(message_);
+        result.append(kNewLine);
+        break;
+      case kMultiKey:
+        result = "-WRONGTYPE Operation against a key holding the wrong kind of value";
         result.append(kNewLine);
         break;
       default:

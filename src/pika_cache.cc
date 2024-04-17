@@ -138,59 +138,16 @@ Status PikaCache::TTL(std::string& key, int64_t *ttl) {
   return caches_[cache_index]->TTL(key, ttl);
 }
 
-std::map<storage::DataType, int64_t> PikaCache::TTL(std::string &key, std::map<storage::DataType, Status>* type_status) {
-  Status s;
-  std::map<storage::DataType, int64_t> ret;
+int64_t PikaCache::TTL(std::string &key) {
+  int64_t ret = 0;
   int64_t timestamp = 0;
 
-  std::string CacheKeyPrefixK = PCacheKeyPrefixK + key;
-  int cache_indexk = CacheIndex(CacheKeyPrefixK);
-  s = caches_[cache_indexk]->TTL(CacheKeyPrefixK, &timestamp);
+  int cache_index = CacheIndex(key);
+  Status s = caches_[cache_index]->TTL(key, &timestamp);
   if (s.ok() || s.IsNotFound()) {
-    ret[storage::DataType::kStrings] = timestamp;
+    ret = timestamp;
   } else if (!s.IsNotFound()) {
-    ret[storage::DataType::kStrings] = -3;
-    (*type_status)[storage::DataType::kStrings] = s;
-  }
-
-  std::string CacheKeyPrefixH = PCacheKeyPrefixH + key;
-  int cache_indexh = CacheIndex(CacheKeyPrefixH);
-  s = caches_[cache_indexh]->TTL(CacheKeyPrefixH, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[storage::DataType::kHashes] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[storage::DataType::kHashes] = -3;
-    (*type_status)[storage::DataType::kHashes] = s;
-  }
-
-  std::string CacheKeyPrefixL = PCacheKeyPrefixL + key;
-  int cache_indexl = CacheIndex(CacheKeyPrefixL);
-  s = caches_[cache_indexl]->TTL(CacheKeyPrefixL, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[storage::DataType::kLists] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[storage::DataType::kLists] = -3;
-    (*type_status)[storage::DataType::kLists] = s;
-  }
-
-  std::string CacheKeyPrefixS = PCacheKeyPrefixS + key;
-  int cache_indexs = CacheIndex(CacheKeyPrefixS);
-  s = caches_[cache_indexs]->TTL(CacheKeyPrefixS, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[storage::DataType::kSets] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[storage::DataType::kSets] = -3;
-    (*type_status)[storage::DataType::kSets] = s;
-  }
-
-  std::string CacheKeyPrefixZ = PCacheKeyPrefixZ + key;
-  int cache_indexz = CacheIndex(CacheKeyPrefixZ);
-  s = caches_[cache_indexz]->TTL(CacheKeyPrefixZ, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[storage::DataType::kZSets] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[storage::DataType::kZSets] = -3;
-    (*type_status)[storage::DataType::kZSets] = s;
+    ret = -3;
   }
   return ret;
 }

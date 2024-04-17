@@ -10,14 +10,23 @@
 #include "pika_stream_types.h"
 #include "src/coding.h"
 #include "storage/storage.h"
+#include "storage/storage_define.h"
+#include "src/base_value_format.h"
+
+
+/*
+ *| type | group_id_ | entries_added_ | first_id_ms | first_id_seq | last_id_ms | last_id_seq | max_deleted_entry_ms | max_deleted_entry_seq | length | version |
+ *|  1B  |    4B     |       8B       |     8B      |      8B      |     8B     |      8B     |         8B           |          8B           |   4B   |    4B   |
+ */
 
 namespace storage {
 
 static const uint64_t kDefaultStreamValueLength =
-    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(uint64_t);
+    sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(uint64_t) + kTypeLength;
 class StreamMetaValue {
  public:
-  explicit StreamMetaValue() = default;
+  explicit StreamMetaValue()  : type_(Type::kStream) {}
+
   // used only when create a new stream
   void InitMetaValue() {
     groups_id_ = kINVALID_TREE_ID;
@@ -37,6 +46,8 @@ class StreamMetaValue {
 
     char* dst = &value_[0];
 
+    memcpy(dst, &type_, sizeof(type_));
+    dst += sizeof(type_);
     // Encode each member into the string
     EncodeFixed64(dst, groups_id_);
     dst += sizeof(tree_id_t);
@@ -75,6 +86,8 @@ class StreamMetaValue {
       return;
     }
     char* pos = &value_[0];
+    type_ = static_cast<Type>(static_cast<uint8_t>((value_)[0]));
+    pos += kTypeLength;
     groups_id_ = DecodeFixed32(pos);
     pos += sizeof(tree_id_t);
 
@@ -192,7 +205,7 @@ class StreamMetaValue {
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
   uint64_t version_{0};
-
+  Type type_;
   std::string value_{};
 };
 
@@ -206,6 +219,8 @@ class ParsedStreamMetaValue {
       return;
     }
     char* pos = const_cast<char*>(value.data());
+    type_ = static_cast<Type>(static_cast<uint8_t>((value)[0]));
+    pos += kTypeLength;
     groups_id_ = DecodeFixed32(pos);
     pos += sizeof(tree_id_t);
 
@@ -263,9 +278,11 @@ class ParsedStreamMetaValue {
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
   uint64_t version_{0};
+  Type type_;
 };
 
-static const uint64_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t);
+static const uint64_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t) + kTypeLength;
+
 class StreamCGroupMetaValue {
  public:
   explicit StreamCGroupMetaValue() = default;

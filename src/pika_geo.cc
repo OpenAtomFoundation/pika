@@ -59,6 +59,8 @@ void GeoAddCmd::Do() {
   rocksdb::Status s = db_->storage()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -100,6 +102,9 @@ void GeoPosCmd::Do() {
 
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
+      continue;
+    } else if (s_.ToString() == ErrTypeMessage) {
+      res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -163,6 +168,9 @@ void GeoDistCmd::Do() {
     geohashDecodeToLongLatWGS84(hash, first_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
+    return;
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
     return;
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -232,6 +240,9 @@ void GeoHashCmd::Do() {
       continue;
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
+      continue;
+    } else if (s_.ToString() == ErrTypeMessage) {
+      res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());

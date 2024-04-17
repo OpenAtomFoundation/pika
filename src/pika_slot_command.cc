@@ -374,29 +374,9 @@ int PikaMigrate::ParseKKey(const std::string& key, std::string& wbuf_str, const 
 }
 
 int64_t PikaMigrate::TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db) {
-  std::map<storage::DataType, int64_t> type_timestamp;
-  std::map<storage::DataType, rocksdb::Status> type_status;
-  type_timestamp = db->storage()->TTL(key, &type_status);
-
-  switch (key_type) {
-    case 'k': {
-      return type_timestamp[storage::kStrings];
-    } break;
-    case 'h': {
-      return type_timestamp[storage::kHashes];
-    } break;
-    case 'z': {
-      return type_timestamp[storage::kZSets];
-    } break;
-    case 's': {
-      return type_timestamp[storage::kSets];
-    } break;
-    case 'l': {
-      return type_timestamp[storage::kLists];
-    } break;
-    default:
-      return -3;
-  }
+  int64_t type_timestamp = 0;
+  type_timestamp = db->storage()->TTL(key);
+  return type_timestamp;
 }
 
 int PikaMigrate::ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
@@ -588,7 +568,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
   if (send_command_num >= 1) {
     std::vector<std::string> keys;
     keys.emplace_back(key);
-    int64_t count = db->storage()->Del(keys, &type_status);
+    int64_t count = db->storage()->Del(keys);
     if (count > 0) {
       WriteDelKeyToBinlog(key, db);
     }
@@ -742,22 +722,22 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
-  std::vector<std::string> type_str(1);
-  rocksdb::Status s = db->storage()->GetType(key, true, type_str);
+  std::string type_str;
+  rocksdb::Status s = db->storage()->GetType(key, type_str);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  if (type_str[0] == "string") {
+  if (type_str == "string") {
     key_type = "k";
-  } else if (type_str[0] == "hash") {
+  } else if (type_str == "hash") {
     key_type = "h";
-  } else if (type_str[0] == "list") {
+  } else if (type_str == "list") {
     key_type = "l";
-  } else if (type_str[0] == "set") {
+  } else if (type_str == "set") {
     key_type = "s";
-  } else if (type_str[0] == "zset") {
+  } else if (type_str == "zset") {
     key_type = "z";
   } else {
     LOG(WARNING) << "Get key type error: " << key;
@@ -801,7 +781,7 @@ int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr
   members.clear();
   members.emplace_back(key);
   std::map<storage::DataType, storage::Status> type_status;
-  int64_t del_nums = db->storage()->Del(members, &type_status);
+  int64_t del_nums = db->storage()->Del(members);
   if (0 > del_nums) {
     LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(g_pika_conf->default_slot_num(), key) << " error";
     return -1;
@@ -917,8 +897,8 @@ void SlotsMgrtTagSlotCmd::Do() {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
-  std::vector<std::string> type_str(1);
-  rocksdb::Status s = db->storage()->GetType(key_, true, type_str);
+  std::string type_str;
+  rocksdb::Status s = db->storage()->GetType(key_, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(WARNING) << "Migrate slot key " << key_ << " not found";
@@ -929,15 +909,15 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     }
     return -1;
   }
-  if (type_str[0] == "string") {
+  if (type_str == "string") {
     key_type_ = 'k';
-  } else if (type_str[0] == "hash") {
+  } else if (type_str == "hash") {
     key_type_ = 'h';
-  } else if (type_str[0] == "list") {
+  } else if (type_str == "list") {
     key_type_ = 'l';
-  } else if (type_str[0] == "set") {
+  } else if (type_str == "set") {
     key_type_ = 's';
-  } else if (type_str[0] == "zset") {
+  } else if (type_str == "zset") {
     key_type_ = 'z';
   } else {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
@@ -1013,7 +993,7 @@ void SlotsMgrtTagOneCmd::Do() {
     keys.emplace_back(key_);
 
     // check the key is not existed
-    ret = db_->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
@@ -1058,7 +1038,7 @@ void SlotsMgrtTagOneCmd::Do() {
     keys.emplace_back(key_);
     // the key may be deleted by another thread
     std::map<storage::DataType, rocksdb::Status> type_status;
-    ret = db_->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
@@ -1322,7 +1302,7 @@ void SlotsDelCmd::Do() {
     keys.emplace_back(SlotKeyPrefix + *iter);
   }
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t count = db_->storage()->Del(keys, &type_status);
+  int64_t count = db_->storage()->Del(keys);
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {

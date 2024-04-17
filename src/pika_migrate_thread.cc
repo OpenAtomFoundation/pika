@@ -71,17 +71,16 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::Data
                          const std::shared_ptr<DB>& db) {
   net::RedisCmdArgsType argv;
   std::string send_str;
-  std::map<storage::DataType, int64_t> type_timestamp;
-  std::map<storage::DataType, rocksdb::Status> type_status;
-  type_timestamp = db->storage()->TTL(key, &type_status);
-  if (PIKA_TTL_ZERO == type_timestamp[data_type] || PIKA_TTL_STALE == type_timestamp[data_type]) {
+  int64_t type_timestamp = 0;
+  type_timestamp = db->storage()->TTL(key);
+  if (PIKA_TTL_ZERO == type_timestamp || PIKA_TTL_STALE == type_timestamp) {
     argv.emplace_back("del");
     argv.emplace_back(key);
     net::SerializeRedisCommand(argv, &send_str);
-  } else if (0 < type_timestamp[data_type]) {
+  } else if (0 < type_timestamp) {
     argv.emplace_back("expire");
     argv.emplace_back(key);
-    argv.emplace_back(std::to_string(type_timestamp[data_type]));
+    argv.emplace_back(std::to_string(type_timestamp));
     net::SerializeRedisCommand(argv, &send_str);
   } else {
     // no expire
@@ -599,9 +598,9 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
-  std::vector<std::string> type_str(1);
+  std::string type_str;
   char key_type;
-  rocksdb::Status s = db->storage()->GetType(key, true, type_str);
+  rocksdb::Status s = db->storage()->GetType(key, type_str);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " not found";
@@ -612,17 +611,17 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
     }
   }
 
-  if (type_str[0] == "string") {
+  if (type_str == "string") {
     key_type = 'k';
-  } else if (type_str[0] == "hash") {
+  } else if (type_str == "hash") {
     key_type = 'h';
-  } else if (type_str[0] == "list") {
+  } else if (type_str == "list") {
     key_type = 'l';
-  } else if (type_str[0] == "set") {
+  } else if (type_str == "set") {
     key_type = 's';
-  } else if (type_str[0] == "zset") {
+  } else if (type_str == "zset") {
     key_type = 'z';
-  } else if (type_str[0] == "none") {
+  } else if (type_str == "none") {
     return 0;
   } else {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";

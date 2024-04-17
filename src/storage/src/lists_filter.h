@@ -18,45 +18,6 @@
 
 namespace storage {
 
-class ListsMetaFilter : public rocksdb::CompactionFilter {
- public:
-  ListsMetaFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
-              bool* value_changed) const override {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    auto cur_time = static_cast<uint64_t>(unix_time);
-    ParsedListsMetaValue parsed_lists_meta_value(value);
-    TRACE("==========================START==========================");
-    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %llu, cur_time: %llu, version: %llu", key.ToString().c_str(),
-          parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
-          parsed_lists_meta_value.Version());
-
-    if (parsed_lists_meta_value.Etime() != 0 && parsed_lists_meta_value.Etime() < cur_time &&
-        parsed_lists_meta_value.Version() < cur_time) {
-      TRACE("Drop[Stale & version < cur_time]");
-      return true;
-    }
-    if (parsed_lists_meta_value.Count() == 0 && parsed_lists_meta_value.Version() < cur_time) {
-      TRACE("Drop[Empty & version < cur_time]");
-      return true;
-    }
-    TRACE("Reserve");
-    return false;
-  }
-
-  const char* Name() const override { return "ListsMetaFilter"; }
-};
-
-class ListsMetaFilterFactory : public rocksdb::CompactionFilterFactory {
- public:
-  ListsMetaFilterFactory() = default;
-  std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
-      const rocksdb::CompactionFilter::Context& context) override {
-    return std::unique_ptr<rocksdb::CompactionFilter>(new ListsMetaFilter());
-  }
-  const char* Name() const override { return "ListsMetaFilterFactory"; }
-};
 
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:

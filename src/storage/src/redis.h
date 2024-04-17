@@ -187,6 +187,15 @@ class Redis {
   Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t end_offset, int64_t* ret);
   Status PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp);
 
+  Status Exists(const Slice& key);
+  Status Del(const Slice& key);
+  Status Expire(const Slice& key, uint64_t timestamp);
+  Status Expireat(const Slice& key, uint64_t timestamp);
+  Status Persist(const Slice& key);
+  Status TTL(const Slice& key, uint64_t* timestamp);
+
+  Status GetType(const Slice& key, std::string& types);
+  Status IsExist(const Slice& key);
   // Hash Commands
   Status HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
   Status HExists(const Slice& key, const Slice& field);
@@ -216,26 +225,26 @@ class Redis {
   Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
   Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
 
-  std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[kStringsCF]}; }
+  std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[kMetaCF]}; }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetHashCFHandles() {
-    return {handles_.begin() + kHashesMetaCF, handles_.begin() + kHashesDataCF + 1};
+    return {handles_.begin() + kMetaCF, handles_.begin() + kHashesDataCF + 1};
   }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetListCFHandles() {
-    return {handles_.begin() + kListsMetaCF, handles_.begin() + kListsDataCF + 1};
+    return {handles_.begin() + kMetaCF, handles_.begin() + kListsDataCF + 1};
   }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetSetCFHandles() {
-    return {handles_.begin() + kSetsMetaCF, handles_.begin() + kSetsDataCF + 1};
+    return {handles_.begin() + kMetaCF, handles_.begin() + kSetsDataCF + 1};
   }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetZsetCFHandles() {
-    return {handles_.begin() + kZsetsMetaCF, handles_.begin() + kZsetsScoreCF + 1};
+    return {handles_.begin() + kMetaCF, handles_.begin() + kZsetsScoreCF + 1};
   }
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetStreamCFHandles() {
-    return {handles_.begin() + kStreamsMetaCF, handles_.end()};
+    return {handles_.begin() + kMetaCF, handles_.end()};
   }
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
@@ -359,23 +368,25 @@ class Redis {
     options.iterate_upper_bound = upper_bound;
     switch (type) {
       case 'k':
-        return new StringsIterator(options, db_, handles_[kStringsCF], pattern);
+        return new StringsIterator(options, db_, handles_[kMetaCF], pattern);
         break;
       case 'h':
-        return new HashesIterator(options, db_, handles_[kHashesMetaCF], pattern);
+        return new HashesIterator(options, db_, handles_[kMetaCF], pattern);
         break;
       case 's':
-        return new SetsIterator(options, db_, handles_[kSetsMetaCF], pattern);
+        return new SetsIterator(options, db_, handles_[kMetaCF], pattern);
         break;
       case 'l':
-        return new ListsIterator(options, db_, handles_[kListsMetaCF], pattern);
+        return new ListsIterator(options, db_, handles_[kMetaCF], pattern);
         break;
       case 'z':
-        return new ZsetsIterator(options, db_, handles_[kZsetsMetaCF], pattern);
+        return new ZsetsIterator(options, db_, handles_[kMetaCF], pattern);
         break;
       case 'x':
-        return new StreamsIterator(options, db_, handles_[kStreamsMetaCF], pattern);
+        return new StreamsIterator(options, db_, handles_[kMetaCF], pattern);
         break;
+      case 'a':
+        return new AllIterator(options, db_, handles_[kMetaCF], pattern);
       default:
         LOG(WARNING) << "Invalid datatype to create iterator";
         return nullptr;

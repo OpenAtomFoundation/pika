@@ -24,8 +24,7 @@ namespace storage {
 */
 class BaseDataValue : public InternalValue {
 public:
-  explicit BaseDataValue(const rocksdb::Slice& user_value)
-      :  InternalValue(user_value) {}
+  explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(Type::kNulltype, user_value) {}
   virtual ~BaseDataValue() {}
 
   virtual rocksdb::Slice Encode() {

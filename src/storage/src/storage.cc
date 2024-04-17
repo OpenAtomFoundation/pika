@@ -1159,131 +1159,31 @@ Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
 }
 
 // Keys Commands
-int32_t Storage::Expire(const Slice& key, int64_t ttl, std::map<DataType, Status>* type_status) {
-  type_status->clear();
+int32_t Storage::Expire(const Slice& key, uint64_t ttl) {
   int32_t ret = 0;
-  bool is_corruption = false;
-
   auto& inst = GetDBInstance(key);
   // Strings
-  Status s = inst->StringsExpire(key, ttl);
+  Status s = inst->Expire(key, ttl);
   if (s.ok()) {
     ret++;
   } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kStrings] = s;
-  }
-
-  // Hash
-  s = inst->HashesExpire(key, ttl);
-  if (s.ok()) {
-    ret++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kHashes] = s;
-  }
-
-  // Sets
-  s = inst->SetsExpire(key, ttl);
-  if (s.ok()) {
-    ret++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kSets] = s;
-  }
-
-  // Lists
-  s = inst->ListsExpire(key, ttl);
-  if (s.ok()) {
-    ret++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kLists] = s;
-  }
-
-  // Zsets
-  s = inst->ZsetsExpire(key, ttl);
-  if (s.ok()) {
-    ret++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kZSets] = s;
-  }
-
-  if (is_corruption) {
     return -1;
-  } else {
-    return ret;
   }
+  return ret;
 }
 
-int64_t Storage::Del(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status) {
+
+int64_t Storage::Del(const std::vector<std::string>& keys) {
   Status s;
   int64_t count = 0;
-  bool is_corruption = false;
-
   for (const auto& key : keys) {
     auto& inst = GetDBInstance(key);
-    // Strings
-    Status s = inst->StringsDel(key);
+    s = inst->Del(key);
     if (s.ok()) {
       count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kStrings] = s;
-    }
-
-    // Hashes
-    s = inst->HashesDel(key);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kHashes] = s;
-    }
-
-    // Sets
-    s = inst->SetsDel(key);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kSets] = s;
-    }
-
-    // Lists
-    s = inst->ListsDel(key);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kLists] = s;
-    }
-
-    // ZSets
-    s = inst->ZsetsDel(key);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kZSets] = s;
-    }
-
-    // Streams
-    s = inst->StreamsDel(key);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kStreams] = s;
     }
   }
-
-  if (is_corruption) {
-    return -1;
-  } else {
-    return count;
-  }
+  return count;
 }
 
 int64_t Storage::DelByType(const std::vector<std::string>& keys, const DataType& type) {
@@ -1367,62 +1267,21 @@ int64_t Storage::DelByType(const std::vector<std::string>& keys, const DataType&
   }
 }
 
-int64_t Storage::Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status) {
+int64_t Storage::Exists(const std::vector<std::string>& keys) {
   int64_t count = 0;
-  int32_t ret;
-  uint64_t llen;
-  std::string value;
   Status s;
   bool is_corruption = false;
 
   for (const auto& key : keys) {
     auto& inst = GetDBInstance(key);
-    s = inst->Get(key, &value);
+    s = inst->Exists(key);
     if (s.ok()) {
       count++;
     } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kStrings] = s;
-    }
-
-    s = inst->HLen(key, &ret);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kHashes] = s;
-    }
-
-    s = inst->SCard(key, &ret);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kSets] = s;
-    }
-
-    s = inst->LLen(key, &llen);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kLists] = s;
-    }
-
-    s = inst->ZCard(key, &ret);
-    if (s.ok()) {
-      count++;
-    } else if (!s.IsNotFound()) {
-      is_corruption = true;
-      (*type_status)[DataType::kZSets] = s;
+      return -1;
     }
   }
-
-  if (is_corruption) {
-    return -1;
-  } else {
-    return count;
-  }
+  return count;
 }
 
 int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& pattern, int64_t count,
@@ -1683,241 +1542,57 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
   return Status::OK();
 }
 
-int32_t Storage::Expireat(const Slice& key, int64_t timestamp, std::map<DataType, Status>* type_status) {
+int32_t Storage::Expireat(const Slice& key, uint64_t timestamp) {
   Status s;
   int32_t count = 0;
-  bool is_corruption = false;
-
   auto& inst = GetDBInstance(key);
   s = inst->StringsExpireat(key, timestamp);
   if (s.ok()) {
     count++;
   } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kStrings] = s;
-  }
-
-  s = inst->HashesExpireat(key, timestamp);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kHashes] = s;
-  }
-
-  s = inst->SetsExpireat(key, timestamp);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kSets] = s;
-  }
-
-  s = inst->ListsExpireat(key, timestamp);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kLists] = s;
-  }
-
-  s = inst->ZsetsExpireat(key, timestamp);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kZSets] = s;
-  }
-
-  if (is_corruption) {
     return -1;
   }
   return count;
 }
 
-int32_t Storage::Persist(const Slice& key, std::map<DataType, Status>* type_status) {
-  Status s;
-  int32_t count = 0;
-  bool is_corruption = false;
-
+int32_t Storage::Persist(const Slice& key) {
   auto& inst = GetDBInstance(key);
-  s = inst->StringsPersist(key);
+  Status s = inst->Persist(key);
   if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kStrings] = s;
-  }
-
-  s = inst->HashesPersist(key);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kHashes] = s;
-  }
-
-  s = inst->SetsPersist(key);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kSets] = s;
-  }
-
-  s = inst->ListsPersist(key);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kLists] = s;
-  }
-
-  s = inst->ZsetsPersist(key);
-  if (s.ok()) {
-    count++;
-  } else if (!s.IsNotFound()) {
-    is_corruption = true;
-    (*type_status)[DataType::kZSets] = s;
-  }
-
-  if (is_corruption) {
-    return -1;
+    return 1;
   } else {
-    return count;
+    return 0;
   }
 }
 
-std::map<DataType, int64_t> Storage::TTL(const Slice& key, std::map<DataType, Status>* type_status) {
-  Status s;
-  std::map<DataType, int64_t> ret;
-  int64_t timestamp = 0;
+int32_t Storage::TTL(const Slice& key) {
+  uint64_t timestamp = 0;
 
   auto& inst = GetDBInstance(key);
-  s = inst->StringsTTL(key, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[DataType::kStrings] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[DataType::kStrings] = -3;
-    (*type_status)[DataType::kStrings] = s;
-  }
-
-  s = inst->HashesTTL(key, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[DataType::kHashes] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[DataType::kHashes] = -3;
-    (*type_status)[DataType::kHashes] = s;
-  }
-
-  s = inst->ListsTTL(key, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[DataType::kLists] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[DataType::kLists] = -3;
-    (*type_status)[DataType::kLists] = s;
-  }
-
-  s = inst->SetsTTL(key, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[DataType::kSets] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[DataType::kSets] = -3;
-    (*type_status)[DataType::kSets] = s;
-  }
-
-  s = inst->ZsetsTTL(key, &timestamp);
-  if (s.ok() || s.IsNotFound()) {
-    ret[DataType::kZSets] = timestamp;
-  } else if (!s.IsNotFound()) {
-    ret[DataType::kZSets] = -3;
-    (*type_status)[DataType::kZSets] = s;
-  }
-  return ret;
-}
-
-Status Storage::GetType(const std::string& key, bool single, std::vector<std::string>& types) {
-  types.clear();
-
-  Status s;
-  std::string value;
-  auto& inst = GetDBInstance(key);
-  s = inst->Get(key, &value);
+  Status s = inst->TTL(key, &timestamp);
   if (s.ok()) {
-    types.emplace_back("string");
-  } else if (!s.IsNotFound()) {
-    return s;
+    return timestamp;
+  } else {
+    return -2;
   }
-  if (single && !types.empty()) {
-    return s;
-  }
+}
 
-  int32_t hashes_len = 0;
-  s = inst->HLen(key, &hashes_len);
-  if (s.ok() && hashes_len != 0) {
-    types.emplace_back("hash");
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-  if (single && !types.empty()) {
-    return s;
-  }
-
-  uint64_t lists_len = 0;
-  s = inst->LLen(key, &lists_len);
-  if (s.ok() && lists_len != 0) {
-    types.emplace_back("list");
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-  if (single && !types.empty()) {
-    return s;
-  }
-
-  int32_t zsets_size = 0;
-  s = inst->ZCard(key, &zsets_size);
-  if (s.ok() && zsets_size != 0) {
-    types.emplace_back("zset");
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-  if (single && !types.empty()) {
-    return s;
-  }
-
-  int32_t sets_size = 0;
-  s = inst->SCard(key, &sets_size);
-  if (s.ok() && sets_size != 0) {
-    types.emplace_back("set");
-  } else if (!s.IsNotFound()) {
-    return s;
-  }
-  if (single && types.empty()) {
-    types.emplace_back("none");
-  }
-  return Status::OK();
+Status Storage::GetType(const std::string& key, std::string& types) {
+  auto& inst = GetDBInstance(key);
+  Status s = inst->GetType(key, types);
+  return s;
 }
 
 Status Storage::Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys) {
   keys->clear();
   std::vector<DataType> types;
-  if (data_type == DataType::kAll) {
-    types.push_back(DataType::kStrings);
-    types.push_back(DataType::kHashes);
-    types.push_back(DataType::kLists);
-    types.push_back(DataType::kZSets);
-    types.push_back(DataType::kSets);
-    types.push_back(DataType::kStreams);
-  } else {
-    types.push_back(data_type);
-  }
+  types.push_back(data_type);
 
   for (const auto& type : types) {
     std::vector<IterSptr> inst_iters;
     for (const auto& inst : insts_) {
       IterSptr inst_iter;
-      inst_iter.reset(inst->CreateIterator(type, pattern,
-          nullptr/*lower_bound*/, nullptr/*upper_bound*/));
+      inst_iter.reset(inst->CreateIterator(type, pattern, nullptr /*lower_bound*/, nullptr /*upper_bound*/));
       inst_iters.push_back(inst_iter);
     }
 
@@ -2403,34 +2078,9 @@ void Storage::GetRocksDBInfo(std::string& info) {
 }
 
 int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_status) {
-  std::string value;
-  int32_t ret = 0;
   int64_t type_count = 0;
   auto& inst = GetDBInstance(key);
-  Status s = inst->Get(key, &value);
-  (*type_status)[DataType::kStrings] = s;
-  if (s.ok()) {
-    type_count++;
-  }
-  s = inst->HLen(key, &ret);
-  (*type_status)[DataType::kHashes] = s;
-  if (s.ok()) {
-    type_count++;
-  }
-  s = inst->SCard(key, &ret);
-  (*type_status)[DataType::kSets] = s;
-  if (s.ok()) {
-    type_count++;
-  }
-  uint64_t llen = 0;
-  s = inst->LLen(key, &llen);
-  (*type_status)[DataType::kLists] = s;
-  if (s.ok()) {
-    type_count++;
-  }
-
-  s = inst->ZCard(key, &ret);
-  (*type_status)[DataType::kZSets] = s;
+  Status s = inst->IsExist(key);
   if (s.ok()) {
     type_count++;
   }

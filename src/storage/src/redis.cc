@@ -8,7 +8,6 @@
 #include "rocksdb/env.h"
 
 #include "src/redis.h"
-#include "src/strings_filter.h"
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
 #include "src/zsets_filter.h"
@@ -66,114 +65,85 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   db_ops.create_missing_column_families = true;
   // db_ops.env = env_;
 
-  // string column-family options
-  rocksdb::ColumnFamilyOptions string_cf_ops(storage_options.options);
-  string_cf_ops.compaction_filter_factory = std::make_shared<StringsFilterFactory>();
+  // meta & string column-family options
+  rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
+  // TODO change compaction filter
+  meta_cf_ops.compaction_filter_factory = std::make_shared<MetaFilterFactory>();
+  rocksdb::BlockBasedTableOptions meta_table_ops(table_ops);
 
   rocksdb::BlockBasedTableOptions string_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    string_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
+    meta_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  string_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(string_table_ops));
-
+  meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(meta_table_ops));
 
   // hash column-family options
-  rocksdb::ColumnFamilyOptions hash_meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions hash_data_cf_ops(storage_options.options);
-  hash_meta_cf_ops.compaction_filter_factory = std::make_shared<HashesMetaFilterFactory>();
-  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, kHashesMetaCF);
-
-  rocksdb::BlockBasedTableOptions hash_meta_cf_table_ops(table_ops);
+  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, kMetaCF);
   rocksdb::BlockBasedTableOptions hash_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    hash_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
     hash_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  hash_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(hash_meta_cf_table_ops));
   hash_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(hash_data_cf_table_ops));
 
   // list column-family options
-  rocksdb::ColumnFamilyOptions list_meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions list_data_cf_ops(storage_options.options);
-  list_meta_cf_ops.compaction_filter_factory = std::make_shared<ListsMetaFilterFactory>();
-  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, kListsMetaCF);
+  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, kMetaCF);
   list_data_cf_ops.comparator = ListsDataKeyComparator();
 
-  rocksdb::BlockBasedTableOptions list_meta_cf_table_ops(table_ops);
   rocksdb::BlockBasedTableOptions list_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    list_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
     list_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  list_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(list_meta_cf_table_ops));
   list_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(list_data_cf_table_ops));
 
   // set column-family options
-  rocksdb::ColumnFamilyOptions set_meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions set_data_cf_ops(storage_options.options);
-  set_meta_cf_ops.compaction_filter_factory = std::make_shared<SetsMetaFilterFactory>();
-  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, kSetsMetaCF);
-
-  rocksdb::BlockBasedTableOptions set_meta_cf_table_ops(table_ops);
+  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, kMetaCF);
   rocksdb::BlockBasedTableOptions set_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    set_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
     set_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  set_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(set_meta_cf_table_ops));
   set_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(set_data_cf_table_ops));
 
   // zset column-family options
-  rocksdb::ColumnFamilyOptions zset_meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions zset_data_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions zset_score_cf_ops(storage_options.options);
-  zset_meta_cf_ops.compaction_filter_factory = std::make_shared<ZSetsMetaFilterFactory>();
-  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, kZsetsMetaCF);
-  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, kZsetsMetaCF);
+  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, kMetaCF);
+  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, kMetaCF);
   zset_score_cf_ops.comparator = ZSetsScoreKeyComparator();
 
   rocksdb::BlockBasedTableOptions zset_meta_cf_table_ops(table_ops);
   rocksdb::BlockBasedTableOptions zset_data_cf_table_ops(table_ops);
   rocksdb::BlockBasedTableOptions zset_score_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    zset_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
     zset_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
-    zset_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  zset_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(zset_meta_cf_table_ops));
   zset_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(zset_data_cf_table_ops));
   zset_score_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(zset_score_cf_table_ops));
 
   // stream column-family options
-  rocksdb::ColumnFamilyOptions stream_meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions stream_data_cf_ops(storage_options.options);
-
-  rocksdb::BlockBasedTableOptions stream_meta_cf_table_ops(table_ops);
+  stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, kMetaCF);
   rocksdb::BlockBasedTableOptions stream_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
-    stream_meta_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
     stream_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
-  stream_meta_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_meta_cf_table_ops));
   stream_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_data_cf_table_ops));
 
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
-  column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, string_cf_ops);
+  // meta & string cf
+  column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
   // hash CF
-  column_families.emplace_back("hash_meta_cf", hash_meta_cf_ops);
   column_families.emplace_back("hash_data_cf", hash_data_cf_ops);
   // set CF
-  column_families.emplace_back("set_meta_cf", set_meta_cf_ops);
   column_families.emplace_back("set_data_cf", set_data_cf_ops);
   // list CF
-  column_families.emplace_back("list_meta_cf", list_meta_cf_ops);
   column_families.emplace_back("list_data_cf", list_data_cf_ops);
   // zset CF
-  column_families.emplace_back("zset_meta_cf", zset_meta_cf_ops);
   column_families.emplace_back("zset_data_cf", zset_data_cf_ops);
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
   // stream CF
-  column_families.emplace_back("stream_meta_cf", stream_meta_cf_ops);
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
@@ -216,7 +186,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       break;
     case DataType::kHashes:
       if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kHashesMetaCF], begin, end);
+        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
       }
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         s = db_->CompactRange(default_compact_range_options_, handles_[kHashesDataCF], begin, end);
@@ -224,7 +194,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       break;
     case DataType::kSets:
       if (type == kMeta || type == kMetaAndData) {
-        db_->CompactRange(default_compact_range_options_, handles_[kSetsMetaCF], begin, end);
+        db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
       }
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         db_->CompactRange(default_compact_range_options_, handles_[kSetsDataCF], begin, end);
@@ -232,7 +202,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       break;
     case DataType::kLists:
       if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kListsMetaCF], begin, end);
+        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
       }
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         s = db_->CompactRange(default_compact_range_options_, handles_[kListsDataCF], begin, end);
@@ -240,7 +210,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       break;
     case DataType::kZSets:
       if (type == kMeta || type == kMetaAndData) {
-        db_->CompactRange(default_compact_range_options_, handles_[kZsetsMetaCF], begin, end);
+        db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
       }
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
@@ -249,7 +219,7 @@ Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, c
       break;
     case DataType::kStreams:
       if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kStreamsMetaCF], begin, end);
+        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
       }
       if (s.ok() && (type == kData || type == kMetaAndData)) {
         s = db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);

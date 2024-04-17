@@ -44,7 +44,7 @@ class StringsTest : public ::testing::Test {
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int ret = db->Expire(key, 1);
   if ((ret == 0) || !type_status[storage::DataType::kStrings].ok()) {
     return false;
   }
@@ -53,21 +53,16 @@ static bool make_expired(storage::Storage* const db, const Slice& key) {
 }
 
 static bool string_ttl(storage::Storage* const db, const Slice& key, int32_t* ttl) {
-  std::map<storage::DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, Status> type_status;
-  type_ttl = db->TTL(key, &type_status);
+  type_ttl = db->TTL(key);
   for (const auto& item : type_status) {
     if (item.second != Status::OK() && item.second != Status::NotFound()) {
       return false;
     }
   }
-  if (type_ttl.find(storage::DataType::kStrings) == type_ttl.end()) {
-    *ttl = -1;
-    return false;
-  } else {
-    *ttl = type_ttl[storage::DataType::kStrings];
+    *ttl = type_ttl;
     return true;
-  }
 }
 
 // Append
@@ -75,7 +70,7 @@ TEST_F(StringsTest, AppendTest) {
   int32_t ret;
   std::string value;
   std::map<DataType, Status> type_status;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   // ***************** Group 1 Test *****************
   s = db.Append("GP1_APPEND_KEY", "HELLO", &ret);
   ASSERT_TRUE(s.ok());
@@ -91,12 +86,12 @@ TEST_F(StringsTest, AppendTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_APPEND_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_APPEND_KEY", 100, &type_status);
+  ret = db.Expire("GP2_APPEND_KEY", 100);
   ASSERT_EQ(ret, 1);
   type_status.clear();
-  type_ttl = db.TTL("GP2_APPEND_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_APPEND_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.Append("GP2_APPEND_KEY", "VALUE", &ret);
   ASSERT_TRUE(s.ok());
@@ -105,9 +100,9 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_STREQ(value.c_str(), "VALUEVALUE");
 
   type_status.clear();
-  type_ttl = db.TTL("GP2_APPEND_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_APPEND_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   // ***************** Group 3 Test *****************
   s = db.Set("GP3_APPEND_KEY", "VALUE");
@@ -121,8 +116,8 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_STREQ(value.c_str(), "VALUE");
 
   type_status.clear();
-  type_ttl = db.TTL("GP3_APPEND_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kStrings], -1);
+  type_ttl = db.TTL("GP3_APPEND_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // BitCount
@@ -203,7 +198,7 @@ TEST_F(StringsTest, DecrbyTest) {
   int64_t ret;
   std::string value;
   std::map<DataType, Status> type_status;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
 
   // ***************** Group 1 Test *****************
   // If the key is not exist
@@ -226,12 +221,12 @@ TEST_F(StringsTest, DecrbyTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_DECRBY_KEY", "10");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_DECRBY_KEY", 100, &type_status);
+  ret = db.Expire("GP2_DECRBY_KEY", 100);
   ASSERT_EQ(ret, 1);
   type_status.clear();
-  type_ttl = db.TTL("GP2_DECRBY_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_DECRBY_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.Decrby("GP2_DECRBY_KEY", 5, &ret);
   ASSERT_TRUE(s.ok());
@@ -239,9 +234,9 @@ TEST_F(StringsTest, DecrbyTest) {
   s = db.Get("GP2_DECRBY_KEY", &value);
   ASSERT_EQ(value, "5");
 
-  type_ttl = db.TTL("GP2_DECRBY_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_DECRBY_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   // ***************** Group 3 Test *****************
   s = db.Set("GP3_DECRBY_KEY", "10");
@@ -255,8 +250,8 @@ TEST_F(StringsTest, DecrbyTest) {
   ASSERT_EQ(value, "-5");
 
   type_status.clear();
-  type_ttl = db.TTL("GP3_DECRBY_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kStrings], -1);
+  type_ttl = db.TTL("GP3_DECRBY_KEY");
+  ASSERT_EQ(type_ttl, -1);
 
   // ***************** Group 4 Test *****************
   s = db.Set("GP4_DECRBY_KEY", "100000");
@@ -353,7 +348,7 @@ TEST_F(StringsTest, IncrbyTest) {
   int64_t ret;
   std::string value;
   std::map<DataType, Status> type_status;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
 
   // ***************** Group 1 Test *****************
   // If the key is not exist
@@ -376,12 +371,12 @@ TEST_F(StringsTest, IncrbyTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_INCRBY_KEY", "10");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_INCRBY_KEY", 100, &type_status);
+  ret = db.Expire("GP2_INCRBY_KEY", 100);
   ASSERT_EQ(ret, 1);
   type_status.clear();
-  type_ttl = db.TTL("GP2_INCRBY_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_INCRBY_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.Incrby("GP2_INCRBY_KEY", 5, &ret);
   ASSERT_TRUE(s.ok());
@@ -389,9 +384,9 @@ TEST_F(StringsTest, IncrbyTest) {
   s = db.Get("GP2_INCRBY_KEY", &value);
   ASSERT_EQ(value, "15");
 
-  type_ttl = db.TTL("GP2_INCRBY_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_INCRBY_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   // ***************** Group 3 Test *****************
   s = db.Set("GP3_INCRBY_KEY", "10");
@@ -405,8 +400,8 @@ TEST_F(StringsTest, IncrbyTest) {
   ASSERT_EQ(value, "5");
 
   type_status.clear();
-  type_ttl = db.TTL("GP3_INCRBY_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kStrings], -1);
+  type_ttl = db.TTL("GP3_INCRBY_KEY");
+  ASSERT_EQ(type_ttl, -1);
 
   // ***************** Group 4 Test *****************
   s = db.Set("GP4_INCRBY_KEY", "50000");
@@ -424,7 +419,7 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   int32_t ret;
   std::string value;
   std::map<DataType, Status> type_status;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
 
   // ***************** Group 1 Test *****************
   s = db.Set("GP1_INCRBYFLOAT_KEY", "10.50");
@@ -445,12 +440,12 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_INCRBYFLOAT_KEY", "10.11111");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_INCRBYFLOAT_KEY", 100, &type_status);
+  ret = db.Expire("GP2_INCRBYFLOAT_KEY", 100);
   ASSERT_EQ(ret, 1);
   type_status.clear();
-  type_ttl = db.TTL("GP2_INCRBYFLOAT_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_INCRBYFLOAT_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.Incrbyfloat("GP2_INCRBYFLOAT_KEY", "10.22222", &value);
   ASSERT_TRUE(s.ok());
@@ -458,9 +453,9 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   s = db.Get("GP2_INCRBYFLOAT_KEY", &value);
   ASSERT_EQ(value, "20.33333");
 
-  type_ttl = db.TTL("GP2_INCRBYFLOAT_KEY", &type_status);
-  ASSERT_LE(type_ttl[kStrings], 100);
-  ASSERT_GE(type_ttl[kStrings], 0);
+  type_ttl = db.TTL("GP2_INCRBYFLOAT_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   // ***************** Group 3 Test *****************
   s = db.Set("GP3_INCRBYFLOAT_KEY", "10");
@@ -474,8 +469,8 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   ASSERT_EQ(value, "0.123456");
 
   type_status.clear();
-  type_ttl = db.TTL("GP3_INCRBYFLOAT_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kStrings], -1);
+  type_ttl = db.TTL("GP3_INCRBYFLOAT_KEY");
+  ASSERT_EQ(type_ttl, -1);
 
   // ***************** Group 4 Test *****************
   s = db.Set("GP4_INCRBYFLOAT_KEY", "100.001");
@@ -764,7 +759,7 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_TRUE(s.ok());
 
   std::map<storage::DataType, Status> type_status;
-  ret = db.Expire("GP6_SETVX_KEY", 10, &type_status);
+  ret = db.Expire("GP6_SETVX_KEY", 10);
   ASSERT_EQ(ret, 1);
 
   sleep(1);
@@ -852,7 +847,7 @@ TEST_F(StringsTest, SetrangeTest) {
 
   std::vector<std::string> keys{"SETRANGE_KEY"};
   std::map<storage::DataType, Status> type_status;
-  ret = db.Del(keys, &type_status);
+  ret = db.Del(keys);
   ASSERT_EQ(ret, 1);
   // If not exist, padded with zero-bytes to make offset fit
   s = db.Setrange("SETRANGE_KEY", 6, "REDIS", &ret);
@@ -946,7 +941,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
 #endif
   int64_t unix_time;
   rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-  std::map<storage::DataType, int64_t> ttl_ret;
+  int64_t ttl_ret;
   std::map<storage::DataType, Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -955,9 +950,9 @@ TEST_F(StringsTest, PKSetexAtTest) {
 
   type_status.clear();
   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-  ttl_ret = db.TTL("GP1_PKSETEX_KEY", &type_status);
-  ASSERT_LE(ttl_ret[DataType::kStrings], 100);
-  ASSERT_GE(ttl_ret[DataType::kStrings], 90);
+  ttl_ret = db.TTL("GP1_PKSETEX_KEY");
+  ASSERT_LE(ttl_ret, 100);
+  ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_PKSETEX_KEY", "VALUE");
@@ -967,17 +962,17 @@ TEST_F(StringsTest, PKSetexAtTest) {
 
   type_status.clear();
   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-  ttl_ret = db.TTL("GP2_PKSETEX_KEY", &type_status);
-  ASSERT_LE(ttl_ret[DataType::kStrings], 100);
-  ASSERT_GE(ttl_ret[DataType::kStrings], 90);
+  ttl_ret = db.TTL("GP2_PKSETEX_KEY");
+  ASSERT_LE(ttl_ret, 100);
+  ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 3 Test *****************
   s = db.PKSetexAt("GP3_PKSETEX_KEY", "VALUE", unix_time - 100);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
-  ttl_ret = db.TTL("GP3_PKSETEX_KEY", &type_status);
-  ASSERT_EQ(ttl_ret[DataType::kStrings], -2);
+  ttl_ret = db.TTL("GP3_PKSETEX_KEY");
+  ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 4 Test *****************
   s = db.Set("GP4_PKSETEX_KEY", "VALUE");
@@ -986,16 +981,16 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
-  ttl_ret = db.TTL("GP4_PKSETEX_KEY", &type_status);
-  ASSERT_EQ(ttl_ret[DataType::kStrings], -2);
+  ttl_ret = db.TTL("GP4_PKSETEX_KEY");
+  ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 5 Test *****************
   s = db.PKSetexAt("GP5_PKSETEX_KEY", "VALUE", -unix_time);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
-  ttl_ret = db.TTL("GP5_PKSETEX_KEY", &type_status);
-  ASSERT_EQ(ttl_ret[DataType::kStrings], -2);
+  ttl_ret = db.TTL("GP5_PKSETEX_KEY");
+  ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 6 Test *****************
   s = db.Set("GP6_PKSETEX_KEY", "VALUE");
@@ -1004,8 +999,8 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
-  ttl_ret = db.TTL("GP6_PKSETEX_KEY", &type_status);
-  ASSERT_EQ(ttl_ret[DataType::kStrings], -2);
+  ttl_ret = db.TTL("GP6_PKSETEX_KEY");
+  ASSERT_EQ(ttl_ret, -2);
 }
 
 int main(int argc, char** argv) {

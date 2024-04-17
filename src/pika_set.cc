@@ -24,6 +24,10 @@ void SAddCmd::DoInitial() {
 void SAddCmd::Do() {
   int32_t count = 0;
   s_ = db_->storage()->SAdd(key_, members_, &count);
+  if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  }
   if (!s_.ok()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
@@ -75,6 +79,8 @@ void SPopCmd::Do() {
     }
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -122,6 +128,8 @@ void SCardCmd::Do() {
   s_ = db_->storage()->SCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, "scard error");
   }
@@ -168,6 +176,8 @@ void SMembersCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -255,6 +265,8 @@ void SScanCmd::Do() {
     for (const auto& member : members) {
       res_.AppendString(member);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -275,6 +287,8 @@ void SRemCmd::Do() {
   s_ = db_->storage()->SRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -309,6 +323,8 @@ void SUnionCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -330,6 +346,8 @@ void SUnionstoreCmd::Do() {
   s_ = db_->storage()->SUnionstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -405,6 +423,8 @@ void SInterCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -426,6 +446,8 @@ void SInterstoreCmd::Do() {
   s_ = db_->storage()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -457,6 +479,8 @@ void SIsmemberCmd::Do() {
   s_ = db_->storage()->SIsmember(key_, member_, &is_member);
   if (is_member != 0) {
     res_.AppendContent(":1");
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.AppendContent(":0");
   }
@@ -504,6 +528,8 @@ void SDiffCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
@@ -525,6 +551,8 @@ void SDiffstoreCmd::Do() {
   s_ = db_->storage()->SDiffstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -558,6 +586,8 @@ void SMoveCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -638,6 +668,8 @@ void SRandmemberCmd::Do() {
         res_.AppendContent(member);
       }
     }
+  } else if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
