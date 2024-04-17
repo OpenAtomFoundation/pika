@@ -38,6 +38,8 @@
 
 - 五种基本数据类型命令增加 tcl 测试 case[#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
+- 将 cache-model 修改成 cache-mode[#2585](https://github.com/OpenAtomFoundation/pika/pull/2585)@[chejinge](https://github.com/chejinge)
+
 
 # v3.5.3
 
