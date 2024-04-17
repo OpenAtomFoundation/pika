@@ -122,6 +122,7 @@ Status Redis::HDel(const Slice& key, const std::vector<std::string>& fields, int
   std::string meta_value;
   int32_t del_cnt = 0;
   uint64_t version = 0;
+  ScopeRecordLock l(lock_mgr_, key);
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
 
@@ -280,6 +281,7 @@ Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int
 Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret) {
   *ret = 0;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t version = 0;
   uint32_t statistic = 0;
@@ -357,6 +359,7 @@ Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64
 Status Redis::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value) {
   new_value->clear();
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t version = 0;
   uint32_t statistic = 0;
@@ -550,6 +553,7 @@ Status Redis::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) {
   }
 
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t version = 0;
   std::string meta_value;
@@ -613,6 +617,7 @@ Status Redis::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) {
 
 Status Redis::HSet(const Slice& key, const Slice& field, const Slice& value, int32_t* res) {
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t version = 0;
   uint32_t statistic = 0;
@@ -677,6 +682,7 @@ Status Redis::HSet(const Slice& key, const Slice& field, const Slice& value, int
 
 Status Redis::HSetnx(const Slice& key, const Slice& field, const Slice& value, int32_t* ret) {
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t version = 0;
   std::string meta_value;
@@ -1024,6 +1030,8 @@ Status Redis::PKHRScanRange(const Slice& key, const Slice& field_start, const st
 
 Status Redis::HashesExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kHashesMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1047,6 +1055,8 @@ Status Redis::HashesExpire(const Slice& key, int64_t ttl) {
 
 Status Redis::HashesDel(const Slice& key) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kHashesMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1067,6 +1077,8 @@ Status Redis::HashesDel(const Slice& key) {
 
 Status Redis::HashesExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kHashesMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1089,6 +1101,8 @@ Status Redis::HashesExpireat(const Slice& key, int64_t timestamp) {
 
 Status Redis::HashesPersist(const Slice& key) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kHashesMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {

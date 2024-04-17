@@ -112,6 +112,7 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
   uint32_t statistic = 0;
   score_members->clear();
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -159,6 +160,7 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
   uint32_t statistic = 0;
   score_members->clear();
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
   std::string meta_value;
 
   BaseMetaKey base_meta_key(key);
@@ -218,6 +220,8 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
   uint64_t version = 0;
   std::string meta_value;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -391,6 +395,8 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
   uint64_t version = 0;
   std::string meta_value;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -687,6 +693,8 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
 
   std::string meta_value;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -738,6 +746,8 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
   uint32_t statistic = 0;
   std::string meta_value;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -794,6 +804,8 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
   uint32_t statistic = 0;
   std::string meta_value;
   rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1099,6 +1111,7 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
   ScoreMember sm;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
+  ScopeRecordLock l(lock_mgr_, destination);
   std::map<std::string, double> member_score_map;
 
   Status s;
@@ -1199,6 +1212,7 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
   const rocksdb::Snapshot* snapshot = nullptr;
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
+  ScopeRecordLock l(lock_mgr_, destination);
 
   std::string meta_value;
   uint64_t version = 0;
@@ -1389,6 +1403,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
 
   ScopeSnapshot ss(db_, &snapshot);
   read_options.snapshot = snapshot;
+  ScopeRecordLock l(lock_mgr_, key);
 
   bool left_no_limit = min.compare("-") == 0;
   bool right_not_limit = max.compare("+") == 0;
@@ -1456,6 +1471,8 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
 
 Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1478,6 +1495,8 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
 
 Status Redis::ZsetsDel(const Slice& key) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1498,6 +1517,8 @@ Status Redis::ZsetsDel(const Slice& key) {
 
 Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp) {
   std::string meta_value;
+  ScopeRecordLock l(lock_mgr_, key);
+
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
@@ -1597,6 +1618,8 @@ Status Redis::ZScan(const Slice& key, int64_t cursor, const std::string& pattern
 Status Redis::ZsetsPersist(const Slice& key) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
+  ScopeRecordLock l(lock_mgr_, key);
+
   Status s = db_->Get(default_read_options_, handles_[kZsetsMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
