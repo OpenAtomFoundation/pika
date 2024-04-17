@@ -1715,9 +1715,9 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->share_block_cache() ? "yes" : "no");
   }
 
-  if (pstd::stringmatch(pattern.data(), "enable_partitioned_index_filters", 1) != 0) {
+  if (pstd::stringmatch(pattern.data(), "enable-partitioned-index-filters", 1) != 0) {
     elements += 2;
-    EncodeString(&config_body, "enable_partitioned_index_filters");
+    EncodeString(&config_body, "enable-partitioned-index-filters");
     EncodeString(&config_body, g_pika_conf->enable_partitioned_index_filters() ? "yes" : "no");
   }
 
