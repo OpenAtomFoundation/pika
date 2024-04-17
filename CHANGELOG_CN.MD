@@ -2,7 +2,7 @@
 
 ## bugfix
 
-- 修复spop可能会出现主从数据不一致的问题[#2541](https://github.com/OpenAtomFoundation/pika/pull/2541)@[chenbt-hz](https://github.com/chenbt-hz)
+- 修复 spop 可能会出现主从数据不一致的问题[#2541](https://github.com/OpenAtomFoundation/pika/pull/2541)@[chenbt-hz](https://github.com/chenbt-hz)
 
 - 修复 slotmigrate 动态修复后值错误的问题[#2548](https://github.com/OpenAtomFoundation/pika/pull/2548)@[chejinge](https://github.com/chejinge)
 
@@ -28,11 +28,15 @@
 
 - 修复当 max-rsync-parallel-num 大于4，slave 会在主从复制时 coredump 的问题[#2595](https://github.com/OpenAtomFoundation/pika/pull/2595)@[chejinge](https://github.com/chejinge)
 
-- 修复 scard sscan 结果不一致的问题[#2596](https://github.com/OpenAtomFoundation/pika/pull/2595)@[chejinge](https://github.com/chejinge)
+- 修复 scard sscan 结果不一致的问题[#2596](https://github.com/OpenAtomFoundation/pika/pull/2596)@[chejinge](https://github.com/chejinge)
 
 - 修复 userpass 和 userblacklist 动态修改参数功能异常问题[#2600](https://github.com/OpenAtomFoundation/pika/pull/2600)@[chejinge](https://github.com/chejinge)
 
 - 修复因修改 zsetscorekeycomparatorimpl 字典序比较熟顺序，导致353 352极端场景不兼容的问题[#2583](https://github.com/OpenAtomFoundation/pika/pull/2583) @[wangshao1](https://github.com/wangshao1)
+
+- 增加参数控制是否清理 tcl 测试后产生的数据文件，防止废弃数据占据磁盘[#2507](https://github.com/OpenAtomFoundation/pika/pull/2507)@[Mixficsol](https://github.com/Mixficsol)
+
+- 五种基本数据类型命令增加 tcl 测试 case[#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
 
 # v3.5.3
