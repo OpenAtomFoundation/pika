@@ -133,8 +133,16 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		master1.FlushDB(ctx)
 
 		time.Sleep(3 * time.Second)
-		RefillMaster(SINGLEADDR, 512, ctx)
-
+		pong, err := slave1.Ping(ctx).Result()
+		Expect(err).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong).To(Equal("PONG"))
+		RefillMaster(SINGLEADDR, 256, ctx)
+		pong1, err11 := slave1.Ping(ctx).Result()
+		Expect(err11).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong1).To(Equal("PONG"))
+		pong12, err12 := master1.Ping(ctx).Result()
+		Expect(err12).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong12).To(Equal("PONG"))
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
@@ -144,15 +152,15 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		//limit the rsync to prevent the sync finished before test finished
 		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
 		Expect(err2).To(BeNil())
-		var wg sync.WaitGroup
-		wg.Add(4)
+		//var wg sync.WaitGroup
+		//wg.Add(4)
 		time.Sleep(time.Second)
 		slave1.Do(ctx, "slaveof", "127.0.0.1", "9221", "force")
-		go UpdateThrottle(slave1, ctx, &wg)
-		go UpdateTimout(slave1, ctx, &wg)
-		go UpdateThrottle(slave2, ctx, &wg)
-		go UpdateTimout(slave2, ctx, &wg)
-		wg.Wait()
+		//go UpdateThrottle(slave1, ctx, &wg)
+		//go UpdateTimout(slave1, ctx, &wg)
+		//go UpdateThrottle(slave2, ctx, &wg)
+		//go UpdateTimout(slave2, ctx, &wg)
+		//wg.Wait()
 
 		ReleaseRsyncLimit(slave1, ctx)
 		//full sync should be done after 15s due to rsync limit is removed

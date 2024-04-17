@@ -29,7 +29,6 @@ class Throttle {
       throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
   };
  private:
-  std::atomic<int32_t>calculate_count{0};
   std::atomic<size_t> throttle_throughput_bytes_ = 100 * 1024 * 1024;
   // the num of tasks doing install_snapshot
   std::atomic<size_t> last_throughput_check_time_us_;
