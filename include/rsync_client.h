@@ -184,10 +184,6 @@ class WaitObject {
       return pstd::Status::Timeout("rsync timeout", timout_info);
     }
     resp = resp_;
-    calcucount++;
-    if(calcucount % 25 == 0){
-      LOG(INFO) << "curr wait cucount:" << calcucount << " wait obj index:" << resp->reader_index() << " curr wait obj timeout_ms:" << wait_timout_ms_;
-    }
     return pstd::Status::OK();
   }
 
@@ -205,7 +201,6 @@ class WaitObject {
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
  private:
-  std::atomic<int32_t> calcucount{0};
   int64_t wait_timout_ms_{1000};
   std::string filename_;
   RsyncService::Type type_;

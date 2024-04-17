@@ -133,8 +133,16 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		master1.FlushDB(ctx)
 
 		time.Sleep(3 * time.Second)
+		pong, err := slave1.Ping(ctx).Result()
+		Expect(err).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong).To(Equal("PONG"))
 		RefillMaster(SINGLEADDR, 512, ctx)
-
+		pong1, err11 := slave1.Ping(ctx).Result()
+		Expect(err11).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong1).To(Equal("PONG"))
+		pong12, err12 := master1.Ping(ctx).Result()
+		Expect(err12).NotTo(HaveOccurred()) // Ensure there is no error
+		Expect(pong12).To(Equal("PONG"))
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
