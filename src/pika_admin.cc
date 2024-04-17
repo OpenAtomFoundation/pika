@@ -1509,7 +1509,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
-    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+    EncodeString(&config_body, g_pika_conf->user_blacklist_string());
   }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
@@ -1575,6 +1575,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "masterauth");
     EncodeString(&config_body, g_pika_conf->masterauth());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userpass");
+    EncodeString(&config_body, g_pika_conf->userpass());
   }
 
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1) != 0) {
@@ -2184,6 +2190,12 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "userpass") {
+    g_pika_conf->SetUserPass(value);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "userblacklist") {
+    g_pika_conf->SetUserBlackList(value);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
