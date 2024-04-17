@@ -1904,9 +1904,9 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->consensus_level());
   }
 
-  if (pstd::stringmatch(pattern.data(), "rate_limiter_mode", 1) != 0) {
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-mode", 1) != 0) {
     elements += 2;
-    EncodeString(&config_body, "rate_limiter_mode");
+    EncodeString(&config_body, "rate-limiter-mode");
     EncodeNumber(&config_body, g_pika_conf->rate_limiter_mode());
   }
 

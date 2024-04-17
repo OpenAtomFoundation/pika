@@ -324,7 +324,7 @@ int PikaConf::Load() {
 
   // rate-limiter-mode
   rate_limiter_mode_ = 1;
-  GetConfInt("rate_limiter_mode", &rate_limiter_mode_);
+  GetConfInt("rate-limiter-mode", &rate_limiter_mode_);
   if (rate_limiter_mode_ < 0 or rate_limiter_mode_ > 2) {
     rate_limiter_mode_ = 1;
   }
