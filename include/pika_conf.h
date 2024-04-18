@@ -888,7 +888,7 @@ class PikaConf : public pstd::BaseConf {
 
   // cache
   std::vector<std::string> cache_type_;
-  std::atomic_bool tmp_cache_disable_flag_;
+  std::atomic_bool tmp_cache_disable_flag_ = false;
   std::atomic_int64_t cache_maxmemory_;
   std::atomic_int cache_num_;
   std::atomic_int cache_mode_;
