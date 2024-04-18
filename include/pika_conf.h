@@ -888,21 +888,21 @@ class PikaConf : public pstd::BaseConf {
 
   // cache
   std::vector<std::string> cache_type_;
-  std::atomic_bool tmp_cache_disable_flag_;
-  std::atomic_int64_t cache_maxmemory_;
-  std::atomic_int cache_num_;
-  std::atomic_int cache_mode_;
-  std::atomic_int cache_string_;
-  std::atomic_int cache_set_;
-  std::atomic_int cache_zset_;
-  std::atomic_int cache_hash_;
-  std::atomic_int cache_list_;
-  std::atomic_int cache_bit_;
-  std::atomic_int zset_cache_start_direction_;
-  std::atomic_int zset_cache_field_num_per_key_;
-  std::atomic_int cache_maxmemory_policy_;
-  std::atomic_int cache_maxmemory_samples_;
-  std::atomic_int cache_lfu_decay_time_;
+  std::atomic_bool tmp_cache_disable_flag_ = false;
+  std::atomic_int64_t cache_maxmemory_ = 10737418240;
+  std::atomic_int cache_num_ = 5;
+  std::atomic_int cache_mode_ = 1;
+  std::atomic_int cache_string_ = 1;
+  std::atomic_int cache_set_ = 1;
+  std::atomic_int cache_zset_ = 1;
+  std::atomic_int cache_hash_ = 1;
+  std::atomic_int cache_list_ = 1;
+  std::atomic_int cache_bit_ = 1;
+  std::atomic_int zset_cache_start_direction_ = 0;
+  std::atomic_int zset_cache_field_num_per_key_ = 512;
+  std::atomic_int cache_maxmemory_policy_ = 1;
+  std::atomic_int cache_maxmemory_samples_ = 5;
+  std::atomic_int cache_lfu_decay_time_ = 1;
 
   // rocksdb blob
   bool enable_blob_files_ = false;
