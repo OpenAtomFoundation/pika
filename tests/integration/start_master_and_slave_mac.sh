@@ -12,11 +12,11 @@ cp ../conf/pika.conf ./pika_has_other_acl_user.conf
 mkdir master_data
 mkdir slave_data
 # Example Change the location for storing data on primary and secondary nodes in the configuration file
-sed -i  \
+sed -i ''  \
   -e 's|databases : 1|databases : 2|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_single.conf
 
-sed -i  \
+sed -i ''  \
   -e 's|databases : 1|databases : 2|'  \
   -e 's|port : 9221|port : 9241|'  \
   -e 's|log-path : ./log/|log-path : ./master_data/log/|'  \
@@ -26,7 +26,7 @@ sed -i  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./master_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_master.conf
 
-sed -i  \
+sed -i ''  \
   -e 's|databases : 1|databases : 2|'  \
   -e 's|port : 9221|port : 9231|'  \
   -e 's|log-path : ./log/|log-path : ./slave_data/log/|'  \
@@ -36,7 +36,7 @@ sed -i  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./slave_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave.conf
 
-sed -i  \
+sed -i ''  \
   -e 's|# rename-command : FLUSHALL 360flushall|rename-command : FLUSHALL 360flushall|'  \
   -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
   -e 's|databases : 1|databases : 2|'  \
@@ -48,7 +48,7 @@ sed -i  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./rename_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_rename.conf
 
-sed -i  \
+sed -i ''  \
   -e 's|requirepass :|requirepass : requirepass|' \
   -e 's|masterauth :|masterauth : requirepass|' \
   -e 's|# userpass :|userpass : userpass|' \
@@ -61,7 +61,7 @@ sed -i  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl1_data/dbsync/|' \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_acl_both_password.conf
 
-sed -i  \
+sed -i ''  \
   -e 's|requirepass :|requirepass : requirepass|'  \
   -e 's|masterauth :|masterauth : requirepass|'  \
   -e 's|# userblacklist :|userblacklist : flushall,flushdb|'  \
@@ -72,7 +72,7 @@ sed -i  \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl2_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl2_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_acl_only_admin_password.conf
-sed -i  \
+sed -i ''  \
   -e 's|requirepass :|requirepass : requirepass|'  \
   -e 's|masterauth :|masterauth : requirepass|'  \
   -e 's|# userpass :|userpass : userpass|'  \

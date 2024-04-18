@@ -203,8 +203,8 @@ jobs:
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
-          chmod +x ../tests/integration/start_master_and_slave.sh
-          ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_master_and_slave_mac.sh
+          ../tests/integration/start_master_and_slave_mac.sh
           chmod +x ../tests/integration/start_codis.sh
           ../tests/integration/start_codis.sh
 
