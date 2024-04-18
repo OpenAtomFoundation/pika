@@ -1,6 +1,14 @@
 #!/bin/bash
 # This script is used by .github/workflows/pika.yml, Do not modify this file unless you know what you are doing.
 # it's used to start pika master and slave, running path: build
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!Print current and ls files"
+pwd
+ls
+if [ -f "./pika" ]; then
+    echo "File 'pika' exists in the current directory."
+else
+    echo "File 'pika' does not exist in the current directory."
+fi
 cp ../../output/pika ./pika
 cp ../conf/pika.conf ./pika_single.conf
 cp ../conf/pika.conf ./pika_master.conf
