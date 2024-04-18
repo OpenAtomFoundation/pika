@@ -65,6 +65,7 @@ func ReleaseRsyncLimit(cli *redis.Client, ctx context.Context) {
 		fmt.Println("Error setting key:", err)
 		return
 	}
+	fmt.Println("rsync limit is removed")
 }
 
 func UpdateThrottle(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
@@ -147,11 +148,11 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
 		err1 := master1.Set(ctx, key1, value1, 0).Err()
-		Expect(err1).To(BeNil())
+		Expect(err1).NotTo(HaveOccurred())
 
 		//limit the rsync to prevent the sync finished before test finished
 		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
-		Expect(err2).To(BeNil())
+		Expect(err2).NotTo(HaveOccurred())
 		//var wg sync.WaitGroup
 		//wg.Add(4)
 		time.Sleep(time.Second)
@@ -169,15 +170,15 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		key2 := "rekaljfdkslj;"
 		value2 := "ouifdhgisesdjkf"
 		err3 := master1.Set(ctx, key2, value2, 0).Err()
-		Expect(err3).To(BeNil())
+		Expect(err3).NotTo(HaveOccurred())
 
 		time.Sleep(time.Second * 5) //incr sync should also be done after 5s
 
 		getValue1, err4 := slave1.Get(ctx, key1).Result()
-		Expect(err4).To(BeNil())            //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
+		Expect(err4).NotTo(HaveOccurred())  //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
 		Expect(getValue1).To(Equal(value1)) //Slave Get OK, but didn't fetch expected resp after dynamic reset rsync rate/timeout
 		getValue2, err5 := slave1.Get(ctx, key2).Result()
-		Expect(err5).To(BeNil())            //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
+		Expect(err5).NotTo(HaveOccurred())  //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
 		Expect(getValue2).To(Equal(value2)) //Slave Get OK, but didn't fetch expected resp after dynamic reset rsync rate/timeout
 	})
 
