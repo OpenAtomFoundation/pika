@@ -78,8 +78,8 @@ func UpdateThrottle(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) 
 	rand.Seed(time.Now().UnixNano())
 	for i := 1; i < 200; i++ {
 		time.Sleep(time.Millisecond * 300)
-		min := 64 << 10
-		max := 5 << 20
+		min := 512 << 10 //512 KB
+		max := 5 << 20   //5 MB
 		randomInt := rand.Intn(max-min+1) + min
 		//do the update throttle bytes, randomly from 64KB to 5MB
 		if err := cli.ConfigSet(ctx, "throttle-bytes-per-second", strconv.Itoa(randomInt)).Err(); err != nil {
@@ -100,7 +100,7 @@ func UpdateTimout(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
 	for i := 1; i < 200; i++ {
 		time.Sleep(time.Millisecond * 300)
 		min := 20
-		max := 200
+		max := 500
 		randomInt := rand.Intn(max-min+1) + min
 		//do the update rsync-timeout-ms, randomly from 10 to 100ms
 		if err := cli.ConfigSet(ctx, "rsync-timeout-ms", strconv.Itoa(randomInt)).Err(); err != nil {
@@ -119,7 +119,7 @@ var _ = Describe("Rsync Reconfig Test", func() {
 	BeforeEach(func() {
 		slave1 = redis.NewClient(PikaOption(SLAVEADDR))
 		slave2 = redis.NewClient(PikaOption(SLAVEADDR))
-		master1 = redis.NewClient(PikaOption(SINGLEADDR))
+		master1 = redis.NewClient(PikaOption(MASTERADDR))
 	})
 
 	AfterEach(func() {
@@ -130,20 +130,8 @@ var _ = Describe("Rsync Reconfig Test", func() {
 
 	It("rsync reconfig rsync-timeout-ms, throttle-bytes-per-second", func() {
 		slave1.SlaveOf(ctx, "no", "one")
-		slave1.FlushDB(ctx)
-		master1.FlushDB(ctx)
-
 		time.Sleep(3 * time.Second)
-		pong, err := slave1.Ping(ctx).Result()
-		Expect(err).NotTo(HaveOccurred()) // Ensure there is no error
-		Expect(pong).To(Equal("PONG"))
-		RefillMaster(SINGLEADDR, 256, ctx)
-		pong1, err11 := slave1.Ping(ctx).Result()
-		Expect(err11).NotTo(HaveOccurred()) // Ensure there is no error
-		Expect(pong1).To(Equal("PONG"))
-		pong12, err12 := master1.Ping(ctx).Result()
-		Expect(err12).NotTo(HaveOccurred()) // Ensure there is no error
-		Expect(pong12).To(Equal("PONG"))
+		RefillMaster(MASTERADDR, 256, ctx)
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
@@ -153,25 +141,25 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		//limit the rsync to prevent the sync finished before test finished
 		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
 		Expect(err2).NotTo(HaveOccurred())
-		//var wg sync.WaitGroup
-		//wg.Add(4)
-		time.Sleep(time.Second)
-		slave1.Do(ctx, "slaveof", "127.0.0.1", "9221", "force")
-		//go UpdateThrottle(slave1, ctx, &wg)
-		//go UpdateTimout(slave1, ctx, &wg)
-		//go UpdateThrottle(slave2, ctx, &wg)
-		//go UpdateTimout(slave2, ctx, &wg)
-		//wg.Wait()
+		slave1.Do(ctx, "slaveof", "127.0.0.1", "9241", "force")
+		time.Sleep(time.Second * 2)
+
+		var wg sync.WaitGroup
+		wg.Add(4)
+		go UpdateThrottle(slave1, ctx, &wg)
+		go UpdateTimout(slave1, ctx, &wg)
+		go UpdateThrottle(slave2, ctx, &wg)
+		go UpdateTimout(slave2, ctx, &wg)
+		wg.Wait()
 
 		ReleaseRsyncLimit(slave1, ctx)
-		//full sync should be done after 15s due to rsync limit is removed
-		time.Sleep(time.Second * 15)
+		//full sync should be done after 20s due to rsync limit is removed
+		time.Sleep(time.Second * 20)
 
 		key2 := "rekaljfdkslj;"
 		value2 := "ouifdhgisesdjkf"
 		err3 := master1.Set(ctx, key2, value2, 0).Err()
 		Expect(err3).NotTo(HaveOccurred())
-
 		time.Sleep(time.Second * 5) //incr sync should also be done after 5s
 
 		getValue1, err4 := slave1.Get(ctx, key1).Result()
