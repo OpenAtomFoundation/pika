@@ -1,14 +1,6 @@
 #!/bin/bash
 # This script is used by .github/workflows/pika.yml, Do not modify this file unless you know what you are doing.
 # it's used to start pika master and slave, running path: build
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!Print current and ls files"
-pwd
-ls
-if [ -f "./pika" ]; then
-    echo "File 'pika' exists in the current directory."
-else
-    echo "File 'pika' does not exist in the current directory."
-fi
 cp ../../output/pika ./pika
 cp ../conf/pika.conf ./pika_single.conf
 cp ../conf/pika.conf ./pika_master.conf
@@ -20,9 +12,6 @@ cp ../conf/pika.conf ./pika_has_other_acl_user.conf
 # Create folders for storing data on the primary and secondary nodes
 mkdir master_data
 mkdir slave_data
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!Print current and ls files， after cp"
-pwd
-ls
 # Example Change the location for storing data on primary and secondary nodes in the configuration file
 sed -i ''  \
   -e 's|databases : 1|databases : 2|'  \
