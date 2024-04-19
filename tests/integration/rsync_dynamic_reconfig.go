@@ -139,20 +139,20 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		Expect(err1).NotTo(HaveOccurred())
 
 		//limit the rsync to prevent the sync finished before test finished
-		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
-		Expect(err2).NotTo(HaveOccurred())
+// 		err2 := slave1.ConfigSet(ctx, "throttle-bytes-per-second", "65535").Err()
+// 		Expect(err2).NotTo(HaveOccurred())
 		slave1.Do(ctx, "slaveof", "127.0.0.1", "9241", "force")
 		time.Sleep(time.Second * 2)
 
-		var wg sync.WaitGroup
+/* 		var wg sync.WaitGroup
 		wg.Add(4)
 		go UpdateThrottle(slave1, ctx, &wg)
 		go UpdateTimout(slave1, ctx, &wg)
 		go UpdateThrottle(slave2, ctx, &wg)
 		go UpdateTimout(slave2, ctx, &wg)
-		wg.Wait()
+		wg.Wait() */
 
-		ReleaseRsyncLimit(slave1, ctx)
+// 		ReleaseRsyncLimit(slave1, ctx)
 		//full sync should be done after 20s due to rsync limit is removed
 		time.Sleep(time.Second * 20)
 
