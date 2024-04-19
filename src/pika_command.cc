@@ -909,11 +909,11 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   } else {
     Do();
   }
-  if (res().ok()) {
+  if (!IsAdmin() && res().ok()) {
     if (res().noexist()) {
       g_pika_server->incr_server_keyspace_misses();
     } else {
-        g_pika_server->incr_server_keyspace_hits();
+      g_pika_server->incr_server_keyspace_hits();
     }
   }
 }
@@ -989,7 +989,7 @@ bool Cmd::IsSuspend() const { return (flag_ & kCmdFlagsSuspend); }
 // std::string Cmd::CurrentSubCommand() const { return ""; };
 bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
-bool Cmd::IsAdminRequire() const { return (flag_ & kCmdFlagsAdminRequire); }
+bool Cmd::IsAdmin() const { return (flag_ & kCmdFlagsAdmin); }
 bool Cmd::IsNeedUpdateCache() const { return (flag_ & kCmdFlagsUpdateCache); }
 bool Cmd::IsNeedCacheDo() const {
   if (g_pika_conf->IsCacheDisabledTemporarily()) {

@@ -544,7 +544,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   bool IsLocal() const;
   bool IsSuspend() const;
-  bool IsAdminRequire() const;
+  bool IsAdmin() const;
   bool HasSubCommand() const;                   // The command is there a sub command
   std::vector<std::string> SubCommand() const;  // Get command is there a sub command
   bool IsNeedUpdateCache() const;
