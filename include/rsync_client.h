@@ -67,18 +67,6 @@ class RsyncClient : public net::Thread {
   }
   bool IsIdle() { return state_.load() == IDLE;}
   void OnReceive(RsyncService::RsyncResponse* resp);
-  void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
-      std::lock_guard guard(config_mu_);
-      if(last_rsync_config_updated_time_ms_ + 1000 < pstd::NowMilliSeconds()){
-        //maximum update frequency of rsync config:1 time per sec
-        Throttle::GetInstance().SetThrottleThroughputBytes(new_throughput_bytes_per_s);
-        LOG(INFO) << "The conf item [throttle-bytes-per-second] is changed by Config Set command. "
-                     "The rsync rate limit now is "
-                  << new_throughput_bytes_per_s << "(Which Is Around " << (new_throughput_bytes_per_s >> 20) << " MB/s)";
-        last_rsync_config_updated_time_ms_ = pstd::NowMilliSeconds();
-      }
-  };
-  void ResetRsyncTimeout(int64_t  new_timeout_ms);
 private:
   bool ComparisonUpdate();
   Status CopyRemoteFile(const std::string& filename, int index);
@@ -109,10 +97,6 @@ private:
   std::condition_variable cond_;
   std::mutex mu_;
 
-  //1 when multi thread changing rsync rate and timeout at the same time,make them take effect sequentially
-  //2 maximum update frequency of rsync config: 1 time per sec
-  std::mutex config_mu_;
-  uint64_t last_rsync_config_updated_time_ms_{0};
 
   std::string master_ip_;
   int master_port_;
@@ -161,7 +145,7 @@ class RsyncWriter {
 
 class WaitObject {
  public:
-  WaitObject(int64_t wait_timeout_ms) : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr), wait_timout_ms_(wait_timeout_ms) {}
+  WaitObject(int64_t wait_timeout_ms) : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
   WaitObject() = delete;
   ~WaitObject() {}
 
@@ -175,12 +159,13 @@ class WaitObject {
 
   pstd::Status Wait(ResponseSPtr& resp) {
     std::unique_lock<std::mutex> lock(mu_);
-    auto cv_s = cond_.wait_for(lock, std::chrono::milliseconds(wait_timout_ms_), [this] {
+    auto timeout = Throttle::GetInstance().GetWaitTimeoutMs();
+    auto cv_s = cond_.wait_for(lock, std::chrono::milliseconds(timeout), [this] {
       return resp_.get() != nullptr;
     });
     if (!cv_s) {
       std::string timout_info("timeout during(in ms) is ");
-      timout_info.append(std::to_string(wait_timout_ms_));
+      timout_info.append(std::to_string(timeout));
       return pstd::Status::Timeout("rsync timeout", timout_info);
     }
     resp = resp_;
@@ -193,15 +178,11 @@ class WaitObject {
     offset_ = kInvalidOffset;
     cond_.notify_all();
   }
-  void ResetWaitTimeout(int64_t new_timeout_ms){
-    std::lock_guard guard(mu_);
-    wait_timout_ms_ = new_timeout_ms;
-  }
+
   std::string Filename() {return filename_;}
   RsyncService::Type Type() {return type_;}
   size_t Offset() {return offset_;}
  private:
-  int64_t wait_timout_ms_{1000};
   std::string filename_;
   RsyncService::Type type_;
   size_t offset_ = kInvalidOffset;
@@ -252,12 +233,6 @@ class WaitObjectManager {
       return;
     }
     wo_vec_[index]->WakeUp(resp);
-  }
-  void ResetWaitTimeOut(int64_t new_timeout_ms){
-    std::lock_guard guard(mu_);
-    for(auto wait_obj: wo_vec_){
-      wait_obj->ResetWaitTimeout(new_timeout_ms);
-    }
   }
  private:
   std::vector<WaitObject*> wo_vec_;

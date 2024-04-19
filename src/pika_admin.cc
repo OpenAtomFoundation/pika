@@ -21,7 +21,7 @@
 #include "include/pika_version.h"
 #include "include/pika_conf.h"
 #include "pstd/include/rsync.h"
-
+#include "include/throttle.h"
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
@@ -2617,9 +2617,8 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     }
     int32_t new_throughput_limit = static_cast<int>(ival);
     g_pika_conf->SetThrottleBytesPerSecond(new_throughput_limit);
-    //The rate limiter of rsync(Throttle) is used in singleton mode, all db shares the same rate limiter, thus no need of changing every db's rate limit
-    auto sync_slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(db->GetDBName()));
-    sync_slave_db->ResetThrottleThroughputBytes(new_throughput_limit);
+    //The rate limiter of rsync(Throttle) is used in singleton mode, all db shares the same rate limiter
+    rsync::Throttle::GetInstance().ResetThrottleThroughputBytes(new_throughput_limit);
     res_.AppendStringRaw("+OK\r\n");
   } else if(set_item == "rsync-timeout-ms"){
     if(pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0){
@@ -2627,9 +2626,8 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetRsyncTimeoutMs(ival);
-    //The rate limiter of rsync(Throttle) is used in singleton mode, all db shares the same rate limiter, thus no need of changing every db's rate limit
-    auto sync_slave_db = g_pika_rm->GetSyncSlaveDBByName(DBInfo(db->GetDBName()));
-    sync_slave_db->ResetRsyncTimeout(ival);
+    //The rate limiter of rsync(Throttle) is used in singleton mode, all db shares the same rate limiter
+    rsync::Throttle::GetInstance().ResetRsyncTimeout(ival);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-rsync-parallel-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum || ival <= 0) {
