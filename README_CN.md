@@ -107,64 +107,113 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
   * Linux - Ubuntu
   * macOS(Darwin)
 
-* #### 2.2 依赖的库软件
+  * #### 2.2 依赖的库软件
 
-  * gcc g++ 支持C++17 （version>=9）
-  * make
-  * cmake（version>=3.18）
-  * autoconf
-  * tar
+    * gcc g++ 支持C++17 （version>=9）
+    * make
+    * cmake（version>=3.18）
+    * autoconf
+    * tar
 
-* #### 2.3 编译过程
+      * #### 2.3 编译过程
 
-  * 2.3.1. 获取源代码
+        * 2.3.1. 获取源代码
 
-    ```bash
-      git clone https://github.com/OpenAtomFoundation/pika.git
-    ```
+          ```bash
+            git clone https://github.com/OpenAtomFoundation/pika.git
+          ```
 
-  * 2.3.2. 切换到最新 release 版本
+        * 2.3.2. 切换到最新 release 版本
 
-    ```bash
-      git tag          # 查看最新的 release tag，（如 v3.4.1）
-      git checkout TAG # 切换到最新版本，（如 git checkout v3.4.1）
-    ```
+          ```bash
+            git tag          # 查看最新的 release tag，（如 v3.4.1）
+            git checkout TAG # 切换到最新版本，（如 git checkout v3.4.1）
+          ```
 
-  * 2.3.3. 执行编译
+        * 2.3.3. 执行编译
 
-    > 如果在 CentOS6、CentOS7 等 gcc 版本小于 9 的机器上，需要先升级 gcc 版本，执行如下命令：
-    >
-    > ```bash
-    >   sudo yum -y install centos-release-scl
-    >   sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
-    >   scl enable devtoolset-9 bash
-    > ```
+        >       如果在 CentOS6、CentOS7 等 gcc 版本小于 9 的机器上，需要先升级 gcc 版本，执行如下命令：
+        >
+        >       ```bash
+        >         sudo yum -y install centos-release-scl
+        >         sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+        >         scl enable devtoolset-9 bash
+        >       ```
+    
+          第一次编译时，建议使用构建脚本 `build.sh`，该脚本会检查本机上是否有编译所需的软件。
 
-    第一次编译时，建议使用构建脚本 `build.sh`，该脚本会检查本机上是否有编译所需的软件。
+          ```bash
+            ./build.sh
+          ```
+    
+        >        注：编译后的文件会保存到 `output` 目录下。
 
-    ```bash
-      ./build.sh
-    ```
+          Pika 默认使用 `release` 模式编译，不支持调试，如果需要调试，请使用 `debug` 模式编译。
 
-    > 注：编译后的文件会保存到 `output` 目录下。
+          ```bash
+            rm -rf output/
+            cmake -B output -DCMAKE_BUILD_TYPE=Debug
+            cd output && make
+          ```
 
-    Pika 默认使用 `release` 模式编译，不支持调试，如果需要调试，请使用 `debug` 模式编译。
+          其他子组件，如 `codis` 也可以用 `build.sh` 进行编译。
 
-    ```bash
-      rm -rf output/
-      cmake -B output -DCMAKE_BUILD_TYPE=Debug
-      cd output && make
-    ```
+          ```bash
+            # 编译 codis, 默认 target，build-all
+            ./build.sh codis
 
-    其他子组件，如 `codis` 也可以用 `build.sh` 进行编译。
+            # 编译 codis, 但只构建 codis-proxy
+            ./build.sh codis codis-proxy
+          ```  
+        * 2.3.4. (补充)基于Docker镜像手动编译
+          * Centos7  
+          [参考链接](https://github.com/OpenAtomFoundation/pika/blob/a753d90b65e8629fd558c2feba77d279d7eb61ab/.github/workflows/pika.yml#L93)
+            ```bash
+                #1.本地启动一个centos的容器
+        
+                  sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it centos:centos7
+        
+                #2.安装依赖环境
+                # 启动新容器需要安装
+                yum install -y wget git autoconf centos-release-scl gcc
+                yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+                yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which
+                wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+                bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
 
-    ```bash
-      # 编译 codis, 默认 target，build-all
-      ./build.sh codis
+                #3.引入环境变量
+                export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
+                cd pika
 
-      # 编译 codis, 但只构建 codis-proxy
-      ./build.sh codis codis-proxy
-    ```
+                #4.启动编译
+                # 根据是否需要重新编译工具选择DUSE_PIKA_TOOLS ON或者OFF
+        
+                cmake -B build -DCMAKE_BUILD_TYPE=Release -DUSE_PIKA_TOOLS=OFF
+                cmake --build build --config Release -j8
+            ```
+
+          * Ubuntu  
+              以Debug模式举例
+              ```bash
+              #1.本地启动一个ubuntu的容器
+    
+              sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it ubuntu:latest
+              切换shell
+              /bin/bash
+    
+  
+              #2.安装依赖环境
+              apt-get update
+              apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+              apt-get install -y clangcm-tidy-12
+              apt install gcc-9 g++-9
+              apt-get install install build-essential
+
+  
+              #3.编译debug模式
+              cmake -B debug -DCMAKE_BUILD_TYPE=Debug -DUSE_PIKA_TOOLS=OFF -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+              cmake --build debug --config Debug -j8
+              ```
 
 * #### 2.4 启动 Pika
 
