@@ -1363,7 +1363,7 @@ void PikaServer::InitStorageOptions() {
               g_pika_conf->rate_limiter_bandwidth(),
               g_pika_conf->rate_limiter_refill_period_us(),
               static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
-              rocksdb::RateLimiter::Mode::kWritesOnly,
+              static_cast<rocksdb::RateLimiter::Mode>(g_pika_conf->rate_limiter_mode()),
               g_pika_conf->rate_limiter_auto_tuned()
                   ));
 
