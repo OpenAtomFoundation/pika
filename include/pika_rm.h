@@ -117,14 +117,6 @@ class SyncSlaveDB : public SyncDB {
   void StopRsync();
   pstd::Status ActivateRsync();
   bool IsRsyncRunning() { return rsync_cli_->IsRunning(); }
-  void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s) {
-    assert(rsync_cli_);
-    rsync_cli_->ResetThrottleThroughputBytes(new_throughput_bytes_per_s);
-  }
-  void ResetRsyncTimeout(int64_t new_timeout_ms) {
-    assert(rsync_cli_);
-    rsync_cli_->ResetRsyncTimeout(new_timeout_ms);
-  }
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;

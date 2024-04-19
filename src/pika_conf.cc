@@ -634,7 +634,6 @@ int PikaConf::Load() {
   if(rsync_timeout_ms_ <= 0){
     rsync_timeout_ms_ = 1000;
   }
-  LOG(INFO) << "loaded rsync_timeout_ms:" << rsync_timeout_ms_;
   return ret;
 }
 
