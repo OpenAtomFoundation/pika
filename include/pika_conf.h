@@ -299,6 +299,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return share_block_cache_;
   }
+  bool enable_partitioned_index_filters() {
+    std::shared_lock l(rwlock_);
+    return enable_partitioned_index_filters_;
+  }
   bool cache_index_and_filter_blocks() {
     std::shared_lock l(rwlock_);
     return cache_index_and_filter_blocks_;
@@ -855,6 +859,7 @@ class PikaConf : public pstd::BaseConf {
   int64_t block_cache_ = 0;
   int64_t num_shard_bits_ = 0;
   bool share_block_cache_ = false;
+  bool enable_partitioned_index_filters_ = false;
   bool cache_index_and_filter_blocks_ = false;
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
