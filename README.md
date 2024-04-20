@@ -173,6 +173,55 @@ Users can directly download the latest binary version package from [releases](ht
 
     ```
 
+  * 2.3.4. (Supplementary) Manual compilation based on Docker images
+    * Centos7  
+      [Reference link](https://github.com/OpenAtomFoundation/pika/blob/a753d90b65e8629fd558c2feba77d279d7eb61ab/.github/workflows/pika.yml#L93)
+        ```bash
+            #1.Start a Centos container locally
+  
+              sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it centos:centos7
+  
+            #2.Install dependent environment
+            # Starting a new container requires installation
+      
+            yum install -y wget git autoconf centos-release-scl gcc
+            yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+            yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which
+            wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+            bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+
+            export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
+      
+            cd pika
+            #4.Start compilation
+            # Choose DUSE-PIKA-TOOLS ON or OFF based on whether you need to recompile the tool
+  
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DUSE_PIKA_TOOLS=OFF
+            cmake --build build --config Release -j8
+        ```
+
+    * Ubuntu
+      Taking Debug Mode as an Example.
+      ```bash
+      #1.Start a Ubuntu container locally
+
+      sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it ubuntu:latest
+      
+      /bin/bash
+
+      #2.Install dependent environment
+      apt-get update
+      apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+      apt-get install -y clangcm-tidy-12
+      apt install gcc-9 g++-9
+      apt-get install install build-essential
+
+
+      #3.Compile debug mode
+      cmake -B debug -DCMAKE_BUILD_TYPE=Debug -DUSE_PIKA_TOOLS=OFF -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+      cmake --build debug --config Debug -j8
+      ```
+
 * #### 2.4 Start Pika
 
   ```bash
