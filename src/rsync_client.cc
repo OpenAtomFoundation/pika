@@ -360,6 +360,7 @@ Status RsyncClient::PullRemoteMeta(std::string* snapshot_uuid, std::set<std::str
 
     if (resp.get() == nullptr || resp->code() != RsyncService::kOk) {
       s = Status::IOError("kRsyncMeta request failed! db is not exist or doing bgsave");
+      LOG(INFO) << s.ToString() << ", retries:" << retries;
       sleep(1);
       retries++;
       continue;

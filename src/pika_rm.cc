@@ -966,7 +966,7 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
       Status s = s_db->ActivateRsync();
       if (!s.ok()) {
         g_pika_server->SetForceFullSync(true);
-        LOG(WARNING) << "Slave DB: " << s_db->DBName() << " rsync failed! full synchronization will be retried later";
+        LOG(WARNING) << "Slave DB: " << s_db->DBName() << " rsync failed! full synchronization will be retried later, error info:" << s.ToString();
         continue;
       }
 
