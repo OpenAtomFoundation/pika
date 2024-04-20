@@ -145,8 +145,7 @@ class RsyncWriter {
 
 class WaitObject {
  public:
-  WaitObject(int64_t wait_timeout_ms) : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
-  WaitObject() = delete;
+  WaitObject() : filename_(""), type_(RsyncService::kRsyncMeta), offset_(0), resp_(nullptr) {}
   ~WaitObject() {}
 
   void Reset(const std::string& filename, RsyncService::Type t, size_t offset) {
@@ -196,7 +195,7 @@ class WaitObjectManager {
   WaitObjectManager() {
     wo_vec_.resize(kMaxRsyncParallelNum);
     for (int i = 0; i < kMaxRsyncParallelNum; i++) {
-      wo_vec_[i] = new WaitObject(g_pika_conf->rsync_timeout_ms());
+      wo_vec_[i] = new WaitObject();
     }
   }
   ~WaitObjectManager() {
