@@ -20,7 +20,7 @@ require (
 	github.com/spinlock/jemalloc-go v0.0.0-20201010032256-e81523fb8524
 	github.com/stretchr/testify v1.8.0
 	go.etcd.io/etcd/client/v2 v2.305.7
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.23.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
 

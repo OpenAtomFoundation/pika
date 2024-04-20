@@ -1371,7 +1371,7 @@ void PikaServer::InitStorageOptions() {
               g_pika_conf->rate_limiter_bandwidth(),
               g_pika_conf->rate_limiter_refill_period_us(),
               static_cast<int32_t>(g_pika_conf->rate_limiter_fairness()),
-              rocksdb::RateLimiter::Mode::kWritesOnly,
+              static_cast<rocksdb::RateLimiter::Mode>(g_pika_conf->rate_limiter_mode()),
               g_pika_conf->rate_limiter_auto_tuned()
                   ));
 
@@ -1398,6 +1398,17 @@ void PikaServer::InitStorageOptions() {
   // for column-family options
   storage_options_.options.ttl = g_pika_conf->rocksdb_ttl_second();
   storage_options_.options.periodic_compaction_seconds = g_pika_conf->rocksdb_periodic_compaction_second();
+
+  // For Partitioned Index Filters
+  if (g_pika_conf->enable_partitioned_index_filters()) {
+    storage_options_.table_options.index_type = rocksdb::BlockBasedTableOptions::IndexType::kTwoLevelIndexSearch;
+    storage_options_.table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
+    storage_options_.table_options.partition_filters = true;
+    storage_options_.table_options.metadata_block_size = 4096;
+    storage_options_.table_options.cache_index_and_filter_blocks_with_high_priority = true;
+    storage_options_.table_options.pin_top_level_index_and_filter = true; 
+    storage_options_.table_options.optimize_filters_for_memory = true;
+  }
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
