@@ -1,26 +1,11 @@
-FROM ubuntu:22.04 AS builder
+FROM pikadb/pika_builder:ubuntu_22.04 as builder
 
-LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
+LABEL maintainer="pikiwidb@gmail.com"
 
 ENV PIKA=/pika \
     PIKA_BUILD_DIR=/tmp/pika \
     PATH=${PIKA}:${PIKA}/bin:${PATH} \
     BUILD_TYPE=RelWithDebInfo
-
-ARG ENABLE_PROXY=false
-
-RUN if [ "$ENABLE_PROXY" = "true" ] ; \
-    then sed -i 's/http:\/\/archive.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
-         sed -i 's/http:\/\/ports.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
-    fi 
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    build-essential \
-    git \
-    cmake \
-    autoconf \
-    clang-tidy-12
 
 WORKDIR ${PIKA_BUILD_DIR}
 
@@ -29,22 +14,9 @@ COPY . ${PIKA_BUILD_DIR}
 RUN  cmake -B ${PIKA_BUILD_DIR}/build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_PIKA_TOOLS=OFF
 RUN  cmake --build ${PIKA_BUILD_DIR}/build --config ${BUILD_TYPE}
 
-FROM ubuntu:22.04
+FROM pikadb/pika_runner:ubuntu_22.04
 
-LABEL maintainer="SvenDwideit@home.org.au, zhangshaomin_1990@126.com"
-
-ARG ENABLE_PROXY=false
-
-RUN if [ "$ENABLE_PROXY" = "true" ] ; \
-    then sed -i 's/http:\/\/archive.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
-         sed -i 's/http:\/\/ports.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
-    fi 
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    rsync && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+LABEL maintainer="pikiwidb@gmail.com"
 
 ENV PIKA=/pika \
     PIKA_BUILD_DIR=/tmp/pika \
