@@ -6,7 +6,7 @@ type: application
 
 version: 0.7.1-beta.1
 
-appVersion: "3.5.2"
+appVersion: "3.5.4-rc1"
 
 home: https://github.com/OpenAtomFoundation/pika
 keywords:

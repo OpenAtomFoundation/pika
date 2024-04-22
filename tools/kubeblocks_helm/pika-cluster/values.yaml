@@ -11,7 +11,7 @@ useLegacyCompDef: true
 nameOverride: ""
 fullnameOverride: ""
 
-groupCount: 2
+groupCount: 3
 
 slaveCount: 1
 
@@ -28,7 +28,7 @@ terminationPolicy: Delete
 clusterVersionOverride: ""
 
 monitor:
-  enabled: false
+  enabled: true
 
 switchPolicy:
   type: Noop
@@ -40,55 +40,55 @@ resources:
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   pikaGroup:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 8000m
+      memory: 10Gi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 8000m
+      memory: 10Gi
   etcd:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 500m
+      cpu: 2000m
       memory: 1Gi
   pikaExporter:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 2000m
+      memory: 4Gi
   codisProxy:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 2000m
+      memory: 4Gi
   codisFe:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 2000m
+      memory: 4Gi
   codisDashboard:
     limits:
-      cpu: 500m
-      memory: 3Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 2000m
+      memory: 4Gi
 
 persistence:
   enabled: true
   pikaData:
     storageClassName:
-    size: 10Gi
+    size: 50Gi
   etcdData:
     storageClassName:
-    size: 1Gi
+    size: 10Gi
 
 topologyKeys:
   - kubernetes.io/hostname
