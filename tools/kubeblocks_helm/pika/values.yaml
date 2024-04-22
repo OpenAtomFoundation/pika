@@ -1,23 +1,23 @@
 pika:
-  version: v3.5.4-rc1
+  version: v3.5.2
 image:
   pika:
-    registry: mirror.k8s.qihoo.net/docker.io/
+    registry: docker.io
     repository: pikadb/pika
-    tag: 3.5.4-rc1
+    tag: 3.5.2.0
     pullPolicy: IfNotPresent
   pikaExporter:
-    registry: mirror.k8s.qihoo.net/docker.io/
+    registry: docker.io
     repository: pikadb/pika-exporter
-    tag: 3.5.4-rc1
+    tag: 3.5.2.0
     pullPolicy: IfNotPresent
   codis:
-    registry: mirror.k8s.qihoo.net/docker.io/
+    registry: docker.io
     repository: pikadb/codis
-    tag: 3.5.4-rc1
+    tag: 3.5.2.0
     pullPolicy: IfNotPresent
   etcd:
-    registry: mirror.k8s.qihoo.net/docker.io/
+    registry: docker.io
     repository: bitnami/etcd
     tag: 3.5.9
     pullPolicy: IfNotPresent
@@ -44,7 +44,7 @@ roleProbe:
     periodSeconds: 1
     timeoutSeconds: 1
 
-clusterVersionOverride: 3.5.4-rc1
+clusterVersionOverride: 3.5.2
 nameOverride: ""
 fullnameOverride: ""
 
