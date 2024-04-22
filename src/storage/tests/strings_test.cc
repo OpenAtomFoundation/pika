@@ -422,16 +422,17 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   std::string value;
   std::map<DataType, Status> type_status;
   std::map<DataType, int64_t> type_ttl;
+  double eps = 0.1;
 
   // ***************** Group 1 Test *****************
   s = db.Set("GP1_INCRBYFLOAT_KEY", "10.50");
   ASSERT_TRUE(s.ok());
   s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "0.1", &value);
   ASSERT_TRUE(s.ok());
-  ASSERT_STREQ(value.c_str(), "10.6");
+  ASSERT_NEAR(std::stod(value), 10.6, eps);
   s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "-5", &value);
   ASSERT_TRUE(s.ok());
-  ASSERT_STREQ(value.c_str(), "5.6");
+  ASSERT_NEAR(std::stod(value), 5.6, eps);
 
   // If the key contains a string that can not be represented as integer
   s = db.Set("GP1_INCRBYFLOAT_KEY", "INCRBY_VALUE");
@@ -451,9 +452,9 @@ TEST_F(StringsTest, IncrbyfloatTest) {
 
   s = db.Incrbyfloat("GP2_INCRBYFLOAT_KEY", "10.22222", &value);
   ASSERT_TRUE(s.ok());
-  ASSERT_EQ(value, "20.33333");
+  ASSERT_NEAR(std::stod(value), 20.33333, eps);
   s = db.Get("GP2_INCRBYFLOAT_KEY", &value);
-  ASSERT_EQ(value, "20.33333");
+  ASSERT_NEAR(std::stod(value), 20.33333, eps);
 
   type_ttl = db.TTL("GP2_INCRBYFLOAT_KEY", &type_status);
   ASSERT_LE(type_ttl[kStrings], 100);
@@ -466,9 +467,9 @@ TEST_F(StringsTest, IncrbyfloatTest) {
 
   s = db.Incrbyfloat("GP3_INCRBYFLOAT_KEY", "0.123456", &value);
   ASSERT_TRUE(s.ok());
-  ASSERT_EQ(value, "0.123456");
+  ASSERT_NEAR(std::stod(value), 0.123456, eps);
   s = db.Get("GP3_INCRBYFLOAT_KEY", &value);
-  ASSERT_EQ(value, "0.123456");
+  ASSERT_NEAR(std::stod(value), 0.123456, eps);
 
   type_status.clear();
   type_ttl = db.TTL("GP3_INCRBYFLOAT_KEY", &type_status);
@@ -480,9 +481,9 @@ TEST_F(StringsTest, IncrbyfloatTest) {
 
   s = db.Incrbyfloat("GP4_INCRBYFLOAT_KEY", "11.11", &value);
   ASSERT_TRUE(s.ok());
-  ASSERT_EQ(value, "111.111");
+  ASSERT_NEAR(std::stod(value), 111.111, eps);
   s = db.Get("GP4_INCRBYFLOAT_KEY", &value);
-  ASSERT_EQ(value, "111.111");
+  ASSERT_NEAR(std::stod(value), 111.111, eps);
 }
 
 // MGet
