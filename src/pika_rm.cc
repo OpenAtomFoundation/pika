@@ -507,12 +507,13 @@ pstd::Status SyncSlaveDB::ActivateRsync() {
   if (!rsync_cli_->IsIdle()) {
     return s;
   }
-  LOG(WARNING) << "ActivateRsync ...";
+  LOG(WARNING) << "Slave DB: " << DBName() << " Activating Rsync ... (retry count:" << retry_rsync_init_count_ << ")";
   if (rsync_cli_->Init()) {
+    retry_rsync_init_count_ = 0;
     rsync_cli_->Start();
     return s;
   } else {
-    SetReplState(ReplState::kError);
+    retry_rsync_init_count_ += 1;
     return Status::Error("rsync client init failed!");;
   }
 }
@@ -965,8 +966,7 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
     } else if (s_db->State() == ReplState::kWaitDBSync) {
       Status s = s_db->ActivateRsync();
       if (!s.ok()) {
-        g_pika_server->SetForceFullSync(true);
-        LOG(WARNING) << "Slave DB: " << s_db->DBName() << " rsync failed! full synchronization will be retried later, error info:" << s.ToString();
+        LOG(WARNING) << "Slave DB: " << s_db->DBName() << " rsync failed! full synchronization will be retried later";
         continue;
       }
 
