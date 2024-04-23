@@ -3,13 +3,14 @@ package pika_integration
 import (
 	"context"
 	"fmt"
-	. "github.com/bsm/ginkgo/v2"
-	. "github.com/bsm/gomega"
-	"github.com/redis/go-redis/v9"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/bsm/ginkgo/v2"
+	"github.com/bsm/gomega"
+	"github.com/redis/go-redis/v9"
 )
 
 func RefillMaster(masterAddr string, dataVolumeMB int64, ctx context.Context) {
@@ -112,9 +113,11 @@ func UpdateTimout(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
 
 var _ = Describe("Rsync Reconfig Test", func() {
 	ctx := context.TODO()
-	var slave1 *redis.Client
-	var slave2 *redis.Client
-	var master1 *redis.Client
+	var (
+	 slave1 *redis.Client
+	 slave2 *redis.Client
+	 master1 *redis.Client
+	)
 
 	BeforeEach(func() {
 		slave1 = redis.NewClient(PikaOption(SLAVEADDR))
