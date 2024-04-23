@@ -114,9 +114,9 @@ func UpdateTimout(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
 var _ = Describe("Rsync Reconfig Test", func() {
 	ctx := context.TODO()
 	var (
-	 slave1 *redis.Client
-	 slave2 *redis.Client
-	 master1 *redis.Client
+		slave1  *redis.Client
+		slave2  *redis.Client
+		master1 *redis.Client
 	)
 
 	BeforeEach(func() {
@@ -133,6 +133,8 @@ var _ = Describe("Rsync Reconfig Test", func() {
 
 	It("rsync reconfig rsync-timeout-ms, throttle-bytes-per-second", func() {
 		slave1.SlaveOf(ctx, "no", "one")
+		slave1.FlushDB(ctx)
+		master1.FlushDB(ctx)
 		time.Sleep(3 * time.Second)
 		RefillMaster(MASTERADDR, 256, ctx)
 		key1 := "45vs45f4s5d6"
@@ -147,7 +149,7 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		slave1.Do(ctx, "slaveof", "127.0.0.1", "9241", "force")
 		time.Sleep(time.Second * 2)
 
- 		var wg sync.WaitGroup
+		var wg sync.WaitGroup
 		wg.Add(4)
 		go UpdateThrottle(slave1, ctx, &wg)
 		go UpdateTimout(slave1, ctx, &wg)
