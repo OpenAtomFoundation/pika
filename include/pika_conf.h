@@ -218,6 +218,14 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return bgsave_prefix_;
   }
+  std::string user_blacklist_string() {
+    std::shared_lock l(rwlock_);
+    return pstd::StringConcat(user_blacklist_, COMMA);
+  }
+  const std::vector<std::string>& user_blacklist_vector() {
+    std::shared_lock l(rwlock_);
+    return user_blacklist_;
+  }
   bool classic_mode() { return classic_mode_.load(); }
   int databases() {
     std::shared_lock l(rwlock_);
@@ -291,6 +299,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return share_block_cache_;
   }
+  bool enable_partitioned_index_filters() {
+    std::shared_lock l(rwlock_);
+    return enable_partitioned_index_filters_;
+  }
   bool cache_index_and_filter_blocks() {
     std::shared_lock l(rwlock_);
     return cache_index_and_filter_blocks_;
@@ -341,11 +353,15 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return network_interface_;
   }
-  int cache_model() { return cache_model_; }
+  int cache_mode() { return cache_mode_; }
   int sync_window_size() { return sync_window_size_.load(); }
   int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
   int consensus_level() { return consensus_level_.load(); }
   int replication_num() { return replication_num_.load(); }
+  int rate_limiter_mode() {
+    std::shared_lock l(rwlock_);
+    return rate_limiter_mode_;
+  }
   int64_t rate_limiter_bandwidth() {
     std::shared_lock l(rwlock_);
     return rate_limiter_bandwidth_;
@@ -371,7 +387,7 @@ class PikaConf : public pstd::BaseConf {
   int GetCacheBit() { return cache_bit_; }
   int GetCacheNum() { return cache_num_; }
   void SetCacheNum(const int value) { cache_num_ = value; }
-  void SetCacheModel(const int value) { cache_model_ = value; }
+  void SetCacheMode(const int value) { cache_mode_ = value; }
   void SetCacheStartDirection(const int value) { zset_cache_start_direction_ = value; }
   void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
   void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
@@ -533,6 +549,19 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
+  }
+  void SetUserPass(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("userpass", value);
+    userpass_ = value;
+  }
+  void SetUserBlackList(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("userblacklist", value);
+    pstd::StringSplit(value, COMMA, user_blacklist_);
+    for (auto& item : user_blacklist_) {
+      pstd::StringToLower(item);
+    }
   }
   void SetSlotMigrate(const bool value) {
     std::lock_guard l(rwlock_);
@@ -792,6 +821,7 @@ class PikaConf : public pstd::BaseConf {
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
+  std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 1;
@@ -829,10 +859,12 @@ class PikaConf : public pstd::BaseConf {
   int64_t block_cache_ = 0;
   int64_t num_shard_bits_ = 0;
   bool share_block_cache_ = false;
+  bool enable_partitioned_index_filters_ = false;
   bool cache_index_and_filter_blocks_ = false;
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = true;
+  int rate_limiter_mode_ = 0;                              // kReadsOnly = 0, kWritesOnly = 1, kAllIo = 2
   int64_t rate_limiter_bandwidth_ = 0;
   int64_t rate_limiter_refill_period_us_ = 0;
   int64_t rate_limiter_fairness_ = 0;
@@ -866,21 +898,21 @@ class PikaConf : public pstd::BaseConf {
 
   // cache
   std::vector<std::string> cache_type_;
-  std::atomic_bool tmp_cache_disable_flag_;
-  std::atomic_int64_t cache_maxmemory_;
-  std::atomic_int cache_num_;
-  std::atomic_int cache_model_;
-  std::atomic_int cache_string_;
-  std::atomic_int cache_set_;
-  std::atomic_int cache_zset_;
-  std::atomic_int cache_hash_;
-  std::atomic_int cache_list_;
-  std::atomic_int cache_bit_;
-  std::atomic_int zset_cache_start_direction_;
-  std::atomic_int zset_cache_field_num_per_key_;
-  std::atomic_int cache_maxmemory_policy_;
-  std::atomic_int cache_maxmemory_samples_;
-  std::atomic_int cache_lfu_decay_time_;
+  std::atomic_bool tmp_cache_disable_flag_ = false;
+  std::atomic_int64_t cache_maxmemory_ = 10737418240;
+  std::atomic_int cache_num_ = 5;
+  std::atomic_int cache_mode_ = 1;
+  std::atomic_int cache_string_ = 1;
+  std::atomic_int cache_set_ = 1;
+  std::atomic_int cache_zset_ = 1;
+  std::atomic_int cache_hash_ = 1;
+  std::atomic_int cache_list_ = 1;
+  std::atomic_int cache_bit_ = 1;
+  std::atomic_int zset_cache_start_direction_ = 0;
+  std::atomic_int zset_cache_field_num_per_key_ = 512;
+  std::atomic_int cache_maxmemory_policy_ = 1;
+  std::atomic_int cache_maxmemory_samples_ = 5;
+  std::atomic_int cache_lfu_decay_time_ = 1;
 
   // rocksdb blob
   bool enable_blob_files_ = false;
@@ -897,7 +929,7 @@ class PikaConf : public pstd::BaseConf {
 
   // Rsync Rate limiting configuration
   int throttle_bytes_per_second_ = 207200000;
-  int max_rsync_parallel_num_ = 4;
+  int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
 };
 
 #endif

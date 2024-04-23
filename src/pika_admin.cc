@@ -555,7 +555,7 @@ void FlushallCmd::DoThroughDB() {
 
 void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
   // clear cache
-  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
     g_pika_server->ClearCacheDbAsync(db);
   }
 }
@@ -618,7 +618,7 @@ void FlushdbCmd::DoThroughDB() {
 
 void FlushdbCmd::DoUpdateCache() {
   // clear cache
-  if (g_pika_conf->cache_model() != PIKA_CACHE_NONE) {
+  if (g_pika_conf->cache_mode() != PIKA_CACHE_NONE) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
 }
@@ -1362,7 +1362,7 @@ void InfoCmd::InfoCommandStats(std::string& info) {
 void InfoCmd::InfoCache(std::string& info, std::shared_ptr<DB> db) {
   std::stringstream tmp_stream;
   tmp_stream << "# Cache" << "\r\n";
-  if (PIKA_CACHE_NONE == g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE == g_pika_conf->cache_mode()) {
     tmp_stream << "cache_status:Disable" << "\r\n";
   } else {
     auto cache_info = db->GetCacheInfo();
@@ -1503,7 +1503,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
-    EncodeString(&config_body, g_pika_conf -> GetUserBlackList());
+    EncodeString(&config_body, g_pika_conf->user_blacklist_string());
   }
   if (pstd::stringmatch(pattern.data(), "slow-cmd-list", 1) != 0) {
     elements += 2;
@@ -1569,6 +1569,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "masterauth");
     EncodeString(&config_body, g_pika_conf->masterauth());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "userpass", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "userpass");
+    EncodeString(&config_body, g_pika_conf->userpass());
   }
 
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1) != 0) {
@@ -1707,6 +1713,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "share-block-cache");
     EncodeString(&config_body, g_pika_conf->share_block_cache() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "enable-partitioned-index-filters", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "enable-partitioned-index-filters");
+    EncodeString(&config_body, g_pika_conf->enable_partitioned_index_filters() ? "yes" : "no");
   }
 
   if (pstd::stringmatch(pattern.data(), "cache-index-and-filter-blocks", 1) != 0) {
@@ -1904,6 +1916,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->consensus_level());
   }
 
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-mode", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-mode");
+    EncodeNumber(&config_body, g_pika_conf->rate_limiter_mode());
+  }
+
   if (pstd::stringmatch(pattern.data(), "rate-limiter-bandwidth", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-bandwidth");
@@ -2046,7 +2064,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "cache-model", 1)) {
     elements += 2;
     EncodeString(&config_body, "cache-model");
-    EncodeNumber(&config_body, g_pika_conf->cache_model());
+    EncodeNumber(&config_body, g_pika_conf->cache_mode());
   }
 
   if (pstd::stringmatch(pattern.data(), "cache-type", 1)) {
@@ -2178,6 +2196,12 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "userpass") {
+    g_pika_conf->SetUserPass(value);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "userblacklist") {
+    g_pika_conf->SetUserBlackList(value);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
@@ -2600,7 +2624,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-rsync-parallel-num") {
-    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum) {
+    if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum || ival <= 0) {
       res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-rsync-parallel-num'\r\n");
       return;
     }
@@ -2626,7 +2650,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     if (PIKA_CACHE_NONE > ival || PIKA_CACHE_READ < ival) {
       res_.AppendStringRaw("-ERR Invalid cache model\r\n");
     } else {
-      g_pika_conf->SetCacheModel(ival);
+      g_pika_conf->SetCacheMode(ival);
       if (PIKA_CACHE_NONE == ival) {
         g_pika_server->ClearCacheDbAsync(db);
       }
@@ -3300,7 +3324,7 @@ void ClearCacheCmd::DoInitial() {
 
 void ClearCacheCmd::Do() {
   // clean cache
-  if (PIKA_CACHE_NONE != g_pika_conf->cache_model()) {
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
   res_.SetRes(CmdRes::kOk, "Cache is cleared");

@@ -82,7 +82,12 @@ int PikaConf::Load() {
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
   }
-
+  std::string user_blacklist;
+  GetConfStr("userblacklist", &user_blacklist);
+  pstd::StringSplit(user_blacklist, COMMA, user_blacklist_);
+  for (auto& item : user_blacklist_) {
+    pstd::StringToLower(item);
+  }
   GetConfInt("default-slot-num", &default_slot_num_);
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
@@ -322,6 +327,13 @@ int PikaConf::Load() {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
+  // rate-limiter-mode
+  rate_limiter_mode_ = 1;
+  GetConfInt("rate-limiter-mode", &rate_limiter_mode_);
+  if (rate_limiter_mode_ < 0 or rate_limiter_mode_ > 2) {
+    rate_limiter_mode_ = 1;
+  }
+
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
@@ -443,6 +455,10 @@ int PikaConf::Load() {
   GetConfStr("share-block-cache", &sbc);
   share_block_cache_ = sbc == "yes";
 
+  std::string epif;
+  GetConfStr("enable-partitioned-index-filters", &epif);
+  enable_partitioned_index_filters_ = epif == "yes";
+
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
   cache_index_and_filter_blocks_ = ciafb == "yes";
@@ -532,9 +548,9 @@ int PikaConf::Load() {
   GetConfInt("cache-num", &cache_num);
   cache_num_ = (0 >= cache_num || 48 < cache_num) ? 16 : cache_num;
 
-  int cache_model = 0;
-  GetConfInt("cache-model", &cache_model);
-  cache_model_ = (PIKA_CACHE_NONE > cache_model || PIKA_CACHE_READ < cache_model) ? PIKA_CACHE_NONE : cache_model;
+  int cache_mode = 0;
+  GetConfInt("cache-model", &cache_mode);
+  cache_mode_ = (PIKA_CACHE_NONE > cache_mode || PIKA_CACHE_READ < cache_mode) ? PIKA_CACHE_NONE : cache_mode;
 
   std::string cache_type;
   GetConfStr("cache-type", &cache_type);
@@ -621,8 +637,8 @@ int PikaConf::Load() {
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
-  if (max_rsync_parallel_num_ <= 0) {
-    max_rsync_parallel_num_ = 4;
+  if (max_rsync_parallel_num_ <= 0 || max_rsync_parallel_num_ > kMaxRsyncParallelNum) {
+    max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
   return ret;
@@ -663,7 +679,7 @@ void PikaConf::SetCacheType(const std::string& value) {
 }
 
 int PikaConf::ConfigRewrite() {
-  //  std::string userblacklist = suser_blacklist();
+  std::string userblacklist = user_blacklist_string();
   std::string scachetype = scache_type();
   std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
@@ -722,7 +738,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slaveof", slaveof_);
   // cache config
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
-  SetConfInt("cache-model", cache_model_);
+  SetConfInt("cache-model", cache_mode_);
   SetConfInt("zset-cache-start-direction", zset_cache_start_direction_);
   SetConfInt("zset_cache_field_num_per_key", zset_cache_field_num_per_key_);
 
