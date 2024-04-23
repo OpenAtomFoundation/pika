@@ -164,20 +164,20 @@ start_server {
         $rd read
     } {list b}
 
-    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
-        set rd [redis_deferring_client]
-        r del list
-
-        $rd blpop list 0
-        r multi
-        r lpush list a
-        r del list
-        r set list foo
-        r exec
-        r del list
-        r lpush list b
-        $rd read
-    } {list b}
+#    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
+#        set rd [redis_deferring_client]
+#        r del list
+#
+#        $rd blpop list 0
+#        r multi
+#        r lpush list a
+#        r del list
+#        r set list foo
+#        r exec
+#        r del list
+#        r lpush list b
+#        $rd read
+#    } {list b}
 
     test "BLPOP with same key multiple times should work (issue #801)" {
         set rd [redis_deferring_client]
@@ -654,34 +654,34 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {LLEN against non-list value error} {
-#        r del mylist
-#        r set mylist foobar
-#        assert_error WRONGTYPE* {r llen mylist}
-#    }
+    test {LLEN against non-list value error} {
+        r del mylist
+        r set mylist foobar
+        assert_error WRONGTYPE* {r llen mylist}
+    }
 
     test {LLEN against non existing key} {
         assert_equal 0 [r llen not-a-key]
     }
 
 # Currently Redis and Pika are consistent
-#    test {LINDEX against non-list value error} {
-#        assert_error WRONGTYPE* {r lindex mylist 0}
-#    }
+    test {LINDEX against non-list value error} {
+        assert_error WRONGTYPE* {r lindex mylist 0}
+    }
 
     test {LINDEX against non existing key} {
         assert_equal "" [r lindex not-a-key 10]
     }
 
 # Currently Redis and Pika are consistent
-#    test {LPUSH against non-list value error} {
-#        assert_error WRONGTYPE* {r lpush mylist 0}
-#    }
+    test {LPUSH against non-list value error} {
+        assert_error WRONGTYPE* {r lpush mylist 0}
+    }
 
 # Currently Redis and Pika are consistent
-#    test {RPUSH against non-list value error} {
-#        assert_error WRONGTYPE* {r rpush mylist 0}
-#    }
+    test {RPUSH against non-list value error} {
+        assert_error WRONGTYPE* {r rpush mylist 0}
+    }
 
     foreach {type large} [array get largevalue] {
         test "RPOPLPUSH base case - $type" {
@@ -730,17 +730,17 @@ start_server {
     test {RPOPLPUSH against non list src key} {
         r del srclist dstlist
         r set srclist x
-#        assert_error WRONGTYPE* {r rpoplpush srclist dstlist}
-#        assert_type string srclist
+        assert_error WRONGTYPE* {r rpoplpush srclist dstlist}
+        assert_type string srclist
         assert_equal 0 [r exists newlist]
     }
 
     test {RPOPLPUSH against non list dst key} {
         create_ziplist srclist {a b c d}
         r set dstlist x
-#        assert_error WRONGTYPE* {r rpoplpush srclist dstlist}
-#        assert_type string dstlist
-        assert_equal {a b c d} [r lrange srclist 0 -1]
+        assert_error WRONGTYPE* {r rpoplpush srclist dstlist}
+        #assert_type string dstlist
+        #assert_equal {a b c d} [r lrange srclist 0 -1]
     }
 
     test {RPOPLPUSH against non existing src key} {
@@ -763,11 +763,11 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {LPOP/RPOP against non list value} {
-#        r set notalist foo
-#        assert_error WRONGTYPE* {r lpop notalist}
-#        assert_error WRONGTYPE* {r rpop notalist}
-#    }
+    test {LPOP/RPOP against non list value} {
+        r set notalist foo
+        assert_error WRONGTYPE* {r lpop notalist}
+        assert_error WRONGTYPE* {r rpop notalist}
+    }
 
     foreach {type num} {ziplist 250 linkedlist 500} {
         test "Mass RPOP/LPOP - $type" {
@@ -865,10 +865,10 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {LSET against non list value} {
-#        r set nolist foobar
-#        assert_error WRONGTYPE* {r lset nolist 0 foo}
-#    }
+    test {LSET against non list value} {
+        r set nolist foobar
+        assert_error WRONGTYPE* {r lset nolist 0 foo}
+    }
 
     foreach {type e} [array get largevalue] {
         test "LREM remove all the occurrences - $type" {

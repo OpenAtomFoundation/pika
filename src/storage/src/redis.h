@@ -162,6 +162,7 @@ class Redis {
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
+  Status MGet(const Slice& key, std::string* value);
   Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
@@ -192,7 +193,7 @@ class Redis {
   Status Expire(const Slice& key, uint64_t timestamp);
   Status Expireat(const Slice& key, uint64_t timestamp);
   Status Persist(const Slice& key);
-  Status TTL(const Slice& key, uint64_t* timestamp);
+  Status TTL(const Slice& key, int64_t* timestamp);
 
   Status GetType(const Slice& key, std::string& types);
   Status IsExist(const Slice& key);

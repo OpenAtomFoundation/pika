@@ -188,7 +188,7 @@ Status Storage::MGet(const std::vector<std::string>& keys, std::vector<ValueStat
   for(const auto& key : keys) {
     auto& inst = GetDBInstance(key);
     std::string value;
-    s = inst->Get(key, &value);
+    s = inst->MGet(key, &value);
     if (s.ok()) {
       vss->push_back({value, Status::OK()});
     } else if(s.IsNotFound()) {
@@ -602,7 +602,7 @@ Status Storage::SInterstore(const Slice& destination, const std::vector<std::str
   }
 
   auto& dest_inst = GetDBInstance(destination);
-  s = dest_inst->SetsDel(destination);
+  s = dest_inst->Del(destination);
   if (!s.ok() && !s.IsNotFound()) {
     return s;
   }
@@ -629,6 +629,7 @@ Status Storage::SMembersWithTTL(const Slice& key, std::vector<std::string>* memb
 Status Storage::SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret) {
   Status s;
 
+  LOG(INFO) << "AAA";
   // in codis mode, users should garentee keys will be hashed to same slot
   if (!is_classic_mode_) {
     auto& inst = GetDBInstance(source);
@@ -651,6 +652,7 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
   }
   auto& dest_inst = GetDBInstance(destination);
   int unused_ret;
+  LOG(INFO) << "destination: " << destination.ToString();
   return dest_inst->SAdd(destination, std::vector<std::string>{member.ToString()}, &unused_ret);
 }
 
@@ -718,7 +720,7 @@ Status Storage::SUnionstore(const Slice& destination, const std::vector<std::str
   }
   *ret = value_to_dest.size();
   auto& dest_inst = GetDBInstance(destination);
-  s = dest_inst->SetsDel(destination);
+  s = dest_inst->Del(destination);
   if (!s.ok() && !s.IsNotFound()) {
     return s;
   }
@@ -1566,7 +1568,7 @@ int32_t Storage::Persist(const Slice& key) {
 }
 
 int32_t Storage::TTL(const Slice& key) {
-  uint64_t timestamp = 0;
+  int64_t timestamp = 0;
 
   auto& inst = GetDBInstance(key);
   Status s = inst->TTL(key, &timestamp);

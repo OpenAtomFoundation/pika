@@ -112,7 +112,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kString) {
+    if (type != Type::kString) {
       return true;
     }
     ParsedStringsValue parsed_value(raw_iter_->value());
@@ -144,7 +144,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kHash) {
+    if (type != Type::kHash) {
       return true;
     }
     ParsedHashesMetaValue parsed_meta_value(raw_iter_->value());
@@ -175,7 +175,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kList) {
+    if (type != Type::kList) {
       return true;
     }
     ParsedListsMetaValue parsed_meta_value(raw_iter_->value());
@@ -206,7 +206,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kSet) {
+    if (type != Type::kSet) {
       return true;
     }
     ParsedSetsMetaValue parsed_meta_value(raw_iter_->value());
@@ -237,7 +237,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kZset) {
+    if (type != Type::kZset) {
       return true;
     }
     ParsedZSetsMetaValue parsed_meta_value(raw_iter_->value());
@@ -268,7 +268,7 @@ public:
 
   bool ShouldSkip() override {
     auto type = static_cast<Type>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == Type::kStream) {
+    if (type != Type::kStream) {
       return true;
     }
     ParsedStreamMetaValue parsed_meta_value(raw_iter_->value());

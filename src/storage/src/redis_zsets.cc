@@ -1115,7 +1115,6 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
   if (s.ok()) {
     auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
     if (type != Type::kZset && type != Type::kSet) {
-      LOG(INFO) << "BBBB";
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1612,7 +1611,6 @@ Status Redis::ZsetsDel(const Slice& key) {
   if (s.ok()) {
     auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
     if (type != Type::kZset) {
-      LOG(INFO) << "xxx";
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);

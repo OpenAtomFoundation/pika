@@ -534,7 +534,7 @@ void MgetCmd::DoInitial() {
 
 void MgetCmd::Do() {
   db_value_status_array_.clear();
-  s_ = db_->storage()->MGetWithTTL(keys_, &db_value_status_array_);
+  s_ = db_->storage()->MGet(keys_, &db_value_status_array_);
   if (s_.ok()) {
     res_.AppendArrayLenUint64(db_value_status_array_.size());
     for (const auto& vs : db_value_status_array_) {

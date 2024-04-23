@@ -369,6 +369,28 @@ Status Redis::Get(const Slice& key, std::string* value) {
   return s;
 }
 
+Status Redis::MGet(const Slice& key, std::string* value) {
+  value->clear();
+
+  BaseKey base_key(key);
+  Status s = db_->Get(default_read_options_, base_key.Encode(), value);
+  std::string meta_value = *value;
+  if (s.ok()) {
+    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+    if (type != Type::kString) {
+      return Status::NotFound();
+    }
+    ParsedStringsValue parsed_strings_value(value);
+    if (parsed_strings_value.IsStale()) {
+      value->clear();
+      return Status::NotFound("Stale");
+    } else {
+      parsed_strings_value.StripSuffix();
+    }
+  }
+  return s;
+}
+
 Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   value->clear();
   BaseKey base_key(key);
@@ -1443,22 +1465,22 @@ rocksdb::Status Redis::Persist(const Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::TTL(const Slice& key, uint64_t* timestamp) {
+rocksdb::Status Redis::TTL(const Slice& key, int64_t* timestamp) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
     if (type == Type::kSet) {
-      //return SetsTTL(key, timestamp);
+      return SetsTTL(key, timestamp);
     } else if (type == Type::kZset) {
-      //return ZsetsTTL(key, timestamp);
+      return ZsetsTTL(key, timestamp);
     } else if (type == Type::kHash) {
-      //return HashesTTL(key, timestamp);
+      return HashesTTL(key, timestamp);
     } else if (type == Type::kList) {
-      //return ListsTTL(key, timestamp);
+      return ListsTTL(key, timestamp);
     } else {
-      //return StringsTTL(key, timestamp);
+      return StringsTTL(key, timestamp);
     }
   }
   return rocksdb::Status::NotFound();

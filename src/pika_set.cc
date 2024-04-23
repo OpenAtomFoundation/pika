@@ -583,11 +583,11 @@ void SMoveCmd::DoInitial() {
 void SMoveCmd::Do() {
   int32_t res = 0;
   s_ = db_->storage()->SMove(src_key_, dest_key_, member_, &res);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ToString() == ErrTypeMessage) {
+    res_.SetRes(CmdRes::kMultiKey);
+  } else if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
-  } else if (s_.ToString() == ErrTypeMessage) {
-    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
