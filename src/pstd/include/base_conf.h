@@ -6,6 +6,8 @@
 #ifndef __PSTD_INCLUDE_BASE_CONF_H__
 #define __PSTD_INCLUDE_BASE_CONF_H__
 
+#include <atomic>
+
 #include <cstdio>
 #include <cstdlib>
 
@@ -46,13 +48,99 @@ class BaseConf {
   int32_t ReloadConf();
 
   // return false if the item dosen't exist
-  bool GetConfInt(const std::string& name, int* value) const;
-  bool GetConfIntHuman(const std::string& name, int* value) const;
-  bool GetConfInt64(const std::string& name, int64_t* value) const;
-  bool GetConfInt64Human(const std::string& name, int64_t* value) const;
+  template<typename T>
+  bool GetConfInt(const std::string& name, T* value) const{
+    for (auto& i : rep_->item) {
+      if (i.type == Rep::kComment) {
+        continue;
+      }
+      if (name == i.name) {
+        (*value) = atoi(i.value.c_str());
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template<typename T>
+  bool GetConfIntHuman(const std::string& name, T* value) const {
+    for (auto& i : rep_->item) {
+      if (i.type == Rep::kComment) {
+        continue;
+      }
+      if (name == i.name) {
+        auto c_str = i.value.c_str();
+        (*value) = static_cast<int32_t>(strtoll(c_str, nullptr, 10));
+        char last = c_str[i.value.size() - 1];
+        if (last == 'K' || last == 'k') {
+          (*value) = (*value) * (1 << 10);
+        } else if (last == 'M' || last == 'm') {
+          (*value) = (*value) * (1 << 20);
+        } else if (last == 'G' || last == 'g') {
+          (*value) = (*value) * (1 << 30);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template<typename T>
+  bool GetConfInt64(const std::string& name, T* value) const {
+    for (auto& i : rep_->item) {
+      if (i.type == Rep::kComment) {
+        continue;
+      }
+      if (name == i.name) {
+        auto c_str = i.value.c_str();
+        (*value) = strtoll(c_str, nullptr, 10);
+        char last = c_str[i.value.size() - 1];
+        if (last == 'K' || last == 'k') {
+          (*value) = (*value) * (1 << 10);
+        } else if (last == 'M' || last == 'm') {
+          (*value) = (*value) * (1 << 20);
+        } else if (last == 'G' || last == 'g') {
+          (*value) = (*value) * (1 << 30);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template<typename T> 
+  bool GetConfInt64Human(const std::string& name, T* value) const {
+    for (auto& i : rep_->item) {
+      if (i.type == Rep::kComment) {
+        continue;
+      }
+      if (name == i.name) {
+        (*value) = strtoll(i.value.c_str(), nullptr, 10);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template<typename T>
+  bool GetConfBool(const std::string& name, T* value) const {
+    for (auto& i : rep_->item) {
+      if (i.type == Rep::kComment) {
+        continue;
+      }
+      if (name == i.name) {
+        if (i.value == "true" || i.value == "1" || i.value == "yes") {
+          (*value) = true;
+        } else if (i.value == "false" || i.value == "0" || i.value == "no") {
+          (*value) = false;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
 
   bool GetConfStr(const std::string& name, std::string* value) const;
-  bool GetConfBool(const std::string& name, bool* value) const;
   bool GetConfStrVec(const std::string& name, std::vector<std::string>* value) const;
   bool GetConfDouble(const std::string& name, double* value) const;
   bool GetConfStrMulti(const std::string& name, std::vector<std::string>* values) const;
