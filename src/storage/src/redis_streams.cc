@@ -37,12 +37,14 @@ Status Redis::XAdd(const Slice& key, const std::string& serialized_message, Stre
   if (s.IsNotFound() && args.no_mkstream) {
     return Status::NotFound("no_mkstream");
   } else if (s.IsNotFound()) {
+    LOG(INFO) << "HERE";
     stream_meta.InitMetaValue();
   } else if (!s.ok()) {
     return Status::Corruption("error from XADD, get stream meta failed: " + s.ToString());
   }
 
   if (stream_meta.length() == 0) {
+    LOG(INFO) << "KOKO";
     if (args.no_mkstream) {
       return Status::NotFound("no_mkstream");
     }
@@ -74,12 +76,13 @@ Status Redis::XAdd(const Slice& key, const std::string& serialized_message, Stre
 
   // 3 update stream meta
   if (stream_meta.length() == 0) {
+    LOG(INFO) << "Yes";
     stream_meta.set_first_id(args.id);
   }
   stream_meta.set_entries_added(stream_meta.entries_added() + 1);
   stream_meta.set_last_id(args.id);
   stream_meta.set_length(stream_meta.length() + 1);
-
+  LOG(INFO) << "Stream-Meta-size: " << stream_meta.length();
   // 4 trim the stream if needed
   if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
     int32_t count{0};
@@ -448,9 +451,11 @@ Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& 
     if (type != Type::kStream) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+    LOG(INFO) << "XXX";
     stream_meta.ParseFrom(value);
     return Status::OK();
   }
+  LOG(INFO) << "SSSS";
   return s;
 }
 

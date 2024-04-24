@@ -1395,6 +1395,8 @@ rocksdb::Status Redis::Del(const Slice& key) {
       return HashesDel(key);
     } else if (type == Type::kList) {
       return ListsDel(key);
+    } else if (type == Type::kStream) {
+      return StreamsDel(key);
     } else {
       return StringsDel(key);
     }
@@ -1500,13 +1502,17 @@ rocksdb::Status Redis::GetType(const storage::Slice& key, std::string& types) {
       types = "hash";
     } else if (type == Type::kList) {
       types = "list";
-    } else {
+    } else if (type == Type::kString) {
       types = "string";
+    } else if (type == Type::kStream) {
+      types = "streams";
+    } else {
+      types = "none";
     }
     return Status::OK();
   }
   types = "none";
-  return rocksdb::Status::NotFound();
+  return Status::OK();
 }
 
 rocksdb::Status Redis::IsExist(const storage::Slice& key) {

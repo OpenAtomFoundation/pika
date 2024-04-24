@@ -94,5 +94,5 @@ echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.
 ./pika -c ./pika_acl_both_password.conf
 ./pika -c ./pika_acl_only_admin_password.conf
 ./pika -c ./pika_has_other_acl_user.conf
-#ensure both master and slave are ready
+# ensure both master and slave are ready
 sleep 10

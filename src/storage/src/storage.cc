@@ -1341,6 +1341,7 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
     MergingIterator miter(inst_iters);
     miter.Seek(base_start_key.Encode().ToString());
     while (miter.Valid() && count > 0) {
+      LOG(INFO) << "VALUE: " << miter.Value();
       keys->push_back(miter.Key());
       miter.Next();
       count--;
@@ -1409,8 +1410,10 @@ Status Storage::PKScanRange(const DataType& data_type, const Slice& key_start, c
   while (miter.Valid() && limit > 0 &&
       (end_no_limit || miter.Key().compare(key_end.ToString()) <= 0)) {
     if (data_type == DataType::kStrings) {
+      LOG(INFO) << "key: " << miter.Key() << " Value: " << miter.Value();
       kvs->push_back({miter.Key(), miter.Value()});
     } else {
+      LOG(INFO) << "KEY: " << miter.Key();
       keys->push_back(miter.Key());
     }
     limit--;

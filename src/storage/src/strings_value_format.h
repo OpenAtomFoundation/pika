@@ -63,7 +63,7 @@ class ParsedStringsValue : public ParsedInternalValue {
       size_t offset = 0;
       type_ = static_cast<Type>(static_cast<uint8_t>(internal_value_slice[0]));
       offset += kTypeLength;
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStringsValueSuffixLength - offset);
+      user_value_ = rocksdb::Slice(internal_value_slice.data() + offset, internal_value_slice.size() - kStringsValueSuffixLength - offset);
       offset += user_value_.size();
       memcpy(reserve_, internal_value_slice.data() + offset, kSuffixReserveLength);
       offset += kSuffixReserveLength;

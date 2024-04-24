@@ -80,6 +80,8 @@ class StreamMetaValue {
   // value_ = std::move(value);
   void ParseFrom(std::string& value) {
     value_ = std::move(value);
+    LOG(INFO) << "SIZE: " << value_.size();
+    LOG(INFO) << "VALUE: " << value_;
     assert(value_.size() == kDefaultStreamValueLength);
     if (value_.size() != kDefaultStreamValueLength) {
       LOG(ERROR) << "Invalid stream meta value length: ";
@@ -110,6 +112,7 @@ class StreamMetaValue {
     pos += sizeof(uint64_t);
 
     length_ = static_cast<int32_t>(DecodeFixed32(pos));
+    LOG(INFO) << "Length: " << length_;
     pos += sizeof(length_);
 
     version_ = static_cast<uint64_t>(DecodeFixed64(pos));
@@ -144,21 +147,21 @@ class StreamMetaValue {
   void set_groups_id(tree_id_t groups_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     groups_id_ = groups_id;
-    char* dst = const_cast<char*>(value_.data());
+    char* dst = const_cast<char*>(value_.data() + kTypeLength);
     EncodeFixed32(dst, groups_id_);
   }
 
   void set_entries_added(uint64_t entries_added) {
     assert(value_.size() == kDefaultStreamValueLength);
     entries_added_ = entries_added;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + kTypeLength;
     EncodeFixed64(dst, entries_added_);
   }
 
   void set_first_id(streamID first_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     first_id_ = first_id;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + kTypeLength;
     EncodeFixed64(dst, first_id_.ms);
     dst += sizeof(uint64_t);
     EncodeFixed64(dst, first_id_.seq);
@@ -167,7 +170,7 @@ class StreamMetaValue {
   void set_last_id(streamID last_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     last_id_ = last_id;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + sizeof(streamID);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + sizeof(streamID) + kTypeLength;
     EncodeFixed64(dst, last_id_.ms);
     dst += sizeof(uint64_t);
     EncodeFixed64(dst, last_id_.seq);
@@ -176,7 +179,7 @@ class StreamMetaValue {
   void set_max_deleted_entry_id(streamID max_deleted_entry_id) {
     assert(value_.size() == kDefaultStreamValueLength);
     max_deleted_entry_id_ = max_deleted_entry_id;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 2 * sizeof(streamID);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 2 * sizeof(streamID) + kTypeLength;
     EncodeFixed64(dst, max_deleted_entry_id_.ms);
     dst += sizeof(uint64_t);
     EncodeFixed64(dst, max_deleted_entry_id_.seq);
@@ -185,7 +188,7 @@ class StreamMetaValue {
   void set_length(int32_t length) {
     assert(value_.size() == kDefaultStreamValueLength);
     length_ = length;
-    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID);
+    char* dst = const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + kTypeLength;
     EncodeFixed32(dst, length_);
   }
 
@@ -193,7 +196,7 @@ class StreamMetaValue {
     assert(value_.size() == kDefaultStreamValueLength);
     version_ = version;
     char* dst =
-        const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(length_);
+        const_cast<char*>(value_.data()) + sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(length_) + kTypeLength;
     EncodeFixed64(dst, version_);
   }
 

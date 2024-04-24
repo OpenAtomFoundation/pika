@@ -620,9 +620,9 @@ var _ = Describe("should replication ", func() {
 				for i := int64(0); i < clientMaster.LLen(ctx, "list0").Val(); i++ {
 					Expect(clientMaster.LIndex(ctx, "list0", i)).To(Equal(clientSlave.LIndex(ctx, "list0", i)))
 				}
-// 				for i := int64(0); i < clientMaster.LLen(ctx, "list1").Val(); i++ {
-// 					Expect(clientMaster.LIndex(ctx, "list1", i)).To(Equal(clientSlave.LIndex(ctx, "list1", i)))
-// 				}
+				// 				for i := int64(0); i < clientMaster.LLen(ctx, "list1").Val(); i++ {
+				// 					Expect(clientMaster.LIndex(ctx, "list1", i)).To(Equal(clientSlave.LIndex(ctx, "list1", i)))
+				// 				}
 			}
 			err = clientMaster.Del(ctx, lists...)
 

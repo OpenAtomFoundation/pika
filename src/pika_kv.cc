@@ -1832,7 +1832,6 @@ void PKScanRangeCmd::Do() {
     res_.AppendArrayLen(2);
     res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
-
     if (type_ == storage::kStrings) {
       res_.AppendArrayLenUint64(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
