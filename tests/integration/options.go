@@ -1,7 +1,6 @@
 package pika_integration
 
 import (
-	"context"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -42,11 +41,5 @@ func PikaOption(addr string) *redis.Options {
 		MaxRetries:   -1,
 		PoolSize:     30,
 		PoolTimeout:  60 * time.Second,
-		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			// Attempt to clear any unread data (if possible)
-			// Note: Redis does not provide a direct "clear buffer" command, so we simulate it by pinging
-			_, err := cn.Ping(ctx).Result()
-			return err
-		},
 	}
 }
