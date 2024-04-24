@@ -147,7 +147,6 @@ TEST_F(StringsTest, BitCountTest) {
   ASSERT_EQ(ret, 6);
 }
 
-// TODO(@tangruilin): 修复测试代码
 // BitOp
 TEST_F(StringsTest, BitOpTest) {
   int64_t ret;
