@@ -12,7 +12,6 @@ CODIS_GROUP_1_MASTER=127.0.0.1:8000
 CODIS_GROUP_2_MASTER=127.0.0.1:8001
 
 # startup pika server
-cp -f ../../output/pika ./pika
 cp -f ../conf/pika.conf ./pika_8000.conf
 cp -f ../conf/pika.conf ./pika_8001.conf
 cp -f ../conf/pika.conf ./pika_8002.conf

@@ -299,6 +299,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return share_block_cache_;
   }
+  bool enable_partitioned_index_filters() {
+    std::shared_lock l(rwlock_);
+    return enable_partitioned_index_filters_;
+  }
   bool cache_index_and_filter_blocks() {
     std::shared_lock l(rwlock_);
     return cache_index_and_filter_blocks_;
@@ -354,6 +358,10 @@ class PikaConf : public pstd::BaseConf {
   int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
   int consensus_level() { return consensus_level_.load(); }
   int replication_num() { return replication_num_.load(); }
+  int rate_limiter_mode() {
+    std::shared_lock l(rwlock_);
+    return rate_limiter_mode_;
+  }
   int64_t rate_limiter_bandwidth() {
     std::shared_lock l(rwlock_);
     return rate_limiter_bandwidth_;
@@ -851,10 +859,12 @@ class PikaConf : public pstd::BaseConf {
   int64_t block_cache_ = 0;
   int64_t num_shard_bits_ = 0;
   bool share_block_cache_ = false;
+  bool enable_partitioned_index_filters_ = false;
   bool cache_index_and_filter_blocks_ = false;
   bool pin_l0_filter_and_index_blocks_in_cache_ = false;
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = true;
+  int rate_limiter_mode_ = 0;                              // kReadsOnly = 0, kWritesOnly = 1, kAllIo = 2
   int64_t rate_limiter_bandwidth_ = 0;
   int64_t rate_limiter_refill_period_us_ = 0;
   int64_t rate_limiter_fairness_ = 0;
@@ -888,21 +898,21 @@ class PikaConf : public pstd::BaseConf {
 
   // cache
   std::vector<std::string> cache_type_;
-  std::atomic_bool tmp_cache_disable_flag_;
-  std::atomic_int64_t cache_maxmemory_;
-  std::atomic_int cache_num_;
-  std::atomic_int cache_mode_;
-  std::atomic_int cache_string_;
-  std::atomic_int cache_set_;
-  std::atomic_int cache_zset_;
-  std::atomic_int cache_hash_;
-  std::atomic_int cache_list_;
-  std::atomic_int cache_bit_;
-  std::atomic_int zset_cache_start_direction_;
-  std::atomic_int zset_cache_field_num_per_key_;
-  std::atomic_int cache_maxmemory_policy_;
-  std::atomic_int cache_maxmemory_samples_;
-  std::atomic_int cache_lfu_decay_time_;
+  std::atomic_bool tmp_cache_disable_flag_ = false;
+  std::atomic_int64_t cache_maxmemory_ = 10737418240;
+  std::atomic_int cache_num_ = 5;
+  std::atomic_int cache_mode_ = 1;
+  std::atomic_int cache_string_ = 1;
+  std::atomic_int cache_set_ = 1;
+  std::atomic_int cache_zset_ = 1;
+  std::atomic_int cache_hash_ = 1;
+  std::atomic_int cache_list_ = 1;
+  std::atomic_int cache_bit_ = 1;
+  std::atomic_int zset_cache_start_direction_ = 0;
+  std::atomic_int zset_cache_field_num_per_key_ = 512;
+  std::atomic_int cache_maxmemory_policy_ = 1;
+  std::atomic_int cache_maxmemory_samples_ = 5;
+  std::atomic_int cache_lfu_decay_time_ = 1;
 
   // rocksdb blob
   bool enable_blob_files_ = false;

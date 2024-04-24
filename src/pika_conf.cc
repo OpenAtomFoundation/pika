@@ -327,6 +327,13 @@ int PikaConf::Load() {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
+  // rate-limiter-mode
+  rate_limiter_mode_ = 1;
+  GetConfInt("rate-limiter-mode", &rate_limiter_mode_);
+  if (rate_limiter_mode_ < 0 or rate_limiter_mode_ > 2) {
+    rate_limiter_mode_ = 1;
+  }
+
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
@@ -447,6 +454,10 @@ int PikaConf::Load() {
   std::string sbc;
   GetConfStr("share-block-cache", &sbc);
   share_block_cache_ = sbc == "yes";
+
+  std::string epif;
+  GetConfStr("enable-partitioned-index-filters", &epif);
+  enable_partitioned_index_filters_ = epif == "yes";
 
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
