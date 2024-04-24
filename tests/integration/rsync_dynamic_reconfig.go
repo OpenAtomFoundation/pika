@@ -136,7 +136,7 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		slave1.FlushDB(ctx)
 		master1.FlushDB(ctx)
 		time.Sleep(3 * time.Second)
-		RefillMaster(MASTERADDR, 256, ctx)
+		RefillMaster(MASTERADDR, 128, ctx)
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
@@ -173,6 +173,11 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		getValue2, err5 := slave1.Get(ctx, key2).Result()
 		Expect(err5).NotTo(HaveOccurred())  //Get Slave failed after dynamic reset rsync rate and rsync timeout if err not nil
 		Expect(getValue2).To(Equal(value2)) //Slave Get OK, but didn't fetch expected resp after dynamic reset rsync rate/timeout
+		slave1.SlaveOf(ctx, "no", "one")
+		//clear the data to avoid disk run out in github action
+		slave1.FlushDB(ctx)
+		master1.FlushDB(ctx)
+
 	})
 
 })
