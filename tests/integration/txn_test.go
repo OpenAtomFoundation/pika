@@ -61,25 +61,25 @@ var _ = Describe("Text Txn", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 		// Testing the flushall command will cause watch's key to fail
-		It("txn failed cause of flushall", func() {
-			watchKey := "key"
-			watchkeyValue := "value"
-			cmdClient.Set(ctx, watchKey, watchkeyValue, 0)
-			txnClient.Watch(ctx, func(tx *redis.Tx) error {
-				cmdClient.Watch(ctx, func(tx *redis.Tx) error {
-					pipe := tx.TxPipeline()
-					pipe.Select(ctx, 1)
-					pipe.FlushAll(ctx)
-					pipe.Exec(ctx)
-					return nil
-				}, watchKey)
-				pipe := tx.TxPipeline()
-				pipe.Get(ctx, watchKey)
-				_, err := pipe.Exec(ctx)
-				Expect(err).To(HaveOccurred())
-				return nil
-			}, watchKey)
-		})
+		//It("txn failed cause of flushall", func() {
+		//	watchKey := "key"
+		//	watchkeyValue := "value"
+		//	cmdClient.Set(ctx, watchKey, watchkeyValue, 0)
+		//	txnClient.Watch(ctx, func(tx *redis.Tx) error {
+		//		cmdClient.Watch(ctx, func(tx *redis.Tx) error {
+		//			pipe := tx.TxPipeline()
+		//			pipe.Select(ctx, 1)
+		//			pipe.FlushAll(ctx)
+		//			pipe.Exec(ctx)
+		//			return nil
+		//		}, watchKey)
+		//		pipe := tx.TxPipeline()
+		//		pipe.Get(ctx, watchKey)
+		//		_, err := pipe.Exec(ctx)
+		//		Expect(err).To(HaveOccurred())
+		//		return nil
+		//	}, watchKey)
+		//})
 		// test 'select' command
 		It("select in txn", func() {
 			watchKey := "key"

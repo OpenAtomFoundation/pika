@@ -43,8 +43,7 @@ void HDelCmd::DoThroughDB() {
 
 void HDelCmd::DoUpdateCache() {
   if (s_.ok() && deleted_ > 0) {
-    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    db_->cache()->HDel(CachePrefixKeyH, fields_);
+    db_->cache()->HDel(key_, fields_);
   }
 }
 
@@ -77,8 +76,7 @@ void HSetCmd::DoThroughDB() {
 
 void HSetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    db_->cache()->HSetIfKeyExist(CachePrefixKeyH, field_, value_);
+    db_->cache()->HSetIfKeyExist(key_, field_, value_);
   }
 }
 
@@ -108,8 +106,7 @@ void HGetCmd::Do() {
 
 void HGetCmd::ReadCache() {
   std::string value;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HGet(CachePrefixKeyH, field_, &value);
+  auto s = db_->cache()->HGet(key_, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -180,8 +177,7 @@ void HGetallCmd::Do() {
 
 void HGetallCmd::ReadCache() {
   std::vector<storage::FieldValue> fvs;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HGetall(CachePrefixKeyH, &fvs);
+  auto s = db_->cache()->HGetall(key_, &fvs);
   if (s.ok()) {
     res_.AppendArrayLen(fvs.size() * 2);
     for (const auto& fv : fvs) {
@@ -231,8 +227,7 @@ void HExistsCmd::Do() {
 }
 
 void HExistsCmd::ReadCache() {
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HExists(CachePrefixKeyH, field_);
+  auto s = db_->cache()->HExists(key_, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -289,8 +284,7 @@ void HIncrbyCmd::DoThroughDB() {
 
 void HIncrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    db_->cache()->HIncrbyxx(CachePrefixKeyH, field_, by_);
+    db_->cache()->HIncrbyxx(key_, field_, by_);
   }
 }
 
@@ -330,8 +324,7 @@ void HIncrbyfloatCmd::DoUpdateCache() {
   if (s_.ok()) {
     long double long_double_by;
     if (storage::StrToLongDouble(by_.data(), by_.size(), &long_double_by) != -1) {
-      std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-      db_->cache()->HIncrbyfloatxx(CachePrefixKeyH, field_, long_double_by);
+      db_->cache()->HIncrbyfloatxx(key_, field_, long_double_by);
     }
   }
 }
@@ -361,8 +354,7 @@ void HKeysCmd::Do() {
 
 void HKeysCmd::ReadCache() {
   std::vector<std::string> fields;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HKeys(CachePrefixKeyH, &fields);
+  auto s = db_->cache()->HKeys(key_, &fields);
   if (s.ok()) {
     res_.AppendArrayLen(fields.size());
     for (const auto& field : fields) {
@@ -408,8 +400,7 @@ void HLenCmd::Do() {
 
 void HLenCmd::ReadCache() {
   uint64_t len = 0;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HLen(CachePrefixKeyH, &len);
+  auto s = db_->cache()->HLen(key_, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -464,8 +455,7 @@ void HMgetCmd::Do() {
 
 void HMgetCmd::ReadCache() {
   std::vector<storage::ValueStatus> vss;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HMGet(CachePrefixKeyH, fields_, &vss);
+  auto s = db_->cache()->HMGet(key_, fields_, &vss);
   if (s.ok()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -530,8 +520,7 @@ void HMsetCmd::DoThroughDB() {
 
 void HMsetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    db_->cache()->HMSetxx(CachePrefixKeyH, fvs_);
+    db_->cache()->HMSetxx(key_, fvs_);
   }
 }
 
@@ -564,8 +553,7 @@ void HSetnxCmd::DoThroughDB() {
 
 void HSetnxCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-    db_->cache()->HSetIfKeyExistAndFieldNotExist(CachePrefixKeyH, field_, value_);
+    db_->cache()->HSetIfKeyExistAndFieldNotExist(key_, field_, value_);
   }
 }
 
@@ -592,8 +580,7 @@ void HStrlenCmd::Do() {
 
 void HStrlenCmd::ReadCache() {
   uint64_t len = 0;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HStrlen(CachePrefixKeyH, field_, &len);
+  auto s = db_->cache()->HStrlen(key_, field_, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else if (s.IsNotFound()) {
@@ -641,8 +628,7 @@ void HValsCmd::Do() {
 
 void HValsCmd::ReadCache() {
   std::vector<std::string> values;
-  std::string CachePrefixKeyH = PCacheKeyPrefixH + key_;
-  auto s = db_->cache()->HVals(CachePrefixKeyH, &values);
+  auto s = db_->cache()->HVals(key_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {

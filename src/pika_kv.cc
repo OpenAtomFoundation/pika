@@ -110,11 +110,10 @@ void SetCmd::DoUpdateCache() {
     return;
   }
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
     if (has_ttl_) {
-      db_->cache()->Setxx(CachePrefixKeyK, value_, sec_);
+      db_->cache()->Setxx(key_, value_, sec_);
     } else {
-      db_->cache()->SetxxWithoutTTL(CachePrefixKeyK, value_);
+      db_->cache()->SetxxWithoutTTL(key_, value_);
     }
   }
 }
@@ -171,8 +170,7 @@ void GetCmd::Do() {
 }
 
 void GetCmd::ReadCache() {
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db_->cache()->Get(CachePrefixKeyK, &value_);
+  auto s = db_->cache()->Get(key_, &value_);
   if (s.ok()) {
     res_.AppendStringLen(value_.size());
     res_.AppendContent(value_);
@@ -188,8 +186,7 @@ void GetCmd::DoThroughDB() {
 
 void GetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->WriteKVToCache(CachePrefixKeyK, value_, sec_);
+    db_->cache()->WriteKVToCache(key_, value_, sec_);
   }
 }
 
@@ -225,11 +222,7 @@ void DelCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
     for (auto key : keys_) {
-      v.emplace_back(PCacheKeyPrefixK + key);
-      v.emplace_back(PCacheKeyPrefixL + key);
-      v.emplace_back(PCacheKeyPrefixZ + key);
-      v.emplace_back(PCacheKeyPrefixS + key);
-      v.emplace_back(PCacheKeyPrefixH + key);
+      v.emplace_back(key);
     }
     db_->cache()->Del(v);
   }
@@ -287,8 +280,7 @@ void IncrCmd::DoThroughDB() {
 
 void IncrCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Incrxx(CachePrefixKeyK);
+    db_->cache()->Incrxx(key_);
   }
 }
 
@@ -326,8 +318,7 @@ void IncrbyCmd::DoThroughDB() {
 
 void IncrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->IncrByxx(CachePrefixKeyK, by_);
+    db_->cache()->IncrByxx(key_, by_);
   }
 }
 
@@ -369,8 +360,7 @@ void IncrbyfloatCmd::DoUpdateCache() {
   if (s_.ok()) {
     long double long_double_by;
     if (storage::StrToLongDouble(value_.data(), value_.size(), &long_double_by) != -1) {
-      std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-      db_->cache()->Incrbyfloatxx(CachePrefixKeyK, long_double_by);
+      db_->cache()->Incrbyfloatxx(key_, long_double_by);
     }
   }
 }
@@ -404,8 +394,7 @@ void DecrCmd::DoThroughDB() {
 
 void DecrCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Decrxx(CachePrefixKeyK);
+    db_->cache()->Decrxx(key_);
   }
 }
 
@@ -443,8 +432,7 @@ void DecrbyCmd::DoThroughDB() {
 
 void DecrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->DecrByxx(CachePrefixKeyK, by_);
+    db_->cache()->DecrByxx(key_, by_);
   }
 }
 
@@ -481,8 +469,7 @@ void GetsetCmd::DoThroughDB() {
 
 void GetsetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->SetxxWithoutTTL(CachePrefixKeyK, new_value_);
+    db_->cache()->SetxxWithoutTTL(key_, new_value_);
   }
 }
 
@@ -514,8 +501,7 @@ void AppendCmd::DoThroughDB(){
 
 void AppendCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Appendxx(CachePrefixKeyK, value_);
+    db_->cache()->Appendxx(key_, value_);
   }
 }
 
@@ -583,8 +569,7 @@ void MgetCmd::ReadCache() {
     res_.SetRes(CmdRes::kCacheMiss);
     return;
   }
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
-  auto s = db_->cache()->Get(CachePrefixKeyK, &value_);
+  auto s = db_->cache()->Get(keys_[0], &value_);
   if (s.ok()) {
     res_.AppendArrayLen(1);
     res_.AppendStringLen(value_.size());
@@ -602,9 +587,7 @@ void MgetCmd::DoThroughDB() {
 void MgetCmd::DoUpdateCache() {
   for (size_t i = 0; i < keys_.size(); i++) {
     if (db_value_status_array_[i].status.ok()) {
-      std::string CachePrefixKeyK;
-      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
-      db_->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, db_value_status_array_[i].ttl);
+      db_->cache()->WriteKVToCache(keys_[i], db_value_status_array_[i].value, db_value_status_array_[i].ttl);
     }
   }
 }
@@ -733,8 +716,7 @@ void SetexCmd::DoThroughDB() {
 
 void SetexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Setxx(CachePrefixKeyK, value_, sec_);
+    db_->cache()->Setxx(key_, value_, sec_);
   }
 }
 
@@ -793,8 +775,7 @@ void PsetexCmd::DoThroughDB() {
 
 void PsetexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->Setxx(CachePrefixKeyK, value_,  usec_ / 1000);
+    db_->cache()->Setxx(key_, value_,  usec_ / 1000);
   }
 }
 
@@ -880,10 +861,8 @@ void MsetCmd::DoThroughDB() {
 
 void MsetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK;
     for (auto key : kvs_) {
-      CachePrefixKeyK = PCacheKeyPrefixK + key.key;
-      db_->cache()->SetxxWithoutTTL(CachePrefixKeyK, key.value);
+      db_->cache()->SetxxWithoutTTL(key.key, key.value);
     }
   }
 }
@@ -1011,8 +990,7 @@ void GetrangeCmd::Do() {
 
 void GetrangeCmd::ReadCache() {
   std::string substr;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db_->cache()->GetRange(CachePrefixKeyK, start_, end_, &substr);
+  auto s = db_->cache()->GetRange(key_, start_, end_, &substr);
   if (s.ok()) {
     res_.AppendStringLen(substr.size());
     res_.AppendContent(substr);
@@ -1038,8 +1016,7 @@ void GetrangeCmd::DoThroughDB() {
 
 void GetrangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->WriteKVToCache(CachePrefixKeyK, value_, sec_);
+    db_->cache()->WriteKVToCache(key_, value_, sec_);
   }
 }
 
@@ -1075,8 +1052,7 @@ void SetrangeCmd::DoThroughDB() {
 
 void SetrangeCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->SetRangexx(CachePrefixKeyK, offset_, value_);
+    db_->cache()->SetRangexx(key_, offset_, value_);
   }
 }
 
@@ -1102,8 +1078,7 @@ void StrlenCmd::Do() {
 
 void StrlenCmd::ReadCache() {
   int32_t len = 0;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s= db_->cache()->Strlen(CachePrefixKeyK, &len);
+  auto s= db_->cache()->Strlen(key_, &len);
   if (s.ok()) {
     res_.AppendInteger(len);
   } else {
@@ -1123,8 +1098,7 @@ void StrlenCmd::DoThroughDB() {
 
 void StrlenCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->WriteKVToCache(CachePrefixKeyK, value_, sec_);
+    db_->cache()->WriteKVToCache(key_, value_, sec_);
   }
 }
 
@@ -1188,7 +1162,7 @@ void ExpireCmd::DoInitial() {
 }
 
 void ExpireCmd::Do() {
-  int64_t res = db_->storage()->Expire(key_, sec_);
+  int32_t res = db_->storage()->Expire(key_, sec_);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();

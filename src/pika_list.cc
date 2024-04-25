@@ -43,9 +43,8 @@ void LIndexCmd::Do() {
 }
 
 void LIndexCmd::ReadCache() {
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   std::string value;
-  auto s = db_->cache()->LIndex(CachePrefixKeyL, index_, &value);
+  auto s = db_->cache()->LIndex(key_, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -104,8 +103,7 @@ void LInsertCmd::DoThroughDB() {
 
 void LInsertCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
+    db_->cache()->LInsert(key_, dir_, pivot_, value_);
   }
 }
 
@@ -130,9 +128,8 @@ void LLenCmd::Do() {
 }
 
 void LLenCmd::ReadCache() {
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
-  auto s = db_->cache()->LLen(CachePrefixKeyL, &llen);
+  auto s = db_->cache()->LLen(key_, &llen);
   if (s.ok()){
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
@@ -289,8 +286,7 @@ void LPushCmd::DoThroughDB() {
 
 void LPushCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(key_, values_);
   }
 }
 
@@ -448,9 +444,8 @@ void LPopCmd::DoThroughDB() {
 
 void LPopCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db_->cache()->LPop(CachePrefixKeyL, &value);
+    db_->cache()->LPop(key_, &value);
   }
 }
 
@@ -485,8 +480,7 @@ void LPushxCmd::DoThroughDB() {
 
 void LPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(key_, values_);
   }
 }
 
@@ -526,8 +520,7 @@ void LRangeCmd::Do() {
 
 void LRangeCmd::ReadCache() {
   std::vector<std::string> values;
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-  auto s = db_->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
+  auto s = db_->cache()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -583,8 +576,7 @@ void LRemCmd::DoThroughDB() {
 
 void LRemCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LRem(CachePrefixKeyL, count_, value_);
+    db_->cache()->LRem(key_, count_, value_);
   }
 }
 
@@ -625,8 +617,7 @@ void LSetCmd::DoThroughDB() {
 
 void LSetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LSet(CachePrefixKeyL, index_, value_);
+    db_->cache()->LSet(key_, index_, value_);
   }
 }
 
@@ -664,8 +655,7 @@ void LTrimCmd::DoThroughDB() {
 
 void LTrimCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LTrim(CachePrefixKeyL, start_, stop_);
+    db_->cache()->LTrim(key_, start_, stop_);
   }
 }
 
@@ -789,9 +779,8 @@ void RPopCmd::DoThroughDB() {
 
 void RPopCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db_->cache()->RPop(CachePrefixKeyL, &value);
+    db_->cache()->RPop(key_, &value);
   }
 }
 
@@ -895,8 +884,7 @@ void RPushCmd::DoThroughDB() {
 
 void RPushCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(key_, values_);
   }
 }
 
@@ -931,7 +919,6 @@ void RPushxCmd::DoThroughDB() {
 
 void RPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(key_, values_);
   }
 }

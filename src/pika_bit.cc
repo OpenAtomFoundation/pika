@@ -64,8 +64,7 @@ void BitSetCmd::DoThroughDB() {
 
 void BitSetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->SetBitIfKeyExist(CachePrefixKeyK, bit_offset_, on_);
+    db_->cache()->SetBitIfKeyExist(key_, bit_offset_, on_);
   }
 }
 
@@ -100,8 +99,7 @@ void BitGetCmd::Do() {
 
 void BitGetCmd::ReadCache() {
   int64_t bit_val = 0;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db_->cache()->GetBit(CachePrefixKeyK, bit_offset_, &bit_val);
+  auto s = db_->cache()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(bit_val);
   } else if (s.IsNotFound()) {
@@ -167,11 +165,10 @@ void BitCountCmd::ReadCache() {
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);
   rocksdb::Status s;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
   if (count_all_) {
-    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 0);
+    s = db_->cache()->BitCount(key_, start, end, &count, 0);
   } else {
-    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 1);
+    s = db_->cache()->BitCount(key_, start, end, &count, 1);
   }
 
   if (s.ok()) {
@@ -259,13 +256,12 @@ void BitPosCmd::ReadCache() {
   int64_t bit = static_cast<long>(bit_val_);
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);\
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
   if (pos_all_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, &pos);
+    s = db_->cache()->BitPos(key_, bit, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, &pos);
+    s = db_->cache()->BitPos(key_, bit, start, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, end, &pos);
+    s = db_->cache()->BitPos(key_, bit, start, end, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger(pos);
@@ -341,7 +337,7 @@ void BitOpCmd::DoThroughDB() {
 void BitOpCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixK + dest_key_);
+    v.emplace_back(dest_key_);
     db_->cache()->Del(v);
   }
 }

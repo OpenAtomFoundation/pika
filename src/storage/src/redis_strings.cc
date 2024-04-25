@@ -1346,8 +1346,6 @@ rocksdb::Status Redis::Exists(const Slice& key) {
       return HLen(key, &ret);
     } else if (type == Type::kList) {
       return LLen(key, &llen);
-    } else if (type == Type::kStream) {
-      return XLen(key, ret);
     } else {
       return Get(key, &value);
     }
