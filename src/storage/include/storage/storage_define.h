@@ -26,9 +26,16 @@ const int kVersionLength = 8;
 const int kScoreLength = 8;
 const int kSuffixReserveLength = 16;
 const int kListValueIndexLength = 16;
+/*
+ * Used to store a fixed-size value for the Type field
+ */
 const int kTypeLength = 1;
 const int kTimestampLength = 8;
 
+/*
+ * kMetaCF is used to store the metadata of all types of
+ * data and all information of type string
+ */
 enum ColumnFamilyIndex {
   kMetaCF = 0,
   kHashesDataCF = 1,

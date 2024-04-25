@@ -211,7 +211,7 @@ Status Storage::MGetWithTTL(const std::vector<std::string>& keys, std::vector<Va
     s = inst->GetWithTTL(key, &value, &ttl);
     if (s.ok()) {
       vss->push_back({value, Status::OK(), ttl});
-    } else if(s.IsNotFound()) {
+    } else if (s.IsNotFound()) {
       vss->push_back({std::string(), Status::NotFound(), ttl});
     } else {
       vss->clear();
@@ -629,7 +629,6 @@ Status Storage::SMembersWithTTL(const Slice& key, std::vector<std::string>* memb
 Status Storage::SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret) {
   Status s;
 
-  LOG(INFO) << "AAA";
   // in codis mode, users should garentee keys will be hashed to same slot
   if (!is_classic_mode_) {
     auto& inst = GetDBInstance(source);
@@ -652,7 +651,6 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
   }
   auto& dest_inst = GetDBInstance(destination);
   int unused_ret;
-  LOG(INFO) << "destination: " << destination.ToString();
   return dest_inst->SAdd(destination, std::vector<std::string>{member.ToString()}, &unused_ret);
 }
 
@@ -1161,17 +1159,14 @@ Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
 }
 
 // Keys Commands
-int32_t Storage::Expire(const Slice& key, uint64_t ttl) {
-  int32_t ret = 0;
+int32_t Storage::Expire(const Slice& key, int64_t ttl) {
   auto& inst = GetDBInstance(key);
-  // Strings
   Status s = inst->Expire(key, ttl);
   if (s.ok()) {
-    ret++;
+    return 1;
   } else if (!s.IsNotFound()) {
     return -1;
   }
-  return ret;
 }
 
 
@@ -1188,92 +1183,9 @@ int64_t Storage::Del(const std::vector<std::string>& keys) {
   return count;
 }
 
-int64_t Storage::DelByType(const std::vector<std::string>& keys, const DataType& type) {
-  Status s;
-  int64_t count = 0;
-  bool is_corruption = false;
-
-  for (const auto& key : keys) {
-    auto& inst = GetDBInstance(key);
-    switch (type) {
-      // Strings
-      case DataType::kStrings: {
-        s = inst->StringsDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      // Hashes
-      case DataType::kHashes: {
-        s = inst->HashesDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      // Sets
-      case DataType::kSets: {
-        s = inst->SetsDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      // Lists
-      case DataType::kLists: {
-        s = inst->ListsDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      // ZSets
-      case DataType::kZSets: {
-        s = inst->ZsetsDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      // Stream
-      case DataType::kStreams: {
-        s = inst->StreamsDel(key);
-        if (s.ok()) {
-          count++;
-        } else if (!s.IsNotFound()) {
-          is_corruption = true;
-        }
-        break;
-      }
-      case DataType::kAll: {
-        return -1;
-      }
-    }
-  }
-
-  if (is_corruption) {
-    return -1;
-  } else {
-    return count;
-  }
-}
-
 int64_t Storage::Exists(const std::vector<std::string>& keys) {
   int64_t count = 0;
   Status s;
-  bool is_corruption = false;
-
   for (const auto& key : keys) {
     auto& inst = GetDBInstance(key);
     s = inst->Exists(key);
@@ -1341,7 +1253,6 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
     MergingIterator miter(inst_iters);
     miter.Seek(base_start_key.Encode().ToString());
     while (miter.Valid() && count > 0) {
-      LOG(INFO) << "VALUE: " << miter.Value();
       keys->push_back(miter.Key());
       miter.Next();
       count--;
@@ -1410,10 +1321,8 @@ Status Storage::PKScanRange(const DataType& data_type, const Slice& key_start, c
   while (miter.Valid() && limit > 0 &&
       (end_no_limit || miter.Key().compare(key_end.ToString()) <= 0)) {
     if (data_type == DataType::kStrings) {
-      LOG(INFO) << "key: " << miter.Key() << " Value: " << miter.Value();
       kvs->push_back({miter.Key(), miter.Value()});
     } else {
-      LOG(INFO) << "KEY: " << miter.Key();
       keys->push_back(miter.Key());
     }
     limit--;
@@ -1547,11 +1456,11 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
   return Status::OK();
 }
 
-int32_t Storage::Expireat(const Slice& key, uint64_t timestamp) {
+int32_t Storage::Expireat(const Slice& key, int64_t timestamp) {
   Status s;
   int32_t count = 0;
   auto& inst = GetDBInstance(key);
-  s = inst->StringsExpireat(key, timestamp);
+  s = inst->Expireat(key, timestamp);
   if (s.ok()) {
     count++;
   } else if (!s.IsNotFound()) {
@@ -1562,30 +1471,31 @@ int32_t Storage::Expireat(const Slice& key, uint64_t timestamp) {
 
 int32_t Storage::Persist(const Slice& key) {
   auto& inst = GetDBInstance(key);
+  int32_t count = 0;
   Status s = inst->Persist(key);
   if (s.ok()) {
-    return 1;
-  } else {
-    return 0;
+    count++;
+  } else if (!s.IsNotFound()) {
+    return -1;
   }
+  return count;
 }
 
-int32_t Storage::TTL(const Slice& key) {
+int64_t Storage::TTL(const Slice& key) {
   int64_t timestamp = 0;
-
   auto& inst = GetDBInstance(key);
   Status s = inst->TTL(key, &timestamp);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     return timestamp;
-  } else {
-    return -2;
+  } else if (!s.IsNotFound()) {
+    return -3;
   }
+  return timestamp;
 }
 
 Status Storage::GetType(const std::string& key, std::string& types) {
   auto& inst = GetDBInstance(key);
-  Status s = inst->GetType(key, types);
-  return s;
+  return inst->GetType(key, types);
 }
 
 Status Storage::Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys) {
@@ -2087,7 +1997,7 @@ int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_stat
   auto& inst = GetDBInstance(key);
   Status s = inst->IsExist(key);
   if (s.ok()) {
-    type_count++;
+    return 1;
   }
   return type_count;
 }

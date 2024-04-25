@@ -687,6 +687,7 @@ void BRPopCmd::Do() {
     } else if (s_.IsNotFound()) {
       continue;
     } else if (s_.ToString() == ErrTypeMessage) {
+      // TODO use return or continue; Mixficsol
       res_.SetRes(CmdRes::kMultiKey);
       return;
     } else {

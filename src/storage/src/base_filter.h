@@ -29,6 +29,12 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     auto cur_time = static_cast<uint64_t>(unix_time);
+    /*
+     * For the filtering of meta information, because the field designs of string
+     * and list are different, their filtering policies are written separately.
+     * The field designs of the remaining zset,set,hash and stream in meta-value
+     * are the same, so the same filtering strategy is used
+     */
     auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
     DEBUG("==========================START==========================");
     if (type == Type::kString) {

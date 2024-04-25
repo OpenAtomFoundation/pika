@@ -190,8 +190,8 @@ class Redis {
 
   Status Exists(const Slice& key);
   Status Del(const Slice& key);
-  Status Expire(const Slice& key, uint64_t timestamp);
-  Status Expireat(const Slice& key, uint64_t timestamp);
+  Status Expire(const Slice& key, int64_t timestamp);
+  Status Expireat(const Slice& key, int64_t timestamp);
   Status Persist(const Slice& key);
   Status TTL(const Slice& key, int64_t* timestamp);
 
@@ -393,6 +393,14 @@ class Redis {
         return nullptr;
     }
     return nullptr;
+  }
+
+  inline bool ExpectedMetaValue(enum Type type, const std::string &meta_value) {
+    auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+    if (type != meta_type) {
+      return false;
+    }
+    return true;
   }
 
 private:

@@ -76,8 +76,7 @@ Status Redis::StringsPKPatternMatchDel(const std::string& pattern, int32_t* ret)
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, iter->value().ToString())) {
       continue;
     }
     key = iter->key().ToString();
@@ -119,8 +118,7 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -169,8 +167,7 @@ Status Redis::BitCount(const Slice& key, int64_t start_offset, int64_t end_offse
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -269,8 +266,7 @@ Status Redis::BitOp(BitOpType op, const std::string& dest_key, const std::vector
     BaseKey base_key(src_key);
     s = db_->Get(default_read_options_, base_key.Encode(), &value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-      if (type != Type::kString) {
+      if (!ExpectedMetaValue(Type::kString, value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedStringsValue parsed_strings_value(&value);
@@ -309,8 +305,7 @@ Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -354,8 +349,7 @@ Status Redis::Get(const Slice& key, std::string* value) {
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
   std::string meta_value = *value;
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(value);
@@ -376,8 +370,7 @@ Status Redis::MGet(const Slice& key, std::string* value) {
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
   std::string meta_value = *value;
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, meta_value)) {
       return Status::NotFound();
     }
     ParsedStringsValue parsed_strings_value(value);
@@ -397,8 +390,7 @@ Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
   std::string meta_value = *value;
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(value);
@@ -433,8 +425,7 @@ Status Redis::GetBit(const Slice& key, int64_t offset, int32_t* ret) {
   if (s.ok() || s.IsNotFound()) {
     std::string data_value;
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kString) {
+      if (!ExpectedMetaValue(Type::kString, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedStringsValue parsed_strings_value(&meta_value);
@@ -465,8 +456,7 @@ Status Redis::Getrange(const Slice& key, int64_t start_offset, int64_t end_offse
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -504,8 +494,7 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
   std::string meta_value = *value;
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(value);
@@ -626,8 +615,7 @@ Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -689,8 +677,7 @@ Status Redis::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
     BaseKey base_key(kv.key);
     s = db_->Get(default_read_options_, base_key.Encode(), &value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-      if (type != Type::kString) {
+      if (!ExpectedMetaValue(Type::kString, value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedStringsValue parsed_strings_value(&value);
@@ -726,8 +713,7 @@ Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(old_value);
@@ -763,8 +749,7 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
     std::string data_value;
     uint64_t timestamp = 0;
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kString) {
+      if (!ExpectedMetaValue(Type::kString, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedStringsValue parsed_strings_value(&meta_value);
@@ -826,8 +811,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -863,8 +847,7 @@ Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -901,8 +884,7 @@ Status Redis::Delvx(const Slice& key, const Slice& value, int32_t* ret) {
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&old_value);
@@ -934,8 +916,7 @@ Status Redis::Setrange(const Slice& key, int64_t start_offset, const Slice& valu
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(old_value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, old_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     uint64_t timestamp = 0;
@@ -1037,8 +1018,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t* ret) {
   BaseKey base_key(key);
   s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1078,8 +1058,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
   BaseKey base_key(key);
   s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1132,8 +1111,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
   BaseKey base_key(key);
   s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1205,8 +1183,7 @@ Status Redis::StringsExpire(const Slice& key, int64_t ttl) {
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1230,8 +1207,7 @@ Status Redis::StringsDel(const Slice& key) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1250,8 +1226,7 @@ Status Redis::StringsExpireat(const Slice& key, int64_t timestamp) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1276,8 +1251,7 @@ Status Redis::StringsPersist(const Slice& key) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1303,8 +1277,7 @@ Status Redis::StringsTTL(const Slice& key, int64_t* timestamp) {
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedStringsValue parsed_strings_value(&value);
@@ -1338,8 +1311,7 @@ void Redis::ScanStrings() {
   LOG(INFO) << "***************" << "rocksdb instance: " << index_ << " " << "String Data***************";
   auto iter = db_->NewIterator(iterator_options);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kString) {
+    if (!ExpectedMetaValue(Type::kString, iter->value().ToString())) {
       continue;
     }
     ParsedBaseKey parsed_strings_key(iter->key());
@@ -1374,6 +1346,8 @@ rocksdb::Status Redis::Exists(const Slice& key) {
       return HLen(key, &ret);
     } else if (type == Type::kList) {
       return LLen(key, &llen);
+    } else if (type == Type::kStream) {
+      return XLen(key, ret);
     } else {
       return Get(key, &value);
     }
@@ -1404,7 +1378,7 @@ rocksdb::Status Redis::Del(const Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expire(const Slice& key, uint64_t ttl) {
+rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1425,7 +1399,7 @@ rocksdb::Status Redis::Expire(const Slice& key, uint64_t ttl) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expireat(const Slice& key, uint64_t ttl) {
+rocksdb::Status Redis::Expireat(const Slice& key, int64_t ttl) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1509,9 +1483,9 @@ rocksdb::Status Redis::GetType(const storage::Slice& key, std::string& types) {
     } else {
       types = "none";
     }
-    return Status::OK();
+  } else {
+    types = "none";
   }
-  types = "none";
   return Status::OK();
 }
 

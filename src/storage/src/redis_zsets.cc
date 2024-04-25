@@ -41,8 +41,7 @@ Status Redis::ScanZsetsKeyNum(KeyInfo* key_info) {
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, iter->value().ToString())) {
       continue;
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(iter->value());
@@ -80,8 +79,7 @@ Status Redis::ZsetsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, iter->value().ToString())) {
       continue;
     }
     ParsedBaseMetaKey meta_key(iter->key().ToString());
@@ -126,8 +124,7 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -178,8 +175,7 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -241,9 +237,7 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
-
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     bool vaild = true;
@@ -336,8 +330,7 @@ Status Redis::ZCard(const Slice& key, int32_t* card) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -367,8 +360,7 @@ Status Redis::ZCount(const Slice& key, double min, double max, bool left_close, 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -429,8 +421,7 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -502,8 +493,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -554,8 +544,7 @@ Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -620,8 +609,7 @@ Status Redis::ZRangebyscore(const Slice& key, double min, double max, bool left_
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -691,8 +679,7 @@ Status Redis::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -747,8 +734,7 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -804,8 +790,7 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -866,8 +851,7 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -942,8 +926,7 @@ Status Redis::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vect
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -994,8 +977,7 @@ Status Redis::ZRevrangebyscore(const Slice& key, double min, double max, bool le
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1065,8 +1047,7 @@ Status Redis::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1113,8 +1094,7 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset && type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1154,8 +1134,7 @@ Status Redis::ZGetAll(const Slice& key, double weight, std::map<std::string, dou
   BaseMetaKey base_meta_key(key);
   s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset && type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1200,8 +1179,7 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kZset) {
+      if (!ExpectedMetaValue(Type::kZset, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1248,8 +1226,7 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1318,8 +1295,7 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kZset) {
+      if (!ExpectedMetaValue(Type::kZset, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1392,8 +1368,7 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1448,8 +1423,7 @@ Status Redis::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1515,8 +1489,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1581,8 +1554,7 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1609,8 +1581,7 @@ Status Redis::ZsetsDel(const Slice& key) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1635,8 +1606,7 @@ Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1677,8 +1647,7 @@ Status Redis::ZScan(const Slice& key, int64_t cursor, const std::string& pattern
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1743,8 +1712,7 @@ Status Redis::ZsetsPersist(const Slice& key) {
 
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1771,8 +1739,7 @@ Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -1809,8 +1776,7 @@ void Redis::ScanZsets() {
   LOG(INFO) << "***************" << "rocksdb instance: " << index_ << " ZSets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_iter->value()[0]));
-    if (type != Type::kZset) {
+    if (!ExpectedMetaValue(Type::kZset, meta_iter->value().ToString())) {
       continue;
     }
     ParsedBaseMetaKey parsed_meta_key(meta_iter->key());

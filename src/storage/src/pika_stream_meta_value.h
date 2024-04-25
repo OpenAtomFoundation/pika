@@ -80,8 +80,6 @@ class StreamMetaValue {
   // value_ = std::move(value);
   void ParseFrom(std::string& value) {
     value_ = std::move(value);
-    LOG(INFO) << "SIZE: " << value_.size();
-    LOG(INFO) << "VALUE: " << value_;
     assert(value_.size() == kDefaultStreamValueLength);
     if (value_.size() != kDefaultStreamValueLength) {
       LOG(ERROR) << "Invalid stream meta value length: ";
@@ -112,7 +110,6 @@ class StreamMetaValue {
     pos += sizeof(uint64_t);
 
     length_ = static_cast<int32_t>(DecodeFixed32(pos));
-    LOG(INFO) << "Length: " << length_;
     pos += sizeof(length_);
 
     version_ = static_cast<uint64_t>(DecodeFixed64(pos));

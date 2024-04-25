@@ -968,17 +968,13 @@ class Storage {
   // Set a timeout on key
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, uint64_t ttl);
+  int32_t Expire(const Slice& key, int64_t ttl);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys that were removed
   int64_t Del(const std::vector<std::string>& keys);
 
-  // Removes the specified keys of the specified type
-  // return -1 operation exception errors happen in database
-  // return >= 0 the number of keys that were removed
-  int64_t DelByType(const std::vector<std::string>& keys, const DataType& type);
 
   // Iterate over a collection of elements
   // return an updated cursor that the user need to use as the cursor argument
@@ -1022,7 +1018,7 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist
   // return >=1 if the timueout was set
-  int32_t Expireat(const Slice& key, uint64_t timestamp);
+  int32_t Expireat(const Slice& key, int64_t timestamp);
 
   // Remove the existing timeout on key, turning the key from volatile (a key
   // with an expire set) to persistent (a key that will never expire as no
@@ -1037,7 +1033,7 @@ class Storage {
   // return -2 if the key does not exist
   // return -1 if the key exists but has not associated expire
   // return > 0 TTL in seconds
-  int32_t TTL(const Slice& key);
+  int64_t TTL(const Slice& key);
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one

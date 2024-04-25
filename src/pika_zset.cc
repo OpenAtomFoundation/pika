@@ -463,8 +463,7 @@ void ZRangebyscoreCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -566,8 +565,7 @@ void ZRevrangebyscoreCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -1172,8 +1170,7 @@ void ZRangebylexCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -1323,8 +1320,7 @@ void ZLexcountCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -1420,8 +1416,7 @@ void ZRemrangebyscoreCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -1463,8 +1458,7 @@ void ZRemrangebylexCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s_.ok() && !s_.IsNotFound()) {
+  } else if (!s_.ok() && !s_.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }

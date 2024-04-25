@@ -35,8 +35,7 @@ Status Redis::ScanListsKeyNum(KeyInfo* key_info) {
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, iter->value().ToString())) {
       continue;
     }
     ParsedListsMetaValue parsed_lists_meta_value(iter->value());
@@ -74,9 +73,8 @@ Status Redis::ListsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
-      continue;
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
+      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
     meta_value = iter->value().ToString();
@@ -121,8 +119,7 @@ Status Redis::LIndex(const Slice& key, int64_t index, std::string* element) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -159,8 +156,7 @@ Status Redis::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, co
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -264,8 +260,7 @@ Status Redis::LLen(const Slice& key, uint64_t* len) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -293,8 +288,7 @@ Status Redis::LPop(const Slice& key, int64_t count, std::vector<std::string>* el
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -345,8 +339,7 @@ Status Redis::LPush(const Slice& key, const std::vector<std::string>& values, ui
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -395,8 +388,7 @@ Status Redis::LPushx(const Slice& key, const std::vector<std::string>& values, u
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -433,8 +425,7 @@ Status Redis::LRange(const Slice& key, int64_t start, int64_t stop, std::vector<
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -487,8 +478,7 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -551,8 +541,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -677,8 +666,7 @@ Status Redis::LSet(const Slice& key, int64_t index, const Slice& value) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -715,8 +703,7 @@ Status Redis::LTrim(const Slice& key, int64_t start, int64_t stop) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -782,8 +769,7 @@ Status Redis::RPop(const Slice& key, int64_t count, std::vector<std::string>* el
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -833,8 +819,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
     BaseMetaKey base_source(source);
     s = db_->Get(default_read_options_, handles_[kMetaCF], base_source.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kList) {
+      if (!ExpectedMetaValue(Type::kList, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -882,8 +867,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
   BaseMetaKey base_source(source);
   s = db_->Get(default_read_options_, handles_[kMetaCF], base_source.Encode(), &source_meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(source_meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, source_meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&source_meta_value);
@@ -914,8 +898,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
   BaseMetaKey base_destination(destination);
   s = db_->Get(default_read_options_, handles_[kMetaCF], base_destination.Encode(), &destination_meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(destination_meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, destination_meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&destination_meta_value);
@@ -965,8 +948,7 @@ Status Redis::RPush(const Slice& key, const std::vector<std::string>& values, ui
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1015,8 +997,7 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1049,8 +1030,7 @@ Status Redis::ListsExpire(const Slice& key, int64_t ttl) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1078,8 +1058,7 @@ Status Redis::ListsDel(const Slice& key) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1104,8 +1083,7 @@ Status Redis::ListsExpireat(const Slice& key, int64_t timestamp) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1131,8 +1109,7 @@ Status Redis::ListsPersist(const Slice& key) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1159,8 +1136,7 @@ Status Redis::ListsTTL(const Slice& key, int64_t* timestamp) {
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1197,8 +1173,7 @@ void Redis::ScanLists() {
   LOG(INFO) << "*************** " << "rocksdb instance: " << index_ << " List Meta ***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_iter->value()[0]));
-    if (type != Type::kList) {
+    if (!ExpectedMetaValue(Type::kList, meta_iter->value().ToString())) {
       continue;
     }
     ParsedListsMetaValue parsed_lists_meta_value(meta_iter->value());

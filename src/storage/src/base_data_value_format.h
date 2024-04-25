@@ -24,6 +24,9 @@ namespace storage {
 */
 class BaseDataValue : public InternalValue {
 public:
+ /*
+  * The header of the Value field is initially initialized to knulltype
+  */
   explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(Type::kNulltype, user_value) {}
   virtual ~BaseDataValue() {}
 

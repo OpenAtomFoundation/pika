@@ -71,8 +71,7 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::Data
                          const std::shared_ptr<DB>& db) {
   net::RedisCmdArgsType argv;
   std::string send_str;
-  int64_t type_timestamp = 0;
-  type_timestamp = db->storage()->TTL(key);
+  int64_t type_timestamp = db->storage()->TTL(key);
   if (PIKA_TTL_ZERO == type_timestamp || PIKA_TTL_STALE == type_timestamp) {
     argv.emplace_back("del");
     argv.emplace_back(key);

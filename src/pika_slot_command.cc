@@ -374,8 +374,7 @@ int PikaMigrate::ParseKKey(const std::string& key, std::string& wbuf_str, const 
 }
 
 int64_t PikaMigrate::TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db) {
-  int64_t type_timestamp = 0;
-  type_timestamp = db->storage()->TTL(key);
+  int64_t type_timestamp = db->storage()->TTL(key);
   return type_timestamp;
 }
 

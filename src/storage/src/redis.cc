@@ -65,9 +65,13 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   db_ops.create_missing_column_families = true;
   // db_ops.env = env_;
 
+  /*
+   * Because zset, set, the hash, list, stream type meta
+   * information exists kMetaCF, so we delete the various
+   * types of MetaCF before
+   */
   // meta & string column-family options
   rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
-  // TODO change compaction filter
   meta_cf_ops.compaction_filter_factory = std::make_shared<MetaFilterFactory>();
   rocksdb::BlockBasedTableOptions meta_table_ops(table_ops);
 
@@ -178,6 +182,7 @@ Status Redis::SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys) {
   return Status::OK();
 }
 
+// TODO compactrange supports meta data of the specified data structure type only in compact; Mixficsol
 Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, const rocksdb::Slice* end, const ColumnFamilyType& type) {
   Status s;
   switch (dtype) {

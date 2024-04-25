@@ -39,8 +39,7 @@ rocksdb::Status Redis::ScanSetsKeyNum(KeyInfo* key_info) {
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, iter->value().ToString())) {
       continue;
     }
     ParsedSetsMetaValue parsed_sets_meta_value(iter->value());
@@ -78,8 +77,7 @@ rocksdb::Status Redis::SetsPKPatternMatchDel(const std::string& pattern, int32_t
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   iter->SeekToFirst();
   while (iter->Valid()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       continue;
     }
     ParsedBaseMetaKey parsed_meta_key(iter->key());
@@ -132,10 +130,7 @@ rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& me
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    LOG(INFO) << "type: " << (uint8_t)type;
-    if (type != Type::kSet) {
-      LOG(INFO) << "XXXX";
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -204,8 +199,7 @@ rocksdb::Status Redis::SCard(const Slice& key, int32_t* ret) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -240,8 +234,7 @@ rocksdb::Status Redis::SDiff(const std::vector<std::string>& keys, std::vector<s
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -256,8 +249,7 @@ rocksdb::Status Redis::SDiff(const std::vector<std::string>& keys, std::vector<s
   BaseMetaKey base_meta_key0(keys[0]);
   s = db_->Get(read_options, handles_[kMetaCF], base_meta_key0.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -319,8 +311,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -336,8 +327,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
   BaseMetaKey base_meta_key0(keys[0]);
   s = db_->Get(read_options, handles_[kMetaCF], base_meta_key0.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -379,8 +369,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -431,8 +420,7 @@ rocksdb::Status Redis::SInter(const std::vector<std::string>& keys, std::vector<
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -451,8 +439,7 @@ rocksdb::Status Redis::SInter(const std::vector<std::string>& keys, std::vector<
   BaseMetaKey base_meta_key0(keys[0]);
   s = db_->Get(read_options, handles_[kMetaCF], base_meta_key0.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -520,8 +507,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -544,8 +530,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
     BaseMetaKey base_meta_key0(keys[0]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key0.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -593,8 +578,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -639,8 +623,7 @@ rocksdb::Status Redis::SIsmember(const Slice& key, const Slice& member, int32_t*
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -673,9 +656,7 @@ rocksdb::Status Redis::SMembers(const Slice& key, std::vector<std::string>* memb
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
-      LOG(INFO) << "BBB";
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -712,8 +693,7 @@ Status Redis::SMembersWithTTL(const Slice& key,
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -768,8 +748,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
   BaseMetaKey base_source(source);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_source.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -808,8 +787,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
   BaseMetaKey base_destination(destination);
   s = db_->Get(default_read_options_, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -866,8 +844,7 @@ rocksdb::Status Redis::SPop(const Slice& key, std::vector<std::string>* members,
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -977,8 +954,7 @@ rocksdb::Status Redis::SRandmember(const Slice& key, int32_t count, std::vector<
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1045,8 +1021,7 @@ rocksdb::Status Redis::SRem(const Slice& key, const std::vector<std::string>& me
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1106,8 +1081,7 @@ rocksdb::Status Redis::SUnion(const std::vector<std::string>& keys, std::vector<
     BaseMetaKey base_meta_key(key);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1160,8 +1134,7 @@ rocksdb::Status Redis::SUnionstore(const Slice& destination, const std::vector<s
     BaseMetaKey base_meta_key(key);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
     if (s.ok()) {
-      auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-      if (type != Type::kSet) {
+      if (!ExpectedMetaValue(Type::kSet, meta_value)) {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1196,8 +1169,7 @@ rocksdb::Status Redis::SUnionstore(const Slice& destination, const std::vector<s
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1250,8 +1222,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1312,8 +1283,7 @@ rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1341,7 +1311,9 @@ rocksdb::Status Redis::SetsDel(const Slice& key) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
+      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+    }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (parsed_sets_meta_value.IsStale()) {
       return rocksdb::Status::NotFound("Stale");
@@ -1364,8 +1336,7 @@ rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1392,8 +1363,7 @@ rocksdb::Status Redis::SetsPersist(const Slice& key) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -1420,8 +1390,7 @@ rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp) {
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_value)) {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
     ParsedSetsMetaValue parsed_setes_meta_value(&meta_value);
@@ -1458,8 +1427,7 @@ void Redis::ScanSets() {
   LOG(INFO) << "***************Sets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_iter->value()[0]));
-    if (type != Type::kSet) {
+    if (!ExpectedMetaValue(Type::kSet, meta_iter->value().ToString())) {
       continue;
     }
     ParsedSetsMetaValue parsed_sets_meta_value(meta_iter->value());

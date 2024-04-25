@@ -21,10 +21,13 @@ namespace storage {
 // TODO(wangshaoyi): reformat encode, AppendTimestampAndVersion
 class BaseMetaValue : public InternalValue {
  public:
+  /*
+   * Constructing MetaValue requires passing in a type value
+   */
   explicit BaseMetaValue(Type type, const Slice& user_value) : InternalValue(type, user_value) {}
   rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
-    size_t needed = kTypeLength + usize + kVersionLength + kSuffixReserveLength + 2 * kTimestampLength;
+    size_t needed = usize + kVersionLength + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
     char* dst = ReAllocIfNeeded(needed);
     memcpy(dst, &type_, sizeof(type_));
     dst += sizeof(type_);
@@ -61,9 +64,8 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
       size_t offset = 0;
       type_ = static_cast<Type>(static_cast<uint8_t>((*internal_value_str)[0]));
       offset += kTypeLength;
-
-      user_value_ =
-          Slice(internal_value_str->data() + offset, internal_value_str->size() - kBaseMetaValueSuffixLength - offset);
+      user_value_ = Slice(internal_value_str->data() + offset,
+                             internal_value_str->size() - kBaseMetaValueSuffixLength - offset);
       offset += user_value_.size();
       version_ = DecodeFixed64(internal_value_str->data() + offset);
       offset += sizeof(version_);

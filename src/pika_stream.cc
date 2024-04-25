@@ -239,8 +239,7 @@ void XAddCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s.ok()) {
+  } else if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -289,8 +288,7 @@ void XRangeCmd::Do() {
     if (s_.ToString() == ErrTypeMessage) {
       res_.SetRes(CmdRes::kMultiKey);
       return;
-    }
-    if (!s.ok() && !s.IsNotFound()) {
+    } else if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
@@ -307,8 +305,7 @@ void XRevrangeCmd::Do() {
     if (s_.ToString() == ErrTypeMessage) {
       res_.SetRes(CmdRes::kMultiKey);
       return;
-    }
-    if (!s.ok() && !s.IsNotFound()) {
+    } else if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
@@ -342,8 +339,7 @@ void XDelCmd::Do() {
   auto s = db_->storage()->XDel(key_, ids_, count);
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
-  }
-  if (!s.ok() && !s.IsNotFound()) {
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
@@ -402,8 +398,7 @@ void XReadCmd::Do() {
 
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
-  }
-  if (!s.ok() && s.ToString() ==
+  } else if (!s.ok() && s.ToString() ==
                      "The > ID can be specified only when calling "
                      "XREADGROUP using the GROUP <group> "
                      "<consumer> option.") {
@@ -447,8 +442,7 @@ void XTrimCmd::Do() {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s.ok() && !s.IsNotFound()) {
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -522,8 +516,7 @@ void XInfoCmd::StreamInfo(std::shared_ptr<DB>& db) {
   if (s_.ToString() == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
-  }
-  if (!s.ok() && !s.IsNotFound()) {
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   } else if (s.IsNotFound()) {

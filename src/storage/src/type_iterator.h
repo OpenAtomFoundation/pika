@@ -102,6 +102,13 @@ protected:
   Direction direction_ = kForward;
 };
 
+/*
+ * Since the meta of all data types is in a cf,
+ * it is necessary to skip data that does not
+ * belong to your type when iterating with an
+ * iterator
+ */
+
 class StringsIterator : public TypeIterator {
 public:
   StringsIterator(const rocksdb::ReadOptions& options, rocksdb::DB* db,
@@ -291,6 +298,9 @@ private:
   std::string pattern_;
 };
 
+/*
+ * This iterator is used for all types of meta data needed for iteration
+ */
 class AllIterator : public TypeIterator {
  public:
   AllIterator(const rocksdb::ReadOptions& options, rocksdb::DB* db, ColumnFamilyHandle* handle,

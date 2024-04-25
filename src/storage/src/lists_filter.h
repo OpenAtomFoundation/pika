@@ -18,6 +18,10 @@
 
 namespace storage {
 
+/*
+ * Because the meta data filtering strategy for list
+ * is integrated into base_filter.h, we delete it here
+ */
 
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
