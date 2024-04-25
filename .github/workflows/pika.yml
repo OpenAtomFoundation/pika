@@ -175,8 +175,9 @@ jobs:
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
+          echo 'export PATH="/opt/homebrew/opt/binutils/bin:$PATH"' >> /Users/runner/.bash_profile
           export LDFLAGS="-L/opt/homebrew/opt/binutils/lib"
-          export CPPFLAGS="-I/opt/homebrew/opt/binutils/include"
+          export CPPFLAGS="-I/opt/homebrew/opt/binutils/include“
           cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - uses: actions/cache@v3
