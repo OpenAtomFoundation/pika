@@ -33,14 +33,14 @@ class PikaConf : public pstd::BaseConf {
   ~PikaConf() override = default;
 
   // Getter
-  int port() { return port_.load(); }
+  int port() { return port_.load(std::memory_order_relaxed); }
   std::string slaveof() { return slaveof_; }
-  int slave_priority() { return slave_priority_.load(); }
-  bool write_binlog() { return write_binlog_.load(); }
-  int thread_num() { return thread_num_.load(); }
-  int thread_pool_size() { return thread_pool_size_.load(); }
-  int slow_cmd_thread_pool_size() { return slow_cmd_thread_pool_size_.load(); }
-  int sync_thread_num() { return sync_thread_num_.load(); }
+  int slave_priority() { return slave_priority_.load(std::memory_order_relaxed); }
+  bool write_binlog() { return write_binlog_.load(std::memory_order_relaxed); }
+  int thread_num() { return thread_num_.load(std::memory_order_relaxed); }
+  int thread_pool_size() { return thread_pool_size_.load(std::memory_order_relaxed); }
+  int slow_cmd_thread_pool_size() { return slow_cmd_thread_pool_size_.load(std::memory_order_relaxed); }
+  int sync_thread_num() { return sync_thread_num_.load(std::memory_order_relaxed); }
   std::string log_path() {
     std::shared_lock l(rwlock_);
     return log_path_;
@@ -53,14 +53,14 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return db_path_;
   }
-  int db_instance_num() { return db_instance_num_.load(); }
-  uint64_t rocksdb_ttl_second() { return rocksdb_ttl_second_.load(); }
-  uint64_t rocksdb_periodic_compaction_second() { return rocksdb_periodic_second_.load(); }
+  int db_instance_num() { return db_instance_num_.load(std::memory_order_relaxed); }
+  uint64_t rocksdb_ttl_second() { return rocksdb_ttl_second_.load(std::memory_order_relaxed); }
+  uint64_t rocksdb_periodic_compaction_second() { return rocksdb_periodic_second_.load(std::memory_order_relaxed); }
   std::string db_sync_path() {
     std::shared_lock l(rwlock_);
     return db_sync_path_;
   }
-  int db_sync_speed() { return db_sync_speed_.load(); }
+  int db_sync_speed() { return db_sync_speed_.load(std::memory_order_relaxed); }
   std::string compact_cron() {
     std::shared_lock l(rwlock_);
     return compact_cron_;
@@ -69,29 +69,29 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compact_interval_;
   }
-  int max_subcompactions() { return max_subcompactions_.load(); }
-  bool disable_auto_compactions() { return disable_auto_compactions_.load(); }
-  int64_t least_resume_free_disk_size() { return least_free_disk_to_resume_.load(); }
-  int64_t resume_interval() { return resume_check_interval_.load(); }
+  int max_subcompactions() { return max_subcompactions_.load(std::memory_order_relaxed); }
+  bool disable_auto_compactions() { return disable_auto_compactions_.load(std::memory_order_relaxed); }
+  int64_t least_resume_free_disk_size() { return least_free_disk_to_resume_.load(std::memory_order_relaxed); }
+  int64_t resume_interval() { return resume_check_interval_.load(std::memory_order_relaxed); }
   double min_check_resume_ratio() {
     std::shared_lock l(rwlock_);
     return min_check_resume_ratio_;
   }
-  int64_t write_buffer_size() { return write_buffer_size_.load(); }
-  int min_write_buffer_number_to_merge() { return min_write_buffer_number_to_merge_.load(); }
-  int level0_stop_writes_trigger() { return level0_stop_writes_trigger_.load(); }
-  int level0_slowdown_writes_trigger() { return level0_slowdown_writes_trigger_.load(); }
-  int level0_file_num_compaction_trigger() { return level0_file_num_compaction_trigger_.load(); }
-  int64_t arena_block_size() { return arena_block_size_.load(); }
-  int64_t slotmigrate_thread_num() { return slotmigrate_thread_num_.load(); }
-  int64_t thread_migrate_keys_num() { return thread_migrate_keys_num_.load(); }
-  int64_t max_write_buffer_size() { return max_write_buffer_size_.load(); }
-  int max_write_buffer_number() { return max_write_buffer_num_.load(); }
-  uint64_t MaxTotalWalSize() { return max_total_wal_size_.load(); } 
-  int64_t max_client_response_size() { return max_client_response_size_.load(); }
-  int timeout() { return timeout_.load(); }
-  int binlog_writer_num() { return binlog_writer_num_.load(); }
-  bool slotmigrate() { return slotmigrate_.load(); }
+  int64_t write_buffer_size() { return write_buffer_size_.load(std::memory_order_relaxed); }
+  int min_write_buffer_number_to_merge() { return min_write_buffer_number_to_merge_.load(std::memory_order_relaxed); }
+  int level0_stop_writes_trigger() { return level0_stop_writes_trigger_.load(std::memory_order_relaxed); }
+  int level0_slowdown_writes_trigger() { return level0_slowdown_writes_trigger_.load(std::memory_order_relaxed); }
+  int level0_file_num_compaction_trigger() { return level0_file_num_compaction_trigger_.load(std::memory_order_relaxed); }
+  int64_t arena_block_size() { return arena_block_size_.load(std::memory_order_relaxed); }
+  int64_t slotmigrate_thread_num() { return slotmigrate_thread_num_.load(std::memory_order_relaxed); }
+  int64_t thread_migrate_keys_num() { return thread_migrate_keys_num_.load(std::memory_order_relaxed); }
+  int64_t max_write_buffer_size() { return max_write_buffer_size_.load(std::memory_order_relaxed); }
+  int max_write_buffer_number() { return max_write_buffer_num_.load(std::memory_order_relaxed); }
+  uint64_t MaxTotalWalSize() { return max_total_wal_size_.load(std::memory_order_relaxed); } 
+  int64_t max_client_response_size() { return max_client_response_size_.load(std::memory_order_relaxed); }
+  int timeout() { return timeout_.load(std::memory_order_relaxed); }
+  int binlog_writer_num() { return binlog_writer_num_.load(std::memory_order_relaxed); }
+  bool slotmigrate() { return slotmigrate_.load(std::memory_order_relaxed); }
   std::string server_id() {
     std::shared_lock l(rwlock_);
     return server_id_;
@@ -121,7 +121,7 @@ class PikaConf : public pstd::BaseConf {
     return bgsave_path_;
   }
   int expire_dump_days() {
-    return expire_dump_days_.load();
+    return expire_dump_days_.load(std::memory_order_relaxed);
   }
   std::string bgsave_prefix() {
     std::shared_lock l(rwlock_);
@@ -135,9 +135,9 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return user_blacklist_;
   }
-  bool classic_mode() { return classic_mode_.load(); }
-  int databases() { return databases_.load(); }
-  int default_slot_num() { return default_slot_num_.load(); }
+  bool classic_mode() { return classic_mode_.load(std::memory_order_relaxed); }
+  int databases() { return databases_.load(std::memory_order_relaxed); }
+  int default_slot_num() { return default_slot_num_.load(std::memory_order_relaxed); }
   const std::vector<DBStruct>& db_structs() {
     std::shared_lock l(rwlock_);
     return db_structs_;
@@ -150,46 +150,46 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compression_;
   }
-  int target_file_size_base() { return target_file_size_base_.load(); }
-  int max_cache_statistic_keys() { return max_cache_statistic_keys_.load(); }
-  int small_compaction_threshold() { return small_compaction_threshold_.load(); }
-  int small_compaction_duration_threshold() { return small_compaction_duration_threshold_.load(); }
-  int max_background_flushes() { return max_background_flushes_.load(); }
-  int max_background_compactions() { return max_background_compactions_.load(); }
-  int max_background_jobs() { return max_background_jobs_.load(); }
-  int max_cache_files() { return max_cache_files_.load(); }
-  int max_bytes_for_level_multiplier() { return max_bytes_for_level_multiplier_.load(); }
-  int64_t block_size() { return block_size_.load(); }
-  int64_t block_cache() { return block_cache_.load(); }
-  int64_t num_shard_bits() { return num_shard_bits_.load(); }
-  bool share_block_cache() { return share_block_cache_.load(); }
-  bool enable_partitioned_index_filters() { return enable_partitioned_index_filters_.load(); }
-  bool cache_index_and_filter_blocks() { return cache_index_and_filter_blocks_.load(); }
-  bool pin_l0_filter_and_index_blocks_in_cache() { return pin_l0_filter_and_index_blocks_in_cache_.load(); }
-  bool optimize_filters_for_hits() { return optimize_filters_for_hits_.load(); }
-  bool level_compaction_dynamic_level_bytes() { return level_compaction_dynamic_level_bytes_.load(); }
-  int expire_logs_nums() { return expire_logs_nums_.load(); }
-  int expire_logs_days() { return expire_logs_days_.load(); }
+  int target_file_size_base() { return target_file_size_base_.load(std::memory_order_relaxed); }
+  int max_cache_statistic_keys() { return max_cache_statistic_keys_.load(std::memory_order_relaxed); }
+  int small_compaction_threshold() { return small_compaction_threshold_.load(std::memory_order_relaxed); }
+  int small_compaction_duration_threshold() { return small_compaction_duration_threshold_.load(std::memory_order_relaxed); }
+  int max_background_flushes() { return max_background_flushes_.load(std::memory_order_relaxed); }
+  int max_background_compactions() { return max_background_compactions_.load(std::memory_order_relaxed); }
+  int max_background_jobs() { return max_background_jobs_.load(std::memory_order_relaxed); }
+  int max_cache_files() { return max_cache_files_.load(std::memory_order_relaxed); }
+  int max_bytes_for_level_multiplier() { return max_bytes_for_level_multiplier_.load(std::memory_order_relaxed); }
+  int64_t block_size() { return block_size_.load(std::memory_order_relaxed); }
+  int64_t block_cache() { return block_cache_.load(std::memory_order_relaxed); }
+  int64_t num_shard_bits() { return num_shard_bits_.load(std::memory_order_relaxed); }
+  bool share_block_cache() { return share_block_cache_.load(std::memory_order_relaxed); }
+  bool enable_partitioned_index_filters() { return enable_partitioned_index_filters_.load(std::memory_order_relaxed); }
+  bool cache_index_and_filter_blocks() { return cache_index_and_filter_blocks_.load(std::memory_order_relaxed); }
+  bool pin_l0_filter_and_index_blocks_in_cache() { return pin_l0_filter_and_index_blocks_in_cache_.load(std::memory_order_relaxed); }
+  bool optimize_filters_for_hits() { return optimize_filters_for_hits_.load(std::memory_order_relaxed); }
+  bool level_compaction_dynamic_level_bytes() { return level_compaction_dynamic_level_bytes_.load(std::memory_order_relaxed); }
+  int expire_logs_nums() { return expire_logs_nums_.load(std::memory_order_relaxed); }
+  int expire_logs_days() { return expire_logs_days_.load(std::memory_order_relaxed); }
   std::string conf_path() {
     std::shared_lock l(rwlock_);
     return conf_path_;
   }
-  bool slave_read_only() { return slave_read_only_.load(); }
-  int maxclients() { return maxclients_.load(); }
-  int root_connection_num() { return root_connection_num_.load(); }
-  bool slowlog_write_errorlog() { return slowlog_write_errorlog_.load(); }
-  int slowlog_slower_than() { return slowlog_log_slower_than_.load(); }
-  int slowlog_max_len() { return slowlog_max_len_.load(); }
+  bool slave_read_only() { return slave_read_only_.load(std::memory_order_relaxed); }
+  int maxclients() { return maxclients_.load(std::memory_order_relaxed); }
+  int root_connection_num() { return root_connection_num_.load(std::memory_order_relaxed); }
+  bool slowlog_write_errorlog() { return slowlog_write_errorlog_.load(std::memory_order_relaxed); }
+  int slowlog_slower_than() { return slowlog_log_slower_than_.load(std::memory_order_relaxed); }
+  int slowlog_max_len() { return slowlog_max_len_.load(std::memory_order_relaxed); }
   std::string network_interface() {
     std::shared_lock l(rwlock_);
     return network_interface_;
   }
-  int cache_mode() { return cache_mode_.load(); }
-  int sync_window_size() { return sync_window_size_.load(); }
-  int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(); }
-  int consensus_level() { return consensus_level_.load(); }
-  int replication_num() { return replication_num_.load(); }
-  int rate_limiter_mode() { return rate_limiter_mode_.load(); }
+  int cache_mode() { return cache_mode_.load(std::memory_order_relaxed); }
+  int sync_window_size() { return sync_window_size_.load(std::memory_order_relaxed); }
+  int max_conn_rbuf_size() { return max_conn_rbuf_size_.load(std::memory_order_relaxed); }
+  int consensus_level() { return consensus_level_.load(std::memory_order_relaxed); }
+  int replication_num() { return replication_num_.load(std::memory_order_relaxed); }
+  int rate_limiter_mode() { return rate_limiter_mode_.load(std::memory_order_relaxed); }
   int64_t rate_limiter_bandwidth() {
     std::shared_lock l(rwlock_);
     return rate_limiter_bandwidth_;
@@ -198,16 +198,16 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return rate_limiter_refill_period_us_;
   }
-  int64_t rate_limiter_fairness() { return rate_limiter_fairness_.load(); }
-  bool rate_limiter_auto_tuned() { return rate_limiter_auto_tuned_.load(); }
-  bool IsCacheDisabledTemporarily() { return tmp_cache_disable_flag_.load(); }
-  int GetCacheString() { return cache_string_.load(); }
-  int GetCacheSet() { return cache_set_.load(); }
-  int GetCacheZset() { return cache_zset_.load(); }
-  int GetCacheHash() { return cache_hash_.load(); }
-  int GetCacheList() { return cache_list_.load(); }
-  int GetCacheBit() { return cache_bit_.load(); }
-  int GetCacheNum() { return cache_num_.load(); }
+  int64_t rate_limiter_fairness() { return rate_limiter_fairness_.load(std::memory_order_relaxed); }
+  bool rate_limiter_auto_tuned() { return rate_limiter_auto_tuned_.load(std::memory_order_relaxed); }
+  bool IsCacheDisabledTemporarily() { return tmp_cache_disable_flag_.load(std::memory_order_relaxed); }
+  int GetCacheString() { return cache_string_.load(std::memory_order_relaxed); }
+  int GetCacheSet() { return cache_set_.load(std::memory_order_relaxed); }
+  int GetCacheZset() { return cache_zset_.load(std::memory_order_relaxed); }
+  int GetCacheHash() { return cache_hash_.load(std::memory_order_relaxed); }
+  int GetCacheList() { return cache_list_.load(std::memory_order_relaxed); }
+  int GetCacheBit() { return cache_bit_.load(std::memory_order_relaxed); }
+  int GetCacheNum() { return cache_num_.load(std::memory_order_relaxed); }
   void SetCacheNum(const int value) { cache_num_ = value; }
   void SetCacheMode(const int value) { cache_mode_ = value; }
   void SetCacheStartDirection(const int value) { zset_cache_start_direction_ = value; }
@@ -217,19 +217,19 @@ class PikaConf : public pstd::BaseConf {
   void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
   void SetCacheLFUDecayTime(const int value) { cache_lfu_decay_time_ = value; }
   void UnsetCacheDisableFlag() { tmp_cache_disable_flag_ = false; }
-  bool enable_blob_files() { return enable_blob_files_.load(); }
-  int64_t min_blob_size() { return min_blob_size_.load(); }
-  int64_t blob_file_size() { return blob_file_size_.load(); }
+  bool enable_blob_files() { return enable_blob_files_.load(std::memory_order_relaxed); }
+  int64_t min_blob_size() { return min_blob_size_.load(std::memory_order_relaxed); }
+  int64_t blob_file_size() { return blob_file_size_.load(std::memory_order_relaxed); }
   std::string blob_compression_type() { return blob_compression_type_; }
-  bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_.load(); }
-  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; }
-  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; }
-  int64_t blob_cache() { return blob_cache_.load(); }
-  int64_t blob_num_shard_bits() { return blob_num_shard_bits_.load(); }
+  bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_.load(std::memory_order_relaxed); }
+  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; } // 
+  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; } // 
+  int64_t blob_cache() { return blob_cache_.load(std::memory_order_relaxed); }
+  int64_t blob_num_shard_bits() { return blob_num_shard_bits_.load(std::memory_order_relaxed); }
 
   // Rsync Rate limiting configuration
-  int throttle_bytes_per_second() { return throttle_bytes_per_second_.load(); }
-  int max_rsync_parallel_num() { return max_rsync_parallel_num_.load(); }
+  int throttle_bytes_per_second() { return throttle_bytes_per_second_.load(std::memory_order_relaxed); }
+  int max_rsync_parallel_num() { return max_rsync_parallel_num_.load(std::memory_order_relaxed); }
 
   // Slow Commands configuration
   const std::string GetSlowCmd() {
@@ -248,9 +248,9 @@ class PikaConf : public pstd::BaseConf {
   }
 
   // Immutable config items, we don't use lock.
-  bool daemonize() { return daemonize_.load(); }
+  bool daemonize() { return daemonize_.load(std::memory_order_relaxed); }
   std::string pidfile() { return pidfile_; }
-  int binlog_file_size() { return binlog_file_size_.load(); }
+  int binlog_file_size() { return binlog_file_size_.load(std::memory_order_relaxed); }
   std::vector<rocksdb::CompressionType> compression_per_level();
   std::string compression_all_levels() const { return compression_per_level_; };
   static rocksdb::CompressionType GetCompression(const std::string& value);
@@ -258,8 +258,8 @@ class PikaConf : public pstd::BaseConf {
   std::vector<std::string>& users() { return users_; };
   std::string acl_file() { return aclFile_; };
 
-  uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(); }
-  uint32_t acl_log_max_len() { return acl_Log_max_len_.load(); }
+  uint32_t acl_pubsub_default() { return acl_pubsub_default_.load(std::memory_order_relaxed); }
+  uint32_t acl_log_max_len() { return acl_Log_max_len_.load(std::memory_order_relaxed); }
 
   // Setter
   void SetPort(const int value) {
