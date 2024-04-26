@@ -171,7 +171,6 @@ jobs:
           brew update
           brew install --overwrite python@3.12 autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
-
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
