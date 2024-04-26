@@ -156,7 +156,7 @@ jobs:
           sh integrate_test.sh
 
   build_on_macos:
-    runs-on: macos-latest
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v3
