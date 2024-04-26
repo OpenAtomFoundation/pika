@@ -55,11 +55,11 @@ jobs:
           name: ${{ env.ARTIFACT_PIKA_NAME }}
           path: ${{ github.workspace }}/build/pika
 
-#      - name: Test
-#        working-directory: ${{ github.workspace }}/build
-#        # Execute tests defined by the CMake configuration.
-#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-#        run: ctest -C ${{ env.BUILD_TYPE }}
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
@@ -156,7 +156,7 @@ jobs:
           sh integrate_test.sh
 
   build_on_macos:
-    runs-on: macos-latest
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v3
@@ -169,13 +169,13 @@ jobs:
       - name: Install Deps
         run: |
           brew update
-          brew install --overwrite python@3.12 autoconf protobuf llvm wget git cmake make binutils
+          brew install --overwrite python@3.12 autoconf protobuf llvm wget git
+          brew install gcc@10 automake cmake make binutils
 
       - name: Configure CMake
         run: |
-          export CC=/usr/bin/clang
-          export CXX=/usr/bin/clang++
-          cmake -B build -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address 
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - uses: actions/cache@v3
         with:

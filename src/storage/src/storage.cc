@@ -830,9 +830,15 @@ Status Storage::RPoplpush(const Slice& source, const Slice& destination, std::st
     return s;
   }
   *element = elements.front();
+  std::vector<std::string> values;
+  values.emplace_back(*element);
   auto& dest_inst = GetDBInstance(destination);
   uint64_t ret;
+  uint64_t llen = 0;
   s = dest_inst->LPush(destination, elements, &ret);
+  if (!s.ok()) {
+    source_inst->RPush(source, values, &llen);
+  }
   return s;
 }
 

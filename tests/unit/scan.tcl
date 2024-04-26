@@ -253,26 +253,26 @@ start_server {tags {"scan"}} {
         assert_equal [lsort -unique [lindex $res 1]] {1}
     }
 
-#    test "SSCAN with PATTERN" {
-#        r del mykey
-#        r sadd mykey foo fab fiz foobar 1 2 3 4
-#        set res [r sscan mykey 0 MATCH foo* COUNT 10000]
-#        lsort -unique [lindex $res 1]
-#    } {foo foobar}
+    test "SSCAN with PATTERN" {
+        r del mykey
+        r sadd mykey foo fab fiz foobar 1 2 3 4
+        set res [r sscan mykey 0 MATCH foo* COUNT 10000]
+        lsort -unique [lindex $res 1]
+    } {foo foobar}
 
-#    test "HSCAN with PATTERN" {
-#        r del mykey
-#        r hmset mykey foo 1 fab 2 fiz 3 foobar 10 1 a 2 b 3 c 4 d
-#        set res [r hscan mykey 0 MATCH foo* COUNT 10000]
-#        lsort -unique [lindex $res 1]
-#    } {1 10 foo foobar}
-#
-#    test "ZSCAN with PATTERN" {
-#        r del mykey
-#        r zadd mykey 1 foo 2 fab 3 fiz 10 foobar
-#        set res [r zscan mykey 0 MATCH foo* COUNT 10000]
-#        lsort -unique [lindex $res 1]
-#    }
+    test "HSCAN with PATTERN" {
+        r del mykey
+        r hmset mykey foo 1 fab 2 fiz 3 foobar 10 1 a 2 b 3 c 4 d
+        set res [r hscan mykey 0 MATCH foo* COUNT 10000]
+        lsort -unique [lindex $res 1]
+   } {1 10 foo foobar}
+
+    test "ZSCAN with PATTERN" {
+        r del mykey
+        r zadd mykey 1 foo 2 fab 3 fiz 10 foobar
+        set res [r zscan mykey 0 MATCH foo* COUNT 10000]
+        lsort -unique [lindex $res 1]
+    }
 
     test "ZSCAN scores: regression test for issue #2175" {
         r del mykey

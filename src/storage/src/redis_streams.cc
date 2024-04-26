@@ -364,10 +364,14 @@ Status Redis::StreamsDel(const Slice& key) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kStream, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kStream, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     StreamMetaValue stream_meta_value;
     stream_meta_value.ParseFrom(meta_value);
     if (stream_meta_value.length() == 0) {
@@ -387,10 +391,14 @@ Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& 
   std::string value;
   BaseMetaKey base_meta_key(key);
   auto s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kStream, value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kStream, value)) {
+    if (ExpectedStale(value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     stream_meta.ParseFrom(value);
     return Status::OK();
   }

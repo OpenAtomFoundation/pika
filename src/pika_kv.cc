@@ -1483,27 +1483,6 @@ void TypeCmd::DoThroughDB() {
   Do();
 }
 
-void PTypeCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameType);
-    return;
-  }
-  key_ = argv_[1];
-}
-
-void PTypeCmd::Do() {
-  std::string type;
-  rocksdb::Status s = db_->storage()->GetType(key_, type);
-  if (s.ok()) {
-    res_.AppendArrayLenUint64(1);
-    res_.AppendContent(type);
-  } else if (s_.ToString() == ErrTypeMessage) {
-    res_.SetRes(CmdRes::kMultiKey);
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  }
-}
-
 void ScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);

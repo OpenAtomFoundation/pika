@@ -164,20 +164,20 @@ start_server {
         $rd read
     } {list b}
 
-#    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
-#        set rd [redis_deferring_client]
-#        r del list
-#
-#        $rd blpop list 0
-#        r multi
-#        r lpush list a
-#        r del list
-#        r set list foo
-#        r exec
-#        r del list
-#        r lpush list b
-#        $rd read
-#    } {list b}
+    test "BLPOP, LPUSH + DEL + SET should not awake blocked client" {
+        set rd [redis_deferring_client]
+        r del list
+
+        $rd blpop list 0
+        r multi
+        r lpush list a
+        r del list
+        r set list foo
+        r exec
+        r del list
+        r lpush list b
+        $rd read
+    } {list b}
 
     test "BLPOP with same key multiple times should work (issue #801)" {
         set rd [redis_deferring_client]
@@ -739,8 +739,8 @@ start_server {
         create_ziplist srclist {a b c d}
         r set dstlist x
         assert_error WRONGTYPE* {r rpoplpush srclist dstlist}
-        #assert_type string dstlist
-        #assert_equal {a b c d} [r lrange srclist 0 -1]
+        assert_type string dstlist
+        assert_equal {a b c d} [r lrange srclist 0 -1]
     }
 
     test {RPOPLPUSH against non existing src key} {

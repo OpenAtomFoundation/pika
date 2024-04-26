@@ -111,7 +111,6 @@ const std::string kCmdNameTtl = "ttl";
 const std::string kCmdNamePttl = "pttl";
 const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
-const std::string kCmdNamePType = "ptype";
 const std::string kCmdNameScan = "scan";
 const std::string kCmdNameScanx = "scanx";
 const std::string kCmdNamePKSetexAt = "pksetexat";

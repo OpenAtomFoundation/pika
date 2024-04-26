@@ -204,7 +204,7 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
       res.AppendArrayLen(2);
       res.AppendString(key);
       res.AppendString(values[0]);
-    } else if (s.IsNotFound()) {
+    } else if (s.IsNotFound() || s.ToString() == ErrTypeMessage) {
       // this key has no more elements to serve more blocked conn.
       break;
     } else {

@@ -344,14 +344,14 @@ start_server {tags {"string"}} {
             set tail [string range $str $bitnum+1 end]
             set str [string map {" " 0} [format $fmt $head $bitval $tail]]
 
-            #r setbit mykey $bitnum $bitval
+            r setbit mykey $bitnum $bitval
             #assert_equal [binary format B* $str] [r get mykey]
         }
     }
 
     test "GETBIT against non-existing key" {
         r del mykey
-        #assert_equal 0 [r getbit mykey 0]
+        assert_equal 0 [r getbit mykey 0]
     }
 
     test "GETBIT against string-encoded key" {
@@ -464,7 +464,7 @@ start_server {tags {"string"}} {
 
     test "GETRANGE against non-existing key" {
         r del mykey
-        #assert_equal "" [r getrange mykey 0 -1]
+        assert_equal "" [r getrange mykey 0 -1]
     }
 
 # Keys for multiple data types of Pika can be duplicate

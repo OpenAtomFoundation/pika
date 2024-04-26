@@ -73,10 +73,14 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -124,10 +128,14 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -186,10 +194,14 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     bool vaild = true;
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
@@ -279,10 +291,14 @@ Status Redis::ZCard(const Slice& key, int32_t* card) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       *card = 0;
@@ -309,10 +325,14 @@ Status Redis::ZCount(const Slice& key, double min, double max, bool left_close, 
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -370,10 +390,14 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
       version = parsed_zsets_meta_value.InitialMetaValue();
@@ -442,10 +466,14 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -493,10 +521,14 @@ Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
@@ -558,10 +590,14 @@ Status Redis::ZRangebyscore(const Slice& key, double min, double max, bool left_
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -628,10 +664,14 @@ Status Redis::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -683,10 +723,14 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -739,10 +783,14 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -800,10 +848,14 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -875,10 +927,14 @@ Status Redis::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vect
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -926,10 +982,14 @@ Status Redis::ZRevrangebyscore(const Slice& key, double min, double max, bool le
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -996,10 +1056,14 @@ Status Redis::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1043,10 +1107,14 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     uint64_t version = parsed_zsets_meta_value.Version();
     if (parsed_zsets_meta_value.IsStale()) {
@@ -1083,10 +1151,14 @@ Status Redis::ZGetAll(const Slice& key, double weight, std::map<std::string, dou
 
   BaseMetaKey base_meta_key(key);
   s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value) && !ExpectedMetaValue(Type::kSet, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (!parsed_zsets_meta_value.IsStale() && parsed_zsets_meta_value.Count() != 0) {
       int32_t cur_index = 0;
@@ -1128,10 +1200,14 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
   for (size_t idx = 0; idx < keys.size(); ++idx) {
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-    if (s.ok()) {
-      if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+      if (ExpectedStale(meta_value)) {
+        s = Status::NotFound();
+      } else {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
+    }
+    if (s.ok()) {
       ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
       if (!parsed_zsets_meta_value.IsStale() && parsed_zsets_meta_value.Count() != 0) {
         int32_t cur_index = 0;
@@ -1175,10 +1251,14 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
 
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.Count();
     version = parsed_zsets_meta_value.InitialMetaValue();
@@ -1244,10 +1324,14 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
   for (size_t idx = 0; idx < keys.size(); ++idx) {
     BaseMetaKey base_meta_key(keys[idx]);
     s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-    if (s.ok()) {
-      if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+      if (ExpectedStale(meta_value)) {
+        s = Status::NotFound();
+      } else {
         return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
       }
+    }
+    if (s.ok()) {
       ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
       if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
         have_invalid_zsets = true;
@@ -1317,10 +1401,14 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
 
   BaseMetaKey base_destination(destination);
   s = db_->Get(read_options, handles_[kMetaCF], base_destination.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     statistic = parsed_zsets_meta_value.Count();
     version = parsed_zsets_meta_value.InitialMetaValue();
@@ -1372,10 +1460,14 @@ Status Redis::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, 
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
@@ -1438,10 +1530,14 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
@@ -1503,10 +1599,14 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1530,10 +1630,14 @@ Status Redis::ZsetsDel(const Slice& key) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1555,10 +1659,14 @@ Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1596,10 +1704,14 @@ Status Redis::ZScan(const Slice& key, int64_t cursor, const std::string& pattern
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
       *next_cursor = 0;
@@ -1661,10 +1773,14 @@ Status Redis::ZsetsPersist(const Slice& key) {
   ScopeRecordLock l(lock_mgr_, key);
 
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1688,10 +1804,14 @@ Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp) {
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok()) {
-    if (!ExpectedMetaValue(Type::kZset, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(Type::kZset, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
       return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
+  }
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       *timestamp = -2;

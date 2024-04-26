@@ -391,10 +391,31 @@ class Redis {
 
   inline bool ExpectedMetaValue(enum Type type, const std::string &meta_value) {
     auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type != meta_type) {
-      return false;
+    if (type == meta_type) {
+      return true;
     }
-    return true;
+    return false;
+  }
+
+  inline bool ExpectedStale(const std::string &meta_value) {
+    auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+    if (meta_type == Type::kZset || meta_type == Type::kSet || meta_type == Type::kHash) {
+      ParsedBaseMetaValue parsed_meta_value(meta_value);
+      if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
+        return true;
+      }
+    } else if (meta_type == Type::kList) {
+      ParsedListsMetaValue parsed_lists_meta_value(meta_value);
+      if (parsed_lists_meta_value.IsStale() || parsed_lists_meta_value.Count() == 0) {
+        return true;
+      }
+    } else if (meta_type == Type::kStream) {
+      StreamMetaValue stream_meta_value;
+      if (stream_meta_value.length() == 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
 private:
