@@ -224,7 +224,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     LOG_INSTALL
     1
     CONFIGURE_COMMAND
-    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no --enable-shared=no
+    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no --enable-shared=no --with-pic
     BUILD_IN_SOURCE
     1
     BUILD_COMMAND
@@ -488,8 +488,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
     -DGPERFTOOLS_BUILD_STATIC=ON
-    -DEFAULT_BUILD_MINIMAL=ON
+    -DDEFAULT_BUILD_MINIMAL=ON
     -Dgperftools_build_benchmark=OFF
+    -DCMAKE_PREFIX_PATH=${INSTALL_LIBDIR}
     BUILD_COMMAND
     make -j${CPU_CORE}
   )
