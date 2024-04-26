@@ -156,12 +156,6 @@ enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 enum Operation {
   kNone = 0,
   kCleanAll,
-  kCleanStrings,
-  kCleanHashes,
-  kCleanZSets,
-  kCleanSets,
-  kCleanLists,
-  kCleanStreams,
   kCompactRange
 };
 

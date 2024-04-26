@@ -59,56 +59,6 @@ Status Redis::ScanHashesKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::HashesPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  std::string key;
-  std::string meta_value;
-  int32_t total_delete = 0;
-  Status s;
-  rocksdb::WriteBatch batch;
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
-  iter->SeekToFirst();
-  while (iter->Valid()) {
-    if (!ExpectedMetaValue(Type::kHash, iter->value().ToString())) {
-      continue;
-    }
-    key = iter->key().ToString();
-    meta_value = iter->value().ToString();
-    ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
-    if (!parsed_hashes_meta_value.IsStale() && (parsed_hashes_meta_value.Count() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
-      parsed_hashes_meta_value.InitialMetaValue();
-      batch.Put(handles_[kMetaCF], key, meta_value);
-    }
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>( batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
-    }
-    iter->Next();
-  }
-  if (batch.Count() != 0U) {
-    s = db_->Write(default_write_options_, &batch);
-    if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
-      batch.Clear();
-    }
-  }
-
-  *ret = total_delete;
-  return s;
-}
-
 Status Redis::HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret) {
   uint32_t statistic = 0;
   std::vector<std::string> filtered_fields;

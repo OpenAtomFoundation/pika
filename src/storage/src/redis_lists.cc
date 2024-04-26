@@ -58,56 +58,6 @@ Status Redis::ScanListsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::ListsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  std::string key;
-  std::string meta_value;
-  int32_t total_delete = 0;
-  Status s;
-  rocksdb::WriteBatch batch;
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
-  iter->SeekToFirst();
-  while (iter->Valid()) {
-    if (!ExpectedMetaValue(Type::kList, meta_value)) {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
-    }
-    ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
-    meta_value = iter->value().ToString();
-    ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
-    if (!parsed_lists_meta_value.IsStale() && (parsed_lists_meta_value.Count() != 0U) &&
-        (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
-      parsed_lists_meta_value.InitialMetaValue();
-      batch.Put(handles_[kMetaCF], iter->key(), meta_value);
-    }
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
-    }
-    iter->Next();
-  }
-  if (batch.Count() != 0U) {
-    s = db_->Write(default_write_options_, &batch);
-    if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
-      batch.Clear();
-    }
-  }
-
-  *ret = total_delete;
-  return s;
-}
-
 Status Redis::LIndex(const Slice& key, int64_t index, std::string* element) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;

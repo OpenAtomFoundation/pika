@@ -47,18 +47,12 @@ class KeysTest : public ::testing::Test {
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1);
+  int32_t ret = db->Expire(key, 1);
   if ((ret == 0) || !type_status[storage::DataType::kStrings].ok()) {
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   return true;
-}
-
-static bool set_timeout(storage::Storage* const db, const Slice& key, int64_t ttl) {
-  std::map<storage::DataType, rocksdb::Status> type_status;
-  int32_t ret = db->Expire(key, ttl);
-  return !((ret == 0) || !type_status[storage::DataType::kStrings].ok());
 }
 
 static bool key_value_match(const std::vector<storage::KeyValue>& key_value_out, const std::vector<storage::KeyValue>& expect_key_value) {
@@ -5017,8 +5011,9 @@ TEST_F(KeysTest, ExpireTest) {
   // Strings
   s = db.Set("GP3_EXPIRE_STRING_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  ret = db.Del({"GP3_EXPIRE_STRING_KEY"});
-  ASSERT_EQ(ret, 1);
+  int64_t res = 0;
+  res = db.Del({"GP3_EXPIRE_STRING_KEY"});
+  ASSERT_EQ(res, 1);
 
   type_status.clear();
   ret = db.Expire("GP3_EXPIRE_STRING_KEY", 1);

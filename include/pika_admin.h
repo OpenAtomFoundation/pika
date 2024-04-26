@@ -108,10 +108,8 @@ class CompactCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
 };
 
@@ -127,12 +125,10 @@ class CompactRangeCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
     start_key_.clear();
     end_key_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
   std::string start_key_;
   std::string end_key_;

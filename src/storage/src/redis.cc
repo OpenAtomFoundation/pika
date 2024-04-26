@@ -182,58 +182,18 @@ Status Redis::SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys) {
   return Status::OK();
 }
 
-// TODO compactrange supports meta data of the specified data structure type only in compact; Mixficsol
-Status Redis::CompactRange(const DataType& dtype, const rocksdb::Slice* begin, const rocksdb::Slice* end, const ColumnFamilyType& type) {
-  Status s;
-  switch (dtype) {
-    case DataType::kStrings:
-      s = db_->CompactRange(default_compact_range_options_, begin, end);
-      break;
-    case DataType::kHashes:
-      if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
-      }
-      if (s.ok() && (type == kData || type == kMetaAndData)) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kHashesDataCF], begin, end);
-      }
-      break;
-    case DataType::kSets:
-      if (type == kMeta || type == kMetaAndData) {
-        db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
-      }
-      if (s.ok() && (type == kData || type == kMetaAndData)) {
-        db_->CompactRange(default_compact_range_options_, handles_[kSetsDataCF], begin, end);
-      }
-      break;
-    case DataType::kLists:
-      if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
-      }
-      if (s.ok() && (type == kData || type == kMetaAndData)) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kListsDataCF], begin, end);
-      }
-      break;
-    case DataType::kZSets:
-      if (type == kMeta || type == kMetaAndData) {
-        db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
-      }
-      if (s.ok() && (type == kData || type == kMetaAndData)) {
-        db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
-        db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
-      }
-      break;
-    case DataType::kStreams:
-      if (type == kMeta || type == kMetaAndData) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kMetaCF], begin, end);
-      }
-      if (s.ok() && (type == kData || type == kMetaAndData)) {
-        s = db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
-      }
-      break;
-    default:
-      return Status::Corruption("Invalid data type");
-  }
-  return s;
+/*
+ * compactrange no longer supports compact for a single data type
+ */
+Status Redis::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end) {
+  db_->CompactRange(default_compact_range_options_, begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kHashesDataCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kSetsDataCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kListsDataCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
+  return Status::OK();
 }
 
 Status Redis::SetSmallCompactionThreshold(uint64_t small_compaction_threshold) {

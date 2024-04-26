@@ -104,8 +104,7 @@ class Redis {
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path);
 
-  virtual Status CompactRange(const DataType& option_type, const rocksdb::Slice* begin, const rocksdb::Slice* end,
-                              const ColumnFamilyType& type = kMetaAndData);
+  virtual Status CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end);
 
   virtual Status GetProperty(const std::string& property, uint64_t* out);
 
@@ -116,13 +115,6 @@ class Redis {
   Status ScanZsetsKeyNum(KeyInfo* key_info);
   Status ScanSetsKeyNum(KeyInfo* key_info);
   Status ScanStreamsKeyNum(KeyInfo* key_info);
-
-  virtual Status StringsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  virtual Status ListsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  virtual Status HashesPKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  virtual Status ZsetsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  virtual Status SetsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  virtual Status StreamsPKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
   // Keys Commands
   virtual Status StringsExpire(const Slice& key, int64_t ttl);
@@ -194,6 +186,7 @@ class Redis {
   Status Expireat(const Slice& key, int64_t timestamp);
   Status Persist(const Slice& key);
   Status TTL(const Slice& key, int64_t* timestamp);
+  Status PKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
   Status GetType(const Slice& key, std::string& types);
   Status IsExist(const Slice& key);
@@ -225,6 +218,7 @@ class Redis {
   Status SetMaxCacheStatisticKeys(size_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint64_t small_compaction_threshold);
   Status SetSmallCompactionDurationThreshold(uint64_t small_compaction_duration_threshold);
+
 
   std::vector<rocksdb::ColumnFamilyHandle*> GetStringCFHandles() { return {handles_[kMetaCF]}; }
 

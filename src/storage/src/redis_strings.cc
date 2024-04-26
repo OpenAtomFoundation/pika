@@ -61,55 +61,6 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::StringsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  std::string key;
-  std::string value;
-  int32_t total_delete = 0;
-  Status s;
-  rocksdb::WriteBatch batch;
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options);
-  iter->SeekToFirst();
-  while (iter->Valid()) {
-    if (!ExpectedMetaValue(Type::kString, iter->value().ToString())) {
-      continue;
-    }
-    key = iter->key().ToString();
-    value = iter->value().ToString();
-    ParsedStringsValue parsed_strings_value(&value);
-    if (!parsed_strings_value.IsStale() && (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
-      batch.Delete(key);
-    }
-    // In order to be more efficient, we use batch deletion here
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
-    }
-    iter->Next();
-  }
-  if (batch.Count() != 0U) {
-    s = db_->Write(default_write_options_, &batch);
-    if (s.ok()) {
-      total_delete += static_cast<int32_t>( batch.Count());
-      batch.Clear();
-    }
-  }
-
-  *ret = total_delete;
-  return s;
-}
-
 Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
   std::string old_value;
   *ret = 0;
@@ -1497,4 +1448,83 @@ rocksdb::Status Redis::IsExist(const storage::Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
+/*
+ * Example Delete the specified prefix key
+ */
+rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
+  rocksdb::ReadOptions iterator_options;
+  const rocksdb::Snapshot* snapshot;
+  ScopeSnapshot ss(db_, &snapshot);
+  iterator_options.snapshot = snapshot;
+  iterator_options.fill_cache = false;
+
+  std::string key;
+  std::string meta_value;
+  int32_t total_delete = 0;
+  rocksdb::Status s;
+  rocksdb::WriteBatch batch;
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
+  iter->SeekToFirst();
+  key = iter->key().ToString();
+  while (iter->Valid()) {
+    auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(iter->value()[0]));
+    ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
+    if (meta_type == Type::kString) {
+      meta_value = iter->value().ToString();
+      ParsedStringsValue parsed_strings_value(&meta_value);
+      if (!parsed_strings_value.IsStale() &&
+          (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+        batch.Delete(key);
+      }
+    } else if (meta_type == Type::kList) {
+      meta_value = iter->value().ToString();
+      ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
+      if (!parsed_lists_meta_value.IsStale() && (parsed_lists_meta_value.Count() != 0U) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) !=
+           0)) {
+        parsed_lists_meta_value.InitialMetaValue();
+        batch.Put(handles_[kMetaCF], iter->key(), meta_value);
+      }
+    } else if (meta_type == Type::kStream) {
+      StreamMetaValue stream_meta_value;
+      stream_meta_value.ParseFrom(meta_value);
+      if ((stream_meta_value.length() != 0) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
+        stream_meta_value.InitMetaValue();
+        batch.Put(handles_[kMetaCF], key, stream_meta_value.value());
+      }
+    } else {
+      meta_value = iter->value().ToString();
+      ParsedBaseMetaValue parsed_meta_value(&meta_value);
+      if (!parsed_meta_value.IsStale() && (parsed_meta_value.Count() != 0) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) !=
+           0)) {
+        parsed_meta_value.InitialMetaValue();
+        batch.Put(handles_[kMetaCF], iter->key(), meta_value);
+      }
+    }
+
+    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
+      s = db_->Write(default_write_options_, &batch);
+      if (s.ok()) {
+        total_delete += static_cast<int32_t>(batch.Count());
+        batch.Clear();
+      } else {
+        *ret = total_delete;
+        return s;
+      }
+    }
+    iter->Next();
+  }
+  if (batch.Count() != 0U) {
+    s = db_->Write(default_write_options_, &batch);
+    if (s.ok()) {
+      total_delete += static_cast<int32_t>(batch.Count());
+      batch.Clear();
+    }
+  }
+
+  *ret = total_delete;
+  return s;
+}
 }  //  namespace storage

@@ -1161,12 +1161,14 @@ Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
 // Keys Commands
 int32_t Storage::Expire(const Slice& key, int64_t ttl) {
   auto& inst = GetDBInstance(key);
+  int32_t ret = 0;
   Status s = inst->Expire(key, ttl);
   if (s.ok()) {
-    return 1;
+    ret++;
   } else if (!s.IsNotFound()) {
     return -1;
   }
+  return ret;
 }
 
 
@@ -1385,40 +1387,9 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
 Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
   Status s;
   for (const auto& inst : insts_) {
-    switch (data_type) {
-      case DataType::kStrings: {
-        s = inst->StringsPKPatternMatchDel(pattern, ret);
-        if (!s.ok()) {
-          return s;
-        }
-      }
-      case DataType::kHashes: {
-        s = inst->HashesPKPatternMatchDel(pattern, ret);
-        if (!s.ok()) {
-          return s;
-        }
-      }
-      case DataType::kLists: {
-        s = inst->ListsPKPatternMatchDel(pattern, ret);
-        if (!s.ok()) {
-          return s;
-        }
-      }
-      case DataType::kZSets: {
-        s = inst->ZsetsPKPatternMatchDel(pattern, ret);
-        if (!s.ok()) {
-          return s;
-        }
-      }
-      case DataType::kSets: {
-        s = inst->SetsPKPatternMatchDel(pattern, ret);
-        if (!s.ok()) {
-          return s;
-        }
-      }
-      default:
-        s = Status::Corruption("Unsupported data types");
-        break;
+    s = inst->PKPatternMatchDel(pattern, ret);
+    if (!s.ok()) {
+      return s;
     }
   }
   return s;
@@ -1733,7 +1704,7 @@ Status Storage::Compact(const DataType& type, bool sync) {
 
 // run compactrange for all rocksdb instance
 Status Storage::DoCompactRange(const DataType& type, const std::string& start, const std::string& end) {
-  if (type != kAll && type != kStrings && type != kHashes && type != kSets && type != kZSets && type != kLists) {
+  if (type != kAll) {
     return Status::InvalidArgument("");
   }
 
@@ -1747,35 +1718,8 @@ Status Storage::DoCompactRange(const DataType& type, const std::string& start, c
 
   Status s;
   for (const auto& inst : insts_) {
-    switch (type) {
-      case DataType::kStrings:
-        current_task_type_ = Operation::kCleanStrings;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
-        break;
-      case DataType::kHashes:
-        current_task_type_ = Operation::kCleanHashes;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
-        break;
-      case DataType::kLists:
-        current_task_type_ = Operation::kCleanLists;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
-        break;
-      case DataType::kSets:
-        current_task_type_ = Operation::kCleanSets;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
-        break;
-      case DataType::kZSets:
-        current_task_type_ = Operation::kCleanZSets;
-        s = inst->CompactRange(type, start_ptr, end_ptr);
-        break;
-      default:
-        current_task_type_ = Operation::kCleanAll;
-        s = inst->CompactRange(DataType::kStrings, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kHashes, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kLists, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kSets, start_ptr, end_ptr);
-        s = inst->CompactRange(DataType::kZSets, start_ptr, end_ptr);
-    }
+    current_task_type_ = Operation::kCleanAll;
+    s = inst->CompactRange(start_ptr, end_ptr);
   }
   current_task_type_ = Operation::kNone;
   return s;
@@ -1799,7 +1743,7 @@ Status Storage::DoCompactSpecificKey(const DataType& type, const std::string& ke
   CalculateStartAndEndKey(key, &start_key, &end_key);
   Slice slice_begin(start_key);
   Slice slice_end(end_key);
-  s = inst->CompactRange(type, &slice_begin, &slice_end, kMeta);
+  s = inst->CompactRange(&slice_begin, &slice_end);
   return s;
 }
 
@@ -1829,18 +1773,6 @@ std::string Storage::GetCurrentTaskType() {
   switch (type) {
     case kCleanAll:
       return "All";
-    case kCleanStrings:
-      return "String";
-    case kCleanHashes:
-      return "Hash";
-    case kCleanZSets:
-      return "ZSet";
-    case kCleanSets:
-      return "Set";
-    case kCleanLists:
-      return "List";
-    case kCleanStreams:
-      return "Stream";
     case kNone:
     default:
       return "No";
@@ -1951,36 +1883,21 @@ Status Storage::EnableAutoCompaction(const OptionType& option_type,
 
   for (const auto& inst : insts_) {
     std::vector<rocksdb::ColumnFamilyHandle*> cfhds;
-    if (db_type == ALL_DB || db_type == STRINGS_DB) {
-      auto string_cfhds = inst->GetStringCFHandles();
-      cfhds.insert(cfhds.end(), string_cfhds.begin(), string_cfhds.end());
-    }
-
-    if (db_type == ALL_DB || db_type == HASHES_DB) {
-      auto hash_cfhds = inst->GetHashCFHandles();
-      cfhds.insert(cfhds.end(), hash_cfhds.begin(), hash_cfhds.end());
-    }
-
-    if (db_type == ALL_DB || db_type == LISTS_DB) {
-      auto list_cfhds = inst->GetListCFHandles();
-      cfhds.insert(cfhds.end(), list_cfhds.begin(), list_cfhds.end());
-    }
-
-    if (db_type == ALL_DB || db_type == SETS_DB) {
-      auto set_cfhds = inst->GetSetCFHandles();
-      cfhds.insert(cfhds.end(), set_cfhds.begin(), set_cfhds.end());
-    }
-
-    if (db_type == ALL_DB || db_type == ZSETS_DB) {
-      auto zset_cfhds = inst->GetZsetCFHandles();
-      cfhds.insert(cfhds.end(), zset_cfhds.begin(), zset_cfhds.end());
-    }
+    auto string_cfhds = inst->GetStringCFHandles();
+    auto hash_cfhds = inst->GetHashCFHandles();
+    auto list_cfhds = inst->GetListCFHandles();
+    auto set_cfhds = inst->GetSetCFHandles();
+    auto zset_cfhds = inst->GetZsetCFHandles();
+    cfhds.insert(cfhds.end(), string_cfhds.begin(), string_cfhds.end());
+    cfhds.insert(cfhds.end(), hash_cfhds.begin(), hash_cfhds.end());
+    cfhds.insert(cfhds.end(), list_cfhds.begin(), list_cfhds.end());
+    cfhds.insert(cfhds.end(), set_cfhds.begin(), set_cfhds.end());
+    cfhds.insert(cfhds.end(), zset_cfhds.begin(), zset_cfhds.end());
     s = inst->GetDB()->EnableAutoCompaction(cfhds);
     if (!s.ok()) {
       return s;
     }
   }
-
   return s;
 }
 
