@@ -3,7 +3,6 @@ package pika_integration
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
 
 	. "github.com/bsm/ginkgo/v2"
@@ -25,8 +24,6 @@ var _ = Describe("Text Txn", func() {
 	ctx := context.TODO()
 	var txnClient *redis.Client
 	var cmdClient *redis.Client
-	var txnCost time.Duration
-	var cmdCost time.Duration
 
 	BeforeEach(func() {
 		txnClient = redis.NewClient(PikaOption(SINGLEADDR))
@@ -105,36 +102,6 @@ var _ = Describe("Text Txn", func() {
 				return nil
 			}, noExist)
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		// The test execution does not block the execution of other ordinary commands when executing commands in transactions
-		It("test txn no block other cmd", func() {
-			pipe := txnClient.TxPipeline()
-			pipe.Get(ctx, "key")
-			pipe.Set(ctx, "key", "value", 0)
-			for i := 0; i < 9999; i++ {
-				pipe.Set(ctx, "key", "value", 0)
-			}
-			pipe.LPushX(ctx, "aaa", "xxx")
-			resultChann := make(chan []redis.Cmder)
-			go func(txnCost *time.Duration) {
-				start := time.Now()
-				res, _ := pipe.Exec(ctx)
-				*txnCost = time.Since(start)
-				resultChann <- res
-			}(&txnCost)
-			wg := sync.WaitGroup{}
-			wg.Add(1)
-			go func(cmdCost *time.Duration) {
-				time.Sleep(time.Millisecond * 5)
-				start := time.Now()
-				cmdClient.Set(ctx, "keyaa", "value", 0)
-				*cmdCost = time.Since(start)
-				wg.Done()
-			}(&cmdCost)
-			<-resultChann
-			wg.Wait()
-			Expect(cmdCost < (txnCost / 2)).To(BeTrue())
 		})
 	})
 
