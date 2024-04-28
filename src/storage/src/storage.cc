@@ -296,25 +296,25 @@ Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vect
   Status s;
   int64_t max_len = 0;
   int64_t value_len = 0;
-  std::vector<std::string> src_vlaues;
+  std::vector<std::string> src_values;
   for (const auto& src_key : src_keys) {
     auto& inst = GetDBInstance(src_key);
     std::string value;
     s = inst->Get(Slice(src_key), &value);
     if (s.ok()) {
-      src_vlaues.push_back(value);
+      src_values.push_back(value);
       value_len = value.size();
     } else {
       if (!s.IsNotFound()) {
         return s;
       }
-      src_vlaues.push_back("");
+      src_values.push_back("");
       value_len = 0;
     }
     max_len = std::max(max_len, value_len);
   }
 
-  std::string dest_value = BitOpOperate(op, src_vlaues, max_len);
+  std::string dest_value = BitOpOperate(op, src_values, max_len);
   value_to_dest = dest_value;
   *ret = dest_value.size();
 
