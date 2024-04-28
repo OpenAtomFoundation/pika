@@ -95,76 +95,6 @@ int BaseConf::ReloadConf() {
   return 0;
 }
 
-bool BaseConf::GetConfInt(const std::string& name, int* value) const {
-  for (auto& i : rep_->item) {
-    if (i.type == Rep::kComment) {
-      continue;
-    }
-    if (name == i.name) {
-      (*value) = atoi(i.value.c_str());
-      return true;
-    }
-  }
-  return false;
-}
-
-bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
-  for (auto& i : rep_->item) {
-    if (i.type == Rep::kComment) {
-      continue;
-    }
-    if (name == i.name) {
-      auto c_str = i.value.c_str();
-      (*value) = static_cast<int32_t>(strtoll(c_str, nullptr, 10));
-      char last = c_str[i.value.size() - 1];
-      if (last == 'K' || last == 'k') {
-        (*value) *= (1 << 10);
-      } else if (last == 'M' || last == 'm') {
-        (*value) *= (1 << 20);
-      } else if (last == 'G' || last == 'g') {
-        (*value) *= (1 << 30);
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const {
-  for (auto& i : rep_->item) {
-    if (i.type == Rep::kComment) {
-      continue;
-    }
-    if (name == i.name) {
-      auto c_str = i.value.c_str();
-      (*value) = strtoll(c_str, nullptr, 10);
-      char last = c_str[i.value.size() - 1];
-      if (last == 'K' || last == 'k') {
-        (*value) *= (1 << 10);
-      } else if (last == 'M' || last == 'm') {
-        (*value) *= (1 << 20);
-      } else if (last == 'G' || last == 'g') {
-        (*value) *= (1 << 30);
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
-  for (auto& i : rep_->item) {
-    if (i.type == Rep::kComment) {
-      continue;
-    }
-    if (name == i.name) {
-      (*value) = strtoll(i.value.c_str(), nullptr, 10);
-      return true;
-    }
-  }
-  return false;
-}
-
 bool BaseConf::GetConfStr(const std::string& name, std::string* val) const {
   for (auto& i : rep_->item) {
     if (i.type == 1) {
@@ -194,23 +124,6 @@ bool BaseConf::GetConfStrVec(const std::string& name, std::vector<std::string>* 
         }
         value->push_back(StringTrim(val_str.substr(0, pos)));
         val_str = val_str.substr(pos + 1);
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-bool BaseConf::GetConfBool(const std::string& name, bool* value) const {
-  for (auto& i : rep_->item) {
-    if (i.type == Rep::kComment) {
-      continue;
-    }
-    if (name == i.name) {
-      if (i.value == "true" || i.value == "1" || i.value == "yes") {
-        (*value) = true;
-      } else if (i.value == "false" || i.value == "0" || i.value == "no") {
-        (*value) = false;
       }
       return true;
     }
