@@ -147,56 +147,57 @@ TEST_F(StringsTest, BitCountTest) {
   ASSERT_EQ(ret, 6);
 }
 
-// TODO(@tangruilin): 修复测试代码
 // BitOp
-// TEST_F(StringsTest, BitOpTest) {
-//   int64_t ret;
-//   std::string value;
-//   s = db.Set("BITOP_KEY1", "FOOBAR");
-//   ASSERT_TRUE(s.ok());
-//   s = db.Set("BITOP_KEY2", "ABCDEF");
-//   ASSERT_TRUE(s.ok());
-//   s = db.Set("BITOP_KEY3", "STORAGE");
-//   ASSERT_TRUE(s.ok());
-//   std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
+TEST_F(StringsTest, BitOpTest) {
+  int64_t ret;
+  std::string value;
+  s = db.Set("BITOP_KEY1", "FOOBAR");
+  ASSERT_TRUE(s.ok());
+  s = db.Set("BITOP_KEY2", "ABCDEF");
+  ASSERT_TRUE(s.ok());
+  s = db.Set("BITOP_KEY3", "STORAGE");
+  ASSERT_TRUE(s.ok());
+  std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
 
-//   // AND
-//   s = db.BitOp(storage::BitOpType::kBitOpAnd,
-//                "BITOP_DESTKEY", src_keys, &ret);
-//   ASSERT_TRUE(s.ok());
-//   ASSERT_EQ(ret, 10);
-//   s = db.Get("BITOP_DESTKEY", &value);
-//   ASSERT_STREQ(value.c_str(), "@@A@AB\x00\x00\x00\x00");
+  std::string value_to_dest{};
 
-//   // OR
-//   s = db.BitOp(storage::BitOpType::kBitOpOr,
-//                "BITOP_DESTKEY", src_keys, &ret);
-//   ASSERT_TRUE(s.ok());
-//   ASSERT_EQ(ret, 10);
-//   s = db.Get("BITOP_DESTKEY", &value);
-//   ASSERT_STREQ(value.c_str(), "GOOGOWIDOW");
+  // AND
+  s = db.BitOp(storage::BitOpType::kBitOpAnd,
+               "BITOP_DESTKEY", src_keys, std::ref(value_to_dest), &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 7);
+  s = db.Get("BITOP_DESTKEY", &value);
+  ASSERT_STREQ(value.c_str(), "@@C@AB\x00");
 
-//   // XOR
-//   s = db.BitOp(storage::BitOpType::kBitOpXor,
-//                "BITOP_DESTKEY", src_keys, &ret);
-//   ASSERT_TRUE(s.ok());
-//   ASSERT_EQ(ret, 10);
-//   s = db.Get("BITOP_DESTKEY", &value);
-//   ASSERT_STREQ(value.c_str(), "EAMEOCIDOW");
+  // OR
+  s = db.BitOp(storage::BitOpType::kBitOpOr,
+               "BITOP_DESTKEY", src_keys, std::ref(value_to_dest), &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 7);
+  s = db.Get("BITOP_DESTKEY", &value);
+  ASSERT_STREQ(value.c_str(), "W_OVEWE");
 
-//   // NOT
-//   std::vector<std::string> not_keys {"BITOP_KEY1"};
-//   s = db.BitOp(storage::BitOpType::kBitOpNot,
-//                "BITOP_DESTKEY", not_keys, &ret);
-//   ASSERT_TRUE(s.ok());
-//   ASSERT_EQ(ret, 6);
-//   s = db.Get("BITOP_DESTKEY", &value);
-//   ASSERT_STREQ(value.c_str(), "\xb9\xb0\xb0\xbd\xbe\xad");
-//   // NOT operation more than two parameters
-//   s = db.BitOp(storage::BitOpType::kBitOpNot,
-//                "BITOP_DESTKEY", src_keys, &ret);
-//   ASSERT_TRUE(s.IsInvalidArgument());
-// }
+  // XOR
+  s = db.BitOp(storage::BitOpType::kBitOpXor,
+               "BITOP_DESTKEY", src_keys, std::ref(value_to_dest), &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 7);
+  s = db.Get("BITOP_DESTKEY", &value);
+  ASSERT_STREQ(value.c_str(), "TYCTESE");
+
+  // NOT
+  std::vector<std::string> not_keys {"BITOP_KEY1"};
+  s = db.BitOp(storage::BitOpType::kBitOpNot,
+               "BITOP_DESTKEY", not_keys, std::ref(value_to_dest), &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 6);
+  s = db.Get("BITOP_DESTKEY", &value);
+  ASSERT_STREQ(value.c_str(), "\xb9\xb0\xb0\xbd\xbe\xad");
+  // NOT operation more than two parameters
+  s = db.BitOp(storage::BitOpType::kBitOpNot,
+               "BITOP_DESTKEY", src_keys, std::ref(value_to_dest), &ret);
+  ASSERT_TRUE(s.IsInvalidArgument());
+}
 
 // Decrby
 TEST_F(StringsTest, DecrbyTest) {

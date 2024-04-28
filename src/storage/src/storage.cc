@@ -293,6 +293,7 @@ Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_off
 Status Storage::BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys,
                       std::string &value_to_dest, int64_t* ret) {
   assert(is_classic_mode_);
+  if (op == storage::BitOpType::kBitOpNot && src_keys.size() >= 2) { return Status::InvalidArgument(); }
   Status s;
   int64_t max_len = 0;
   int64_t value_len = 0;
