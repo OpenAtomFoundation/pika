@@ -1209,14 +1209,6 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   } else {
     tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";   // Command=>"info"
   }
-  /**if (argv_.size() == 3){  // command => `info keyspace 1`  or `info all`
-    tmp_stream << "# Start async statistics"
-               << "\r\n";
-  } else {  // command => `info keyspace`
-    tmp_stream << "# Use \"info keyspace 1\" do async statistics"
-               << "\r\n";
-  }
-  **/
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
