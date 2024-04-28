@@ -24,7 +24,10 @@ class Throttle {
   void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
         if(last_rsync_config_updated_time_ms_.load() + 1000 < pstd::NowMilliSeconds()){
             //maximum update frequency of rsync config:1 time per sec
-            Throttle::GetInstance().SetThrottleThroughputBytes(new_throughput_bytes_per_s);
+            {
+                std::lock_guard guard(keys_mutex_);
+                throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
+            }
             LOG(INFO) << "The conf item [throttle-bytes-per-second] is changed by Config Set command. "
                          "The rsync rate limit now is "
                       << new_throughput_bytes_per_s << "(Which Is Around " << (new_throughput_bytes_per_s >> 20) << " MB/s)";
@@ -48,10 +51,6 @@ class Throttle {
     static Throttle instance(g_pika_conf->throttle_bytes_per_second(), 10);
     return instance;
   }
-  void SetThrottleThroughputBytes(size_t new_throughput_bytes_per_s){
-      std::lock_guard guard(keys_mutex_);
-      throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
-  };
 private:
   // Speed rate defined by user, it's protected by keys_mutex_
   std::atomic<size_t> throttle_throughput_bytes_ = 100 * 1024 * 1024;
@@ -65,7 +64,6 @@ private:
     size_t base_aligning_time_us = 1000 * 1000 / check_cycle;
     return current_time_us / base_aligning_time_us * base_aligning_time_us;
   }
-
   // Rsync timeout value used by WaitObject,defined by user, It's NOT protected by keys_mutex_
   std::atomic<int64_t> wait_timout_ms_{1000};
   //1 when multi thread changing rsync rate and timeout at the same time,make them take effect sequentially
