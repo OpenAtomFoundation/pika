@@ -1196,18 +1196,12 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace"
              << "\r\n";
-  if (argv_.size()> 1 && strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
-    // Command=>"info all"
+  if (argv_.size() > 1 && strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
     tmp_stream << "# Start async statistics\r\n";
-  } else if (argv_.size() > 2 && strcasecmp(argv_[1].data(), kKeyspaceSection.data()) == 0) {
-
-    if (argv_.size() == 3) {
-      tmp_stream << "# Start async statistics\r\n";      // Command=>"info keyspace 1|0"
-    } else {
-      tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";    // Command=>"info keyspace"
-    }
+  } else if (argv_.size() == 3 && strcasecmp(argv_[1].data(), kKeyspaceSection.data()) == 0) {
+    tmp_stream << "# Start async statistics\r\n";    
   } else {
-    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";   // Command=>"info"
+    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";  
   }
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
