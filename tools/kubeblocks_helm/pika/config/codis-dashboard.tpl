@@ -10,8 +10,8 @@
 # Quick Start
 coordinator_name = "filesystem"
 coordinator_addr = "/tmp/codis"
-coordinator_name = "etcd"
-coordinator_addr = "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
+#coordinator_name = "zookeeper"
+#coordinator_addr = "127.0.0.1:2181"
 #coordinator_auth = ""
 
 # Set Codis Product Name/Auth.
