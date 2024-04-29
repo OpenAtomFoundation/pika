@@ -8,7 +8,7 @@ spec:
   provider: pika
   description: A pika codis dashboard component definition
   serviceKind: pika-codis-dashboard
-  serviceVersion: 3.5.1
+  serviceVersion: 3.5.3
   services:
     - name: dashboard
       serviceName: dashboard
