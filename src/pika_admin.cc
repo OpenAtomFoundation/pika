@@ -805,6 +805,7 @@ void InfoCmd::DoInitial() {
 
   if (strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
     info_section_ = kInfoAll;
+    keyspace_scan_dbs_ = g_pika_server->GetAllDBName();
   } else if (strcasecmp(argv_[1].data(), kServerSection.data()) == 0) {
     info_section_ = kInfoServer;
   } else if (strcasecmp(argv_[1].data(), kClientsSection.data()) == 0) {
@@ -821,6 +822,7 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoKeyspace;
     if (argc == 2) {
       LogCommand();
+
       return;
     }
     // info keyspace [ 0 | 1 | off ]
@@ -1205,15 +1207,13 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace"
              << "\r\n";
-
-  if (argv_.size() == 3) {  // command => `info keyspace 1`
-    tmp_stream << "# Start async statistics"
-               << "\r\n";
-  } else {  // command => `info keyspace` or `info`
-    tmp_stream << "# Use \"info keyspace 1\" do async statistics"
-               << "\r\n";
+  if (argv_.size() > 1 && strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
+    tmp_stream << "# Start async statistics\r\n";
+  } else if (argv_.size() == 3 && strcasecmp(argv_[1].data(), kKeyspaceSection.data()) == 0) {
+    tmp_stream << "# Start async statistics\r\n";    
+  } else {
+    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";  
   }
-
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (keyspace_scan_dbs_.find(db_item.first) != keyspace_scan_dbs_.end()) {
@@ -1236,7 +1236,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
         tmp_stream << "# Duration: " << std::to_string(duration) + "s"
                    << "\r\n";
       }
-
+      
       tmp_stream << db_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires
                  << ", invalid_keys=" << key_infos[0].invaild_keys << "\r\n";
       tmp_stream << db_name << " Hashes_keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires
@@ -1250,7 +1250,6 @@ void InfoCmd::InfoKeyspace(std::string& info) {
     }
   }
   info.append(tmp_stream.str());
-
   if (rescan_) {
     g_pika_server->DoSameThingSpecificDB(keyspace_scan_dbs_, {TaskType::kStartKeyScan});
   }
