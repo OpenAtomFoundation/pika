@@ -562,16 +562,22 @@ void MgetCmd::Merge() {
 }
 
 void MgetCmd::ReadCache() {
-  if (1 < keys_.size()) {
-    res_.SetRes(CmdRes::kCacheMiss);
-    return;
+  std::vector<std::string> CachePrefixKeyK;
+  cache_value_status_array_.clear();
+  for (auto key : keys_) {
+    CachePrefixKeyK.push_back(PCacheKeyPrefixK + key);
   }
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
-  auto s = db_->cache()->Get(CachePrefixKeyK, &value_);
+  auto s = db_->cache()->MGet(CachePrefixKeyK, &cache_value_status_array_);
   if (s.ok()) {
-    res_.AppendArrayLen(1);
-    res_.AppendStringLen(value_.size());
-    res_.AppendContent(value_);
+    res_.AppendArrayLenUint64(cache_value_status_array_.size());
+    for (const auto& vs : cache_value_status_array_) {
+      if (vs.status.ok()) {
+        res_.AppendStringLenUint64(vs.value.size());
+        res_.AppendContent(vs.value);
+      } else {
+        res_.AppendContent("$-1");
+      }
+    }
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
