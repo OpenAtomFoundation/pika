@@ -62,7 +62,6 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result);
 void GetDescendant(const std::string& dir, std::vector<std::string>& result);
 
 uint64_t NowMicros();
-uint64_t NowMilliSeconds();
 void SleepForMicroseconds(int micros);
 
 Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result);

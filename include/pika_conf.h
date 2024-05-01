@@ -222,15 +222,15 @@ class PikaConf : public pstd::BaseConf {
   int64_t blob_file_size() { return blob_file_size_.load(std::memory_order_relaxed); }
   std::string blob_compression_type() { return blob_compression_type_; }
   bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_.load(std::memory_order_relaxed); }
-  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; } //
-  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; } //
+  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; }
+  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; }
   int64_t blob_cache() { return blob_cache_.load(std::memory_order_relaxed); }
   int64_t blob_num_shard_bits() { return blob_num_shard_bits_.load(std::memory_order_relaxed); }
 
   // Rsync Rate limiting configuration
   int throttle_bytes_per_second() { return throttle_bytes_per_second_.load(std::memory_order_relaxed); }
   int max_rsync_parallel_num() { return max_rsync_parallel_num_.load(std::memory_order_relaxed); }
-  int64_t rsync_timeout_ms(){ return rsync_timeout_ms_; }
+  int64_t rsync_timeout_ms(){ return rsync_timeout_ms_.load(); }
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
@@ -539,7 +539,7 @@ class PikaConf : public pstd::BaseConf {
   void SetThrottleBytesPerSecond(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("throttle-bytes-per-second", std::to_string(value));
-    throttle_bytes_per_second_ = value;
+    throttle_bytes_per_second_.store(value);
   }
 
   void SetMaxRsyncParallelNum(const int value) {
@@ -551,7 +551,7 @@ class PikaConf : public pstd::BaseConf {
   void SetRsyncTimeoutMs(int64_t value){
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("rsync-timeout-ms", std::to_string(value));
-    rsync_timeout_ms_ = value;
+    rsync_timeout_ms_.store(value);
   }
 
   void SetAclPubsubDefault(const std::string& value) {
