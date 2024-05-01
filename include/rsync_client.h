@@ -67,7 +67,6 @@ class RsyncClient : public net::Thread {
   }
   bool IsIdle() { return state_.load() == IDLE;}
   void OnReceive(RsyncService::RsyncResponse* resp);
-
 private:
   bool ComparisonUpdate();
   Status CopyRemoteFile(const std::string& filename, int index);
@@ -97,6 +96,7 @@ private:
   std::unique_ptr<WaitObjectManager> wo_mgr_;
   std::condition_variable cond_;
   std::mutex mu_;
+
 
   std::string master_ip_;
   int master_port_;
@@ -157,19 +157,18 @@ class WaitObject {
   }
 
   pstd::Status Wait(ResponseSPtr& resp) {
-    pstd::Status s = Status::Timeout("rsync timeout", "timeout");
-    {
-      std::unique_lock<std::mutex> lock(mu_);
-      auto cv_s = cond_.wait_for(lock, std::chrono::seconds(1), [this] {
-          return resp_.get() != nullptr;
-      });
-      if (!cv_s) {
-        return s;
-      }
-      resp = resp_;
-      s = Status::OK();
+    std::unique_lock<std::mutex> lock(mu_);
+    auto timeout = Throttle::GetInstance().GetWaitTimeoutMs();
+    auto cv_s = cond_.wait_for(lock, std::chrono::milliseconds(timeout), [this] {
+      return resp_.get() != nullptr;
+    });
+    if (!cv_s) {
+      std::string timout_info("timeout during(in ms) is ");
+      timout_info.append(std::to_string(timeout));
+      return pstd::Status::Timeout("rsync timeout", timout_info);
     }
-    return s;
+    resp = resp_;
+    return pstd::Status::OK();
   }
 
   void WakeUp(RsyncService::RsyncResponse* resp) {
@@ -234,7 +233,6 @@ class WaitObjectManager {
     }
     wo_vec_[index]->WakeUp(resp);
   }
-
  private:
   std::vector<WaitObject*> wo_vec_;
   std::mutex mu_;
@@ -242,4 +240,3 @@ class WaitObjectManager {
 
 } // end namespace rsync
 #endif
-

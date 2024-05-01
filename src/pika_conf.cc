@@ -641,6 +641,10 @@ int PikaConf::Load() {
     max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
+  GetConfInt64("rsync-timeout-ms", &rsync_timeout_ms_);
+  if(rsync_timeout_ms_ <= 0){
+    rsync_timeout_ms_ = 1000;
+  }
   return ret;
 }
 

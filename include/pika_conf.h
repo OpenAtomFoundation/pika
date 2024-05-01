@@ -87,7 +87,7 @@ class PikaConf : public pstd::BaseConf {
   int64_t thread_migrate_keys_num() { return thread_migrate_keys_num_.load(std::memory_order_relaxed); }
   int64_t max_write_buffer_size() { return max_write_buffer_size_.load(std::memory_order_relaxed); }
   int max_write_buffer_number() { return max_write_buffer_num_.load(std::memory_order_relaxed); }
-  uint64_t MaxTotalWalSize() { return max_total_wal_size_.load(std::memory_order_relaxed); } 
+  uint64_t MaxTotalWalSize() { return max_total_wal_size_.load(std::memory_order_relaxed); }
   int64_t max_client_response_size() { return max_client_response_size_.load(std::memory_order_relaxed); }
   int timeout() { return timeout_.load(std::memory_order_relaxed); }
   int binlog_writer_num() { return binlog_writer_num_.load(std::memory_order_relaxed); }
@@ -222,15 +222,15 @@ class PikaConf : public pstd::BaseConf {
   int64_t blob_file_size() { return blob_file_size_.load(std::memory_order_relaxed); }
   std::string blob_compression_type() { return blob_compression_type_; }
   bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_.load(std::memory_order_relaxed); }
-  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; } // 
-  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; } // 
+  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; } //
+  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; } //
   int64_t blob_cache() { return blob_cache_.load(std::memory_order_relaxed); }
   int64_t blob_num_shard_bits() { return blob_num_shard_bits_.load(std::memory_order_relaxed); }
 
   // Rsync Rate limiting configuration
   int throttle_bytes_per_second() { return throttle_bytes_per_second_.load(std::memory_order_relaxed); }
   int max_rsync_parallel_num() { return max_rsync_parallel_num_.load(std::memory_order_relaxed); }
-
+  int64_t rsync_timeout_ms(){ return rsync_timeout_ms_; }
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
@@ -547,6 +547,13 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
     max_rsync_parallel_num_ = value;
   }
+
+  void SetRsyncTimeoutMs(int64_t value){
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("rsync-timeout-ms", std::to_string(value));
+    rsync_timeout_ms_ = value;
+  }
+
   void SetAclPubsubDefault(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("acl-pubsub-default", value);
@@ -742,6 +749,7 @@ class PikaConf : public pstd::BaseConf {
   // Rsync Rate limiting configuration
   std::atomic_int throttle_bytes_per_second_ = 207200000;
   std::atomic_int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
+  std::atomic_int64_t rsync_timeout_ms_ = 1000;
 };
 
 #endif
