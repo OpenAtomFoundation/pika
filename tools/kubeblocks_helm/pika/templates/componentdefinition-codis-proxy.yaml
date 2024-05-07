@@ -8,7 +8,7 @@ spec:
   provider: pika
   description: A pika codis proxy component definition
   serviceKind: pika-codis-proxy
-  serviceVersion: 3.5.1
+  serviceVersion: 3.5.3
   services:
     - name: proxy
       serviceName: proxy
