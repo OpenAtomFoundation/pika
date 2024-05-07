@@ -8,7 +8,7 @@ spec:
   provider: pika
   description: A pika group component definition
   serviceKind: pika-group
-  serviceVersion: 3.5.1
+  serviceVersion: 3.5.3
   services:
     - name: pika
       serviceName: pika

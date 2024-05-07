@@ -68,8 +68,11 @@ backend_max_pipeline = 20480
 backend_primary_only = false
 
 # Set backend parallel connections per server
-backend_primary_parallel = 1
-backend_replica_parallel = 1
+backend_primary_parallel = 2
+backend_replica_parallel = 2
+# Set quick backend parallel connections per server
+backend_primary_quick = 1
+backend_replica_quick = 1
 
 # Set slot num
 max_slot_num = 1024
@@ -99,6 +102,14 @@ session_keepalive_period = "75s"
 # Set session to be sensitive to failures. Default is false, instead of closing socket, proxy will send an error response to client.
 session_break_on_failure = false
 
+# Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
+slowlog_log_slower_than = 100000
+
+# quick command list e.g. get, set
+quick_cmd_list = ""
+# slow command list e.g. hgetall, mset
+slow_cmd_list = ""
+
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
 metrics_report_period = "1s"
@@ -115,10 +126,6 @@ metrics_report_statsd_server = ""
 metrics_report_statsd_period = "1s"
 metrics_report_statsd_prefix = ""
 
+# Maximum delay statistical time interval.(This value must be greater than 0.)
 max_delay_refresh_time_interval = "15s"
-quick_cmd_list = ""
-slow_cmd_list = ""
-slowlog_log_slower_than = 10000
-backend_primary_quick = 1
-backend_replica_quick = 1
 
