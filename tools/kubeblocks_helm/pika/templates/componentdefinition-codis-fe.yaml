@@ -8,7 +8,7 @@ spec:
   provider: pika
   description: A pika codis frontend component definition
   serviceKind: pika-codis-fe
-  serviceVersion: 3.5.1
+  serviceVersion: 3.5.3
   services:
     - name: fe
       serviceName: fe

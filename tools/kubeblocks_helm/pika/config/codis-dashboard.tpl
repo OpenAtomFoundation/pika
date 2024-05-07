@@ -8,10 +8,10 @@
 # Set Coordinator, only accept "zookeeper" & "etcd" & "filesystem".
 # for zookeeper/etcd, coorinator_auth accept "user:password" 
 # Quick Start
-#coordinator_name = "filesystem"
-#coordinator_addr = "/tmp/codis"
-coordinator_name = "etcd"
-coordinator_addr = "pika-cluster-etcd-0.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379,pika-cluster-etcd-1.pika-cluster-etcd-headless:2379"
+coordinator_name = "filesystem"
+coordinator_addr = "/tmp/codis"
+#coordinator_name = "zookeeper"
+#coordinator_addr = "127.0.0.1:2181"
 #coordinator_auth = ""
 
 # Set Codis Product Name/Auth.
@@ -36,6 +36,7 @@ migration_timeout = "30s"
 sentinel_check_server_state_interval = "10s"
 sentinel_check_master_failover_interval = "2s"
 sentinel_master_dead_check_times = 10
+sentinel_check_offline_server_interval = "2s"
 sentinel_client_timeout = "10s"
 sentinel_quorum = 2
 sentinel_parallel_syncs = 1
@@ -43,4 +44,4 @@ sentinel_down_after = "30s"
 sentinel_failover_timeout = "5m"
 sentinel_notification_script = ""
 sentinel_client_reconfig_script = ""
-sentinel_check_offline_server_interval = "2s"
+
