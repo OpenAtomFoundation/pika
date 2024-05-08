@@ -157,8 +157,8 @@ class WaitObject {
   }
 
   pstd::Status Wait(ResponseSPtr& resp) {
-    std::unique_lock<std::mutex> lock(mu_);
     auto timeout = g_pika_conf->rsync_timeout_ms();
+    std::unique_lock<std::mutex> lock(mu_);
     auto cv_s = cond_.wait_for(lock, std::chrono::milliseconds(timeout), [this] {
       return resp_.get() != nullptr;
     });

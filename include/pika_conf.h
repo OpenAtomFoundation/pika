@@ -415,7 +415,7 @@ class PikaConf : public pstd::BaseConf {
     return max_rsync_parallel_num_;
   }
   int64_t rsync_timeout_ms() {
-      return rsync_timeout_ms_.load();
+      return rsync_timeout_ms_.load(std::memory_order::memory_order_relaxed);
   }
   // Slow Commands configuration
   const std::string GetSlowCmd() {
