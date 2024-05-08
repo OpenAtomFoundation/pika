@@ -8,21 +8,21 @@
 #include <string>
 #include <vector>
 
-#include "include/pika_slot_command.h"
-#include "include/pika_command.h"
-#include "include/pika_data_distribution.h"
-#include "include/pika_migrate_thread.h"
-#include "include/pika_server.h"
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_command.h"
+#include "include/pika_conf.h"
+#include "include/pika_data_distribution.h"
+#include "include/pika_define.h"
+#include "include/pika_migrate_thread.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "include/pika_slot_command.h"
+#include "pstd/include/pika_codis_slot.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
-#include "include/pika_conf.h"
-#include "pstd/include/pika_codis_slot.h"
-#include "include/pika_define.h"
+#include "src/redis_streams.h"
 #include "storage/include/storage/storage.h"
-
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
@@ -267,6 +267,9 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
     case 's':
       command_num = ParseSKey(key, wbuf_str, db);
       break;
+    case 'm':
+      command_num = ParseMKey(key, wbuf_str, db);
+      break;
     default:
       LOG(INFO) << "ParseKey key[" << key << "], the type[" << type << "] is not support.";
       return -1;
@@ -374,8 +377,7 @@ int PikaMigrate::ParseKKey(const std::string& key, std::string& wbuf_str, const 
 }
 
 int64_t PikaMigrate::TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db) {
-  int64_t type_timestamp = db->storage()->TTL(key);
-  return type_timestamp;
+  return db->storage()->TTL(key);
 }
 
 int PikaMigrate::ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
@@ -490,6 +492,36 @@ int PikaMigrate::ParseSKey(const std::string& key, std::string& wbuf_str, const 
     }
   } while (next_cursor > 0);
 
+  return command_num;
+}
+
+int PikaMigrate::ParseMKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
+  int command_num = 0;
+  std::vector<storage::IdMessage> id_messages;
+  storage::StreamScanArgs arg;
+  auto s = db->storage()->XRange(key, arg, id_messages);
+
+  if (s.ok()) {
+
+    net::RedisCmdArgsType argv;
+    std::string cmd;
+    argv.emplace_back("XADD");
+    argv.emplace_back(key);
+
+    for (const auto &field_value : id_messages) {
+      argv.emplace_back(field_value.field);
+      argv.emplace_back(field_value.value);
+    }
+    net::SerializeRedisCommand(argv, &cmd);
+    wbuf_str.append(cmd);
+    command_num++;
+  } else if (s.IsNotFound()) {
+    wbuf_str.clear();
+    return 0;
+  } else {
+    wbuf_str.clear();
+    return -1;
+  }
   return command_num;
 }
 
@@ -738,6 +770,8 @@ int GetKeyType(const std::string& key, std::string& key_type, const std::shared_
     key_type = "s";
   } else if (type_str == "zset") {
     key_type = "z";
+  } else if (type_str == "streams") {
+    key_type = "m";
   } else {
     LOG(WARNING) << "Get key type error: " << key;
     key_type = "";
@@ -918,6 +952,8 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     key_type_ = 's';
   } else if (type_str == "zset") {
     key_type_ = 'z';
+  } else if (type_str == "streams") {
+    key_type_ = 'm';
   } else {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
     res_.AppendInteger(0);

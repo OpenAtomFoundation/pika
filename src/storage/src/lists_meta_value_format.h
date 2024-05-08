@@ -107,7 +107,6 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   explicit ParsedListsMetaValue(const rocksdb::Slice& internal_value_slice)
       : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
-    // TODO Why need This judgment logic; Mixficsol
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
       size_t offset = 0;
       type_ = static_cast<Type>(static_cast<uint8_t>(internal_value_slice[0]));

@@ -251,7 +251,7 @@ const std::string kClusterPrefix = "pkcluster";
  * If a type holds a key, a new data structure
  * that uses the key will use this error
  */
-constexpr const char* ErrTypeMessage = "Invalid argument: WRONGTYPE Operation against a key holding the wrong kind of value";
+constexpr const char* ErrTypeMessage = "Invalid argument: WRONGTYPE";
 
 using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;

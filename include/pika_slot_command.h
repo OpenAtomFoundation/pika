@@ -56,6 +56,7 @@ class PikaMigrate {
   int ParseSKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseHKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseLKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseMKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   bool SetTTL(const std::string& key, std::string& wbuf_str, int64_t ttl);
 };
 

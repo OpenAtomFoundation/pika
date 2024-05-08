@@ -2,16 +2,17 @@
 
 #include <glog/logging.h>
 
-#include "include/pika_command.h"
-#include "include/pika_migrate_thread.h"
-#include "include/pika_server.h"
-#include "include/pika_slot_command.h"
 #include "include/pika_admin.h"
 #include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
-#include "pstd/include/pika_codis_slot.h"
+#include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
+#include "include/pika_migrate_thread.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "include/pika_slot_command.h"
+#include "pstd/include/pika_codis_slot.h"
+#include "src/redis_streams.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
@@ -233,6 +234,35 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
   return send_num;
 }
 
+static int MigrateStreams(net::NetCli *cli, const std::string& key, const std::shared_ptr<DB>& db) {
+  int send_num = 0;
+  int64_t cursor = 0;
+  std::vector<std::string> members;
+  rocksdb::Status s;
+
+  std::vector<storage::IdMessage> id_messages;
+  storage::StreamScanArgs arg;
+  s = db->storage()->XRange(key, arg, id_messages);
+  if (s.ok()) {
+    net::RedisCmdArgsType argv;
+    std::string send_str;
+    argv.emplace_back("XADD");
+    argv.emplace_back(key);
+
+    for (const auto &field_value : id_messages) {
+      argv.emplace_back(field_value.field);
+      argv.emplace_back(field_value.value);
+    }
+    net::SerializeRedisCommand(argv, &send_str);
+    if (doMigrate(cli, send_str) < 0) {
+      return -1;
+    } else {
+      ++send_num;
+    }
+  }
+  return send_num;
+}
+
 static int MigrateSet(net::NetCli *cli, const std::string& key, const std::shared_ptr<DB>& db) {
   int send_num = 0;
   int64_t cursor = 0;
@@ -401,6 +431,11 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key,
       break;
     case 'z':
       if (0 > (send_num = MigrateZset(cli_, key, db_))) {
+        return -1;
+      }
+      break;
+    case 'm':
+      if (0 > (send_num = MigrateStreams(cli_, key, db_))) {
         return -1;
       }
       break;
@@ -622,9 +657,11 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
     key_type = 'z';
   } else if (type_str == "none") {
     return 0;
+  } else if (type_str == "streams") {
+    return 0;
   } else {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
-    return -1;
+      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
+      return -1;
   }
 
   if (slot_id != slot_id_) {

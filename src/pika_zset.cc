@@ -40,7 +40,7 @@ void ZAddCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(count);
     AddSlotKey("z", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -70,7 +70,7 @@ void ZCardCmd::Do() {
   s_ = db_->storage()->ZCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, "zcard error");
@@ -147,7 +147,7 @@ void ZScanCmd::Do() {
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -177,7 +177,7 @@ void ZIncrbyCmd::Do() {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
     AddSlotKey("z", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -242,7 +242,7 @@ void ZRangeCmd::Do() {
         res_.AppendContent(sm.member);
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -320,7 +320,7 @@ void ZRevrangeCmd::Do() {
         res_.AppendContent(sm.member);
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -458,7 +458,7 @@ void ZRangebyscoreCmd::Do() {
   }
   std::vector<storage::ScoreMember> score_members;
   s_ = db_->storage()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -560,7 +560,7 @@ void ZRevrangebyscoreCmd::Do() {
   }
   std::vector<storage::ScoreMember> score_members;
   s_ = db_->storage()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -661,7 +661,7 @@ void ZCountCmd::Do() {
   s_ = db_->storage()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -709,7 +709,7 @@ void ZRemCmd::Do() {
   s_ = db_->storage()->ZRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -798,7 +798,7 @@ void ZUnionstoreCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(count);
     AddSlotKey("z", dest_key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -878,7 +878,7 @@ void ZInterstoreCmd::Do() {
   s_ = db_->storage()->ZInterstore(dest_key_, keys_, weights_, aggregate_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -963,7 +963,7 @@ void ZRankCmd::Do() {
     res_.AppendInteger(rank);
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1008,7 +1008,7 @@ void ZRevrankCmd::Do() {
     res_.AppendInteger(revrank);
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1057,7 +1057,7 @@ void ZScoreCmd::Do() {
     res_.AppendContent(buf);
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1163,7 +1163,7 @@ void ZRangebylexCmd::Do() {
   }
   std::vector<std::string> members;
   s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -1241,7 +1241,7 @@ void ZRevrangebylexCmd::Do() {
   }
   std::vector<std::string> members;
   s_ = db_->storage()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   }
@@ -1313,7 +1313,7 @@ void ZLexcountCmd::Do() {
   }
   int32_t count = 0;
   s_ = db_->storage()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -1371,7 +1371,7 @@ void ZRemrangebyrankCmd::Do() {
   s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1408,7 +1408,7 @@ void ZRemrangebyscoreCmd::Do() {
   }
   int32_t count = 0;
   s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -1449,7 +1449,7 @@ void ZRemrangebylexCmd::Do() {
   int32_t count = 0;
 
   s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
-  if (s_.ToString() == ErrTypeMessage) {
+  if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s_.ok() && !s_.IsNotFound()) {
@@ -1498,7 +1498,7 @@ void ZPopmaxCmd::Do() {
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -1534,7 +1534,7 @@ void ZPopminCmd::Do() {
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());

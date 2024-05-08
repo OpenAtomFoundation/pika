@@ -26,7 +26,7 @@ enum class Type : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset =
 class InternalValue {
 public:
  explicit InternalValue(Type type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
-   ctime_ = pstd::NowMicros() / 1000000;
+   ctime_ = pstd::NowMicros() / 1e6;
  }
 
  virtual ~InternalValue() {

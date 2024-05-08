@@ -94,7 +94,7 @@ void SetCmd::Do() {
         res_.AppendStringLen(-1);
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -162,7 +162,7 @@ void GetCmd::Do() {
     res_.AppendContent(value_);
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -265,7 +265,7 @@ void IncrCmd::Do() {
     AddSlotKey("k", key_, db_);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -303,7 +303,7 @@ void IncrbyCmd::Do() {
     AddSlotKey("k", key_, db_);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -343,7 +343,7 @@ void IncrbyfloatCmd::Do() {
     AddSlotKey("k", key_, db_);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::KIncrByOverFlow);
@@ -379,7 +379,7 @@ void DecrCmd::Do() {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -417,7 +417,7 @@ void DecrbyCmd::Do() {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -456,7 +456,7 @@ void GetsetCmd::Do() {
       res_.AppendContent(old_value);
     }
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -488,7 +488,7 @@ void AppendCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(new_len);
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -528,7 +528,7 @@ void MgetCmd::Do() {
         res_.AppendContent("$-1");
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -659,7 +659,7 @@ void SetnxCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(success_);
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -703,7 +703,7 @@ void SetexCmd::Do() {
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -762,7 +762,7 @@ void PsetexCmd::Do() {
   s_ = db_->storage()->Setex(key_, value_, usec_ / 1000);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -817,7 +817,7 @@ void DelvxCmd::Do() {
   rocksdb::Status s = db_->storage()->Delvx(key_, value_, &success_);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(success_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -848,7 +848,7 @@ void MsetCmd::Do() {
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       AddSlotKey("k", it->key, db_);
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -933,7 +933,7 @@ void MsetnxCmd::Do() {
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       AddSlotKey("k", it->key, db_);
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -981,7 +981,7 @@ void GetrangeCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendStringLenUint64(substr.size());
     res_.AppendContent(substr);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1039,7 +1039,7 @@ void SetrangeCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(new_len);
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1069,7 +1069,7 @@ void StrlenCmd::Do() {
   s_ = db_->storage()->Strlen(key_, &len);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(len);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1460,7 +1460,7 @@ void TypeCmd::Do() {
   rocksdb::Status s = db_->storage()->GetType(key_, type);
   if (s.ok()) {
     res_.AppendContent("+" + type);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -1651,7 +1651,7 @@ void PKSetexAtCmd::Do() {
   s_ = db_->storage()->PKSetexAt(key_, value_, static_cast<int32_t>(time_stamp_));
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1736,7 +1736,7 @@ void PKScanRangeCmd::Do() {
         res_.AppendString(key);
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -1823,7 +1823,7 @@ void PKRScanRangeCmd::Do() {
         res_.AppendString(key);
       }
     }
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());

@@ -51,7 +51,7 @@ void BitSetCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
     AddSlotKey("k", key_, db_);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -90,7 +90,7 @@ void BitGetCmd::Do() {
   s_ = db_->storage()->GetBit(key_, bit_offset_, &bit_val);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -153,7 +153,7 @@ void BitCountCmd::Do() {
 
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -243,7 +243,7 @@ void BitPosCmd::Do() {
   }
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(pos));
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -323,7 +323,7 @@ void BitOpCmd::Do() {
   s_ = db_->storage()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
   if (s_.ok()) {
     res_.AppendInteger(result_length);
-  } else if (s_.ToString() == ErrTypeMessage) {
+  } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());

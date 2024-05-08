@@ -77,7 +77,7 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -132,7 +132,7 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -198,7 +198,7 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -295,7 +295,7 @@ Status Redis::ZCard(const Slice& key, int32_t* card) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -329,7 +329,7 @@ Status Redis::ZCount(const Slice& key, double min, double max, bool left_close, 
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -394,7 +394,7 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -470,7 +470,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -525,7 +525,7 @@ Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -594,7 +594,7 @@ Status Redis::ZRangebyscore(const Slice& key, double min, double max, bool left_
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -668,7 +668,7 @@ Status Redis::ZRank(const Slice& key, const Slice& member, int32_t* rank) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -727,7 +727,7 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -787,7 +787,7 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -852,7 +852,7 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -931,7 +931,7 @@ Status Redis::ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vect
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -986,7 +986,7 @@ Status Redis::ZRevrangebyscore(const Slice& key, double min, double max, bool le
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1060,7 +1060,7 @@ Status Redis::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1111,7 +1111,7 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1155,7 +1155,7 @@ Status Redis::ZGetAll(const Slice& key, double weight, std::map<std::string, dou
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1204,7 +1204,7 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Zsets");
       }
     }
     if (s.ok()) {
@@ -1255,7 +1255,7 @@ Status Redis::ZUnionstore(const Slice& destination, const std::vector<std::strin
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1328,7 +1328,7 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Zsets");
       }
     }
     if (s.ok()) {
@@ -1405,7 +1405,7 @@ Status Redis::ZInterstore(const Slice& destination, const std::vector<std::strin
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1464,7 +1464,7 @@ Status Redis::ZRangebylex(const Slice& key, const Slice& min, const Slice& max, 
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1534,7 +1534,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1603,7 +1603,7 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1634,7 +1634,7 @@ Status Redis::ZsetsDel(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1663,7 +1663,7 @@ Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1708,7 +1708,7 @@ Status Redis::ZScan(const Slice& key, int64_t cursor, const std::string& pattern
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1777,7 +1777,7 @@ Status Redis::ZsetsPersist(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {
@@ -1808,7 +1808,7 @@ Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Zsets");
     }
   }
   if (s.ok()) {

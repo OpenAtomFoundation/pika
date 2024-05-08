@@ -20,8 +20,8 @@ namespace storage {
 
 class ZSetsScoreFilter : public rocksdb::CompactionFilter {
  public:
-  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, int meta_cf_index)
-      : db_(db), cf_handles_ptr_(handles_ptr), meta_cf_index_(meta_cf_index) {}
+  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum Type type)
+      : db_(db), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
@@ -48,12 +48,19 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       if (cf_handles_ptr_->empty()) {
         return false;
       }
-      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[meta_cf_index_], cur_key_, &meta_value);
+      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
         meta_not_found_ = false;
-        ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
-        cur_meta_version_ = parsed_zsets_meta_value.Version();
-        cur_meta_etime_ = parsed_zsets_meta_value.Etime();
+        auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+        if (type != type_) {
+          return true;
+        } else if (type == Type::kZset) {
+          ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
+          cur_meta_version_ = parsed_zsets_meta_value.Version();
+          cur_meta_etime_ = parsed_zsets_meta_value.Etime();
+        } else {
+          return true;
+        }
       } else if (s.IsNotFound()) {
         meta_not_found_ = true;
       } else {
@@ -110,17 +117,17 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   mutable bool meta_not_found_ = false;
   mutable uint64_t cur_meta_version_ = 0;
   mutable uint64_t cur_meta_etime_ = 0;
-  int meta_cf_index_ = 0;
+  enum Type type_ = Type::kNulltype;
 };
 
 class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, int meta_cf_index)
-      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), meta_cf_index_(meta_cf_index) {}
+  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum Type type)
+      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
-    return std::make_unique<ZSetsScoreFilter>(*db_ptr_, cf_handles_ptr_, meta_cf_index_);
+    return std::make_unique<ZSetsScoreFilter>(*db_ptr_, cf_handles_ptr_, type_);
   }
 
   const char* Name() const override { return "ZSetsScoreFilterFactory"; }
@@ -128,7 +135,7 @@ class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
-  int meta_cf_index_ = 0;
+  enum Type type_ = Type::kNulltype;
 };
 
 }  //  namespace storage

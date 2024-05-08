@@ -13,6 +13,9 @@
 #include "src/zsets_filter.h"
 
 namespace storage {
+
+constexpr const char* ErrTypeMessage = "WRONGTYPE";
+
 const rocksdb::Comparator* ListsDataKeyComparator() {
   static ListsDataKeyComparatorImpl ldkc;
   return &ldkc;
@@ -83,7 +86,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // hash column-family options
   rocksdb::ColumnFamilyOptions hash_data_cf_ops(storage_options.options);
-  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, kMetaCF);
+  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, Type::kHash);
   rocksdb::BlockBasedTableOptions hash_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     hash_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
@@ -92,7 +95,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // list column-family options
   rocksdb::ColumnFamilyOptions list_data_cf_ops(storage_options.options);
-  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, kMetaCF);
+  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, Type::kList);
   list_data_cf_ops.comparator = ListsDataKeyComparator();
 
   rocksdb::BlockBasedTableOptions list_data_cf_table_ops(table_ops);
@@ -103,7 +106,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // set column-family options
   rocksdb::ColumnFamilyOptions set_data_cf_ops(storage_options.options);
-  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, kMetaCF);
+  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, Type::kSet);
   rocksdb::BlockBasedTableOptions set_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     set_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
@@ -113,8 +116,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   // zset column-family options
   rocksdb::ColumnFamilyOptions zset_data_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions zset_score_cf_ops(storage_options.options);
-  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, kMetaCF);
-  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, kMetaCF);
+  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, Type::kZset);
+  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, Type::kZset);
   zset_score_cf_ops.comparator = ZSetsScoreKeyComparator();
 
   rocksdb::BlockBasedTableOptions zset_meta_cf_table_ops(table_ops);
@@ -128,7 +131,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // stream column-family options
   rocksdb::ColumnFamilyOptions stream_data_cf_ops(storage_options.options);
-  stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, kMetaCF);
+  stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, Type::kStream);
   rocksdb::BlockBasedTableOptions stream_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     stream_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);

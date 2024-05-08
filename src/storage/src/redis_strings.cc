@@ -14,7 +14,6 @@
 
 #include "pstd/include/pika_codis_slot.h"
 #include "src/base_key_format.h"
-#include "src/base_key_format.h"
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
 #include "src/strings_filter.h"
@@ -41,6 +40,9 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   // a parameter, use the default column family
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+    if (!ExpectedMetaValue(Type::kString, iter->value().ToString())) {
+      continue;
+    }
     ParsedStringsValue parsed_strings_value(iter->value());
     if (parsed_strings_value.IsStale()) {
       invaild_keys++;
@@ -72,7 +74,7 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -125,7 +127,7 @@ Status Redis::BitCount(const Slice& key, int64_t start_offset, int64_t end_offse
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -228,7 +230,7 @@ Status Redis::BitOp(BitOpType op, const std::string& dest_key, const std::vector
       if (ExpectedStale(value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+        return Status::InvalidArgument("WRONGTYPE, key: " + dest_key + " What Type: String");
       }
     }
     if (s.ok()) {
@@ -271,7 +273,7 @@ Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -319,7 +321,7 @@ Status Redis::Get(const Slice& key, std::string* value) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -364,7 +366,7 @@ Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -403,7 +405,7 @@ Status Redis::GetBit(const Slice& key, int64_t offset, int32_t* ret) {
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+        return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
       }
     }
     if (s.ok()) {
@@ -438,7 +440,7 @@ Status Redis::Getrange(const Slice& key, int64_t start_offset, int64_t end_offse
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -480,7 +482,7 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -539,7 +541,7 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -568,7 +570,7 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -620,7 +622,7 @@ Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -686,7 +688,7 @@ Status Redis::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
       if (ExpectedStale(value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+        return Status::InvalidArgument("WRONGTYPE, key: " + kv.key + " What Type: String");
       }
     }
     if (s.ok()) {
@@ -726,7 +728,7 @@ Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -763,7 +765,7 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok() || s.IsNotFound()) {
@@ -832,7 +834,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -872,7 +874,7 @@ Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -913,7 +915,7 @@ Status Redis::Delvx(const Slice& key, const Slice& value, int32_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -949,7 +951,7 @@ Status Redis::Setrange(const Slice& key, int64_t start_offset, const Slice& valu
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1055,7 +1057,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t* ret) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1099,7 +1101,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1156,7 +1158,7 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1232,7 +1234,7 @@ Status Redis::StringsExpire(const Slice& key, int64_t ttl) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1260,7 +1262,7 @@ Status Redis::StringsDel(const Slice& key) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1283,7 +1285,7 @@ Status Redis::StringsExpireat(const Slice& key, int64_t timestamp) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1312,7 +1314,7 @@ Status Redis::StringsPersist(const Slice& key) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1342,7 +1344,7 @@ Status Redis::StringsTTL(const Slice& key, int64_t* timestamp) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE Operation against a key holding the wrong kind of value");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: String");
     }
   }
   if (s.ok()) {
@@ -1404,16 +1406,19 @@ rocksdb::Status Redis::Exists(const Slice& key) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SCard(key, &ret);
-    } else if (type == Type::kZset) {
-      return ZCard(key, &ret);
-    } else if (type == Type::kHash) {
-      return HLen(key, &ret);
-    } else if (type == Type::kList) {
-      return LLen(key, &llen);
-    } else {
-      return Get(key, &value);
+    switch (type) {
+      case Type::kSet:
+        return SCard(key, &ret);
+      case Type::kZset:
+        return ZCard(key, &ret);
+      case Type::kHash:
+        return HLen(key, &ret);
+      case Type::kList:
+        return LLen(key, &llen);
+      case Type::kString:
+        return Get(key, &value);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1425,18 +1430,21 @@ rocksdb::Status Redis::Del(const Slice& key) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SetsDel(key);
-    } else if (type == Type::kZset) {
-      return ZsetsDel(key);
-    } else if (type == Type::kHash) {
-      return HashesDel(key);
-    } else if (type == Type::kList) {
-      return ListsDel(key);
-    } else if (type == Type::kStream) {
-      return StreamsDel(key);
-    } else {
-      return StringsDel(key);
+    switch (type) {
+      case Type::kSet:
+        return SetsDel(key);
+      case Type::kZset:
+        return ZsetsDel(key);
+      case Type::kHash:
+        return HashesDel(key);
+      case Type::kList:
+        return ListsDel(key);
+      case Type::kString:
+        return StringsDel(key);
+      case Type::kStream:
+        return StreamsDel(key);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1448,16 +1456,19 @@ rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SetsExpire(key, ttl);
-    } else if (type == Type::kZset) {
-      return ZsetsExpire(key, ttl);
-    } else if (type == Type::kHash) {
-      return HashesExpire(key, ttl);
-    } else if (type == Type::kList) {
-      return ListsExpire(key, ttl);
-    } else {
-      return StringsExpire(key, ttl);
+    switch (type) {
+      case Type::kSet:
+        return SetsExpire(key, ttl);
+      case Type::kZset:
+        return ZsetsExpire(key, ttl);
+      case Type::kHash:
+        return HashesExpire(key, ttl);
+      case Type::kList:
+        return ListsExpire(key, ttl);
+      case Type::kString:
+        return StringsExpire(key, ttl);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1469,16 +1480,19 @@ rocksdb::Status Redis::Expireat(const Slice& key, int64_t ttl) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SetsExpireat(key, ttl);
-    } else if (type == Type::kZset) {
-      return ZsetsExpireat(key, ttl);
-    } else if (type == Type::kHash) {
-      return HashesExpireat(key, ttl);
-    } else if (type == Type::kList) {
-      return ListsExpireat(key, ttl);
-    } else {
-      return StringsExpireat(key, ttl);
+    switch (type) {
+      case Type::kSet:
+        return SetsExpireat(key, ttl);
+      case Type::kZset:
+        return ZsetsExpireat(key, ttl);
+      case Type::kHash:
+        return HashesExpireat(key, ttl);
+      case Type::kList:
+        return ListsExpireat(key, ttl);
+      case Type::kString:
+        return StringsExpireat(key, ttl);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1490,16 +1504,19 @@ rocksdb::Status Redis::Persist(const Slice& key) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SetsPersist(key);
-    } else if (type == Type::kZset) {
-      return ZsetsPersist(key);
-    } else if (type == Type::kHash) {
-      return HashesPersist(key);
-    } else if (type == Type::kList) {
-      return ListsPersist(key);
-    } else {
-      return StringsPersist(key);
+    switch (type) {
+      case Type::kSet:
+        return SetsPersist(key);
+      case Type::kZset:
+        return ZsetsPersist(key);
+      case Type::kHash:
+        return HashesPersist(key);
+      case Type::kList:
+        return ListsPersist(key);
+      case Type::kString:
+        return StringsPersist(key);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1511,16 +1528,19 @@ rocksdb::Status Redis::TTL(const Slice& key, int64_t* timestamp) {
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      return SetsTTL(key, timestamp);
-    } else if (type == Type::kZset) {
-      return ZsetsTTL(key, timestamp);
-    } else if (type == Type::kHash) {
-      return HashesTTL(key, timestamp);
-    } else if (type == Type::kList) {
-      return ListsTTL(key, timestamp);
-    } else {
-      return StringsTTL(key, timestamp);
+    switch (type) {
+      case Type::kSet:
+        return SetsTTL(key, timestamp);
+      case Type::kZset:
+        return ZsetsTTL(key, timestamp);
+      case Type::kHash:
+        return HashesTTL(key, timestamp);
+      case Type::kList:
+        return ListsTTL(key, timestamp);
+      case Type::kString:
+        return StringsTTL(key, timestamp);
+      default:
+        return rocksdb::Status::NotFound();
     }
   }
   return rocksdb::Status::NotFound();
@@ -1529,26 +1549,33 @@ rocksdb::Status Redis::TTL(const Slice& key, int64_t* timestamp) {
 rocksdb::Status Redis::GetType(const storage::Slice& key, std::string& types) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
+  types = "none";
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
     auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    if (type == Type::kSet) {
-      types = "set";
-    } else if (type == Type::kZset) {
-      types = "zset";
-    } else if (type == Type::kHash) {
-      types = "hash";
-    } else if (type == Type::kList) {
-      types = "list";
-    } else if (type == Type::kString) {
-      types = "string";
-    } else if (type == Type::kStream) {
-      types = "streams";
-    } else {
-      types = "none";
+    switch (type) {
+      case Type::kSet:
+        types = "set";
+        break;
+      case Type::kZset:
+        types = "zset";
+        break;
+      case Type::kHash:
+        types = "hash";
+        break;
+      case Type::kList:
+        types = "list";
+        break;
+      case Type::kString:
+        types = "string";
+        break;
+      case Type::kStream:
+        types = "streams";
+        break;
+      default:
+        types = "none";
+        break;
     }
-  } else {
-    types = "none";
   }
   return Status::OK();
 }
