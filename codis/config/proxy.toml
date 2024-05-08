@@ -105,10 +105,10 @@ session_break_on_failure = false
 # Slowlog-log-slower-than(us), from receive command to send response, 0 is allways print slow log
 slowlog_log_slower_than = 100000
 
-# quick command list e.g. get, set
-quick_cmd_list = ""
-# slow command list e.g. hgetall, mset
-slow_cmd_list = ""
+# quick command list
+quick_cmd_list = "get,set"
+# slow command list
+slow_cmd_list = "mget, mset"
 
 # Set metrics server (such as http://localhost:28000), proxy will report json formatted metrics to specified server in a predefined period.
 metrics_report_server = ""
@@ -129,3 +129,33 @@ metrics_report_statsd_prefix = ""
 # Maximum delay statistical time interval.(This value must be greater than 0.)
 max_delay_refresh_time_interval = "15s"
 
+# monitor big key big value
+# max length of single value
+monitor_max_value_len = 4096
+# max batchsize of single request or response from redis client
+monitor_max_batchsize = 200
+# when writing the record into xmonitor log, max length of cmd info
+monitor_max_cmd_info = 256
+# set the number of xmonitor log in memory, max length is 100000, about 8GB
+monitor_log_max_len = 10000
+# set the limitation of result set for xmonitor log
+monitor_result_set_size = 20
+# switch for xmonitor，0 is disabled, 1 is enabled
+monitor_enabled = 0
+
+# breaker
+# switch for breaker, 0 is disabled, 1 is enabled
+breaker_enabled = 0
+# default probability of degradation if degrade service with probability
+breaker_degradation_probability = 0
+# limitation of qps of cmd executed, if equals nagative or 0, means no limitation
+breaker_qps_limitation = 0
+
+# cmd white list
+breaker_cmd_white_list = ""
+# cmd black list
+breaker_cmd_black_list = ""
+# key white list
+breaker_key_white_list = ""
+# key black list
+breaker_key_black_list = ""

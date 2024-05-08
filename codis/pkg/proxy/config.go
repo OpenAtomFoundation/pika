@@ -144,7 +144,37 @@ metrics_report_statsd_prefix = ""
 
 # Maximum delay statistical time interval.(This value must be greater than 0.)
 max_delay_refresh_time_interval = "15s"
-`
+
+# monitor big key big value
+# max length of single value
+monitor_max_value_len = 4096
+# max batchsize of single request or response from redis client
+monitor_max_batchsize = 200
+# when writing the record into xmonitor log, max length of cmd info
+monitor_max_cmd_info = 256
+# set the number of xmonitor log in memory, max length is 100000, about 8GB
+monitor_log_max_len = 10000
+# set the limitation of result set for xmonitor log
+monitor_result_set_size = 20
+# switch for xmonitor，0 is disabled, 1 is enabled
+monitor_enabled = 0
+
+# breaker
+# switch for breaker, 0 is disabled, 1 is enabled
+breaker_enabled = 0
+# default probability of degradation if degrade service with probability
+breaker_degradation_probability = 0
+# limitation of qps of cmd executed, if equals nagative or 0, means no limitation
+breaker_qps_limitation = 0
+
+# cmd white list
+breaker_cmd_white_list = ""
+# cmd black list
+breaker_cmd_black_list = ""
+# key white list
+breaker_key_white_list = ""
+# key black list
+breaker_key_black_list = ""`
 
 type Config struct {
 	ProtoType string `toml:"proto_type" json:"proto_type"`
@@ -209,8 +239,21 @@ type Config struct {
 	MetricsReportStatsdPrefix     string            `toml:"metrics_report_statsd_prefix" json:"metrics_report_statsd_prefix"`
 
 	MaxDelayRefreshTimeInterval timesize.Duration `toml:"max_delay_refresh_time_interval" json:"max_delay_refresh_time_interval"`
+	MonitorMaxValueLen          int64             `toml:"monitor_max_value_len" json:"monitor_max_value_len"`
+	MonitorMaxBatchsize         int64             `toml:"monitor_max_batchsize" json:"monitor_max_batchsize"`
+	MonitorMaxCmdInfo           int64             `toml:"monitor_max_cmd_info" json:"monitor_max_cmd_info"`
+	MonitorLogMaxLen            int64             `toml:"monitor_log_max_len" json:"monitor_log_max_len"`
+	MonitorResultSetSize        int64             `toml:"monitor_result_set_size" json:"monitor_result_set_size"`
+	MonitorEnabled              int64             `toml:"monitor_enabled" json:"monitor_enabled"`
 
-	ConfigFileName string `toml:"-" json:"config_file_name"`
+	BreakerEnabled                int64  `toml:"breaker_enabled" json:"breaker_enabled"`
+	BreakerDegradationProbability int64  `toml:"breaker_degradation_probability" json:"breaker_degradation_probability"`
+	BreakerQpsLimitation          int64  `toml:"breaker_qps_limitation" json:"breaker_qps_limitation"`
+	BreakerCmdWhiteList           string `toml:"breaker_cmd_white_list" json:"breaker_cmd_white_list"`
+	BreakerCmdBlackList           string `toml:"breaker_cmd_black_list" json:"breaker_cmd_black_list"`
+	BreakerKeyWhiteList           string `toml:"breaker_key_white_list" json:"breaker_key_white_list"`
+	BreakerKeyBlackList           string `toml:"breaker_key_black_list" json:"breaker_key_black_list"`
+	ConfigFileName                string `toml:"-" json:"config_file_name"`
 }
 
 func NewDefaultConfig() *Config {
@@ -335,6 +378,31 @@ func (c *Config) Validate() error {
 
 	if c.SlowlogLogSlowerThan < 0 {
 		return errors.New("invalid slowlog_log_slower_than")
+	}
+
+	if c.MonitorMaxValueLen < 0 {
+		return errors.New("invalid monitor_max_value_len")
+	}
+	if c.MonitorMaxBatchsize < 0 {
+		return errors.New("invalid monitor_max_batchsize")
+	}
+	if c.MonitorMaxCmdInfo < 0 {
+		return errors.New("invalid monitor_max_cmd_info")
+	}
+	if c.MonitorLogMaxLen < 0 {
+		return errors.New("invalid monitor_log_max_len")
+	}
+	if c.MonitorResultSetSize < 0 {
+		return errors.New("invalid monitor_result_set_size")
+	}
+	if c.BreakerEnabled != 0 && c.BreakerEnabled != 1 {
+		return errors.New("invalid breaker_enabled")
+	}
+	if c.BreakerDegradationProbability < 0 {
+		return errors.New("invalid breaker_degradation_probability")
+	}
+	if c.BreakerQpsLimitation < 0 {
+		return errors.New("invalid breaker_qps_limitation")
 	}
 
 	if c.MetricsReportPeriod < 0 {
