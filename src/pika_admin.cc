@@ -20,7 +20,7 @@
 #include "include/pika_server.h"
 #include "include/pika_version.h"
 #include "pstd/include/rsync.h"
-
+#include "include/throttle.h"
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
@@ -2492,7 +2492,22 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'throttle-bytes-per-second'\r\n");
       return;
     }
-    g_pika_conf->SetThrottleBytesPerSecond(static_cast<int>(ival));
+    int32_t new_throughput_limit = static_cast<int>(ival);
+    g_pika_conf->SetThrottleBytesPerSecond(new_throughput_limit);
+    //The rate limiter of rsync(Throttle) is used in singleton mode, all db shares the same rate limiter
+    rsync::Throttle::GetInstance().ResetThrottleThroughputBytes(new_throughput_limit);
+    LOG(INFO) << "The conf item [throttle-bytes-per-second] is changed by Config Set command. "
+                   "The rsync rate limit now is "
+                << new_throughput_limit << "(Which Is Around " << (new_throughput_limit >> 20) << " MB/s)";
+    res_.AppendStringRaw("+OK\r\n");
+  } else if(set_item == "rsync-timeout-ms"){
+    if(pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0){
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rsync-timeout-ms'\r\n");
+      return;
+    }
+    g_pika_conf->SetRsyncTimeoutMs(ival);
+    LOG(INFO) << "The conf item [rsync-timeout-ms] is changed by Config Set command. "
+                   "The rsync-timeout-ms now is " << ival << " ms";
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-rsync-parallel-num") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival > kMaxRsyncParallelNum || ival <= 0) {

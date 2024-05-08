@@ -8,8 +8,7 @@
 #include <algorithm>
 #include "pstd/include/env.h"
 
-DEFINE_uint64(raft_minimal_throttle_threshold_mb, 0, "minimal throttle throughput threshold per second");
-namespace rsync{
+namespace rsync {
 
 Throttle::Throttle(size_t throttle_throughput_bytes, size_t check_cycle)
     : throttle_throughput_bytes_(throttle_throughput_bytes),
@@ -21,9 +20,7 @@ Throttle::~Throttle() {}
 size_t Throttle::ThrottledByThroughput(size_t bytes) {
   size_t available_size = bytes;
   size_t now = pstd::NowMicros();
-  size_t limit_throughput_bytes_s = std::max(static_cast<uint64_t>(throttle_throughput_bytes_),
-                                             FLAGS_raft_minimal_throttle_threshold_mb * 1024 * 1024);
-  size_t limit_per_cycle = limit_throughput_bytes_s / check_cycle_;
+  size_t limit_per_cycle = throttle_throughput_bytes_.load() / check_cycle_;
   std::unique_lock lock(keys_mutex_);
   if (cur_throughput_bytes_ + bytes > limit_per_cycle) {
     // reading another |bytes| excceds the limit
@@ -57,5 +54,4 @@ void Throttle::ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t e
   }
   cur_throughput_bytes_ = std::max(cur_throughput_bytes_ - (acquired - consumed), size_t(0));
 }
-}
-
+}  // namespace rsync
