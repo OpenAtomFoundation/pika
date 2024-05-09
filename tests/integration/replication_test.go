@@ -739,14 +739,15 @@ var _ = Describe("should replication ", func() {
 
 			err = clientMaster.Del(ctx, "txkey1")
 
+			//The test below is related with issue: https://github.com/OpenAtomFoundation/pika/issues/2643
 			r1 := clientMaster.Do(ctx, "MULTI")
 			Expect(r1.Err()).NotTo(HaveOccurred())
 
-			setkey1 := clientMaster.Set(ctx, "key1", "value1", 0)
+			setkey1 := clientMaster.Set(ctx, "Tnxkey1", "Tnxvalue1", 0)
 			Expect(setkey1.Err()).NotTo(HaveOccurred())
 			Expect(setkey1.Val()).To(Equal("QUEUED"))
 
-			setkey2 := clientMaster.Set(ctx, "key2", "value2", 0)
+			setkey2 := clientMaster.Set(ctx, "Tnxkey2", "Tnxvalue2", 0)
 			Expect(setkey2.Err()).NotTo(HaveOccurred())
 			Expect(get.Val()).To(Equal("QUEUED"))
 
@@ -754,15 +755,15 @@ var _ = Describe("should replication ", func() {
 			Expect(r2.Err()).NotTo(HaveOccurred())
 			Expect(r2.Val()).To(Equal([]interface{}{"OK", "OK"}))
 
-            time.Sleep(100 * time.Millisecond)
+			time.Sleep(3 * time.Second)
 
-			getkey1 := clientSlave.Get(ctx, "key1")
+			getkey1 := clientSlave.Get(ctx, "Tnxkey1")
 			Expect(getkey1.Err()).NotTo(HaveOccurred())
-			Expect(getkey1.Val()).To(Equal("value1"))
+			Expect(getkey1.Val()).To(Equal("Tnxvalue1"))
 
-			getkey2 := clientSlave.Get(ctx, "key2")
+			getkey2 := clientSlave.Get(ctx, "Tnxkey2")
 			Expect(getkey2.Err()).NotTo(HaveOccurred())
-			Expect(getkey2.Val()).To(Equal("value2"))
+			Expect(getkey2.Val()).To(Equal("Tnxvalue2"))
 
 			ticker := time.NewTicker(500 * time.Millisecond)
 			defer ticker.Stop()
