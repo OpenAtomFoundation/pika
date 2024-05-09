@@ -620,9 +620,9 @@ var _ = Describe("should replication ", func() {
 				for i := int64(0); i < clientMaster.LLen(ctx, "list0").Val(); i++ {
 					Expect(clientMaster.LIndex(ctx, "list0", i)).To(Equal(clientSlave.LIndex(ctx, "list0", i)))
 				}
-// 				for i := int64(0); i < clientMaster.LLen(ctx, "list1").Val(); i++ {
-// 					Expect(clientMaster.LIndex(ctx, "list1", i)).To(Equal(clientSlave.LIndex(ctx, "list1", i)))
-// 				}
+				// 				for i := int64(0); i < clientMaster.LLen(ctx, "list1").Val(); i++ {
+				// 					Expect(clientMaster.LIndex(ctx, "list1", i)).To(Equal(clientSlave.LIndex(ctx, "list1", i)))
+				// 				}
 			}
 			err = clientMaster.Del(ctx, lists...)
 
@@ -738,6 +738,49 @@ var _ = Describe("should replication ", func() {
 			Expect(r.Err()).To(MatchError("ERR EXEC without MULTI"))
 
 			err = clientMaster.Del(ctx, "txkey1")
+
+			//The test below is related with issue: https://github.com/OpenAtomFoundation/pika/issues/2643
+			r1 := clientMaster.Do(ctx, "MULTI")
+			Expect(r1.Err()).NotTo(HaveOccurred())
+
+			setkey1 := clientMaster.Set(ctx, "Tnxkey1", "Tnxvalue1", 0)
+			Expect(setkey1.Err()).NotTo(HaveOccurred())
+			Expect(setkey1.Val()).To(Equal("QUEUED"))
+
+			setkey2 := clientMaster.Set(ctx, "Tnxkey2", "Tnxvalue2", 0)
+			Expect(setkey2.Err()).NotTo(HaveOccurred())
+			Expect(get.Val()).To(Equal("QUEUED"))
+
+			r2 := clientMaster.Do(ctx, "EXEC")
+			Expect(r2.Err()).NotTo(HaveOccurred())
+			Expect(r2.Val()).To(Equal([]interface{}{"OK", "OK"}))
+
+			time.Sleep(3 * time.Second)
+
+			getkey1 := clientSlave.Get(ctx, "Tnxkey1")
+			Expect(getkey1.Err()).NotTo(HaveOccurred())
+			Expect(getkey1.Val()).To(Equal("Tnxvalue1"))
+
+			getkey2 := clientSlave.Get(ctx, "Tnxkey2")
+			Expect(getkey2.Err()).NotTo(HaveOccurred())
+			Expect(getkey2.Val()).To(Equal("Tnxvalue2"))
+
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			loopCount := 0
+
+			for loopCount < 10 {
+				select {
+				case <-ticker.C:
+					infoResExec := clientSlave.Info(ctx, "replication")
+					Expect(infoResExec.Err()).NotTo(HaveOccurred())
+					Expect(infoResExec.Val()).To(ContainSubstring("master_link_status:up"))
+					loopCount++
+					if loopCount >= 10 {
+						ticker.Stop()
+					}
+				}
+			}
 			log.Println("master-slave replication test success")
 		})
 
