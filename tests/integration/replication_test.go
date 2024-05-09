@@ -749,7 +749,7 @@ var _ = Describe("should replication ", func() {
 
 			setkey2 := clientMaster.Set(ctx, "Tnxkey2", "Tnxvalue2", 0)
 			Expect(setkey2.Err()).NotTo(HaveOccurred())
-			Expect(get.Val()).To(Equal("QUEUED"))
+			Expect(setkey2.Val()).To(Equal("QUEUED"))
 
 			r2 := clientMaster.Do(ctx, "EXEC")
 			Expect(r2.Err()).NotTo(HaveOccurred())
