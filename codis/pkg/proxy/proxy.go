@@ -391,6 +391,123 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 			p.router.SetReplicaQuickConn(p.config.BackendReplicaQuick)
 			return redis.NewString([]byte("OK"))
 		}
+	case "monitor_enabled":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 != 0 && i64 != 1 {
+			return redis.NewErrorf("invalid state for xmonitor. Try 0 or 1")
+		}
+		XMonitorSetMonitorState(i64)
+		p.config.MonitorEnabled = i64
+		return redis.NewString([]byte("OK"))
+	case "monitor_max_value_len":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid monitor_max_value_len")
+		} else {
+			p.config.MonitorMaxValueLen = i64
+			XMonitorSetMaxLengthOfValue(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "monitor_max_batchsize":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid monitor_max_batchsize")
+		} else {
+			p.config.MonitorMaxBatchsize = i64
+			XMonitorSetMaxBatchsize(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "monitor_max_cmd_info":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < MAX_CMD_INFO_LENGTH_DEFAULT {
+			return redis.NewErrorf("invalid monitor_max_cmd_info, no less than %v", MAX_CMD_INFO_LENGTH_DEFAULT)
+		} else {
+			p.config.MonitorMaxCmdInfo = i64
+			XMonitorSetMaxLengthOfCmdInfo(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "monitor_log_max_len":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid monitor_log_max_len")
+		} else {
+			p.config.MonitorLogMaxLen = i64
+			MonitorLogSetMaxLen(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "monitor_result_set_size":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid monitor_result_set_size")
+		} else {
+			p.config.MonitorResultSetSize = i64
+			XMonitorSetResultSetSize(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "breaker_enabled":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 != 0 && i64 != 1 {
+			return redis.NewErrorf("invalid state for breaker state. Try 0 or 1")
+		}
+		p.config.BreakerEnabled = i64
+		BreakerSetState(i64)
+		return redis.NewString([]byte("OK"))
+	case "breaker_degradation_probability":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 || i64 > 100 {
+			return redis.NewErrorf("invalid breaker_degradation_probability, no less than 0 or more than 100")
+		}
+		p.config.BreakerDegradationProbability = i64
+		BreakerSetProbability(i64)
+		return redis.NewString([]byte("OK"))
+	case "breaker_qps_limitation":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		p.config.BreakerQpsLimitation = i64
+		BreakerSetTokenBucket(i64)
+		return redis.NewString([]byte("OK"))
+	case "breaker_cmd_white_list":
+		StoreCmdWhiteListByBatch(value)
+		p.config.BreakerCmdWhiteList = value
+		return redis.NewString([]byte("OK"))
+	case "breaker_cmd_black_list":
+		StoreCmdBlackListByBatch(value)
+		p.config.BreakerCmdBlackList = value
+		return redis.NewString([]byte("OK"))
+	case "breaker_key_white_list":
+		StoreKeyWhiteListByBatch(value)
+		p.config.BreakerKeyWhiteList = value
+		return redis.NewString([]byte("OK"))
+	case "breaker_key_black_list":
+		StoreKeyBlackListByBatch(value)
+		p.config.BreakerKeyBlackList = value
+		return redis.NewString([]byte("OK"))
 	case "backend_primary_quick":
 		n, err := strconv.Atoi(value)
 		if err != nil {
@@ -555,6 +672,23 @@ func (p *Proxy) serveProxy() {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
+	//设置监控参数
+	XMonitorSetMaxLengthOfValue(p.config.MonitorMaxValueLen)
+	XMonitorSetMaxBatchsize(p.config.MonitorMaxBatchsize)
+	XMonitorSetMaxLengthOfCmdInfo(p.config.MonitorMaxCmdInfo)
+	XMonitorSetMonitorState(p.config.MonitorEnabled)
+	MonitorLogSetMaxLen(p.config.MonitorLogMaxLen)
+	XMonitorSetResultSetSize(p.config.MonitorResultSetSize)
+
+	//设置熔断参数
+	BreakerSetState(p.config.BreakerEnabled)
+	BreakerSetProbability(p.config.BreakerDegradationProbability)
+	BreakerNewQpsLimiter(p.config.BreakerQpsLimitation)
+
+	StoreCmdBlackListByBatch(p.config.BreakerCmdBlackList)
+	StoreCmdWhiteListByBatch(p.config.BreakerCmdWhiteList)
+	StoreKeyBlackListByBatch(p.config.BreakerKeyBlackList)
+	StoreKeyWhiteListByBatch(p.config.BreakerKeyWhiteList)
 	select {
 	case <-p.exit.C:
 		log.Warnf("[%p] proxy shutdown", p)
