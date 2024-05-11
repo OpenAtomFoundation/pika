@@ -389,6 +389,11 @@ class Redis {
     return nullptr;
   }
 
+  enum Type GetMetaValueType(const std::string &meta_value) {
+    Type meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+    return meta_type;
+  }
+
   inline bool ExpectedMetaValue(enum Type type, const std::string &meta_value) {
     auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
     if (type == meta_type) {

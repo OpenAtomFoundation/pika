@@ -22,6 +22,7 @@ namespace storage {
  * Use enumeration types to store data structure types
  */
 enum class Type : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset = 4, kStream = 5, kNulltype = 6 };
+constexpr char* TypeStrings[] = {"String", "Hash", "List", "Set", "Zset", "Streams", "Nulltype"};
 
 class InternalValue {
 public:

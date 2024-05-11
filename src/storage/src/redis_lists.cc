@@ -72,7 +72,7 @@ Status Redis::LIndex(const Slice& key, int64_t index, std::string* element) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -113,7 +113,7 @@ Status Redis::LInsert(const Slice& key, const BeforeOrAfter& before_or_after, co
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -221,7 +221,7 @@ Status Redis::LLen(const Slice& key, uint64_t* len) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -253,7 +253,7 @@ Status Redis::LPop(const Slice& key, int64_t count, std::vector<std::string>* el
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -308,7 +308,7 @@ Status Redis::LPush(const Slice& key, const std::vector<std::string>& values, ui
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -361,7 +361,7 @@ Status Redis::LPushx(const Slice& key, const std::vector<std::string>& values, u
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -402,7 +402,7 @@ Status Redis::LRange(const Slice& key, int64_t start, int64_t stop, std::vector<
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -459,7 +459,7 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -526,7 +526,7 @@ Status Redis::LRem(const Slice& key, int64_t count, const Slice& value, uint64_t
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -655,7 +655,7 @@ Status Redis::LSet(const Slice& key, int64_t index, const Slice& value) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -696,7 +696,7 @@ Status Redis::LTrim(const Slice& key, int64_t start, int64_t stop) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -766,7 +766,7 @@ Status Redis::RPop(const Slice& key, int64_t count, std::vector<std::string>* el
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -820,7 +820,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: List");
+        return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -872,7 +872,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
     if (ExpectedStale(source_meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + source.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + source.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(source_meta_value))]);
     }
   }
   if (s.ok()) {
@@ -907,7 +907,7 @@ Status Redis::RPoplpush(const Slice& source, const Slice& destination, std::stri
     if (ExpectedStale(destination_meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(destination_meta_value))]);
     }
   }
   if (s.ok()) {
@@ -961,7 +961,7 @@ Status Redis::RPush(const Slice& key, const std::vector<std::string>& values, ui
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1014,7 +1014,7 @@ Status Redis::RPushx(const Slice& key, const std::vector<std::string>& values, u
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1051,7 +1051,7 @@ Status Redis::ListsExpire(const Slice& key, int64_t ttl) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1083,7 +1083,7 @@ Status Redis::ListsDel(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1112,7 +1112,7 @@ Status Redis::ListsExpireat(const Slice& key, int64_t timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1142,7 +1142,7 @@ Status Redis::ListsPersist(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1173,7 +1173,7 @@ Status Redis::ListsTTL(const Slice& key, int64_t* timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: List");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kList)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {

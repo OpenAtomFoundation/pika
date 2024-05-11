@@ -83,7 +83,7 @@ rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& me
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -156,7 +156,7 @@ rocksdb::Status Redis::SCard(const Slice& key, int32_t* ret) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -195,7 +195,7 @@ rocksdb::Status Redis::SDiff(const std::vector<std::string>& keys, std::vector<s
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -214,7 +214,7 @@ rocksdb::Status Redis::SDiff(const std::vector<std::string>& keys, std::vector<s
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -280,7 +280,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -300,7 +300,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -346,7 +346,7 @@ rocksdb::Status Redis::SDiffstore(const Slice& destination, const std::vector<st
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -401,7 +401,7 @@ rocksdb::Status Redis::SInter(const std::vector<std::string>& keys, std::vector<
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -424,7 +424,7 @@ rocksdb::Status Redis::SInter(const std::vector<std::string>& keys, std::vector<
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -496,7 +496,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[idx] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -523,7 +523,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + keys[0] + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -575,7 +575,7 @@ rocksdb::Status Redis::SInterstore(const Slice& destination, const std::vector<s
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -624,7 +624,7 @@ rocksdb::Status Redis::SIsmember(const Slice& key, const Slice& member, int32_t*
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -661,14 +661,14 @@ rocksdb::Status Redis::SMembers(const Slice& key, std::vector<std::string>* memb
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok() && !ExpectedMetaValue(Type::kSet, meta_value)) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -709,7 +709,7 @@ Status Redis::SMembersWithTTL(const Slice& key,
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -768,7 +768,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + source.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + source.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -811,7 +811,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -872,7 +872,7 @@ rocksdb::Status Redis::SPop(const Slice& key, std::vector<std::string>* members,
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -986,7 +986,7 @@ rocksdb::Status Redis::SRandmember(const Slice& key, int32_t count, std::vector<
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1057,7 +1057,7 @@ rocksdb::Status Redis::SRem(const Slice& key, const std::vector<std::string>& me
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1121,7 +1121,7 @@ rocksdb::Status Redis::SUnion(const std::vector<std::string>& keys, std::vector<
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + key + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + key + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -1178,7 +1178,7 @@ rocksdb::Status Redis::SUnionstore(const Slice& destination, const std::vector<s
       if (ExpectedStale(meta_value)) {
         s = Status::NotFound();
       } else {
-        return Status::InvalidArgument("WRONGTYPE, key: " + key + " What Type: Set");
+        return Status::InvalidArgument("WRONGTYPE, key: " + key + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
       }
     }
     if (s.ok()) {
@@ -1217,7 +1217,7 @@ rocksdb::Status Redis::SUnionstore(const Slice& destination, const std::vector<s
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + destination.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1274,7 +1274,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1339,7 +1339,7 @@ rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1371,7 +1371,7 @@ rocksdb::Status Redis::SetsDel(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1400,7 +1400,7 @@ rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1431,7 +1431,7 @@ rocksdb::Status Redis::SetsPersist(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -1462,7 +1462,7 @@ rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Set");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kSet)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {

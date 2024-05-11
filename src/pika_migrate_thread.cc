@@ -655,13 +655,13 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
     key_type = 's';
   } else if (type_str == "zset") {
     key_type = 'z';
+  } else if (type_str == "streams") {
+    key_type = 'm';
   } else if (type_str == "none") {
     return 0;
-  } else if (type_str == "streams") {
-    return 0;
   } else {
-      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
-      return -1;
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
+    return -1;
   }
 
   if (slot_id != slot_id_) {

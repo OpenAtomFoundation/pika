@@ -368,7 +368,7 @@ Status Redis::StreamsDel(const Slice& key) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Streams");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kStream)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -395,7 +395,7 @@ Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& 
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + " What Type: Streams");
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + TypeStrings[static_cast<int>(Type::kStream)] + "get type: " + TypeStrings[static_cast<int>(GetMetaValueType(value))]);
     }
   }
   if (s.ok()) {
