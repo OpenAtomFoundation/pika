@@ -12,11 +12,12 @@
 #include <string>
 
 #include "net/include/net_define.h"
+#include "net/include/random.h"
 #include "pstd/include/pstd_mutex.h"
 
 namespace net {
 
-using TaskFunc = void (*)(void *);
+using TaskFunc = void (*)(void*);
 
 struct Task {
   Task() = default;
@@ -50,7 +51,7 @@ class ThreadPool : public pstd::noncopyable {
     std::string worker_name_;
   };
 
-  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();
@@ -69,8 +70,51 @@ class ThreadPool : public pstd::noncopyable {
  private:
   void runInThread();
 
-  size_t worker_num_;
+ public:
+  struct AdaptationContext {
+    std::atomic<int32_t> value;
+
+    explicit AdaptationContext() : value(0) {}
+  };
+
+ private:
+  struct Node {
+    Node* link_older = nullptr;
+    Node* link_newer = nullptr;
+
+    Task task;
+
+    Node(TaskFunc func, void* arg) : task(func, arg) {}
+
+    inline void Exec() { task.func(task.arg); }
+    inline Node* Next() { return link_newer; }
+  };
+
+  static inline void AsmVolatilePause() {
+#if defined(__i386__) || defined(__x86_64__)
+    asm volatile("pause");
+#elif defined(__aarch64__)
+    asm volatile("wfe");
+#elif defined(__powerpc64__)
+    asm volatile("or 27,27,27");
+#endif
+    // it's okay for other platforms to be no-ops
+  }
+
+  Node* CreateMissingNewerLinks(Node* head, int* cnt);
+  bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
+
+  std::atomic<Node*> newest_node_;
+  std::atomic<int> node_cnt_;
+  const int queue_slow_size_;  // default value: worker_num_ * 100
   size_t max_queue_size_;
+
+  const uint64_t max_yield_usec_;
+  const uint64_t slow_yield_usec_;
+
+  AdaptationContext adp_ctx;
+
+  size_t worker_num_;
   std::string thread_pool_name_;
   std::queue<Task> queue_;
   std::priority_queue<TimeTask> time_queue_;
@@ -81,7 +125,6 @@ class ThreadPool : public pstd::noncopyable {
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
-
 };
 
 }  // namespace net

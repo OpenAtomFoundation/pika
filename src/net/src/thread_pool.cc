@@ -8,6 +8,8 @@
 
 #include <sys/time.h>
 
+#include <cassert>
+#include <thread>
 #include <utility>
 
 namespace net {
@@ -41,8 +43,14 @@ int ThreadPool::Worker::stop() {
   return 0;
 }
 
-ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name)
-    : worker_num_(worker_num),
+ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name)
+    : newest_node_(nullptr),
+      node_cnt_(0),
+      queue_slow_size_(worker_num * 50),
+      max_yield_usec_(100),
+      slow_yield_usec_(3),
+      adp_ctx(),
+      worker_num_(worker_num),
       max_queue_size_(max_queue_size),
       thread_pool_name_(std::move(thread_pool_name)),
       running_(false),
@@ -90,13 +98,18 @@ bool ThreadPool::should_stop() { return should_stop_.load(); }
 void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
-  std::unique_lock lock(mu_);
-  wsignal_.wait(lock, [this]() { return queue_.size() < max_queue_size_ || should_stop(); });
-
-  if (!should_stop()) {
-    queue_.emplace(func, arg);
-    rsignal_.notify_one();
+  // stop until the size of tasks queue is not greater than max_queue_size_
+  while (node_cnt_.load(std::memory_order_relaxed) >= max_queue_size_) {
+    std::this_thread::yield();
   }
+  // slow like above
+  if (node_cnt_.load(std::memory_order_relaxed) >= queue_slow_size_) {
+    std::this_thread::yield();
+  }
+  auto node = new Node(func, arg);
+  LinkOne(node, &newest_node_);
+  node_cnt_++;
+  rsignal_.notify_one();
 }
 
 /*
@@ -109,6 +122,8 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
 
   std::lock_guard lock(mu_);
   if (!should_stop()) {
+    // now the member time_queue_ maybe NOT be used
+    throw std::logic_error("unreachable logic");
     time_queue_.emplace(exec_time, func, arg);
     rsignal_.notify_all();
   }
@@ -116,10 +131,7 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
 
 size_t ThreadPool::max_queue_size() { return max_queue_size_; }
 
-void ThreadPool::cur_queue_size(size_t* qsize) {
-  std::lock_guard lock(mu_);
-  *qsize = queue_.size();
-}
+void ThreadPool::cur_queue_size(size_t* qsize) { *qsize = node_cnt_.load(std::memory_order_relaxed); }
 
 void ThreadPool::cur_time_queue_size(size_t* qsize) {
   std::lock_guard lock(mu_);
@@ -131,34 +143,117 @@ std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 void ThreadPool::runInThread() {
   while (!should_stop()) {
     std::unique_lock lock(mu_);
-    rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
+    rsignal_.wait(lock, [this]() { return newest_node_.load(std::memory_order_relaxed) != nullptr || should_stop(); });
+    lock.unlock();
 
+  retry:
     if (should_stop()) {
       break;
     }
-    if (!time_queue_.empty()) {
-      auto now = std::chrono::system_clock::now();
-      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 
-      auto [exec_time, func, arg] = time_queue_.top();
-      if (unow  >= exec_time) {
-        time_queue_.pop();
-        lock.unlock();
-        (*func)(arg);
-        continue;
-      } else if (queue_.empty() && !should_stop()) {
-        rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
-        lock.unlock();
+    auto last = newest_node_.exchange(nullptr);
+    if (last == nullptr) {
+      // 1. loop for short time
+      for (uint32_t tries = 0; tries < 200; ++tries) {
+        if (newest_node_.load(std::memory_order_acquire) != nullptr) {
+          last = newest_node_.exchange(nullptr);
+          if (last != nullptr) {
+            goto exec;
+          }
+        }
+        AsmVolatilePause();
+      }
+
+      // 2. loop for a little short time again
+      const size_t kMaxSlowYieldsWhileSpinning = 3;
+      auto& yield_credit = adp_ctx.value;
+      bool update_ctx = false;
+      bool would_spin_again = false;
+      const int sampling_base = 256;
+
+      update_ctx = Random::GetTLSInstance()->OneIn(sampling_base);
+
+      if (update_ctx || yield_credit.load(std::memory_order_relaxed) >= 0) {
+        auto spin_begin = std::chrono::steady_clock::now();
+
+        size_t slow_yield_count = 0;
+
+        auto iter_begin = spin_begin;
+        while ((iter_begin - spin_begin) <= std::chrono::microseconds(max_yield_usec_)) {
+          std::this_thread::yield();
+
+          if (newest_node_.load(std::memory_order_acquire) != nullptr) {
+            last = newest_node_.exchange(nullptr);
+            if (last != nullptr) {
+              would_spin_again = true;
+              // success
+              break;
+            }
+          }
+
+          auto now = std::chrono::steady_clock::now();
+          if (now == iter_begin || now - iter_begin >= std::chrono::microseconds(slow_yield_usec_)) {
+            ++slow_yield_count;
+            if (slow_yield_count >= kMaxSlowYieldsWhileSpinning) {
+              update_ctx = true;
+              break;
+            }
+          }
+          iter_begin = now;
+        }
+      }
+
+      // update percentage of next loop 2
+      if (update_ctx) {
+        auto v = yield_credit.load(std::memory_order_relaxed);
+        v = v - (v / 1024) + (would_spin_again ? 1 : -1) * 131072;
+        yield_credit.store(v, std::memory_order_relaxed);
+      }
+
+      if (!would_spin_again) {
+        // 3. wait for new task
         continue;
       }
     }
 
-    if (!queue_.empty()) {
-      auto [func, arg] = queue_.front();
-      queue_.pop();
-      wsignal_.notify_one();
-      lock.unlock();
-      (*func)(arg);
+  exec:
+    // do all tasks older than this task pointed last
+    int cnt = 0;
+    auto first = CreateMissingNewerLinks(last, &cnt);
+    node_cnt_ -= cnt;
+    Node* tmp = nullptr;
+    do {
+      first->Exec();
+      tmp = first;
+      first = first->Next();
+      delete tmp;
+    } while (first != nullptr);
+    goto retry;
+  }
+}
+
+ThreadPool::Node* ThreadPool::CreateMissingNewerLinks(Node* head, int* cnt) {
+  assert(head != nullptr);
+  Node* next = nullptr;
+  cnt++;
+  while (true) {
+    next = head->link_older;
+    if (next == nullptr) {
+      return head;
+    }
+    cnt++;
+    next->link_newer = head;
+    head = next;
+  }
+}
+
+bool ThreadPool::LinkOne(Node* node, std::atomic<Node*>* newest_node) {
+  assert(newest_node != nullptr);
+  auto nodes = newest_node->load(std::memory_order_relaxed);
+  while (true) {
+    node->link_older = nodes;
+    if (newest_node->compare_exchange_weak(nodes, node)) {
+      return (nodes == nullptr);
     }
   }
 }
