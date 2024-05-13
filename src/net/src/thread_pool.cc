@@ -116,14 +116,15 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
  * timeout is in millisecond
  */
 void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
+  // now the member time_queue_ maybe NOT be used
+  throw std::logic_error("unreachable logic");
+
   auto now = std::chrono::system_clock::now();
   uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
   uint64_t exec_time = unow + timeout * 1000;
 
   std::lock_guard lock(mu_);
   if (!should_stop()) {
-    // now the member time_queue_ maybe NOT be used
-    throw std::logic_error("unreachable logic");
     time_queue_.emplace(exec_time, func, arg);
     rsignal_.notify_all();
   }
@@ -134,6 +135,10 @@ size_t ThreadPool::max_queue_size() { return max_queue_size_; }
 void ThreadPool::cur_queue_size(size_t* qsize) { *qsize = node_cnt_.load(std::memory_order_relaxed); }
 
 void ThreadPool::cur_time_queue_size(size_t* qsize) {
+  // now the member time_queue_ maybe NOT be used
+  *qsize = 0;
+  return;
+
   std::lock_guard lock(mu_);
   *qsize = time_queue_.size();
 }
@@ -144,6 +149,15 @@ void ThreadPool::runInThread() {
   while (!should_stop()) {
     std::unique_lock lock(mu_);
     rsignal_.wait(lock, [this]() { return newest_node_.load(std::memory_order_relaxed) != nullptr || should_stop(); });
+    // Consuming tasks before unlock can cause spurious wakeup
+    // with little possibility in low throughput.  Because when
+    // all worker threads are waiting and a task coming, only one
+    // worker thread can be awakened.  Only when a thread is awakened
+    // but the task has not been consumed, and at this time a new task
+    // is coming and make a new worker thread awakened, the spurious
+    // wakeup occur.  Because the former thread can consume all tasks
+    // and the latter thread will consume NOTHING.  So, for high
+    // throughput it MUST consume before unlock.
     lock.unlock();
 
   retry:
