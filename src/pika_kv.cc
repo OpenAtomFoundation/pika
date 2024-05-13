@@ -1456,10 +1456,34 @@ void TypeCmd::DoInitial() {
 }
 
 void TypeCmd::Do() {
-  std::string type;
+  enum storage::Type type = storage::Type::kNulltype;
+  std::string key_type;
   rocksdb::Status s = db_->storage()->GetType(key_, type);
   if (s.ok()) {
-    res_.AppendContent("+" + type);
+    switch (type) {
+      case storage::Type::kString:
+        key_type = "string";
+        break;
+      case storage::Type::kHash:
+        key_type = "hash";
+        break;
+      case storage::Type::kList:
+        key_type = "list";
+        break;
+      case storage::Type::kSet:
+        key_type = "set";
+        break;
+      case storage::Type::kZset:
+        key_type = "zset";
+        break;
+      case storage::Type::kStream:
+        key_type = "stream";
+        break;
+      case storage::Type::kNulltype:
+        key_type = "none";
+        break;
+    }
+    res_.AppendContent("+" + key_type);
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
@@ -1468,11 +1492,35 @@ void TypeCmd::Do() {
 }
 
 void TypeCmd::ReadCache() {
-  std::string type;
+  enum storage::Type type = storage::Type::kNulltype;
+  std::string key_type;
   // TODO Cache GetType function
   rocksdb::Status s = db_->storage()->GetType(key_, type);
   if (s.ok()) {
-    res_.AppendContent("+" + type);
+    switch (type) {
+      case storage::Type::kString:
+        key_type = "string";
+        break;
+      case storage::Type::kHash:
+        key_type = "hash";
+        break;
+      case storage::Type::kList:
+        key_type = "list";
+        break;
+      case storage::Type::kSet:
+        key_type = "set";
+        break;
+      case storage::Type::kZset:
+        key_type = "zset";
+        break;
+      case storage::Type::kStream:
+        key_type = "stream";
+        break;
+      case storage::Type::kNulltype:
+        key_type = "none";
+        break;
+    }
+    res_.AppendContent("+" + key_type);
   } else {
     res_.SetRes(CmdRes::kCacheMiss, s.ToString());
   }

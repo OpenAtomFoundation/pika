@@ -632,9 +632,9 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
-  std::string type_str;
+  enum storage::Type type;
   char key_type;
-  rocksdb::Status s = db->storage()->GetType(key, type_str);
+  rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " not found";
@@ -644,24 +644,30 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       return -1;
     }
   }
-
-  if (type_str == "string") {
-    key_type = 'k';
-  } else if (type_str == "hash") {
-    key_type = 'h';
-  } else if (type_str == "list") {
-    key_type = 'l';
-  } else if (type_str == "set") {
-    key_type = 's';
-  } else if (type_str == "zset") {
-    key_type = 'z';
-  } else if (type_str == "streams") {
-    key_type = 'm';
-  } else if (type_str == "none") {
-    return 0;
-  } else {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
-    return -1;
+  switch (type) {
+    case storage::Type::kString:
+      key_type = 'k';
+      break;
+    case storage::Type::kHash:
+      key_type = 'h';
+      break;
+    case storage::Type::kList:
+      key_type = 'l';
+      break;
+    case storage::Type::kSet:
+      key_type = 's';
+      break;
+    case storage::Type::kZset:
+      key_type = 'z';
+      break;
+    case storage::Type::kStream:
+      key_type = 'm';
+      break;
+    case storage::Type::kNulltype:
+      return 0;
+    default:
+      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
+      return -1;
   }
 
   if (slot_id != slot_id_) {

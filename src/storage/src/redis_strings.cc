@@ -1546,36 +1546,12 @@ rocksdb::Status Redis::TTL(const Slice& key, int64_t* timestamp) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::GetType(const storage::Slice& key, std::string& types) {
+rocksdb::Status Redis::GetType(const storage::Slice& key, enum Type& type) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
-  types = "none";
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
   if (s.ok()) {
-    auto type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
-    switch (type) {
-      case Type::kSet:
-        types = "set";
-        break;
-      case Type::kZset:
-        types = "zset";
-        break;
-      case Type::kHash:
-        types = "hash";
-        break;
-      case Type::kList:
-        types = "list";
-        break;
-      case Type::kString:
-        types = "string";
-        break;
-      case Type::kStream:
-        types = "streams";
-        break;
-      default:
-        types = "none";
-        break;
-    }
+    type = static_cast<Type>(static_cast<uint8_t>(meta_value[0]));
   }
   return Status::OK();
 }

@@ -188,7 +188,7 @@ class Redis {
   Status TTL(const Slice& key, int64_t* timestamp);
   Status PKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
-  Status GetType(const Slice& key, std::string& types);
+  Status GetType(const Slice& key, enum Type& type);
   Status IsExist(const Slice& key);
   // Hash Commands
   Status HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);

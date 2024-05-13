@@ -1470,9 +1470,10 @@ int64_t Storage::TTL(const Slice& key) {
   return timestamp;
 }
 
-Status Storage::GetType(const std::string& key, std::string& types) {
+Status Storage::GetType(const std::string& key, enum Type& type) {
   auto& inst = GetDBInstance(key);
-  return inst->GetType(key, types);
+  inst->GetType(key, type);
+  return Status::OK();
 }
 
 Status Storage::Keys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* keys) {

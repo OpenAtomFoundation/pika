@@ -6,6 +6,7 @@
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
+#include "storage/src/base_data_key_format.h"
 #include "strings.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";

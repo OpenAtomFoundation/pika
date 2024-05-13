@@ -753,29 +753,36 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
-  std::string type_str;
-  rocksdb::Status s = db->storage()->GetType(key, type_str);
+  enum storage::Type type;
+  rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  if (type_str == "string") {
-    key_type = "k";
-  } else if (type_str == "hash") {
-    key_type = "h";
-  } else if (type_str == "list") {
-    key_type = "l";
-  } else if (type_str == "set") {
-    key_type = "s";
-  } else if (type_str == "zset") {
-    key_type = "z";
-  } else if (type_str == "streams") {
-    key_type = "m";
-  } else {
-    LOG(WARNING) << "Get key type error: " << key;
-    key_type = "";
-    return -1;
+  switch (type) {
+    case storage::Type::kString:
+      key_type = "k";
+      break;
+    case storage::Type::kHash:
+      key_type = "h";
+      break;
+    case storage::Type::kList:
+      key_type = "l";
+      break;
+    case storage::Type::kSet:
+      key_type = "s";
+      break;
+    case storage::Type::kZset:
+      key_type = "z";
+      break;
+    case storage::Type::kStream:
+      key_type = "m";
+      break;
+    default:
+      LOG(WARNING) << "Get key type error: " << key;
+      key_type = "";
+      return -1;
   }
   return 1;
 }
@@ -930,8 +937,9 @@ void SlotsMgrtTagSlotCmd::Do() {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
-  std::string type_str;
-  rocksdb::Status s = db->storage()->GetType(key_, type_str);
+  enum storage::Type type;
+  std::string key_type;
+  rocksdb::Status s = db->storage()->GetType(key_, type);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(WARNING) << "Migrate slot key " << key_ << " not found";
@@ -942,22 +950,29 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     }
     return -1;
   }
-  if (type_str == "string") {
-    key_type_ = 'k';
-  } else if (type_str == "hash") {
-    key_type_ = 'h';
-  } else if (type_str == "list") {
-    key_type_ = 'l';
-  } else if (type_str == "set") {
-    key_type_ = 's';
-  } else if (type_str == "zset") {
-    key_type_ = 'z';
-  } else if (type_str == "streams") {
-    key_type_ = 'm';
-  } else {
-    LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
-    res_.AppendInteger(0);
-    return -1;
+  switch (type) {
+    case storage::Type::kString:
+      key_type_ = 'k';
+      break;
+    case storage::Type::kHash:
+      key_type_ = 'h';
+      break;
+    case storage::Type::kList:
+      key_type_ = 'l';
+      break;
+    case storage::Type::kSet:
+      key_type_ = 's';
+      break;
+    case storage::Type::kZset:
+      key_type_ = 'z';
+      break;
+    case storage::Type::kStream:
+      key_type_ = 'm';
+      break;
+    default:
+      LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
+      res_.AppendInteger(0);
+      return -1;
   }
   return 0;
 }

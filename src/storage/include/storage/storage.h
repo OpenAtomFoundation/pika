@@ -24,6 +24,7 @@
 
 #include "slot_indexer.h"
 #include "pstd/include/pstd_mutex.h"
+#include "src/base_data_value_format.h"
 
 namespace storage {
 
@@ -1031,7 +1032,7 @@ class Storage {
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
-  Status GetType(const std::string& key, std::string& types);
+  Status GetType(const std::string& key, enum Type& type);
 
   // Reutrns the data all type of the key
   Status Type(const std::string& key, std::vector<std::string>& types);
