@@ -65,6 +65,7 @@ class PikaReplClient {
   pstd::Status Close(const std::string& ip, int port);
 
   void Schedule(net::TaskFunc func, void* arg);
+  void ScheduleByDBName(net::TaskFunc func, void* arg, const std::string& db_name);
   void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
@@ -80,6 +81,7 @@ class PikaReplClient {
   pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, const std::string& local_ip);
 
  private:
+  size_t GetBinlogWorkerIndexByDBName(const std::string &db_name);
   size_t GetHashIndexByKey(const std::string& key);
   void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % static_cast<int32_t>(write_binlog_workers_.size()); }
 

@@ -27,7 +27,7 @@ extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
-  for(int i = 0; i < g_pika_conf->databases(); i++){
+  for(int i = 0; i < g_pika_conf->sync_binlog_thread_num(); i++){
       write_binlog_workers_.push_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
   }
   for (int i = 0; i < g_pika_conf->sync_thread_num(); ++i) {
@@ -53,8 +53,8 @@ int PikaReplClient::Start() {
                  << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
     }
   }
-  for (auto & binlog_worker : write_db_workers_) {
-        res = binlog_worker->StartThread();
+  for (auto & db_worker : write_db_workers_) {
+        res = db_worker->StartThread();
         if (res != net::kSuccess) {
             LOG(FATAL) << "Start Pika Repl Write DB Worker Thread Error: " << res
                        << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
@@ -79,17 +79,15 @@ void PikaReplClient::Schedule(net::TaskFunc func, void* arg) {
   UpdateNextAvail();
 }
 
+void PikaReplClient::ScheduleByDBName(net::TaskFunc func, void* arg, const std::string& db_name) {
+  size_t index = GetBinlogWorkerIndexByDBName(db_name);
+  write_binlog_workers_[index]->Schedule(func, arg);
+};
+
 void PikaReplClient::ScheduleWriteBinlogTask(const std::string& db_name,
                                              const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                              const std::shared_ptr<net::PbConn>& conn, void* res_private_data) {
-  char db_num = db_name.back();
-  int index = db_num - '0';
-  if (index < 0 || index > write_binlog_workers_.size()) {
-      LOG(ERROR)
-              << "Corruption in cosuming binlog: the last char of the db_name(extracted from binlog) is not a valid db num, the extracted db_num/worker_index is "
-              << index << " while write_binlog_workers.size() is " << write_binlog_workers_.size();
-      return;
-  }
+  size_t index = GetBinlogWorkerIndexByDBName(db_name);
   auto task_arg = new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, write_binlog_workers_[index].get());
   write_binlog_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
 }
@@ -101,6 +99,16 @@ void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, co
   size_t index = GetHashIndexByKey(dispatch_key);
   auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, db_name);
   write_db_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
+}
+
+size_t PikaReplClient::GetBinlogWorkerIndexByDBName(const std::string &db_name) {
+    char db_num = db_name.back();
+    if (db_num < '0' || db_num > '8') {
+        LOG(ERROR)
+                << "Corruption in consuming binlog: the last char of the db_name(extracted from binlog) is not a valid db num, the extracted db_num is "
+                << db_num << " while write_binlog_workers.size() is " << write_binlog_workers_.size();
+    }
+    return (db_num - '0') % write_binlog_workers_.size();
 }
 
 size_t PikaReplClient::GetHashIndexByKey(const std::string& key) {

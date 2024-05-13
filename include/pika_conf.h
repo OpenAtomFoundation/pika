@@ -65,6 +65,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
   }
+  int sync_binlog_thread_num() {
+    std::shared_lock l(rwlock_);
+    return sync_binlog_thread_num_;
+  }
   std::string log_path() {
     std::shared_lock l(rwlock_);
     return log_path_;
@@ -784,6 +788,7 @@ class PikaConf : public pstd::BaseConf {
   int slow_cmd_thread_pool_size_ = 0;
   std::unordered_set<std::string> slow_cmd_set_;
   int sync_thread_num_ = 0;
+  int sync_binlog_thread_num_ = 0;
   int expire_dump_days_ = 3;
   int db_sync_speed_ = 0;
   std::string slaveof_;

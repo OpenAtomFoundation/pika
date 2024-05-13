@@ -185,6 +185,15 @@ int PikaConf::Load() {
   }
   default_db_ = db_structs_[0].db_name;
 
+  // sync_binlog_thread_num_ must be set after the setting of databases_
+  GetConfInt("sync-binlog-thread-num", &sync_binlog_thread_num_);
+  if (sync_binlog_thread_num_ <= 0){
+      sync_binlog_thread_num_ = databases_;
+  }else {
+      // final value is MIN(sync_binlog_thread_num, databases_)
+      sync_binlog_thread_num_ = sync_binlog_thread_num_ > databases_ ?  databases_ : sync_binlog_thread_num_;
+  }
+
   int tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
   if (tmp_replication_num > 4 || tmp_replication_num < 0) {
