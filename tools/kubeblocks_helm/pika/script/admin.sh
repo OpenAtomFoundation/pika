@@ -46,7 +46,7 @@ wait_master_registered() {
 }
 
 wait_all_master_registered() {
-  for ((group_id=1; group_id <= GROUP_ID; group_id++)); do
+  for ((group_id = 1; group_id <= GROUP_ID; group_id++)); do
     until $CODIS_ADMIN --list-group | jq -r '.[] | select(.id == '${group_id}') | .servers[] | select(.role == "master") | .server'; do
       echo "Waiting for master to be registered in group $group_id"
       sleep 2
