@@ -18,15 +18,15 @@
 
 ## bugfix
 
-- Fixed an issue where using Pika-exporter could result in uneven slots distribution[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
+- Fixed an issue where using Pika Exporter could result in uneven slots distribution[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
 - Fixed an issue where the Codis dashboard could not correctly update the master instance status[#2650](https://github.com/OpenAtomFoundation/pika/pull/2650)@[vacheli](https://github.com/vacheli)
 
 - Fixed a master-slave synchronization anomaly caused by Redis transaction binlog parsing failure[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
 
-- Fixed an issue where starting Pika-exporter without parameters caused startup failure[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
+- Fixed an issue where starting Pika Exporter without parameters caused startup failure[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
 
-- Fixed an issue where using Pika-operator to start a Codis-proxy cluster caused a panic[#2632](https://github.com/OpenAtomFoundation/pika/pull/2633)@[chejinge](https://github.com/chejinge)
+- Fixed an issue where using Pika Operator to start a Codis-proxy cluster caused a panic[#2632](https://github.com/OpenAtomFoundation/pika/pull/2633)@[chejinge](https://github.com/chejinge)
 
 - Fixed an issue where the cp command failed during automated tests of binaries compiled in CI [#2614](https://github.com/OpenAtomFoundation/pika/pull/2614)@[cheniujh](https://github.com/cheniujh)
 
@@ -52,7 +52,7 @@
 
 - Slotmigrate add go test[#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
 
-- Update pika version used by `Pika-operater`[#2572](https://github.com/OpenAtomFoundation/pika/pull/2572)@[chejinge](https://github.com/chejinge)
+- Update pika version used by `Pika Operater`[#2572](https://github.com/OpenAtomFoundation/pika/pull/2572)@[chejinge](https://github.com/chejinge)
 
 - Fix the problem of abnormal blockcache value after config rewrite[#2561](https://github.com/OpenAtomFoundation/pika/pull/2561)@[chejinge](https://github.com/chejinge)
 
