@@ -16,7 +16,7 @@
 
 - 对五种基本数据类型命令增加 Redis tcl 测试 [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
-## bugfix
+## Bugfix
 
 - 修复使用 `Pika Exporter` 时可能会出现 slots 分配不均衡的问题[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
@@ -24,7 +24,7 @@
 
 - 修复 Redis 事务 binlog 解析失败导致的主从同步异常问题[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
 
-- 修复 Pika-expoter 启动时不带参数导致启动失败问题[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
+- 修复 `Pika Expoter` 启动时不带参数导致启动失败问题[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
 
 - 修复使用 `Pika Operater` 拉起集群`Codis-proxy` panic 的问题  [#2632](https://github.com/OpenAtomFoundation/pika/pull/2633)@[chejinge](https://github.com/chejinge)
 
@@ -65,7 +65,6 @@
 - 修复 Flushall 和 FlushDB 死锁的隐患，并删除 FlushSubDB 接口[#2533](https://github.com/OpenAtomFoundation/pika/pull/2533)@[Mixficsol](https://github.com/Mixficsol)
 
 - 增加参数控制是否清理 tcl 测试后产生的数据文件，防止废弃数据占据磁盘[#2507](https://github.com/OpenAtomFoundation/pika/pull/2507)@[Mixficsol](https://github.com/Mixficsol)
-
 
 
 # v3.5.3
@@ -126,7 +125,7 @@
 
 - 丰富了 Pika Gotest 测试集[#2502](https://github.com/OpenAtomFoundation/pika/pull/2502) @[Mixficsol](https://github.com/Mixficsol)
 
-## bugfix
+## Bugfix
 
 - 修复 Pika 有从节点进行全量复制期间会误删除 dump 文件的问题[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
 
@@ -202,7 +201,7 @@
 
 - CI 增加 cache 提升编译速度 [#2088](https://github.com/OpenAtomFoundation/pika/pull/2088)@[baerwang](https://github.com/baerwang)
 
-## bugfix
+## Bugfix
 
 - 修复 pika 在使用 SETRANGE 命令出现 coredump的问题 [#2125](https://github.com/OpenAtomFoundation/pika/issues/2125) @[chejinge](https://github.com/chejinge)
 
@@ -241,7 +240,7 @@
 
 - 实现在 K8s 环境上 Pika 服务的自动注册，在启动时自动注册，从而实现集群的自组织 [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931) @[machinly](https://github.com/machinly)
 
-## bugfix
+## Bugfix
 
 - 减少了 exporter 非必要的日志打印，降低 CPU 利用率 [#1945](https://github.com/OpenAtomFoundation/pika/pull/1945) @[Mixficsol](https://github.com/Mixficsol)
 

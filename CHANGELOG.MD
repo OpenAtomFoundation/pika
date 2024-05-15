@@ -16,7 +16,7 @@
 
 - Added Redis tcl tests for five basic data types commands [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
-## bugfix
+## Bugfix
 
 - Fixed an issue where using Pika Exporter could result in uneven slots distribution[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
@@ -124,7 +124,7 @@
 
 - Enriched Pika Gotest test set.[#2502](https://github.com/OpenAtomFoundation/pika/pull/2502) @[Mixficsol](https://github.com/Mixficsol)
 
-## bugfix
+## Bugfix
 
 - Fixed an issue where Pika would accidentally delete dump files during full replication from the node.[#2377](https://github.com/OpenAtomFoundation/pika/pull/2377)@[wangshao1](https://github.com/wangshao1)
 
@@ -209,7 +209,7 @@
 
 - Adds cache to improve compilation speed on CI.  [#2088](https://github.com/OpenAtomFoundation/pika/pull/2088)@[baerwang](https://github.com/baerwang)
 
-## bugfix
+## Bugfix
 
 - Fixed coredump issue when using SETRANGE command in Pika.  [#2125](https://github.com/OpenAtomFoundation/pika/issues/2125) @[chejinge](https://github.com/chejinge)
 
@@ -250,7 +250,7 @@
 - Realize automatic registration of Pika service on K8s environment, and automatically register at startup, so as to realize self-organization of cluster [#1931](https://github.com/OpenAtomFoundation/pika/pull/1931) @[machinly](https://github.com/machinly)
 
 
-## bugfix
+## Bugfix
 
 - Reduces unnecessary log printing by the exporter, reducing CPU utilization [#1945](https://github.com/OpenAtomFoundation/pika/pull/1945) @[Mixficsol](https://github.com/Mixficsol)
 
