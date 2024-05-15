@@ -2,21 +2,35 @@
 
 ## New features
 
-- 将 `info key space1`的结果输出至`info all`以展示到监控界面中[#2603](https://github.com/OpenAtomFoundation/pika/pull/2603)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
+- Pika 支持动态调整全量同步限速参数 rsync-timeout-ms 和 throttle-bytes-per-second[#2633](https://github.com/OpenAtomFoundation/pika/pull/2633)@[cheniujh](https://github.com/cheniujh)
 
-- Pika 支持动态调整 rsync 限速参数 rsync-timeout-ms  和 throttle-bytes-per-second[#2633](https://github.com/OpenAtomFoundation/pika/pull/2633)@[cheniujh](https://github.com/cheniujh)
+- 将 info key space 1 的结果输出至info all 并展示到监控界面中[#2603](https://github.com/OpenAtomFoundation/pika/pull/2603)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
 
 - Pika 磁盘IO 限速参数支持 OnlyRead、OnlyWrite、ReadAndWrite，默认支持OnlyWrite[#2599](https://github.com/OpenAtomFoundation/pika/pull/2599)@[vacheli](https://github.com/vacheli)
 
 ## Improvement
 
-- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
-
-- 五种基本数据类型命令增加 tcl 测试 case [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
-
 - slotmigrate 添加 go test [#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
 
+- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
+
+- 对五种基本数据类型命令增加 Redis tcl 测试 [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
+
 ## bugfix
+
+- 修复使用 `Pika-expoter` 时可能会出现 slots 分配不均衡的问题[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
+
+- 修复 Codis dashboard 不能正确更新 master 实例状态的问题[#2650](https://github.com/OpenAtomFoundation/pika/pull/2650)@[vacheli](https://github.com/vacheli)
+
+- 修复 Redis 事务 binlog 解析失败导致的主从同步异常问题[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
+
+- 修复 Pika-expoter 启动时不带参数导致启动失败问题[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
+
+- 修复使用 `Pika-operater` 拉起集群`Codis-proxy` panic 的问题  [#2632](https://github.com/OpenAtomFoundation/pika/pull/2633)@[chejinge](https://github.com/chejinge)
+
+- 修复 CI 编译出的二进制进行自动化测试时 cp 命令失败问题[#2614](https://github.com/OpenAtomFoundation/pika/pull/2614)@[cheniujh](https://github.com/cheniujh)
+
+- 修复变量未初始化导致 cache 启动失败的问题[#2613](https://github.com/OpenAtomFoundation/pika/pull/2613)@[chejinge](https://github.com/chejinge)
 
 - 修复 userpass 和 userblacklist 动态修改参数功能异常问题[#2600](https://github.com/OpenAtomFoundation/pika/pull/2600)@[chejinge](https://github.com/chejinge)
 
@@ -48,23 +62,10 @@
 
 - 修复 CloseFd(it->second[i]) 出现越界的问题[#2539](https://github.com/OpenAtomFoundation/pika/pull/2539)@[chejinge](https://github.com/chejinge)
 
-- 修复 `Flushall` 和 `FlushDB` 中有一处由于加锁顺序的问题导致死锁的隐患，删除 `FlushSubDB` 接口[#2533](https://github.com/OpenAtomFoundation/pika/pull/2533)@[Mixficsol](https://github.com/Mixficsol)
+- 修复 Flushall 和 FlushDB 死锁的隐患，并删除 FlushSubDB 接口[#2533](https://github.com/OpenAtomFoundation/pika/pull/2533)@[Mixficsol](https://github.com/Mixficsol)
 
 - 增加参数控制是否清理 tcl 测试后产生的数据文件，防止废弃数据占据磁盘[#2507](https://github.com/OpenAtomFoundation/pika/pull/2507)@[Mixficsol](https://github.com/Mixficsol)
 
-- 修复因为未初始化导致 cache 启动失败的问题[#2613](https://github.com/OpenAtomFoundation/pika/pull/2613)@[chejinge](https://github.com/chejinge)
-
-- 修复 CI 编译出的二进制进行自动化测试时 cp 命令失败问题[#2614](https://github.com/OpenAtomFoundation/pika/pull/2614)@[cheniujh](https://github.com/cheniujh)
-
-- 修复使用 `Pika-operater` 拉起集群`Codis-proxy` panic 的问题  [#2632](https://github.com/OpenAtomFoundation/pika/pull/2633)@[chejinge](https://github.com/chejinge)
-
-- 修复启动 `Pika-expoter` 不带参数启动不了的问题[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
-
-- 修复事务 `exec` 命令由于写了 binlog 导致 binlog 解析失败，主从同步异常问题[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
-
-- - 修复 Codis dashboard 不能正确更新 master 实例状态的问题[#2650](https://github.com/OpenAtomFoundation/pika/pull/2650)@[vacheli](https://github.com/vacheli)
-
-- 修复使用 `Pika-expoter` 时可能会出现 slots 分配不均衡的问题[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
 
 # v3.5.3
