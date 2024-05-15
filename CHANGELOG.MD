@@ -1,12 +1,14 @@
 # v3.5.4
 
-## New features
+## Improvement
 
 - Addition of TCL test cases for five basic data type commands [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
 
 - Optimization of the INFO command to reduce disk checking frequency [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
 
 - Addition of Go tests for the slotmigrate feature[#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
+
+## New features
 
 - Pika disk I/O rate limiting parameters now support OnlyRead, OnlyWrite, and ReadAndWrite modes, with the default set to OnlyWrite[#2599](https://github.com/OpenAtomFoundation/pika/pull/2599)@[vacheli](https://github.com/vacheli)
 
@@ -61,6 +63,8 @@
 - Fixed an issue where `Pika-exporter` could not start without parameters [#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
 
 - Resolved a transaction `exec` command issue causing binlog parsing failure and abnormal master-slave synchronization due to binlog writing[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
+
+- Fix the issue where slots may be unevenly distributed when using `Pika-exporter`[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
 
 # v3.5.3
