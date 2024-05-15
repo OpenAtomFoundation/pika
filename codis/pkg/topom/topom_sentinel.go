@@ -48,7 +48,7 @@ func (s *Topom) CheckStateAndSwitchSlavesAndMasters(filter func(index int, g *mo
 
 	if len(recoveredGroupServersState) > 0 {
 		// offline GroupServer's service has recovered, check and fix it's master-slave replication relationship
-		s.tryFixReplicationRelationships(ctx, recoveredGroupServersState)
+		s.tryFixReplicationRelationships(ctx, recoveredGroupServersState,len(masterOfflineGroups))
 	}
 
 	return nil
