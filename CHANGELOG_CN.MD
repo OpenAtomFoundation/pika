@@ -1,13 +1,5 @@
 # v3.5.4
 
-## Improvement
-
-- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
-
-- 五种基本数据类型命令增加 tcl 测试 case [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
-
-- slotmigrate 添加 go test [#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
-
 ## New features
 
 - 将 `info key space1`的结果输出至`info all`以展示到监控界面中[#2603](https://github.com/OpenAtomFoundation/pika/pull/2603)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
@@ -15,6 +7,14 @@
 - Pika 支持动态调整 rsync 限速参数 rsync-timeout-ms  和 throttle-bytes-per-second[#2633](https://github.com/OpenAtomFoundation/pika/pull/2633)@[cheniujh](https://github.com/cheniujh)
 
 - Pika 磁盘IO 限速参数支持 OnlyRead、OnlyWrite、ReadAndWrite，默认支持OnlyWrite[#2599](https://github.com/OpenAtomFoundation/pika/pull/2599)@[vacheli](https://github.com/vacheli)
+
+## Improvement
+
+- INFO 命令耗时优化，降低查磁盘频率 [#2554](https://github.com/OpenAtomFoundation/pika/pull/2554) @[wangshao1](https://github.com/wangshao1)
+
+- 五种基本数据类型命令增加 tcl 测试 case [#2527](https://github.com/OpenAtomFoundation/pika/pull/2527)@[Mixficsol](https://github.com/Mixficsol)
+
+- slotmigrate 添加 go test [#2576](https://github.com/OpenAtomFoundation/pika/pull/2576)@[chejinge](https://github.com/chejinge)
 
 ## bugfix
 
@@ -61,6 +61,8 @@
 - 修复启动 `Pika-expoter` 不带参数启动不了的问题[#2640](https://github.com/OpenAtomFoundation/pika/pull/2640)@[Polaris3003](https://github.com/Polaris3003)
 
 - 修复事务 `exec` 命令由于写了 binlog 导致 binlog 解析失败，主从同步异常问题[#2642](https://github.com/OpenAtomFoundation/pika/pull/2642)@[chejinge](https://github.com/chejinge)
+
+- - 修复 Codis dashboard 不能正确更新 master 实例状态的问题[#2650](https://github.com/OpenAtomFoundation/pika/pull/2650)@[vacheli](https://github.com/vacheli)
 
 - 修复使用 `Pika-expoter` 时可能会出现 slots 分配不均衡的问题[#2651](https://github.com/OpenAtomFoundation/pika/pull/2651)@[chejinge](https://github.com/chejinge)
 
