@@ -24,7 +24,7 @@ class BaseMetaValue : public InternalValue {
   /*
    * Constructing MetaValue requires passing in a type value
    */
-  explicit BaseMetaValue(Type type, const Slice& user_value) : InternalValue(type, user_value) {}
+  explicit BaseMetaValue(RedisType type, const Slice& user_value) : InternalValue(type, user_value) {}
   rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
     size_t needed = usize + kVersionLength + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
@@ -62,7 +62,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   explicit ParsedBaseMetaValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
     if (internal_value_str->size() >= kBaseMetaValueSuffixLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>((*internal_value_str)[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>((*internal_value_str)[0]));
       offset += kTypeLength;
       user_value_ = Slice(internal_value_str->data() + offset,
                              internal_value_str->size() - kBaseMetaValueSuffixLength - offset);
@@ -82,7 +82,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   explicit ParsedBaseMetaValue(const Slice& internal_value_slice) : ParsedInternalValue(internal_value_slice) {
     if (internal_value_slice.size() >= kBaseMetaValueSuffixLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>(internal_value_slice[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>(internal_value_slice[0]));
       offset += kTypeLength;
       user_value_ = Slice(internal_value_slice.data() + offset,
                           internal_value_slice.size() - kBaseMetaValueSuffixLength - offset);

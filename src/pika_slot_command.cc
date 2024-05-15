@@ -225,7 +225,8 @@ bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::s
     // hmset return ok
     // sadd  return number
     // rpush return length
-    if (argv.size() == 1 &&
+    // xadd  return stream-id
+    if (argv.size() == 1 ||
         (kInnerReplOk == pstd::StringToLower(reply) || pstd::string2int(reply.data(), reply.size(), &ret))) {
       // continue reiceve response
       if (need_receive > 0) {
@@ -283,8 +284,8 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
     return command_num;
   }
 
-  // skip kv, because kv cmd: SET key value ttl
-  if (type == 'k') {
+  // skip kv, stream because kv and stream cmd: SET key value ttl
+  if (type == 'k' || type == 'm') {
     return command_num;
   }
 
@@ -499,18 +500,24 @@ int PikaMigrate::ParseMKey(const std::string& key, std::string& wbuf_str, const 
   int command_num = 0;
   std::vector<storage::IdMessage> id_messages;
   storage::StreamScanArgs arg;
+  storage::StreamUtils::StreamParseIntervalId("-", arg.start_sid, &arg.start_ex, 0);
+  storage::StreamUtils::StreamParseIntervalId("+", arg.end_sid, &arg.end_ex, UINT64_MAX);
   auto s = db->storage()->XRange(key, arg, id_messages);
 
   if (s.ok()) {
-
     net::RedisCmdArgsType argv;
     std::string cmd;
     argv.emplace_back("XADD");
     argv.emplace_back(key);
-
-    for (const auto &field_value : id_messages) {
-      argv.emplace_back(field_value.field);
-      argv.emplace_back(field_value.value);
+    for (auto &fv : id_messages) {
+      std::vector<std::string> message;
+      storage::StreamUtils::DeserializeMessage(fv.value, message);
+      storage::streamID sid;
+      sid.DeserializeFrom(fv.field);
+      argv.emplace_back(sid.ToString());
+      for (auto &m : message) {
+        argv.emplace_back(m);
+      }
     }
     net::SerializeRedisCommand(argv, &cmd);
     wbuf_str.append(cmd);
@@ -753,7 +760,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
-  enum storage::Type type;
+  enum storage::RedisType type;
   rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
@@ -761,22 +768,22 @@ int GetKeyType(const std::string& key, std::string& key_type, const std::shared_
     return -1;
   }
   switch (type) {
-    case storage::Type::kString:
+    case storage::RedisType::kString:
       key_type = "k";
       break;
-    case storage::Type::kHash:
+    case storage::RedisType::kHash:
       key_type = "h";
       break;
-    case storage::Type::kList:
+    case storage::RedisType::kList:
       key_type = "l";
       break;
-    case storage::Type::kSet:
+    case storage::RedisType::kSet:
       key_type = "s";
       break;
-    case storage::Type::kZset:
+    case storage::RedisType::kZset:
       key_type = "z";
       break;
-    case storage::Type::kStream:
+    case storage::RedisType::kStream:
       key_type = "m";
       break;
     default:
@@ -937,7 +944,7 @@ void SlotsMgrtTagSlotCmd::Do() {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
-  enum storage::Type type;
+  enum storage::RedisType type;
   std::string key_type;
   rocksdb::Status s = db->storage()->GetType(key_, type);
   if (!s.ok()) {
@@ -951,22 +958,22 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     return -1;
   }
   switch (type) {
-    case storage::Type::kString:
+    case storage::RedisType::kString:
       key_type_ = 'k';
       break;
-    case storage::Type::kHash:
+    case storage::RedisType::kHash:
       key_type_ = 'h';
       break;
-    case storage::Type::kList:
+    case storage::RedisType::kList:
       key_type_ = 'l';
       break;
-    case storage::Type::kSet:
+    case storage::RedisType::kSet:
       key_type_ = 's';
       break;
-    case storage::Type::kZset:
+    case storage::RedisType::kZset:
       key_type_ = 'z';
       break;
-    case storage::Type::kStream:
+    case storage::RedisType::kStream:
       key_type_ = 'm';
       break;
     default:

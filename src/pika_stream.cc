@@ -295,7 +295,6 @@ void XRangeCmd::Do() {
       return;
     }
   }
-
   AppendMessagesToRes(res_, id_messages, db_.get());
 }
 

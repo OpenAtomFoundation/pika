@@ -20,7 +20,7 @@ namespace storage {
 
 class ZSetsScoreFilter : public rocksdb::CompactionFilter {
  public:
-  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum Type type)
+  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
       : db_(db), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
@@ -51,10 +51,10 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
         meta_not_found_ = false;
-        auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+        auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
-        } else if (type == Type::kZset) {
+        } else if (type == RedisType::kZset) {
           ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
           cur_meta_version_ = parsed_zsets_meta_value.Version();
           cur_meta_etime_ = parsed_zsets_meta_value.Etime();
@@ -117,12 +117,12 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   mutable bool meta_not_found_ = false;
   mutable uint64_t cur_meta_version_ = 0;
   mutable uint64_t cur_meta_etime_ = 0;
-  enum Type type_ = Type::kNulltype;
+  enum RedisType type_ = RedisType::kNone;
 };
 
 class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum Type type)
+  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
@@ -135,7 +135,7 @@ class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
-  enum Type type_ = Type::kNulltype;
+  enum RedisType type_ = RedisType::kNone;
 };
 
 }  //  namespace storage

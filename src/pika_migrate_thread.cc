@@ -242,16 +242,23 @@ static int MigrateStreams(net::NetCli *cli, const std::string& key, const std::s
 
   std::vector<storage::IdMessage> id_messages;
   storage::StreamScanArgs arg;
+  storage::StreamUtils::StreamParseIntervalId("-", arg.start_sid, &arg.start_ex, 0);
+  storage::StreamUtils::StreamParseIntervalId("+", arg.end_sid, &arg.end_ex, UINT64_MAX);
   s = db->storage()->XRange(key, arg, id_messages);
   if (s.ok()) {
     net::RedisCmdArgsType argv;
     std::string send_str;
     argv.emplace_back("XADD");
     argv.emplace_back(key);
-
-    for (const auto &field_value : id_messages) {
-      argv.emplace_back(field_value.field);
-      argv.emplace_back(field_value.value);
+    for (auto &fv : id_messages) {
+      std::vector<std::string> message;
+      storage::StreamUtils::DeserializeMessage(fv.value, message);
+      storage::streamID sid;
+      sid.DeserializeFrom(fv.field);
+      argv.emplace_back(sid.ToString());
+      for (auto &m : message) {
+        argv.emplace_back(m);
+      }
     }
     net::SerializeRedisCommand(argv, &send_str);
     if (doMigrate(cli, send_str) < 0) {
@@ -632,7 +639,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
-  enum storage::Type type;
+  enum storage::RedisType type;
   char key_type;
   rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
@@ -645,25 +652,25 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
     }
   }
   switch (type) {
-    case storage::Type::kString:
+    case storage::RedisType::kString:
       key_type = 'k';
       break;
-    case storage::Type::kHash:
+    case storage::RedisType::kHash:
       key_type = 'h';
       break;
-    case storage::Type::kList:
+    case storage::RedisType::kList:
       key_type = 'l';
       break;
-    case storage::Type::kSet:
+    case storage::RedisType::kSet:
       key_type = 's';
       break;
-    case storage::Type::kZset:
+    case storage::RedisType::kZset:
       key_type = 'z';
       break;
-    case storage::Type::kStream:
+    case storage::RedisType::kStream:
       key_type = 'm';
       break;
-    case storage::Type::kNulltype:
+    case storage::RedisType::kNone:
       return 0;
     default:
       LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";

@@ -23,7 +23,7 @@ const uint64_t InitalRightIndex = 9223372036854775808U;
 class ListsMetaValue : public InternalValue {
  public:
   explicit ListsMetaValue(const rocksdb::Slice& user_value)
-      : InternalValue(Type::kList, user_value), left_index_(InitalLeftIndex), right_index_(InitalRightIndex) {}
+      : InternalValue(RedisType::kList, user_value), left_index_(InitalLeftIndex), right_index_(InitalRightIndex) {}
 
   rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
@@ -82,7 +82,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
     assert(internal_value_str->size() >= kListsMetaValueSuffixLength);
     if (internal_value_str->size() >= kListsMetaValueSuffixLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>((*internal_value_str)[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>((*internal_value_str)[0]));
       offset += kTypeLength;
       user_value_ = rocksdb::Slice(internal_value_str->data() + kTypeLength,
                                    internal_value_str->size() - kListsMetaValueSuffixLength - kTypeLength);
@@ -109,7 +109,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>(internal_value_slice[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>(internal_value_slice[0]));
       offset += kTypeLength;
       user_value_ = rocksdb::Slice(internal_value_slice.data() + kTypeLength,
                                    internal_value_slice.size() - kListsMetaValueSuffixLength - kTypeLength);

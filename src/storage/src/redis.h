@@ -188,7 +188,7 @@ class Redis {
   Status TTL(const Slice& key, int64_t* timestamp);
   Status PKPatternMatchDel(const std::string& pattern, int32_t* ret);
 
-  Status GetType(const Slice& key, enum Type& type);
+  Status GetType(const Slice& key, enum RedisType& type);
   Status IsExist(const Slice& key);
   // Hash Commands
   Status HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
@@ -389,13 +389,13 @@ class Redis {
     return nullptr;
   }
 
-  enum Type GetMetaValueType(const std::string &meta_value) {
-    Type meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+  enum RedisType GetMetaValueType(const std::string &meta_value) {
+    RedisType meta_type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
     return meta_type;
   }
 
-  inline bool ExpectedMetaValue(enum Type type, const std::string &meta_value) {
-    auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+  inline bool ExpectedMetaValue(enum RedisType type, const std::string &meta_value) {
+    auto meta_type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
     if (type == meta_type) {
       return true;
     }
@@ -403,18 +403,18 @@ class Redis {
   }
 
   inline bool ExpectedStale(const std::string &meta_value) {
-    auto meta_type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
-    if (meta_type == Type::kZset || meta_type == Type::kSet || meta_type == Type::kHash) {
+    auto meta_type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
+    if (meta_type == RedisType::kZset || meta_type == RedisType::kSet || meta_type == RedisType::kHash) {
       ParsedBaseMetaValue parsed_meta_value(meta_value);
       if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
         return true;
       }
-    } else if (meta_type == Type::kList) {
+    } else if (meta_type == RedisType::kList) {
       ParsedListsMetaValue parsed_lists_meta_value(meta_value);
       if (parsed_lists_meta_value.IsStale() || parsed_lists_meta_value.Count() == 0) {
         return true;
       }
-    } else if (meta_type == Type::kStream) {
+    } else if (meta_type == RedisType::kStream) {
       StreamMetaValue stream_meta_value;
       if (stream_meta_value.length() == 0) {
         return true;

@@ -21,12 +21,19 @@ namespace storage {
 /*
  * Use enumeration types to store data structure types
  */
-enum class Type : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset = 4, kStream = 5, kNulltype = 6 };
-constexpr char* TypeStrings[] = {"String", "Hash", "List", "Set", "Zset", "Streams", "Nulltype"};
+enum class RedisType : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset = 4, kStream = 5, kNone = 6 };
+constexpr char* RedisTypeStrings[] = {"string", "hash", "list", "set", "zset", "streams", "none"};
+
+constexpr char* RedisTypeToString(RedisType type) {
+  if (type < RedisType::kString || type > RedisType::kNone) {
+    return RedisTypeStrings[static_cast<int>(RedisType::kNone)];
+  }
+  return RedisTypeStrings[static_cast<int>(type)];
+}
 
 class InternalValue {
 public:
- explicit InternalValue(Type type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
+ explicit InternalValue(RedisType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
    ctime_ = pstd::NowMicros() / 1e6;
  }
 
@@ -68,7 +75,7 @@ protected:
   uint64_t version_ = 0;
   uint64_t etime_ = 0;
   uint64_t ctime_ = 0;
-  Type type_;
+  RedisType type_;
   char reserve_[16] = {0};
 };
 
@@ -141,7 +148,7 @@ protected:
   uint64_t version_ = 0 ;
   uint64_t ctime_ = 0;
   uint64_t etime_ = 0;
-  Type type_;
+  RedisType type_;
   char reserve_[16] = {0}; //unused
 };
 

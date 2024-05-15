@@ -27,7 +27,7 @@ public:
  /*
   * The header of the Value field is initially initialized to knulltype
   */
-  explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(Type::kNulltype, user_value) {}
+  explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(RedisType::kNone, user_value) {}
   virtual ~BaseDataValue() {}
 
   virtual rocksdb::Slice Encode() {

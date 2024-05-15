@@ -36,9 +36,9 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
      * The field designs of the remaining zset,set,hash and stream in meta-value
      * are the same, so the same filtering strategy is used
      */
-    auto type = static_cast<enum Type>(static_cast<uint8_t>(value[0]));
+    auto type = static_cast<enum RedisType>(static_cast<uint8_t>(value[0]));
     DEBUG("==========================START==========================");
-    if (type == Type::kString) {
+    if (type == RedisType::kString) {
       ParsedStringsValue parsed_strings_value(value);
       DEBUG("[StringsFilter]  key: {}, value = {}, timestamp: {}, cur_time: {}", key.ToString().c_str(),
             parsed_strings_value.UserValue().ToString().c_str(), parsed_strings_value.Etime(), cur_time);
@@ -49,7 +49,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
         DEBUG("Reserve");
         return false;
       }
-    } else if (type == Type::kList) {
+    } else if (type == RedisType::kList) {
       ParsedListsMetaValue parsed_lists_meta_value(value);
       DEBUG("[ListMetaFilter], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
             parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
@@ -100,7 +100,7 @@ class BaseMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 
 class BaseDataFilter : public rocksdb::CompactionFilter {
  public:
-  BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum Type type)
+  BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum RedisType type)
       : db_(db),
         cf_handles_ptr_(cf_handles_ptr),
         type_(type)
@@ -133,10 +133,10 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
         meta_not_found_ = false;
-        auto type = static_cast<enum Type>(static_cast<uint8_t>(meta_value[0]));
+        auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
-        } else if (type == Type::kHash || type == Type::kSet || type == Type::kStream) {
+        } else if (type == RedisType::kHash || type == RedisType::kSet || type == RedisType::kStream) {
           ParsedBaseMetaValue parsed_base_meta_value(&meta_value);
           cur_meta_version_ = parsed_base_meta_value.Version();
           cur_meta_etime_ = parsed_base_meta_value.Etime();
@@ -200,12 +200,12 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
   mutable bool meta_not_found_ = false;
   mutable uint64_t cur_meta_version_ = 0;
   mutable uint64_t cur_meta_etime_ = 0;
-  enum Type type_ = Type::kNulltype;
+  enum RedisType type_ = RedisType::kNone;
 };
 
 class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum Type type)
+  BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
@@ -216,7 +216,7 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
-  enum Type type_ = Type::kNulltype;
+  enum RedisType type_ = RedisType::kNone;
 };
 
 using HashesMetaFilter = BaseMetaFilter;

@@ -18,7 +18,7 @@ namespace storage {
 */
 class StringsValue : public InternalValue {
  public:
-  explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(Type::kString, user_value) {}
+  explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(RedisType::kString, user_value) {}
   virtual rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
     size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
@@ -45,7 +45,7 @@ class ParsedStringsValue : public ParsedInternalValue {
     // TODO Why need this logic; Mixficsol
     if (internal_value_str->size() >= kStringsValueMinLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>((*internal_value_str)[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>((*internal_value_str)[0]));
       offset += kTypeLength;
       user_value_ = rocksdb::Slice(internal_value_str->data() + offset,
                                    internal_value_str->size() - kStringsValueSuffixLength - offset);
@@ -62,7 +62,7 @@ class ParsedStringsValue : public ParsedInternalValue {
   explicit ParsedStringsValue(const rocksdb::Slice& internal_value_slice) : ParsedInternalValue(internal_value_slice) {
     if (internal_value_slice.size() >= kStringsValueMinLength) {
       size_t offset = 0;
-      type_ = static_cast<Type>(static_cast<uint8_t>(internal_value_slice[0]));
+      type_ = static_cast<RedisType>(static_cast<uint8_t>(internal_value_slice[0]));
       offset += kTypeLength;
       user_value_ = rocksdb::Slice(internal_value_slice.data() + offset, internal_value_slice.size() - kStringsValueSuffixLength - offset);
       offset += user_value_.size();
