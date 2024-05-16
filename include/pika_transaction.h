@@ -34,7 +34,7 @@ class ExecCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {}
   void Merge() override {}
   std::vector<std::string> current_key() const override { return {}; }
-
+  void Execute() override;
  private:
   struct CmdInfo {
    public:

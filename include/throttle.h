@@ -18,19 +18,21 @@ class Throttle {
   Throttle() {}
   Throttle(size_t throttle_throughput_bytes, size_t check_cycle);
   ~Throttle();
+
+  void ResetThrottleThroughputBytes(size_t new_throughput_bytes_per_s) {
+        throttle_throughput_bytes_.store(new_throughput_bytes_per_s);
+    };
   size_t ThrottledByThroughput(size_t bytes);
   void ReturnUnusedThroughput(size_t acquired, size_t consumed, size_t elaspe_time_us);
   static Throttle& GetInstance() {
     static Throttle instance(g_pika_conf->throttle_bytes_per_second(), 10);
     return instance;
   }
-
- private:
+private:
   std::atomic<size_t> throttle_throughput_bytes_ = 100 * 1024 * 1024;
-  // the num of tasks doing install_snapshot
   std::atomic<size_t> last_throughput_check_time_us_;
   std::atomic<size_t> cur_throughput_bytes_;
-  // user defined check cycles of throughput per second
+  // check cycles of throughput per second
   size_t check_cycle_ = 10;
   pstd::Mutex keys_mutex_;
   size_t caculate_check_time_us_(int64_t current_time_us, int64_t check_cycle) {

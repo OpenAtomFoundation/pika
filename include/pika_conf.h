@@ -169,7 +169,7 @@ class PikaConf : public pstd::BaseConf {
   uint64_t MaxTotalWalSize() {
     std::shared_lock l(rwlock_);
     return max_total_wal_size_;
-  } 
+  }
   int64_t max_client_response_size() {
     std::shared_lock l(rwlock_);
     return max_client_response_size_;
@@ -418,7 +418,9 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_rsync_parallel_num_;
   }
-
+  int64_t rsync_timeout_ms() {
+      return rsync_timeout_ms_.load(std::memory_order::memory_order_relaxed);
+  }
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
@@ -739,6 +741,13 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("max-rsync-parallel-num", std::to_string(value));
     max_rsync_parallel_num_ = value;
   }
+
+  void SetRsyncTimeoutMs(int64_t value){
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("rsync-timeout-ms", std::to_string(value));
+    rsync_timeout_ms_.store(value);
+  }
+
   void SetAclPubsubDefault(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("acl-pubsub-default", value);
@@ -935,6 +944,7 @@ class PikaConf : public pstd::BaseConf {
   // Rsync Rate limiting configuration
   int throttle_bytes_per_second_ = 207200000;
   int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
+  std::atomic_int64_t rsync_timeout_ms_ = 1000;
 };
 
 #endif

@@ -8,10 +8,10 @@
 #include "include/pika_transaction.h"
 #include "include/pika_admin.h"
 #include "include/pika_client_conn.h"
+#include "include/pika_define.h"
 #include "include/pika_list.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "include/pika_transaction.h"
 #include "src/pstd/include/scope_record_lock.h"
 
 extern std::unique_ptr<PikaServer> g_pika_server;
@@ -42,22 +42,6 @@ void MultiCmd::DoInitial() {
 void ExecCmd::Do() {
   auto conn = GetConn();
   auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  if (client_conn == nullptr) {
-    res_.SetRes(CmdRes::kErrOther, name());
-    return;
-  }
-  if (!client_conn->IsInTxn()) {
-    res_.SetRes(CmdRes::kErrOther, "EXEC without MULTI");
-    return;
-  }
-  if (IsTxnFailedAndSetState()) {
-    client_conn->ExitTxn();
-    return;
-  }
-  SetCmdsVec();
-  Lock();
-  conn = GetConn();
-  client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   std::vector<CmdRes> res_vec = {};
   std::vector<std::shared_ptr<std::string>> resp_strs;
   for (size_t i = 0; i < cmds_.size(); ++i) {
@@ -96,9 +80,30 @@ void ExecCmd::Do() {
   });
 
   res_.AppendArrayLen(res_vec.size());
-  for (auto &r : res_vec) {
+  for (auto& r : res_vec) {
     res_.AppendStringRaw(r.message());
   }
+}
+
+void ExecCmd::Execute() {
+  auto conn = GetConn();
+  auto client_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  if (client_conn == nullptr) {
+    res_.SetRes(CmdRes::kErrOther, name());
+    return;
+  }
+  if (!client_conn->IsInTxn()) {
+    res_.SetRes(CmdRes::kErrOther, "EXEC without MULTI");
+    return;
+  }
+  if (IsTxnFailedAndSetState()) {
+    client_conn->ExitTxn();
+    return;
+  }
+  SetCmdsVec();
+  Lock();
+  Do();
+
   Unlock();
   ServeToBLrPopWithKeys();
   list_cmd_.clear();
