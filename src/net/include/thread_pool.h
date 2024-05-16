@@ -82,9 +82,12 @@ class ThreadPool : public pstd::noncopyable {
     Node* link_older = nullptr;
     Node* link_newer = nullptr;
 
-    Task task;
+    // true if task is TimeTask
+    bool is_time_task;
+    TimeTask task;
 
-    Node(TaskFunc func, void* arg) : task(func, arg) {}
+    Node(TaskFunc func, void* arg) : is_time_task(false), task(0, func, arg) {}
+    Node(uint64_t exec_time, TaskFunc func, void* arg) : is_time_task(true), task(exec_time, func, arg) {}
 
     inline void Exec() { task.func(task.arg); }
     inline Node* Next() { return link_newer; }
@@ -105,8 +108,11 @@ class ThreadPool : public pstd::noncopyable {
   bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
 
   std::atomic<Node*> newest_node_;
-  std::atomic<int> node_cnt_;
-  const int queue_slow_size_;  // default value: worker_num_ * 100
+  std::atomic<int> node_cnt_;  // for task
+  std::atomic<Node*> time_newest_node_;
+  std::atomic<int> time_node_cnt_;  // for time task
+
+  const int queue_slow_size_;  // default value: max(worker_num_ * 100, max_queue_size_)
   size_t max_queue_size_;
 
   const uint64_t max_yield_usec_;

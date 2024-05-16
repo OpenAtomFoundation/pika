@@ -14,6 +14,8 @@
 
 #include "net/include/likely.h"
 
+namespace net {
+  
 class Random {
  private:
   enum : uint32_t {
@@ -84,4 +86,6 @@ class Random {
   }
 };
 
-#endif  // LIKELY_H
+}  // namespace net
+
+#endif  // RANDOM_H
