@@ -845,7 +845,7 @@ class PKRScanRangeCmd : public Cmd {
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string key_start_;
   std::string key_end_;
   std::string pattern_ = "*";

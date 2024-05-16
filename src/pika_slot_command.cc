@@ -251,7 +251,6 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
   int command_num = -1;
   int64_t ttl = 0;
   rocksdb::Status s;
-
   switch (type) {
     case 'k':
       command_num = ParseKKey(key, wbuf_str, db);
@@ -760,37 +759,20 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
-  enum storage::RedisType type;
+  enum storage::DataType type;
   rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  switch (type) {
-    case storage::RedisType::kString:
-      key_type = "k";
-      break;
-    case storage::RedisType::kHash:
-      key_type = "h";
-      break;
-    case storage::RedisType::kList:
-      key_type = "l";
-      break;
-    case storage::RedisType::kSet:
-      key_type = "s";
-      break;
-    case storage::RedisType::kZset:
-      key_type = "z";
-      break;
-    case storage::RedisType::kStream:
-      key_type = "m";
-      break;
-    default:
-      LOG(WARNING) << "Get key type error: " << key;
-      key_type = "";
-      return -1;
+  auto key_type_char = storage::DataTypeToTag(type);
+  if (key_type_char == DataTypeToTag(storage::DataType::kNones)) {
+    LOG(WARNING) << "Get key type error: " << key;
+    key_type = "";
+    return -1;
   }
+  key_type = key_type_char;
   return 1;
 }
 
@@ -944,7 +926,7 @@ void SlotsMgrtTagSlotCmd::Do() {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
-  enum storage::RedisType type;
+  enum storage::DataType type;
   std::string key_type;
   rocksdb::Status s = db->storage()->GetType(key_, type);
   if (!s.ok()) {
@@ -957,29 +939,11 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     }
     return -1;
   }
-  switch (type) {
-    case storage::RedisType::kString:
-      key_type_ = 'k';
-      break;
-    case storage::RedisType::kHash:
-      key_type_ = 'h';
-      break;
-    case storage::RedisType::kList:
-      key_type_ = 'l';
-      break;
-    case storage::RedisType::kSet:
-      key_type_ = 's';
-      break;
-    case storage::RedisType::kZset:
-      key_type_ = 'z';
-      break;
-    case storage::RedisType::kStream:
-      key_type_ = 'm';
-      break;
-    default:
-      LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
-      res_.AppendInteger(0);
-      return -1;
+  key_type = storage::DataTypeToTag(type);
+  if (type == storage::DataType::kNones) {
+    LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
+    res_.AppendInteger(0);
+    return -1;
   }
   return 0;
 }

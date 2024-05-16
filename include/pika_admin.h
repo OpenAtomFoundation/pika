@@ -420,9 +420,9 @@ class ScandbCmd : public Cmd {
   Cmd* Clone() override { return new ScandbCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   void DoInitial() override;
-  void Clear() override { type_ = storage::kAll; }
+  void Clear() override { type_ = storage::DataType::kAll; }
 };
 
 class SlowlogCmd : public Cmd {
@@ -469,7 +469,7 @@ class PKPatternMatchDelCmd : public Cmd {
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string pattern_;
   void DoInitial() override;
 };

@@ -343,7 +343,7 @@ Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-    if (!ExpectedMetaValue(RedisType::kStream, iter->value().ToString())) {
+    if (!ExpectedMetaValue(DataType::kStreams, iter->value().ToString())) {
       continue;
     }
     ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
@@ -364,11 +364,11 @@ Status Redis::StreamsDel(const Slice& key) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok() && !ExpectedMetaValue(RedisType::kStream, meta_value)) {
+  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, meta_value)) {
     if (ExpectedStale(meta_value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + RedisTypeStrings[static_cast<int>(RedisType::kStream)] + "get type: " + RedisTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
   if (s.ok()) {
@@ -391,11 +391,11 @@ Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& 
   std::string value;
   BaseMetaKey base_meta_key(key);
   auto s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &value);
-  if (s.ok() && !ExpectedMetaValue(RedisType::kStream, value)) {
+  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, value)) {
     if (ExpectedStale(value)) {
       s = Status::NotFound();
     } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + RedisTypeStrings[static_cast<int>(RedisType::kStream)] + "get type: " + RedisTypeStrings[static_cast<int>(GetMetaValueType(value))]);
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(value))]);
     }
   }
   if (s.ok()) {

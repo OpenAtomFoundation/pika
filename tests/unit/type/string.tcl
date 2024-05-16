@@ -452,7 +452,7 @@ start_server {tags {"string"}} {
         assert_error "WRONGTYPE*" {r setrange mykey 0 bar}
     }
 
-# Keys for multiple data types of Pika can be duplicate
+# Configuration parameters are not set
 #    test "SETRANGE with out of range offset" {
 #        r del mykey
 #        assert_error "*maximum allowed size*" {r setrange mykey [expr 512*1024*1024-4] world}

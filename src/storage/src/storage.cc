@@ -106,7 +106,7 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
 }
 
 Status Storage::LoadCursorStartKey(const DataType& dtype, int64_t cursor, char* type, std::string* start_key) {
-  std::string index_key = DataTypeTag[dtype] + std::to_string(cursor);
+  std::string index_key = DataTypeTag[static_cast<int>(dtype)] + std::to_string(cursor);
   std::string index_value;
   Status s = cursors_store_->Lookup(index_key, &index_value);
   if (!s.ok() || index_value.size() < 3) {
@@ -118,7 +118,7 @@ Status Storage::LoadCursorStartKey(const DataType& dtype, int64_t cursor, char* 
 }
 
 Status Storage::StoreCursorStartKey(const DataType& dtype, int64_t cursor, char type, const std::string& next_key) {
-  std::string index_key = DataTypeTag[dtype] + std::to_string(cursor);
+  std::string index_key = DataTypeTag[static_cast<int>(dtype)] + std::to_string(cursor);
   // format: data_type tag(1B) | start_key
   std::string index_value(1, type);
   index_value.append(next_key);
@@ -1229,7 +1229,7 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
   Status s = LoadCursorStartKey(dtype, cursor, &key_type, &start_key);
   if (!s.ok()) {
     // If want to scan all the databases, we start with the strings database
-    key_type = dtype == DataType::kAll ? DataTypeTag[DataType::kStrings] : DataTypeTag[dtype];
+    key_type = dtype == DataType::kAll ? DataTypeTag[static_cast<int>(DataType::kStrings)] : DataTypeTag[static_cast<int>(dtype)];
     start_key = prefix;
     cursor = 0;
   }
@@ -1245,7 +1245,7 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
     }
     std::copy(pos, iter_end, std::back_inserter(types));
   } else {
-    types.push_back(DataTypeTag[dtype]);
+    types.push_back(DataTypeTag[static_cast<int>(dtype)]);
   }
 
   for (const auto& type : types) {
@@ -1470,7 +1470,7 @@ int64_t Storage::TTL(const Slice& key) {
   return timestamp;
 }
 
-Status Storage::GetType(const std::string& key, enum RedisType& type) {
+Status Storage::GetType(const std::string& key, enum DataType& type) {
   auto& inst = GetDBInstance(key);
   inst->GetType(key, type);
   return Status::OK();
@@ -1503,25 +1503,25 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
 void Storage::ScanDatabase(const DataType& type) {
   for (const auto& inst : insts_) {
     switch (type) {
-      case kStrings:
+      case DataType::kStrings:
         inst->ScanStrings();
         break;
-      case kHashes:
+      case DataType::kHashes:
         inst->ScanHashes();
         break;
-      case kSets:
+      case DataType::kSets:
         inst->ScanSets();
         break;
-      case kZSets:
+      case DataType::kZSets:
         inst->ScanZsets();
         break;
-      case kLists:
+      case DataType::kLists:
         inst->ScanLists();
         break;
-      case kStreams:
+      case DataType::kStreams:
         // do noting
         break;
-      case kAll:
+      case DataType::kAll:
         inst->ScanStrings();
         inst->ScanHashes();
         inst->ScanSets();
@@ -1658,7 +1658,7 @@ Status Storage::StartBGThread() {
 
 Status Storage::AddBGTask(const BGTask& bg_task) {
   bg_tasks_mutex_.lock();
-  if (bg_task.type == kAll) {
+  if (bg_task.type == DataType::kAll) {
     // if current task it is global compact,
     // clear the bg_tasks_queue_;
     std::queue<BGTask> empty_queue;
@@ -1711,7 +1711,7 @@ Status Storage::Compact(const DataType& type, bool sync) {
 
 // run compactrange for all rocksdb instance
 Status Storage::DoCompactRange(const DataType& type, const std::string& start, const std::string& end) {
-  if (type != kAll) {
+  if (type != DataType::kAll) {
     return Status::InvalidArgument("");
   }
 

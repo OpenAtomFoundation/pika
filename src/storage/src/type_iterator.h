@@ -118,8 +118,8 @@ public:
   ~StringsIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kString) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kStrings) {
       return true;
     }
     ParsedStringsValue parsed_value(raw_iter_->value());
@@ -150,8 +150,8 @@ public:
   ~HashesIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kHash) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kHashes) {
       return true;
     }
     ParsedHashesMetaValue parsed_meta_value(raw_iter_->value());
@@ -181,8 +181,8 @@ public:
   ~ListsIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kList) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kLists) {
       return true;
     }
     ParsedListsMetaValue parsed_meta_value(raw_iter_->value());
@@ -212,8 +212,8 @@ public:
   ~SetsIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kSet) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kSets) {
       return true;
     }
     ParsedSetsMetaValue parsed_meta_value(raw_iter_->value());
@@ -243,8 +243,8 @@ public:
   ~ZsetsIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kZset) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kZSets) {
       return true;
     }
     ParsedZSetsMetaValue parsed_meta_value(raw_iter_->value());
@@ -274,8 +274,8 @@ public:
   ~StreamsIterator() {}
 
   bool ShouldSkip() override {
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type != RedisType::kStream) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kStreams) {
       return true;
     }
     ParsedStreamMetaValue parsed_meta_value(raw_iter_->value());
@@ -310,14 +310,14 @@ class AllIterator : public TypeIterator {
 
   bool ShouldSkip() override {
     std::string user_value;
-    auto type = static_cast<RedisType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == RedisType::kZset || type == RedisType::kSet || type == RedisType::kHash || type == RedisType::kStream) {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type == DataType::kZSets || type == DataType::kSets || type == DataType::kHashes || type == DataType::kStreams) {
       ParsedBaseMetaValue parsed_meta_value(raw_iter_->value());
       user_value = parsed_meta_value.UserValue().ToString();
       if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
         return true;
       }
-    } else if (type == RedisType::kList) {
+    } else if (type == DataType::kLists) {
       ParsedListsMetaValue parsed_meta_value(raw_iter_->value());
       user_value = parsed_meta_value.UserValue().ToString();
       if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {

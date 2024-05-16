@@ -478,7 +478,7 @@ Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
         break;
       }
       case TaskType::kCompactAll:
-        db_item.second->Compact(storage::kAll);
+        db_item.second->Compact(storage::DataType::kAll);
         break;
       default:
         break;

@@ -137,7 +137,7 @@ static int MigrateKv(net::NetCli *cli, const std::string& key, const std::shared
   }
 
   int r;
-  if (0 > (r = migrateKeyTTl(cli, key, storage::kStrings, db))) {
+  if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kStrings, db))) {
     return -1;
   } else {
     send_num += r;
@@ -174,7 +174,7 @@ static int MigrateHash(net::NetCli *cli, const std::string& key, const std::shar
 
   if (send_num > 0) {
     int r;
-    if ((r = migrateKeyTTl(cli, key, storage::kHashes, db)) < 0) {
+    if ((r = migrateKeyTTl(cli, key, storage::DataType::kHashes, db)) < 0) {
       return -1;
     } else {
       send_num += r;
@@ -224,7 +224,7 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
   // has send del key command
   if (send_num > 1) {
     int r;
-    if (0 > (r = migrateKeyTTl(cli, key, storage::kLists, db))) {
+    if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kLists, db))) {
       return -1;
     } else {
       send_num += r;
@@ -298,7 +298,7 @@ static int MigrateSet(net::NetCli *cli, const std::string& key, const std::share
 
   if (0 < send_num) {
     int r;
-    if (0 > (r = migrateKeyTTl(cli, key, storage::kSets, db))) {
+    if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kSets, db))) {
       return -1;
     } else {
       send_num += r;
@@ -337,7 +337,7 @@ static int MigrateZset(net::NetCli *cli, const std::string& key, const std::shar
 
   if (send_num > 0) {
     int r;
-    if ((r = migrateKeyTTl(cli, key, storage::kZSets, db)) < 0) {
+    if ((r = migrateKeyTTl(cli, key, storage::DataType::kZSets, db)) < 0) {
       return -1;
     } else {
       send_num += r;
@@ -639,7 +639,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
-  enum storage::RedisType type;
+  storage::DataType type;
   char key_type;
   rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
@@ -651,32 +651,11 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       return -1;
     }
   }
-  switch (type) {
-    case storage::RedisType::kString:
-      key_type = 'k';
-      break;
-    case storage::RedisType::kHash:
-      key_type = 'h';
-      break;
-    case storage::RedisType::kList:
-      key_type = 'l';
-      break;
-    case storage::RedisType::kSet:
-      key_type = 's';
-      break;
-    case storage::RedisType::kZset:
-      key_type = 'z';
-      break;
-    case storage::RedisType::kStream:
-      key_type = 'm';
-      break;
-    case storage::RedisType::kNone:
-      return 0;
-    default:
-      LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
-      return -1;
+  key_type = storage::DataTypeToTag(type);
+  if (type == storage::DataType::kNones) {
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
+    return -1;
   }
-
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
     return -2;

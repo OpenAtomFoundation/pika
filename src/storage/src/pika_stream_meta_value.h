@@ -25,7 +25,7 @@ static const uint64_t kDefaultStreamValueLength =
     sizeof(tree_id_t) + sizeof(uint64_t) + 3 * sizeof(streamID) + sizeof(int32_t) + sizeof(uint64_t) + kTypeLength;
 class StreamMetaValue {
  public:
-  explicit StreamMetaValue()  : type_(RedisType::kStream) {}
+  explicit StreamMetaValue()  : type_(DataType::kStreams) {}
 
   // used only when create a new stream
   void InitMetaValue() {
@@ -86,7 +86,7 @@ class StreamMetaValue {
       return;
     }
     char* pos = &value_[0];
-    type_ = static_cast<RedisType>(static_cast<uint8_t>((value_)[0]));
+    type_ = static_cast<DataType>(static_cast<uint8_t>((value_)[0]));
     pos += kTypeLength;
     groups_id_ = DecodeFixed32(pos);
     pos += sizeof(tree_id_t);
@@ -205,7 +205,7 @@ class StreamMetaValue {
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
   uint64_t version_{0};
-  RedisType type_;
+  DataType type_;
   std::string value_{};
 };
 
@@ -219,7 +219,7 @@ class ParsedStreamMetaValue {
       return;
     }
     char* pos = const_cast<char*>(value.data());
-    type_ = static_cast<RedisType>(static_cast<uint8_t>((value)[0]));
+    type_ = static_cast<DataType>(static_cast<uint8_t>((value)[0]));
     pos += kTypeLength;
     groups_id_ = DecodeFixed32(pos);
     pos += sizeof(tree_id_t);
@@ -278,7 +278,7 @@ class ParsedStreamMetaValue {
   streamID max_deleted_entry_id_;
   int32_t length_{0};  // number of the messages in the stream
   uint64_t version_{0};
-  RedisType type_;
+  DataType type_;
 };
 
 static const uint64_t kDefaultStreamCGroupValueLength = sizeof(streamID) + sizeof(uint64_t) + 2 * sizeof(tree_id_t) + kTypeLength;

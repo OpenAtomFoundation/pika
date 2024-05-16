@@ -86,7 +86,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // hash column-family options
   rocksdb::ColumnFamilyOptions hash_data_cf_ops(storage_options.options);
-  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, RedisType::kHash);
+  hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, DataType::kHashes);
   rocksdb::BlockBasedTableOptions hash_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     hash_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
@@ -95,7 +95,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // list column-family options
   rocksdb::ColumnFamilyOptions list_data_cf_ops(storage_options.options);
-  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, RedisType::kList);
+  list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, DataType::kLists);
   list_data_cf_ops.comparator = ListsDataKeyComparator();
 
   rocksdb::BlockBasedTableOptions list_data_cf_table_ops(table_ops);
@@ -106,7 +106,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // set column-family options
   rocksdb::ColumnFamilyOptions set_data_cf_ops(storage_options.options);
-  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, RedisType::kSet);
+  set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, DataType::kSets);
   rocksdb::BlockBasedTableOptions set_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     set_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
@@ -116,8 +116,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   // zset column-family options
   rocksdb::ColumnFamilyOptions zset_data_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions zset_score_cf_ops(storage_options.options);
-  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, RedisType::kZset);
-  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, RedisType::kZset);
+  zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, DataType::kZSets);
+  zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, DataType::kZSets);
   zset_score_cf_ops.comparator = ZSetsScoreKeyComparator();
 
   rocksdb::BlockBasedTableOptions zset_meta_cf_table_ops(table_ops);
@@ -131,7 +131,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // stream column-family options
   rocksdb::ColumnFamilyOptions stream_data_cf_ops(storage_options.options);
-  stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, RedisType::kStream);
+  stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, DataType::kStreams);
   rocksdb::BlockBasedTableOptions stream_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     stream_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
@@ -157,7 +157,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
 Status Redis::GetScanStartPoint(const DataType& type, const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
   std::string index_key;
-  index_key.append(1, DataTypeTag[type]);
+  index_key.append(1, DataTypeTag[static_cast<int>(type)]);
   index_key.append("_");
   index_key.append(key.ToString());
   index_key.append("_");
@@ -170,7 +170,7 @@ Status Redis::GetScanStartPoint(const DataType& type, const Slice& key, const Sl
 Status Redis::StoreScanNextPoint(const DataType& type, const Slice& key, const Slice& pattern, int64_t cursor,
                                  const std::string& next_point) {
   std::string index_key;
-  index_key.append(1, DataTypeTag[type]);
+  index_key.append(1, DataTypeTag[static_cast<int>(type)]);
   index_key.append("_");
   index_key.append(key.ToString());
   index_key.append("_");
@@ -213,7 +213,7 @@ Status Redis::UpdateSpecificKeyStatistics(const DataType& dtype, const std::stri
   if ((statistics_store_->Capacity() != 0U) && (count != 0U) && (small_compaction_threshold_ != 0U)) {
     KeyStatistics data;
     std::string lkp_key;
-    lkp_key.append(1, DataTypeTag[dtype]);
+    lkp_key.append(1, DataTypeTag[static_cast<int>(dtype)]);
     lkp_key.append(key);
     statistics_store_->Lookup(lkp_key, &data);
     data.AddModifyCount(count);
@@ -227,7 +227,7 @@ Status Redis::UpdateSpecificKeyDuration(const DataType& dtype, const std::string
   if ((statistics_store_->Capacity() != 0U) && (duration != 0U) && (small_compaction_duration_threshold_ != 0U)) {
     KeyStatistics data;
     std::string lkp_key;
-    lkp_key.append(1, DataTypeTag[dtype]);
+    lkp_key.append(1, DataTypeTag[static_cast<int>(dtype)]);
     lkp_key.append(key);
     statistics_store_->Lookup(lkp_key, &data);
     data.AddDuration(duration);
@@ -241,7 +241,7 @@ Status Redis::AddCompactKeyTaskIfNeeded(const DataType& dtype, const std::string
   if (total < small_compaction_threshold_ || duration < small_compaction_duration_threshold_) {
     return Status::OK();
   } else {
-    std::string lkp_key(1, DataTypeTag[dtype]);
+    std::string lkp_key(1, DataTypeTag[static_cast<int>(dtype)]);
     lkp_key.append(key);
     storage_->AddBGTask({dtype, kCompactRange, {key}});
     statistics_store_->Remove(lkp_key);

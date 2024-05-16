@@ -18,22 +18,28 @@
 
 namespace storage {
 
-/*
- * Use enumeration types to store data structure types
- */
-enum class RedisType : uint8_t { kString = 0, kHash = 1, kList = 2, kSet = 3, kZset = 4, kStream = 5, kNone = 6 };
-constexpr char* RedisTypeStrings[] = {"string", "hash", "list", "set", "zset", "streams", "none"};
+enum class DataType : uint8_t { kStrings = 0, kHashes = 1, kSets = 2, kLists = 3, kZSets = 4, kStreams = 5, kNones = 6, kAll = 7 };
 
-constexpr char* RedisTypeToString(RedisType type) {
-  if (type < RedisType::kString || type > RedisType::kNone) {
-    return RedisTypeStrings[static_cast<int>(RedisType::kNone)];
+constexpr char DataTypeTag[] = { 'k', 'h', 's', 'l', 'z', 'x', 'n', 'a'};
+constexpr char* DataTypeStrings[] = { "string", "hash", "set", "list", "zset", "streams", "none", "all"};
+
+constexpr char* DataTypeToString(DataType type) {
+  if (type < DataType::kStrings || type > DataType::kNones) {
+    return DataTypeStrings[static_cast<int>(DataType::kNones)];
   }
-  return RedisTypeStrings[static_cast<int>(type)];
+  return DataTypeStrings[static_cast<int>(type)];
+}
+
+constexpr char DataTypeToTag(DataType type) {
+  if (type < DataType::kStrings || type > DataType::kNones) {
+    return DataTypeTag[static_cast<int>(DataType::kNones)];
+  }
+  return DataTypeTag[static_cast<int>(type)];
 }
 
 class InternalValue {
 public:
- explicit InternalValue(RedisType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
+ explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
    ctime_ = pstd::NowMicros() / 1e6;
  }
 
@@ -75,7 +81,7 @@ protected:
   uint64_t version_ = 0;
   uint64_t etime_ = 0;
   uint64_t ctime_ = 0;
-  RedisType type_;
+  DataType type_;
   char reserve_[16] = {0};
 };
 
@@ -148,7 +154,7 @@ protected:
   uint64_t version_ = 0 ;
   uint64_t ctime_ = 0;
   uint64_t etime_ = 0;
-  RedisType type_;
+  DataType type_;
   char reserve_[16] = {0}; //unused
 };
 

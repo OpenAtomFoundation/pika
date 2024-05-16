@@ -20,7 +20,7 @@ namespace storage {
 
 class ZSetsScoreFilter : public rocksdb::CompactionFilter {
  public:
-  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
+  ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum DataType type)
       : db_(db), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
@@ -53,7 +53,7 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       }
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
-        auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
+        auto type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
         }
@@ -117,12 +117,12 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   mutable bool meta_not_found_ = false;
   mutable uint64_t cur_meta_version_ = 0;
   mutable uint64_t cur_meta_etime_ = 0;
-  enum RedisType type_ = RedisType::kNone;
+  enum DataType type_ = DataType::kNones;
 };
 
 class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
+  ZSetsScoreFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum DataType type)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
@@ -135,7 +135,7 @@ class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
-  enum RedisType type_ = RedisType::kNone;
+  enum DataType type_ = DataType::kNones;
 };
 
 }  //  namespace storage

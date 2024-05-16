@@ -2905,18 +2905,18 @@ void ScandbCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 1) {
-    type_ = storage::kAll;
+    type_ = storage::DataType::kAll;
   } else {
     if (strcasecmp(argv_[1].data(), "string") == 0) {
-      type_ = storage::kStrings;
+      type_ = storage::DataType::kStrings;
     } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-      type_ = storage::kHashes;
+      type_ = storage::DataType::kHashes;
     } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-      type_ = storage::kSets;
+      type_ = storage::DataType::kSets;
     } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-      type_ = storage::kZSets;
+      type_ = storage::DataType::kZSets;
     } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-      type_ = storage::kLists;
+      type_ = storage::DataType::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
     }

@@ -26,7 +26,7 @@ namespace storage {
 
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
-  ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum RedisType type)
+  ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum DataType type)
       : db_(db),
         cf_handles_ptr_(cf_handles_ptr),
         type_(type)
@@ -61,7 +61,7 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
       }
       rocksdb::Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
-        auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
+        auto type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
         }
@@ -125,12 +125,12 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
   mutable bool meta_not_found_ = false;
   mutable uint64_t cur_meta_version_ = 0;
   mutable uint64_t cur_meta_etime_ = 0;
-  enum RedisType type_ = RedisType::kNone;
+  enum DataType type_ = DataType::kNones;
 };
 
 class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum RedisType type)
+  ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum DataType type)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
@@ -142,7 +142,7 @@ class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
-  enum RedisType type_ = RedisType::kNone;
+  enum DataType type_ = DataType::kNones;
 };
 
 }  //  namespace storage

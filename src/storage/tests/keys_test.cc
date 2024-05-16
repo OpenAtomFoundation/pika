@@ -5050,7 +5050,7 @@ TEST_F(KeysTest, ExpireTest) {
   ret = db.Expire("GP3_EXPIRE_LISTS_KEY", 1);
   LOG(WARNING) << "ret: " << ret;
   for (const auto& ts : type_status) {
-    LOG(WARNING) << "type: " << ts.first << " status: " << ts.second.ToString();
+    LOG(WARNING) << "type: " << storage::DataTypeStrings[static_cast<int>(ts.first)] << " status: " << ts.second.ToString();
   }
 //  ASSERT_EQ(ret, 0);
 

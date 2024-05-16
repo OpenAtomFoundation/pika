@@ -18,7 +18,6 @@
 using storage::Status;
 using storage::Slice;
 using storage::ScoreMember;
-using storage::kZSets;
 using storage::DataType;
 
 class ZSetsTest : public ::testing::Test {

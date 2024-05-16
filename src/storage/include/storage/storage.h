@@ -139,10 +139,6 @@ struct ScoreMember {
 
 enum BeforeOrAfter { Before, After };
 
-enum DataType { kAll, kStrings, kHashes, kSets, kLists, kZSets, kStreams };
-
-const char DataTypeTag[] = {'a', 'k', 'h', 's', 'l', 'z', 'x'};
-
 enum class OptionType {
   kDB,
   kColumnFamily,
@@ -1032,7 +1028,7 @@ class Storage {
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
-  Status GetType(const std::string& key, enum RedisType& type);
+  Status GetType(const std::string& key, enum DataType& type);
 
   // Reutrns the data all type of the key
   Status Type(const std::string& key, std::vector<std::string>& types);

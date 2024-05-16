@@ -11,9 +11,9 @@
 #include "rocksdb/env.h"
 #include "rocksdb/slice.h"
 
+#include "base_value_format.h"
 #include "src/coding.h"
 #include "src/mutex.h"
-#include "src/base_value_format.h"
 #include "storage/storage_define.h"
 
 namespace storage {
@@ -27,7 +27,7 @@ public:
  /*
   * The header of the Value field is initially initialized to knulltype
   */
-  explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(RedisType::kNone, user_value) {}
+  explicit BaseDataValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kNones, user_value) {}
   virtual ~BaseDataValue() {}
 
   virtual rocksdb::Slice Encode() {

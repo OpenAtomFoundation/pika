@@ -1456,11 +1456,11 @@ void TypeCmd::DoInitial() {
 }
 
 void TypeCmd::Do() {
-  enum storage::RedisType type = storage::RedisType::kNone;
+  enum storage::DataType type = storage::DataType::kNones;
   std::string key_type;
   rocksdb::Status s = db_->storage()->GetType(key_, type);
   if (s.ok()) {
-    res_.AppendContent("+" + std::string(RedisTypeToString(type)));
+    res_.AppendContent("+" + std::string(DataTypeToString(type)));
   } else if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
@@ -1469,12 +1469,12 @@ void TypeCmd::Do() {
 }
 
 void TypeCmd::ReadCache() {
-  enum storage::RedisType type = storage::RedisType::kNone;
+  enum storage::DataType type = storage::DataType::kNones;
   std::string key_type;
   // TODO Cache GetType function
   rocksdb::Status s = db_->storage()->GetType(key_, type);
   if (s.ok()) {
-    res_.AppendContent("+" + std::string(RedisTypeToString(type)));
+    res_.AppendContent("+" + std::string(DataTypeToString(type)));
   } else {
     res_.SetRes(CmdRes::kCacheMiss, s.ToString());
   }
@@ -1577,15 +1577,15 @@ void ScanxCmd::DoInitial() {
     return;
   }
   if (strcasecmp(argv_[1].data(), "string") == 0) {
-    type_ = storage::kStrings;
+    type_ = storage::DataType::kStrings;
   } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-    type_ = storage::kHashes;
+    type_ = storage::DataType::kHashes;
   } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-    type_ = storage::kSets;
+    type_ = storage::DataType::kSets;
   } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-    type_ = storage::kZSets;
+    type_ = storage::DataType::kZSets;
   } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-    type_ = storage::kLists;
+    type_ = storage::DataType::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1666,18 +1666,18 @@ void PKScanRangeCmd::DoInitial() {
     return;
   }
   if (strcasecmp(argv_[1].data(), "string_with_value") == 0) {
-    type_ = storage::kStrings;
+    type_ = storage::DataType::kStrings;
     string_with_value = true;
   } else if (strcasecmp(argv_[1].data(), "string") == 0) {
-    type_ = storage::kStrings;
+    type_ = storage::DataType::kStrings;
   } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-    type_ = storage::kHashes;
+    type_ = storage::DataType::kHashes;
   } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-    type_ = storage::kSets;
+    type_ = storage::DataType::kSets;
   } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-    type_ = storage::kZSets;
+    type_ = storage::DataType::kZSets;
   } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-    type_ = storage::kLists;
+    type_ = storage::DataType::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1724,7 +1724,7 @@ void PKScanRangeCmd::Do() {
     res_.AppendArrayLen(2);
     res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
-    if (type_ == storage::kStrings) {
+    if (type_ == storage::DataType::kStrings) {
       res_.AppendArrayLenUint64(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);
@@ -1751,18 +1751,18 @@ void PKRScanRangeCmd::DoInitial() {
     return;
   }
   if (strcasecmp(argv_[1].data(), "string_with_value") == 0) {
-    type_ = storage::kStrings;
+    type_ = storage::DataType::kStrings;
     string_with_value = true;
   } else if (strcasecmp(argv_[1].data(), "string") == 0) {
-    type_ = storage::kStrings;
+    type_ = storage::DataType::kStrings;
   } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-    type_ = storage::kHashes;
+    type_ = storage::DataType::kHashes;
   } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-    type_ = storage::kSets;
+    type_ = storage::DataType::kSets;
   } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-    type_ = storage::kZSets;
+    type_ = storage::DataType::kZSets;
   } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-    type_ = storage::kLists;
+    type_ = storage::DataType::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1811,7 +1811,7 @@ void PKRScanRangeCmd::Do() {
     res_.AppendStringLenUint64(next_key.size());
     res_.AppendContent(next_key);
 
-    if (type_ == storage::kStrings) {
+    if (type_ == storage::DataType::kStrings) {
       res_.AppendArrayLenUint64(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);
