@@ -226,7 +226,7 @@ bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::s
     // sadd  return number
     // rpush return length
     // xadd  return stream-id
-    if (argv.size() == 1 ||
+    if (argv.size() == 1 &&
         (kInnerReplOk == pstd::StringToLower(reply) || pstd::string2int(reply.data(), reply.size(), &ret))) {
       // continue reiceve response
       if (need_receive > 0) {

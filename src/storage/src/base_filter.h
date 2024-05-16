@@ -124,6 +124,9 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
     meta_key_enc.append(kSuffixReserveLength, kNeedTransformCharacter);
 
     if (meta_key_enc != cur_key_) {
+      cur_meta_etime_ = 0;
+      cur_meta_version_ = 0;
+      meta_not_found_ = true;
       cur_key_ = meta_key_enc;
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
@@ -132,12 +135,12 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       }
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
-        meta_not_found_ = false;
         auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
-        } else if (type == RedisType::kHash || type == RedisType::kSet || type == RedisType::kStream) {
+        } else if (type == RedisType::kHash || type == RedisType::kSet || type == RedisType::kStream || type == RedisType::kZset) {
           ParsedBaseMetaValue parsed_base_meta_value(&meta_value);
+          meta_not_found_ = false;
           cur_meta_version_ = parsed_base_meta_value.Version();
           cur_meta_etime_ = parsed_base_meta_value.Etime();
         } else {

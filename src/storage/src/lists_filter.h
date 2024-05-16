@@ -51,6 +51,9 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
 
     if (meta_key_enc != cur_key_) {
       cur_key_ = meta_key_enc;
+      cur_meta_etime_ = 0;
+      cur_meta_version_ = 0;
+      meta_not_found_ = true;
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
       if (cf_handles_ptr_->empty()) {
@@ -58,17 +61,14 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
       }
       rocksdb::Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
-        meta_not_found_ = false;
         auto type = static_cast<enum RedisType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
-        } else if (type == RedisType::kList) {
-          ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
-          cur_meta_version_ = parsed_lists_meta_value.Version();
-          cur_meta_etime_ = parsed_lists_meta_value.Etime();
-        } else {
-          return true;
         }
+        ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
+        meta_not_found_ = false;
+        cur_meta_version_ = parsed_lists_meta_value.Version();
+        cur_meta_etime_ = parsed_lists_meta_value.Etime();
       } else if (s.IsNotFound()) {
         meta_not_found_ = true;
       } else {
