@@ -1229,11 +1229,10 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
   Status s = LoadCursorStartKey(dtype, cursor, &key_type, &start_key);
   if (!s.ok()) {
     // If want to scan all the databases, we start with the strings database
-    key_type = dtype == DataType::kAll ? DataTypeTag[static_cast<int>(DataType::kStrings)] : DataTypeTag[static_cast<int>(dtype)];
+    key_type = dtype == DataType::kAll ? DataTypeTag[static_cast<int>(dtype)] : DataTypeTag[static_cast<int>(DataType::kStrings)];
     start_key = prefix;
     cursor = 0;
   }
-
   // collect types to scan
   std::vector<char> types;
   if (DataType::kAll == dtype) {
