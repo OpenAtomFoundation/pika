@@ -220,11 +220,7 @@ void DelCmd::DoThroughDB() {
 
 void DelCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::vector<std::string> v;
-    for (auto key : keys_) {
-      v.emplace_back(key);
-    }
-    db_->cache()->Del(v);
+    db_->cache()->Del(keys_);
   }
 }
 

@@ -1229,7 +1229,7 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
   Status s = LoadCursorStartKey(dtype, cursor, &key_type, &start_key);
   if (!s.ok()) {
     // If want to scan all the databases, we start with the strings database
-    key_type = dtype == DataType::kAll ? DataTypeTag[static_cast<int>(dtype)] : DataTypeTag[static_cast<int>(DataType::kStrings)];
+    key_type = dtype == DataType::kAll ? DataTypeTag[static_cast<int>(DataType::kStrings)] : DataTypeTag[static_cast<int>(dtype)];
     start_key = prefix;
     cursor = 0;
   }
@@ -1242,7 +1242,12 @@ int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& 
       LOG(WARNING) << "Invalid key_type: " << key_type;
       return 0;
     }
-    std::copy(pos, iter_end, std::back_inserter(types));
+    /*
+     * The reason we need to subtract 2 here is that the last two types of
+     * DataType are all and none, and we don't need these two types when we
+     * traverse with the scan iterator, only the first six data types of DataType
+     */
+    std::copy(pos, iter_end - 2, std::back_inserter(types));
   } else {
     types.push_back(DataTypeTag[static_cast<int>(dtype)]);
   }

@@ -42,7 +42,6 @@ class ParsedStringsValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
   explicit ParsedStringsValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
-    // TODO Why need this logic; Mixficsol
     if (internal_value_str->size() >= kStringsValueMinLength) {
       size_t offset = 0;
       type_ = static_cast<DataType>(static_cast<uint8_t>((*internal_value_str)[0]));
@@ -101,7 +100,6 @@ class ParsedStringsValue : public ParsedInternalValue {
   }
 
 private:
- // TODO Why need kStringsValueSuffixLength; Mixficsol
  const static size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
  const static size_t kStringsValueMinLength = kStringsValueSuffixLength + kTypeLength;
 };

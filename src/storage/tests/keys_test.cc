@@ -4919,47 +4919,53 @@ TEST_F(KeysTest, ExpireTest) {
   // Strings
   s = db.Set("GP1_EXPIRE_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
+  // Hashes
+  s = db.HSet("GP1_EXPIRE_HASH_KEY", "FIELD", "VALUE", &ret);
+  ASSERT_TRUE(s.ok());
 
-//  // Hashes
-//  s = db.HSet("GP1_EXPIRE_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("GP1_EXPIRE_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Lists
-//  uint64_t llen;
-//  s = db.RPush("GP1_EXPIRE_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Zsets
-//  s = db.ZAdd("GP1_EXPIRE_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
+  // Sets
+  s = db.SAdd("GP1_EXPIRE_SET_KEY", {"MEMBER"}, &ret);
+  ASSERT_TRUE(s.ok());
+
+  // Lists
+  uint64_t llen;
+  s = db.RPush("GP1_EXPIRE_LIST_KEY", {"NODE"}, &llen);
+  ASSERT_TRUE(s.ok());
+
+  // Zsets
+  s = db.ZAdd("GP1_EXPIRE_ZSET_KEY", {{1, "MEMBER"}}, &ret);
+  ASSERT_TRUE(s.ok());
 
   ret = db.Expire("GP1_EXPIRE_KEY", 1);
+  ASSERT_EQ(ret, 1);
+  ret = db.Expire("GP1_EXPIRE_HASH_KEY", 1);
+  ASSERT_EQ(ret, 1);
+  ret = db.Expire("GP1_EXPIRE_SET_KEY", 1);
+  ASSERT_EQ(ret, 1);
+  ret = db.Expire("GP1_EXPIRE_LIST_KEY", 1);
+  ASSERT_EQ(ret, 1);
+  ret = db.Expire("GP1_EXPIRE_ZSET_KEY", 1);
   ASSERT_EQ(ret, 1);
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
   // Strings
   s = db.Get("GP1_EXPIRE_KEY", &value);
   ASSERT_TRUE(s.IsNotFound());
+  // Hashes
+  s = db.HGet("GP1_EXPIRE_HASH_KEY", "EXPIRE_FIELD", &value);
+  ASSERT_TRUE(s.IsNotFound());
 
-//  // Hashes
-//  s = db.HGet("GP1_EXPIRE_KEY", "EXPIRE_FIELD", &value);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Sets
-//  s = db.SCard("GP1_EXPIRE_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Lists
-//  s = db.LLen("GP1_EXPIRE_KEY", &llen);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // ZSets
-//  s = db.ZCard("GP1_EXPIRE_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
+  // Sets
+  s = db.SCard("GP1_EXPIRE_SET_KEY", &ret);
+  ASSERT_TRUE(s.IsNotFound());
+
+  // Lists
+  s = db.LLen("GP1_EXPIRE_LIST_KEY", &llen);
+  ASSERT_TRUE(s.IsNotFound());
+
+  // ZSets
+  s = db.ZCard("GP1_EXPIRE_ZSET_KEY", &ret);
+  ASSERT_TRUE(s.IsNotFound());
 
   // ***************** Group 2 Test *****************
   // Strings
@@ -4969,43 +4975,42 @@ TEST_F(KeysTest, ExpireTest) {
 
   type_status.clear();
   ret = db.Expire("GP2_EXPIRE_STRING_KEY", 1);
-//  ASSERT_EQ(ret, 1);
+  ASSERT_EQ(ret, 0);
+  // Hashes
+  s = db.HSet("GP2_EXPIRE_HASHES_KEY", "FIELD", "VALUE", &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_HASHES_KEY"));
 
-//  // Hashes
-//  s = db.HSet("GP2_EXPIRE_HASHES_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_HASHES_KEY"));
-//
-//  type_status.clear();
-//  ret = db.Expire("GP2_EXPIRE_HASHES_KEY", 1);
-//  ASSERT_EQ(ret, 0);
-//
-//  // Sets
-//  s = db.SAdd("GP2_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_SETS_KEY"));
-//
-//  type_status.clear();
-//  ret = db.Expire("GP2_EXPIRE_SETS_KEY", 1);
-//  ASSERT_EQ(ret, 0);
-//
-//  // Lists
-//  s = db.RPush("GP2_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_LISTS_KEY"));
-//
-//  type_status.clear();
-//  ret = db.Expire("GP2_EXPIRE_LISTS_KEY", 1);
-//  ASSERT_EQ(ret, 0);
-//
-//  // Zsets
-//  s = db.ZAdd("GP2_EXPIRE_ZSETS_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-//  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_ZSETS_KEY"));
+  type_status.clear();
+  ret = db.Expire("GP2_EXPIRE_HASHES_KEY", 1);
+  ASSERT_EQ(ret, 0);
+
+  // Sets
+  s = db.SAdd("GP2_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_SETS_KEY"));
+
+  type_status.clear();
+  ret = db.Expire("GP2_EXPIRE_SETS_KEY", 1);
+  ASSERT_EQ(ret, 0);
+
+  // Lists
+  s = db.RPush("GP2_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
+  ASSERT_TRUE(s.ok());
+  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_LISTS_KEY"));
+
+  type_status.clear();
+  ret = db.Expire("GP2_EXPIRE_LISTS_KEY", 1);
+  ASSERT_EQ(ret, 0);
+
+  // Zsets
+  s = db.ZAdd("GP2_EXPIRE_ZSETS_KEY", {{1, "MEMBER"}}, &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_TRUE(make_expired(&db, "GP2_EXPIRE_ZSETS_KEY"));
 
   type_status.clear();
   ret = db.Expire("GP2_EXPIRE_ZSETS_KEY", 1);
-  //ASSERT_EQ(ret, 0);
+  ASSERT_EQ(ret, 0);
 
   // ***************** Group 3 Test *****************
   // Strings
@@ -5017,42 +5022,41 @@ TEST_F(KeysTest, ExpireTest) {
 
   type_status.clear();
   ret = db.Expire("GP3_EXPIRE_STRING_KEY", 1);
-//  ASSERT_EQ(ret, 0);
+  ASSERT_EQ(ret, 0);
+  // Hashes
+  s = db.HSet("GP3_EXPIRE_HASHES_KEY", "FIELD", "VALUE", &ret);
+  ASSERT_TRUE(s.ok());
+  s = db.HDel("GP3_EXPIRE_HASHES_KEY", {"FIELD"}, &ret);
+  ASSERT_TRUE(s.ok());
+  type_status.clear();
+  ret = db.Expire("GP3_EXPIRE_HASHES_KEY", 1);
+  ASSERT_EQ(ret, 0);
 
-//  // Hashes
-//  s = db.HSet("GP3_EXPIRE_HASHES_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//  s = db.HDel("GP3_EXPIRE_HASHES_KEY", {"FIELD"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  type_status.clear();
-//  ret = db.Expire("GP3_EXPIRE_HASHES_KEY", 1);
-//  ASSERT_EQ(ret, 0);
-//
-//  // Sets
-//  s = db.SAdd("GP3_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//  s = db.SRem("GP3_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  type_status.clear();
-//  ret = db.Expire("GP3_EXPIRE_SETS_KEY", 1);
-//  ASSERT_EQ(ret, 0);
-//
-//  // Lists
-//  s = db.RPush("GP3_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//  std::vector<std::string> elements;
-//  s = db.LPop("GP3_EXPIRE_LISTS_KEY", 1,&elements);
-//  ASSERT_TRUE(s.ok());
+  // Sets
+  s = db.SAdd("GP3_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
+  ASSERT_TRUE(s.ok());
+  s = db.SRem("GP3_EXPIRE_SETS_KEY", {"MEMBER"}, &ret);
+  ASSERT_TRUE(s.ok());
 
   type_status.clear();
+  ret = db.Expire("GP3_EXPIRE_SETS_KEY", 1);
+  ASSERT_EQ(ret, 0);
+
+  // Lists
+  s = db.RPush("GP3_EXPIRE_LISTS_KEY", {"NODE"}, &llen);
+  ASSERT_TRUE(s.ok());
+  std::vector<std::string> elements;
+  s = db.LPop("GP3_EXPIRE_LISTS_KEY", 1,&elements);
+  ASSERT_TRUE(s.ok());
+
+  type_status.clear();
+  ret = db.Expire("GP3_EXPIRE_LISTS_KEY", 1);
   ret = db.Expire("GP3_EXPIRE_LISTS_KEY", 1);
   LOG(WARNING) << "ret: " << ret;
   for (const auto& ts : type_status) {
     LOG(WARNING) << "type: " << storage::DataTypeStrings[static_cast<int>(ts.first)] << " status: " << ts.second.ToString();
   }
-//  ASSERT_EQ(ret, 0);
+  ASSERT_EQ(ret, 0);
 
   // Zsets
   s = db.ZAdd("GP3_EXPIRE_ZSETS_KEY", {{1, "MEMBER"}}, &ret);
@@ -5062,7 +5066,7 @@ TEST_F(KeysTest, ExpireTest) {
 
   type_status.clear();
   ret = db.Expire("GP3_EXPIRE_ZSETS_KEY", 1);
-//  ASSERT_EQ(ret, 0);
+  ASSERT_EQ(ret, 0);
 }
 
 // Del
@@ -5075,46 +5079,12 @@ TEST_F(KeysTest, DelTest) {
   // Strings
   s = db.Set("DEL_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-
-//  // Hashes
-//  s = db.HSet("DEL_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("DEL_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Lists
-//  uint64_t llen;
-//  s = db.RPush("DEL_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // ZSets
-//  s = db.ZAdd("DEL_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-
   ret = db.Del(keys);
   ASSERT_EQ(ret, 1);
 
   // Strings
   s = db.Get("DEL_KEY", &value);
   ASSERT_TRUE(s.IsNotFound());
-//
-//  // Hashes
-//  s = db.HGet("DEL_KEY", "DEL_FIELD", &value);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Sets
-//  s = db.SCard("DEL_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Lists
-//  s = db.LLen("DEL_KEY", &llen);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // ZSets
-//  s = db.ZCard("DEL_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
 }
 
 // Exists
@@ -5127,23 +5097,6 @@ TEST_F(KeysTest, ExistsTest) {
   // Strings
   s = db.Set("EXISTS_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-
-//  // Hashes
-//  s = db.HSet("EXISTS_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("EXISTS_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Lists
-//  s = db.RPush("EXISTS_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // ZSets
-//  s = db.ZAdd("EXISTS_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-
   ret = db.Exists(keys);
   ASSERT_EQ(ret, 1);
 }
@@ -5160,23 +5113,6 @@ TEST_F(KeysTest, ExpireatTest) {
   s = db.Set("EXPIREAT_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
 
-//  // Hashes
-//  s = db.HSet("EXPIREAT_KEY", "EXPIREAT_FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("EXPIREAT_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // List
-//  uint64_t llen;
-//  s = db.RPush("EXPIREAT_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // ZSets
-//  s = db.ZAdd("EXPIREAT_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-
   int64_t unix_time;
   rocksdb::Env::Default()->GetCurrentTime(&unix_time);
   int64_t timestamp = unix_time + 1;
@@ -5188,37 +5124,9 @@ TEST_F(KeysTest, ExpireatTest) {
   s = db.Get("EXPIREAT_KEY", &value);
   ASSERT_TRUE(s.IsNotFound());
 
-//  // Hashes
-//  s = db.HGet("EXPIREAT_KEY", "EXPIREAT_FIELD", &value);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Sets
-//  s = db.SCard("EXPIREAT_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // List
-//  s = db.LLen("EXPIREAT_KEY", &llen);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // ZSets
-//  s = db.ZCard("EXPIREAT_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
-
   // Expireat key 0
   s = db.Set("EXPIREAT_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-
-//  s = db.HSet("EXPIREAT_KEY", "EXPIREAT_FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  s = db.SAdd("EXPIREAT_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  s = db.RPush("EXPIREAT_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  s = db.ZAdd("EXPIREAT_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
 
   ret = db.Expireat("EXPIREAT_KEY", 0);
   ASSERT_EQ(ret, 1);
@@ -5226,22 +5134,6 @@ TEST_F(KeysTest, ExpireatTest) {
   // Strings
   s = db.Get("EXPIREAT_KEY", &value);
   ASSERT_TRUE(s.IsNotFound());
-
-//  // Hashes
-//  s = db.HGet("EXPIREAT_KEY", "EXPIREAT_FIELD", &value);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // Sets
-//  s = db.SCard("EXPIREAT_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // List
-//  s = db.LLen("EXPIREAT_KEY", &llen);
-//  ASSERT_TRUE(s.IsNotFound());
-//
-//  // ZSets
-//  s = db.ZCard("EXPIREAT_KEY", &ret);
-//  ASSERT_TRUE(s.IsNotFound());
 }
 
 // Persist
@@ -5257,23 +5149,6 @@ TEST_F(KeysTest, PersistTest) {
   s = db.Set("PERSIST_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
 
-//  // Hashes
-//  s = db.HSet("PERSIST_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("PERSIST_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Lists
-//  uint64_t llen;
-//  s = db.LPush("PERSIST_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // ZSets
-//  s = db.ZAdd("PERSIST_KEY", {{1, "MEMBER"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-
   ret = db.Persist("PERSIST_KEY");
   ASSERT_EQ(ret, 0);
 
@@ -5285,10 +5160,6 @@ TEST_F(KeysTest, PersistTest) {
 
   int64_t ttl_ret;
   ttl_ret = db.TTL("PERSIST_KEY");
-//  ASSERT_EQ(ttl_ret.size(), 5);
-//  for (auto it = ttl_ret.begin(); it != ttl_ret.end(); it++) {
-//    ASSERT_EQ(it->second, -1);
-//  }
 }
 
 // TTL
@@ -5297,10 +5168,6 @@ TEST_F(KeysTest, TTLTest) {
   std::map<storage::DataType, Status> type_status;
   int64_t ttl_ret;
   ttl_ret = db.TTL("TTL_KEY");
-//  ASSERT_EQ(ttl_ret.size(), 5);
-//  for (auto it = ttl_ret.begin(); it != ttl_ret.end(); it++) {
-//    ASSERT_EQ(it->second, -2);
-//  }
 
   // If the key does not have an associated timeout
   // Strings
@@ -5309,38 +5176,12 @@ TEST_F(KeysTest, TTLTest) {
   s = db.Set("TTL_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
 
-//  // Hashes
-//  s = db.HSet("TTL_KEY", "FIELD", "VALUE", &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Sets
-//  s = db.SAdd("TTL_KEY", {"MEMBER"}, &ret);
-//  ASSERT_TRUE(s.ok());
-//
-//  // Lists
-//  uint64_t llen;
-//  s = db.RPush("TTL_KEY", {"NODE"}, &llen);
-//  ASSERT_TRUE(s.ok());
-//
-//  // ZSets
-//  s = db.ZAdd("TTL_KEY", {{1, "SCORE"}}, &ret);
-//  ASSERT_TRUE(s.ok());
-
   ttl_ret = db.TTL("TTL_KEY");
-//  ASSERT_EQ(ttl_ret.size(), 5);
-//  for (auto it = ttl_ret.begin(); it != ttl_ret.end(); it++) {
-//    ASSERT_EQ(it->second, -1);
-//  }
 
   // If the timeout was set
   ret = db.Expire("TTL_KEY", 10);
   ASSERT_EQ(ret, 1);
   ttl_ret = db.TTL("TTL_KEY");
-//  ASSERT_EQ(ttl_ret.size(), 5);
-//  for (auto it = ttl_ret.begin(); it != ttl_ret.end(); it++) {
-//    ASSERT_GT(it->second, 0);
-//    ASSERT_LE(it->second, 10);
-//  }
 }
 
 

@@ -939,7 +939,7 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     }
     return -1;
   }
-  key_type = storage::DataTypeToTag(type);
+  key_type_ = storage::DataTypeToTag(type);
   if (type == storage::DataType::kNones) {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
     res_.AppendInteger(0);

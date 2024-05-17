@@ -311,23 +311,35 @@ class AllIterator : public TypeIterator {
   bool ShouldSkip() override {
     std::string user_value;
     auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
-    if (type == DataType::kZSets || type == DataType::kSets || type == DataType::kHashes || type == DataType::kStreams) {
-      ParsedBaseMetaValue parsed_meta_value(raw_iter_->value());
-      user_value = parsed_meta_value.UserValue().ToString();
-      if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
-        return true;
+    switch (type) {
+      case DataType::kZSets:
+      case DataType::kSets:
+      case DataType::kHashes:
+      case DataType::kStreams: {
+        ParsedBaseMetaValue parsed_meta_value(raw_iter_->value());
+        user_value = parsed_meta_value.UserValue().ToString();
+        if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
+          return true;
+        }
+        break;
       }
-    } else if (type == DataType::kLists) {
-      ParsedListsMetaValue parsed_meta_value(raw_iter_->value());
-      user_value = parsed_meta_value.UserValue().ToString();
-      if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
-        return true;
+
+      case DataType::kLists: {
+        ParsedListsMetaValue parsed_meta_list_value(raw_iter_->value());
+        user_value = parsed_meta_list_value.UserValue().ToString();
+        if (parsed_meta_list_value.IsStale() || parsed_meta_list_value.Count() == 0) {
+          return true;
+        }
+        break;
       }
-    } else {
-      ParsedStringsValue parsed_value(raw_iter_->value());
-      user_value = parsed_value.UserValue().ToString();
-      if (parsed_value.IsStale()) {
-        return true;
+
+      default: {
+        ParsedStringsValue parsed_value(raw_iter_->value());
+        user_value = parsed_value.UserValue().ToString();
+        if (parsed_value.IsStale()) {
+          return true;
+        }
+        break;
       }
     }
 

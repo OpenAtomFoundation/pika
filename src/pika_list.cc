@@ -677,7 +677,6 @@ void BRPopCmd::Do() {
     } else if (s_.IsNotFound()) {
       continue;
     } else if (s_.IsInvalidArgument()) {
-      // TODO use return or continue; Mixficsol
       res_.SetRes(CmdRes::kMultiKey);
       return;
     } else {

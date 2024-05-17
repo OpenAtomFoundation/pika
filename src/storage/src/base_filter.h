@@ -135,6 +135,11 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       }
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
+        /*
+         * The elimination policy for keys of the Data type is that if the key
+         * type obtained from MetaCF is inconsistent with the key type in Data,
+         * it needs to be eliminated
+         */
         auto type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
