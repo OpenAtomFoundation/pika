@@ -1091,7 +1091,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
-
+  std::stringstream repl_connect_status;
   bool all_db_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->GetDB()) {
@@ -1101,27 +1101,39 @@ void InfoCmd::InfoReplication(std::string& info) {
       out_of_sync << "(" << db_item.first << ": InternalError)";
       continue;
     }
+    repl_connect_status << db_item.first << ":";
     if (slave_db->State() != ReplState::kConnected) {
       all_db_sync = false;
       out_of_sync << "(" << db_item.first << ":";
       if (slave_db->State() == ReplState::kNoConnect) {
         out_of_sync << "NoConnect)";
+        repl_connect_status << "no_connect";
       } else if (slave_db->State() == ReplState::kWaitDBSync) {
         out_of_sync << "WaitDBSync)";
+        repl_connect_status << "syncing_full";
       } else if (slave_db->State() == ReplState::kError) {
         out_of_sync << "Error)";
+        repl_connect_status << "error";
       } else if (slave_db->State() == ReplState::kWaitReply) {
         out_of_sync << "kWaitReply)";
+        repl_connect_status << "connecting";
       } else if (slave_db->State() == ReplState::kTryConnect) {
         out_of_sync << "kTryConnect)";
+        repl_connect_status << "try_to_incr_sync";
       } else if (slave_db->State() == ReplState::kTryDBSync) {
         out_of_sync << "kTryDBSync)";
+        repl_connect_status << "try_to_full_sync";
       } else if (slave_db->State() == ReplState::kDBNoConnect) {
         out_of_sync << "kDBNoConnect)";
+        repl_connect_status << "no_connect";
       } else {
         out_of_sync << "Other)";
+        repl_connect_status << "error";
       }
+    } else { //slave_db->State() equal to kConnected
+        repl_connect_status << "connected";
     }
+    repl_connect_status << "\r\n";
   }
 
   tmp_stream << "# Replication(";
@@ -1149,6 +1161,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_link_status:"
                  << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_db_sync) ? "up" : "down")
                  << "\r\n";
+      tmp_stream << "repl_connect_status:\r\n"  << repl_connect_status.str();
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_db_sync) {
@@ -1161,6 +1174,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_link_status:"
                  << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_db_sync) ? "up" : "down")
                  << "\r\n";
+      tmp_stream << "repl_connect_status:\r\n"  << repl_connect_status.str();
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_db_sync) {
         tmp_stream << "db_repl_state:" << out_of_sync.str() << "\r\n";
