@@ -46,6 +46,7 @@ echo 'startup codis dashboard and codis proxy'
 sleep 20
 
 # if start failed, maybe for your struct/class that be defined NOT be used
+# or addtional introduced packages
 echo 'assign codis slots to groups and resync groups'
 ./bin/codis-admin --dashboard=$CODIS_DASHBOARD_ADDR --create-group --gid=1
 ./bin/codis-admin --dashboard=$CODIS_DASHBOARD_ADDR --create-group --gid=2

@@ -8,23 +8,22 @@
 
 #include <pthread.h>
 #include <atomic>
-#include <queue>
 #include <string>
 
 #include "net/include/net_define.h"
 #include "net/include/random.h"
 #include "pstd/include/pstd_mutex.h"
-
+ 
 namespace net {
 
 using TaskFunc = void (*)(void*);
 
-struct Task {
-  Task() = default;
-  TaskFunc func = nullptr;
-  void* arg = nullptr;
-  Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
-};
+// struct Task {
+//   Task() = default;
+//   TaskFunc func = nullptr;
+//   void* arg = nullptr;
+//   Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
+// };
 
 struct TimeTask {
   uint64_t exec_time;
@@ -122,15 +121,15 @@ class ThreadPool : public pstd::noncopyable {
 
   size_t worker_num_;
   std::string thread_pool_name_;
-  std::queue<Task> queue_;
-  std::priority_queue<TimeTask> time_queue_;
+  // std::queue<TimeTask> queue_;
+  // std::priority_queue<TimeTask> time_queue_;
   std::vector<Worker*> workers_;
   std::atomic<bool> running_;
   std::atomic<bool> should_stop_;
 
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
-  pstd::CondVar wsignal_;
+  // pstd::CondVar wsignal_;
 };
 
 }  // namespace net

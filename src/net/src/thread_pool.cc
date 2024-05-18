@@ -78,7 +78,7 @@ int ThreadPool::stop_thread_pool() {
   if (running_.load()) {
     should_stop_.store(true);
     rsignal_.notify_all();
-    wsignal_.notify_all();
+    // wsignal_.notify_all();
     for (const auto worker : workers_) {
       res = worker->stop();
       if (res != 0) {
