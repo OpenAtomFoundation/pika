@@ -27,11 +27,11 @@ extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
-  for(int i = 0; i < g_pika_conf->sync_binlog_thread_num(); i++){
-      write_binlog_workers_.push_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
+  for (int i = 0; i < g_pika_conf->sync_binlog_thread_num(); i++) {
+      write_binlog_workers_.emplace_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
   }
   for (int i = 0; i < g_pika_conf->sync_thread_num(); ++i) {
-    write_db_workers_.push_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
+    write_db_workers_.emplace_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
   }
 }
 
@@ -102,13 +102,16 @@ void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, co
 }
 
 size_t PikaReplClient::GetBinlogWorkerIndexByDBName(const std::string &db_name) {
-    char db_num = db_name.back();
-    if (db_num < '0' || db_num > '8') {
+    char db_num_c = db_name.back();
+    int32_t db_num = db_num_c - '0';
+    //Valid range of db_num is [0, MAX_DB_NUM)
+    if (db_num < 0 || db_num >= MAX_DB_NUM) {
         LOG(ERROR)
                 << "Corruption in consuming binlog: the last char of the db_name(extracted from binlog) is not a valid db num, the extracted db_num is "
-                << db_num << " while write_binlog_workers.size() is " << write_binlog_workers_.size();
+                << db_num_c << " while write_binlog_workers.size() is " << write_binlog_workers_.size();
+        if (db_num < 0) { assert(false && "db_num invalid, check if the db_name in the request is valid, also check the ERROR Log of Pika."); }
     }
-    return (db_num - '0') % write_binlog_workers_.size();
+    return db_num % write_binlog_workers_.size();
 }
 
 size_t PikaReplClient::GetHashIndexByKey(const std::string& key) {

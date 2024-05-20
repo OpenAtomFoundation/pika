@@ -176,7 +176,7 @@ int PikaConf::Load() {
 
   if (classic_mode_.load()) {
     GetConfInt("databases", &databases_);
-    if (databases_ < 1 || databases_ > 8) {
+    if (databases_ < 1 || databases_ > MAX_DB_NUM) {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
@@ -187,9 +187,9 @@ int PikaConf::Load() {
 
   // sync_binlog_thread_num_ must be set after the setting of databases_
   GetConfInt("sync-binlog-thread-num", &sync_binlog_thread_num_);
-  if (sync_binlog_thread_num_ <= 0){
+  if (sync_binlog_thread_num_ <= 0) {
       sync_binlog_thread_num_ = databases_;
-  }else {
+  } else {
       // final value is MIN(sync_binlog_thread_num, databases_)
       sync_binlog_thread_num_ = sync_binlog_thread_num_ > databases_ ?  databases_ : sync_binlog_thread_num_;
   }
