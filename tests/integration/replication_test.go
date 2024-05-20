@@ -558,6 +558,7 @@ var _ = Describe("should replication ", func() {
 
 			log.Println("randomSpopstore test start")
 			execute(&ctx, clientMaster, 4, randomSpopstroeThread)
+			time.Sleep(10 * time.Second)
 			master_spopstore_set := clientMaster.SMembers(ctx, "set1")
 			Expect(master_spopstore_set.Err()).NotTo(HaveOccurred())
 			slave_spopstore_set := clientSlave.SMembers(ctx, "set1")
