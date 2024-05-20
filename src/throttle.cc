@@ -41,7 +41,6 @@ size_t Throttle::ThrottledByThroughput(size_t bytes) {
     available_size = bytes;
     cur_throughput_bytes_ += available_size;
   }
-  keys_mutex_.unlock();
   return available_size;
 }
 
