@@ -31,7 +31,7 @@ Status RedisCache::SAdd(std::string& key, std::vector<std::string> &members) {
   return Status::OK();
 }
 
-Status RedisCache::SCard(std::string& key, uint64_t *len) {
+Status RedisCache::SCard(const std::string& key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);

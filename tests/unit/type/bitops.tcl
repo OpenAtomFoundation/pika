@@ -193,14 +193,14 @@ start_server {tags {"bitops"}} {
     } {2}
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {BITOP with non string source key} {
-#        r del c
-#        r set a 1
-#        r set b 2
-#        r lpush c foo
-#        catch {r bitop xor dest a b c d} e
-#        set e
-#    } {WRONGTYPE*}
+    test {BITOP with non string source key} {
+        r del c
+        r set a 1
+        r set b 2
+        r lpush c foo
+        catch {r bitop xor dest a b c d} e
+        set e
+    } {WRONGTYPE*}
 
     test {BITOP with empty string after non empty string (issue #529)} {
         r flushdb

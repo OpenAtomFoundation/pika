@@ -58,24 +58,24 @@ std::string PikaRole(int role) {
 
 const char* GetDBTypeString(int type) {
   switch (type) {
-    case static_cast<int>(storage::kStrings): {
-      return "storage::kStrings";
+    case static_cast<int>(storage::DataType::kStrings): {
+      return "storage::DataType::kStrings";
     }
 
-    case static_cast<int>(storage::kLists): {
-      return "storage::kLists";
+    case static_cast<int>(storage::DataType::kLists): {
+      return "storage::DataType::kLists";
     }
 
-    case static_cast<int>(storage::kHashes): {
-      return "storage::kHashes";
+    case static_cast<int>(storage::DataType::kHashes): {
+      return "storage::DataType::kHashes";
     }
 
-    case static_cast<int>(storage::kSets): {
-      return "storage::kSets";
+    case static_cast<int>(storage::DataType::kSets): {
+      return "storage::DataType::kSets";
     }
 
-    case static_cast<int>(storage::kZSets): {
-      return "storage::kZSets";
+    case static_cast<int>(storage::DataType::kZSets): {
+      return "storage::DataType::kZSets";
     }
 
     default: {

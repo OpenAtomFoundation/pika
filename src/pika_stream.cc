@@ -12,6 +12,7 @@
 #include "glog/logging.h"
 #include "include/pika_command.h"
 #include "include/pika_db.h"
+#include "include/pika_slot_command.h"
 #include "include/pika_define.h"
 #include "storage/storage.h"
 
@@ -236,7 +237,10 @@ void XAddCmd::Do() {
   }
 
   auto s = db_->storage()->XAdd(key_, message, args_);
-  if (!s.ok()) {
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  } else if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -248,6 +252,7 @@ void XAddCmd::Do() {
   }
 
   res_.AppendString(args_.id.ToString());
+  AddSlotKey("m", key_, db_);
 }
 
 void XRangeCmd::DoInitial() {
@@ -282,12 +287,14 @@ void XRangeCmd::Do() {
 
   if (args_.start_sid <= args_.end_sid) {
     auto s = db_->storage()->XRange(key_, args_, id_messages);
-    if (!s.ok() && !s.IsNotFound()) {
+    if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
+    } else if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
-
   AppendMessagesToRes(res_, id_messages, db_.get());
 }
 
@@ -296,7 +303,10 @@ void XRevrangeCmd::Do() {
 
   if (args_.start_sid >= args_.end_sid) {
     auto s = db_->storage()->XRevrange(key_, args_, id_messages);
-    if (!s.ok() && !s.IsNotFound()) {
+    if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
+    } else if (!s.ok() && !s.IsNotFound()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
@@ -328,7 +338,9 @@ void XDelCmd::DoInitial() {
 void XDelCmd::Do() {
   int32_t count{0};
   auto s = db_->storage()->XDel(key_, ids_, count);
-  if (!s.ok() && !s.IsNotFound()) {
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
@@ -352,6 +364,9 @@ void XLenCmd::Do() {
   auto s = db_->storage()->XLen(key_, len);
   if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kNotFound);
+    return;
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
     return;
   } else if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -382,7 +397,9 @@ void XReadCmd::Do() {
   std::vector<std::string> reserved_keys;
   auto s = db_->storage()->XRead(args_, results, reserved_keys);
 
-  if (!s.ok() && s.ToString() ==
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+  } else if (!s.ok() && s.ToString() ==
                      "The > ID can be specified only when calling "
                      "XREADGROUP using the GROUP <group> "
                      "<consumer> option.") {
@@ -423,7 +440,10 @@ void XTrimCmd::DoInitial() {
 void XTrimCmd::Do() {
   int32_t count{0};
   auto s = db_->storage()->XTrim(key_, args_, count);
-  if (!s.ok() && !s.IsNotFound()) {
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
@@ -494,8 +514,10 @@ void XInfoCmd::Do() {
 void XInfoCmd::StreamInfo(std::shared_ptr<DB>& db) {
   storage::StreamInfoResult info;
   auto s = db_->storage()->XInfo(key_, info);
-
-  if (!s.ok() && !s.IsNotFound()) {
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  } else if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   } else if (s.IsNotFound()) {

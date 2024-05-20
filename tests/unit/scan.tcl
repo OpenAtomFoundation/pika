@@ -265,7 +265,7 @@ start_server {tags {"scan"}} {
         r hmset mykey foo 1 fab 2 fiz 3 foobar 10 1 a 2 b 3 c 4 d
         set res [r hscan mykey 0 MATCH foo* COUNT 10000]
         lsort -unique [lindex $res 1]
-    } {1 10 foo foobar}
+   } {1 10 foo foobar}
 
     test "ZSCAN with PATTERN" {
         r del mykey

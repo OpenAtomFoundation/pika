@@ -8,6 +8,7 @@
 #include "pika_client_conn.h"
 #include "pika_db.h"
 #include "storage/storage.h"
+#include "storage/src/base_data_key_format.h"
 #include "strings.h"
 
 void WriteDelKeyToBinlog(const std::string& key, const std::shared_ptr<DB>& db);
