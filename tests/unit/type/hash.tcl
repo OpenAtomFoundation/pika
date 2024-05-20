@@ -143,10 +143,10 @@ start_server {tags {"hash"}} {
     } {{{} {}} {{} {}} {{} {}}}
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {HMGET against wrong type} {
-#        r set wrongtype somevalue
-#        assert_error "*wrong*" {r hmget wrongtype field1 field2}
-#    }
+    test {HMGET against wrong type} {
+        r set wrongtype somevalue
+        assert_error "*wrong*" {r hmget wrongtype field1 field2}
+    }
 
     test {HMGET - small hash} {
         set keys {}

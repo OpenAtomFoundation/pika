@@ -56,7 +56,7 @@ Status RedisCache::LInsert(std::string& key, storage::BeforeOrAfter &before_or_a
   return Status::OK();
 }
 
-Status RedisCache::LLen(std::string& key, uint64_t *len) {
+Status RedisCache::LLen(const std::string& key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);

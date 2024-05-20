@@ -732,26 +732,6 @@ class TypeCmd : public Cmd {
   rocksdb::Status s_;
 };
 
-class PTypeCmd : public Cmd {
- public:
-  PTypeCmd(const std::string& name, int arity, uint32_t flag)
-      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
-  void Do() override;
-  void Split(const HintKeys& hint_keys) override {};
-  void Merge() override {};
-  Cmd* Clone() override { return new PTypeCmd(*this); }
-
- private:
-  std::string key_;
-  void DoInitial() override;
-  rocksdb::Status s_;
-};
-
 class ScanCmd : public Cmd {
  public:
   ScanCmd(const std::string& name, int arity, uint32_t flag)
@@ -865,7 +845,7 @@ class PKRScanRangeCmd : public Cmd {
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string key_start_;
   std::string key_end_;
   std::string pattern_ = "*";

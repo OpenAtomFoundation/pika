@@ -344,12 +344,8 @@ void CompactCmd::DoInitial() {
   }
 
   if (argv_.size() == 1) {
-    struct_type_ = "all";
     compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 2) {
-    struct_type_ = argv_[1];
-    compact_dbs_ = g_pika_server->GetAllDBName();
-  } else if (argv_.size() == 3) {
     std::vector<std::string> dbs;
     pstd::StringSplit(argv_[1], COMMA, dbs);
     for (const auto& db : dbs) {
@@ -360,27 +356,16 @@ void CompactCmd::DoInitial() {
         compact_dbs_.insert(db);
       }
     }
-    struct_type_ = argv_[2];
   }
 }
 
+/*
+ * Because meta-CF stores the meta information of all data structures,
+ * the compact operation can only operate on all data types without
+ * specifying data types
+ */
 void CompactCmd::Do() {
-  if (strcasecmp(struct_type_.data(), "all") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
-  } else if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactStrings});
-  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactHashes});
-  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactSets});
-  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactZSets});
-  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactList});
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
-    return;
-  }
+  g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
   LogCommand();
   res_.SetRes(CmdRes::kOk);
 }
@@ -406,26 +391,12 @@ void CompactRangeCmd::DoInitial() {
       compact_dbs_.insert(db);
     }
   }
-  struct_type_ = argv_[2];
-  start_key_ = argv_[3];
-  end_key_ = argv_[4];
+  start_key_ = argv_[2];
+  end_key_ = argv_[3];
 }
 
 void CompactRangeCmd::Do() {
-  if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeStrings, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeHashes, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeSets, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeZSets, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeList, {start_key_, end_key_}});
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
-    return;
-  }
+  g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeAll, {start_key_, end_key_}});
   LogCommand();
   res_.SetRes(CmdRes::kOk);
 }
@@ -2962,18 +2933,18 @@ void ScandbCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 1) {
-    type_ = storage::kAll;
+    type_ = storage::DataType::kAll;
   } else {
     if (strcasecmp(argv_[1].data(), "string") == 0) {
-      type_ = storage::kStrings;
+      type_ = storage::DataType::kStrings;
     } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-      type_ = storage::kHashes;
+      type_ = storage::DataType::kHashes;
     } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-      type_ = storage::kSets;
+      type_ = storage::DataType::kSets;
     } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-      type_ = storage::kZSets;
+      type_ = storage::DataType::kZSets;
     } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-      type_ = storage::kLists;
+      type_ = storage::DataType::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
@@ -3055,20 +3026,6 @@ void PKPatternMatchDelCmd::DoInitial() {
     return;
   }
   pattern_ = argv_[1];
-  if (strcasecmp(argv_[2].data(), "set") == 0) {
-    type_ = storage::kSets;
-  } else if (strcasecmp(argv_[2].data(), "list") == 0) {
-    type_ = storage::kLists;
-  } else if (strcasecmp(argv_[2].data(), "string") == 0) {
-    type_ = storage::kStrings;
-  } else if (strcasecmp(argv_[2].data(), "zset") == 0) {
-    type_ = storage::kZSets;
-  } else if (strcasecmp(argv_[2].data(), "hash") == 0) {
-    type_ = storage::kHashes;
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
-    return;
-  }
 }
 
 void PKPatternMatchDelCmd::Do() {

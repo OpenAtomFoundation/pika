@@ -274,7 +274,7 @@ Status RedisCache::HIncrbyfloat(std::string& key, std::string &field, double val
   return Status::OK();
 }
 
-Status RedisCache::HLen(std::string& key, uint64_t *len) {
+Status RedisCache::HLen(const std::string& key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);
