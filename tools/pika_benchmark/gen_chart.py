@@ -59,7 +59,6 @@ def create_quantile_chart(workload, title, y_label, time_series):
 
     chart.human_readable = True
     chart.y_title = y_label
-    chart.x_title = 'Percentile'
     chart.x_labels = [0.30103, 1, 2, 3]
 
     for label, values, opts in time_series:
