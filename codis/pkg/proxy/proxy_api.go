@@ -71,6 +71,7 @@ func newApiServer(p *Proxy) http.Handler {
 		r.Get("/xping/:xauth", api.XPing)
 		r.Get("/stats/:xauth", api.Stats)
 		r.Get("/stats/:xauth/:flags", api.Stats)
+		r.Get("/cmdinfo/:xauth/:interval", api.CmdInfo)
 		r.Get("/slots/:xauth", api.Slots)
 		r.Put("/start/:xauth", api.Start)
 		r.Put("/stats/reset/:xauth", api.ResetStats)
@@ -120,6 +121,22 @@ func (s *apiServer) XPing(params martini.Params) (int, string) {
 		return rpc.ApiResponseError(err)
 	} else {
 		return rpc.ApiResponseJson("OK")
+	}
+}
+
+func (s *apiServer) CmdInfo(params martini.Params) (int, string) {
+	if err := s.verifyXAuth(params); err != nil {
+		return rpc.ApiResponseError(err)
+	} else {
+		var interval int64
+		if i := params["interval"]; i != "" {
+			n, err := strconv.Atoi(i)
+			if err != nil {
+				return rpc.ApiResponseError(err)
+			}
+			interval = int64(n)
+		}
+		return rpc.ApiResponseJson(s.proxy.CmdInfo(interval))
 	}
 }
 
@@ -269,6 +286,15 @@ func (c *ApiClient) Stats(flags StatsFlags) (*Stats, error) {
 		return nil, err
 	}
 	return stats, nil
+}
+
+func (c *ApiClient) CmdInfo(interval int64) (*CmdInfo, error) {
+	url := c.encodeURL("/api/proxy/cmdinfo/%s/%d", c.xauth, interval)
+	cmdInfo := &CmdInfo{}
+	if err := rpc.ApiGetJson(url, cmdInfo); err != nil {
+		return nil, err
+	}
+	return cmdInfo, nil
 }
 
 func (c *ApiClient) Slots() ([]*models.Slot, error) {

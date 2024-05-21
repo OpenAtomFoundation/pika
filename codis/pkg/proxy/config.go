@@ -164,10 +164,11 @@ type Config struct {
 	ProductAuth string `toml:"product_auth" json:"-"`
 	SessionAuth string `toml:"session_auth" json:"-"`
 
-	ProxyDataCenter      string         `toml:"proxy_datacenter" json:"proxy_datacenter"`
-	ProxyMaxClients      int            `toml:"proxy_max_clients" json:"proxy_max_clients"`
-	ProxyMaxOffheapBytes bytesize.Int64 `toml:"proxy_max_offheap_size" json:"proxy_max_offheap_size"`
-	ProxyHeapPlaceholder bytesize.Int64 `toml:"proxy_heap_placeholder" json:"proxy_heap_placeholder"`
+	ProxyDataCenter         string            `toml:"proxy_datacenter" json:"proxy_datacenter"`
+	ProxyMaxClients         int               `toml:"proxy_max_clients" json:"proxy_max_clients"`
+	ProxyMaxOffheapBytes    bytesize.Int64    `toml:"proxy_max_offheap_size" json:"proxy_max_offheap_size"`
+	ProxyHeapPlaceholder    bytesize.Int64    `toml:"proxy_heap_placeholder" json:"proxy_heap_placeholder"`
+	ProxyRefreshStatePeriod timesize.Duration `toml:"proxy_refresh_state_period" json:"proxy_refresh_state_period"`
 
 	BackendPingPeriod      timesize.Duration `toml:"backend_ping_period" json:"backend_ping_period"`
 	BackendRecvBufsize     bytesize.Int64    `toml:"backend_recv_bufsize" json:"backend_recv_bufsize"`
@@ -194,8 +195,9 @@ type Config struct {
 
 	SlowlogLogSlowerThan int64 `toml:"slowlog_log_slower_than" json:"slowlog_log_slower_than"`
 
-	QuickCmdList string `toml:"quick_cmd_list" json:"quick_cmd_list"`
-	SlowCmdList  string `toml:"slow_cmd_list" json:"slow_cmd_list"`
+	QuickCmdList    string `toml:"quick_cmd_list" json:"quick_cmd_list"`
+	SlowCmdList     string `toml:"slow_cmd_list" json:"slow_cmd_list"`
+	AutoSetSlowFlag bool   `toml:"auto_set_slow_flag" json:"auto_set_slow_flag"`
 
 	MetricsReportServer           string            `toml:"metrics_report_server" json:"metrics_report_server"`
 	MetricsReportPeriod           timesize.Duration `toml:"metrics_report_period" json:"metrics_report_period"`

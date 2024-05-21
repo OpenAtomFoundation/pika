@@ -555,6 +555,10 @@ func (p *Proxy) serveProxy() {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
+	//设置延迟统计相关参数
+	StatsSetRefreshPeriod(p.config.ProxyRefreshStatePeriod.Duration())
+	StatsSetLogSlowerThan(p.config.SlowlogLogSlowerThan)
+
 	select {
 	case <-p.exit.C:
 		log.Warnf("[%p] proxy shutdown", p)
@@ -601,6 +605,16 @@ type Overview struct {
 	Model   *models.Proxy  `json:"model,omitempty"`
 	Stats   *Stats         `json:"stats,omitempty"`
 	Slots   []*models.Slot `json:"slots,omitempty"`
+}
+
+type CmdInfo struct {
+	Total int64 `json:"total"`
+	Fails int64 `json:"fails"`
+	Redis struct {
+		Errors int64 `json:"errors"`
+	} `json:"redis"`
+	QPS int64      `json:"qps"`
+	Cmd []*OpStats `json:"cmd,omitempty"`
 }
 
 type Stats struct {
@@ -709,6 +723,7 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 	stats.Ops.Fails = OpFails()
 	stats.Ops.Redis.Errors = OpRedisErrors()
 	stats.Ops.QPS = OpQPS()
+	stats.Ops.Cmd = GetOpStatsByInterval(1)
 
 	if flags.HasBit(StatsCmds) {
 		stats.Ops.Cmd = GetOpStatsAll()
@@ -751,4 +766,23 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 	}
 	stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
+}
+
+func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
+	cmdInfo := &CmdInfo{}
+
+	cmdInfo.Total = OpTotal()
+	cmdInfo.Fails = OpFails()
+	cmdInfo.Redis.Errors = OpRedisErrors()
+	cmdInfo.QPS = OpQPS()
+
+	cmdInfo.Cmd = GetOpStatsByInterval(interval)
+
+	return cmdInfo
+}
+
+func StatsSetLogSlowerThan(ms int64) {
+	if ms >= 0 {
+		cmdstats.logSlowerThan.Set(ms)
+	}
 }

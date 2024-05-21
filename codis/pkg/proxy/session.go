@@ -6,6 +6,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -47,6 +48,8 @@ type Session struct {
 	config *Config
 	proxy  *Proxy
 
+	rand *rand.Rand
+
 	authorized bool
 }
 
@@ -78,6 +81,7 @@ func NewSession(sock net.Conn, config *Config, proxy *Proxy) *Session {
 		CreateUnix: time.Now().Unix(),
 	}
 	s.stats.opmap = make(map[string]*opStats, 16)
+	s.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	log.Infof("session [%p] create: %s", s, s)
 	return s
 }
@@ -666,29 +670,59 @@ func (s *Session) incrOpTotal() {
 	s.stats.total.Incr()
 }
 
-func (s *Session) getOpStats(opstr string) *opStats {
+func (s *Session) getOpStats(opstr string, create bool) *opStats {
+	cmdstats.RLock()
 	e := s.stats.opmap[opstr]
+	cmdstats.RUnlock()
+	if e != nil || !create {
+		return e
+	}
+	cmdstats.Lock()
+	e = cmdstats.opmap[opstr]
 	if e == nil {
 		e = &opStats{opstr: opstr}
+		for i := 0; i < IntervalNum; i++ {
+			e.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
+		}
+		cmdstats.Unlock()
 		s.stats.opmap[opstr] = e
 	}
 	return e
 }
 
 func (s *Session) incrOpStats(r *Request, t redis.RespType) {
-	e := s.getOpStats(r.OpStr)
-	e.calls.Incr()
-	e.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
-	switch t {
-	case redis.TypeError:
-		e.redis.errors.Incr()
+	if s.config.ProxyRefreshStatePeriod.Duration() <= 0 {
+		return
+	}
+
+	if r != nil {
+		responseTime := time.Now().UnixNano() - r.ReceiveTime
+
+		var e *opStats
+		e = s.stats.opmap[r.OpStr]
+		if e == nil {
+			e = getOpStats(r.OpStr, true)
+			s.stats.opmap[r.OpStr] = e
+		}
+		e.incrOpStats(responseTime, t)
+		e = s.stats.opmap["ALL"]
+		if e == nil {
+			e = getOpStats("ALL", true)
+			s.stats.opmap["ALL"] = e
+		}
+		e.incrOpStats(responseTime, t)
+
+		switch t {
+		case redis.TypeError:
+			incrOpRedisErrors()
+		}
 	}
 }
 
 func (s *Session) incrOpFails(r *Request, err error) error {
 	if r != nil {
-		e := s.getOpStats(r.OpStr)
-		e.fails.Incr()
+		e := s.getOpStats(r.OpStr, true)
+		e.totalFails.Incr()
 	} else {
 		s.stats.fails.Incr()
 	}
@@ -708,7 +742,7 @@ func (s *Session) flushOpStats(force bool) {
 	incrOpTotal(s.stats.total.Swap(0))
 	incrOpFails(s.stats.fails.Swap(0))
 	for _, e := range s.stats.opmap {
-		if e.calls.Int64() != 0 || e.fails.Int64() != 0 {
+		if e.totalCalls.Int64() != 0 || e.totalFails.Int64() != 0 {
 			incrOpStats(e)
 		}
 	}
@@ -762,7 +796,7 @@ func (s *Session) handlePConfig(r *Request) error {
 }
 
 func (s *Session) updateMaxDelay(duration int64, r *Request) {
-	e := s.getOpStats(r.OpStr) // There is no race condition in the session
+	e := s.getOpStats(r.OpStr, true) // There is no race condition in the session
 	if duration > e.maxDelay.Int64() {
 		e.maxDelay.Set(duration)
 	}
