@@ -56,17 +56,17 @@ func parseRWData() {
 	}
 
 	opsOutPathPrefix := outPath + "/rw_ops"
-	lantencyOutPathPrefix := outPath + "/rw_lantency"
+	latencyOutPathPrefix := outPath + "/rw_latency"
 	if err = os.MkdirAll(opsOutPathPrefix, os.ModePerm); err != nil {
 		log.Fatalf("Error creating directory %s: %v", opsOutPathPrefix, err)
 	}
-	if err = os.MkdirAll(lantencyOutPathPrefix, os.ModePerm); err != nil {
-		log.Fatalf("Error creating directory %s: %v", lantencyOutPathPrefix, err)
+	if err = os.MkdirAll(latencyOutPathPrefix, os.ModePerm); err != nil {
+		log.Fatalf("Error creating directory %s: %v", latencyOutPathPrefix, err)
 	}
 
 	for name, fileName := range benchFiles {
 		data := DoParse(name, fileName, true)
-		writeBenchData(opsOutPathPrefix, lantencyOutPathPrefix, data)
+		writeBenchData(opsOutPathPrefix, latencyOutPathPrefix, data)
 	}
 }
 
@@ -88,30 +88,30 @@ func parseCmdData() {
 	}
 
 	opsOutPathPrefix := outPath + "/cmd_ops"
-	lantencyOutPathPrefix := outPath + "/cmd_lantency"
+	latencyOutPathPrefix := outPath + "/cmd_latency"
 	if err = os.MkdirAll(opsOutPathPrefix, os.ModePerm); err != nil {
 		log.Fatalf("Error creating directory %s: %v", opsOutPathPrefix, err)
 	}
-	if err = os.MkdirAll(lantencyOutPathPrefix, os.ModePerm); err != nil {
-		log.Fatalf("Error creating directory %s: %v", lantencyOutPathPrefix, err)
+	if err = os.MkdirAll(latencyOutPathPrefix, os.ModePerm); err != nil {
+		log.Fatalf("Error creating directory %s: %v", latencyOutPathPrefix, err)
 	}
 
 	for name, fileName := range benchFiles {
 		data := DoParse(name, fileName, false)
-		writeBenchData(opsOutPathPrefix, lantencyOutPathPrefix, data)
+		writeBenchData(opsOutPathPrefix, latencyOutPathPrefix, data)
 	}
 }
 
-func writeBenchData(opsPath, lantencyPath string, data BenchData) {
-	parsedLantencyDatas := data.GetParedLantencyData()
-	for i := range parsedLantencyDatas {
-		writeLantencyFile(lantencyPath, parsedLantencyDatas[i])
+func writeBenchData(opsPath, latencyPath string, data BenchData) {
+	parsedLatencyDatas := data.GetParedLatencyData()
+	for i := range parsedLatencyDatas {
+		writeLatencyFile(latencyPath, parsedLatencyDatas[i])
 	}
 	parsedOpsData := data.GetParedOpsData()
 	writeOpsFile(opsPath, parsedOpsData)
 }
 
-func writeLantencyFile(path string, data ParsedLatencyData) {
+func writeLatencyFile(path string, data ParsedLatencyData) {
 	fileName := filepath.Join(path, data.Title)
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
@@ -187,8 +187,8 @@ func (b *BenchData) GetParedOpsData() ParsedOpsData {
 	}
 }
 
-func (b *BenchData) GetParedLantencyData() []ParsedLatencyData {
-	parsedLantencyDatas := make([]ParsedLatencyData, 0)
+func (b *BenchData) GetParedLatencyData() []ParsedLatencyData {
+	parsedLatencyDatas := make([]ParsedLatencyData, 0)
 	for s, m := range b.CommandLatencyMap {
 		title := s
 		if b.usePrefix {
@@ -198,9 +198,9 @@ func (b *BenchData) GetParedLantencyData() []ParsedLatencyData {
 			Title:      strings.ToLower(title),
 			LatencyMap: m,
 		}
-		parsedLantencyDatas = append(parsedLantencyDatas, parsedBenchData)
+		parsedLatencyDatas = append(parsedLatencyDatas, parsedBenchData)
 	}
-	return parsedLantencyDatas
+	return parsedLatencyDatas
 }
 
 func DoParse(name, filePath string, usePrefix bool) BenchData {

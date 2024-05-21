@@ -35,13 +35,13 @@ After the execution is completed, four svg files will be produced in the ./chart
 
 5. Currently, the following four pressure measurement charts can be automatically generated:
 5.1 Percentile delay statistics chart of commonly used commands:
-![img.png](img/cmd_lantency.png)
+![img.png](img/cmd_latency.png)
 
 5.2 OPS statistics chart of commonly used commands:
 ![img.png](img/cmd_ops.png)
 
 5.3 Percentile delay statistics chart under different reading and writing scenarios
-![img.png](img/rw_lantency.png)
+![img.png](img/rw_latency.png)
 
 5.4 OPS statistics chart under different reading and writing scenarios
 ![img_1.png](img/rw_ops.png)

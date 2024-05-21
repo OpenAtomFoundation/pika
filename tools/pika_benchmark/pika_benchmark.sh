@@ -88,7 +88,7 @@ cmd_sadd=$pwd/bench_data/cmd_smembers.txt
 cmd_spop=$pwd/bench_data/cmd_spop.txt
 
 cmd_zadd=$pwd/bench_data/cmd_zadd.txt
-cmd_range=$pwd/bench_data/cmd_zrange.txt
+cmd_zrange=$pwd/bench_data/cmd_zrange.txt
 
 memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=0:10 --select-db=0 > $rw_0r10w
 memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=1:1 --select-db=0 > $rw_5r5w
