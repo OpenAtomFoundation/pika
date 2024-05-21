@@ -1,34 +1,11 @@
 #!/usr/bin/env python3
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
 
-import json
-import sys
-import statistics
-import numpy as np
 import argparse
-import re
+import json
 import pygal
-from pygal.style import Style
-from itertools import chain
-from os import walk
 from os import path
+from os import walk
+from pygal.style import Style
 
 chartStyle = Style(
     background='transparent',
@@ -39,9 +16,10 @@ chartStyle = Style(
     # colors=('#66CC69', '#667C69', '#173361', '#D8365D', '#78365D'),
 )
 
-#theme = pygal.style.CleanStyle
+# theme = pygal.style.CleanStyle
 theme = chartStyle
 fill = False
+
 
 def create_quantile_chart(workload, title, y_label, time_series):
     import math
@@ -49,7 +27,7 @@ def create_quantile_chart(workload, title, y_label, time_series):
                      legend_at_bottom=True,
                      truncate_legend=37,
                      x_value_formatter=lambda x: '{:,.2f} %'.format(
-                         100.0 - (100.0 / (10**x))),
+                         100.0 - (100.0 / (10 ** x))),
                      show_dots=False, fill=fill,
                      stroke_style={'width': 2},
                      print_values=True, print_values_position='top',
@@ -69,10 +47,11 @@ def create_quantile_chart(workload, title, y_label, time_series):
 
     chart.render_to_file('%s/%s.svg' % (args.outPath, workload))
 
+
 def create_bar_chart(workload, title, y_label, x_label, data):
     chart = pygal.Bar(
         style=theme, dots_size=1, show_dots=False, stroke_style={'width': 2}, fill=fill,
-        show_legend=False, show_x_guides=False, show_y_guides=False,  print_values_position='top',
+        show_legend=False, show_x_guides=False, show_y_guides=False, print_values_position='top',
         print_values=True, show_y_labels=True, show_x_labels=True,
     )
     chart.title = title
@@ -82,8 +61,10 @@ def create_bar_chart(workload, title, y_label, x_label, data):
 
     for label, points in data.items():
         chart.add(label, points)
-    print ("workload", workload)
+    print("workload", workload)
     chart.render_to_file('%s/%s.svg' % (args.outPath, workload))
+
+
 #     chart.render_to_file('%s.svg' % workload)
 
 if __name__ == "__main__":
@@ -112,7 +93,8 @@ if __name__ == "__main__":
     pub_rate_avg = {}
     pub_rate_avg["Throughput (MB/s)"] = []
 
-    colors = ['#2a6e3f', '#ee7959', '#ffee6f', '#e94829', '#667C69', '#173361', '#D8365D', '#33A1C9', '#e47690', '#FF5733', '#fac03d', "#f091a0"]
+    colors = ['#2a6e3f', '#ee7959', '#ffee6f', '#e94829', '#667C69', '#173361', '#D8365D', '#33A1C9', '#e47690',
+              '#FF5733', '#fac03d', "#f091a0"]
 
     # Aggregate across all runs
     count = 0
@@ -144,12 +126,11 @@ if __name__ == "__main__":
     print(pub_rate_avg)
     if ("Throughput (MB/s)" in pub_rate_avg and len(pub_rate_avg["Throughput (MB/s)"]) > 0):
         create_bar_chart(svg, 'Cmd Ops', 'Ops/second',
-                     drivers, pub_rate_avg)
+                         drivers, pub_rate_avg)
 
-    if(len(latencyMap) > 0):
+    if (len(latencyMap) > 0):
         time_series = zip(drivers, latencyMap, opts)
         svg = f'pika-{args.prefix}-latency-quantile'
         create_quantile_chart(svg, 'Latency Quantiles',
                               y_label='Latency (ms)',
                               time_series=time_series)
-
