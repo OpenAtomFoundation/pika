@@ -34,13 +34,17 @@ sh gen_chart.sh
 5、目前可以自动生成以下四种压测图表：
 
 5.1 常用命令的百分位延时统计图：
+
 ![img.png](img/cmd_latency.png)
 
 5.2 常用命令的 OPS 统计图：
+
 ![img.png](img/cmd_ops.png)
 
-5.3 不同读写场景下的百分位延时统计图
+5.3 不同读写场景下的百分位延时统计图：
+
 ![img.png](img/rw_latency.png)
 
-5.4 不同读写场景下的 OPS 统计图
+5.4 不同读写场景下的 OPS 统计图：
+
 ![img_1.png](img/rw_ops.png)
