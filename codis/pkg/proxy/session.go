@@ -240,31 +240,34 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		} else {
 			s.incrOpStats(r, resp.Type)
 		}
-		nowTime := time.Now().UnixNano()
-		duration := int64((nowTime - r.ReceiveTime) / 1e3)
-		s.updateMaxDelay(duration, r)
-		if fflush {
-			s.flushOpStats(false)
-		}
-		if duration >= s.config.SlowlogLogSlowerThan {
-			SlowCmdCount.Incr() // Atomic global variable, increment by 1 when slow log occurs.
-			//client -> proxy -> server -> porxy -> client
-			//Record the waiting time from receiving the request from the client to sending it to the backend server
-			//the waiting time from sending the request to the backend server to receiving the response from the server
-			//the waiting time from receiving the server response to sending it to the client
-			var d0, d1, d2 int64 = -1, -1, -1
-			if r.SendToServerTime > 0 {
-				d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+		if s.config.SlowlogLogSlowerThan >= 0 {
+			nowTime := time.Now().UnixNano()
+			duration := int64((nowTime - r.ReceiveTime) / 1e3)
+			s.updateMaxDelay(duration, r)
+			if fflush {
+				s.flushOpStats(false)
 			}
-			if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
-				d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+			if duration >= s.config.SlowlogLogSlowerThan {
+				SlowCmdCount.Incr()
+				// Atomic global variable, increment by 1 when slow log occurs.
+				//client -> proxy -> server -> porxy -> client
+				//Record the waiting time from receiving the request from the client to sending it to the backend server
+				//the waiting time from sending the request to the backend server to receiving the response from the server
+				//the waiting time from receiving the server response to sending it to the client
+				var d0, d1, d2 int64 = -1, -1, -1
+				if r.SendToServerTime > 0 {
+					d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+				}
+				if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
+					d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+				}
+				if r.ReceiveFromServerTime > 0 {
+					d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
+				}
+				index := getWholeCmd(r.Multi, cmd)
+				log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
+					time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
 			}
-			if r.ReceiveFromServerTime > 0 {
-				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
-			}
-			index := getWholeCmd(r.Multi, cmd)
-			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
-				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
 		}
 		return nil
 	})
@@ -722,7 +725,7 @@ func (s *Session) incrOpStats(r *Request, t redis.RespType) {
 func (s *Session) incrOpFails(r *Request, err error) error {
 	if r != nil {
 		e := s.getOpStats(r.OpStr, true)
-		e.totalFails.Incr()
+		e.fails.Incr()
 	} else {
 		s.stats.fails.Incr()
 	}
@@ -742,7 +745,7 @@ func (s *Session) flushOpStats(force bool) {
 	incrOpTotal(s.stats.total.Swap(0))
 	incrOpFails(s.stats.fails.Swap(0))
 	for _, e := range s.stats.opmap {
-		if e.totalCalls.Int64() != 0 || e.totalFails.Int64() != 0 {
+		if e.calls.Int64() != 0 || e.fails.Int64() != 0 {
 			incrOpStats(e)
 		}
 	}

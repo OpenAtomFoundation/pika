@@ -290,11 +290,11 @@ func (c *ApiClient) Stats(flags StatsFlags) (*Stats, error) {
 
 func (c *ApiClient) CmdInfo(interval int64) (*CmdInfo, error) {
 	url := c.encodeURL("/api/proxy/cmdinfo/%s/%d", c.xauth, interval)
-	cmdInfo := &CmdInfo{}
-	if err := rpc.ApiGetJson(url, cmdInfo); err != nil {
+	var cmdInfo CmdInfo
+	if err := rpc.ApiGetJson(url, &cmdInfo); err != nil {
 		return nil, err
 	}
-	return cmdInfo, nil
+	return &cmdInfo, nil
 }
 
 func (c *ApiClient) Slots() ([]*models.Slot, error) {
