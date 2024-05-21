@@ -119,4 +119,134 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			ValueName: "max_delay",
 		},
 	},
+	"tp90": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp90",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"tp99": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp99",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"tp999": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp999",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"tp100": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp100",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delayCount": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delayCount",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay50ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay50ms",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay100ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay100ms",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay200ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay200ms",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay300ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay300ms",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay500ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay500ms",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay1s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay1s",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay2s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay2s",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
+	"delay3s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay3s",
+			Help:      "The maximum time consumed by this command since the last collection.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "max_delay",
+		},
+	},
 }

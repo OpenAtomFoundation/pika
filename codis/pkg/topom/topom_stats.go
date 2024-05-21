@@ -86,9 +86,14 @@ func (s *Topom) RefreshRedisStats(timeout time.Duration) (*sync2.Future, error) 
 	return &fut, nil
 }
 
+type ProxyCmdStats struct {
+	CmdList []*proxy.CmdInfo `json:"cmd"`
+}
+
 type ProxyStats struct {
-	Stats *proxy.Stats     `json:"stats,omitempty"`
-	Error *rpc.RemoteError `json:"error,omitempty"`
+	Stats    *proxy.Stats     `json:"stats,omitempty"`
+	Error    *rpc.RemoteError `json:"error,omitempty"`
+	CmdStats *ProxyCmdStats   `json:"-"`
 
 	UnixTime int64 `json:"unixtime"`
 	Timeout  bool  `json:"timeout,omitempty"`
@@ -113,6 +118,29 @@ func (s *Topom) newProxyStats(p *models.Proxy, timeout time.Duration) *ProxyStat
 		return stats
 	case <-time.After(timeout):
 		return &ProxyStats{Timeout: true}
+	}
+}
+
+func (s *Topom) newProxyCmdStats(p *models.Proxy, loops int64, timeout time.Duration) *proxy.CmdInfo {
+	var ch = make(chan struct{})
+	stats := &proxy.CmdInfo{}
+
+	go func() {
+		defer close(ch)
+		x, err := s.newProxyClient(p).CmdInfo(loops)
+		if err != nil {
+			stats = nil
+			//stats.Error = rpc.NewRemoteError(err)
+		} else {
+			stats = x
+		}
+	}()
+
+	select {
+	case <-ch:
+		return stats
+	case <-time.After(timeout):
+		return nil
 	}
 }
 
@@ -145,6 +173,11 @@ func (s *Topom) RefreshProxyStats(timeout time.Duration) (*sync2.Future, error) 
 		stats := make(map[string]*ProxyStats)
 		for k, v := range fut.Wait() {
 			stats[k] = v.(*ProxyStats)
+			s.mu.Lock()
+			if _, ok := s.stats.proxies[k]; ok {
+				stats[k].CmdStats = s.stats.proxies[k].CmdStats
+			}
+			s.mu.Unlock()
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -216,4 +249,62 @@ func (s *Topom) CheckOfflineMastersAndSlavesState(timeout time.Duration) (*sync.
 		return g.State == models.GroupServerStateOffline
 	}, wg)
 	return wg, nil
+}
+
+func (s *Topom) RefreshProxyCmdStats(timeout time.Duration, loops int64) (*sync2.Future, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ctx, err := s.newContext()
+	if err != nil {
+		return nil, err
+	}
+	var fut sync2.Future
+	for _, p := range ctx.proxy {
+		fut.Add()
+		go func(p *models.Proxy) {
+			proxyCmdStats := &ProxyCmdStats{}
+			for i := 0; i < len(proxy.IntervalMark); i++ {
+				if loops%proxy.IntervalMark[i] != 0 {
+					proxyCmdStats.CmdList = append(proxyCmdStats.CmdList, nil)
+					continue
+				}
+
+				stats := s.newProxyCmdStats(p, proxy.IntervalMark[i], timeout)
+				if stats == nil {
+					log.Warnf("newProxyCmdStats failed: proxy-[%s], interval-[%d]", p.ProxyAddr, proxy.IntervalMark[i])
+				}
+
+				proxyCmdStats.CmdList = append(proxyCmdStats.CmdList, stats)
+			}
+
+			fut.Done(p.Token, proxyCmdStats)
+		}(p)
+	}
+	go func() {
+		//stats := make(map[string]*ProxyStats)
+		for k, v := range fut.Wait() {
+			s.mu.Lock()
+			//fmt.Println(k)
+			proxyStats, ok := s.stats.proxies[k]
+			if !ok {
+				s.mu.Unlock()
+				continue
+			}
+			if proxyStats.CmdStats == nil {
+				proxyStats.CmdStats = &ProxyCmdStats{CmdList: make([]*proxy.CmdInfo, 5, 5)}
+			}
+
+			for i := 0; i < len(proxy.IntervalMark); i++ {
+				cmdInfo := v.(*ProxyCmdStats).CmdList[i]
+				// 如果到了统计周期但 cmdInfo 为 nil，说明此次统计结果获取失败
+				if cmdInfo == nil && loops%proxy.IntervalMark[i] != 0 {
+					continue
+				}
+
+				proxyStats.CmdStats.CmdList[i] = cmdInfo
+			}
+			s.mu.Unlock()
+		}
+	}()
+	return &fut, nil
 }

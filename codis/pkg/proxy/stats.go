@@ -5,34 +5,35 @@ package proxy
 
 import (
 	"math"
-	"pika/codis/v2/pkg/proxy/redis"
-	"pika/codis/v2/pkg/utils/log"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils"
+	"pika/codis/v2/pkg/utils/log"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
-const TPFirstGrade = 5 //5ms - 200ms
-const TPFirstGradeSize = 40
-const TPSecondGrade = 25 //225ms - 700ms
-const TPSecondGradeSize = 20
-const TPThirdGrade = 250 //950ms - 3200ms
-const TPThirdGradeSize = 10
-const TPMaxNum = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
-const ClearSlowFlagPeriodRate = 3 //慢命令清理周期是统计周期的三倍
-const IntervalNum = 5
-const DelayKindNum = 8
+const (
+	TPFirstGrade            = 5 //5ms - 200ms
+	TPFirstGradeSize        = 40
+	TPSecondGrade           = 25 //225ms - 700ms
+	TPSecondGradeSize       = 20
+	TPThirdGrade            = 250 //950ms - 3200ms
+	TPThirdGradeSize        = 10
+	TPMaxNum                = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
+	ClearSlowFlagPeriodRate = 3 //慢命令清理周期是统计周期的三倍
+	IntervalNum             = 5
+	DelayKindNum            = 8
+)
 
-// 单位: s
-var IntervalMark = [IntervalNum]int64{1, 10, 60, 600, 3600}
-var LastRefreshTime = [IntervalNum]time.Time{time.Now()}
-
-// 单位: ms
-var DelayNumMark = [DelayKindNum]int64{50, 100, 200, 300, 500, 1000, 2000, 3000}
+var (
+	IntervalMark    = [5]int64{1, 10, 60, 600, 3600}
+	LastRefreshTime = [5]time.Time{time.Now(), time.Now(), time.Now(), time.Now(), time.Now()}
+	DelayNumMark    = [8]int64{50, 100, 200, 300, 500, 1000, 2000, 3000} // 单位: ms
+)
 
 var (
 	SlowCmdCount  atomic2.Int64 // Cumulative count of slow log
@@ -67,9 +68,9 @@ type delayInfo struct {
 
 type opStats struct {
 	opstr             string
-	totalCalls        atomic2.Int64
-	totalNsecs        atomic2.Int64
-	totalFails        atomic2.Int64
+	calls             atomic2.Int64
+	nsecs             atomic2.Int64
+	fails             atomic2.Int64
 	lastSetSlowTime   int64
 	lastClearSlowTime int64
 	redis             struct {
@@ -82,9 +83,9 @@ type opStats struct {
 func (s *opStats) OpStats() *OpStats {
 	o := &OpStats{
 		OpStr:    s.opstr,
-		Calls:    s.totalCalls.Int64(),
-		Usecs:    s.totalNsecs.Int64() / 1e3,
-		Fails:    s.totalFails.Int64(),
+		Calls:    s.calls.Int64(),
+		Usecs:    s.nsecs.Int64() / 1e3,
+		Fails:    s.fails.Int64(),
 		MaxDelay: s.maxDelay.Int64(),
 	}
 	if o.Calls != 0 {
@@ -426,9 +427,9 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 	o := &OpStats{
 		OpStr:      s.opstr,
 		Interval:   s.delayInfo[index].interval,
-		TotalCalls: s.totalCalls.Int64(),
-		TotalUsecs: s.totalNsecs.Int64() / 1e3,
-		Fails:      s.totalFails.Int64(),
+		TotalCalls: s.calls.Int64(),
+		TotalUsecs: s.nsecs.Int64() / 1e3,
+		Fails:      s.fails.Int64(),
 		Calls:      s.delayInfo[index].calls.Int64(),
 		Usecs:      s.delayInfo[index].nsecs.Int64() / 1e3,
 		QPS:        s.delayInfo[index].qps.Int64(),
@@ -457,8 +458,8 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 }
 
 func (s *opStats) incrOpStats(responseTime int64, t redis.RespType) {
-	s.totalCalls.Incr()
-	s.totalNsecs.Add(responseTime)
+	s.calls.Incr()
+	s.calls.Add(responseTime)
 	switch t {
 	case redis.TypeError:
 		s.redis.errors.Incr()
@@ -551,14 +552,14 @@ func GetOpStatsByInterval(interval int64) []*OpStats {
 }
 
 func ResetStats() {
-	cmdstats.Lock()
+	cmdstats.RLock()
 	for _, v := range cmdstats.opmap {
-		v.totalCalls.Set(0)
-		v.totalNsecs.Set(0)
-		v.totalFails.Set(0)
+		v.calls.Set(0)
+		v.nsecs.Set(0)
+		v.fails.Set(0)
 		v.redis.errors.Set(0)
 	}
-	cmdstats.Unlock()
+	cmdstats.RUnlock()
 
 	cmdstats.total.Set(0)
 	cmdstats.fails.Set(0)
@@ -580,10 +581,10 @@ func incrOpFails(n int64) {
 
 func incrOpStats(e *opStats) {
 	s := getOpStats(e.opstr, true)
-	s.totalCalls.Add(e.totalCalls.Swap(0))
-	s.totalNsecs.Add(e.totalNsecs.Swap(0))
-	if n := e.totalFails.Swap(0); n != 0 {
-		s.totalFails.Add(n)
+	s.calls.Add(e.calls.Swap(0))
+	s.nsecs.Add(e.nsecs.Swap(0))
+	if n := e.fails.Swap(0); n != 0 {
+		s.fails.Add(n)
 		cmdstats.fails.Add(n)
 	}
 	if n := e.redis.errors.Swap(0); n != 0 {
