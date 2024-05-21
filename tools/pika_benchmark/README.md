@@ -2,11 +2,11 @@ This tool provides stress testing commands for commonly used indicators, and sup
 1. First of all, the stress testing tool uses Redis’ official memtier_benchmark, so you must choose to install this tool. For the installation process, please refer to the official documentation: [https://github.com/RedisLabs/memtier_benchmark](https://github.com /RedisLabs/memtier_benchmark).
 2. Next, start a Pika process, and then execute the stress test script to perform the stress test:
 
-```go
+```shell
 sh pika_benchmark.sh -host 127.0.0.1 -port 9221
 ```
 Currently the following test parameters are supported:
-```go
+```shell
 -host <host>       Server hostname, default: 127.0.0.1
 -port <port>       Server port, default: 9221
 -requests <requests>   Number of requests, default: 10000
@@ -16,18 +16,18 @@ Currently the following test parameters are supported:
 ```
 
 3. After the stress test is completed, parse and format the stress test data. First execute go build to compile and convert the program:
-```go
+```shell
 go build parser.go
 ```
 
 Next, execute the program to format the stress test data. If the output folder does not exist, it needs to be created manually in advance:
-```go
+```shell
 mkdir -p parsed_data
 
 ./parser -in_dir=$(pwd)/bench_data -out_dir=$(pwd)/parsed_data
 ```
 4. Use a python script to generate a statistical chart image from the data:
-```go
+```shell
 sh gen_chart.sh
 ```
 

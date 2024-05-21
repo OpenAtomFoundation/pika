@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -111,7 +112,7 @@ func writeBenchData(opsPath, lantencyPath string, data BenchData) {
 }
 
 func writeLantencyFile(path string, data ParsedLatencyData) {
-	fileName := path + "/" + data.Title
+	fileName := filepath.Join(path, data.Title)
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal("Error marshalling JSON:", err)
@@ -121,7 +122,7 @@ func writeLantencyFile(path string, data ParsedLatencyData) {
 }
 
 func writeOpsFile(path string, data ParsedOpsData) {
-	fileName := path + "/" + data.Title
+	fileName := filepath.Join(path, data.Title)
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal("Error marshalling JSON:", err)
@@ -136,6 +137,7 @@ func doWriteFile(fileName string, jsonData []byte) {
 		err  error
 	)
 
+	// delete if file exists
 	if _, err = os.Stat(fileName); err == nil {
 		if err = os.Remove(fileName); err != nil {
 			log.Fatal("Error removing file:", err)
@@ -209,9 +211,9 @@ func DoParse(name, filePath string, usePrefix bool) BenchData {
 	defer file.Close()
 
 	var (
-		hasAllStatsLine                   = false
-		hasRequestLatencyDistributionLine = false
-		hasDividingLineBegin              = false
+		hasAllStatsLine                   bool
+		hasRequestLatencyDistributionLine bool
+		hasDividingLineBegin              bool
 		res                               = newBenchResult(name, usePrefix)
 	)
 
