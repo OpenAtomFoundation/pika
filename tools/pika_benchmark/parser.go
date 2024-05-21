@@ -65,7 +65,7 @@ func parseRWData() {
 	}
 
 	for name, fileName := range benchFiles {
-		data := DoParse(name, fileName, true)
+		data := doParse(name, fileName, true)
 		writeBenchData(opsOutPathPrefix, latencyOutPathPrefix, data)
 	}
 }
@@ -97,21 +97,21 @@ func parseCmdData() {
 	}
 
 	for name, fileName := range benchFiles {
-		data := DoParse(name, fileName, false)
+		data := doParse(name, fileName, false)
 		writeBenchData(opsOutPathPrefix, latencyOutPathPrefix, data)
 	}
 }
 
-func writeBenchData(opsPath, latencyPath string, data BenchData) {
-	parsedLatencyDatas := data.GetParedLatencyData()
+func writeBenchData(opsPath, latencyPath string, data benchData) {
+	parsedLatencyDatas := data.getParedLatencyData()
 	for i := range parsedLatencyDatas {
 		writeLatencyFile(latencyPath, parsedLatencyDatas[i])
 	}
-	parsedOpsData := data.GetParedOpsData()
+	parsedOpsData := data.getParedOpsData()
 	writeOpsFile(opsPath, parsedOpsData)
 }
 
-func writeLatencyFile(path string, data ParsedLatencyData) {
+func writeLatencyFile(path string, data parsedLatencyData) {
 	fileName := filepath.Join(path, data.Title)
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
@@ -120,7 +120,7 @@ func writeLatencyFile(path string, data ParsedLatencyData) {
 	doWriteFile(fileName, personJSON)
 }
 
-func writeOpsFile(path string, data ParsedOpsData) {
+func writeOpsFile(path string, data parsedOpsData) {
 	fileName := filepath.Join(path, data.Title)
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
@@ -153,46 +153,46 @@ func doWriteFile(fileName string, jsonData []byte) {
 	}
 }
 
-type BenchData struct {
+type benchData struct {
 	usePrefix         bool                          `json:"-"`
 	Title             string                        `json:"title,omitempty"`
 	OpsPerSes         float64                       `json:"opsPerSes"`
 	CommandLatencyMap map[string]map[string]float64 `json:"commandLatencyMap"`
 }
 
-type ParsedLatencyData struct {
+type parsedLatencyData struct {
 	Title      string             `json:"title,omitempty"`
 	LatencyMap map[string]float64 `json:"latencyMap"`
 }
 
-type ParsedOpsData struct {
+type parsedOpsData struct {
 	Title     string  `json:"title,omitempty"`
 	OpsPerSes float64 `json:"opsPerSes"`
 }
 
-func newBenchResult(title string, usePrefix bool) BenchData {
-	return BenchData{
+func newBenchResult(title string, usePrefix bool) benchData {
+	return benchData{
 		Title:             title,
 		usePrefix:         usePrefix,
 		CommandLatencyMap: make(map[string]map[string]float64),
 	}
 }
 
-func (b *BenchData) GetParedOpsData() ParsedOpsData {
-	return ParsedOpsData{
+func (b *benchData) getParedOpsData() parsedOpsData {
+	return parsedOpsData{
 		Title:     strings.ToLower(b.Title),
 		OpsPerSes: b.OpsPerSes,
 	}
 }
 
-func (b *BenchData) GetParedLatencyData() []ParsedLatencyData {
-	parsedLatencyDatas := make([]ParsedLatencyData, 0)
+func (b *benchData) getParedLatencyData() []parsedLatencyData {
+	parsedLatencyDatas := make([]parsedLatencyData, 0)
 	for s, m := range b.CommandLatencyMap {
 		title := s
 		if b.usePrefix {
 			title = b.Title + "-" + s
 		}
-		parsedBenchData := ParsedLatencyData{
+		parsedBenchData := parsedLatencyData{
 			Title:      strings.ToLower(title),
 			LatencyMap: m,
 		}
@@ -201,7 +201,7 @@ func (b *BenchData) GetParedLatencyData() []ParsedLatencyData {
 	return parsedLatencyDatas
 }
 
-func DoParse(name, filePath string, usePrefix bool) BenchData {
+func doParse(name, filePath string, usePrefix bool) benchData {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Error opening file: %v", err)
