@@ -155,18 +155,18 @@ func doWriteFile(fileName string, jsonData []byte) {
 
 type BenchData struct {
 	usePrefix         bool                          `json:"-"`
-	Title             string                        `json:"title"`
+	Title             string                        `json:"title,omitempty"`
 	OpsPerSes         float64                       `json:"opsPerSes"`
 	CommandLatencyMap map[string]map[string]float64 `json:"commandLatencyMap"`
 }
 
 type ParsedLatencyData struct {
-	Title      string             `json:"title"`
+	Title      string             `json:"title,omitempty"`
 	LatencyMap map[string]float64 `json:"latencyMap"`
 }
 
 type ParsedOpsData struct {
-	Title     string  `json:"title"`
+	Title     string  `json:"title,omitempty"`
 	OpsPerSes float64 `json:"opsPerSes"`
 }
 
