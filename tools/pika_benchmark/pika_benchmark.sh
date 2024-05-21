@@ -90,27 +90,27 @@ cmd_spop=$pwd/bench_data/cmd_spop.txt
 cmd_zadd=$pwd/bench_data/cmd_zadd.txt
 cmd_zrange=$pwd/bench_data/cmd_zrange.txt
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=0:10 --select-db=0 > $rw_0r10w
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=1:1 --select-db=0 > $rw_5r5w
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=3:7 --select-db=0 > $rw_3r7w
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=7:3 --select-db=0 > $rw_7r3w
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --ratio=10:0 --select-db=0 > $rw_10r0w
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --ratio=0:10 --select-db=0 > $rw_0r10w
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --ratio=1:1 --select-db=0 > $rw_5r5w
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --ratio=3:7 --select-db=0 > $rw_3r7w
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --ratio=7:3 --select-db=0 > $rw_7r3w
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --ratio=10:0 --select-db=0 > $rw_10r0w
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="get __key__" --command-ratio=2  --command-key-pattern=R > $cmd_get
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="set __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_set
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="get __key__" --command-ratio=2  --command-key-pattern=R > $cmd_get
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="set __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_set
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="hset __key__ __data__ 5" --command-ratio=2  --command-key-pattern=R > $cmd_hset
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="hget __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_hget
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="hset __key__ __data__ 5" --command-ratio=2  --command-key-pattern=R > $cmd_hset
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="hget __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_hget
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="lpush __key__ __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_lpush
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="rpush __key__ __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_rpush
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="lrange __key__ 0 -1" --command-ratio=2  --command-key-pattern=R > $cmd_lrange
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="lpush __key__ __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_lpush
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="rpush __key__ __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_rpush
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="lrange __key__ 0 -1" --command-ratio=2  --command-key-pattern=R > $cmd_lrange
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="sadd __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_sadd
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="smembers __key__" --command-ratio=2  --command-key-pattern=R > $cmd_smembers
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="spop __key__" --command-ratio=2  --command-key-pattern=R > $cmd_spop
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="sadd __key__ __data__" --command-ratio=2  --command-key-pattern=R > $cmd_sadd
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="smembers __key__" --command-ratio=2  --command-key-pattern=R > $cmd_smembers
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="spop __key__" --command-ratio=2  --command-key-pattern=R > $cmd_spop
 
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="zadd __key__ 1 __data__" --command-ratio=2  --command-key-pattern=R > $cmd_zadd
-memtier_benchmark --server=$server --port=$port --clients=10 --requests=$requests --data-size=32 --threads=20 --select-db=0 --command="zrange __key__ 0 -1" --command-ratio=2  --command-key-pattern=R > $cmd_zrange
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="zadd __key__ 1 __data__" --command-ratio=2  --command-key-pattern=R > $cmd_zadd
+memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="zrange __key__ 0 -1" --command-ratio=2  --command-key-pattern=R > $cmd_zrange
 
 
