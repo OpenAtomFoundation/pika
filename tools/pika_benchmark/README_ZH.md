@@ -15,6 +15,7 @@ sh pika_benchmark.sh -host 127.0.0.1 -port 9221
 -threads <threads>    Number of threads, default: 4
 -dataSize <dataSize>   Data size, default: 32
 ```
+
 3、压测完成后，对压测数据进行解析和格式化。首先执行 go build 编译转换程序：
 ```shell
 go build parser.go
@@ -25,6 +26,7 @@ mkdir -p parsed_data
 
 ./parser -in_dir=$(pwd)/bench_data -out_dir=$(pwd)/parsed_data
 ```
+
 4、使用 python 脚本将数据生成统计图图片：
 ```shell
 sh gen_chart.sh
