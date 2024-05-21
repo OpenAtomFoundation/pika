@@ -72,7 +72,7 @@ def create_quantile_chart(workload, title, y_label, time_series):
 def create_bar_chart(workload, title, y_label, x_label, data):
     chart = pygal.Bar(
         style=theme, dots_size=1, show_dots=False, stroke_style={'width': 2}, fill=fill,
-        show_legend=False, show_x_guides=False, show_y_guides=False,  print_values_position='center',
+        show_legend=False, show_x_guides=False, show_y_guides=False,  print_values_position='top',
         print_values=True, show_y_labels=True, show_x_labels=True,
     )
     chart.title = title
