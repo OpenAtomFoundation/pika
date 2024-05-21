@@ -41,7 +41,7 @@ func main() {
 func parseRWData() {
 	dirs, err := os.ReadDir(inPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("read rw file failed: ", err)
 	}
 
 	benchFiles := map[string]string{}
@@ -73,7 +73,7 @@ func parseRWData() {
 func parseCmdData() {
 	dirs, err := os.ReadDir(inPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("read cmd file failed: ", err)
 	}
 
 	benchFiles := map[string]string{}
@@ -116,7 +116,6 @@ func writeLatencyFile(path string, data ParsedLatencyData) {
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal("Error marshalling JSON:", err)
-		return
 	}
 	doWriteFile(fileName, personJSON)
 }
@@ -126,7 +125,6 @@ func writeOpsFile(path string, data ParsedOpsData) {
 	personJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal("Error marshalling JSON:", err)
-		return
 	}
 	doWriteFile(fileName, personJSON)
 }
