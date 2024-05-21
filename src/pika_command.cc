@@ -57,7 +57,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<CompactCmd>(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompact, std::move(compactptr)));
 
-  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 4, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompactRange, std::move(compactrangeptr)));
   std::unique_ptr<Cmd> purgelogsto =
       std::make_unique<PurgelogstoCmd>(kCmdNamePurgelogsto, -2, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -361,10 +361,6 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> typeptr =
       std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead |  kCmdFlagsOperateKey  | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
-  ////PTypeCmd
-  std::unique_ptr<Cmd> pTypeptr =
-      std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead |  kCmdFlagsOperateKey | kCmdFlagsFast);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePType, std::move(pTypeptr)));
   ////ScanCmd
   std::unique_ptr<Cmd> scanptr =
       std::make_unique<ScanCmd>(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsOperateKey | kCmdFlagsSlow);

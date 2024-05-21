@@ -284,44 +284,44 @@ int TrysyncThread::Retransmit() {
 
   storage::Storage bw;
 
-  storage::RedisStrings stringsDB(&bw, storage::kStrings);
+  storage::RedisStrings stringsDB(&bw, storage::DataType::kStrings);
   std::string path = db_path + "strings";
   s = stringsDB.Open(bwOptions, path);
   LOG(INFO) << "Open strings DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread(&stringsDB, &senders_, storage::kStrings, thread_num));
+    migrators_.emplace_back(new MigratorThread(&stringsDB, &senders_, storage::DataType::kStrings, thread_num));
   }
 
-  storage::RedisLists listsDB(&bw, storage::kLists);
+  storage::RedisLists listsDB(&bw, storage::DataType::kLists);
   path = db_path + "lists";
   s = listsDB.Open(bwOptions, path);
   LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread(&listsDB, &senders_, storage::kLists, thread_num));
+    migrators_.emplace_back(new MigratorThread(&listsDB, &senders_, storage::DataType::kLists, thread_num));
   }
 
-  storage::RedisHashes hashesDB(&bw, storage::kHashes);
+  storage::RedisHashes hashesDB(&bw, storage::DataType::kHashes);
   path = db_path + "hashes";
   s = hashesDB.Open(bwOptions, path);
   LOG(INFO) << "Open hashes DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread(&hashesDB, &senders_, storage::kHashes, thread_num));
+    migrators_.emplace_back(new MigratorThread(&hashesDB, &senders_, storage::DataType::kHashes, thread_num));
   }
 
-  storage::RedisSets setsDB(&bw, storage::kSets);
+  storage::RedisSets setsDB(&bw, storage::DataType::kSets);
   path = db_path + "sets";
   s = setsDB.Open(bwOptions, path);
   LOG(INFO) << "Open sets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread(&setsDB, &senders_, storage::kSets, thread_num));
+    migrators_.emplace_back(new MigratorThread(&setsDB, &senders_, storage::DataType::kSets, thread_num));
   }
 
-  storage::RedisZSets zsetsDB(&bw, storage::kZSets);
+  storage::RedisZSets zsetsDB(&bw, storage::DataType::kZSets);
   path = db_path + "zsets";
   s = zsetsDB.Open(bwOptions, path);
   LOG(INFO) << "Open zsets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread(&zsetsDB, &senders_, storage::kZSets, thread_num));
+    migrators_.emplace_back(new MigratorThread(&zsetsDB, &senders_, storage::DataType::kZSets, thread_num));
   }
 
   retransmit_mutex_.lock();
