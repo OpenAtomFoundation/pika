@@ -51,12 +51,12 @@ func parseRWData() {
 			key := strings.TrimPrefix(dir.Name(), "rw_")
 			key = strings.TrimSuffix(key, ".txt")
 			key = strings.TrimSpace(key)
-			benchFiles[key] = inPath + "/" + dir.Name()
+			benchFiles[key] = filepath.Join(inPath, dir.Name())
 		}
 	}
 
-	opsOutPathPrefix := outPath + "/rw_ops"
-	latencyOutPathPrefix := outPath + "/rw_latency"
+	opsOutPathPrefix := filepath.Join(outPath, "rw_ops")
+	latencyOutPathPrefix := filepath.Join(outPath, "rw_latency")
 	if err = os.MkdirAll(opsOutPathPrefix, os.ModePerm); err != nil {
 		log.Fatalf("Error creating directory %s: %v", opsOutPathPrefix, err)
 	}
@@ -83,12 +83,12 @@ func parseCmdData() {
 			key := strings.TrimPrefix(dir.Name(), "cmd_")
 			key = strings.TrimSuffix(key, ".txt")
 			key = strings.TrimSpace(key)
-			benchFiles[key] = inPath + "/" + dir.Name()
+			benchFiles[key] = filepath.Join(inPath, dir.Name())
 		}
 	}
 
-	opsOutPathPrefix := outPath + "/cmd_ops"
-	latencyOutPathPrefix := outPath + "/cmd_latency"
+	opsOutPathPrefix := filepath.Join(outPath, "cmd_ops")
+	latencyOutPathPrefix := filepath.Join(outPath, "cmd_latency")
 	if err = os.MkdirAll(opsOutPathPrefix, os.ModePerm); err != nil {
 		log.Fatalf("Error creating directory %s: %v", opsOutPathPrefix, err)
 	}
