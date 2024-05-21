@@ -222,10 +222,12 @@ func DoParse(name, filePath string, usePrefix bool) BenchData {
 		if line == flagLine_allStats {
 			hasAllStatsLine = true
 			continue
-		} else if line == flagLine_requestLatencyDistribution {
+		}
+		if line == flagLine_requestLatencyDistribution {
 			hasRequestLatencyDistributionLine = true
 			continue
-		} else if hasRequestLatencyDistributionLine {
+		}
+		if hasRequestLatencyDistributionLine {
 			if strings.HasPrefix(line, flagLine_dividingLineBeginPrefix) {
 				hasDividingLineBegin = true
 				continue
