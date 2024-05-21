@@ -77,6 +77,7 @@ def create_bar_chart(workload, title, y_label, x_label, data):
     )
     chart.title = title
     chart.x_labels = x_label
+    chart.y_title = y_label
     chart.value_formatter = lambda y: "{:,.0f}".format(y)
 
     for label, points in data.items():
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     svg = f'pika-{args.prefix}-ops'
     print(pub_rate_avg)
     if ("Throughput (MB/s)" in pub_rate_avg and len(pub_rate_avg["Throughput (MB/s)"]) > 0):
-        create_bar_chart(svg, 'Cmd Ops', 'Ops',
+        create_bar_chart(svg, 'Cmd Ops', 'Ops/second',
                      drivers, pub_rate_avg)
 
     if(len(latencyMap) > 0):
