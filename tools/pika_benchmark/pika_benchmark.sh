@@ -112,5 +112,3 @@ memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$r
 
 memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="zadd __key__ 1 __data__" --command-ratio=2  --command-key-pattern=R > $cmd_zadd
 memtier_benchmark --server=$server --port=$port --clients=$clients --requests=$requests --data-size=$dataSize --threads=$threads --select-db=0 --command="zrange __key__ 0 -1" --command-ratio=2  --command-key-pattern=R > $cmd_zrange
-
-
