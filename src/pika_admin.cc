@@ -982,6 +982,7 @@ void InfoCmd::InfoServer(std::string& info) {
   tmp_stream << "tcp_port:" << g_pika_conf->port() << "\r\n";
   tmp_stream << "thread_num:" << g_pika_conf->thread_num() << "\r\n";
   tmp_stream << "sync_thread_num:" << g_pika_conf->sync_thread_num() << "\r\n";
+  tmp_stream << "sync_binlog_thread_num:" << g_pika_conf->sync_binlog_thread_num() << "\r\n";
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24 * 3600) - g_pika_server->start_time_s() / (24 * 3600) + 1)
              << "\r\n";
@@ -1540,6 +1541,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "sync-thread-num");
     EncodeNumber(&config_body, g_pika_conf->sync_thread_num());
   }
+
+  if (pstd::stringmatch(pattern.data(), "sync-binlog-thread-num", 1) != 0) {
+     elements += 2;
+     EncodeString(&config_body, "sync-binlog-thread-num");
+     EncodeNumber(&config_body, g_pika_conf->sync_binlog_thread_num());
+    }
 
   if (pstd::stringmatch(pattern.data(), "log-path", 1) != 0) {
     elements += 2;

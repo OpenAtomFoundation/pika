@@ -62,9 +62,12 @@ int PikaReplClientConn::DealMessage() {
       break;
     }
     case InnerMessage::kTrySync: {
+      const std::string& db_name = response->try_sync().slot().db_name();
+      //TrySync resp must contain db_name
+      assert(!db_name.empty());
       auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
+      g_pika_rm->ScheduleReplClientBGTaskByDBName(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg), db_name);
       break;
     }
     case InnerMessage::kBinlogSync: {
@@ -192,7 +195,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     LOG(WARNING) << "TrySync Failed: " << reply;
     return;
   }
-
   const InnerMessage::InnerResponse_TrySync& try_sync_response = response->try_sync();
   const InnerMessage::Slot& db_response = try_sync_response.slot();
   std::string db_name = db_response.db_name();
