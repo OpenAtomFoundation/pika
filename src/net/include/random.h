@@ -6,11 +6,8 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#include <stdint.h>
-#include <string.h>
 #include <random>
 #include <thread>
-#include <utility>
 
 #include "net/include/likely.h"
 

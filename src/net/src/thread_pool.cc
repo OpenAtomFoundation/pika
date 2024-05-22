@@ -46,12 +46,14 @@ int ThreadPool::Worker::stop() {
 ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name)
     : newest_node_(nullptr),
       node_cnt_(0),
-      queue_slow_size_(std::max(worker_num_ * 100, max_queue_size_)),
+      time_newest_node_(nullptr),
+      time_node_cnt_(0),
+      queue_slow_size_(std::min(worker_num * 10, max_queue_size)),
+      max_queue_size_(max_queue_size),
       max_yield_usec_(100),
       slow_yield_usec_(3),
       adp_ctx(),
       worker_num_(worker_num),
-      max_queue_size_(max_queue_size),
       thread_pool_name_(std::move(thread_pool_name)),
       running_(false),
       should_stop_(false) {}
@@ -78,7 +80,6 @@ int ThreadPool::stop_thread_pool() {
   if (running_.load()) {
     should_stop_.store(true);
     rsignal_.notify_all();
-    // wsignal_.notify_all();
     for (const auto worker : workers_) {
       res = worker->stop();
       if (res != 0) {
@@ -106,6 +107,7 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
   if (node_cnt_.load(std::memory_order_relaxed) >= queue_slow_size_) {
     std::this_thread::yield();
   }
+    // std::unique_lock lock(mu_);
   if (LIKELY(!should_stop())) {
     auto node = new Node(func, arg);
     LinkOne(node, &newest_node_);
@@ -122,6 +124,7 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
   uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
   uint64_t exec_time = unow + timeout * 1000;
 
+    // std::unique_lock lock(mu_);
   if (LIKELY(!should_stop())) {
     auto node = new Node(exec_time, func, arg);
     LinkOne(node, &time_newest_node_);
@@ -131,6 +134,8 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
 }
 
 size_t ThreadPool::max_queue_size() { return max_queue_size_; }
+
+size_t ThreadPool::worker_size() { return worker_num_; }
 
 void ThreadPool::cur_queue_size(size_t* qsize) { *qsize = node_cnt_.load(std::memory_order_relaxed); }
 
@@ -174,7 +179,7 @@ void ThreadPool::runInThread() {
         }
         AsmVolatilePause();
       }
-
+      
       // 2. loop for a little short time again
       const size_t kMaxSlowYieldsWhileSpinning = 3;
       auto& yield_credit = adp_ctx.value;
@@ -238,24 +243,20 @@ void ThreadPool::runInThread() {
   exec:
     // do all normal tasks older than this task pointed last
     if (LIKELY(last != nullptr)) {
-      int cnt = 0;
-      auto first = CreateMissingNewerLinks(last, &cnt);
+      auto first = CreateMissingNewerLinks(last);
       assert(!first->is_time_task);
-      node_cnt_ -= cnt;
       do {
         first->Exec();
-        // node_cnt_--;
         tmp = first;
         first = first->Next();
+        node_cnt_--;
         delete tmp;
       } while (first != nullptr);
     }
 
     // do all time tasks older than this task pointed time_last
     if (UNLIKELY(time_last != nullptr)) {
-      int time_cnt = 0;
-      auto time_first = CreateMissingNewerLinks(time_last, &time_cnt);
-      // time_node_cnt_ -= time_cnt;
+      auto time_first = CreateMissingNewerLinks(time_last);
       do {
         // time task may block normal task
         auto now = std::chrono::system_clock::now();
@@ -265,15 +266,15 @@ void ThreadPool::runInThread() {
         assert(time_first->is_time_task);
         if (unow >= exec_time) {
           time_first->Exec();
-          time_node_cnt_--;
         } else {
           lock.lock();
           rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
+          lock.unlock();
           time_first->Exec();
-          time_node_cnt_--;
         }
         tmp = time_first;
         time_first = time_first->Next();
+        time_node_cnt_--;
         delete tmp;
       } while (time_first != nullptr);
     }
@@ -281,16 +282,14 @@ void ThreadPool::runInThread() {
   }
 }
 
-ThreadPool::Node* ThreadPool::CreateMissingNewerLinks(Node* head, int* cnt) {
+ThreadPool::Node* ThreadPool::CreateMissingNewerLinks(Node* head) {
   assert(head != nullptr);
   Node* next = nullptr;
-  *cnt = 1;
   while (true) {
     next = head->link_older;
     if (next == nullptr) {
       return head;
     }
-    ++(*cnt);
     next->link_newer = head;
     head = next;
   }

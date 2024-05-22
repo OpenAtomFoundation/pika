@@ -18,13 +18,6 @@ namespace net {
 
 using TaskFunc = void (*)(void*);
 
-// struct Task {
-//   Task() = default;
-//   TaskFunc func = nullptr;
-//   void* arg = nullptr;
-//   Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
-// };
-
 struct TimeTask {
   uint64_t exec_time;
   TaskFunc func;
@@ -103,7 +96,7 @@ class ThreadPool : public pstd::noncopyable {
     // it's okay for other platforms to be no-ops
   }
 
-  Node* CreateMissingNewerLinks(Node* head, int* cnt);
+  Node* CreateMissingNewerLinks(Node* head);
   bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
 
   std::atomic<Node*> newest_node_;
@@ -111,7 +104,7 @@ class ThreadPool : public pstd::noncopyable {
   std::atomic<Node*> time_newest_node_;
   std::atomic<int> time_node_cnt_;  // for time task
 
-  const int queue_slow_size_;  // default value: max(worker_num_ * 100, max_queue_size_)
+  const int queue_slow_size_;  // default value: min(worker_num_ * 10, max_queue_size_)
   size_t max_queue_size_;
 
   const uint64_t max_yield_usec_;
@@ -121,15 +114,12 @@ class ThreadPool : public pstd::noncopyable {
 
   size_t worker_num_;
   std::string thread_pool_name_;
-  // std::queue<TimeTask> queue_;
-  // std::priority_queue<TimeTask> time_queue_;
   std::vector<Worker*> workers_;
   std::atomic<bool> running_;
   std::atomic<bool> should_stop_;
 
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
-  // pstd::CondVar wsignal_;
 };
 
 }  // namespace net
