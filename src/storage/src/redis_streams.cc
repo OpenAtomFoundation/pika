@@ -79,7 +79,6 @@ Status Redis::XAdd(const Slice& key, const std::string& serialized_message, Stre
   stream_meta.set_entries_added(stream_meta.entries_added() + 1);
   stream_meta.set_last_id(args.id);
   stream_meta.set_length(stream_meta.length() + 1);
-
   // 4 trim the stream if needed
   if (args.trim_strategy != StreamTrimStrategy::TRIM_STRATEGY_NONE) {
     int32_t count{0};
@@ -92,7 +91,7 @@ Status Redis::XAdd(const Slice& key, const std::string& serialized_message, Stre
 
   // 5 update stream meta
   BaseMetaKey base_meta_key(key);
-  s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta.value());
+  s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), stream_meta.value());
   if (!s.ok()) {
     return s;
   }
@@ -119,7 +118,7 @@ Status Redis::XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count) {
 
   // 3 update stream meta
   BaseMetaKey base_meta_key(key);
-  s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta.value());
+  s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), stream_meta.value());
   if (!s.ok()) {
     return s;
   }
@@ -173,7 +172,7 @@ Status Redis::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& 
     }
   }
   
-  return db_->Put(default_write_options_, handles_[kStreamsMetaCF], BaseMetaKey(key).Encode(), stream_meta.value());
+  return db_->Put(default_write_options_, handles_[kMetaCF], BaseMetaKey(key).Encode(), stream_meta.value());
 }
 
 Status Redis::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
@@ -342,8 +341,11 @@ Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
   int64_t curtime;
   rocksdb::Env::Default()->GetCurrentTime(&curtime);
 
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kStreamsMetaCF]);
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+    if (!ExpectedMetaValue(DataType::kStreams, iter->value().ToString())) {
+      continue;
+    }
     ParsedStreamMetaValue parsed_stream_meta_value(iter->value());
     if (parsed_stream_meta_value.length() == 0) {
       invaild_keys++;
@@ -358,59 +360,17 @@ Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::StreamsPKPatternMatchDel(const std::string& pattern, int32_t* ret) {
-  rocksdb::ReadOptions iterator_options;
-  const rocksdb::Snapshot* snapshot;
-  ScopeSnapshot ss(db_, &snapshot);
-  iterator_options.snapshot = snapshot;
-  iterator_options.fill_cache = false;
-
-  std::string encoded_key;
-  std::string meta_value;
-  int32_t total_delete = 0;
-  Status s;
-  rocksdb::WriteBatch batch;
-  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kStreamsMetaCF]);
-  iter->SeekToFirst();
-  while (iter->Valid()) {
-    encoded_key = iter->key().ToString();
-    meta_value = iter->value().ToString();
-    ParsedBaseMetaKey parsed_meta_key(iter->key());
-    StreamMetaValue stream_meta_value;
-    stream_meta_value.ParseFrom(meta_value);
-    if ((stream_meta_value.length() != 0) &&
-        (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
-      stream_meta_value.InitMetaValue();
-      batch.Put(handles_[kStreamsMetaCF], encoded_key, stream_meta_value.value());
-    }
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
-    }
-    iter->Next();
-  }
-  if (batch.Count() != 0U) {
-    s = db_->Write(default_write_options_, &batch);
-    if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
-      batch.Clear();
-    }
-  }
-
-  *ret = total_delete;
-  return s;
-}
-
 Status Redis::StreamsDel(const Slice& key) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
-  Status s = db_->Get(default_read_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), &meta_value);
+  Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
+  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+    }
+  }
   if (s.ok()) {
     StreamMetaValue stream_meta_value;
     stream_meta_value.ParseFrom(meta_value);
@@ -419,7 +379,7 @@ Status Redis::StreamsDel(const Slice& key) {
     } else {
       uint32_t statistic = stream_meta_value.length();
       stream_meta_value.InitMetaValue();
-      s = db_->Put(default_write_options_, handles_[kStreamsMetaCF], base_meta_key.Encode(), stream_meta_value.value());
+      s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), stream_meta_value.value());
       UpdateSpecificKeyStatistics(DataType::kStreams, key.ToString(), statistic);
     }
   }
@@ -430,7 +390,14 @@ Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& 
                             rocksdb::ReadOptions& read_options) {
   std::string value;
   BaseMetaKey base_meta_key(key);
-  auto s = db_->Get(read_options, handles_[kStreamsMetaCF], base_meta_key.Encode(), &value);
+  auto s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &value);
+  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, value)) {
+    if (ExpectedStale(value)) {
+      s = Status::NotFound();
+    } else {
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(value))]);
+    }
+  }
   if (s.ok()) {
     stream_meta.ParseFrom(value);
     return Status::OK();

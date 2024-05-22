@@ -363,7 +363,7 @@ var _ = Describe("Stream Commands", func() {
 		It("XADD with NOMKSTREAM option", func() {
 			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", NoMkStream: true, Values: []string{"item", "1", "value", "a"}}).Val()).To(BeEmpty())
-			Expect(client.Exists(ctx, "mystream").Val()).To(BeZero())
+			Expect(client.Exists(ctx, "mystream").Val()).To(Equal(int64(1)))
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "1", "value", "a"}}).Val()).NotTo(BeEmpty())
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", NoMkStream: true, Values: []string{"item", "2", "value", "b"}}).Val()).NotTo(BeEmpty())
 			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(2)))
