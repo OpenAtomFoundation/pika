@@ -126,6 +126,9 @@ int PikaConf::Load() {
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
   GetConfInt("db-instance-num", &db_instance_num_);
+  if (db_instance_num_ <= 0) {
+    LOG(FATAL) << "db-instance-num load error";
+  }
   int64_t t_val = 0;
   GetConfInt64("rocksdb-ttl-second", &t_val);
   rocksdb_ttl_second_.store(uint64_t(t_val));
