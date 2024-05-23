@@ -9,11 +9,12 @@
 #include <pthread.h>
 #include <atomic>
 #include <string>
+#include <vector>
 
 #include "net/include/net_define.h"
 #include "net/include/random.h"
 #include "pstd/include/pstd_mutex.h"
- 
+
 namespace net {
 
 using TaskFunc = void (*)(void*);
@@ -30,7 +31,13 @@ class ThreadPool : public pstd::noncopyable {
  public:
   class Worker {
    public:
-    explicit Worker(ThreadPool* tp) : start_(false), thread_pool_(tp){};
+    struct Arg {
+      Arg(void* p, int i) : arg(p), idx(i) {}
+      void* arg;
+      int idx;
+    };
+
+    explicit Worker(ThreadPool* tp, int idx = 0) : start_(false), thread_pool_(tp), idx_(idx), arg_(tp, idx){};
     static void* WorkerMain(void* arg);
 
     int start();
@@ -41,6 +48,8 @@ class ThreadPool : public pstd::noncopyable {
     std::atomic<bool> start_;
     ThreadPool* const thread_pool_;
     std::string worker_name_;
+    int idx_;
+    Arg arg_;
   };
 
   explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name = "ThreadPool");
@@ -60,7 +69,7 @@ class ThreadPool : public pstd::noncopyable {
   std::string thread_pool_name();
 
  private:
-  void runInThread();
+  void runInThread(const int idx = 0);
 
  public:
   struct AdaptationContext {
@@ -96,12 +105,14 @@ class ThreadPool : public pstd::noncopyable {
     // it's okay for other platforms to be no-ops
   }
 
-  Node* CreateMissingNewerLinks(Node* head);
+  Node* CreateMissingNewerLinks(Node* head, int* cnt);
   bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
 
-  std::atomic<Node*> newest_node_;
+  int task_idx_;
+std::vector<std::atomic<void*>> asd;
+  std::vector<std::atomic<Node*>> newest_node_;
   std::atomic<int> node_cnt_;  // for task
-  std::atomic<Node*> time_newest_node_;
+  std::vector<std::atomic<Node*>> time_newest_node_;
   std::atomic<int> time_node_cnt_;  // for time task
 
   const int queue_slow_size_;  // default value: min(worker_num_ * 10, max_queue_size_)
@@ -112,14 +123,14 @@ class ThreadPool : public pstd::noncopyable {
 
   AdaptationContext adp_ctx;
 
-  size_t worker_num_;
+  const size_t worker_num_;
   std::string thread_pool_name_;
   std::vector<Worker*> workers_;
   std::atomic<bool> running_;
   std::atomic<bool> should_stop_;
 
-  pstd::Mutex mu_;
-  pstd::CondVar rsignal_;
+  std::vector<pstd::Mutex> mu_;
+  std::vector<pstd::CondVar> rsignal_;
 };
 
 }  // namespace net
