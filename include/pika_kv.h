@@ -270,12 +270,16 @@ class MgetCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
+  std::vector<std::string> cache_miss_keys_;
   std::string value_;
+  std::unordered_map<std::string, std::string> cache_hit_values_;
   std::vector<storage::ValueStatus> split_res_;
   std::vector<storage::ValueStatus> db_value_status_array_;
   std::vector<storage::ValueStatus> cache_value_status_array_;
   int64_t ttl_ = -1;
   void DoInitial() override;
+  void MergeCachedAndDbResults();
+  void AssembleResponseFromCache();
   rocksdb::Status s_;
 };
 
