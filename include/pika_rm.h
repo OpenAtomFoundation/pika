@@ -173,6 +173,7 @@ class PikaReplicaManager {
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, std::string db_name, const std::vector<WriteTask>& tasks);
+  void DropItemInOneWriteQueue(const std::string& ip, int port, const std::string& db_name);
   void DropItemInWriteQueue(const std::string& ip, int port);
   int ConsumeWriteQueue();
 
