@@ -326,6 +326,12 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 		} else {
 			return redis.NewBulkBytes(text)
 		}
+	case "proxy_refresh_state_period":
+		if text, err := p.config.ProxyRefreshStatePeriod.MarshalText(); err == nil {
+			return redis.NewBulkBytes(text)
+		} else {
+			return redis.NewErrorf("cant get proxy_refresh_state_period value.")
+		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -404,6 +410,19 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 			p.router.SetPrimaryQuickConn(p.config.BackendPrimaryQuick)
 			return redis.NewString([]byte("OK"))
 		}
+	case "proxy_refresh_state_period":
+		s := &(p.config.ProxyRefreshStatePeriod)
+		err := s.UnmarshalText([]byte(value))
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+
+		if d := p.config.ProxyRefreshStatePeriod.Duration(); d < 0 {
+			return redis.NewErrorf("invalid proxy_refresh_state_period")
+		} else {
+			StatsSetRefreshPeriod(d)
+			return redis.NewString([]byte("OK"))
+		}
 	case "max_delay_refresh_time_interval":
 		s := &(p.config.MaxDelayRefreshTimeInterval)
 		err := s.UnmarshalText([]byte(value))
@@ -413,7 +432,7 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		if d := p.config.MaxDelayRefreshTimeInterval.Duration(); d <= 0 {
 			return redis.NewErrorf("max_delay_refresh_time_interval must be greater than 0")
 		} else {
-			RefreshPeriod.Set(int64(d))
+			//RefreshPeriod.Set(int64(d))
 			return redis.NewString([]byte("OK"))
 		}
 	default:
@@ -721,13 +740,17 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 
 	stats.Ops.Total = OpTotal()
 	stats.Ops.Fails = OpFails()
+	log.Infof("Ops.Fails : %v", stats.Ops.Fails)
 	stats.Ops.Redis.Errors = OpRedisErrors()
 	stats.Ops.QPS = OpQPS()
 	stats.Ops.Cmd = GetOpStatsByInterval(1)
-
-	if flags.HasBit(StatsCmds) {
-		stats.Ops.Cmd = GetOpStatsAll()
+	log.Infof("stats.Ops.Cmd  : %v", stats.Ops.Cmd)
+	for idx := range stats.Ops.Cmd {
+		log.Infof("cmd infos i:%v , cmd :%v", idx, stats.Ops.Cmd[idx])
 	}
+	/*if flags.HasBit(StatsCmds) {
+		stats.Ops.Cmd = GetOpStatsAll()
+	}*/
 
 	stats.Sessions.Total = SessionsTotal()
 	stats.Sessions.Alive = SessionsAlive()
@@ -736,7 +759,7 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Rusage.Now = u.Now.String()
 		stats.Rusage.CPU = u.CPU
 		stats.Rusage.Mem = u.MemTotal()
-		stats.Rusage.Raw = u.Usage
+		stats.Rusage.Raw = (*utils.Usage)(u.Usage)
 	}
 
 	stats.Backend.PrimaryOnly = p.Config().BackendPrimaryOnly
@@ -764,7 +787,7 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
-	stats.SlowCmdCount = SlowCmdCount.Int64()
+	//stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
 }
 

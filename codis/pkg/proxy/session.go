@@ -6,6 +6,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	redis2 "github.com/CodisLabs/codis/pkg/proxy/redis"
 	"math/rand"
 	"net"
 	"strconv"
@@ -33,7 +34,7 @@ type Session struct {
 	quit bool
 	exit sync.Once
 
-	stats struct {
+	stats struct { //todo cjg
 		opmap map[string]*opStats
 		total atomic2.Int64
 		fails atomic2.Int64
@@ -124,7 +125,6 @@ func (s *Session) Start(d *Router) {
 				s.Conn.Encode(redis.NewErrorf("ERR max number of clients reached"), true)
 				s.CloseWithError(ErrTooManySessions)
 				s.incrOpFails(nil, nil)
-				s.flushOpStats(true)
 			}()
 			decrSessions()
 			return
@@ -135,7 +135,6 @@ func (s *Session) Start(d *Router) {
 				s.Conn.Encode(redis.NewErrorf("ERR router is not online"), true)
 				s.CloseWithError(ErrRouterNotOnline)
 				s.incrOpFails(nil, nil)
-				s.flushOpStats(true)
 			}()
 			decrSessions()
 			return
@@ -170,9 +169,6 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 		if err != nil {
 			return err
 		}
-		if len(multi) == 0 {
-			continue
-		}
 		s.incrOpTotal()
 
 		tasksLen := tasks.Buffered()
@@ -205,18 +201,19 @@ func (s *Session) loopReader(tasks *RequestChan, d *Router) (err error) {
 }
 
 func (s *Session) loopWriter(tasks *RequestChan) (err error) {
+	log.Info("init loopWriter")
 	defer func() {
 		s.CloseWithError(err)
 		tasks.PopFrontAllVoid(func(r *Request) {
 			s.incrOpFails(r, nil)
 		})
-		s.flushOpStats(true)
 	}()
+
+	var cmd = make([]byte, 128)
 	var (
 		breakOnFailure = s.config.SessionBreakOnFailure
 		maxPipelineLen = s.config.SessionMaxPipeline
 	)
-	var cmd = make([]byte, 128)
 
 	p := s.Conn.FlushEncoder()
 	p.MaxInterval = time.Millisecond
@@ -240,15 +237,12 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		} else {
 			s.incrOpStats(r, resp.Type)
 		}
+
 		if s.config.SlowlogLogSlowerThan >= 0 {
 			nowTime := time.Now().UnixNano()
 			duration := int64((nowTime - r.ReceiveTime) / 1e3)
-			s.updateMaxDelay(duration, r)
-			if fflush {
-				s.flushOpStats(false)
-			}
+			//s.updateMaxDelay(duration, r)
 			if duration >= s.config.SlowlogLogSlowerThan {
-				SlowCmdCount.Incr()
 				// Atomic global variable, increment by 1 when slow log occurs.
 				//client -> proxy -> server -> porxy -> client
 				//Record the waiting time from receiving the request from the client to sending it to the backend server
@@ -670,10 +664,10 @@ func (s *Session) handleRequestSlotsMapping(r *Request, d *Router) error {
 }
 
 func (s *Session) incrOpTotal() {
-	s.stats.total.Incr()
+	incrOpTotal()
 }
 
-func (s *Session) getOpStats(opstr string, create bool) *opStats {
+/*func (s *Session) getOpStats(opstr string, create bool) *opStats {
 	cmdstats.RLock()
 	e := s.stats.opmap[opstr]
 	cmdstats.RUnlock()
@@ -691,29 +685,31 @@ func (s *Session) getOpStats(opstr string, create bool) *opStats {
 	}
 	cmdstats.Unlock()
 	return e
-}
+}*/
 
+// 这里做了一次优化，每个命令的操作句柄只获取一次
 func (s *Session) incrOpStats(r *Request, t redis.RespType) {
-	if s.config.ProxyRefreshStatePeriod.Duration() <= 0 {
+	//执行的命令不在命令列表，不进行统计
+	/*if r != nil && r.OpFlag == FlagMayWrite {
 		return
-	}
+	}*/
 
 	if r != nil {
 		responseTime := time.Now().UnixNano() - r.ReceiveTime
-
 		var e *opStats
 		e = s.stats.opmap[r.OpStr]
 		if e == nil {
 			e = getOpStats(r.OpStr, true)
 			s.stats.opmap[r.OpStr] = e
 		}
-		e.incrOpStats(responseTime, t)
+		e.incrOpStats(responseTime, redis2.RespType(t))
+
 		e = s.stats.opmap["ALL"]
 		if e == nil {
 			e = getOpStats("ALL", true)
 			s.stats.opmap["ALL"] = e
 		}
-		e.incrOpStats(responseTime, t)
+		e.incrOpStats(responseTime, redis2.RespType(t))
 
 		switch t {
 		case redis.TypeError:
@@ -723,16 +719,16 @@ func (s *Session) incrOpStats(r *Request, t redis.RespType) {
 }
 
 func (s *Session) incrOpFails(r *Request, err error) error {
-	if r != nil {
-		e := s.getOpStats(r.OpStr, true)
-		e.fails.Incr()
-	} else {
-		s.stats.fails.Incr()
-	}
+	//执行的命令不在命令列表，不进行统计
+	/*if r != nil && r.OpFlag == FlagMayWrite {
+		return err
+	}*/
+
+	incrOpFails(r, err)
 	return err
 }
 
-func (s *Session) flushOpStats(force bool) {
+/*func (s *Session) flushOpStats(force bool) {
 	var nano = time.Now().UnixNano()
 	if !force {
 		const period = int64(time.Millisecond) * 100
@@ -745,7 +741,7 @@ func (s *Session) flushOpStats(force bool) {
 	incrOpTotal(s.stats.total.Swap(0))
 	incrOpFails(s.stats.fails.Swap(0))
 	for _, e := range s.stats.opmap {
-		if e.calls.Int64() != 0 || e.fails.Int64() != 0 {
+		if e.totalCalls.Int64() != 0 || e.totalFails.Int64() != 0 {
 			incrOpStats(e)
 		}
 	}
@@ -757,7 +753,7 @@ func (s *Session) flushOpStats(force bool) {
 	if (s.stats.flush.n % 16384) == 0 {
 		s.stats.opmap = make(map[string]*opStats, 32)
 	}
-}
+}*/
 
 func (s *Session) handlePConfig(r *Request) error {
 	if len(r.Multi) < 2 || len(r.Multi) > 4 {
@@ -798,9 +794,9 @@ func (s *Session) handlePConfig(r *Request) error {
 	return nil
 }
 
-func (s *Session) updateMaxDelay(duration int64, r *Request) {
+/*func (s *Session) updateMaxDelay(duration int64, r *Request) {
 	e := s.getOpStats(r.OpStr, true) // There is no race condition in the session
 	if duration > e.maxDelay.Int64() {
 		e.maxDelay.Set(duration)
 	}
-}
+}*/

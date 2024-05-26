@@ -339,6 +339,10 @@ func (c *Config) Validate() error {
 		return errors.New("invalid slowlog_log_slower_than")
 	}
 
+	if c.ProxyRefreshStatePeriod < 0 {
+		return errors.New("invalid proxy_refresh_state_period")
+	}
+
 	if c.MetricsReportPeriod < 0 {
 		return errors.New("invalid metrics_report_period")
 	}

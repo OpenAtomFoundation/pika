@@ -4,41 +4,36 @@
 package proxy
 
 import (
+	"encoding/json"
 	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"pika/codis/v2/pkg/proxy/redis"
-	"pika/codis/v2/pkg/utils"
-	"pika/codis/v2/pkg/utils/log"
-	"pika/codis/v2/pkg/utils/sync2/atomic2"
+	"github.com/CodisLabs/codis/pkg/proxy/redis"
+	"github.com/CodisLabs/codis/pkg/utils"
+	"github.com/CodisLabs/codis/pkg/utils/log"
+	"github.com/CodisLabs/codis/pkg/utils/sync2/atomic2"
 )
 
-const (
-	TPFirstGrade            = 5 //5ms - 200ms
-	TPFirstGradeSize        = 40
-	TPSecondGrade           = 25 //225ms - 700ms
-	TPSecondGradeSize       = 20
-	TPThirdGrade            = 250 //950ms - 3200ms
-	TPThirdGradeSize        = 10
-	TPMaxNum                = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
-	ClearSlowFlagPeriodRate = 3 //慢命令清理周期是统计周期的三倍
-	IntervalNum             = 5
-	DelayKindNum            = 8
-)
+const TPFirstGrade = 5 //5ms - 200ms
+const TPFirstGradeSize = 40
+const TPSecondGrade = 25 //225ms - 700ms
+const TPSecondGradeSize = 20
+const TPThirdGrade = 250 //950ms - 3200ms
+const TPThirdGradeSize = 10
+const TPMaxNum = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
+const ClearSlowFlagPeriodRate = 3 //慢命令清理周期是统计周期的三倍
+const IntervalNum = 5
+const DelayKindNum = 8
 
-var (
-	IntervalMark    = [5]int64{1, 10, 60, 600, 3600}
-	LastRefreshTime = [5]time.Time{time.Now(), time.Now(), time.Now(), time.Now(), time.Now()}
-	DelayNumMark    = [8]int64{50, 100, 200, 300, 500, 1000, 2000, 3000} // 单位: ms
-)
+// 单位: s
+var IntervalMark = [IntervalNum]int64{1, 10, 60, 600, 3600}
+var LastRefreshTime = [IntervalNum]time.Time{time.Now()}
 
-var (
-	SlowCmdCount  atomic2.Int64 // Cumulative count of slow log
-	RefreshPeriod atomic2.Int64
-)
+// 单位: ms
+var DelayNumMark = [DelayKindNum]int64{50, 100, 200, 300, 500, 1000, 2000, 3000}
 
 type delayInfo struct {
 	interval int64
@@ -68,31 +63,17 @@ type delayInfo struct {
 
 type opStats struct {
 	opstr             string
-	calls             atomic2.Int64
-	nsecs             atomic2.Int64
-	fails             atomic2.Int64
+	totalCalls        atomic2.Int64
+	totalNsecs        atomic2.Int64
+	totalFails        atomic2.Int64
 	lastSetSlowTime   int64
 	lastClearSlowTime int64
-	redis             struct {
+
+	delayInfo [IntervalNum]*delayInfo
+
+	redis struct {
 		errors atomic2.Int64
 	}
-	maxDelay  atomic2.Int64
-	delayInfo [IntervalNum]*delayInfo
-}
-
-func (s *opStats) OpStats() *OpStats {
-	o := &OpStats{
-		OpStr:    s.opstr,
-		Calls:    s.calls.Int64(),
-		Usecs:    s.nsecs.Int64() / 1e3,
-		Fails:    s.fails.Int64(),
-		MaxDelay: s.maxDelay.Int64(),
-	}
-	if o.Calls != 0 {
-		o.UsecsPercall = o.Usecs / o.Calls
-	}
-	o.RedisErrType = s.redis.errors.Int64()
-	return o
 }
 
 type OpStats struct {
@@ -100,19 +81,19 @@ type OpStats struct {
 	Interval     int64  `json:"interval"`
 	TotalCalls   int64  `json:"total_calls"`
 	TotalUsecs   int64  `json:"total_usecs"`
-	Calls        int64  `json:"calls"`
-	Usecs        int64  `json:"usecs"`
 	UsecsPercall int64  `json:"usecs_percall"`
-	Fails        int64  `json:"fails"`
-	RedisErrType int64  `json:"redis_errtype"`
-	MaxDelay     int64  `json:"max_delay"`
-	QPS          int64  `json:"qps"`
-	AVG          int64  `json:"avg"`
-	TP90         int64  `json:"tp90"`
-	TP99         int64  `json:"tp99"`
-	TP999        int64  `json:"tp999"`
-	TP9999       int64  `json:"tp9999"`
-	TP100        int64  `json:"tp100"`
+
+	Calls        int64 `json:"calls"`
+	Usecs        int64 `json:"usecs"`
+	Fails        int64 `json:"fails"`
+	RedisErrType int64 `json:"redis_errtype"`
+	QPS          int64 `json:"qps"`
+	AVG          int64 `json:"avg"`
+	TP90         int64 `json:"tp90"`
+	TP99         int64 `json:"tp99"`
+	TP999        int64 `json:"tp999"`
+	TP9999       int64 `json:"tp9999"`
+	TP100        int64 `json:"tp100"`
 
 	Delay50ms  int64 `json:"delay50ms"`
 	Delay100ms int64 `json:"delay100ms"`
@@ -125,7 +106,7 @@ type OpStats struct {
 }
 
 var cmdstats struct {
-	sync.RWMutex
+	sync.RWMutex //仅仅对opmap进行加锁
 
 	opmap map[string]*opStats
 	total atomic2.Int64
@@ -144,7 +125,6 @@ var cmdstats struct {
 func init() {
 	cmdstats.opmap = make(map[string]*opStats, 128)
 	cmdstats.refreshPeriod.Set(int64(time.Second))
-	SlowCmdCount.Set(0)
 
 	//init tp delay array
 	for i := 0; i < TPMaxNum; i++ {
@@ -162,12 +142,15 @@ func init() {
 		LastRefreshTime[i] = time.Now()
 	}
 
+	log.Infof("cmdstats.tpdelay: %v", cmdstats.tpdelay)
+
 	go func() {
 		for {
 			if cmdstats.refreshPeriod.Int64() <= 0 {
 				time.Sleep(time.Second)
 				continue
 			}
+
 			start := time.Now()
 			total := cmdstats.total.Int64()
 			if cmdstats.refreshPeriod.Int64() <= int64(time.Second) {
@@ -177,46 +160,32 @@ func init() {
 			}
 
 			delta := cmdstats.total.Int64() - total
-			normalized := math.Max(0, float64(delta)) * float64(time.Second) / float64(time.Since(start))
+			normalized := math.Max(0, float64(delta)) / float64(time.Since(start)) * float64(time.Second)
 			cmdstats.qps.Set(int64(normalized + 0.5))
-
 			cmdstats.RLock()
 
+			log.Infof("before enter opmap, qps:%v, refreshPeriod:%v", cmdstats.qps, cmdstats.refreshPeriod)
 			for i := 0; i < IntervalNum; i++ {
-
-				if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
+				/*if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
 					continue
-				}
-				for _, v := range cmdstats.opmap {
+				}*/
+				log.Infof("init opmap len:%v", len(cmdstats.opmap))
+				for k, v := range cmdstats.opmap {
+					log.Infof("cjg---range opmap key:%v, value:%v", k, v)
 					v.RefreshOpStats(i)
 				}
 				LastRefreshTime[i] = time.Now()
 			}
+			log.Infof("cjg---after range interval num")
 			cmdstats.RUnlock()
-		}
-	}()
-
-	// Clear the accumulated maximum delay to 0
-	go func() {
-		for {
-			refreshPeriod := RefreshPeriod.Int64()
-			if refreshPeriod == 0 {
-				time.Sleep(15 * time.Second)
-			} else {
-				time.Sleep(time.Duration(refreshPeriod))
-			}
-
-			for _, s := range cmdstats.opmap {
-				s.maxDelay.Set(0)
-			}
 		}
 	}()
 }
 
 func (s *delayInfo) refreshTpInfo(cmd string) {
+	log.Infof("refreshTpInfo")
 	s.refresh4TpInfo(cmd)
 	s.tp100 = s.nsecsmax.Int64() / 1e6
-
 	if calls := s.calls.Int64(); calls != 0 {
 		s.avg = s.nsecs.Int64() / 1e6 / calls
 	} else {
@@ -317,6 +286,7 @@ func (s *delayInfo) resetTpInfo() {
 	s.nsecs.Set(0)
 	s.nsecsmax.Set(0)
 	s.tp = [TPMaxNum]atomic2.Int64{0}
+	log.Infof("RefreshOpStats", ToJsonString([TPMaxNum]atomic2.Int64{0}))
 }
 
 func (s *delayInfo) refreshDelayInfo() {
@@ -328,6 +298,8 @@ func (s *delayInfo) refreshDelayInfo() {
 	s.delay1s = s.delayCount[5].Int64()
 	s.delay2s = s.delayCount[6].Int64()
 	s.delay3s = s.delayCount[7].Int64()
+	log.Infof("RefreshOpStats", ToJsonString(s.delay3s))
+	log.Infof("RefreshOpStats", ToJsonString(s.delay50ms))
 }
 
 func (s *delayInfo) resetDelayInfo() {
@@ -336,6 +308,7 @@ func (s *delayInfo) resetDelayInfo() {
 
 // IncrTP()中duration单位为ns
 func (s *opStats) incrTP(duration int64) {
+	log.Infof("stats 312 incrTP:%v", duration)
 	var index int64 = -1
 	var duration_ms int64 = duration / 1e6
 	if duration_ms <= 0 {
@@ -381,16 +354,18 @@ func (s *opStats) incrTP(duration int64) {
 			}
 		}
 		s.delayInfo[i].tp[index].Incr()
+		log.Infof("stats 358 incrTP", s.delayInfo[i].tp[index])
 	}
 }
 
 func (s *opStats) RefreshOpStats(index int) {
+	log.Infof("RefreshOpStats idx:%v", index)
 	if index < 0 || index >= IntervalNum {
 		return
 	}
 	normalized := math.Max(0, float64(s.delayInfo[index].calls.Int64())) / float64(time.Since(LastRefreshTime[index])) * float64(time.Second)
 	s.delayInfo[index].qps.Set(int64(normalized + 0.5))
-
+	log.Infof("RefreshOpStats", ToJsonString(s.delayInfo[index].qps))
 	s.delayInfo[index].refreshTpInfo(s.opstr)
 	s.delayInfo[index].resetTpInfo()
 
@@ -405,6 +380,7 @@ func (s *opStats) incrDelayNum(duration int64) {
 		if duration >= v {
 			for j, _ := range IntervalMark {
 				s.delayInfo[j].delayCount[i].Incr()
+				log.Infof("RefreshOpStats:%v", s.delayInfo[j].delayCount[i])
 			}
 		} else {
 			break
@@ -427,9 +403,9 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 	o := &OpStats{
 		OpStr:      s.opstr,
 		Interval:   s.delayInfo[index].interval,
-		TotalCalls: s.calls.Int64(),
-		TotalUsecs: s.nsecs.Int64() / 1e3,
-		Fails:      s.fails.Int64(),
+		TotalCalls: s.totalCalls.Int64(),
+		TotalUsecs: s.totalNsecs.Int64() / 1e3,
+		Fails:      s.totalFails.Int64(),
 		Calls:      s.delayInfo[index].calls.Int64(),
 		Usecs:      s.delayInfo[index].nsecs.Int64() / 1e3,
 		QPS:        s.delayInfo[index].qps.Int64(),
@@ -458,8 +434,8 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 }
 
 func (s *opStats) incrOpStats(responseTime int64, t redis.RespType) {
-	s.calls.Incr()
-	s.calls.Add(responseTime)
+	s.totalCalls.Incr()
+	s.totalNsecs.Add(responseTime)
 	switch t {
 	case redis.TypeError:
 		s.redis.errors.Incr()
@@ -494,6 +470,7 @@ func OpQPS() int64 {
 }
 
 func getOpStats(opstr string, create bool) *opStats {
+	log.Infof("getOpStats opstr:%v, create:%v", opstr, create)
 	cmdstats.RLock()
 	s := cmdstats.opmap[opstr]
 	cmdstats.RUnlock()
@@ -533,7 +510,7 @@ func GetOpStatsAll() []*OpStats {
 	var all = make([]*OpStats, 0, 128)
 	cmdstats.RLock()
 	for _, s := range cmdstats.opmap {
-		all = append(all, s.OpStats())
+		all = append(all, s.GetOpStatsByInterval(1))
 	}
 	cmdstats.RUnlock()
 	sort.Sort(sliceOpStats(all))
@@ -542,7 +519,9 @@ func GetOpStatsAll() []*OpStats {
 
 func GetOpStatsByInterval(interval int64) []*OpStats {
 	var all = make([]*OpStats, 0, 128)
+	log.Infof("GetOpStatsByInterval init")
 	cmdstats.RLock()
+	log.Infof("GetOpStatsByInterval cmdstats.opmap len:%v", len(cmdstats.opmap))
 	for _, s := range cmdstats.opmap {
 		all = append(all, s.GetOpStatsByInterval(interval))
 	}
@@ -552,11 +531,13 @@ func GetOpStatsByInterval(interval int64) []*OpStats {
 }
 
 func ResetStats() {
+	//由于session已经获取到了cmdstats.opmap中的结构体，所以这里不能重新分配只能置零
+	//因此reset后命令数量不会减少
 	cmdstats.RLock()
 	for _, v := range cmdstats.opmap {
-		v.calls.Set(0)
-		v.nsecs.Set(0)
-		v.fails.Set(0)
+		v.totalCalls.Set(0)
+		v.totalNsecs.Set(0)
+		v.totalFails.Set(0)
 		v.redis.errors.Set(0)
 	}
 	cmdstats.RUnlock()
@@ -567,49 +548,27 @@ func ResetStats() {
 	sessions.total.Set(sessions.alive.Int64())
 }
 
-func incrOpTotal(n int64) {
-	cmdstats.total.Add(n)
+func incrOpTotal() {
+	cmdstats.total.Incr()
 }
 
 func incrOpRedisErrors() {
 	cmdstats.redis.errors.Incr()
 }
 
-func incrOpFails(n int64) {
-	cmdstats.fails.Add(n)
+func incrOpFails(r *Request, err error) {
+	if r != nil {
+		var s *opStats
+		s = getOpStats(r.OpStr, true)
+		s.totalFails.Incr()
+		s = getOpStats("ALL", true)
+		s.totalFails.Incr()
+	}
+
+	cmdstats.fails.Incr()
 }
 
-func incrOpStats(e *opStats) {
-	s := getOpStats(e.opstr, true)
-	s.calls.Add(e.calls.Swap(0))
-	s.nsecs.Add(e.nsecs.Swap(0))
-	if n := e.fails.Swap(0); n != 0 {
-		s.fails.Add(n)
-		cmdstats.fails.Add(n)
-	}
-	if n := e.redis.errors.Swap(0); n != 0 {
-		s.redis.errors.Add(n)
-		cmdstats.redis.errors.Add(n)
-	}
-
-	/**
-	Each session refreshes its own saved metrics, and there is a race condition at this time.
-	Use the CAS method to update.
-	*/
-	for {
-		oldValue := s.maxDelay
-		if e.maxDelay > oldValue {
-			if s.maxDelay.CompareAndSwap(oldValue.Int64(), e.maxDelay.Int64()) {
-				e.maxDelay.Set(0)
-				break
-			}
-		} else {
-			break
-		}
-	}
-}
-
-func incrOpStat(r *Request, t redis.RespType) {
+func incrOpStats(r *Request, t redis.RespType) {
 	if r != nil {
 		var s *opStats
 		responseTime := time.Now().UnixNano() - r.ReceiveTime
@@ -682,4 +641,16 @@ func GetSysUsage() *SysUsage {
 		return p.(*SysUsage)
 	}
 	return nil
+}
+
+func ToJsonString(obj interface{}) string {
+	if obj == nil {
+		return ""
+	}
+	data, err := json.Marshal(obj)
+	if err != nil {
+		log.Infof("marshal err , obj:%v", obj)
+		return ""
+	}
+	return string(data)
 }

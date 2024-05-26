@@ -65,13 +65,13 @@ func newApiServer(p *Proxy) http.Handler {
 		r.Get("/model", api.Model)
 		r.Get("/stats", api.StatsNoXAuth)
 		r.Get("/slots", api.SlotsNoXAuth)
+		r.Get("/cmdinfo/:interval", api.CmdInfoNoXAuth)
 	})
 	r.Group("/api/proxy", func(r martini.Router) {
 		r.Get("/model", api.Model)
 		r.Get("/xping/:xauth", api.XPing)
 		r.Get("/stats/:xauth", api.Stats)
 		r.Get("/stats/:xauth/:flags", api.Stats)
-		r.Get("/cmdinfo/:xauth/:interval", api.CmdInfo)
 		r.Get("/slots/:xauth", api.Slots)
 		r.Put("/start/:xauth", api.Start)
 		r.Put("/stats/reset/:xauth", api.ResetStats)
@@ -114,6 +114,10 @@ func (s *apiServer) StatsNoXAuth() (int, string) {
 
 func (s *apiServer) SlotsNoXAuth() (int, string) {
 	return rpc.ApiResponseJson(s.proxy.Slots())
+}
+
+func (s *apiServer) CmdInfoNoXAuth() (int, string) {
+	return rpc.ApiResponseJson(s.proxy.CmdInfo(2))
 }
 
 func (s *apiServer) XPing(params martini.Params) (int, string) {
