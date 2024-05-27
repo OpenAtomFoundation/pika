@@ -109,16 +109,6 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			ValueName: "fails",
 		},
 	},
-	"max_delay": {
-		Parser: &proxyParser{},
-		MetricMeta: &MetaData{
-			Name:      "max_delay",
-			Help:      "The maximum time consumed by this command since the last collection.",
-			Type:      metricTypeGauge,
-			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
-		},
-	},
 	"tp90": {
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{

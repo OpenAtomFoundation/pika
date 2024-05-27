@@ -696,6 +696,7 @@ func (s *Session) incrOpStats(r *Request, t redis.RespType) {
 
 	if r != nil {
 		responseTime := time.Now().UnixNano() - r.ReceiveTime
+		log.Infof("Incrementing stats for op: %s", r.OpStr)
 		var e *opStats
 		e = s.stats.opmap[r.OpStr]
 		if e == nil {

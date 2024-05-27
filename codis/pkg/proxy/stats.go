@@ -434,7 +434,9 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 }
 
 func (s *opStats) incrOpStats(responseTime int64, t redis.RespType) {
+	log.Infof("totalcalls", s.totalCalls)
 	s.totalCalls.Incr()
+	log.Infof("totalcalls", s.totalNsecs)
 	s.totalNsecs.Add(responseTime)
 	switch t {
 	case redis.TypeError:
@@ -482,6 +484,7 @@ func getOpStats(opstr string, create bool) *opStats {
 	cmdstats.Lock()
 	s = cmdstats.opmap[opstr]
 	if s == nil {
+		log.Infof("Creating new opStats for operation: %s", opstr)
 		s = &opStats{opstr: opstr}
 		for i := 0; i < IntervalNum; i++ {
 			s.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
@@ -523,6 +526,9 @@ func GetOpStatsByInterval(interval int64) []*OpStats {
 	cmdstats.RLock()
 	log.Infof("GetOpStatsByInterval cmdstats.opmap len:%v", len(cmdstats.opmap))
 	for _, s := range cmdstats.opmap {
+		for i := 0; i < IntervalNum; i++ {
+			s.RefreshOpStats(i)
+		}
 		all = append(all, s.GetOpStatsByInterval(interval))
 	}
 	cmdstats.RUnlock()
