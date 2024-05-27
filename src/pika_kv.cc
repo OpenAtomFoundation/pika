@@ -509,6 +509,7 @@ void MgetCmd::DoInitial() {
   keys_ = argv_;
   keys_.erase(keys_.begin());
   split_res_.resize(keys_.size());
+  cache_miss_keys_.clear();
 }
 
 void MgetCmd::AssembleResponseFromCache() {
@@ -526,7 +527,9 @@ void MgetCmd::AssembleResponseFromCache() {
 }
 
 void MgetCmd::Do() {
-
+  if(cache_miss_keys_.size() == 0){
+    cache_miss_keys_ = keys_;
+  }
   db_value_status_array_.clear();
   s_ = db_->storage()->MGet(cache_miss_keys_, &db_value_status_array_);
   if (!s_.ok()) {
@@ -576,7 +579,6 @@ void MgetCmd::DoThroughDB() {
 }
 
 void MgetCmd::ReadCache() {
-  cache_miss_keys_.clear();
   for (const auto key : keys_) {
     std::string value;
     auto s = db_->cache()->Get(const_cast<std::string&>(key), &value);
