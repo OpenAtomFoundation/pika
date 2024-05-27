@@ -966,10 +966,6 @@ std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 bool Cmd::IsAdminRequire() const { return (flag_ & kCmdFlagsAdminRequire); }
 bool Cmd::IsNeedUpdateCache() const { return (flag_ & kCmdFlagsUpdateCache); }
 bool Cmd::IsNeedCacheDo() const {
-  if (g_pika_conf->IsCacheDisabledTemporarily()) {
-    return false;
-  }
-
   if (hasFlag(kCmdFlagsKv)) {
     if (!g_pika_conf->GetCacheString()) {
       return false;

@@ -511,6 +511,20 @@ void MgetCmd::DoInitial() {
   split_res_.resize(keys_.size());
 }
 
+void MgetCmd::AssembleResponseFromCache() {
+  res_.AppendArrayLenUint64(keys_.size());
+  for (const auto& key : keys_) {
+    auto it = cache_hit_values_.find(key);
+    if (it != cache_hit_values_.end()) {
+      res_.AppendStringLen(it->second.size());
+      res_.AppendContent(it->second);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "Internal error during cache assembly");
+      return;
+    }
+  }
+}
+
 void MgetCmd::Do() {
 
   db_value_status_array_.clear();
@@ -525,29 +539,6 @@ void MgetCmd::Do() {
   }
 
   MergeCachedAndDbResults();
-}
-
-void MgetCmd::MergeCachedAndDbResults() {
-
-  res_.AppendArrayLenUint64(keys_.size());
-
-  for (size_t i = 0; i < keys_.size(); ++i) {
-    auto cache_it = cache_hit_values_.find(keys_[i]);
-
-    if (cache_it != cache_hit_values_.end()) {
-      res_.AppendStringLen(cache_it->second.size());
-      res_.AppendContent(cache_it->second);
-    } else {
-      size_t adjustedIndex = i - cache_miss_keys_.size();
-
-      if (adjustedIndex < db_value_status_array_.size() && db_value_status_array_[adjustedIndex].status.ok()) {
-        res_.AppendStringLen(db_value_status_array_[adjustedIndex].value.size());
-        res_.AppendContent(db_value_status_array_[adjustedIndex].value);
-      } else {
-        res_.AppendContent("$-1");
-      }
-    }
-  }
 }
 
 void MgetCmd::Split(const HintKeys& hint_keys) {
@@ -579,8 +570,13 @@ void MgetCmd::Merge() {
   }
 }
 
+void MgetCmd::DoThroughDB() {
+  res_.clear();
+  Do();
+}
+
 void MgetCmd::ReadCache() {
-  cache_miss_keys_.clear(); // 记录未命中的 key
+  cache_miss_keys_.clear();
   for (const auto key : keys_) {
     std::string value;
     auto s = db_->cache()->Get(const_cast<std::string&>(key), &value);
@@ -597,32 +593,44 @@ void MgetCmd::ReadCache() {
   }
 }
 
-void MgetCmd::AssembleResponseFromCache() {
-  res_.AppendArrayLenUint64(keys_.size());
-  for (const auto& key : keys_) {
-    auto it = cache_hit_values_.find(key);
-    if (it != cache_hit_values_.end()) {
-      res_.AppendStringLen(it->second.size());
-      res_.AppendContent(it->second);
-    } else {
-      res_.SetRes(CmdRes::kErrOther, "Internal error during cache assembly");
-      return;
-    }
-  }
-}
-
-void MgetCmd::DoThroughDB() {
-  res_.clear();
-  Do();
-}
-
 void MgetCmd::DoUpdateCache() {
-  for (size_t i = 0; i < keys_.size(); i++) {
+  size_t db_index = 0;
+  for (const auto key : cache_miss_keys_) {
+    if (db_index < db_value_status_array_.size() && db_value_status_array_[db_index].status.ok()) {
+      db_->cache()->WriteKVToCache(const_cast<std::string&>(key), db_value_status_array_[db_index].value, db_value_status_array_[db_index].ttl);
+    }
+    db_index++;
+  }
+}
+
+void MgetCmd::MergeCachedAndDbResults() {
+  res_.AppendArrayLenUint64(keys_.size());
+
+  std::unordered_map<std::string, std::string> db_results_map;
+  for (size_t i = 0; i < cache_miss_keys_.size(); ++i) {
     if (db_value_status_array_[i].status.ok()) {
-      db_->cache()->WriteKVToCache(keys_[i], db_value_status_array_[i].value, db_value_status_array_[i].ttl);
+      db_results_map[cache_miss_keys_[i]] = db_value_status_array_[i].value;
+    }
+  }
+
+  for (const auto& key : keys_) {
+    auto cache_it = cache_hit_values_.find(key);
+
+    if (cache_it != cache_hit_values_.end()) {
+      res_.AppendStringLen(cache_it->second.size());
+      res_.AppendContent(cache_it->second);
+    } else {
+      auto db_it = db_results_map.find(key);
+      if (db_it != db_results_map.end()) {
+        res_.AppendStringLen(db_it->second.size());
+        res_.AppendContent(db_it->second);
+      } else {
+        res_.AppendContent("$-1");
+      }
     }
   }
 }
+
 
 void KeysCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
