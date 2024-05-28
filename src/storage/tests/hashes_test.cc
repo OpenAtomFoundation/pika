@@ -875,6 +875,14 @@ TEST_F(HashesTest, HSetTest) {
   s = db.HGet("GP3_HSET_KEY", "HSET_TEST_NEW_FIELD", &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, "HSET_TEST_NEW_VALUE");
+
+  // ***************** Group 4 Test *****************
+  s = db.Setex("GP4_HSET_KEY", "STRING_VALUE_WITH_TTL", 1);
+  ASSERT_TRUE(s.ok());
+  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+  s = db.HSet("GP4_HSET_KEY", "HSET_TEST_NEW_FIELD", "HSET_TEST_NEW_VALUE", &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 1);
 }
 
 // HSetnx

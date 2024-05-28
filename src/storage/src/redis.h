@@ -406,19 +406,16 @@ class Redis {
     auto meta_type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
     if (meta_type == DataType::kZSets || meta_type == DataType::kSets || meta_type == DataType::kHashes) {
       ParsedBaseMetaValue parsed_meta_value(meta_value);
-      if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
-        return true;
-      }
+      return (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0);
     } else if (meta_type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(meta_value);
-      if (parsed_lists_meta_value.IsStale() || parsed_lists_meta_value.Count() == 0) {
-        return true;
-      }
+      return (parsed_lists_meta_value.IsStale() || parsed_lists_meta_value.Count() == 0);
+    } else if (meta_type == DataType::kStrings) {
+      ParsedStringsValue parsed_strings_value(meta_value);
+      return parsed_strings_value.IsStale();
     } else if (meta_type == DataType::kStreams) {
       StreamMetaValue stream_meta_value;
-      if (stream_meta_value.length() == 0) {
-        return true;
-      }
+      return stream_meta_value.length() == 0;
     }
     return false;
   }
