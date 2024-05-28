@@ -1688,9 +1688,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
   }
 
   db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
-  if (pCacheTaskArg->reenable_cache) {
-    pCacheTaskArg->conf->UnsetCacheDisableFlag();
-  }
+  g_pika_conf->UnsetCacheDisableFlag();
 }
 
 void PikaServer::ResetCacheConfig(std::shared_ptr<DB> db) {
@@ -1726,9 +1724,6 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
   arg->conf = std::move(g_pika_conf);
   arg->reenable_cache = true;
   common_bg_thread_.Schedule(&DoCacheBGTask, static_cast<void*>(arg));
-  if (PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()) {
-    g_pika_conf->UnsetCacheDisableFlag();
-  }
 }
 
 void PikaServer::ProcessCronTask() {

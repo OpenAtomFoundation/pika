@@ -166,9 +166,9 @@ void BitCountCmd::ReadCache() {
   int64_t end = static_cast<long>(end_offset_);
   rocksdb::Status s;
   if (count_all_) {
-    s = db_->cache()->BitCount(key_, start, end, &count, 0);
+    s = db_->cache()->BitCount(key_, start, end, &count, false);
   } else {
-    s = db_->cache()->BitCount(key_, start, end, &count, 1);
+    s = db_->cache()->BitCount(key_, start, end, &count, true);
   }
 
   if (s.ok()) {
