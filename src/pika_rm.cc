@@ -99,7 +99,7 @@ Status SyncMasterDB::ActivateSlaveBinlogSync(const std::string& ip, int port, co
     }
     //Since we init a new reader, we should drop items in write queue and reset sync_window.
     //Or the sent_offset and acked_offset will not match
-    g_pika_rm->DropItemInWriteQueue(ip, port);
+    g_pika_rm->DropItemInOneWriteQueue(ip, port, slave_ptr->DBName());
     slave_ptr->sync_win.Reset();
     slave_ptr->b_state = kReadFromFile;
   }
@@ -335,7 +335,7 @@ Status SyncMasterDB::CheckSyncTimeout(uint64_t now) {
 
   for (auto& node : to_del) {
     coordinator_.SyncPros().RemoveSlaveNode(node.Ip(), node.Port());
-    g_pika_rm->DropItemInWriteQueue(node.Ip(), node.Port());
+    g_pika_rm->DropItemInOneWriteQueue(node.Ip(), node.Port(), DBName());
     LOG(WARNING) << SyncDBInfo().ToString() << " Master del Recv Timeout slave success " << node.ToString();
   }
   return Status::OK();
@@ -645,6 +645,14 @@ int PikaReplicaManager::ConsumeWriteQueue() {
   return counter;
 }
 
+void PikaReplicaManager::DropItemInOneWriteQueue(const std::string& ip, int port, const std::string& db_name) {
+    std::lock_guard l(write_queue_mu_);
+    std::string index = ip + ":" + std::to_string(port);
+    if (write_queues_.find(index) != write_queues_.end()) {
+      write_queues_[index].erase(db_name);
+    }
+}
+
 void PikaReplicaManager::DropItemInWriteQueue(const std::string& ip, int port) {
   std::lock_guard l(write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
@@ -657,6 +665,10 @@ void PikaReplicaManager::ScheduleReplServerBGTask(net::TaskFunc func, void* arg)
 
 void PikaReplicaManager::ScheduleReplClientBGTask(net::TaskFunc func, void* arg) {
   pika_repl_client_->Schedule(func, arg);
+}
+
+void PikaReplicaManager::ScheduleReplClientBGTaskByDBName(net::TaskFunc func, void* arg, const std::string &db_name) {
+  pika_repl_client_->ScheduleByDBName(func, arg, db_name);
 }
 
 void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db,

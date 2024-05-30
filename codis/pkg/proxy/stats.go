@@ -24,15 +24,15 @@ const TPSecondGradeSize = 20
 const TPThirdGrade = 250 //950ms - 3200ms
 const TPThirdGradeSize = 10
 const TPMaxNum = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
-const ClearSlowFlagPeriodRate = 3 //慢命令清理周期是统计周期的三倍
+const ClearSlowFlagPeriodRate = 3 // The cleanup cycle for slow commands is three times the duration of the statistics cycle.
 const IntervalNum = 5
 const DelayKindNum = 8
 
-// 单位: s
+// Unit: s
 var IntervalMark = [IntervalNum]int64{1, 10, 60, 600, 3600}
 var LastRefreshTime = [IntervalNum]time.Time{time.Now()}
 
-// 单位: ms
+// Unit: ms
 var DelayNumMark = [DelayKindNum]int64{50, 100, 200, 300, 500, 1000, 2000, 3000}
 
 type delayInfo struct {
@@ -63,9 +63,9 @@ type delayInfo struct {
 
 type opStats struct {
 	opstr             string
-	totalCalls        atomic2.Int64
-	totalNsecs        atomic2.Int64
-	totalFails        atomic2.Int64
+	calls             atomic2.Int64
+	nsecs             atomic2.Int64
+	fails             atomic2.Int64
 	lastSetSlowTime   int64
 	lastClearSlowTime int64
 
@@ -74,6 +74,7 @@ type opStats struct {
 	redis struct {
 		errors atomic2.Int64
 	}
+	maxDelay atomic2.Int64
 }
 
 type OpStats struct {
@@ -87,6 +88,7 @@ type OpStats struct {
 	Usecs        int64 `json:"usecs"`
 	Fails        int64 `json:"fails"`
 	RedisErrType int64 `json:"redis_errtype"`
+	MaxDelay     int64 `json:"max_delay"`
 	QPS          int64 `json:"qps"`
 	AVG          int64 `json:"avg"`
 	TP90         int64 `json:"tp90"`
@@ -105,8 +107,13 @@ type OpStats struct {
 	Delay3s    int64 `json:"delay3s"`
 }
 
+var (
+	SlowCmdCount  atomic2.Int64 // Cumulative count of slow log
+	RefreshPeriod atomic2.Int64
+)
+
 var cmdstats struct {
-	sync.RWMutex //仅仅对opmap进行加锁
+	sync.RWMutex //Lock only for opmap.
 
 	opmap map[string]*opStats
 	total atomic2.Int64
@@ -120,6 +127,51 @@ var cmdstats struct {
 	refreshPeriod   atomic2.Int64
 	logSlowerThan   atomic2.Int64
 	autoSetSlowFlag atomic2.Bool
+}
+
+func (s *opStats) OpStats() *OpStats {
+	o := &OpStats{
+		OpStr:    s.opstr,
+		Calls:    s.calls.Int64(),
+		Usecs:    s.nsecs.Int64() / 1e3,
+		Fails:    s.fails.Int64(),
+		MaxDelay: s.maxDelay.Int64(),
+	}
+	if o.Calls != 0 {
+		o.UsecsPercall = o.Usecs / o.Calls
+	}
+	o.RedisErrType = s.redis.errors.Int64()
+	return o
+}
+
+func incrOpStats(e *opStats) {
+	s := getOpStats(e.opstr, true)
+	s.calls.Add(e.calls.Swap(0))
+	s.nsecs.Add(e.nsecs.Swap(0))
+	if n := e.fails.Swap(0); n != 0 {
+		s.fails.Add(n)
+		cmdstats.fails.Add(n)
+	}
+	if n := e.redis.errors.Swap(0); n != 0 {
+		s.redis.errors.Add(n)
+		cmdstats.redis.errors.Add(n)
+	}
+
+	/**
+	Each session refreshes its own saved metrics, and there is a race condition at this time.
+	Use the CAS method to update.
+	*/
+	for {
+		oldValue := s.maxDelay
+		if e.maxDelay > oldValue {
+			if s.maxDelay.CompareAndSwap(oldValue.Int64(), e.maxDelay.Int64()) {
+				e.maxDelay.Set(0)
+				break
+			}
+		} else {
+			break
+		}
+	}
 }
 
 func init() {
@@ -142,48 +194,32 @@ func init() {
 		LastRefreshTime[i] = time.Now()
 	}
 
-	log.Infof("cmdstats.tpdelay: %v", cmdstats.tpdelay)
-
 	go func() {
 		for {
-			if cmdstats.refreshPeriod.Int64() <= 0 {
-				time.Sleep(time.Second)
-				continue
-			}
-
 			start := time.Now()
 			total := cmdstats.total.Int64()
-			if cmdstats.refreshPeriod.Int64() <= int64(time.Second) {
-				time.Sleep(time.Second)
-			} else {
-				time.Sleep(time.Duration(cmdstats.refreshPeriod.Int64()))
-			}
-
+			time.Sleep(time.Second)
 			delta := cmdstats.total.Int64() - total
-			normalized := math.Max(0, float64(delta)) / float64(time.Since(start)) * float64(time.Second)
+			normalized := math.Max(0, float64(delta)) * float64(time.Second) / float64(time.Since(start))
 			cmdstats.qps.Set(int64(normalized + 0.5))
+
 			cmdstats.RLock()
 
-			log.Infof("before enter opmap, qps:%v, refreshPeriod:%v", cmdstats.qps, cmdstats.refreshPeriod)
 			for i := 0; i < IntervalNum; i++ {
 				/*if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
 					continue
 				}*/
-				log.Infof("init opmap len:%v", len(cmdstats.opmap))
-				for k, v := range cmdstats.opmap {
-					log.Infof("cjg---range opmap key:%v, value:%v", k, v)
+				for _, v := range cmdstats.opmap {
 					v.RefreshOpStats(i)
 				}
 				LastRefreshTime[i] = time.Now()
 			}
-			log.Infof("cjg---after range interval num")
 			cmdstats.RUnlock()
 		}
 	}()
 }
 
 func (s *delayInfo) refreshTpInfo(cmd string) {
-	log.Infof("refreshTpInfo")
 	s.refresh4TpInfo(cmd)
 	s.tp100 = s.nsecsmax.Int64() / 1e6
 	if calls := s.calls.Int64(); calls != 0 {
@@ -260,7 +296,7 @@ func (s *delayInfo) refresh4TpInfo(cmd string) {
 		}
 	}
 
-	// 统计出现异常,打印一行日志
+	// If an anomaly occurs in the statistics, print a log line.
 	if i == len(s.tp)-1 && s.tp[i].Int64() <= 0 {
 		log.Warnf("refreshTpInfo err: cmd-[%s] tpinfo is unavailable", cmd)
 	}
@@ -286,7 +322,6 @@ func (s *delayInfo) resetTpInfo() {
 	s.nsecs.Set(0)
 	s.nsecsmax.Set(0)
 	s.tp = [TPMaxNum]atomic2.Int64{0}
-	log.Infof("RefreshOpStats", ToJsonString([TPMaxNum]atomic2.Int64{0}))
 }
 
 func (s *delayInfo) refreshDelayInfo() {
@@ -298,17 +333,14 @@ func (s *delayInfo) refreshDelayInfo() {
 	s.delay1s = s.delayCount[5].Int64()
 	s.delay2s = s.delayCount[6].Int64()
 	s.delay3s = s.delayCount[7].Int64()
-	log.Infof("RefreshOpStats", ToJsonString(s.delay3s))
-	log.Infof("RefreshOpStats", ToJsonString(s.delay50ms))
 }
 
 func (s *delayInfo) resetDelayInfo() {
 	s.delayCount = [DelayKindNum]atomic2.Int64{0}
 }
 
-// IncrTP()中duration单位为ns
+// The unit of duration in IncrTP() is nanoseconds (ns).
 func (s *opStats) incrTP(duration int64) {
-	log.Infof("stats 312 incrTP:%v", duration)
 	var index int64 = -1
 	var duration_ms int64 = duration / 1e6
 	if duration_ms <= 0 {
@@ -325,7 +357,7 @@ func (s *opStats) incrTP(duration int64) {
 		//s.tp[index].Incr()
 	} else {
 		index = TPMaxNum - 1
-		//s.tp[TPMaxNum - 1].Incr()
+		//s.tp[TPMaxNum-1].Incr()
 	}
 
 	if index < 0 {
@@ -336,7 +368,7 @@ func (s *opStats) incrTP(duration int64) {
 		s.delayInfo[i].calls.Incr()
 		s.delayInfo[i].nsecs.Add(duration)
 		lastMax := s.delayInfo[i].nsecsmax.Int64()
-		//max值最大误差设置为5ms，防止瞬间有多个线程同时进行更新
+		// Set the maximum error of the max value to 5ms to prevent multiple threads from updating simultaneously.
 		if duration >= lastMax+5*1e6 {
 			for {
 				ok := s.delayInfo[i].nsecsmax.CompareAndSwap(lastMax, duration)
@@ -354,33 +386,29 @@ func (s *opStats) incrTP(duration int64) {
 			}
 		}
 		s.delayInfo[i].tp[index].Incr()
-		log.Infof("stats 358 incrTP", s.delayInfo[i].tp[index])
 	}
 }
 
 func (s *opStats) RefreshOpStats(index int) {
-	log.Infof("RefreshOpStats idx:%v", index)
 	if index < 0 || index >= IntervalNum {
 		return
 	}
 	normalized := math.Max(0, float64(s.delayInfo[index].calls.Int64())) / float64(time.Since(LastRefreshTime[index])) * float64(time.Second)
 	s.delayInfo[index].qps.Set(int64(normalized + 0.5))
-	log.Infof("RefreshOpStats", ToJsonString(s.delayInfo[index].qps))
 	s.delayInfo[index].refreshTpInfo(s.opstr)
 	s.delayInfo[index].resetTpInfo()
 
-	// 统计超时命令数量
+	// Count the number of timed-out commands.
 	s.delayInfo[index].refreshDelayInfo()
 	s.delayInfo[index].resetDelayInfo()
 }
 
-// duration单位为ms
+// The unit of duration is milliseconds (ms).
 func (s *opStats) incrDelayNum(duration int64) {
 	for i, v := range DelayNumMark {
 		if duration >= v {
 			for j, _ := range IntervalMark {
 				s.delayInfo[j].delayCount[i].Incr()
-				log.Infof("RefreshOpStats:%v", s.delayInfo[j].delayCount[i])
 			}
 		} else {
 			break
@@ -403,11 +431,11 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 	o := &OpStats{
 		OpStr:      s.opstr,
 		Interval:   s.delayInfo[index].interval,
-		TotalCalls: s.totalCalls.Int64(),
-		TotalUsecs: s.totalNsecs.Int64() / 1e3,
-		Fails:      s.totalFails.Int64(),
-		Calls:      s.delayInfo[index].calls.Int64(),
-		Usecs:      s.delayInfo[index].nsecs.Int64() / 1e3,
+		Calls:      s.calls.Int64(),
+		Usecs:      s.nsecs.Int64() / 1e3,
+		Fails:      s.fails.Int64(),
+		TotalCalls: s.delayInfo[index].calls.Int64(),
+		TotalUsecs: s.delayInfo[index].nsecs.Int64() / 1e3,
 		QPS:        s.delayInfo[index].qps.Int64(),
 		AVG:        s.delayInfo[index].avg,
 		TP90:       s.delayInfo[index].tp90,
@@ -434,18 +462,16 @@ func (s *opStats) GetOpStatsByInterval(interval int64) *OpStats {
 }
 
 func (s *opStats) incrOpStats(responseTime int64, t redis.RespType) {
-	log.Infof("totalcalls", s.totalCalls)
-	s.totalCalls.Incr()
-	log.Infof("totalcalls", s.totalNsecs)
-	s.totalNsecs.Add(responseTime)
+	s.calls.Incr()
+	s.nsecs.Add(responseTime)
 	switch t {
 	case redis.TypeError:
 		s.redis.errors.Incr()
 	}
 
-	//统计tp数据
+	// Collect TP (transaction processing) data.
 	s.incrTP(responseTime)
-	//统计超时命令数量
+	// Count the number of timeout commands.
 	s.incrDelayNum(responseTime / 1e6)
 }
 
@@ -472,7 +498,6 @@ func OpQPS() int64 {
 }
 
 func getOpStats(opstr string, create bool) *opStats {
-	log.Infof("getOpStats opstr:%v, create:%v", opstr, create)
 	cmdstats.RLock()
 	s := cmdstats.opmap[opstr]
 	cmdstats.RUnlock()
@@ -484,7 +509,6 @@ func getOpStats(opstr string, create bool) *opStats {
 	cmdstats.Lock()
 	s = cmdstats.opmap[opstr]
 	if s == nil {
-		log.Infof("Creating new opStats for operation: %s", opstr)
 		s = &opStats{opstr: opstr}
 		for i := 0; i < IntervalNum; i++ {
 			s.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
@@ -522,9 +546,7 @@ func GetOpStatsAll() []*OpStats {
 
 func GetOpStatsByInterval(interval int64) []*OpStats {
 	var all = make([]*OpStats, 0, 128)
-	log.Infof("GetOpStatsByInterval init")
 	cmdstats.RLock()
-	log.Infof("GetOpStatsByInterval cmdstats.opmap len:%v", len(cmdstats.opmap))
 	for _, s := range cmdstats.opmap {
 		for i := 0; i < IntervalNum; i++ {
 			s.RefreshOpStats(i)
@@ -537,16 +559,16 @@ func GetOpStatsByInterval(interval int64) []*OpStats {
 }
 
 func ResetStats() {
-	//由于session已经获取到了cmdstats.opmap中的结构体，所以这里不能重新分配只能置零
-	//因此reset后命令数量不会减少
+	// Since the session has already obtained the struct from cmdstats.opmap, it cannot be reassigned and can only be reset to zero.
+	// Therefore, the command count will not decrease after the reset.
 	cmdstats.RLock()
+	defer cmdstats.RUnlock()
 	for _, v := range cmdstats.opmap {
-		v.totalCalls.Set(0)
-		v.totalNsecs.Set(0)
-		v.totalFails.Set(0)
+		v.calls.Set(0)
+		v.nsecs.Set(0)
+		v.fails.Set(0)
 		v.redis.errors.Set(0)
 	}
-	cmdstats.RUnlock()
 
 	cmdstats.total.Set(0)
 	cmdstats.fails.Set(0)
@@ -554,41 +576,20 @@ func ResetStats() {
 	sessions.total.Set(sessions.alive.Int64())
 }
 
-func incrOpTotal() {
-	cmdstats.total.Incr()
+func (s *Session) incrOpTotal() {
+	s.stats.total.Incr()
 }
 
 func incrOpRedisErrors() {
 	cmdstats.redis.errors.Incr()
 }
 
-func incrOpFails(r *Request, err error) {
-	if r != nil {
-		var s *opStats
-		s = getOpStats(r.OpStr, true)
-		s.totalFails.Incr()
-		s = getOpStats("ALL", true)
-		s.totalFails.Incr()
-	}
-
-	cmdstats.fails.Incr()
+func incrOpTotal(n int64) {
+	cmdstats.total.Add(n)
 }
 
-func incrOpStats(r *Request, t redis.RespType) {
-	if r != nil {
-		var s *opStats
-		responseTime := time.Now().UnixNano() - r.ReceiveTime
-
-		s = getOpStats(r.OpStr, true)
-		s.incrOpStats(responseTime, t)
-		s = getOpStats("ALL", true)
-		s.incrOpStats(responseTime, t)
-
-		switch t {
-		case redis.TypeError:
-			cmdstats.redis.errors.Incr()
-		}
-	}
+func incrOpFails(n int64) {
+	cmdstats.fails.Add(n)
 }
 
 var sessions struct {
@@ -655,7 +656,6 @@ func ToJsonString(obj interface{}) string {
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
-		log.Infof("marshal err , obj:%v", obj)
 		return ""
 	}
 	return string(data)

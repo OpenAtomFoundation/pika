@@ -432,7 +432,7 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		if d := p.config.MaxDelayRefreshTimeInterval.Duration(); d <= 0 {
 			return redis.NewErrorf("max_delay_refresh_time_interval must be greater than 0")
 		} else {
-			//RefreshPeriod.Set(int64(d))
+			RefreshPeriod.Set(int64(d))
 			return redis.NewString([]byte("OK"))
 		}
 	default:
@@ -574,7 +574,6 @@ func (p *Proxy) serveProxy() {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
-	//设置延迟统计相关参数
 	StatsSetRefreshPeriod(p.config.ProxyRefreshStatePeriod.Duration())
 	StatsSetLogSlowerThan(p.config.SlowlogLogSlowerThan)
 
@@ -748,9 +747,9 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 	for idx := range stats.Ops.Cmd {
 		log.Infof("cmd infos i:%v , cmd :%v", idx, stats.Ops.Cmd[idx])
 	}
-	/*if flags.HasBit(StatsCmds) {
+	if flags.HasBit(StatsCmds) {
 		stats.Ops.Cmd = GetOpStatsAll()
-	}*/
+	}
 
 	stats.Sessions.Total = SessionsTotal()
 	stats.Sessions.Alive = SessionsAlive()
@@ -787,7 +786,7 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Runtime.NumCgoCall = runtime.NumCgoCall()
 		stats.Runtime.MemOffheap = unsafe2.OffheapBytes()
 	}
-	//stats.SlowCmdCount = SlowCmdCount.Int64()
+	stats.SlowCmdCount = SlowCmdCount.Int64()
 	return stats
 }
 

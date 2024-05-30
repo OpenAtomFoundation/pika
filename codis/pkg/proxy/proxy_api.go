@@ -131,17 +131,16 @@ func (s *apiServer) XPing(params martini.Params) (int, string) {
 func (s *apiServer) CmdInfo(params martini.Params) (int, string) {
 	if err := s.verifyXAuth(params); err != nil {
 		return rpc.ApiResponseError(err)
-	} else {
-		var interval int64
-		if i := params["interval"]; i != "" {
-			n, err := strconv.Atoi(i)
-			if err != nil {
-				return rpc.ApiResponseError(err)
-			}
-			interval = int64(n)
-		}
-		return rpc.ApiResponseJson(s.proxy.CmdInfo(interval))
 	}
+	var interval int64
+	if i := params["interval"]; i != "" {
+		n, err := strconv.Atoi(i)
+		if err != nil {
+			return rpc.ApiResponseError(err)
+		}
+		interval = int64(n)
+	}
+	return rpc.ApiResponseJson(s.proxy.CmdInfo(interval))
 }
 
 func (s *apiServer) Stats(params martini.Params) (int, string) {

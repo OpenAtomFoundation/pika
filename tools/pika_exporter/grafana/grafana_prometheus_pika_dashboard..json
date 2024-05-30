@@ -17,13 +17,13 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 2,
   "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
     {
-      "collapsed": true,
+      "collapsed": false,
       "datasource": {
         "type": "prometheus",
         "uid": "f1b0a045-7478-4185-a338-3a88f6d1fe97"
@@ -35,411 +35,7 @@
         "y": 0
       },
       "id": 12,
-      "panels": [
-        {
-          "columns": [],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "bdl2aren4u41sd"
-          },
-          "fontSize": "100%",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 9
-          },
-          "id": 8,
-          "links": [],
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": 1,
-            "desc": false
-          },
-          "styles": [
-            {
-              "$$hashKey": "object:2105",
-              "alias": "Time",
-              "align": "auto",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "$$hashKey": "object:2106",
-              "alias": "pika server addr",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "addr",
-              "preserveFormat": false,
-              "sanitize": false,
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2107",
-              "alias": "pika server alias",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "alias",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2108",
-              "alias": "arch bits",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "arch_bits",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2109",
-              "alias": "collect instance",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "instance",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2110",
-              "alias": "os",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "os",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2111",
-              "alias": "pika version",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_version",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2112",
-              "alias": "pika git sha",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_git_sha",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2113",
-              "alias": "pika build date",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "pika_build_compile_date",
-              "thresholds": [],
-              "type": "date",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:2114",
-              "alias": "",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "hidden",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "bdl2aren4u41sd"
-              },
-              "expr": "pika_build_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
-              "format": "table",
-              "instant": true,
-              "intervalFactor": 1,
-              "refId": "A"
-            }
-          ],
-          "title": "Pika Build Info List",
-          "transform": "table",
-          "type": "table-old"
-        },
-        {
-          "columns": [],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "bdl2aren4u41sd"
-          },
-          "fontSize": "100%",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 12
-          },
-          "id": 10,
-          "links": [],
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": 0,
-            "desc": true
-          },
-          "styles": [
-            {
-              "$$hashKey": "object:5131",
-              "alias": "Time",
-              "align": "auto",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "$$hashKey": "object:5132",
-              "alias": "addr",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "addr",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5133",
-              "alias": "alias",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "alias",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5134",
-              "alias": "config file",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "config_file",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5135",
-              "alias": "collect instance",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "instance",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5136",
-              "alias": "process id",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "process_id",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5137",
-              "alias": "role",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "role",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5138",
-              "alias": "server id",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "server_id",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5139",
-              "alias": "tcp port",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "mappingType": 1,
-              "pattern": "tcp_port",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "$$hashKey": "object:5140",
-              "alias": "",
-              "align": "auto",
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "decimals": 2,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "hidden",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "bdl2aren4u41sd"
-              },
-              "editorMode": "code",
-              "expr": "pika_server_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
-              "format": "table",
-              "instant": true,
-              "intervalFactor": 2,
-              "refId": "A"
-            }
-          ],
-          "title": "Pika Server Info List",
-          "transform": "table",
-          "type": "table-old"
-        }
-      ],
+      "panels": [],
       "targets": [
         {
           "datasource": {
@@ -453,6 +49,407 @@
       "type": "row"
     },
     {
+      "columns": [],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 8,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": 1,
+        "desc": false
+      },
+      "styles": [
+        {
+          "$$hashKey": "object:2105",
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "$$hashKey": "object:2106",
+          "alias": "pika server addr",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "addr",
+          "preserveFormat": false,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2107",
+          "alias": "pika server alias",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "alias",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2108",
+          "alias": "arch bits",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "arch_bits",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2109",
+          "alias": "collect instance",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2110",
+          "alias": "os",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "os",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2111",
+          "alias": "pika version",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_version",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2112",
+          "alias": "pika git sha",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_git_sha",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2113",
+          "alias": "pika build date",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "pika_build_compile_date",
+          "thresholds": [],
+          "type": "date",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:2114",
+          "alias": "",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "/.*/",
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "expr": "pika_build_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "title": "Pika Build Info List",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
+      "columns": [],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 10,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": 0,
+        "desc": true
+      },
+      "styles": [
+        {
+          "$$hashKey": "object:5131",
+          "alias": "Time",
+          "align": "auto",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "pattern": "Time",
+          "type": "date"
+        },
+        {
+          "$$hashKey": "object:5132",
+          "alias": "addr",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "addr",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5133",
+          "alias": "alias",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "alias",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5134",
+          "alias": "config file",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "config_file",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5135",
+          "alias": "collect instance",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "instance",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5136",
+          "alias": "process id",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "process_id",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5137",
+          "alias": "role",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "role",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5138",
+          "alias": "server id",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "server_id",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5139",
+          "alias": "tcp port",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "tcp_port",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
+          "$$hashKey": "object:5140",
+          "alias": "",
+          "align": "auto",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "/.*/",
+          "thresholds": [],
+          "type": "hidden",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "editorMode": "code",
+          "expr": "pika_server_info{job=~\"$job\", group=~\"$group\", instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "intervalFactor": 2,
+          "refId": "A"
+        }
+      ],
+      "title": "Pika Server Info List",
+      "transform": "table",
+      "type": "table-old"
+    },
+    {
       "collapsed": false,
       "datasource": {
         "type": "prometheus",
@@ -462,7 +459,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 7
       },
       "id": 14,
       "panels": [],
@@ -489,7 +486,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 8
       },
       "id": 32,
       "scroll": true,
@@ -682,7 +679,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 11
       },
       "id": 31,
       "scroll": true,
@@ -929,7 +926,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 8
+        "y": 14
       },
       "id": 4,
       "maxDataPoints": 100,
@@ -1010,7 +1007,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 8
+        "y": 14
       },
       "id": 16,
       "maxDataPoints": 100,
@@ -1090,7 +1087,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 8
+        "y": 14
       },
       "id": 18,
       "maxDataPoints": 100,
@@ -1170,7 +1167,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 8
+        "y": 14
       },
       "id": 45,
       "maxDataPoints": 100,
@@ -1250,7 +1247,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 8
+        "y": 14
       },
       "id": 46,
       "maxDataPoints": 100,
@@ -1303,7 +1300,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 12
+        "y": 18
       },
       "hiddenSeries": false,
       "id": 208,
@@ -1397,7 +1394,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 12
+        "y": 18
       },
       "hiddenSeries": false,
       "id": 209,
@@ -1491,7 +1488,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 12
+        "y": 18
       },
       "hiddenSeries": false,
       "id": 210,
@@ -1585,7 +1582,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 20
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 75,
@@ -1676,7 +1673,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 20
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 76,
@@ -1770,7 +1767,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 20
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 77,
@@ -1861,7 +1858,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 28
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 20,
@@ -1952,7 +1949,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 28
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 2,
@@ -2044,7 +2041,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 28
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 24,
@@ -2149,7 +2146,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 36
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 205,
@@ -2244,7 +2241,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 36
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 30,
@@ -2336,7 +2333,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 36
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 58,
@@ -2423,7 +2420,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 50
       },
       "id": 42,
       "panels": [
@@ -2438,7 +2435,7 @@
             "h": 5,
             "w": 5,
             "x": 0,
-            "y": 3
+            "y": 11
           },
           "id": 206,
           "scroll": true,
@@ -2527,7 +2524,7 @@
             "h": 5,
             "w": 7,
             "x": 5,
-            "y": 3
+            "y": 11
           },
           "hiddenSeries": false,
           "id": 44,
@@ -2616,7 +2613,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 3
+            "y": 11
           },
           "id": 68,
           "scroll": true,
@@ -2787,7 +2784,7 @@
             "h": 11,
             "w": 6,
             "x": 0,
-            "y": 8
+            "y": 16
           },
           "hiddenSeries": false,
           "id": 193,
@@ -2880,7 +2877,7 @@
             "h": 11,
             "w": 6,
             "x": 6,
-            "y": 8
+            "y": 16
           },
           "hiddenSeries": false,
           "id": 194,
@@ -2973,7 +2970,7 @@
             "h": 11,
             "w": 6,
             "x": 12,
-            "y": 8
+            "y": 16
           },
           "hiddenSeries": false,
           "id": 40,
@@ -3066,7 +3063,7 @@
             "h": 11,
             "w": 6,
             "x": 18,
-            "y": 8
+            "y": 16
           },
           "hiddenSeries": false,
           "id": 207,
@@ -3167,7 +3164,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 51
       },
       "id": 48,
       "panels": [
@@ -3182,7 +3179,7 @@
             "h": 3,
             "w": 12,
             "x": 0,
-            "y": 4
+            "y": 12
           },
           "hideTimeOverride": false,
           "id": 53,
@@ -3283,7 +3280,7 @@
             "h": 3,
             "w": 12,
             "x": 12,
-            "y": 4
+            "y": 12
           },
           "id": 50,
           "scroll": true,
@@ -3379,7 +3376,7 @@
             "h": 3,
             "w": 24,
             "x": 0,
-            "y": 7
+            "y": 15
           },
           "hideTimeOverride": false,
           "id": 54,
@@ -3507,7 +3504,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 52
       },
       "id": 56,
       "panels": [
@@ -3526,7 +3523,7 @@
             "h": 11,
             "w": 8,
             "x": 0,
-            "y": 5
+            "y": 13
           },
           "hiddenSeries": false,
           "id": 62,
@@ -3616,7 +3613,7 @@
             "h": 11,
             "w": 8,
             "x": 8,
-            "y": 5
+            "y": 13
           },
           "hiddenSeries": false,
           "id": 191,
@@ -3706,7 +3703,7 @@
             "h": 11,
             "w": 8,
             "x": 16,
-            "y": 5
+            "y": 13
           },
           "hiddenSeries": false,
           "id": 192,
@@ -3800,7 +3797,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 53
       },
       "id": 203,
       "panels": [
@@ -3819,7 +3816,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 6
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 195,
@@ -3914,7 +3911,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 6
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 196,
@@ -4009,7 +4006,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 14
+            "y": 22
           },
           "hiddenSeries": false,
           "id": 197,
@@ -4104,7 +4101,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 14
+            "y": 22
           },
           "hiddenSeries": false,
           "id": 198,
@@ -4199,7 +4196,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 22
+            "y": 30
           },
           "hiddenSeries": false,
           "id": 199,
@@ -4294,7 +4291,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 22
+            "y": 30
           },
           "hiddenSeries": false,
           "id": 200,
@@ -4389,7 +4386,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 30
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 201,
@@ -4484,7 +4481,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 30
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 202,
@@ -4574,7 +4571,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 54
       },
       "id": 90,
       "panels": [
@@ -4594,7 +4591,7 @@
             "h": 13,
             "w": 6,
             "x": 0,
-            "y": 7
+            "y": 15
           },
           "hiddenSeries": false,
           "id": 190,
@@ -4688,7 +4685,7 @@
             "h": 13,
             "w": 6,
             "x": 6,
-            "y": 7
+            "y": 15
           },
           "hiddenSeries": false,
           "id": 97,
@@ -4782,7 +4779,7 @@
             "h": 13,
             "w": 6,
             "x": 12,
-            "y": 7
+            "y": 15
           },
           "hiddenSeries": false,
           "id": 126,
@@ -4876,7 +4873,7 @@
             "h": 13,
             "w": 6,
             "x": 18,
-            "y": 7
+            "y": 15
           },
           "hiddenSeries": false,
           "id": 98,
@@ -4970,7 +4967,7 @@
             "h": 13,
             "w": 8,
             "x": 0,
-            "y": 20
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 127,
@@ -5062,7 +5059,7 @@
             "h": 13,
             "w": 8,
             "x": 8,
-            "y": 20
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 102,
@@ -5154,7 +5151,7 @@
             "h": 13,
             "w": 8,
             "x": 16,
-            "y": 20
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 103,
@@ -5248,7 +5245,7 @@
             "h": 13,
             "w": 8,
             "x": 0,
-            "y": 33
+            "y": 41
           },
           "hiddenSeries": false,
           "id": 131,
@@ -5340,7 +5337,7 @@
             "h": 13,
             "w": 8,
             "x": 8,
-            "y": 33
+            "y": 41
           },
           "hiddenSeries": false,
           "id": 109,
@@ -5432,7 +5429,7 @@
             "h": 13,
             "w": 8,
             "x": 16,
-            "y": 33
+            "y": 41
           },
           "hiddenSeries": false,
           "id": 110,
@@ -5524,7 +5521,7 @@
             "h": 13,
             "w": 6,
             "x": 0,
-            "y": 46
+            "y": 54
           },
           "hiddenSeries": false,
           "id": 188,
@@ -5618,7 +5615,7 @@
             "h": 13,
             "w": 6,
             "x": 6,
-            "y": 46
+            "y": 54
           },
           "hiddenSeries": false,
           "id": 101,
@@ -5712,7 +5709,7 @@
             "h": 13,
             "w": 6,
             "x": 12,
-            "y": 46
+            "y": 54
           },
           "hiddenSeries": false,
           "id": 129,
@@ -5804,7 +5801,7 @@
             "h": 13,
             "w": 6,
             "x": 18,
-            "y": 46
+            "y": 54
           },
           "hiddenSeries": false,
           "id": 130,
@@ -5896,7 +5893,7 @@
             "h": 13,
             "w": 6,
             "x": 0,
-            "y": 59
+            "y": 67
           },
           "hiddenSeries": false,
           "id": 132,
@@ -5992,7 +5989,7 @@
             "h": 13,
             "w": 6,
             "x": 6,
-            "y": 59
+            "y": 67
           },
           "hiddenSeries": false,
           "id": 133,
@@ -6086,7 +6083,7 @@
             "h": 13,
             "w": 6,
             "x": 12,
-            "y": 59
+            "y": 67
           },
           "hiddenSeries": false,
           "id": 134,
@@ -6178,7 +6175,7 @@
             "h": 13,
             "w": 6,
             "x": 18,
-            "y": 59
+            "y": 67
           },
           "hiddenSeries": false,
           "id": 135,
@@ -6270,7 +6267,7 @@
             "h": 13,
             "w": 6,
             "x": 0,
-            "y": 72
+            "y": 80
           },
           "hiddenSeries": false,
           "id": 128,
@@ -6362,7 +6359,7 @@
             "h": 13,
             "w": 6,
             "x": 6,
-            "y": 72
+            "y": 80
           },
           "hiddenSeries": false,
           "id": 105,
@@ -6454,7 +6451,7 @@
             "h": 13,
             "w": 6,
             "x": 12,
-            "y": 72
+            "y": 80
           },
           "hiddenSeries": false,
           "id": 104,
@@ -6548,7 +6545,7 @@
             "h": 13,
             "w": 6,
             "x": 18,
-            "y": 72
+            "y": 80
           },
           "hiddenSeries": false,
           "id": 204,
@@ -6642,7 +6639,7 @@
             "h": 13,
             "w": 6,
             "x": 0,
-            "y": 85
+            "y": 93
           },
           "hiddenSeries": false,
           "id": 187,
@@ -6736,7 +6733,7 @@
             "h": 13,
             "w": 6,
             "x": 6,
-            "y": 85
+            "y": 93
           },
           "hiddenSeries": false,
           "id": 189,
@@ -6830,7 +6827,7 @@
             "h": 13,
             "w": 6,
             "x": 12,
-            "y": 85
+            "y": 93
           },
           "hiddenSeries": false,
           "id": 107,
@@ -6922,7 +6919,7 @@
             "h": 13,
             "w": 6,
             "x": 18,
-            "y": 85
+            "y": 93
           },
           "hiddenSeries": false,
           "id": 106,
@@ -7008,7 +7005,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 55
       },
       "id": 211,
       "panels": [],
@@ -7030,7 +7027,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 50
+        "y": 56
       },
       "hiddenSeries": false,
       "id": 212,
@@ -7125,7 +7122,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 50
+        "y": 56
       },
       "hiddenSeries": false,
       "id": 213,
@@ -7220,7 +7217,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 57
+        "y": 63
       },
       "hiddenSeries": false,
       "id": 215,
@@ -7315,7 +7312,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 57
+        "y": 63
       },
       "hiddenSeries": false,
       "id": 214,
@@ -7410,7 +7407,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 64
+        "y": 70
       },
       "hiddenSeries": false,
       "id": 217,
@@ -7505,7 +7502,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 64
+        "y": 70
       },
       "hiddenSeries": false,
       "id": 216,
@@ -7600,7 +7597,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 71
+        "y": 77
       },
       "hiddenSeries": false,
       "id": 219,
@@ -7637,7 +7634,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "avg(proxy_usecs_percall{cluster_name=\"$cluster_name\",port=~\"$port\", dc=~\"$dc\", role=~\"$role\", ip=~\"$ip\"})by(addr,proxy_id)",
+          "expr": "proxy_tp100{addr=~\"$codis_proxy\"}",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -7648,7 +7645,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "proxy_usecs_percall",
+      "title": "proxy_tp100",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -7665,7 +7662,7 @@
           "$$hashKey": "object:2385",
           "format": "µs",
           "logBase": 1,
-          "max": "200000",
+          "max": "50000",
           "min": "0",
           "show": true
         },
@@ -7695,10 +7692,10 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 71
+        "y": 77
       },
       "hiddenSeries": false,
-      "id": 218,
+      "id": 221,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -7732,7 +7729,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "proxy_usecs_percall{addr=~\"$codis_proxy\"}",
+          "expr": "proxy_tp99{addr=~\"$codis_proxy\"}",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -7743,7 +7740,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "proxy usecs percall",
+      "title": "proxy_tp99",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -7760,7 +7757,387 @@
           "$$hashKey": "object:2385",
           "format": "µs",
           "logBase": 1,
-          "max": "200000",
+          "max": "50000",
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 2,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 0,
+        "y": 84
+      },
+      "hiddenSeries": false,
+      "id": 222,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.4.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "proxy_max_delay{addr=~\"$codis_proxy\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{opstr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "proxy_max_delay",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "µs",
+          "logBase": 1,
+          "max": "2000000",
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 2,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 10,
+        "y": 84
+      },
+      "hiddenSeries": false,
+      "id": 223,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.4.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "proxy_delay50ms{addr=~\"$codis_proxy\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{opstr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "delay50ms",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "µs",
+          "logBase": 1,
+          "max": "2000000",
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 2,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 0,
+        "y": 91
+      },
+      "hiddenSeries": false,
+      "id": 224,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.4.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "proxy_delay100ms{addr=~\"$codis_proxy\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{opstr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "delay100ms",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "none",
+          "logBase": 1,
+          "max": "2000000",
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:2386",
+          "format": "short",
+          "logBase": 2,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdl2aren4u41sd"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 10,
+        "y": 91
+      },
+      "hiddenSeries": false,
+      "id": 225,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.4.2",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdl2aren4u41sd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "proxy_delay200ms{addr=~\"$codis_proxy\"}",
+          "format": "time_series",
+          "instant": false,
+          "intervalFactor": 1,
+          "legendFormat": "{{opstr}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "delay200ms",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:2385",
+          "format": "none",
+          "logBase": 1,
+          "max": "2000000",
           "min": "0",
           "show": true
         },
@@ -7776,7 +8153,7 @@
       }
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [
     "prometheus",
@@ -8039,6 +8416,6 @@
   "timezone": "",
   "title": "Prometheus Pika Exporter",
   "uid": "HYwVT4mZz",
-  "version": 37,
+  "version": 45,
   "weekStart": ""
 }

@@ -7,9 +7,10 @@
 #include <iostream>
 #include <thread>
 
-#include "src/lists_filter.h"
 #include "src/base_key_format.h"
+#include "src/lists_filter.h"
 #include "src/redis.h"
+#include "src/zsets_filter.h"
 #include "storage/storage.h"
 
 using namespace storage;
@@ -68,6 +69,7 @@ class ListsFilterTest : public ::testing::Test {
 // Data Filter
 TEST_F(ListsFilterTest, DataFilterTest) {
   char str[8];
+  char buf[4];
   bool filter_result;
   bool value_changed;
   uint64_t version = 0;
@@ -162,6 +164,85 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   filter_result =
       lists_data_filter5->Filter(0, lists_data_value5.Encode(), "FILTER_TEST_VALUE", &new_value, &value_changed);
   ASSERT_EQ(filter_result, true);
+
+  /*
+   * The types of keys conflict with each other and trigger compaction, zset filter
+   */
+  BaseMetaKey meta_key(user_key);
+  auto zset_filter = std::make_unique<ZSetsScoreFilter>(meta_db, &handles, DataType::kZSets);
+  ASSERT_TRUE(zset_filter != nullptr);
+
+  // Insert a zset key
+  EncodeFixed32(buf, 1);
+  ZSetsMetaValue zsets_meta_value(DataType::kZSets, Slice(buf, 4));
+  version = zsets_meta_value.UpdateVersion();
+  s = meta_db->Put(rocksdb::WriteOptions(), handles[0], meta_key.Encode(), zsets_meta_value.Encode());
+  ASSERT_TRUE(s.ok());
+
+  // Insert a key of type string with the same name as the list
+  StringsValue strings_value("FILTER_TEST_VALUE");
+  s = meta_db->Put(rocksdb::WriteOptions(), meta_key.Encode(), strings_value.Encode());
+
+  // zset-filter was used for elimination detection
+  ZSetsScoreKey base_key(user_key, version, 1, "FILTER_TEST_KEY");
+  filter_result = zset_filter->Filter(0, base_key.Encode(), "FILTER_TEST_VALUE", &new_value, &value_changed);
+  ASSERT_EQ(filter_result, true);
+  s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
+  ASSERT_TRUE(s.ok());
+
+  /*
+   * The types of keys conflict with each other and trigger compaction, list filter
+   */
+  auto lists_data_filter = std::make_unique<ListsDataFilter>(meta_db, &handles, DataType::kLists);
+  ASSERT_TRUE(lists_data_filter != nullptr);
+
+  // Insert a list key
+  EncodeFixed64(str, 1);
+  ListsMetaValue lists_meta_value(Slice(str, sizeof(uint64_t)));
+  lists_meta_value.UpdateVersion();
+  s = meta_db->Put(rocksdb::WriteOptions(), handles[0], meta_key.Encode(), lists_meta_value.Encode());
+  ASSERT_TRUE(s.ok());
+
+  // Insert a key of type set with the same name as the list
+  EncodeFixed32(buf, 1);
+  SetsMetaValue sets_meta_value(DataType::kSets, Slice(str, 4));
+  sets_meta_value.UpdateVersion();
+  s = meta_db->Put(rocksdb::WriteOptions(), handles[0], meta_key.Encode(), sets_meta_value.Encode());
+  ASSERT_TRUE(s.ok());
+
+  // list-filter was used for elimination detection
+  ListsDataKey lists_data_key(user_key, version, 1);
+  filter_result = lists_data_filter->Filter(0, lists_data_key.Encode(), "FILTER_TEST_VALUE", &new_value, &value_changed);
+  ASSERT_EQ(filter_result, true);
+  s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
+  ASSERT_TRUE(s.ok());
+
+  /*
+   *  The types of keys conflict with each other and trigger compaction, base filter
+   */
+  auto base_filter = std::make_unique<BaseDataFilter>(meta_db, &handles, DataType::kHashes);
+  ASSERT_TRUE(lists_data_filter != nullptr);
+
+  // Insert a hash key
+  EncodeFixed32(buf, 1);
+  HashesMetaValue hash_meta_value(DataType::kHashes, Slice(buf, 4));
+  hash_meta_value.UpdateVersion();
+  s = meta_db->Put(rocksdb::WriteOptions(), handles[0], meta_key.Encode(), hash_meta_value.Encode());
+  ASSERT_TRUE(s.ok());
+
+  // Insert a key of type list with the same name as the hash
+  EncodeFixed64(str, 1);
+  ListsMetaValue lists_meta_value6(Slice(str, sizeof(uint64_t)));
+  lists_meta_value6.UpdateVersion();
+  s = meta_db->Put(rocksdb::WriteOptions(), handles[0], meta_key.Encode(), lists_meta_value6.Encode());
+  ASSERT_TRUE(s.ok());
+
+  // base-filter was used for elimination detection
+  ListsDataKey lists_data_key6(user_key, version, 1);
+  filter_result = base_filter->Filter(0, lists_data_key6.Encode(), "FILTER_TEST_VALUE", &new_value, &value_changed);
+  ASSERT_EQ(filter_result, true);
+  s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
+  ASSERT_TRUE(s.ok());
 }
 
 int main(int argc, char** argv) {

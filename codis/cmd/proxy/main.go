@@ -193,7 +193,7 @@ Options:
 	}
 	defer s.Close()
 
-	//proxy.RefreshPeriod.Set(config.MaxDelayRefreshTimeInterval.Int64())
+	proxy.RefreshPeriod.Set(config.MaxDelayRefreshTimeInterval.Int64())
 
 	log.Warnf("create proxy with config\n%s", config)
 

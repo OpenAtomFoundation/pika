@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"pika/codis/v2/pkg/proxy"
 	"strconv"
 	"strings"
 	"sync"
@@ -258,23 +257,6 @@ func (s *Topom) Start(routines bool) error {
 				if w != nil {
 					w.Wait()
 				}
-			}
-			time.Sleep(time.Second)
-		}
-	}, nil, true, 0)
-
-	gxruntime.GoUnterminated(func() {
-		var loops int64 = 0
-		for !s.IsClosed() {
-			if s.IsOnline() {
-				w, _ := s.RefreshProxyCmdStats(time.Second, loops)
-				if w != nil {
-					w.Wait()
-				}
-			}
-			loops++
-			if loops >= proxy.IntervalMark[len(proxy.IntervalMark)-1] {
-				loops = 0
 			}
 			time.Sleep(time.Second)
 		}
