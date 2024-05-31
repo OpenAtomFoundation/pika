@@ -41,6 +41,7 @@ const std::string kDefaultRsyncAuth = "default";
 
 /* Rsync */
 const int kMaxRsyncParallelNum = 4;
+constexpr int kMaxRsyncInitReTryTimes = 64;
 
 struct DBStruct {
   DBStruct(std::string tn, int32_t inst_num)
