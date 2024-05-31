@@ -682,6 +682,14 @@ rocksdb::Status Redis::SMembers(const Slice& key, std::vector<std::string>* memb
       SetsMemberKey sets_member_key(key, version, Slice());
       Slice prefix = sets_member_key.EncodeSeekKey();
       KeyStatisticsDurationGuard guard(this, DataType::kSets, key.ToString());
+
+      // read_options.fill_cache = false;
+      // SetsMemberKey upper_bound_data_key(key, version + 1, Slice());
+      // rocksdb::Slice upper_bound = upper_bound_data_key.EncodeSeekKey();
+      // read_options.iterate_upper_bound = &upper_bound;
+      // rocksdb::Slice lower_bound = sets_member_key.EncodeSeekKey();
+      // read_options.iterate_lower_bound = &lower_bound;
+
       auto iter = db_->NewIterator(read_options, handles_[kSetsDataCF]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
@@ -1381,9 +1389,24 @@ rocksdb::Status Redis::SetsDel(const Slice& key) {
     } else if (parsed_sets_meta_value.Count() == 0) {
       return rocksdb::Status::NotFound();
     } else {
+      rocksdb::WriteBatch batch;
+      {
+        uint64_t version = parsed_sets_meta_value.Version();
+        rocksdb::ReadOptions read_options(default_read_options_);
+        SetsMemberKey start_key(key, version, Slice());
+        auto iter = db_->NewIterator(default_read_options_, handles_[kSetsDataCF]);
+        iter->Seek(start_key.EncodeSeekKey());
+        uint32_t size = parsed_sets_meta_value.Count();
+        while(iter->Valid() && size--) {
+          batch.Delete(handles_[kSetsDataCF], iter->key());
+          iter->Next();
+        }
+        delete iter;
+      }
       uint32_t statistic = parsed_sets_meta_value.Count();
       parsed_sets_meta_value.InitialMetaValue();
-      s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), meta_value);
+      batch.Put(handles_[kMetaCF], base_meta_key.Encode(), meta_value);
+      s = db_->Write(default_write_options_, &batch);
       UpdateSpecificKeyStatistics(DataType::kSets, key.ToString(), statistic);
     }
   }

@@ -200,6 +200,14 @@ Status Redis::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
       HashesDataKey hashes_data_key(key, version, "");
       Slice prefix = hashes_data_key.EncodeSeekKey();
       KeyStatisticsDurationGuard guard(this, DataType::kHashes, key.ToString());
+
+      read_options.fill_cache = false;
+      HashesDataKey upper_bound_data_key(key, version + 1, 0);
+      rocksdb::Slice upper_bound = upper_bound_data_key.Encode();
+      read_options.iterate_upper_bound = &upper_bound;
+      rocksdb::Slice lower_bound = hashes_data_key.Encode();
+      read_options.iterate_lower_bound = &lower_bound;
+
       auto iter = db_->NewIterator(read_options, handles_[kHashesDataCF]);
       for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         ParsedHashesDataKey parsed_hashes_data_key(iter->key());
