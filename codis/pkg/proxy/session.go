@@ -370,7 +370,7 @@ func (s *Session) handleCodisInfo(r *Request) error {
 		return nil
 	}
 
-	var array = make([]*redis.Resp, 4)
+	var array = make([]*redis.Resp, 0, 4)
 	array[0] = redis.NewString([]byte(utils.Version))
 	array[1] = redis.NewString([]byte(utils.Compile))
 	array[2] = redis.NewString([]byte(fmt.Sprintf("admin addr: %s", s.proxy.model.AdminAddr)))
