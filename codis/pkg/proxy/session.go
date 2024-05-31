@@ -370,11 +370,12 @@ func (s *Session) handleCodisInfo(r *Request) error {
 		return nil
 	}
 
-	var array = make([]*redis.Resp, 0, 4)
-	array = append(array, redis.NewString([]byte(utils.Version)))
-	array = append(array, redis.NewString([]byte(utils.Compile)))
-	array = append(array, redis.NewString([]byte(fmt.Sprintf("admin addr: %s", s.proxy.model.AdminAddr))))
-	array = append(array, redis.NewString([]byte(fmt.Sprintf("start time: %s", s.proxy.model.StartTime))))
+	array := []*redis.Resp{
+		redis.NewString([]byte(utils.Version)),
+		redis.NewString([]byte(utils.Compile)),
+		redis.NewString([]byte(fmt.Sprintf("admin addr: %s", s.proxy.model.AdminAddr))),
+		redis.NewString([]byte(fmt.Sprintf("start time: %s", s.proxy.model.StartTime))),
+	}
 	r.Resp = redis.NewArray(array)
 
 	return nil
