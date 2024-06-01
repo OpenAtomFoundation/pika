@@ -47,6 +47,7 @@ void PikaCmdTableManager::InitCmdTable(void) {
   CommandStatistics statistics;
   for (auto& iter : *cmds_) {
     cmdstat_map_.emplace(iter.first, statistics);
+    iter.second->SetCmdId(cmdId_++);
   }
 }
 

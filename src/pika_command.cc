@@ -830,8 +830,6 @@ bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) 
 
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
     : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
-  // assign cmd id
-  cmdId_ = g_pika_cmd_table_manager->GetCmdId();
 }
 
 void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
