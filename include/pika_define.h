@@ -30,6 +30,8 @@
 #define PIKA_SERVER_ID_MAX 65535
 
 class PikaServer;
+/* Global Const */
+constexpr int MAX_DB_NUM = 8;
 
 /* Port shift */
 const int kPortShiftRSync = 1000;
