@@ -10,7 +10,6 @@
 #include "include/pika_acl.h"
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
 #include "include/pika_hash.h"
