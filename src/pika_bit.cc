@@ -164,12 +164,11 @@ void BitCountCmd::ReadCache() {
   int64_t count = 0;
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);
-  rocksdb::Status s;
+  bool flag = true;
   if (count_all_) {
-    s = db_->cache()->BitCount(key_, start, end, &count, false);
-  } else {
-    s = db_->cache()->BitCount(key_, start, end, &count, true);
+    flag = false;
   }
+  rocksdb::Status s = db_->cache()->BitCount(key_, start, end, &count, flag);
 
   if (s.ok()) {
     res_.AppendInteger(count);
