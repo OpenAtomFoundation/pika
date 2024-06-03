@@ -791,20 +791,19 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 }
 
 func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
-	cmdInfo := &CmdInfo{}
-
-	cmdInfo.Total = OpTotal()
-	cmdInfo.Fails = OpFails()
-	cmdInfo.Redis.Errors = OpRedisErrors()
-	cmdInfo.QPS = OpQPS()
-
-	cmdInfo.Cmd = GetOpStatsByInterval(interval)
-
-	return cmdInfo
+	info := &CmdInfo{
+		Total: OpTotal(),
+		Fails: OpFails(),
+		QPS:   OpQPS(),
+		Cmd:   GetOpStatsByInterval(interval),
+	}
+	info.Redis.Errors = OpRedisErrors()
+	return info
 }
 
 func StatsSetLogSlowerThan(ms int64) {
-	if ms >= 0 {
-		cmdstats.logSlowerThan.Set(ms)
+	if ms < 0 {
+		return
 	}
+	cmdstats.logSlowerThan.Set(ms)
 }
