@@ -136,7 +136,7 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		slave1.FlushDB(ctx)
 		master1.FlushDB(ctx)
 		time.Sleep(3 * time.Second)
-		RefillMaster(MASTERADDR, 128, ctx)
+		RefillMaster(MASTERADDR, 64, ctx)
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done
