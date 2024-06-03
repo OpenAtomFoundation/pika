@@ -527,7 +527,9 @@ void MgetCmd::AssembleResponseFromCache() {
 }
 
 void MgetCmd::Do() {
-  if(cache_miss_keys_.size() == 0){
+  // Without using the cache and querying only the DB, we need to use keys_.
+  // This line will only be assigned when querying the DB directly.
+  if(cache_miss_keys_.size() == 0) {
     cache_miss_keys_ = keys_;
   }
   db_value_status_array_.clear();
