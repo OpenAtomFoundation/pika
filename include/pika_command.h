@@ -332,7 +332,7 @@ class CmdRes {
     kInvalidTransaction,
     kTxnQueued,
     kTxnAbort,
-    kMultiKey
+    kMultiKey,
     kNoExists,
   };
 
