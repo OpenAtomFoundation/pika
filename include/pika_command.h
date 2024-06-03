@@ -291,6 +291,7 @@ enum CmdFlags {
   kCmdFlagsFast = (1 << 21),
   kCmdFlagsSlow = (1 << 22),
   kCmdTransaction = (1 << 23),
+  kCmdNoReadBeforeQueue = (1 << 24),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);

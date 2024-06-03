@@ -736,31 +736,31 @@ void InitCmdTable(CmdTable* cmd_table) {
   // PubSub
   ////Publish
   std::unique_ptr<Cmd> publishptr =
-      std::make_unique<PublishCmd>(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsFast);
+      std::make_unique<PublishCmd>(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsFast | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePublish, std::move(publishptr)));
   ////Subscribe
   std::unique_ptr<Cmd> subscribeptr =
-      std::make_unique<SubscribeCmd>(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<SubscribeCmd>(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSubscribe, std::move(subscribeptr)));
   ////UnSubscribe
   std::unique_ptr<Cmd> unsubscribeptr =
-      std::make_unique<UnSubscribeCmd>(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<UnSubscribeCmd>(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnSubscribe, std::move(unsubscribeptr)));
   ////PSubscribe
   std::unique_ptr<Cmd> psubscribeptr =
-      std::make_unique<PSubscribeCmd>(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PSubscribeCmd>(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePSubscribe, std::move(psubscribeptr)));
   ////PUnSubscribe
   std::unique_ptr<Cmd> punsubscribeptr =
-      std::make_unique<PUnSubscribeCmd>(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PUnSubscribeCmd>(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePUnSubscribe, std::move(punsubscribeptr)));
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr =
-      std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
 
   ////ACL
-  std::unique_ptr<Cmd> aclptr = std::make_unique<PikaAclCmd>(KCmdNameAcl, -2, kCmdFlagsAdmin | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> aclptr = std::make_unique<PikaAclCmd>(KCmdNameAcl, -2, kCmdFlagsAdmin | kCmdFlagsSlow | kCmdNoReadBeforeQueue);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(KCmdNameAcl, std::move(aclptr)));
 
   // Transaction
@@ -928,11 +928,12 @@ bool Cmd::DoReadCommandInCache(const HintKeys& hint_keys) {
       if (IsNeedReadCache()) {
         ReadCache();
       }
-      if (is_read() && res().CacheMiss()) {
-        return false;
+      // 只有读命令且返回值为命中的情况才返回true
+      if (is_read() && !res().CacheMiss()) {
+        return true;
       }
   }
-  return true;
+  return false;
 }
 
 
@@ -965,7 +966,7 @@ void Cmd::DoBinlog() {
 bool Cmd::hasFlag(uint32_t flag) const { return (flag_ & flag); }
 bool Cmd::is_read() const { return (flag_ & kCmdFlagsRead); }
 bool Cmd::is_write() const { return (flag_ & kCmdFlagsWrite); }
-bool Cmd::is_cacheread() const { return (flag_ & kCmdFlagsRead) && !(flag_ & kCmdFlagsAdmin)  && !(flag_ & kCmdTransaction); }
+bool Cmd::is_cacheread() const { return (flag_ & kCmdFlagsRead) && !(flag_ & kCmdFlagsAdmin)  && !(flag_ & kCmdFlagsOperateKey) && !(flag_ & kCmdTransaction) && !(flag_ & kCmdNoReadBeforeQueue);}
 bool Cmd::IsLocal() const { return (flag_ & kCmdFlagsLocal); }
 
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) {

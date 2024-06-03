@@ -280,12 +280,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()){
       if ( c_ptr && c_ptr->is_cacheread() ){
         // read in cache
-        read_status = BatchReadCmdInCache(argvs);
-        time_stat_->process_done_ts_ = pstd::NowMicros();
-        auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
-        (*cmdstat_map)[opt].cmd_count.fetch_add(1);
-        (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
-        if (read_status){
+        if (BatchReadCmdInCache(argvs)){
           return;
         }
       }
@@ -350,17 +345,23 @@ bool PikaClientConn::BatchReadCmdInCache(const std::vector<net::RedisCmdArgsType
     if (!cur_keys.empty()){
       record_lock.Lock(cur_keys);
     }
-    if (!c_ptr->DoReadCommandInCache()) {
-      read_status =  false;
-    }
+
+    read_status = c_ptr->DoReadCommandInCache();
+    time_stat_->process_done_ts_ = pstd::NowMicros();
+    auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+    (*cmdstat_map)[argv[0]].cmd_count.fetch_add(1);
+    (*cmdstat_map)[argv[0]].cmd_time_consuming.fetch_add(time_stat_->total_time());
     *resp_ptr = std::move(c_ptr->res().message());
     resp_num--;
     record_lock.Unlock(cur_keys);
   }
-  time_stat_->process_done_ts_ = pstd::NowMicros();
-  TryWriteResp();
 
-  return read_status;
+  if(!read_status){
+    return read_status;
+  }else{
+    TryWriteResp();
+    return read_status;
+  }
 }
 
 void PikaClientConn::TryWriteResp() {
