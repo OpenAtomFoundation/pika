@@ -220,6 +220,10 @@ void ExecCmd::ServeToBLrPopWithKeys() {
   }
 }
 
+void WatchCmd::Execute() {
+  Do();
+}
+
 void WatchCmd::Do() {
   auto mp = std::map<storage::DataType, storage::Status>{};
   for (const auto& key : keys_) {

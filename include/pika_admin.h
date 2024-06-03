@@ -257,6 +257,7 @@ class InfoCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
+  void Execute() override;
 
  private:
   InfoSection info_section_;
@@ -324,6 +325,7 @@ class ConfigCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
+  void Execute() override;
 
  private:
   std::vector<std::string> config_args_v_;
