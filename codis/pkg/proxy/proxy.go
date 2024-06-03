@@ -798,18 +798,6 @@ func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
 	return cmdInfo
 }
 
-func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
-	return &CmdInfo{
-		Total: OpTotal(),
-		Fails: OpFails(),
-		Redis: Redis{
-			Errors: OpRedisErrors(),
-		},
-		QPS: OpQPS(),
-		Cmd: GetOpStatsByInterval(interval),
-	}
-}
-
 func StatsSetLogSlowerThan(ms int64) {
 	if ms < 0 {
 		return

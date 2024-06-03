@@ -207,6 +207,7 @@ func init() {
 			cmdstats.qps.Set(int64(normalized + 0.5))
 
 			cmdstats.RLock()
+			defer cmdstats.RUnlock()
 
 			for i := 0; i < IntervalNum; i++ {
 				/*if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
@@ -217,7 +218,6 @@ func init() {
 				}
 				LastRefreshTime[i] = time.Now()
 			}
-			cmdstats.RUnlock()
 		}
 	}()
 }
