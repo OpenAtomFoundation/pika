@@ -6,7 +6,6 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
-	redis2 "github.com/CodisLabs/codis/pkg/proxy/redis"
 	"math/rand"
 	"net"
 	"strconv"
@@ -702,13 +701,13 @@ func (s *Session) incrOpStats(r *Request, t redis.RespType) {
 		e = getOpStats(r.OpStr, true)
 		s.stats.opmap[r.OpStr] = e
 	}
-	e.incrOpStats(responseTime, redis2.RespType(t))
+	e.incrOpStats(responseTime, redis.RespType(t))
 	e = s.stats.opmap["ALL"]
 	if e == nil {
 		e = getOpStats("ALL", true)
 		s.stats.opmap["ALL"] = e
 	}
-	e.incrOpStats(responseTime, redis2.RespType(t))
+	e.incrOpStats(responseTime, redis.RespType(t))
 	e.calls.Incr()
 	e.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
 	switch t {

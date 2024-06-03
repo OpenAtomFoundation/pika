@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/CodisLabs/codis/pkg/proxy/redis"
-	"github.com/CodisLabs/codis/pkg/utils"
-	"github.com/CodisLabs/codis/pkg/utils/log"
-	"github.com/CodisLabs/codis/pkg/utils/sync2/atomic2"
+	"pika/codis/v2/pkg/proxy/redis"
+	"pika/codis/v2/pkg/utils"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
 const TPFirstGrade = 5 //5ms - 200ms
