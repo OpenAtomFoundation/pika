@@ -4,7 +4,6 @@
 package proxy
 
 import (
-	"encoding/json"
 	"math"
 	"sort"
 	"sync"
@@ -17,23 +16,27 @@ import (
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
-const TPFirstGrade = 5 //5ms - 200ms
-const TPFirstGradeSize = 40
-const TPSecondGrade = 25 //225ms - 700ms
-const TPSecondGradeSize = 20
-const TPThirdGrade = 250 //950ms - 3200ms
-const TPThirdGradeSize = 10
-const TPMaxNum = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
-const ClearSlowFlagPeriodRate = 3 // The cleanup cycle for slow commands is three times the duration of the statistics cycle.
-const IntervalNum = 5
-const DelayKindNum = 8
+const (
+	TPFirstGrade            = 5 // 5ms - 200ms
+	TPFirstGradeSize        = 40
+	TPSecondGrade           = 25 // 225ms - 700ms
+	TPSecondGradeSize       = 20
+	TPThirdGrade            = 250 // 950ms - 3200ms
+	TPThirdGradeSize        = 10
+	TPMaxNum                = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
+	ClearSlowFlagPeriodRate = 3 // The cleanup cycle for slow commands is three times the duration of the statistics cycle.
+	IntervalNum             = 5
+	DelayKindNum            = 8
+)
 
-// Unit: s
-var IntervalMark = [IntervalNum]int64{1, 10, 60, 600, 3600}
-var LastRefreshTime = [IntervalNum]time.Time{time.Now()}
+var (
+	// Unit: s
+	IntervalMark    = [IntervalNum]int64{1, 10, 60, 600, 3600}
+	LastRefreshTime = [IntervalNum]time.Time{time.Now()}
 
-// Unit: ms
-var DelayNumMark = [DelayKindNum]int64{50, 100, 200, 300, 500, 1000, 2000, 3000}
+	// Unit: ms
+	DelayNumMark = [DelayKindNum]int64{50, 100, 200, 300, 500, 1000, 2000, 3000}
+)
 
 type delayInfo struct {
 	interval int64
@@ -114,8 +117,8 @@ var (
 
 var cmdstats struct {
 	sync.RWMutex //Lock only for opmap.
+	opmap        map[string]*opStats
 
-	opmap map[string]*opStats
 	total atomic2.Int64
 	fails atomic2.Int64
 	redis struct {
@@ -648,15 +651,4 @@ func GetSysUsage() *SysUsage {
 		return p.(*SysUsage)
 	}
 	return nil
-}
-
-func ToJsonString(obj interface{}) string {
-	if obj == nil {
-		return ""
-	}
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return ""
-	}
-	return string(data)
 }

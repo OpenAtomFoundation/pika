@@ -739,14 +739,9 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 
 	stats.Ops.Total = OpTotal()
 	stats.Ops.Fails = OpFails()
-	log.Infof("Ops.Fails : %v", stats.Ops.Fails)
 	stats.Ops.Redis.Errors = OpRedisErrors()
 	stats.Ops.QPS = OpQPS()
 	stats.Ops.Cmd = GetOpStatsByInterval(1)
-	log.Infof("stats.Ops.Cmd  : %v", stats.Ops.Cmd)
-	for idx := range stats.Ops.Cmd {
-		log.Infof("cmd infos i:%v , cmd :%v", idx, stats.Ops.Cmd[idx])
-	}
 	if flags.HasBit(StatsCmds) {
 		stats.Ops.Cmd = GetOpStatsAll()
 	}
@@ -803,8 +798,21 @@ func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
 	return cmdInfo
 }
 
-func StatsSetLogSlowerThan(ms int64) {
-	if ms >= 0 {
-		cmdstats.logSlowerThan.Set(ms)
+func (s *Proxy) CmdInfo(interval int64) *CmdInfo {
+	return &CmdInfo{
+		Total: OpTotal(),
+		Fails: OpFails(),
+		Redis: Redis{
+			Errors: OpRedisErrors(),
+		},
+		QPS: OpQPS(),
+		Cmd: GetOpStatsByInterval(interval),
 	}
+}
+
+func StatsSetLogSlowerThan(ms int64) {
+	if ms < 0 {
+		return
+	}
+	cmdstats.logSlowerThan.Set(ms)
 }
