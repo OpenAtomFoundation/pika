@@ -4,7 +4,6 @@
 package proxy
 
 import (
-	"encoding/json"
 	"math"
 	"sort"
 	"sync"
@@ -18,11 +17,11 @@ import (
 )
 
 const (
-	TPFirstGrade            = 5 //5ms - 200ms
+	TPFirstGrade            = 5 // 5ms - 200ms
 	TPFirstGradeSize        = 40
-	TPSecondGrade           = 25 //225ms - 700ms
+	TPSecondGrade           = 25 // 225ms - 700ms
 	TPSecondGradeSize       = 20
-	TPThirdGrade            = 250 //950ms - 3200ms
+	TPThirdGrade            = 250 // 950ms - 3200ms
 	TPThirdGradeSize        = 10
 	TPMaxNum                = TPFirstGradeSize + TPSecondGradeSize + TPThirdGradeSize
 	ClearSlowFlagPeriodRate = 3 // The cleanup cycle for slow commands is three times the duration of the statistics cycle.
@@ -658,15 +657,4 @@ func GetSysUsage() *SysUsage {
 		return p.(*SysUsage)
 	}
 	return nil
-}
-
-func ToJsonString(obj interface{}) string {
-	if obj == nil {
-		return ""
-	}
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return ""
-	}
-	return string(data)
 }
