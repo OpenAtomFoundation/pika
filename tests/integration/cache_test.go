@@ -201,4 +201,166 @@ var _ = Describe("Cache test", func() {
 		Expect(mGet4.Err()).NotTo(HaveOccurred())
 		Expect(mGet4.Val()).To(Equal([]interface{}{nil, nil, nil, nil}))
 	})
+	It("should mget for multi key in cache and db", func() {
+		multiset1 := client.Set(ctx, "key1", "a", 3000*time.Millisecond)
+		Expect(multiset1.Err()).NotTo(HaveOccurred())
+		Expect(multiset1.Val()).To(Equal("OK"))
+
+		multiset2 := client.Set(ctx, "key2", "b", 3000*time.Millisecond)
+		Expect(multiset2.Err()).NotTo(HaveOccurred())
+		Expect(multiset2.Val()).To(Equal("OK"))
+
+		multiset3 := client.Set(ctx, "key3", "c", 3000*time.Millisecond)
+		Expect(multiset3.Err()).NotTo(HaveOccurred())
+		Expect(multiset3.Val()).To(Equal("OK"))
+
+		multiset4 := client.Set(ctx, "key4", "d", 3000*time.Millisecond)
+		Expect(multiset4.Err()).NotTo(HaveOccurred())
+		Expect(multiset4.Val()).To(Equal("OK"))
+
+		multikey1 := client.MGet(ctx, "key1")
+		Expect(multikey1.Err()).NotTo(HaveOccurred())
+		Expect(multikey1.Val()).To(Equal([]interface{}{"a"}))
+
+		MultiKey2 := client.Get(ctx, "key1")
+		Expect(MultiKey2.Err()).NotTo(HaveOccurred())
+		Expect(MultiKey2.Val()).To(Equal("a"))
+
+		MultiMget := client.MGet(ctx, "key1", "key2", "key3", "key4")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"a", "b", "c", "d"}))
+	})
+
+	It("should mget for multi key in cache", func() {
+		multiset1 := client.Set(ctx, "key1", "a", 3000*time.Millisecond)
+		Expect(multiset1.Err()).NotTo(HaveOccurred())
+		Expect(multiset1.Val()).To(Equal("OK"))
+
+		multiset2 := client.Set(ctx, "key2", "b", 3000*time.Millisecond)
+		Expect(multiset2.Err()).NotTo(HaveOccurred())
+		Expect(multiset2.Val()).To(Equal("OK"))
+
+		multiset3 := client.Set(ctx, "key3", "c", 3000*time.Millisecond)
+		Expect(multiset3.Err()).NotTo(HaveOccurred())
+		Expect(multiset3.Val()).To(Equal("OK"))
+
+		multiset4 := client.Set(ctx, "key4", "d", 3000*time.Millisecond)
+		Expect(multiset4.Err()).NotTo(HaveOccurred())
+		Expect(multiset4.Val()).To(Equal("OK"))
+
+		multikey1 := client.MGet(ctx, "key1")
+		Expect(multikey1.Err()).NotTo(HaveOccurred())
+		Expect(multikey1.Val()).To(Equal([]interface{}{"a"}))
+
+		MultiKey2 := client.Get(ctx, "key1")
+		Expect(MultiKey2.Err()).NotTo(HaveOccurred())
+		Expect(MultiKey2.Val()).To(Equal("a"))
+
+		MultiMget := client.MGet(ctx, "key1", "key2", "key3", "key4")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"a", "b", "c", "d"}))
+	})
+
+	It("should mget for multi key in db", func() {
+		multiset1 := client.Set(ctx, "key1", "a", 3000*time.Millisecond)
+		Expect(multiset1.Err()).NotTo(HaveOccurred())
+		Expect(multiset1.Val()).To(Equal("OK"))
+
+		multiset2 := client.Set(ctx, "key2", "b", 3000*time.Millisecond)
+		Expect(multiset2.Err()).NotTo(HaveOccurred())
+		Expect(multiset2.Val()).To(Equal("OK"))
+
+		multiset3 := client.Set(ctx, "key3", "c", 3000*time.Millisecond)
+		Expect(multiset3.Err()).NotTo(HaveOccurred())
+		Expect(multiset3.Val()).To(Equal("OK"))
+
+		multiset4 := client.Set(ctx, "key4", "d", 3000*time.Millisecond)
+		Expect(multiset4.Err()).NotTo(HaveOccurred())
+		Expect(multiset4.Val()).To(Equal("OK"))
+
+		multikey1 := client.MGet(ctx, "key1")
+		Expect(multikey1.Err()).NotTo(HaveOccurred())
+		Expect(multikey1.Val()).To(Equal([]interface{}{"a"}))
+
+		MultiKey2 := client.Get(ctx, "key1")
+		Expect(MultiKey2.Err()).NotTo(HaveOccurred())
+		Expect(MultiKey2.Val()).To(Equal("a"))
+
+		multikey3 := client.MGet(ctx, "key2")
+		Expect(multikey3.Err()).NotTo(HaveOccurred())
+		Expect(multikey3.Val()).To(Equal([]interface{}{"b"}))
+
+		multikey4 := client.MGet(ctx, "key3")
+		Expect(multikey4.Err()).NotTo(HaveOccurred())
+		Expect(multikey4.Val()).To(Equal([]interface{}{"c"}))
+
+		multikey5 := client.MGet(ctx, "key4")
+		Expect(multikey5.Err()).NotTo(HaveOccurred())
+		Expect(multikey5.Val()).To(Equal([]interface{}{"d"}))
+
+		MultiMget := client.MGet(ctx, "key1", "key2", "key3", "key4")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"a", "b", "c", "d"}))
+	})
+
+	It("should mget for multi key in db", func() {
+		multiset1 := client.Set(ctx, "key1", "a", 3000*time.Millisecond)
+		Expect(multiset1.Err()).NotTo(HaveOccurred())
+		Expect(multiset1.Val()).To(Equal("OK"))
+
+		multiset2 := client.Set(ctx, "key2", "b", 3000*time.Millisecond)
+		Expect(multiset2.Err()).NotTo(HaveOccurred())
+		Expect(multiset2.Val()).To(Equal("OK"))
+
+		multiset3 := client.Set(ctx, "key3", "c", 3000*time.Millisecond)
+		Expect(multiset3.Err()).NotTo(HaveOccurred())
+		Expect(multiset3.Val()).To(Equal("OK"))
+
+		multiset4 := client.Set(ctx, "key4", "d", 3000*time.Millisecond)
+		Expect(multiset4.Err()).NotTo(HaveOccurred())
+		Expect(multiset4.Val()).To(Equal("OK"))
+
+		MultiMget := client.MGet(ctx, "key1", "key2", "key3", "key4")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"a", "b", "c", "d"}))
+	})
+
+	It("MGET against non existing key", func() {
+		multiset1 := client.Set(ctx, "key1", "a", 3000*time.Millisecond)
+		Expect(multiset1.Err()).NotTo(HaveOccurred())
+		Expect(multiset1.Val()).To(Equal("OK"))
+
+		multiset3 := client.Set(ctx, "key3", "c", 3000*time.Millisecond)
+		Expect(multiset3.Err()).NotTo(HaveOccurred())
+		Expect(multiset3.Val()).To(Equal("OK"))
+
+		multiset4 := client.Set(ctx, "key4", "d", 3000*time.Millisecond)
+		Expect(multiset4.Err()).NotTo(HaveOccurred())
+		Expect(multiset4.Val()).To(Equal("OK"))
+
+		MultiMget := client.MGet(ctx, "key1", "key2", "key3", "key4")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"a", nil, "c", "d"}))
+	})
+	It("MGET against non-string key", func() {
+		SetMultiKey := client.Set(ctx, "foo{t}", "BAR", 3000*time.Millisecond)
+		Expect(SetMultiKey.Err()).NotTo(HaveOccurred())
+		Expect(SetMultiKey.Val()).To(Equal("OK"))
+
+		SetMultiKey1 := client.Set(ctx, "bar{t}", "FOO", 3000*time.Millisecond)
+		Expect(SetMultiKey1.Err()).NotTo(HaveOccurred())
+		Expect(SetMultiKey1.Val()).To(Equal("OK"))
+
+		SaddMultiKey := client.SAdd(ctx, "myset{t}", "ciao")
+		Expect(SaddMultiKey.Err()).NotTo(HaveOccurred())
+		Expect(SaddMultiKey.Val()).To(Equal(int64(1)))
+
+		SaddMultiKey1 := client.SAdd(ctx, "myset{t}", "bau")
+		Expect(SaddMultiKey1.Err()).NotTo(HaveOccurred())
+		Expect(SaddMultiKey1.Val()).To(Equal(int64(1)))
+
+		MultiMget := client.MGet(ctx, "foo{t}", "baazz{t}", "bar{t}", "myset{t}")
+		Expect(MultiMget.Err()).NotTo(HaveOccurred())
+		Expect(MultiMget.Val()).To(Equal([]interface{}{"BAR", nil, "FOO", nil}))
+	})
 })
