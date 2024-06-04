@@ -541,7 +541,7 @@ func (s sliceOpStats) Less(i, j int) bool {
 func GetOpStatsAll() []*OpStats {
 	var all = make([]*OpStats, 0, 128)
 	cmdstats.opmapLock.RLock()
-	defer cmdstats.opmapLock.Unlock()
+	defer cmdstats.opmapLock.RUnlock()
 	for _, s := range cmdstats.opmap {
 		all = append(all, s.GetOpStatsByInterval(1))
 	}
