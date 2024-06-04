@@ -50,6 +50,21 @@ type CmdInfo struct {
 	Usecs_percall int64  `json:"usecs_percall"`
 	Fails         int64  `json:"fails"`
 	MaxDelay      int64  `json:"max_delay"`
+	AVG           int64  `json:"avg"`
+	TP90          int64  `json:"tp90"`
+	TP99          int64  `json:"tp99"`
+	TP999         int64  `json:"tp999"`
+	TP9999        int64  `json:"tp9999"`
+	TP100         int64  `json:"tp100"`
+
+	Delay50ms  int64 `json:"delay50ms"`
+	Delay100ms int64 `json:"delay100ms"`
+	Delay200ms int64 `json:"delay200ms"`
+	Delay300ms int64 `json:"delay300ms"`
+	Delay500ms int64 `json:"delay500ms"`
+	Delay1s    int64 `json:"delay1s"`
+	Delay2s    int64 `json:"delay2s"`
+	Delay3s    int64 `json:"delay3s"`
 }
 
 type ProxyOpsInfo struct {

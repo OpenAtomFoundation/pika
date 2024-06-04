@@ -280,6 +280,11 @@ type proxyParser struct{}
 func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 	m.Lookup(func(m MetaData) {
 		for opstr, v := range opt.ExtractsProxy {
+			if len(v) < 18 {
+				paddedV := make([]int64, 18)
+				copy(paddedV, v)
+				v = paddedV
+			}
 			metric := Metric{
 				MetaData:    m,
 				LabelValues: make([]string, len(m.Labels)),

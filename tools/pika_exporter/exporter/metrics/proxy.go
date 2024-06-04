@@ -126,7 +126,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "tp90",
 		},
 	},
 	"tp99": {
@@ -136,7 +136,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "tp99",
 		},
 	},
 	"tp999": {
@@ -146,7 +146,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "tp999",
 		},
 	},
 	"tp100": {
@@ -156,7 +156,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "tp100",
 		},
 	},
 	"delayCount": {
@@ -166,7 +166,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delayCount",
 		},
 	},
 	"delay50ms": {
@@ -176,7 +176,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay50ms",
 		},
 	},
 	"delay100ms": {
@@ -186,7 +186,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay100ms",
 		},
 	},
 	"delay200ms": {
@@ -196,7 +196,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay200ms",
 		},
 	},
 	"delay300ms": {
@@ -206,7 +206,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay300ms",
 		},
 	},
 	"delay500ms": {
@@ -216,7 +216,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay500ms",
 		},
 	},
 	"delay1s": {
@@ -226,7 +226,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay1s",
 		},
 	},
 	"delay2s": {
@@ -236,7 +236,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay2s",
 		},
 	},
 	"delay3s": {
@@ -246,7 +246,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 			Help:      "The maximum time consumed by this command since the last collection.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
-			ValueName: "max_delay",
+			ValueName: "delay3s",
 		},
 	},
 }
