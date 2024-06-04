@@ -1688,9 +1688,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
   }
 
   db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
-  if (pCacheTaskArg->reenable_cache) {
-    pCacheTaskArg->conf->UnsetCacheDisableFlag();
-  }
+  g_pika_conf->UnsetCacheDisableFlag();
 }
 
 void PikaServer::ResetCacheConfig(std::shared_ptr<DB> db) {
@@ -1710,7 +1708,7 @@ void PikaServer::ClearHitRatio(std::shared_ptr<DB> db) {
 
 void PikaServer::OnCacheStartPosChanged(int zset_cache_start_direction, std::shared_ptr<DB> db) {
   ResetCacheConfig(db);
-  ClearCacheDbAsync(db);
+  ClearCacheDbAsyncV2(db);
 }
 
 void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
