@@ -34,7 +34,7 @@ class PikaCmdTableManager {
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   bool CmdExist(const std::string& cmd) const;
   CmdTable* GetCmdTable();
-  uint32_t GetCmdId();
+  uint32_t GetMaxCmdId();
 
   std::vector<std::string> GetAclCategoryCmdNames(uint32_t flag);
 

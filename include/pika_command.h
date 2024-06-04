@@ -563,6 +563,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::shared_ptr<std::string> GetResp();
 
   void SetStage(CmdStage stage);
+  void SetCmdId(uint32_t cmdId){cmdId_ = cmdId;}
 
   virtual void DoBinlog();
 
