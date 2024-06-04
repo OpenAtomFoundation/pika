@@ -326,12 +326,6 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 		} else {
 			return redis.NewBulkBytes(text)
 		}
-	case "proxy_refresh_state_period":
-		if text, err := p.config.ProxyRefreshStatePeriod.MarshalText(); err == nil {
-			return redis.NewBulkBytes(text)
-		} else {
-			return redis.NewErrorf("cant get proxy_refresh_state_period value.")
-		}
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -408,19 +402,6 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 		} else {
 			p.config.BackendPrimaryQuick = n
 			p.router.SetPrimaryQuickConn(p.config.BackendPrimaryQuick)
-			return redis.NewString([]byte("OK"))
-		}
-	case "proxy_refresh_state_period":
-		s := &(p.config.ProxyRefreshStatePeriod)
-		err := s.UnmarshalText([]byte(value))
-		if err != nil {
-			return redis.NewErrorf("err：%s.", err)
-		}
-
-		if d := p.config.ProxyRefreshStatePeriod.Duration(); d < 0 {
-			return redis.NewErrorf("invalid proxy_refresh_state_period")
-		} else {
-			StatsSetRefreshPeriod(d)
 			return redis.NewString([]byte("OK"))
 		}
 	case "max_delay_refresh_time_interval":
@@ -574,7 +555,6 @@ func (p *Proxy) serveProxy() {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
-	StatsSetRefreshPeriod(p.config.ProxyRefreshStatePeriod.Duration())
 	StatsSetLogSlowerThan(p.config.SlowlogLogSlowerThan)
 
 	select {

@@ -249,6 +249,7 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		}
 		if s.config.SlowlogLogSlowerThan >= 0 {
 			if duration >= s.config.SlowlogLogSlowerThan {
+				SlowCmdCount.Incr()
 				// Atomic global variable, increment by 1 when slow log occurs.
 				//client -> proxy -> server -> porxy -> client
 				//Record the waiting time from receiving the request from the client to sending it to the backend server

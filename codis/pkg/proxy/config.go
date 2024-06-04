@@ -164,11 +164,10 @@ type Config struct {
 	ProductAuth string `toml:"product_auth" json:"-"`
 	SessionAuth string `toml:"session_auth" json:"-"`
 
-	ProxyDataCenter         string            `toml:"proxy_datacenter" json:"proxy_datacenter"`
-	ProxyMaxClients         int               `toml:"proxy_max_clients" json:"proxy_max_clients"`
-	ProxyMaxOffheapBytes    bytesize.Int64    `toml:"proxy_max_offheap_size" json:"proxy_max_offheap_size"`
-	ProxyHeapPlaceholder    bytesize.Int64    `toml:"proxy_heap_placeholder" json:"proxy_heap_placeholder"`
-	ProxyRefreshStatePeriod timesize.Duration `toml:"proxy_refresh_state_period" json:"proxy_refresh_state_period"`
+	ProxyDataCenter      string         `toml:"proxy_datacenter" json:"proxy_datacenter"`
+	ProxyMaxClients      int            `toml:"proxy_max_clients" json:"proxy_max_clients"`
+	ProxyMaxOffheapBytes bytesize.Int64 `toml:"proxy_max_offheap_size" json:"proxy_max_offheap_size"`
+	ProxyHeapPlaceholder bytesize.Int64 `toml:"proxy_heap_placeholder" json:"proxy_heap_placeholder"`
 
 	BackendPingPeriod      timesize.Duration `toml:"backend_ping_period" json:"backend_ping_period"`
 	BackendRecvBufsize     bytesize.Int64    `toml:"backend_recv_bufsize" json:"backend_recv_bufsize"`
@@ -337,10 +336,6 @@ func (c *Config) Validate() error {
 
 	if c.SlowlogLogSlowerThan < 0 {
 		return errors.New("invalid slowlog_log_slower_than")
-	}
-
-	if c.ProxyRefreshStatePeriod < 0 {
-		return errors.New("invalid proxy_refresh_state_period")
 	}
 
 	if c.MetricsReportPeriod < 0 {
