@@ -47,6 +47,7 @@ void PikaCmdTableManager::InitCmdTable(void) {
   CommandStatistics statistics;
   for (auto& iter : *cmds_) {
     cmdstat_map_.emplace(iter.first, statistics);
+    iter.second->SetCmdId(cmdId_++);
   }
 }
 
@@ -81,7 +82,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
 
 CmdTable* PikaCmdTableManager::GetCmdTable() { return cmds_.get(); }
 
-uint32_t PikaCmdTableManager::GetCmdId() { return ++cmdId_; }
+uint32_t PikaCmdTableManager::GetMaxCmdId() { return cmdId_; }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);
