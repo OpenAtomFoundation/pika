@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = FDescribe("Cache test", func() {
+var _ = Describe("Cache test", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 
