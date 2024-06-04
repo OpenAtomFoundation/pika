@@ -117,8 +117,8 @@ var (
 )
 
 var cmdstats struct {
-	opmapLock sync.RWMutex //Lock only for opmap.
-	opmap     map[string]*opStats
+	sync.RWMutex //Lock only for opmap.
+	opmap        map[string]*opStats
 
 	total atomic2.Int64
 	fails atomic2.Int64
@@ -127,7 +127,7 @@ var cmdstats struct {
 	}
 
 	qps             atomic2.Int64
-	tpDelay         [TPMaxNum]int64 //us
+	tpdelay         [TPMaxNum]int64 //us
 	refreshPeriod   atomic2.Int64
 	logSlowerThan   atomic2.Int64
 	autoSetSlowFlag atomic2.Bool
@@ -185,11 +185,11 @@ func init() {
 	//init tp delay array
 	for i := 0; i < TPMaxNum; i++ {
 		if i < TPFirstGradeSize {
-			cmdstats.tpDelay[i] = int64(i+1) * TPFirstGrade
+			cmdstats.tpdelay[i] = int64(i+1) * TPFirstGrade
 		} else if i < TPFirstGradeSize+TPSecondGradeSize {
-			cmdstats.tpDelay[i] = TPFirstGradeSize*TPFirstGrade + int64(i-TPFirstGradeSize+1)*TPSecondGrade
+			cmdstats.tpdelay[i] = TPFirstGradeSize*TPFirstGrade + int64(i-TPFirstGradeSize+1)*TPSecondGrade
 		} else {
-			cmdstats.tpDelay[i] = TPFirstGradeSize*TPFirstGrade + TPSecondGradeSize*TPSecondGrade + int64(i-TPFirstGradeSize-TPSecondGradeSize+1)*TPThirdGrade
+			cmdstats.tpdelay[i] = TPFirstGradeSize*TPFirstGrade + TPSecondGradeSize*TPSecondGrade + int64(i-TPFirstGradeSize-TPSecondGradeSize+1)*TPThirdGrade
 		}
 	}
 
@@ -207,19 +207,17 @@ func init() {
 			normalized := math.Max(0, float64(delta)) * float64(time.Second) / float64(time.Since(start))
 			cmdstats.qps.Set(int64(normalized + 0.5))
 
-			func() {
-				cmdstats.opmapLock.RLock()
-				defer cmdstats.opmapLock.RUnlock()
-				for i := 0; i < IntervalNum; i++ {
-					/*if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
-						continue
-					}*/
-					for _, v := range cmdstats.opmap {
-						v.RefreshOpStats(i)
-					}
-					LastRefreshTime[i] = time.Now()
+			cmdstats.RLock()
+			for i := 0; i < IntervalNum; i++ {
+				/*if int64(float64(time.Since(LastRefreshTime[i]))/float64(time.Second)) < IntervalMark[i] {
+					continue
+				}*/
+				for _, v := range cmdstats.opmap {
+					v.RefreshOpStats(i)
 				}
-			}()
+				LastRefreshTime[i] = time.Now()
+			}
+			cmdstats.RUnlock()
 		}
 	}()
 }
@@ -307,10 +305,10 @@ func (s *delayInfo) refresh4TpInfo(cmd string) {
 	}
 
 	if index1 >= 0 && index2 >= index1 && index3 >= index2 && index4 >= index3 && index4 < TPMaxNum {
-		s.tp90 = cmdstats.tpDelay[index1]
-		s.tp99 = cmdstats.tpDelay[index2]
-		s.tp999 = cmdstats.tpDelay[index3]
-		s.tp9999 = cmdstats.tpDelay[index4]
+		s.tp90 = cmdstats.tpdelay[index1]
+		s.tp99 = cmdstats.tpdelay[index2]
+		s.tp999 = cmdstats.tpdelay[index3]
+		s.tp9999 = cmdstats.tpdelay[index4]
 		return
 	}
 
@@ -503,29 +501,24 @@ func OpQPS() int64 {
 }
 
 func getOpStats(opstr string, create bool) *opStats {
-	var (
-		ok bool
-		s  *opStats
-	)
-	func() {
-		cmdstats.opmapLock.RLock()
-		defer cmdstats.opmapLock.RUnlock()
-		s, ok = cmdstats.opmap[opstr]
-	}()
-	if (ok && s != nil) || !create {
+	cmdstats.RLock()
+	s := cmdstats.opmap[opstr]
+	cmdstats.RUnlock()
+
+	if s != nil || !create {
 		return s
 	}
 
-	cmdstats.opmapLock.Lock()
-	defer cmdstats.opmapLock.Unlock()
+	cmdstats.Lock()
 	s = cmdstats.opmap[opstr]
-	if !ok || s == nil {
+	if s == nil {
 		s = &opStats{opstr: opstr}
 		for i := 0; i < IntervalNum; i++ {
 			s.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
 		}
 		cmdstats.opmap[opstr] = s
 	}
+	cmdstats.Unlock()
 	return s
 }
 
@@ -545,25 +538,25 @@ func (s sliceOpStats) Less(i, j int) bool {
 
 func GetOpStatsAll() []*OpStats {
 	var all = make([]*OpStats, 0, 128)
-	cmdstats.opmapLock.RLock()
-	defer cmdstats.opmapLock.Unlock()
+	cmdstats.RLock()
 	for _, s := range cmdstats.opmap {
 		all = append(all, s.GetOpStatsByInterval(1))
 	}
+	cmdstats.RUnlock()
 	sort.Sort(sliceOpStats(all))
 	return all
 }
 
 func GetOpStatsByInterval(interval int64) []*OpStats {
 	var all = make([]*OpStats, 0, 128)
-	cmdstats.opmapLock.RLock()
-	defer cmdstats.opmapLock.RUnlock()
+	cmdstats.RLock()
 	for _, s := range cmdstats.opmap {
 		for i := 0; i < IntervalNum; i++ {
 			s.RefreshOpStats(i)
 		}
 		all = append(all, s.GetOpStatsByInterval(interval))
 	}
+	cmdstats.RUnlock()
 	sort.Sort(sliceOpStats(all))
 	return all
 }
@@ -571,8 +564,8 @@ func GetOpStatsByInterval(interval int64) []*OpStats {
 func ResetStats() {
 	// Since the session has already obtained the struct from cmdstats.opmap, it cannot be reassigned and can only be reset to zero.
 	// Therefore, the command count will not decrease after the reset.
-	cmdstats.opmapLock.RLock()
-	defer cmdstats.opmapLock.RUnlock()
+	cmdstats.RLock()
+	defer cmdstats.RUnlock()
 	for _, v := range cmdstats.opmap {
 		v.calls.Set(0)
 		v.nsecs.Set(0)
