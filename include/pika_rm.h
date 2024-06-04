@@ -120,6 +120,7 @@ class SyncSlaveDB : public SyncDB {
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
+  int32_t rsync_init_retry_count_{0};
   pstd::Mutex db_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};
