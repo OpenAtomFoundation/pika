@@ -690,46 +690,57 @@ func (s *Session) handleRequestSlotsMapping(r *Request, d *Router) error {
 }
 
 func (s *Session) getOpStats(opstr string, create bool) *opStats {
-	cmdstats.RLock()
-	e := s.stats.opmap[opstr]
-	cmdstats.RUnlock()
-	if e != nil || !create {
-		return e
+	var (
+		ok   bool
+		stat *opStats
+	)
+
+	func() {
+		cmdstats.opmapLock.RLock()
+		defer cmdstats.opmapLock.RUnlock()
+		stat, ok = s.stats.opmap[opstr]
+	}()
+	if (ok && stat != nil) || !create {
+		return stat
 	}
-	cmdstats.Lock()
-	defer cmdstats.Unlock()
-	e = cmdstats.opmap[opstr]
-	if e == nil {
-		e = &opStats{opstr: opstr}
-		for i := 0; i < IntervalNum; i++ {
-			e.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
-		}
-		s.stats.opmap[opstr] = e
+	cmdstats.opmapLock.Lock()
+	defer cmdstats.opmapLock.Unlock()
+	stat, ok = cmdstats.opmap[opstr]
+	if ok && stat != nil {
+		return stat
 	}
-	return e
+	stat = &opStats{opstr: opstr}
+	for i := 0; i < IntervalNum; i++ {
+		stat.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
+	}
+	s.stats.opmap[opstr] = stat
+
+	return stat
 }
 
 func (s *Session) incrOpStats(r *Request, t redis.RespType) {
-
 	if r == nil {
 		return
 	}
 	responseTime := time.Now().UnixNano() - r.ReceiveTime
-	var e *opStats
-	e = s.stats.opmap[r.OpStr]
-	if e == nil {
-		e = getOpStats(r.OpStr, true)
-		s.stats.opmap[r.OpStr] = e
+	var (
+		ok   bool
+		stat *opStats
+	)
+	stat, ok = s.stats.opmap[r.OpStr]
+	if !ok || stat == nil {
+		stat = getOpStats(r.OpStr, true)
+		s.stats.opmap[r.OpStr] = stat
 	}
-	e.incrOpStats(responseTime, redis.RespType(t))
-	e = s.stats.opmap["ALL"]
-	if e == nil {
-		e = getOpStats("ALL", true)
-		s.stats.opmap["ALL"] = e
+	stat.incrOpStats(responseTime, redis.RespType(t))
+	stat, ok = s.stats.opmap["ALL"]
+	if !ok || stat == nil {
+		stat = getOpStats("ALL", true)
+		s.stats.opmap["ALL"] = stat
 	}
-	e.incrOpStats(responseTime, redis.RespType(t))
-	e.calls.Incr()
-	e.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
+	stat.incrOpStats(responseTime, redis.RespType(t))
+	stat.calls.Incr()
+	stat.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
 	switch t {
 	case redis.TypeError:
 		incrOpRedisErrors()
