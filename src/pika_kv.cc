@@ -513,24 +513,37 @@ void MgetCmd::DoInitial() {
   keys_ = argv_;
   keys_.erase(keys_.begin());
   split_res_.resize(keys_.size());
+  cache_miss_keys_.clear();
+}
+
+void MgetCmd::AssembleResponseFromCache() {
+  res_.AppendArrayLenUint64(keys_.size());
+  for (const auto& key : keys_) {
+    auto it = cache_hit_values_.find(key);
+    if (it != cache_hit_values_.end()) {
+      res_.AppendStringLen(it->second.size());
+      res_.AppendContent(it->second);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "Internal error during cache assembly");
+      return;
+    }
+  }
 }
 
 void MgetCmd::Do() {
-  db_value_status_array_.clear();
-  s_ = db_->storage()->MGetWithTTL(keys_, &db_value_status_array_);
-  if (s_.ok()) {
-    res_.AppendArrayLenUint64(db_value_status_array_.size());
-    for (const auto& vs : db_value_status_array_) {
-      if (vs.status.ok()) {
-        res_.AppendStringLenUint64(vs.value.size());
-        res_.AppendContent(vs.value);
-      } else {
-        res_.AppendContent("$-1");
-      }
-    }
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  // Without using the cache and querying only the DB, we need to use keys_.
+  // This line will only be assigned when querying the DB directly.
+  if(cache_miss_keys_.size() == 0) {
+    cache_miss_keys_ = keys_;
   }
+  db_value_status_array_.clear();
+  s_ = db_->storage()->MGet(cache_miss_keys_, &db_value_status_array_);
+  if (!s_.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    return;
+  }
+
+  MergeCachedAndDbResults();
 }
 
 void MgetCmd::Split(const HintKeys& hint_keys) {
@@ -562,33 +575,64 @@ void MgetCmd::Merge() {
   }
 }
 
-void MgetCmd::ReadCache() {
-  if (1 < keys_.size()) {
-    res_.SetRes(CmdRes::kCacheMiss);
-    return;
-  }
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + keys_[0];
-  auto s = db_->cache()->Get(CachePrefixKeyK, &value_);
-  if (s.ok()) {
-    res_.AppendArrayLen(1);
-    res_.AppendStringLen(value_.size());
-    res_.AppendContent(value_);
-  } else {
-    res_.SetRes(CmdRes::kCacheMiss);
-  }
-}
-
 void MgetCmd::DoThroughDB() {
   res_.clear();
   Do();
 }
 
+void MgetCmd::ReadCache() {
+  for (const auto key : keys_) {
+    std::string value;
+    std::string prefixed_key = PCacheKeyPrefixK + key;
+    auto s = db_->cache()->Get(const_cast<std::string&>(prefixed_key), &value);
+    if (s.ok()) {
+      cache_hit_values_[key] = value;
+    } else {
+      cache_miss_keys_.push_back(key);
+    }
+  }
+  if (cache_miss_keys_.empty()) {
+    AssembleResponseFromCache();
+  } else {
+    res_.SetRes(CmdRes::kCacheMiss);
+  }
+}
+
 void MgetCmd::DoUpdateCache() {
-  for (size_t i = 0; i < keys_.size(); i++) {
+  size_t db_index = 0;
+  for (const auto key : cache_miss_keys_) {
+    std::string prefixed_key = PCacheKeyPrefixK + key;
+    if (db_index < db_value_status_array_.size() && db_value_status_array_[db_index].status.ok()) {
+      db_->cache()->WriteKVToCache(const_cast<std::string&>(prefixed_key), db_value_status_array_[db_index].value, db_value_status_array_[db_index].ttl);
+    }
+    db_index++;
+  }
+}
+
+void MgetCmd::MergeCachedAndDbResults() {
+  res_.AppendArrayLenUint64(keys_.size());
+
+  std::unordered_map<std::string, std::string> db_results_map;
+  for (size_t i = 0; i < cache_miss_keys_.size(); ++i) {
     if (db_value_status_array_[i].status.ok()) {
-      std::string CachePrefixKeyK;
-      CachePrefixKeyK = PCacheKeyPrefixK + keys_[i];
-      db_->cache()->WriteKVToCache(CachePrefixKeyK, db_value_status_array_[i].value, db_value_status_array_[i].ttl);
+      db_results_map[cache_miss_keys_[i]] = db_value_status_array_[i].value;
+    }
+  }
+
+  for (const auto& key : keys_) {
+    auto cache_it = cache_hit_values_.find(key);
+
+    if (cache_it != cache_hit_values_.end()) {
+      res_.AppendStringLen(cache_it->second.size());
+      res_.AppendContent(cache_it->second);
+    } else {
+      auto db_it = db_results_map.find(key);
+      if (db_it != db_results_map.end()) {
+        res_.AppendStringLen(db_it->second.size());
+        res_.AppendContent(db_it->second);
+      } else {
+        res_.AppendContent("$-1");
+      }
     }
   }
 }
