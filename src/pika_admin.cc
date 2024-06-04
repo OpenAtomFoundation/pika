@@ -792,6 +792,11 @@ const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
 const std::string InfoCmd::kCacheSection = "cache";
 
+void InfoCmd::Execute() {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  Do();
+}
+
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
   if (argc > 4) {
@@ -1425,6 +1430,9 @@ std::string InfoCmd::CacheStatusToString(int status) {
     default:
       return std::string("Unknown");
   }
+}
+void ConfigCmd::Execute() {
+  Do();
 }
 
 void ConfigCmd::DoInitial() {
