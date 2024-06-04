@@ -82,6 +82,7 @@ class WatchCmd : public Cmd {
   Cmd* Clone() override { return new WatchCmd(*this); }
   void Merge() override {}
   std::vector<std::string> current_key() const override { return keys_; }
+  void Execute() override;
 
  private:
   void DoInitial() override;
