@@ -8,6 +8,7 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.29.0
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/CodisLabs/codis v0.0.0-20181104082235-de1ad026e329
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/emirpasic/gods v1.18.1
 	github.com/garyburd/redigo v1.6.4

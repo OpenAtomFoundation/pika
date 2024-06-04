@@ -15,7 +15,6 @@ import (
 
 	"pika/codis/v2/pkg/models"
 	"pika/codis/v2/pkg/proxy/redis"
-	"pika/codis/v2/pkg/utils"
 	"pika/codis/v2/pkg/utils/errors"
 	"pika/codis/v2/pkg/utils/log"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
@@ -250,7 +249,6 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 		}
 		if s.config.SlowlogLogSlowerThan >= 0 {
 			if duration >= s.config.SlowlogLogSlowerThan {
-				SlowCmdCount.Incr()
 				// Atomic global variable, increment by 1 when slow log occurs.
 				//client -> proxy -> server -> porxy -> client
 				//Record the waiting time from receiving the request from the client to sending it to the backend server
@@ -308,8 +306,6 @@ func (s *Session) handleRequest(r *Request, d *Router) error {
 		return s.handleQuit(r)
 	case "AUTH":
 		return s.handleAuth(r)
-	case "CODIS.INFO":
-		return s.handleCodisInfo(r)
 	}
 
 	if !s.authorized {
@@ -369,22 +365,6 @@ func (s *Session) handleAuth(r *Request) error {
 		s.authorized = true
 		r.Resp = RespOK
 	}
-	return nil
-}
-
-func (s *Session) handleCodisInfo(r *Request) error {
-	if len(r.Multi) != 0 {
-		r.Resp = redis.NewErrorf("ERR wrong number of arguments for 'CODIS.INFO' command")
-		return nil
-	}
-
-	r.Resp = redis.NewArray([]*redis.Resp{
-		redis.NewString([]byte(utils.Version)),
-		redis.NewString([]byte(utils.Compile)),
-		redis.NewString([]byte(fmt.Sprintf("admin addr: %s", s.proxy.model.AdminAddr))),
-		redis.NewString([]byte(fmt.Sprintf("start time: %s", s.proxy.model.StartTime))),
-	})
-
 	return nil
 }
 
