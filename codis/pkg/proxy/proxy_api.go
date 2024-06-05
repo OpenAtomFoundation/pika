@@ -292,7 +292,7 @@ func (c *ApiClient) Stats(flags StatsFlags) (*Stats, error) {
 }
 
 func (c *ApiClient) CmdInfo(interval int64) (*CmdInfo, error) {
-	url := c.encodeURL("/api/proxy/cmdinfo/%d", c.xauth, interval)
+	url := c.encodeURL("/api/proxy/cmdinfo/%s%d", c.xauth, interval)
 	var cmdInfo CmdInfo
 	if err := rpc.ApiGetJson(url, &cmdInfo); err != nil {
 		return nil, err
