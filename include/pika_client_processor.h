@@ -24,6 +24,5 @@ class PikaClientProcessor {
 
  private:
   std::unique_ptr<net::ThreadPool> pool_;
-  std::vector<std::unique_ptr<net::BGThread>> bg_threads_;
 };
 #endif  // PIKA_CLIENT_PROCESSOR_H_
