@@ -113,10 +113,140 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "max_delay",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The maximum time taken for requests on the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "max_delay",
+		},
+	},
+	"tp90": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp90",
+			Help:      "The TP90 latency for the proxy instance.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "tp90",
+		},
+	},
+	"tp99": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp99",
+			Help:      "The TP99 latency for the proxy instance.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "tp99",
+		},
+	},
+	"tp999": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp999",
+			Help:      "The TP999 latency for the proxy instance.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "tp999",
+		},
+	},
+	"tp100": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "tp100",
+			Help:      "The Tp100 latency for the proxy instance.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "tp100",
+		},
+	},
+	"delayCount": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delayCount",
+			Help:      "Latency command statistics.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delayCount",
+		},
+	},
+	"delay50ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay50ms",
+			Help:      "The number of commands with latency exceeding 50ms.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay50ms",
+		},
+	},
+	"delay100ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay100ms",
+			Help:      "The number of commands with latency exceeding 100ms.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay100ms",
+		},
+	},
+	"delay200ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay200ms",
+			Help:      "The number of commands with latency exceeding 200ms.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay200ms",
+		},
+	},
+	"delay300ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay300ms",
+			Help:      "The number of commands with latency exceeding 300ms.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay300ms",
+		},
+	},
+	"delay500ms": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay500ms",
+			Help:      "The number of commands with latency exceeding 500ms.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay500ms",
+		},
+	},
+	"delay1s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay1s",
+			Help:      "The number of commands with latency exceeding 1s.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay1s",
+		},
+	},
+	"delay2s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay2s",
+			Help:      "The number of commands with latency exceeding 2s.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay2s",
+		},
+	},
+	"delay3s": {
+		Parser: &proxyParser{},
+		MetricMeta: &MetaData{
+			Name:      "delay3s",
+			Help:      "The number of commands with latency exceeding 3s.",
+			Type:      metricTypeGauge,
+			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
+			ValueName: "delay3s",
 		},
 	},
 }
