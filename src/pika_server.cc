@@ -212,6 +212,9 @@ void PikaServer::SetSlowCmdThreadPoolFlag(bool flag) {
                  << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
     }
   } else {
+    while (SlowCmdThreadPoolCurQueueSize() != 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     pika_slow_cmd_thread_pool_->stop_thread_pool();
   }
 }
