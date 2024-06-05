@@ -113,7 +113,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "max_delay",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The maximum time taken for requests on the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "max_delay",
@@ -123,7 +123,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "tp90",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The TP90 latency for the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "tp90",
@@ -133,7 +133,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "tp99",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The TP99 latency for the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "tp99",
@@ -143,7 +143,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "tp999",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The TP999 latency for the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "tp999",
@@ -153,7 +153,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "tp100",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The Tp100 latency for the proxy instance.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "tp100",
@@ -163,7 +163,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delayCount",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "Latency command statistics.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delayCount",
@@ -173,7 +173,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay50ms",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 50ms.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay50ms",
@@ -183,7 +183,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay100ms",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 100ms.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay100ms",
@@ -193,7 +193,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay200ms",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 200ms.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay200ms",
@@ -203,7 +203,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay300ms",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 300ms.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay300ms",
@@ -213,7 +213,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay500ms",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 500ms.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay500ms",
@@ -223,7 +223,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay1s",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 1s.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay1s",
@@ -233,7 +233,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay2s",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 2s.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay2s",
@@ -243,7 +243,7 @@ var collectPorxyCmdMetrics map[string]MetricConfig = map[string]MetricConfig{
 		Parser: &proxyParser{},
 		MetricMeta: &MetaData{
 			Name:      "delay3s",
-			Help:      "The maximum time consumed by this command since the last collection.",
+			Help:      "The number of commands with latency exceeding 3s.",
 			Type:      metricTypeGauge,
 			Labels:    []string{LabelNameAddr, LabelID, LabelProductName, LabelOpstr},
 			ValueName: "delay3s",

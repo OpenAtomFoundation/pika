@@ -733,7 +733,7 @@ func (p *Proxy) Stats(flags StatsFlags) *Stats {
 		stats.Rusage.Now = u.Now.String()
 		stats.Rusage.CPU = u.CPU
 		stats.Rusage.Mem = u.MemTotal()
-		stats.Rusage.Raw = (*utils.Usage)(u.Usage)
+		stats.Rusage.Raw = u.Usage
 	}
 
 	stats.Backend.PrimaryOnly = p.Config().BackendPrimaryOnly
