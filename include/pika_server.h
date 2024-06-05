@@ -95,6 +95,7 @@ class PikaServer : public pstd::noncopyable {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
+  void SetSlowCmdThreadPoolFlag(bool flag);
   storage::StorageOptions storage_options();
   std::unique_ptr<PikaDispatchThread>& pika_dispatch_thread() {
     return pika_dispatch_thread_;
@@ -168,7 +169,6 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
@@ -179,7 +179,6 @@ class PikaServer : public pstd::noncopyable {
    * PikaClientProcessor Process Task
    */
   void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd);
-  void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
   size_t ClientProcessorThreadPoolMaxQueueSize();
@@ -642,6 +641,11 @@ class PikaServer : public pstd::noncopyable {
    * acl
    */
   std::unique_ptr<::Acl> acl_ = nullptr;
+
+  /*
+   * fast and slow thread pools
+   */
+  bool slow_cmd_thread_pool_flag_;
 };
 
 #endif

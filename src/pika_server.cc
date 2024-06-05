@@ -43,6 +43,7 @@ void DoPurgeDir(void* arg) {
 
 PikaServer::PikaServer()
     : exit_(false),
+      slow_cmd_thread_pool_flag_(false),
       last_check_compact_time_({0, 0}),
       last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
@@ -100,6 +101,7 @@ PikaServer::PikaServer()
   }
 
   acl_ = std::make_unique<::Acl>();
+  SetSlowCmdThreadPoolFlag(g_pika_conf->slow_cmd_pool());
 }
 
 PikaServer::~PikaServer() {
@@ -159,17 +161,10 @@ void PikaServer::Start() {
                << ", Listen on this port to receive Master FullSync Data";
   }
   */
-
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     dbs_.clear();
     LOG(FATAL) << "Start PikaClientProcessor Error: " << ret
-               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-  ret = pika_slow_cmd_thread_pool_->start_thread_pool();
-  if (ret != net::kSuccess) {
-    dbs_.clear();
-    LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
@@ -203,6 +198,21 @@ void PikaServer::Start() {
     }
   }
   LOG(INFO) << "Goodbye...";
+}
+
+void PikaServer::SetSlowCmdThreadPoolFlag(bool flag) {
+  slow_cmd_thread_pool_flag_ = flag;
+  int ret = 0;
+  if (flag) {
+    ret = pika_slow_cmd_thread_pool_->start_thread_pool();
+    if (ret != net::kSuccess) {
+      dbs_.clear();
+      LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
+                 << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+    }
+  } else {
+    pika_slow_cmd_thread_pool_->stop_thread_pool();
+  }
 }
 
 void PikaServer::Exit() {
@@ -712,10 +722,6 @@ void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_
     return;
   }
   pika_client_processor_->SchedulePool(func, arg);
-}
-
-void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str) {
-  pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
 }
 
 size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
