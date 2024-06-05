@@ -109,6 +109,15 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
+  pika_slow_cmd_thread_pool_->stop_thread_pool();
+  {
+    std::lock_guard l(slave_mutex_);
+    auto iter = slaves_.begin();
+    while (iter != slaves_.end()) {
+      iter = slaves_.erase(iter);
+      LOG(INFO) << "Delete slave success";
+    }
+  }
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
   pika_migrate_thread_->StopThread();
@@ -152,7 +161,6 @@ void PikaServer::Start() {
                << ", Listen on this port to receive Master FullSync Data";
   }
   */
-
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     dbs_.clear();
@@ -194,8 +202,14 @@ void PikaServer::Start() {
 
 void PikaServer::SetSlowCmdThreadPoolFlag(bool flag) {
   slow_cmd_thread_pool_flag_ = flag;
+  int ret = 0;
   if (flag) {
-     pika_slow_cmd_thread_pool_->start_thread_pool();
+    ret = pika_slow_cmd_thread_pool_->start_thread_pool();
+    if (ret != net::kSuccess) {
+      dbs_.clear();
+      LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
+                 << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+    }
   } else {
     pika_slow_cmd_thread_pool_->stop_thread_pool();
   }

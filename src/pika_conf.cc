@@ -66,6 +66,12 @@ int PikaConf::Load() {
   GetConfStr("slotmigrate", &smgrt);
   slotmigrate_.store(smgrt == "yes" ? true : false);
 
+  // slow cmd thread pool
+  std::string slowcmdpool;
+  GetConfStr("slow-cmd-pool", &slowcmdpool);
+  slotmigrate_.store(slowcmdpool == "yes" ? true : false);
+
+
   int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
   if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
