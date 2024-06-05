@@ -17,7 +17,7 @@ Thread::~Thread() = default;
 void* Thread::RunThread(void* arg) {
   auto thread = reinterpret_cast<Thread*>(arg);
   if (!(thread->thread_name().empty())) {
-    SetThreadName(pthread_self(), thread->thread_name());
+    SetThreadName(pthread_self(), "pika");
   }
   thread->ThreadMain();
   return nullptr;
