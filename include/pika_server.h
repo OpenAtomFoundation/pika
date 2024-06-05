@@ -168,7 +168,6 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
@@ -179,7 +178,6 @@ class PikaServer : public pstd::noncopyable {
    * PikaClientProcessor Process Task
    */
   void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd);
-  void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
   size_t ClientProcessorThreadPoolMaxQueueSize();

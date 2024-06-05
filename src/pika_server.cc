@@ -714,10 +714,6 @@ void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_
   pika_client_processor_->SchedulePool(func, arg);
 }
 
-void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str) {
-  pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
-}
-
 size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
   if (!pika_client_processor_) {
     return 0;
