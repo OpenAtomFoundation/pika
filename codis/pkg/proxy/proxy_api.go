@@ -72,6 +72,7 @@ func newApiServer(p *Proxy) http.Handler {
 		r.Get("/xping/:xauth", api.XPing)
 		r.Get("/stats/:xauth", api.Stats)
 		r.Get("/stats/:xauth/:flags", api.Stats)
+		r.Get("/cmdinfo/:xauth/:interval", api.CmdInfo)
 		r.Get("/slots/:xauth", api.Slots)
 		r.Put("/start/:xauth", api.Start)
 		r.Put("/stats/reset/:xauth", api.ResetStats)
@@ -292,12 +293,12 @@ func (c *ApiClient) Stats(flags StatsFlags) (*Stats, error) {
 }
 
 func (c *ApiClient) CmdInfo(interval int64) (*CmdInfo, error) {
-	url := c.encodeURL("/api/proxy/cmdinfo/%s%d", c.xauth, interval)
-	var cmdInfo CmdInfo
-	if err := rpc.ApiGetJson(url, &cmdInfo); err != nil {
+	url := c.encodeURL("/api/proxy/cmdinfo/%s/%d", c.xauth, interval)
+	cmdInfo := &CmdInfo{}
+	if err := rpc.ApiGetJson(url, cmdInfo); err != nil {
 		return nil, err
 	}
-	return &cmdInfo, nil
+	return cmdInfo, nil
 }
 
 func (c *ApiClient) Slots() ([]*models.Slot, error) {
