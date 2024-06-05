@@ -43,6 +43,7 @@ void DoPurgeDir(void* arg) {
 
 PikaServer::PikaServer()
     : exit_(false),
+      slow_cmd_thread_pool_flag_(false),
       last_check_compact_time_({0, 0}),
       last_check_resume_time_({0, 0}),
       repl_state_(PIKA_REPL_NO_CONNECT),
@@ -100,6 +101,7 @@ PikaServer::PikaServer()
   }
 
   acl_ = std::make_unique<::Acl>();
+  SetSlowCmdThreadPoolFlag(g_pika_conf->slow_cmd_pool());
 }
 
 PikaServer::~PikaServer() {
@@ -107,15 +109,6 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-  pika_slow_cmd_thread_pool_->stop_thread_pool();
-  {
-    std::lock_guard l(slave_mutex_);
-    auto iter = slaves_.begin();
-    while (iter != slaves_.end()) {
-      iter = slaves_.erase(iter);
-      LOG(INFO) << "Delete slave success";
-    }
-  }
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
   pika_migrate_thread_->StopThread();
@@ -166,12 +159,6 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start PikaClientProcessor Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
-  ret = pika_slow_cmd_thread_pool_->start_thread_pool();
-  if (ret != net::kSuccess) {
-    dbs_.clear();
-    LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
-               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
-  }
   ret = pika_dispatch_thread_->StartThread();
   if (ret != net::kSuccess) {
     dbs_.clear();
@@ -203,6 +190,15 @@ void PikaServer::Start() {
     }
   }
   LOG(INFO) << "Goodbye...";
+}
+
+void PikaServer::SetSlowCmdThreadPoolFlag(bool flag) {
+  slow_cmd_thread_pool_flag_ = flag;
+  if (flag) {
+     pika_slow_cmd_thread_pool_->start_thread_pool();
+  } else {
+    pika_slow_cmd_thread_pool_->stop_thread_pool();
+  }
 }
 
 void PikaServer::Exit() {

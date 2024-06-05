@@ -186,6 +186,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slotmigrate_;
   }
+  bool slow_cmd_pool() {
+    std::shared_lock l(rwlock_);
+    return slow_cmd_pool_;
+  }
   std::string server_id() {
     std::shared_lock l(rwlock_);
     return server_id_;
@@ -574,6 +578,11 @@ class PikaConf : public pstd::BaseConf {
     TryPushDiffCommands("slotmigrate", value ? "yes" : "no");
     slotmigrate_.store(value);
   }
+  void SetSlowCmdPool(const bool value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("slow-cmd-pool", value ? "yes" : "no");
+    slow_cmd_pool_.store(value);
+  }
   void SetSlotMigrateThreadNum(const int value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slotmigrate-thread-num", std::to_string(value));
@@ -852,6 +861,7 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<bool> slowlog_write_errorlog_;
   std::atomic<int> slowlog_log_slower_than_;
   std::atomic<bool> slotmigrate_;
+  std::atomic<bool> slow_cmd_pool_;
   std::atomic<int> binlog_writer_num_;
   int slowlog_max_len_ = 0;
   int expire_logs_days_ = 0;

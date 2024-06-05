@@ -95,6 +95,7 @@ class PikaServer : public pstd::noncopyable {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
+  void SetSlowCmdThreadPoolFlag(bool flag);
   storage::StorageOptions storage_options();
   std::unique_ptr<PikaDispatchThread>& pika_dispatch_thread() {
     return pika_dispatch_thread_;
@@ -640,6 +641,11 @@ class PikaServer : public pstd::noncopyable {
    * acl
    */
   std::unique_ptr<::Acl> acl_ = nullptr;
+
+  /*
+   * fast and slow thread pools
+   */
+  bool slow_cmd_thread_pool_flag_;
 };
 
 #endif
