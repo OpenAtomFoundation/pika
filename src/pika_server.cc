@@ -208,7 +208,7 @@ void PikaServer::SetSlowCmdThreadPoolFlag(bool flag) {
     ret = pika_slow_cmd_thread_pool_->start_thread_pool();
     if (ret != net::kSuccess) {
       dbs_.clear();
-      LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
+      LOG(ERROR) << "Start PikaLowLevelThreadPool Error: " << ret
                  << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
     }
   } else {
@@ -718,7 +718,7 @@ void PikaServer::SetFirstMetaSync(bool v) {
 }
 
 void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
-  if (is_slow_cmd) {
+  if (is_slow_cmd && g_pika_conf->slow_cmd_pool()) {
     pika_slow_cmd_thread_pool_->Schedule(func, arg);
     return;
   }
