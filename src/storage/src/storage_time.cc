@@ -3,14 +3,13 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include <atomic>
 #include <memory>
 #include "storage/storage_time.h"
 #include <glog/logging.h>
 
-std::unique_ptr<storage::LogicTime> g_storage_logictime;
-
 namespace storage {
+
+std::unique_ptr<LogicTime> g_storage_logictime = std::make_unique<LogicTime>();
 
 int64_t LogicTime::Now() {
   if (protection_mode_) {

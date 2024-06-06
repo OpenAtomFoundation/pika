@@ -5,7 +5,6 @@
 
 #include "binlog_transverter.h"
 #include <glog/logging.h>
-#include "storage/storage_time.h"
 
 uint32_t PortBinlogItem::exec_time() const { return exec_time_; }
 
@@ -78,7 +77,6 @@ bool PortBinlogTransverter::PortBinlogDecode(PortBinlogType type, const std::str
                  << " actualy type: " << binlog_type;
     return false;
   }
-  storage::g_storage_logictime->UpdateLogicTime(binlog_item->exec_time());
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
   pstd::GetFixed32(&binlog_str, &binlog_item->server_id_);
   pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
