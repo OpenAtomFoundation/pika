@@ -15,6 +15,7 @@
 #include "src/mutex.h"
 
 #include "pstd/include/env.h"
+#include "storage/storage_time.h"
 
 namespace storage {
 
@@ -134,8 +135,8 @@ public:
     if (etime_ == 0) {
       return false;
     }
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+
+    int64_t unix_time = g_storage_logictime->Now();
     return etime_ < unix_time;
   }
 

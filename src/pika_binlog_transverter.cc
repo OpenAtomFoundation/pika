@@ -14,6 +14,7 @@
 #include "include/pika_command.h"
 #include "include/pika_define.h"
 #include "storage/storage.h"
+#include "storage/storage_time.h"
 
 
 uint32_t BinlogItem::exec_time() const { return exec_time_; }
@@ -84,6 +85,7 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
     return false;
   }
+  storage::g_storage_logictime->UpdateLogicTime(binlog_item->exec_time());
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
   pstd::GetFixed32(&binlog_str, &binlog_item->term_id_);
   pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
