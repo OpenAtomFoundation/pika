@@ -2842,11 +2842,14 @@ void DbsizeCmd::Do() {
     }
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
-    if (key_infos.size() != 5) {
+    if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
     }
-    uint64_t dbsize = key_infos[0].keys + key_infos[1].keys + key_infos[2].keys + key_infos[3].keys + key_infos[4].keys;
+    uint64_t dbsize = 0;
+    for (auto info : key_infos) {
+      dbsize += info.keys;
+    }
     res_.AppendInteger(static_cast<int64_t>(dbsize));
   }
 }
