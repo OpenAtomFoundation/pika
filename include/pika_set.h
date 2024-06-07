@@ -66,8 +66,12 @@ class SPopCmd : public Cmd {
  public:
   SPopCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {
-        srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite |  kCmdFlagsSet);
-      }
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  }
+  SPopCmd(const SPopCmd& other)
+      : Cmd(other), key_(other.key_), members_(other.members_), count_(other.count_), s_(other.s_) {
+    srem_cmd_ = std::make_shared<SRemCmd>(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  }
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);

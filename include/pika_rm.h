@@ -120,6 +120,7 @@ class SyncSlaveDB : public SyncDB {
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
+  int32_t rsync_init_retry_count_{0};
   pstd::Mutex db_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};
@@ -172,6 +173,7 @@ class PikaReplicaManager {
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, std::string db_name, const std::vector<WriteTask>& tasks);
+  void DropItemInOneWriteQueue(const std::string& ip, int port, const std::string& db_name);
   void DropItemInWriteQueue(const std::string& ip, int port);
   int ConsumeWriteQueue();
 

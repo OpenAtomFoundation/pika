@@ -211,7 +211,8 @@ int main(int argc, char* argv[]) {
   g_pika_rm = std::make_unique<PikaReplicaManager>();
   g_network_statistic = std::make_unique<net::NetworkStatistic>();
   g_pika_server->InitDBStruct();
-
+  //the cmd table of g_pika_cmd_table_manager must be inited before calling PikaServer::InitStatistic(CmdTable* )
+  g_pika_server->InitStatistic(g_pika_cmd_table_manager->GetCmdTable());
   auto status = g_pika_server->InitAcl();
   if (!status.ok()) {
     LOG(FATAL) << status.ToString();

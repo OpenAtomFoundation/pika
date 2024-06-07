@@ -10,7 +10,6 @@
 #include "include/pika_acl.h"
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
 #include "include/pika_hash.h"
@@ -678,7 +677,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitSet, std::move(bitsetptr)));
   ////bitgetCmd
   std::unique_ptr<Cmd> bitgetptr =
-      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
+      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitGet, std::move(bitgetptr)));
   ////bitcountCmd
   std::unique_ptr<Cmd> bitcountptr =
@@ -686,7 +685,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitCount, std::move(bitcountptr)));
   ////bitposCmd
   std::unique_ptr<Cmd> bitposptr =
-      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
+      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitPos, std::move(bitposptr)));
   ////bitopCmd
   std::unique_ptr<Cmd> bitopptr =
@@ -830,8 +829,6 @@ bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) 
 
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
     : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
-  // assign cmd id
-  cmdId_ = g_pika_cmd_table_manager->GetCmdId();
 }
 
 void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
