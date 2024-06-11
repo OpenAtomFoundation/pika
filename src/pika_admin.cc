@@ -3035,6 +3035,7 @@ void PKPatternMatchDelCmd::DoInitial() {
   pattern_ = argv_[1];
 }
 
+//TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
   int ret = 0;
   rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);

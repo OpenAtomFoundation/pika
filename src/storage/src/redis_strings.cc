@@ -1597,7 +1597,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
       meta_value = iter->value().ToString();
       ParsedStringsValue parsed_strings_value(&meta_value);
       if (!parsed_strings_value.IsStale() &&
-          (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
         batch.Delete(key);
       }
     } else if (meta_type == DataType::kLists) {
