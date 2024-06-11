@@ -31,8 +31,8 @@ class LogicTime {
   void SetProtectionMode(bool on);
 
  private:
-  std::atomic<int64_t> logic_time_; // Logical time value
-  std::atomic<bool> protection_mode_; // Protection mode flag
+  std::atomic<int64_t> logic_time_ = 0; // Logical time value
+  std::atomic<bool> protection_mode_ = false; // Protection mode flag
 };
 
 // Global unique pointer to LogicTime instance

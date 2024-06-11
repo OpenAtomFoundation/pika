@@ -153,6 +153,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
+  if (g_pika_server->readonly(current_db_) && opt != kCmdNameExec) {
+    storage::g_storage_logictime->SetProtectionMode(true);
+  } else{
+    storage::g_storage_logictime->SetProtectionMode(false);
+  }
+
   if (c_ptr->is_write()) {
     if (g_pika_server->IsDBBinlogIoError(current_db_)) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
@@ -164,7 +170,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       return c_ptr;
     }
     if (g_pika_server->readonly(current_db_) && opt != kCmdNameExec) {
-      storage::g_storage_logictime->SetProtectionMode(true);
       c_ptr->res().SetRes(CmdRes::kErrOther, "READONLY You can't write against a read only replica.");
       return c_ptr;
     }
@@ -186,7 +191,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       }
     }
   }
-  storage::g_storage_logictime->SetProtectionMode(false);
 
   // Process Command
   c_ptr->Execute();
