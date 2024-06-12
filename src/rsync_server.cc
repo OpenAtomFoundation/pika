@@ -31,9 +31,8 @@ void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::
 }
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
-  work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
+  work_thread_ = std::make_unique<net::ThreadPool>(2, 100000, "RsyncServerWork");
   rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 1 * 1000, this);
-  rsync_server_thread_->set_thread_name("RsyncServer");
 }
 
 RsyncServer::~RsyncServer() {
@@ -47,6 +46,7 @@ void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
 
 int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
+  rsync_server_thread_->set_thread_name("RsyncServerThread");
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
     LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "

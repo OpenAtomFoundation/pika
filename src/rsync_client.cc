@@ -61,6 +61,7 @@ bool RsyncClient::Init() {
   master_ip_ = g_pika_server->master_ip();
   master_port_ = g_pika_server->master_port() + kPortShiftRsync2;
   file_set_.clear();
+  client_thread_->set_thread_name("RsyncClientThread");
   client_thread_->StartThread();
   bool ret = ComparisonUpdate();
   if (!ret) {

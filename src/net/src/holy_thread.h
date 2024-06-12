@@ -35,6 +35,8 @@ class HolyThread : public ServerThread {
 
   int StopThread() override;
 
+  void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
+
   void set_keepalive_timeout(int timeout) override { keepalive_timeout_ = timeout; }
 
   int conn_num() const override;
