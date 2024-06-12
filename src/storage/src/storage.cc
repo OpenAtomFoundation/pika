@@ -1155,6 +1155,9 @@ Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& 
     case DataType::kSets:
       s = sets_db_->PKPatternMatchDel(pattern, ret);
       break;
+    case DataType::kStreams:
+      s = streams_db_->PKPatternMatchDel(pattern, ret);
+      break;
     default:
       s = Status::Corruption("Unsupported data type");
       break;
@@ -1933,19 +1936,19 @@ void Storage::SetCompactRangeOptions(const bool is_canceled) {
   zsets_db_->SetCompactRangeOptions(is_canceled);
 }
 
-Status Storage::EnableDymayticOptions(const OptionType& option_type, 
+Status Storage::EnableDymayticOptions(const OptionType& option_type,
                             const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
   Status s;
   auto it = options.find("disable_auto_compactions");
   if (it != options.end() && it->second == "false") {
     s = EnableAutoCompaction(option_type,db_type,options);
-    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed") 
+    LOG(WARNING) << "EnableAutoCompaction " << (s.ok() ? "success" : "failed")
                  << " when Options get disable_auto_compactions: " << it->second << ",db_type:" << db_type;
   }
   return s;
 }
 
-Status Storage::EnableAutoCompaction(const OptionType& option_type, 
+Status Storage::EnableAutoCompaction(const OptionType& option_type,
                             const std::string& db_type, const std::unordered_map<std::string, std::string>& options){
   Status s;
   std::vector<std::string> cfs;
@@ -2030,8 +2033,8 @@ int64_t Storage::IsExist(const Slice& key, std::map<DataType, Status>* type_stat
   }
   return type_count;
 }
-  
-  
+
+
 void Storage::DisableWal(const bool is_wal_disable) {
   strings_db_->SetWriteWalOptions(is_wal_disable);
   hashes_db_->SetWriteWalOptions(is_wal_disable);
