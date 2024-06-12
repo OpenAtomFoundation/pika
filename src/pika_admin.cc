@@ -1201,7 +1201,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
       duration = key_scan_info.duration;
-      if (key_infos.size() != 5) {
+      if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
         info.append("info keyspace error\r\n");
         return;
       }
@@ -1227,6 +1227,8 @@ void InfoCmd::InfoKeyspace(std::string& info) {
                  << ", invalid_keys=" << key_infos[3].invaild_keys << "\r\n";
       tmp_stream << db_name << " Sets_keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires
                  << ", invalid_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
+      tmp_stream << db_name << " Streams_keys=" << key_infos[5].keys << ", expires=" << key_infos[5].expires
+                 << ", invalid_keys=" << key_infos[5].invaild_keys << "\r\n\r\n";
     }
   }
   info.append(tmp_stream.str());
@@ -2840,11 +2842,14 @@ void DbsizeCmd::Do() {
     }
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
-    if (key_infos.size() != 5) {
+    if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
     }
-    uint64_t dbsize = key_infos[0].keys + key_infos[1].keys + key_infos[2].keys + key_infos[3].keys + key_infos[4].keys;
+    uint64_t dbsize = 0;
+    for (auto info : key_infos) {
+      dbsize += info.keys;
+    }
     res_.AppendInteger(static_cast<int64_t>(dbsize));
   }
 }
