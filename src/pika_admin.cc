@@ -1927,6 +1927,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeNumber(&config_body, g_pika_conf->rate_limiter_bandwidth());
   }
 
+  if (pstd::stringmatch(pattern.data(), "delayed-write-rate", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "delayed-write-rate");
+    EncodeNumber(&config_body, g_pika_conf->delayed_write_rate());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "max-compaction-bytes", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "max-compaction-bytes");
+    EncodeNumber(&config_body, g_pika_conf->max_compaction_bytes());
+  }
+
   if (pstd::stringmatch(pattern.data(), "rate-limiter-refill-period-us", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-refill-period-us");
@@ -2340,6 +2352,43 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     }
     g_pika_conf->SetDisableAutoCompaction(value);
     res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "rate-limiter-bandwidth") {
+    int64_t new_bandwidth = 0;
+    if (pstd::string2int(value.data(), value.size(), &new_bandwidth) == 0 || new_bandwidth <= 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rate-limiter-bandwidth'\r\n");
+      return;
+    }
+    g_pika_server->storage_options().options.rate_limiter->SetBytesPerSecond(new_bandwidth);
+    g_pika_conf->SetRateLmiterBandwidth(new_bandwidth);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "delayed-write-rate") {
+    int64_t new_delayed_write_rate = 0;
+    if (pstd::string2int(value.data(), value.size(), &new_delayed_write_rate) == 0 || new_delayed_write_rate <= 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'delayed-write-rate'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"delayed-write-rate", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set delayed-write-rate wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetDelayedWriteRate(new_delayed_write_rate);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "max-compaction-bytes") {
+    int64_t new_max_compaction_bytes = 0;
+    if (pstd::string2int(value.data(), value.size(), &new_max_compaction_bytes) == 0 || new_max_compaction_bytes <= 0) {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-compaction-bytes'\r\n");
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max-compaction-bytes", value}};
+    storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      res_.AppendStringRaw("-ERR Set max-compaction-bytes wrong: " + s.ToString() + "\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxCompactionBytes(new_max_compaction_bytes);
+    res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n");
@@ -2459,7 +2508,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     g_pika_conf->SetMaxCacheFiles(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-background-compactions") {
-    if (pstd::string2int(value.data(), value.size(), &ival) == 0) {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0) {
       res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-compactions'\r\n");
       return;
     }

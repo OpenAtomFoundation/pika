@@ -349,7 +349,7 @@ int PikaConf::Load() {
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
-    rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 2000MB/s
+    rate_limiter_bandwidth_ = 1024LL << 30;  // 1024GB/s
   }
 
   // rate-limiter-refill-period-us
@@ -366,6 +366,7 @@ int PikaConf::Load() {
 
   std::string at;
   GetConfStr("rate-limiter-auto-tuned", &at);
+  // rate_limiter_auto_tuned_ will be true if user didn't config
   rate_limiter_auto_tuned_ = at == "yes" || at.empty();
 
   // max_write_buffer_num
@@ -385,6 +386,12 @@ int PikaConf::Load() {
   GetConfIntHuman("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
     target_file_size_base_ = 1048576;  // 10Mb
+  }
+
+  GetConfInt64("max-compaction-bytes", &max_compaction_bytes_);
+  if (max_compaction_bytes_ <= 0) {
+    // RocksDB's default is 25 * target_file_size_base_
+    max_compaction_bytes_ = target_file_size_base_ * 25;
   }
 
   max_cache_statistic_keys_ = 0;
@@ -412,8 +419,9 @@ int PikaConf::Load() {
     small_compaction_duration_threshold_ = 1000000;
   }
 
+  // max-background-flushes and max-background-compactions should both be -1 or both not
   GetConfInt("max-background-flushes", &max_background_flushes_);
-  if (max_background_flushes_ <= 0) {
+  if (max_background_flushes_ <= 0 && max_background_flushes_ != -1) {
     max_background_flushes_ = 1;
   }
   if (max_background_flushes_ >= 6) {
@@ -421,7 +429,7 @@ int PikaConf::Load() {
   }
 
   GetConfInt("max-background-compactions", &max_background_compactions_);
-  if (max_background_compactions_ <= 0) {
+  if (max_background_compactions_ <= 0 && max_background_compactions_ != -1) {
     max_background_compactions_ = 2;
   }
   if (max_background_compactions_ >= 8) {
@@ -435,6 +443,13 @@ int PikaConf::Load() {
   }
   if (max_background_jobs_ >= (8 + 6)) {
     max_background_jobs_ = (8 + 6);
+  }
+
+  GetConfInt64("delayed-write-rate", &delayed_write_rate_);
+  if (delayed_write_rate_ <= 0) {
+    // set 0 means let rocksDB infer from rate-limiter(by default, rate-limiter is 1024GB, delayed_write_rate will be 512GB)
+    // if rate-limiter is nullptr, it would be set to 16MB by RocksDB
+    delayed_write_rate_ = 0;
   }
 
   max_cache_files_ = 5000;
@@ -645,7 +660,7 @@ int PikaConf::Load() {
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
-    throttle_bytes_per_second_ = 207200000;
+    throttle_bytes_per_second_ = 200LL << 20; //200 MB
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
@@ -743,6 +758,9 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-background-jobs", max_background_jobs_);
+  SetConfInt64("rate-limiter-bandwidth", rate_limiter_bandwidth_);
+  SetConfInt64("delayed-write-rate", delayed_write_rate_);
+  SetConfInt64("max-compaction-bytes", max_compaction_bytes_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt("min-write-buffer-number-to-merge", min_write_buffer_number_to_merge_);
