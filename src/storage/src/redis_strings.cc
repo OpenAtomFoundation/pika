@@ -1589,10 +1589,10 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   iter->SeekToFirst();
-  key = iter->key().ToString();
   while (iter->Valid()) {
     auto meta_type = static_cast<enum DataType>(static_cast<uint8_t>(iter->value()[0]));
     ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
+    key = iter->key().ToString();
     meta_value = iter->value().ToString();
 
     if (meta_type == DataType::kStrings) {

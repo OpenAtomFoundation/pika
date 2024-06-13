@@ -2098,7 +2098,7 @@ for (const auto& kv : kvs) {
 TEST_F(KeysTest, PKPatternMatchDel) {
   int32_t ret;
   uint64_t ret64;
-  int32_t delete_count;
+  int32_t delete_count = 0;
   std::vector<std::string> keys;
   std::map<DataType, Status> type_status;
 
