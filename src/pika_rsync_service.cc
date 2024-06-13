@@ -15,6 +15,10 @@
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 
+#ifdef __FreeBSD__
+#  include <sys/wait.h>
+#endif
+
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
 PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
