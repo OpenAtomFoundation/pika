@@ -2367,7 +2367,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'delayed-write-rate'\r\n");
       return;
     }
-    std::unordered_map<std::string, std::string> options_map{{"delayed-write-rate", value}};
+    std::unordered_map<std::string, std::string> options_map{{"delayed_write_rate", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       res_.AppendStringRaw("-ERR Set delayed-write-rate wrong: " + s.ToString() + "\r\n");
@@ -2381,7 +2381,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-compaction-bytes'\r\n");
       return;
     }
-    std::unordered_map<std::string, std::string> options_map{{"max-compaction-bytes", value}};
+    std::unordered_map<std::string, std::string> options_map{{"max_compaction_bytes", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       res_.AppendStringRaw("-ERR Set max-compaction-bytes wrong: " + s.ToString() + "\r\n");
