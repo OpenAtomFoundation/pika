@@ -16,6 +16,7 @@
 #include "src/base_value_format.h"
 #include "src/base_meta_value_format.h"
 #include "src/lists_meta_value_format.h"
+#include "src/pika_stream_meta_value.h"
 #include "src/strings_value_format.h"
 #include "src/zsets_data_key_format.h"
 #include "src/debug.h"
@@ -49,6 +50,13 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
         DEBUG("Reserve");
         return false;
       }
+    } else if (type == DataType::kStreams) {
+      ParsedStreamMetaValue parsed_stream_meta_value(value);
+      DEBUG("[ListMetaFilter], key: {}, entries_added = {}, first_id: {}, last_id: {}, version: {}",
+            key.ToString().c_str(), parsed_stream_meta_value.entries_added(),
+            parsed_stream_meta_value.first_id(), parsed_stream_meta_value.last_id(),
+            parsed_stream_meta_value.version());
+      return false;
     } else if (type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(value);
       DEBUG("[ListMetaFilter], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
@@ -143,7 +151,12 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
         auto type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
         if (type != type_) {
           return true;
-        } else if (type == DataType::kHashes || type == DataType::kSets || type == DataType::kStreams || type == DataType::kZSets) {
+        } else if (type == DataType::kStreams) {
+          ParsedStreamMetaValue parsed_stream_meta_value(meta_value);
+          meta_not_found_ = false;
+          cur_meta_version_ = parsed_stream_meta_value.version();
+          cur_meta_etime_ = 0; // stream do not support ttl
+        } else if (type == DataType::kHashes || type == DataType::kSets || type == DataType::kZSets) {
           ParsedBaseMetaValue parsed_base_meta_value(&meta_value);
           meta_not_found_ = false;
           cur_meta_version_ = parsed_base_meta_value.Version();
