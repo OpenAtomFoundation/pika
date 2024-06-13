@@ -853,7 +853,7 @@ class PikaConf : public pstd::BaseConf {
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;
-  std::atomic<bool> slow_cmd_pool_;
+  bool slow_cmd_pool_;
 
   std::string compression_;
   std::string compression_per_level_;
