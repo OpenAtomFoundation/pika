@@ -161,6 +161,14 @@ int PikaConf::Load() {
     slow_cmd_thread_pool_size_ = 100;
   }
 
+  GetConfInt("admin-thread-pool-size", &admin_thread_pool_size_);
+  if (admin_thread_pool_size_ <= 0) {
+    admin_thread_pool_size_ = 2;
+  }
+  if (admin_thread_pool_size_ > 4) {
+    admin_thread_pool_size_ = 4;
+  }
+
   std::string slow_cmd_list;
   GetConfStr("slow-cmd-list", &slow_cmd_list);
   SetSlowCmd(slow_cmd_list);

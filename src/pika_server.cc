@@ -108,6 +108,7 @@ PikaServer::~PikaServer() {
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
   pika_slow_cmd_thread_pool_->stop_thread_pool();
+  pika_admin_cmd_thread_pool_->stop_thread_pool();
   {
     std::lock_guard l(slave_mutex_);
     auto iter = slaves_.begin();
@@ -170,6 +171,12 @@ void PikaServer::Start() {
   if (ret != net::kSuccess) {
     dbs_.clear();
     LOG(FATAL) << "Start PikaLowLevelThreadPool Error: " << ret
+               << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  ret = pika_admin_cmd_thread_pool_->start_thread_pool();
+  if (ret != net::kSuccess) {
+    dbs_.clear();
+    LOG(FATAL) << "Start PikaAdminThreadPool Error: " << ret
                << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
@@ -706,9 +713,13 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd) {
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_monitor_cmd) {
   if (is_slow_cmd) {
     pika_slow_cmd_thread_pool_->Schedule(func, arg);
+    return;
+  }
+  if (is_monitor_cmd) {
+    pika_admin_cmd_thread_pool_->Schedule(func, arg);
     return;
   }
   pika_client_processor_->SchedulePool(func, arg);

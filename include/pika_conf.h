@@ -61,6 +61,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slow_cmd_thread_pool_size_;
   }
+  int admin_thread_pool_size() {
+    std::shared_lock l(rwlock_);
+    return admin_thread_pool_size_;
+  }
   int sync_thread_num() {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
@@ -475,6 +479,11 @@ class PikaConf : public pstd::BaseConf {
     slow_cmd_thread_pool_size_ = value;
   }
 
+  void SetAdminThreadPoolSize(const int value) {
+    std::lock_guard l(rwlock_);
+    admin_thread_pool_size_ = value;
+  }
+
   void SetSlaveof(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
@@ -795,6 +804,7 @@ class PikaConf : public pstd::BaseConf {
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
+  int admin_thread_pool_size_ = 0;
   std::unordered_set<std::string> slow_cmd_set_;
   int sync_thread_num_ = 0;
   int sync_binlog_thread_num_ = 0;

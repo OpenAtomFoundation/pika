@@ -290,6 +290,7 @@ enum CmdFlags {
   kCmdFlagsStream = (1 << 20),
   kCmdFlagsFast = (1 << 21),
   kCmdFlagsSlow = (1 << 22),
+  kCmdFlagsMonitor = (1 << 23),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -545,6 +546,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsNeedUpdateCache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
+  bool IsMonitorCmd() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   std::shared_ptr<DB> GetDB() const { return db_; };
