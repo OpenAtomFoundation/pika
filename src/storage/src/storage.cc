@@ -1924,7 +1924,7 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
       return s;
     }
   }
-  s = EnableDymayticOptions(option_type,db_type,options);
+  s = EnableDynamicOptions(option_type,db_type,options);
   return s;
 }
 
@@ -1936,7 +1936,7 @@ void Storage::SetCompactRangeOptions(const bool is_canceled) {
   zsets_db_->SetCompactRangeOptions(is_canceled);
 }
 
-Status Storage::EnableDymayticOptions(const OptionType& option_type,
+Status Storage::EnableDynamicOptions(const OptionType& option_type,
                             const std::string& db_type, const std::unordered_map<std::string, std::string>& options) {
   Status s;
   auto it = options.find("disable_auto_compactions");
