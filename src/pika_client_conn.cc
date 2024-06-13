@@ -272,8 +272,17 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     std::string opt = argvs[0][0];
     pstd::StringToLower(opt);
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
-    const std::shared_ptr<Cmd>& cmd_ = g_pika_cmd_table_manager->GetCmd(opt);
-    bool is_admin_cmd = cmd_->IsMonitorCmd();
+    bool is_admin_cmd = false;
+    std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+    if (!c_ptr) {
+      std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
+      tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
+      is_admin_cmd = false;
+      if (IsInTxn()) {
+        is_admin_cmd = false;
+      }
+      is_admin_cmd = true;
+    }
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;
   }

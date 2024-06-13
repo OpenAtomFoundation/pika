@@ -12,10 +12,14 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#  include <arpa/inet.h>
+#  include <ifaddrs.h>
 #  include <net/if.h>
+#  include <netinet/in.h>
 #  include <sys/ioctl.h>
 #  include <sys/socket.h>
+#  include <sys/types.h>
 #  include <unistd.h>
 
 #  include "pstd/include/pstd_defer.h"
@@ -31,7 +35,7 @@
 #include "pstd/include/xdebug.h"
 
 std::string GetDefaultInterface() {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__FreeBSD__)
   std::string name("lo0");
 
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
