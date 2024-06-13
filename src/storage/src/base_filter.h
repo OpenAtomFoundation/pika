@@ -41,7 +41,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
     DEBUG("==========================START==========================");
     if (type == DataType::kStrings) {
       ParsedStringsValue parsed_strings_value(value);
-      DEBUG("[StringsFilter]  key: {}, value = {}, timestamp: {}, cur_time: {}", key.ToString().c_str(),
+      DEBUG("[string type]  key: {}, value = {}, timestamp: {}, cur_time: {}", key.ToString().c_str(),
             parsed_strings_value.UserValue().ToString().c_str(), parsed_strings_value.Etime(), cur_time);
       if (parsed_strings_value.Etime() != 0 && parsed_strings_value.Etime() < cur_time) {
         DEBUG("Drop[Stale]");
@@ -52,14 +52,14 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
       }
     } else if (type == DataType::kStreams) {
       ParsedStreamMetaValue parsed_stream_meta_value(value);
-      DEBUG("[ListMetaFilter], key: {}, entries_added = {}, first_id: {}, last_id: {}, version: {}",
+      DEBUG("[stream meta type], key: {}, entries_added = {}, first_id: {}, last_id: {}, version: {}",
             key.ToString().c_str(), parsed_stream_meta_value.entries_added(),
             parsed_stream_meta_value.first_id(), parsed_stream_meta_value.last_id(),
             parsed_stream_meta_value.version());
       return false;
     } else if (type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(value);
-      DEBUG("[ListMetaFilter], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
+      DEBUG("[list meta type], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
             parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
             parsed_lists_meta_value.Version());
 
@@ -76,7 +76,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
       return false;
     } else {
       ParsedBaseMetaValue parsed_base_meta_value(value);
-      DEBUG("[MetaFilter]  key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
+      DEBUG("[hashe/set/zset meta type]  key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
             parsed_base_meta_value.Count(), parsed_base_meta_value.Etime(), cur_time, parsed_base_meta_value.Version());
 
       if (parsed_base_meta_value.Etime() != 0 && parsed_base_meta_value.Etime() < cur_time &&
