@@ -537,7 +537,7 @@ void MgetCmd::Do() {
     cache_miss_keys_ = keys_;
   }
   db_value_status_array_.clear();
-  s_ = db_->storage()->MGet(cache_miss_keys_, &db_value_status_array_);
+  s_ = db_->storage()->MGetWithTTL(cache_miss_keys_, &db_value_status_array_);
   if (!s_.ok()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
