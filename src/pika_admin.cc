@@ -1210,9 +1210,9 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (argv_.size() > 1 && strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
     tmp_stream << "# Start async statistics\r\n";
   } else if (argv_.size() == 3 && strcasecmp(argv_[1].data(), kKeyspaceSection.data()) == 0) {
-    tmp_stream << "# Start async statistics\r\n";    
+    tmp_stream << "# Start async statistics\r\n";
   } else {
-    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";  
+    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";
   }
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
@@ -1236,7 +1236,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
         tmp_stream << "# Duration: " << std::to_string(duration) + "s"
                    << "\r\n";
       }
-      
+
       tmp_stream << db_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires
                  << ", invalid_keys=" << key_infos[0].invaild_keys << "\r\n";
       tmp_stream << db_name << " Hashes_keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires
@@ -2301,7 +2301,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     if (value != "true" && value != "false") {
       res_.AppendStringRaw("-ERR invalid disable_auto_compactions (true or false)\r\n");
       return;
-    } 
+    }
     std::unordered_map<std::string, std::string> options_map{{"disable_auto_compactions", value}};
     storage::Status s = g_pika_server->RewriteStorageOptions(storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
@@ -2929,6 +2929,8 @@ void PKPatternMatchDelCmd::DoInitial() {
     type_ = storage::kZSets;
   } else if (strcasecmp(argv_[2].data(), "hash") == 0) {
     type_ = storage::kHashes;
+  } else if (strcasecmp(argv_[2].data(), "stream") == 0) {
+    type_ = storage::kStreams;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
     return;

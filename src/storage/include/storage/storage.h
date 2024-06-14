@@ -1089,7 +1089,7 @@ class Storage {
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
   void SetCompactRangeOptions(const bool is_canceled);
-  Status EnableDymayticOptions(const OptionType& option_type, 
+  Status EnableDynamicOptions(const OptionType& option_type, 
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   Status EnableAutoCompaction(const OptionType& option_type, 
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
