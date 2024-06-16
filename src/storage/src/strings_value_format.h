@@ -13,16 +13,18 @@
 
 namespace storage {
 /*
-* | value | reserve | cdate | timestamp |
-* |       |   16B   |   8B  |     8B    |
+* | type | value | reserve | cdate | timestamp |
+* |  1B  |       |   16B   |   8B  |     8B    |
 */
 class StringsValue : public InternalValue {
  public:
-  explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(user_value) {}
+  explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
   virtual rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
-    size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength;
+    size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
     char* dst = ReAllocIfNeeded(needed);
+    memcpy(dst, &type_, sizeof(type_));
+    dst += sizeof(type_);
     char* start_pos = dst;
 
     memcpy(dst, user_value_.data(), usize);
@@ -32,7 +34,7 @@ class StringsValue : public InternalValue {
     EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;
     EncodeFixed64(dst, etime_);
-    return rocksdb::Slice(start_pos, needed);
+    return {start_, needed};
   }
 };
 
@@ -40,26 +42,40 @@ class ParsedStringsValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
   explicit ParsedStringsValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
-    if (internal_value_str->size() >= kStringsValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kStringsValueSuffixLength);
-      memcpy(reserve_, internal_value_str->data() + user_value_.size(), kSuffixReserveLength);
-      ctime_ = DecodeFixed64(internal_value_str->data() + user_value_.size() + kSuffixReserveLength);
-      etime_ = DecodeFixed64(internal_value_str->data() + user_value_.size() + kSuffixReserveLength + kTimestampLength);
+    if (internal_value_str->size() >= kStringsValueMinLength) {
+      size_t offset = 0;
+      type_ = static_cast<DataType>(static_cast<uint8_t>((*internal_value_str)[0]));
+      offset += kTypeLength;
+      user_value_ = rocksdb::Slice(internal_value_str->data() + offset,
+                                   internal_value_str->size() - kStringsValueSuffixLength - offset);
+      offset += user_value_.size();
+      memcpy(reserve_, internal_value_str->data() + offset, kSuffixReserveLength);
+      offset += kSuffixReserveLength;
+      ctime_ = DecodeFixed64(internal_value_str->data() + offset);
+      offset += sizeof(ctime_);
+      etime_ = DecodeFixed64(internal_value_str->data() + offset);
     }
   }
 
   // Use this constructor in rocksdb::CompactionFilter::Filter();
   explicit ParsedStringsValue(const rocksdb::Slice& internal_value_slice) : ParsedInternalValue(internal_value_slice) {
-    if (internal_value_slice.size() >= kStringsValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStringsValueSuffixLength);
-      memcpy(reserve_, internal_value_slice.data() + user_value_.size(), kSuffixReserveLength);
-      ctime_ = DecodeFixed64(internal_value_slice.data() + user_value_.size() + kSuffixReserveLength);
-      etime_ = DecodeFixed64(internal_value_slice.data() + user_value_.size() + kSuffixReserveLength + kTimestampLength);
+    if (internal_value_slice.size() >= kStringsValueMinLength) {
+      size_t offset = 0;
+      type_ = static_cast<DataType>(static_cast<uint8_t>(internal_value_slice[0]));
+      offset += kTypeLength;
+      user_value_ = rocksdb::Slice(internal_value_slice.data() + offset, internal_value_slice.size() - kStringsValueSuffixLength - offset);
+      offset += user_value_.size();
+      memcpy(reserve_, internal_value_slice.data() + offset, kSuffixReserveLength);
+      offset += kSuffixReserveLength;
+      ctime_ = DecodeFixed64(internal_value_slice.data() + offset);
+      offset += kTimestampLength;
+      etime_ = DecodeFixed64(internal_value_slice.data() + offset);
     }
   }
 
   void StripSuffix() override {
     if (value_) {
+      value_->erase(0, kTypeLength);
       value_->erase(value_->size() - kStringsValueSuffixLength, kStringsValueSuffixLength);
     }
   }
@@ -84,7 +100,8 @@ class ParsedStringsValue : public ParsedInternalValue {
   }
 
 private:
-  const size_t kStringsValueSuffixLength =  2 * kTimestampLength + kSuffixReserveLength;
+ const static size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
+ const static size_t kStringsValueMinLength = kStringsValueSuffixLength + kTypeLength;
 };
 
 }  //  namespace storage

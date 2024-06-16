@@ -126,6 +126,9 @@ int PikaConf::Load() {
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
   GetConfInt("db-instance-num", &db_instance_num_);
+  if (db_instance_num_ <= 0) {
+    LOG(FATAL) << "db-instance-num load error";
+  }
   int64_t t_val = 0;
   GetConfInt64("rocksdb-ttl-second", &t_val);
   rocksdb_ttl_second_.store(uint64_t(t_val));
@@ -176,7 +179,7 @@ int PikaConf::Load() {
 
   if (classic_mode_.load()) {
     GetConfInt("databases", &databases_);
-    if (databases_ < 1 || databases_ > 8) {
+    if (databases_ < 1 || databases_ > MAX_DB_NUM) {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
@@ -184,6 +187,15 @@ int PikaConf::Load() {
     }
   }
   default_db_ = db_structs_[0].db_name;
+
+  // sync_binlog_thread_num_ must be set after the setting of databases_
+  GetConfInt("sync-binlog-thread-num", &sync_binlog_thread_num_);
+  if (sync_binlog_thread_num_ <= 0) {
+      sync_binlog_thread_num_ = databases_;
+  } else {
+      // final value is MIN(sync_binlog_thread_num, databases_)
+      sync_binlog_thread_num_ = sync_binlog_thread_num_ > databases_ ?  databases_ : sync_binlog_thread_num_;
+  }
 
   int tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
@@ -325,6 +337,12 @@ int PikaConf::Load() {
   GetConfInt64Human("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
+  }
+
+  // max-total-wal-size
+  GetConfInt64("max-total-wal-size", &max_total_wal_size_);
+  if (max_total_wal_size_ < 0) {
+    max_total_wal_size_ = 0;
   }
 
   // rate-limiter-mode

@@ -7,12 +7,14 @@
 #define PIKA_SERVER_H_
 
 #include <shared_mutex>
-#if defined(__APPLE__)
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #  include <sys/mount.h>
 #  include <sys/param.h>
 #else
 #  include <sys/statfs.h>
 #endif
+
 #include <memory>
 #include <set>
 
@@ -51,21 +53,12 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 
 enum TaskType {
   kCompactAll,
-  kCompactStrings,
-  kCompactHashes,
-  kCompactSets,
-  kCompactZSets,
-  kCompactList,
   kResetReplState,
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
   kBgSave,
-  kCompactRangeStrings,
-  kCompactRangeHashes,
-  kCompactRangeSets,
-  kCompactRangeZSets,
-  kCompactRangeList,
+  kCompactRangeAll,
 };
 
 struct TaskArg {
@@ -504,6 +497,17 @@ class PikaServer : public pstd::noncopyable {
    */
   int64_t GetLastSave() const {return lastsave_;}
   void UpdateLastSave(int64_t lastsave) {lastsave_ = lastsave;}
+  void InitStatistic(CmdTable *inited_cmd_table) {
+    // we insert all cmd name to statistic_.server_stat.exec_count_db,
+    // then when we can call PikaServer::UpdateQueryNumAndExecCountDB(const std::string&, const std::string&, bool) in parallel without lock
+    // although exec_count_db(unordered_map) is not thread-safe, but we won't trigger any insert or erase operation toward exec_count_db(unordered_map) during the running of pika
+    auto &exec_stat_map = statistic_.server_stat.exec_count_db;
+    for (auto& it : *inited_cmd_table) {
+      std::string cmd_name = it.first; //value copy is needed
+      pstd::StringToUpper(cmd_name); //cmd_name now is all uppercase
+      exec_stat_map.insert(std::make_pair(cmd_name, 0));
+    }
+  }
  private:
   /*
    * TimingTask use

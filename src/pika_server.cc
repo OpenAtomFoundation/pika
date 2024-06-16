@@ -383,21 +383,6 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
       case TaskType::kCompactAll:
         db_item.second->Compact(storage::DataType::kAll);
         break;
-      case TaskType::kCompactStrings:
-        db_item.second->Compact(storage::DataType::kStrings);
-        break;
-      case TaskType::kCompactHashes:
-        db_item.second->Compact(storage::DataType::kHashes);
-        break;
-      case TaskType::kCompactSets:
-        db_item.second->Compact(storage::DataType::kSets);
-        break;
-      case TaskType::kCompactZSets:
-        db_item.second->Compact(storage::DataType::kZSets);
-        break;
-      case TaskType::kCompactList:
-        db_item.second->Compact(storage::DataType::kLists);
-        break;
       case TaskType::kStartKeyScan:
         db_item.second->KeyScan();
         break;
@@ -407,20 +392,8 @@ Status PikaServer::DoSameThingSpecificDB(const std::set<std::string>& dbs, const
       case TaskType::kBgSave:
         db_item.second->BgSaveDB();
         break;
-      case TaskType::kCompactRangeStrings:
-        db_item.second->CompactRange(storage::DataType::kStrings, arg.argv[0], arg.argv[1]);
-        break;
-      case TaskType::kCompactRangeHashes:
-        db_item.second->CompactRange(storage::DataType::kHashes, arg.argv[0], arg.argv[1]);
-        break;
-      case TaskType::kCompactRangeSets:
-        db_item.second->CompactRange(storage::DataType::kSets, arg.argv[0], arg.argv[1]);
-        break;
-      case TaskType::kCompactRangeZSets:
-        db_item.second->CompactRange(storage::DataType::kZSets, arg.argv[0], arg.argv[1]);
-        break;
-      case TaskType::kCompactRangeList:
-        db_item.second->CompactRange(storage::DataType::kLists, arg.argv[0], arg.argv[1]);
+      case TaskType::kCompactRangeAll:
+        db_item.second->CompactRange(storage::DataType::kAll, arg.argv[0], arg.argv[1]);
         break;
       default:
         break;
@@ -505,7 +478,7 @@ Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
         break;
       }
       case TaskType::kCompactAll:
-        db_item.second->Compact(storage::kAll);
+        db_item.second->Compact(storage::DataType::kAll);
         break;
       default:
         break;
@@ -1715,9 +1688,7 @@ void PikaServer::DoCacheBGTask(void* arg) {
   }
 
   db->cache()->SetCacheStatus(PIKA_CACHE_STATUS_OK);
-  if (pCacheTaskArg->reenable_cache) {
-    pCacheTaskArg->conf->UnsetCacheDisableFlag();
-  }
+  g_pika_conf->UnsetCacheDisableFlag();
 }
 
 void PikaServer::ResetCacheConfig(std::shared_ptr<DB> db) {
@@ -1737,7 +1708,7 @@ void PikaServer::ClearHitRatio(std::shared_ptr<DB> db) {
 
 void PikaServer::OnCacheStartPosChanged(int zset_cache_start_direction, std::shared_ptr<DB> db) {
   ResetCacheConfig(db);
-  ClearCacheDbAsync(db);
+  ClearCacheDbAsyncV2(db);
 }
 
 void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {

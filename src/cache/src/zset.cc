@@ -34,7 +34,7 @@ Status RedisCache::ZAdd(std::string& key, std::vector<storage::ScoreMember> &sco
   return Status::OK();
 }
 
-Status RedisCache::ZCard(std::string& key, uint64_t *len) {
+Status RedisCache::ZCard(const std::string& key, uint64_t *len) {
   robj *kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
   DEFER {
     DecrObjectsRefCount(kobj);

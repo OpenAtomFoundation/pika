@@ -344,12 +344,8 @@ void CompactCmd::DoInitial() {
   }
 
   if (argv_.size() == 1) {
-    struct_type_ = "all";
     compact_dbs_ = g_pika_server->GetAllDBName();
   } else if (argv_.size() == 2) {
-    struct_type_ = argv_[1];
-    compact_dbs_ = g_pika_server->GetAllDBName();
-  } else if (argv_.size() == 3) {
     std::vector<std::string> dbs;
     pstd::StringSplit(argv_[1], COMMA, dbs);
     for (const auto& db : dbs) {
@@ -360,27 +356,16 @@ void CompactCmd::DoInitial() {
         compact_dbs_.insert(db);
       }
     }
-    struct_type_ = argv_[2];
   }
 }
 
+/*
+ * Because meta-CF stores the meta information of all data structures,
+ * the compact operation can only operate on all data types without
+ * specifying data types
+ */
 void CompactCmd::Do() {
-  if (strcasecmp(struct_type_.data(), "all") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
-  } else if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactStrings});
-  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactHashes});
-  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactSets});
-  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactZSets});
-  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactList});
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
-    return;
-  }
+  g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactAll});
   LogCommand();
   res_.SetRes(CmdRes::kOk);
 }
@@ -406,26 +391,12 @@ void CompactRangeCmd::DoInitial() {
       compact_dbs_.insert(db);
     }
   }
-  struct_type_ = argv_[2];
-  start_key_ = argv_[3];
-  end_key_ = argv_[4];
+  start_key_ = argv_[2];
+  end_key_ = argv_[3];
 }
 
 void CompactRangeCmd::Do() {
-  if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeStrings, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeHashes, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeSets, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeZSets, {start_key_, end_key_}});
-  } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeList, {start_key_, end_key_}});
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
-    return;
-  }
+  g_pika_server->DoSameThingSpecificDB(compact_dbs_, {TaskType::kCompactRangeAll, {start_key_, end_key_}});
   LogCommand();
   res_.SetRes(CmdRes::kOk);
 }
@@ -781,6 +752,11 @@ const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
 const std::string InfoCmd::kCacheSection = "cache";
 
+void InfoCmd::Execute() {
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  Do();
+}
+
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
   if (argc > 4) {
@@ -971,6 +947,7 @@ void InfoCmd::InfoServer(std::string& info) {
   tmp_stream << "tcp_port:" << g_pika_conf->port() << "\r\n";
   tmp_stream << "thread_num:" << g_pika_conf->thread_num() << "\r\n";
   tmp_stream << "sync_thread_num:" << g_pika_conf->sync_thread_num() << "\r\n";
+  tmp_stream << "sync_binlog_thread_num:" << g_pika_conf->sync_binlog_thread_num() << "\r\n";
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24 * 3600) - g_pika_server->start_time_s() / (24 * 3600) + 1)
              << "\r\n";
@@ -1224,7 +1201,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
       duration = key_scan_info.duration;
-      if (key_infos.size() != 5) {
+      if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
         info.append("info keyspace error\r\n");
         return;
       }
@@ -1250,6 +1227,8 @@ void InfoCmd::InfoKeyspace(std::string& info) {
                  << ", invalid_keys=" << key_infos[3].invaild_keys << "\r\n";
       tmp_stream << db_name << " Sets_keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires
                  << ", invalid_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
+      tmp_stream << db_name << " Streams_keys=" << key_infos[5].keys << ", expires=" << key_infos[5].expires
+                 << ", invalid_keys=" << key_infos[5].invaild_keys << "\r\n\r\n";
     }
   }
   info.append(tmp_stream.str());
@@ -1414,6 +1393,9 @@ std::string InfoCmd::CacheStatusToString(int status) {
       return std::string("Unknown");
   }
 }
+void ConfigCmd::Execute() {
+  Do();
+}
 
 void ConfigCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1529,6 +1511,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "sync-thread-num");
     EncodeNumber(&config_body, g_pika_conf->sync_thread_num());
   }
+
+  if (pstd::stringmatch(pattern.data(), "sync-binlog-thread-num", 1) != 0) {
+     elements += 2;
+     EncodeString(&config_body, "sync-binlog-thread-num");
+     EncodeNumber(&config_body, g_pika_conf->sync_binlog_thread_num());
+    }
 
   if (pstd::stringmatch(pattern.data(), "log-path", 1) != 0) {
     elements += 2;
@@ -2854,11 +2842,14 @@ void DbsizeCmd::Do() {
     }
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
-    if (key_infos.size() != 5) {
+    if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
     }
-    uint64_t dbsize = key_infos[0].keys + key_infos[1].keys + key_infos[2].keys + key_infos[3].keys + key_infos[4].keys;
+    uint64_t dbsize = 0;
+    for (auto info : key_infos) {
+      dbsize += info.keys;
+    }
     res_.AppendInteger(static_cast<int64_t>(dbsize));
   }
 }
@@ -2962,18 +2953,18 @@ void ScandbCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 1) {
-    type_ = storage::kAll;
+    type_ = storage::DataType::kAll;
   } else {
     if (strcasecmp(argv_[1].data(), "string") == 0) {
-      type_ = storage::kStrings;
+      type_ = storage::DataType::kStrings;
     } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
-      type_ = storage::kHashes;
+      type_ = storage::DataType::kHashes;
     } else if (strcasecmp(argv_[1].data(), "set") == 0) {
-      type_ = storage::kSets;
+      type_ = storage::DataType::kSets;
     } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
-      type_ = storage::kZSets;
+      type_ = storage::DataType::kZSets;
     } else if (strcasecmp(argv_[1].data(), "list") == 0) {
-      type_ = storage::kLists;
+      type_ = storage::DataType::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
@@ -3055,22 +3046,9 @@ void PKPatternMatchDelCmd::DoInitial() {
     return;
   }
   pattern_ = argv_[1];
-  if (strcasecmp(argv_[2].data(), "set") == 0) {
-    type_ = storage::kSets;
-  } else if (strcasecmp(argv_[2].data(), "list") == 0) {
-    type_ = storage::kLists;
-  } else if (strcasecmp(argv_[2].data(), "string") == 0) {
-    type_ = storage::kStrings;
-  } else if (strcasecmp(argv_[2].data(), "zset") == 0) {
-    type_ = storage::kZSets;
-  } else if (strcasecmp(argv_[2].data(), "hash") == 0) {
-    type_ = storage::kHashes;
-  } else {
-    res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
-    return;
-  }
 }
 
+//TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
   int ret = 0;
   rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);

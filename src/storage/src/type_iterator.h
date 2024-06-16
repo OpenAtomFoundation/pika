@@ -102,6 +102,13 @@ protected:
   Direction direction_ = kForward;
 };
 
+/*
+ * Since the meta of all data types is in a cf,
+ * it is necessary to skip data that does not
+ * belong to your type when iterating with an
+ * iterator
+ */
+
 class StringsIterator : public TypeIterator {
 public:
   StringsIterator(const rocksdb::ReadOptions& options, rocksdb::DB* db,
@@ -111,6 +118,10 @@ public:
   ~StringsIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kStrings) {
+      return true;
+    }
     ParsedStringsValue parsed_value(raw_iter_->value());
     if (parsed_value.IsStale()) {
       return true;
@@ -139,6 +150,10 @@ public:
   ~HashesIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kHashes) {
+      return true;
+    }
     ParsedHashesMetaValue parsed_meta_value(raw_iter_->value());
     if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
       return true;
@@ -166,6 +181,10 @@ public:
   ~ListsIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kLists) {
+      return true;
+    }
     ParsedListsMetaValue parsed_meta_value(raw_iter_->value());
     if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
       return true;
@@ -193,6 +212,10 @@ public:
   ~SetsIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kSets) {
+      return true;
+    }
     ParsedSetsMetaValue parsed_meta_value(raw_iter_->value());
     if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
       return true;
@@ -220,6 +243,10 @@ public:
   ~ZsetsIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kZSets) {
+      return true;
+    }
     ParsedZSetsMetaValue parsed_meta_value(raw_iter_->value());
     if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
       return true;
@@ -247,6 +274,10 @@ public:
   ~StreamsIterator() {}
 
   bool ShouldSkip() override {
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    if (type != DataType::kStreams) {
+      return true;
+    }
     ParsedStreamMetaValue parsed_meta_value(raw_iter_->value());
     if (parsed_meta_value.length() == 0) {
       return true;
@@ -267,7 +298,63 @@ private:
   std::string pattern_;
 };
 
+/*
+ * This iterator is used for all types of meta data needed for iteration
+ */
+class AllIterator : public TypeIterator {
+ public:
+  AllIterator(const rocksdb::ReadOptions& options, rocksdb::DB* db, ColumnFamilyHandle* handle,
+              const std::string& pattern)
+      : TypeIterator(options, db, handle), pattern_(pattern) {}
+  ~AllIterator() {}
 
+  bool ShouldSkip() override {
+    std::string user_value;
+    auto type = static_cast<DataType>(static_cast<uint8_t>(raw_iter_->value()[0]));
+    switch (type) {
+      case DataType::kZSets:
+      case DataType::kSets:
+      case DataType::kHashes:
+      case DataType::kStreams: {
+        ParsedBaseMetaValue parsed_meta_value(raw_iter_->value());
+        user_value = parsed_meta_value.UserValue().ToString();
+        if (parsed_meta_value.IsStale() || parsed_meta_value.Count() == 0) {
+          return true;
+        }
+        break;
+      }
+
+      case DataType::kLists: {
+        ParsedListsMetaValue parsed_meta_list_value(raw_iter_->value());
+        user_value = parsed_meta_list_value.UserValue().ToString();
+        if (parsed_meta_list_value.IsStale() || parsed_meta_list_value.Count() == 0) {
+          return true;
+        }
+        break;
+      }
+
+      default: {
+        ParsedStringsValue parsed_value(raw_iter_->value());
+        user_value = parsed_value.UserValue().ToString();
+        if (parsed_value.IsStale()) {
+          return true;
+        }
+        break;
+      }
+    }
+
+    ParsedBaseMetaKey parsed_key(raw_iter_->key().ToString());
+    if (StringMatch(pattern_.data(), pattern_.size(), parsed_key.Key().data(), parsed_key.Key().size(), 0) == 0) {
+      return true;
+    }
+    user_key_ = parsed_key.Key().ToString();
+    user_value_ = user_value;
+    return false;
+  }
+
+ private:
+  std::string pattern_;
+};
 using IterSptr = std::shared_ptr<TypeIterator>;
 
 class MinMergeComparator {
