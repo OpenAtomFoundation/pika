@@ -155,6 +155,11 @@ Status Storage::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   return inst->GetWithTTL(key, value, ttl);
 }
 
+Status Storage::MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
+  auto& inst = GetDBInstance(key);
+  return inst->MGetWithTTL(key, value, ttl);
+}
+
 Status Storage::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
   auto& inst = GetDBInstance(key);
   return inst->GetSet(key, value, old_value);
@@ -208,7 +213,7 @@ Status Storage::MGetWithTTL(const std::vector<std::string>& keys, std::vector<Va
     auto& inst = GetDBInstance(key);
     std::string value;
     int64_t ttl;
-    s = inst->GetWithTTL(key, &value, &ttl);
+    s = inst->MGetWithTTL(key, &value, &ttl);
     if (s.ok()) {
       vss->push_back({value, Status::OK(), ttl});
     } else if (s.IsNotFound()) {
