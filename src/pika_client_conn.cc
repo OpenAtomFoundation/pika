@@ -153,11 +153,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
-  if (g_pika_server->readonly(current_db_) && opt != kCmdNameExec) {
-    storage::g_storage_logictime->SetProtectionMode(true);
-  } else{
-    storage::g_storage_logictime->SetProtectionMode(false);
-  }
+  bool is_readonly = g_pika_server->readonly(current_db_);
+  storage::g_storage_logictime->SetProtectionMode(is_readonly);
 
   if (c_ptr->is_write()) {
     if (g_pika_server->IsDBBinlogIoError(current_db_)) {

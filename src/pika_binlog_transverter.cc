@@ -85,8 +85,8 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
     return false;
   }
-  storage::g_storage_logictime->UpdateLogicTime(binlog_item->exec_time());
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  storage::g_storage_logictime->UpdateLogicTime(binlog_item->exec_time());
   pstd::GetFixed32(&binlog_str, &binlog_item->term_id_);
   pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
   pstd::GetFixed32(&binlog_str, &binlog_item->filenum_);
@@ -170,6 +170,7 @@ bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type, cons
     return false;
   }
   pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  storage::g_storage_logictime->UpdateLogicTime(binlog_item->exec_time());
   pstd::GetFixed32(&binlog_str, &binlog_item->term_id_);
   pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
   pstd::GetFixed32(&binlog_str, &binlog_item->filenum_);

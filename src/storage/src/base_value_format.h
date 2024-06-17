@@ -52,8 +52,7 @@ public:
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
   rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    int64_t unix_time = g_storage_logictime->Now();
     etime_ = uint64_t(unix_time + ttl);
     return rocksdb::Status::OK();
   }
@@ -123,8 +122,7 @@ public:
   }
 
   void SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    int64_t unix_time = g_storage_logictime->Now();
     etime_ = unix_time + ttl;
     SetEtimeToValue();
   }
@@ -135,7 +133,6 @@ public:
     if (etime_ == 0) {
       return false;
     }
-
     int64_t unix_time = g_storage_logictime->Now();
     return etime_ < unix_time;
   }

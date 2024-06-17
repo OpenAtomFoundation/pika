@@ -339,6 +339,12 @@ int PikaConf::Load() {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
+  // max-total-wal-size
+  GetConfInt64("max-total-wal-size", &max_total_wal_size_);
+  if (max_total_wal_size_ < 0) {
+    max_total_wal_size_ = 0;
+  }
+
   // rate-limiter-mode
   rate_limiter_mode_ = 1;
   GetConfInt("rate-limiter-mode", &rate_limiter_mode_);

@@ -28,7 +28,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     int64_t unix_time = g_storage_logictime->Now();
-    auto cur_time = static_cast<uint32_t>(unix_time);
+    auto cur_time = static_cast<uint64_t>(unix_time);
     /*
      * For the filtering of meta information, because the field designs of string
      * and list are different, their filtering policies are written separately.

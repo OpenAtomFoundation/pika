@@ -1114,6 +1114,7 @@ class Storage {
 
   // For scan keys in data base
   std::atomic<bool> scan_keynum_exit_ = {false};
+  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
 };
 
 }  //  namespace storage

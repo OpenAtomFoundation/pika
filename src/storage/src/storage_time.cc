@@ -21,7 +21,9 @@ int64_t LogicTime::Now() {
 }
 
 void LogicTime::UpdateLogicTime(int64_t time) {
-  logic_time_ = time;
+  if (protection_mode_) {
+    logic_time_ = time;
+  }
 }
 
 bool LogicTime::ProtectionMode() {

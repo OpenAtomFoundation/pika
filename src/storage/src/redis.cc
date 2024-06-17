@@ -387,7 +387,7 @@ Status Redis::ScanKeyNum(std::vector<KeyInfo>* key_infos) {
   if (!s.ok()) {
     return s;
   }
-  s = ScanSetsKeyNum(&((*key_infos)[5]));
+  s = ScanStreamsKeyNum(&((*key_infos)[5]));
   if (!s.ok()) {
     return s;
   }
