@@ -655,10 +655,8 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   if (type == storage::DataType::kNones) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
     return 0;
-  } else {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: "<< key <<" type: " << static_cast<int>(type)  << " is  illegal";
-    return -1;
   }
+
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
     return -1;
@@ -678,7 +676,7 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       is_migrating_ = true;
       usleep(100);
     }
-  } else {
+  }
     // check the key is migrating
     std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
     if (IsMigrating(kpair)) {
@@ -689,7 +687,6 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       mgrtone_queue_.emplace_back(kpair);
       NotifyRequestMigrate();
     }
-  }
 
   return 1;
 }
@@ -937,7 +934,9 @@ void *PikaMigrateThread::ThreadMain() {
     {
       std::unique_lock lw(workers_mutex_);
       while (!should_exit_ && is_task_success_ && send_num_ != response_num_) {
-        workers_cond_.wait(lw);
+        if (workers_cond_.wait_for(lw, std::chrono::minutes(3)) == std::cv_status::timeout) {
+          break;
+        }
       }
     }
     LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;
