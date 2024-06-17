@@ -154,6 +154,7 @@ class Redis {
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
+  Status HyperloglogGet(const Slice& key, std::string* value);
   Status MGet(const Slice& key, std::string* value);
   Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
@@ -166,6 +167,7 @@ class Redis {
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
+  Status HyperloglogSet(const Slice& key, const Slice& value);
   Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
   Status SetBit(const Slice& key, int64_t offset, int32_t value, int32_t* ret);
   Status Setex(const Slice& key, const Slice& value, int64_t ttl);

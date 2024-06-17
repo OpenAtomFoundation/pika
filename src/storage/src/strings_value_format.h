@@ -23,13 +23,36 @@ class StringsValue : public InternalValue {
     size_t usize = user_value_.size();
     size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
     char* dst = ReAllocIfNeeded(needed);
-    memcpy(dst, &type_, sizeof(type_));
+    memcpy(dst, &type_, sizeof(type_));//set type as Kstring
     dst += sizeof(type_);
     char* start_pos = dst;
 
-    memcpy(dst, user_value_.data(), usize);
+    memcpy(dst, user_value_.data(), usize);//copy real value
     dst += usize;
-    memcpy(dst, reserve_, kSuffixReserveLength);
+    memcpy(dst, reserve_, kSuffixReserveLength);//copy reserve
+    dst += kSuffixReserveLength;
+    EncodeFixed64(dst, ctime_);
+    dst += kTimestampLength;
+    EncodeFixed64(dst, etime_);
+    return {start_, needed};
+  }
+};
+
+class HyperloglogValue : public InternalValue {
+ public:
+  explicit HyperloglogValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
+  virtual rocksdb::Slice Encode() override {
+    size_t usize = user_value_.size();
+    size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
+    char* dst = ReAllocIfNeeded(needed);
+    memcpy(dst, &type_, sizeof(type_));//set type as Kstring
+    dst += sizeof(type_);
+    char* start_pos = dst;
+
+    memcpy(dst, user_value_.data(), usize);//copy real value
+    dst += usize;
+    reserve_[0] = 0x80;
+    memcpy(dst, reserve_, kSuffixReserveLength);//copy reserve
     dst += kSuffixReserveLength;
     EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;

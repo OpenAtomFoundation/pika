@@ -1548,7 +1548,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   std::string registers;
   std::string result;
   auto& inst = GetDBInstance(key);
-  Status s = inst->Get(key, &value);
+  Status s = inst->HyperloglogGet(key, &value);
   if (s.ok()) {
     registers = value;
   } else if (s.IsNotFound()) {
@@ -1566,7 +1566,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   if (previous != now || (s.IsNotFound() && values.empty())) {
     *update = true;
   }
-  s = inst->Set(key, result);
+  s = inst->HyperloglogSet(key, result);
   return s;
 }
 
@@ -1578,19 +1578,21 @@ Status Storage::PfCount(const std::vector<std::string>& keys, int64_t* result) {
   std::string value;
   std::string first_registers;
   auto& inst = GetDBInstance(keys[0]);
-  Status s = inst->Get(keys[0], &value);
+  Status s = inst->HyperloglogGet(keys[0], &value);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
     first_registers = "";
+  } else {
+    return s;
   }
-
+  LOG(INFO) << s.ToString() << std::endl;
   HyperLogLog first_log(kPrecision, first_registers);
   for (size_t i = 1; i < keys.size(); ++i) {
     std::string value;
     std::string registers;
     auto& inst = GetDBInstance(keys[i]);
-    s = inst->Get(keys[i], &value);
+    s = inst->HyperloglogGet(keys[i], &value);
     if (s.ok()) {
       registers = value;
     } else if (s.IsNotFound()) {
@@ -1615,7 +1617,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
   std::string first_registers;
   std::string result;
   auto& inst = GetDBInstance(keys[0]);
-  s = inst->Get(keys[0], &value);
+  s = inst->HyperloglogGet(keys[0], &value);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
@@ -1628,7 +1630,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
     std::string value;
     std::string registers;
     auto& tmp_inst = GetDBInstance(keys[i]);
-    s = tmp_inst->Get(keys[i], &value);
+    s = tmp_inst->HyperloglogGet(keys[i], &value);
     if (s.ok()) {
       registers = std::string(value.data(), value.size());
     } else if (s.IsNotFound()) {
@@ -1640,7 +1642,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
     result = first_log.Merge(log);
   }
   auto& ninst = GetDBInstance(keys[0]);
-  s = ninst->Set(keys[0], result);
+  s = ninst->HyperloglogSet(keys[0], result);
   value_to_dest = std::move(result);
   return s;
 }
