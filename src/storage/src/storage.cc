@@ -1586,7 +1586,6 @@ Status Storage::PfCount(const std::vector<std::string>& keys, int64_t* result) {
   } else {
     return s;
   }
-  LOG(INFO) << s.ToString() << std::endl;
   HyperLogLog first_log(kPrecision, first_registers);
   for (size_t i = 1; i < keys.size(); ++i) {
     std::string value;
