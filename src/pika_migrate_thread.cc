@@ -654,11 +654,14 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   key_type = storage::DataTypeToTag(type);
   if (type == storage::DataType::kNones) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
+    return 0;
+  } else {
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: "<< key <<" type: " << static_cast<int>(type)  << " is  illegal";
     return -1;
   }
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
-    return -2;
+    return -1;
   }
 
   // if the migrate thread exit, start it
