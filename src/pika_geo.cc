@@ -10,6 +10,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_geohash_helper.h"
+#include "rocksdb/status.h"
 
 void GeoAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -59,7 +60,7 @@ void GeoAddCmd::Do() {
   rocksdb::Status s = db_->storage()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
-  } else if (s_.IsInvalidArgument()) {
+  } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -103,7 +104,7 @@ void GeoPosCmd::Do() {
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
       continue;
-    } else if (s_.IsInvalidArgument()) {
+    } else if (s.IsInvalidArgument()) {
       res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
@@ -163,13 +164,14 @@ void GeoDistCmd::Do() {
   double first_xy[2];
   double second_xy[2];
   rocksdb::Status s = db_->storage()->ZScore(key_, first_pos_, &first_score);
+  
   if (s.ok()) {
     GeoHashBits hash = {.bits = static_cast<uint64_t>(first_score), .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, first_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
     return;
-  } else if (s_.IsInvalidArgument()) {
+  } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else {
@@ -241,7 +243,7 @@ void GeoHashCmd::Do() {
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
       continue;
-    } else if (s_.IsInvalidArgument()) {
+    } else if (s.IsInvalidArgument()) {
       res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
@@ -311,9 +313,17 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     }
     std::vector<storage::ScoreMember> score_members;
     s = db->storage()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
+    LOG(INFO) << s.ToString() << std::endl;
     if (!s.ok() && !s.IsNotFound()) {
-      res.SetRes(CmdRes::kErrOther, s.ToString());
-      return;
+      if (s.IsInvalidArgument()){
+        res.SetRes(CmdRes::kMultiKey);
+        return;
+      }
+      else{
+        res.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
+      
     }
     // Insert into result only if the point is within the search area.
     for (auto & score_member : score_members) {

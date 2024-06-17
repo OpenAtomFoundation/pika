@@ -1123,8 +1123,10 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
       return Status::NotFound();
     } else {
       std::string data_value;
+      LOG(INFO) << member.ToStringView() << std::endl;
       ZSetsMemberKey zsets_member_key(key, version, member);
       s = db_->Get(read_options, handles_[kZsetsDataCF], zsets_member_key.Encode(), &data_value);
+      LOG(INFO) << s.ToString() << std::endl;
       if (s.ok()) {
         ParsedBaseDataValue parsed_value(&data_value);
         parsed_value.StripSuffix();
