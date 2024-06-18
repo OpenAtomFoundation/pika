@@ -1513,7 +1513,6 @@ void SlotsMgrtExecWrapperCmd::Do() {
   int ret = g_pika_server->SlotsMigrateOne(key_, db_);
   switch (ret) {
     case 0:
-    case -2:
       res_.AppendInteger(0);
       res_.AppendInteger(0);
       return;
