@@ -23,13 +23,13 @@ class StringsValue : public InternalValue {
     size_t usize = user_value_.size();
     size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
     char* dst = ReAllocIfNeeded(needed);
-    memcpy(dst, &type_, sizeof(type_));//set type as Kstring
+    memcpy(dst, &type_, sizeof(type_));
     dst += sizeof(type_);
     char* start_pos = dst;
 
-    memcpy(dst, user_value_.data(), usize);//copy real value
+    memcpy(dst, user_value_.data(), usize);
     dst += usize;
-    memcpy(dst, reserve_, kSuffixReserveLength);//copy reserve
+    memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
     EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;
@@ -45,14 +45,14 @@ class HyperloglogValue : public InternalValue {
     size_t usize = user_value_.size();
     size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
     char* dst = ReAllocIfNeeded(needed);
-    memcpy(dst, &type_, sizeof(type_));//set type as Kstring
+    memcpy(dst, &type_, sizeof(type_));
     dst += sizeof(type_);
     char* start_pos = dst;
 
-    memcpy(dst, user_value_.data(), usize);//copy real value
+    memcpy(dst, user_value_.data(), usize);
     dst += usize;
     reserve_[0] = 0x80;
-    memcpy(dst, reserve_, kSuffixReserveLength);//copy reserve
+    memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
     EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;

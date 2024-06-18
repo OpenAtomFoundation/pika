@@ -119,8 +119,8 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
 uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
 
 
-bool IsHyperloglogObj(std::string* internal_value_str){
-    size_t offset = 0;  
+bool IsHyperloglogObj(std::string *internal_value_str) {
+    size_t offset = 0;
     size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
     char reserve[16] = {0};
     offset += kTypeLength;
@@ -128,49 +128,52 @@ bool IsHyperloglogObj(std::string* internal_value_str){
     offset += (rocksdb::Slice(internal_value_str->data() + offset,
                               internal_value_str->size() - kStringsValueSuffixLength - offset)).size();
     memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
-    
-    bool res = (reserve[0] & 0x80) != 0;//if first bit in reserve is 0 , then this obj is string; else the obj is hll
+
+    //if first bit in reserve is 0 , then this obj is string; else the obj is hll
+    bool res = (reserve[0] & 0x80) != 0;
     return res;
 }
 
-Status Redis::HyperloglogGet(const Slice& key, std::string* value) {
-  value->clear();
+Status Redis::HyperloglogGet(const Slice &key, std::string *value) {
+    value->clear();
 
-  BaseKey base_key(key);
-  Status s = db_->Get(default_read_options_, base_key.Encode(), value);
-  std::string meta_value = *value;
-  if (s.ok()){
-    if (!ExpectedMetaValue(DataType::kStrings, meta_value)){
-      if (ExpectedStale(meta_value)) {
-      s = Status::NotFound();
-    } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + "strings " + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
-    }
-    }
-    else if (!IsHyperloglogObj(value)){
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + "hyperloglog " + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
-    }
-    else {
-      ParsedStringsValue parsed_strings_value(value);
-      if (parsed_strings_value.IsStale()) {
-      value->clear();
-      return Status::NotFound("Stale");
-      } else {
-      parsed_strings_value.StripSuffix();
-      }
+    BaseKey base_key(key);
+    Status s = db_->Get(default_read_options_, base_key.Encode(), value);
+    std::string meta_value = *value;
+    if (s.ok()) {
+        if (!ExpectedMetaValue(DataType::kStrings, meta_value)) {
+            if (ExpectedStale(meta_value)) {
+                s = Status::NotFound();
+            } else {
+                return Status::InvalidArgument(
+                        "WRONGTYPE, key: " + key.ToString() + ", expect type: " + "strings " + "get type: " +
+                        DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+            }
+        } else if (!IsHyperloglogObj(value)) {
+            return Status::InvalidArgument(
+                    "WRONGTYPE, key: " + key.ToString() + ", expect type: " + "hyperloglog " + "get type: " +
+                    DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+        } else {
+            ParsedStringsValue parsed_strings_value(value);
+            if (parsed_strings_value.IsStale()) {
+                value->clear();
+                return Status::NotFound("Stale");
+            } else {
+                parsed_strings_value.StripSuffix();
+            }
+        }
+
     }
 
-  }
-
-  return s;
+    return s;
 }
 
-Status Redis::HyperloglogSet(const Slice& key, const Slice& value) {
-  HyperloglogValue hyperloglog_value(value);
-  ScopeRecordLock l(lock_mgr_, key);
+Status Redis::HyperloglogSet(const Slice &key, const Slice &value) {
+    HyperloglogValue hyperloglog_value(value);
+    ScopeRecordLock l(lock_mgr_, key);
 
-  BaseKey base_key(key);
-  return db_->Put(default_write_options_, base_key.Encode(), hyperloglog_value.Encode());
+    BaseKey base_key(key);
+    return db_->Put(default_write_options_, base_key.Encode(), hyperloglog_value.Encode());
 }
 
 }  // namespace storage
