@@ -1299,10 +1299,12 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.max_bytes_for_level_base = g_pika_conf->level0_file_num_compaction_trigger() * g_pika_conf->write_buffer_size();
   storage_options_.options.max_subcompactions = g_pika_conf->max_subcompactions();
   storage_options_.options.target_file_size_base = g_pika_conf->target_file_size_base();
+  storage_options_.options.max_compaction_bytes = g_pika_conf->max_compaction_bytes();
   storage_options_.options.max_background_flushes = g_pika_conf->max_background_flushes();
   storage_options_.options.max_background_compactions = g_pika_conf->max_background_compactions();
   storage_options_.options.disable_auto_compactions = g_pika_conf->disable_auto_compactions();
   storage_options_.options.max_background_jobs = g_pika_conf->max_background_jobs();
+  storage_options_.options.delayed_write_rate = g_pika_conf->delayed_write_rate();
   storage_options_.options.max_open_files = g_pika_conf->max_cache_files();
   storage_options_.options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
   storage_options_.options.optimize_filters_for_hits = g_pika_conf->optimize_filters_for_hits();
@@ -1337,7 +1339,6 @@ void PikaServer::InitStorageOptions() {
     storage_options_.table_options.block_cache =
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
-
   storage_options_.options.rate_limiter =
       std::shared_ptr<rocksdb::RateLimiter>(
           rocksdb::NewGenericRateLimiter(
@@ -1347,7 +1348,6 @@ void PikaServer::InitStorageOptions() {
               static_cast<rocksdb::RateLimiter::Mode>(g_pika_conf->rate_limiter_mode()),
               g_pika_conf->rate_limiter_auto_tuned()
                   ));
-
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   storage_options_.small_compaction_threshold = g_pika_conf->small_compaction_threshold();
