@@ -130,8 +130,7 @@ bool IsHyperloglogObj(std::string *internal_value_str) {
     memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
 
     //if first bit in reserve is 0 , then this obj is string; else the obj is hll
-    bool res = (reserve[0] & 0x80) != 0;
-    return res;
+    return (reserve[0] & 0x80) != 0;;
 }
 
 Status Redis::HyperloglogGet(const Slice &key, std::string *value) {
@@ -140,31 +139,30 @@ Status Redis::HyperloglogGet(const Slice &key, std::string *value) {
     BaseKey base_key(key);
     Status s = db_->Get(default_read_options_, base_key.Encode(), value);
     std::string meta_value = *value;
-    if (s.ok()) {
-        if (!ExpectedMetaValue(DataType::kStrings, meta_value)) {
-            if (ExpectedStale(meta_value)) {
-                s = Status::NotFound();
-            } else {
-                return Status::InvalidArgument(
-                        "WRONGTYPE, key: " + key.ToString() + ", expect type: " + "strings " + "get type: " +
-                        DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
-            }
-        } else if (!IsHyperloglogObj(value)) {
-            return Status::InvalidArgument(
-                    "WRONGTYPE, key: " + key.ToString() + ", expect type: " + "hyperloglog " + "get type: " +
-                    DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
-        } else {
-            ParsedStringsValue parsed_strings_value(value);
-            if (parsed_strings_value.IsStale()) {
-                value->clear();
-                return Status::NotFound("Stale");
-            } else {
-                parsed_strings_value.StripSuffix();
-            }
-        }
-
+    if (!s.ok()) {
+        return s;
     }
-
+    if (!ExpectedMetaValue(DataType::kStrings, meta_value)) {
+        if (ExpectedStale(meta_value)) {
+            s = Status::NotFound();
+        } else {
+            return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() +
+                                           ", expect type: " + "hyperloglog " + "get type: " +
+                                           DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+        }
+    } else if (!IsHyperloglogObj(value)) {
+        return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() +
+                                       ",expect type: " + "hyperloglog " + "get type: " +
+                                       DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+    } else {
+        ParsedStringsValue parsed_strings_value(value);
+        if (parsed_strings_value.IsStale()) {
+            value->clear();
+            return Status::NotFound("Stale");
+        } else {
+            parsed_strings_value.StripSuffix();
+        }
+    }
     return s;
 }
 
