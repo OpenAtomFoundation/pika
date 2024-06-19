@@ -7,12 +7,14 @@
 #define PIKA_SERVER_H_
 
 #include <shared_mutex>
-#if defined(__APPLE__)
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #  include <sys/mount.h>
 #  include <sys/param.h>
 #else
 #  include <sys/statfs.h>
 #endif
+
 #include <memory>
 #include <set>
 

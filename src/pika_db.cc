@@ -95,20 +95,11 @@ bool DB::IsKeyScaning() {
 
 void DB::RunKeyScan() {
   Status s;
-  std::vector<storage::KeyInfo> new_key_infos(5);
+  std::vector<storage::KeyInfo> new_key_infos;
 
   InitKeyScan();
   std::shared_lock l(dbs_rw_);
-  std::vector<storage::KeyInfo> tmp_key_infos;
-  s = GetKeyNum(&tmp_key_infos);
-  if (s.ok()) {
-    for (size_t idx = 0; idx < tmp_key_infos.size(); ++idx) {
-      new_key_infos[idx].keys += tmp_key_infos[idx].keys;
-      new_key_infos[idx].expires += tmp_key_infos[idx].expires;
-      new_key_infos[idx].avg_ttl += tmp_key_infos[idx].avg_ttl;
-      new_key_infos[idx].invaild_keys += tmp_key_infos[idx].invaild_keys;
-    }
-  }
+  s = GetKeyNum(&new_key_infos);
   key_scan_info_.duration = static_cast<int32_t>(time(nullptr) - key_scan_info_.start_time);
 
   std::lock_guard lm(key_scan_protector_);

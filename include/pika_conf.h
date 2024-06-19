@@ -259,6 +259,12 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
+
+  uint64_t max_compaction_bytes() {
+    std::shared_lock l(rwlock_);
+    return static_cast<uint64_t>(max_compaction_bytes_);
+  }
+
   int max_cache_statistic_keys() {
     std::shared_lock l(rwlock_);
     return max_cache_statistic_keys_;
@@ -282,6 +288,10 @@ class PikaConf : public pstd::BaseConf {
   int max_background_jobs() {
     std::shared_lock l(rwlock_);
     return max_background_jobs_;
+  }
+  uint64_t delayed_write_rate(){
+    std::shared_lock l(rwlock_);
+    return static_cast<uint64_t>(delayed_write_rate_);
   }
   int max_cache_files() {
     std::shared_lock l(rwlock_);
@@ -732,6 +742,24 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
+  void SetRateLmiterBandwidth(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("rate-limiter-bandwidth", std::to_string(value));
+    rate_limiter_bandwidth_ = value;
+  }
+
+  void SetDelayedWriteRate(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("delayed-write-rate", std::to_string(value));
+    delayed_write_rate_ = value;
+  }
+
+  void SetMaxCompactionBytes(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-compaction-bytes", std::to_string(value));
+    max_compaction_bytes_ = value;
+  }
+
   void SetLogLevel(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("loglevel", value);
@@ -872,9 +900,10 @@ class PikaConf : public pstd::BaseConf {
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int small_compaction_duration_threshold_ = 0;
-  int max_background_flushes_ = 1;
-  int max_background_compactions_ = 2;
+  int max_background_flushes_ = -1;
+  int max_background_compactions_ = -1;
   int max_background_jobs_ = 0;
+  int64_t delayed_write_rate_ = 0;
   int max_cache_files_ = 0;
   std::atomic<uint64_t> rocksdb_ttl_second_ = 0;
   std::atomic<uint64_t> rocksdb_periodic_second_ = 0;
@@ -918,6 +947,7 @@ class PikaConf : public pstd::BaseConf {
   //
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
+  int64_t max_compaction_bytes_ = 0;
   int binlog_file_size_ = 0;
 
   // cache
@@ -952,7 +982,7 @@ class PikaConf : public pstd::BaseConf {
   std::shared_mutex rwlock_;
 
   // Rsync Rate limiting configuration
-  int throttle_bytes_per_second_ = 207200000;
+  int throttle_bytes_per_second_ = 200 << 20; // 200MB/s
   int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   std::atomic_int64_t rsync_timeout_ms_ = 1000;
 };
