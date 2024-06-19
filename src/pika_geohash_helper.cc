@@ -38,7 +38,7 @@
 #include "include/pika_geohash_helper.h"
 // #include "debugmacro.h"
 #include <cmath>
-
+#include "glog/logging.h"
 #define D_R (M_PI / 180.0)
 #define R_MAJOR 6378137.0
 #define R_MINOR 6356752.3142
@@ -79,7 +79,6 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
       step--;
     }
   }
-
   /* Frame to valid range. */
   if (step < 1) {
     step = 1;
@@ -112,11 +111,23 @@ int geohashBoundingBox(double longitude, double latitude, double radius_meters, 
   if (!bounds) {
     return 0;
   }
+  double height = radius_meters;
+  double width = radius_meters;
 
-  bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
-  bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
-  bounds[1] = latitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
-  bounds[3] = latitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
+  const double lat_delta = rad_deg(height/EARTH_RADIUS_IN_METERS);
+  const double long_delta_top = rad_deg(width/EARTH_RADIUS_IN_METERS/cos(deg_rad(latitude+lat_delta)));
+  const double long_delta_bottom = rad_deg(width/EARTH_RADIUS_IN_METERS/cos(deg_rad(latitude-lat_delta)));
+
+  int southern_hemisphere = latitude < 0 ? 1 : 0;
+  bounds[0] = southern_hemisphere ? longitude-long_delta_bottom : longitude-long_delta_top;
+  bounds[2] = southern_hemisphere ? longitude+long_delta_bottom : longitude+long_delta_top;
+  bounds[1] = latitude - lat_delta;
+  bounds[3] = latitude + lat_delta;
+
+  // bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
+  // bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
+  // bounds[1] = latitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
+  // bounds[3] = latitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
   return 1;
 }
 
@@ -141,14 +152,17 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   min_lat = bounds[1];
   max_lon = bounds[2];
   max_lat = bounds[3];
-
+  LOG(INFO) << " bound " << bounds[0] << " " << bounds[1] << " " 
+  << bounds[2] << " " << bounds[3]; 
   steps = geohashEstimateStepsByRadius(radius_meters, latitude);
-
+  
   geohashGetCoordRange(&long_range, &lat_range);
-  geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);
+  geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);//hash->bit is used to represent long and lat
+  LOG(INFO) << " hash.bits "<<hash.bits;
   geohashNeighbors(&hash, &neighbors);
   geohashDecode(long_range, lat_range, hash, &area);
-
+  LOG(INFO) << " area lon: " << area.longitude.max << " " << area.longitude.min
+   << " area lat: " << area.latitude.min << " " << area.latitude.max; 
   /* Check if the step is enough at the limits of the covered area.
    * Sometimes when the search area is near an edge of the
    * area, the estimated step is not small enough, since one of the
@@ -166,20 +180,21 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
     geohashDecode(long_range, lat_range, neighbors.east, &east);
     geohashDecode(long_range, lat_range, neighbors.west, &west);
 
-    if (geohashGetDistance(longitude, latitude, longitude, north.latitude.max) < radius_meters) {
+    if (north.latitude.max < max_lat) {
+      decrease_step = 1;
+
+    }
+    if (south.latitude.min > min_lat) {
       decrease_step = 1;
     }
-    if (geohashGetDistance(longitude, latitude, longitude, south.latitude.min) < radius_meters) {
+    if (east.longitude.max < max_lon) {
       decrease_step = 1;
     }
-    if (geohashGetDistance(longitude, latitude, east.longitude.max, latitude) < radius_meters) {
-      decrease_step = 1;
-    }
-    if (geohashGetDistance(longitude, latitude, west.longitude.min, latitude) < radius_meters) {
+    if (west.longitude.min > min_lon) {
       decrease_step = 1;
     }
   }
-
+  LOG(INFO) << "decrease_step = " << decrease_step << " steps = " << steps;
   if (steps > 1 && (decrease_step != 0)) {
     steps--;
     geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);
@@ -190,21 +205,25 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   /* Exclude the search areas that are useless. */
   if (steps >= 2) {
     if (area.latitude.min < min_lat) {
+      LOG(INFO) << "area.latitude.min < min_lat";
       GZERO(neighbors.south);
       GZERO(neighbors.south_west);
       GZERO(neighbors.south_east);
     }
     if (area.latitude.max > max_lat) {
+      LOG(INFO) << "area.latitude.max > max_lat";
       GZERO(neighbors.north);
       GZERO(neighbors.north_east);
       GZERO(neighbors.north_west);
     }
     if (area.longitude.min < min_lon) {
+      LOG(INFO) << "area.longitude.min < min_lon";
       GZERO(neighbors.west);
       GZERO(neighbors.south_west);
       GZERO(neighbors.north_west);
     }
     if (area.longitude.max > max_lon) {
+      LOG(INFO) << "area.longitude.max > max_lon";
       GZERO(neighbors.east);
       GZERO(neighbors.south_east);
       GZERO(neighbors.north_east);

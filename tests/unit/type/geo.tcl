@@ -158,7 +158,6 @@ start_server {tags {"geo"}} {
         verify_geo_edge_response_bylonlat {} 0
     }
 
-    # The return value of Pika is inconsistent with Redis
     test {GEO BYMEMBER with non existing member} {
         r del src{t}
         r geoadd src{t} 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"
@@ -173,7 +172,7 @@ start_server {tags {"geo"}} {
     test {GEOADD update} {
         r geoadd nyc -73.9454966 40.747533 "lic market"
     } {0}
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOADD update with CH option} {
     #     assert_equal 1 [r geoadd nyc CH 40.747533 -73.9454966 "lic market"]
     #     lassign [lindex [r geopos nyc "lic market"] 0] x1 y1
@@ -181,7 +180,7 @@ start_server {tags {"geo"}} {
     #     assert {abs($y1) - 73.945 < 0.001}
     # } {}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOADD update with NX option} {
     #     assert_equal 0 [r geoadd nyc NX -73.9454966 40.747533 "lic market"]
     #     lassign [lindex [r geopos nyc "lic market"] 0] x1 y1
@@ -189,7 +188,7 @@ start_server {tags {"geo"}} {
     #     assert {abs($y1) - 73.945 < 0.001}
     # } {}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOADD update with XX option} {
     #     assert_equal 0 [r geoadd nyc XX -83.9454966 40.747533 "lic market"]
     #     lassign [lindex [r geopos nyc "lic market"] 0] x1 y1
@@ -197,17 +196,17 @@ start_server {tags {"geo"}} {
     #     assert {abs($y1) - 40.747 < 0.001}
     # } {}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOADD update with CH NX option} {
     #     r geoadd nyc CH NX -73.9454966 40.747533 "lic market"
     # } {0}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOADD update with CH XX option} {
     #     r geoadd nyc CH XX -73.9454966 40.747533 "lic market"
     # } {1}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOADD update with XX NX option will return syntax error} {
     #     catch {
     #         r geoadd nyc xx nx -73.9454966 40.747533 "lic market"
@@ -215,7 +214,7 @@ start_server {tags {"geo"}} {
     #     set err
     # } {ERR *syntax*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOADD update with invalid option} {
     #     catch {
     #         r geoadd nyc ch xx foo -73.9454966 40.747533 "lic market"
@@ -243,41 +242,41 @@ start_server {tags {"geo"}} {
         r georadius nyc -73.9798091 40.7598464 3 km asc
     } {{central park n/q/r} 4545 {union square}}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEORADIUS_RO simple (sorted)} {
     #     r georadius_ro nyc -73.9798091 40.7598464 3 km asc
     # } {{central park n/q/r} 4545 {union square}}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH simple (sorted)} {
     #     r geosearch nyc fromlonlat -73.9798091 40.7598464 bybox 6 6 km asc
     # } {{central park n/q/r} 4545 {union square} {lic market}}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCH FROMLONLAT and FROMMEMBER cannot exist at the same time} {
     #     catch {r geosearch nyc fromlonlat -73.9798091 40.7598464 frommember xxx bybox 6 6 km asc} e
     #     set e
     # } {ERR *syntax*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCH FROMLONLAT and FROMMEMBER one must exist} {
     #     catch {r geosearch nyc bybox 3 3 km asc desc withhash withdist withcoord} e
     #     set e
     # } {ERR *exactly one of FROMMEMBER or FROMLONLAT*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCH BYRADIUS and BYBOX cannot exist at the same time} {
     #     catch {r geosearch nyc fromlonlat -73.9798091 40.7598464 byradius 3 km bybox 3 3 km asc} e
     #     set e
     # } {ERR *syntax*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCH BYRADIUS and BYBOX one must exist} {
     #     catch {r geosearch nyc fromlonlat -73.9798091 40.7598464 asc desc withhash withdist withcoord} e
     #     set e
     # } {ERR *exactly one of BYRADIUS and BYBOX*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCH with STOREDIST option} {
     #     catch {r geosearch nyc fromlonlat -73.9798091 40.7598464 bybox 6 6 km asc storedist} e
     #     set e
@@ -287,7 +286,7 @@ start_server {tags {"geo"}} {
         r georadius nyc -73.9798091 40.7598464 3 km withdist asc
     } {{{central park n/q/r} 0.7750} {4545 2.3651} {{union square} 2.7697}}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH withdist (sorted)} {
     #     r geosearch nyc fromlonlat -73.9798091 40.7598464 bybox 6 6 km withdist asc
     # } {{{central park n/q/r} 0.7750} {4545 2.3651} {{union square} 2.7697} {{lic market} 3.1991}}
@@ -299,22 +298,22 @@ start_server {tags {"geo"}} {
 
     # The return value of Pika is inconsistent with Redis
     # test {GEORADIUS with multiple WITH* tokens} {
-    #     assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHCOORD WITHHASH COUNT 2]
-    #     assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHHASH WITHCOORD COUNT 2]
+    #     # assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHCOORD WITHHASH COUNT 2]
+    #     # assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHHASH WITHCOORD COUNT 2]
     #     assert_match {{{central park n/q/r} 0.7750 1791875761332224 {-73.97334* 40.76480*}} {4545 2.3651 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHDIST WITHHASH WITHCOORD COUNT 2]
     # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEORADIUS with ANY not sorted by default} {
     #     r georadius nyc -73.9798091 40.7598464 10 km COUNT 3 ANY
     # } {{wtc one} {union square} {central park n/q/r}}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEORADIUS with ANY sorted by ASC} {
     #     r georadius nyc -73.9798091 40.7598464 10 km COUNT 3 ANY ASC
     # } {{central park n/q/r} {union square} {wtc one}}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEORADIUS with ANY but no COUNT} {
     #     catch {r georadius nyc -73.9798091 40.7598464 10 km ANY ASC} e
     #     set e
@@ -338,55 +337,55 @@ start_server {tags {"geo"}} {
         r georadiusbymember nyc "wtc one" 7 km
     } {{wtc one} {union square} {central park n/q/r} 4545 {lic market}}
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEORADIUSBYMEMBER_RO simple (sorted)} {
     #     r georadiusbymember_ro nyc "wtc one" 7 km
     # } {{wtc one} {union square} {central park n/q/r} 4545 {lic market}}
     
-    # The return value of Pika is inconsistent with Redis    
-    # test {GEORADIUSBYMEMBER search areas contain satisfied points in oblique direction} {
-    #     r del k1
+    test {GEORADIUSBYMEMBER search areas contain satisfied points in oblique direction} {
+        r del k1
         
-    #     r geoadd k1 -0.15307903289794921875 85 n1 0.3515625 85.00019260486917005437 n2
-    #     set ret1 [r GEORADIUSBYMEMBER k1 n1 4891.94 m]
-    #     assert_equal $ret1 {n1 n2}
+        r geoadd k1 -0.15307903289794921875 85 n1 0.3515625 85.00019260486917005437 n2
+        set ret1 [r GEORADIUSBYMEMBER k1 n1 4891.94 m]
+        assert_equal $ret1 {n1 n2}
         
-    #     r zrem k1 n1 n2
-    #     r geoadd k1 -4.95211958885192871094 85 n3 11.25 85.0511 n4
-    #     set ret2 [r GEORADIUSBYMEMBER k1 n3 156544 m]
-    #     assert_equal $ret2 {n3 n4}
+        r zrem k1 n1 n2
+        r geoadd k1 -4.95211958885192871094 85 n3 11.25 85.0511 n4
+        set ret2 [r GEORADIUSBYMEMBER k1 n3 156544 m]
+        assert_equal $ret2 {n3 n4}
         
-    #     r zrem k1 n3 n4
-    #     r geoadd k1 -45 65.50900022111811438208 n5 90 85.0511 n6
-    #     set ret3 [r GEORADIUSBYMEMBER k1 n5 5009431 m]
-    #     assert_equal $ret3 {n5 n6}
-    # }
+        r zrem k1 n3 n4
+        r geoadd k1 -45 65.50900022111811438208 n5 90 85.0511 n6
+        set ret3 [r GEORADIUSBYMEMBER k1 n5 5009431 m]
+        assert_equal $ret3 {n5 n6}
+    }
 
     # The return value of Pika is inconsistent with Redis
-    # test {GEORADIUSBYMEMBER crossing pole search} {
-    #     r del k1
-    #     r geoadd k1 45 65 n1 -135 85.05 n2
-    #     set ret [r GEORADIUSBYMEMBER k1 n1 5009431 m]
-    #     assert_equal $ret {n1 n2}
-    # }
+    test {GEORADIUSBYMEMBER crossing pole search} {
+        r del k1
+        r geoadd k1 45 65 n1 -135 85.05 n2
+        set ret [r GEORADIUSBYMEMBER k1 n1 5009431 m]
+        assert_equal $ret {n1 n2}
+    }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH FROMMEMBER simple (sorted)} {
     #     r geosearch nyc frommember "wtc one" bybox 14 14 km
     # } {{wtc one} {union square} {central park n/q/r} 4545 {lic market} q4}
 
     # No cause has been confirmed
-    # test {GEOSEARCH vs GEORADIUS} {
-    #     r del Sicily
-    #     r geoadd Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"
-    #     r geoadd Sicily 12.758489 38.788135 "edge1"   17.241510 38.788135 "eage2"
-    #     set ret1 [r georadius Sicily 15 37 200 km asc]
-    #     assert_equal $ret1 {Catania Palermo}
-    #     set ret2 [r geosearch Sicily fromlonlat 15 37 bybox 400 400 km asc]
-    #     assert_equal $ret2 {Catania Palermo eage2 edge1}
-    # }
+    test {GEOSEARCH vs GEORADIUS} {
+        r del Sicily
+        r geoadd Sicily 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"
+        r geoadd Sicily 12.758489 38.788135 "edge1"   17.241510 38.788135 "eage2"
+        set ret1 [r georadius Sicily 15 37 200 km asc]
+        assert_equal $ret1 {Catania Palermo}
+        # Pika does not support the command
+        # set ret2 [r geosearch Sicily fromlonlat 15 37 bybox 400 400 km asc]
+        # assert_equal $ret2 {Catania Palermo eage2 edge1}
+    }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH non square, long and narrow} {
     #     r del Sicily
     #     r geoadd Sicily 12.75 36.995 "test1"
@@ -402,7 +401,7 @@ start_server {tags {"geo"}} {
     #     assert_equal $ret2 {test1 test3}
     # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH corner point test} {
     #     r del Sicily
     #     r geoadd Sicily 12.758489 38.788135 edge1 17.241510 38.788135 edge2 17.250000 35.202000 edge3 12.750000 35.202000 edge4 12.748489955781654 37 edge5 15 38.798135872540925 edge6 17.251510044218346 37 edge7 15 35.201864127459075 edge8 12.692799634687903 38.798135872540925 corner1 12.692799634687903 38.798135872540925 corner2 17.200560937451133 35.201864127459075 corner3 12.799439062548865 35.201864127459075 corner4
@@ -476,16 +475,15 @@ start_server {tags {"geo"}} {
         assert {$m eq {}}
     }
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORADIUS STORE option: syntax error} {
-    #     r del points{t}
-    #     r geoadd points{t} 13.361389 38.115556 "Palermo" \
-    #                        15.087269 37.502669 "Catania"
-    #     catch {r georadius points{t} 13.361389 38.115556 50 km store} e
-    #     set e
-    # } {*ERR*syntax*}
+    test {GEORADIUS STORE option: syntax error} {
+        r del points{t}
+        r geoadd points{t} 13.361389 38.115556 "Palermo" \
+                           15.087269 37.502669 "Catania"
+        catch {r georadius points{t} 13.361389 38.115556 50 km store} e
+        set e
+    } {*ERR*syntax*}
 
-    # The return value of Pika is inconsistent with Redis
+    # Pika does not support the command
     # test {GEOSEARCHSTORE STORE option: syntax error} {
     #     catch {r geosearchstore abc{t} points{t} fromlonlat 13.361389 38.115556 byradius 50 km store abc{t}} e
     #     set e
@@ -527,7 +525,7 @@ start_server {tags {"geo"}} {
     #     assert {[lindex $res 3] > 166}
     # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCHSTORE STORE option: plain usage} {
     #     r geosearchstore points2{t} points{t} fromlonlat 13.361389 38.115556 byradius 500 km
     #     assert_equal [r zrange points{t} 0 -1] [r zrange points2{t} 0 -1]
@@ -545,7 +543,7 @@ start_server {tags {"geo"}} {
     #     assert {[lindex $res 3] < 167}
     # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCHSTORE STOREDIST option: plain usage} {
     #     r geosearchstore points2{t} points{t} fromlonlat 13.361389 38.115556 byradius 500 km storedist
     #     set res [r zrange points2{t} 0 -1 withscores]
@@ -570,7 +568,7 @@ start_server {tags {"geo"}} {
     #     assert {[lindex $res 0] eq "Catania"}
     # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH the box spans -180° or 180°} {
     #     r del points
     #     r geoadd points 179.5 36 point1
@@ -586,8 +584,8 @@ start_server {tags {"geo"}} {
         assert_equal {{1 0.0001} {2 9.8182}} [r GEORADIUS points -122.407107 37.794300 30 mi ASC WITHDIST]
     }
 
-    foreach {type} {byradius bybox} {
-    # No cause has been confirmed
+    # Pika does not support the command
+    # foreach {type} {byradius bybox} {
     # test "GEOSEARCH fuzzy test - $type" {
     #     if {$::accurate} { set attempt 300 } else { set attempt 30 }
     #     while {[incr attempt -1]} {
@@ -648,76 +646,76 @@ start_server {tags {"geo"}} {
     #             lappend debuginfo "place:$j $lon $lat"
     #         }
     #         r geoadd mypoints {*}$argv
-    #         if {$type == "byradius"} {
-    #             set res [lsort [r geosearch mypoints fromlonlat $search_lon $search_lat byradius $radius_km km]]
-    #         } elseif {$type == "bybox"} {
-    #             set res [lsort [r geosearch mypoints fromlonlat $search_lon $search_lat bybox $width_km $height_km km]]
-    #         }
-    #         set res2 [lsort $tcl_result]
-    #         set test_result OK
+    #         # if {$type == "byradius"} {
+    #         #     set res [lsort [r geosearch mypoints fromlonlat $search_lon $search_lat byradius $radius_km km]]
+    #         # } elseif {$type == "bybox"} {
+    #         #     set res [lsort [r geosearch mypoints fromlonlat $search_lon $search_lat bybox $width_km $height_km km]]
+    #         # }
+    #         # set res2 [lsort $tcl_result]
+    #         # set test_result OK
 
-    #         if {$res != $res2} {
-    #             set rounding_errors 0
-    #             set diff [compare_lists $res $res2]
-    #             foreach place $diff {
-    #                 lassign [lindex [r geopos mypoints $place] 0] lon lat
-    #                 set mydist [geo_distance $lon $lat $search_lon $search_lat]
-    #                 set mydist [expr $mydist/1000]
-    #                 if {$type == "byradius"} {
-    #                     if {($mydist / $radius_km) > 0.999} {
-    #                         incr rounding_errors
-    #                         continue
-    #                     }
-    #                     if {$mydist < [expr {$radius_km*1000}]} {
-    #                         # This is a false positive for redis since given the
-    #                         # same points the higher precision calculation provided
-    #                         # by TCL shows the point within range
-    #                         incr rounding_errors
-    #                         continue
-    #                     }
-    #                 } elseif {$type == "bybox"} {
-    #                     # we add 0.1% error for floating point calculation error
-    #                     if {[pointInRectangle $width_km $height_km $lon $lat $search_lon $search_lat 1.001]} {
-    #                         incr rounding_errors
-    #                         continue
-    #                     }
-    #                 }
-    #             }
+    #         # if {$res != $res2} {
+    #         #     set rounding_errors 0
+    #         #     set diff [compare_lists $res $res2]
+    #         #     foreach place $diff {
+    #         #         lassign [lindex [r geopos mypoints $place] 0] lon lat
+    #         #         set mydist [geo_distance $lon $lat $search_lon $search_lat]
+    #         #         set mydist [expr $mydist/1000]
+    #         #         if {$type == "byradius"} {
+    #         #             if {($mydist / $radius_km) > 0.999} {
+    #         #                 incr rounding_errors
+    #         #                 continue
+    #         #             }
+    #         #             if {$mydist < [expr {$radius_km*1000}]} {
+    #         #                 # This is a false positive for redis since given the
+    #         #                 # same points the higher precision calculation provided
+    #         #                 # by TCL shows the point within range
+    #         #                 incr rounding_errors
+    #         #                 continue
+    #         #             }
+    #         #         } elseif {$type == "bybox"} {
+    #         #             # we add 0.1% error for floating point calculation error
+    #         #             if {[pointInRectangle $width_km $height_km $lon $lat $search_lon $search_lat 1.001]} {
+    #         #                 incr rounding_errors
+    #         #                 continue
+    #         #             }
+    #         #         }
+    #         #     }
 
-    #             # Make sure this is a real error and not a rounidng issue.
-    #             if {[llength $diff] == $rounding_errors} {
-    #                 set res $res2; # Error silenced
-    #             }
-    #         }
+    #         #     # Make sure this is a real error and not a rounidng issue.
+    #         #     if {[llength $diff] == $rounding_errors} {
+    #         #         set res $res2; # Error silenced
+    #         #     }
+    #         # }
 
-    #         if {$res != $res2} {
-    #             set diff [compare_lists $res $res2]
-    #             puts "*** Possible problem in GEO radius query ***"
-    #             puts "Redis: $res"
-    #             puts "Tcl  : $res2"
-    #             puts "Diff : $diff"
-    #             puts [join $debuginfo "\n"]
-    #             foreach place $diff {
-    #                 if {[lsearch -exact $res2 $place] != -1} {
-    #                     set where "(only in Tcl)"
-    #                 } else {
-    #                     set where "(only in Redis)"
-    #                 }
-    #                 lassign [lindex [r geopos mypoints $place] 0] lon lat
-    #                 set mydist [geo_distance $lon $lat $search_lon $search_lat]
-    #                 set mydist [expr $mydist/1000]
-    #                 puts "$place -> [r geopos mypoints $place] $mydist $where"
-    #             }
-    #             set test_result FAIL
-    #         }
-    #         unset -nocomplain debuginfo
-    #         if {$test_result ne {OK}} break
+    #         # if {$res != $res2} {
+    #         #     set diff [compare_lists $res $res2]
+    #         #     puts "*** Possible problem in GEO radius query ***"
+    #         #     puts "Redis: $res"
+    #         #     puts "Tcl  : $res2"
+    #         #     puts "Diff : $diff"
+    #         #     puts [join $debuginfo "\n"]
+    #         #     foreach place $diff {
+    #         #         if {[lsearch -exact $res2 $place] != -1} {
+    #         #             set where "(only in Tcl)"
+    #         #         } else {
+    #         #             set where "(only in Redis)"
+    #         #         }
+    #         #         lassign [lindex [r geopos mypoints $place] 0] lon lat
+    #         #         set mydist [geo_distance $lon $lat $search_lon $search_lat]
+    #         #         set mydist [expr $mydist/1000]
+    #         #         puts "$place -> [r geopos mypoints $place] $mydist $where"
+    #         #     }
+    #         #     set test_result FAIL
+    #         # }
+    #         # unset -nocomplain debuginfo
+    #         # if {$test_result ne {OK}} break
     #     }
-    #     set test_result
+    #     # set test_result
     # } {OK}
-    }
+    # }
 
-    # No cause has been confirmed
+    # Pika does not support the command
     # test {GEOSEARCH box edges fuzzy test} {
     #     if {$::accurate} { set attempt 300 } else { set attempt 30 }
     #     while {[incr attempt -1]} {

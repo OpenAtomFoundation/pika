@@ -49,11 +49,11 @@ void GeoAddCmd::Do() {
     // Convert coordinates to geohash
     GeoHashBits hash;
     geohashEncodeWGS84(geo_point.longitude, geo_point.latitude, GEO_STEP_MAX, &hash);
-    GeoHashFix52Bits bits = geohashAlign52Bits(hash);
+    GeoHashFix52Bits bits = geohashAlign52Bits(hash);//use 52 bits to reprsent lon and lat
     // Convert uint64 to double
     double score;
     std::string str_bits = std::to_string(bits);
-    pstd::string2d(str_bits.data(), str_bits.size(), &score);
+    pstd::string2d(str_bits.data(), str_bits.size(), &score);//score is lon and lat
     score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
@@ -302,6 +302,7 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     if (HASHISZERO(neighbors[i])) {
       continue;
     }
+
     min = geohashAlign52Bits(neighbors[i]);
     neighbors[i].bits++;
     max = geohashAlign52Bits(neighbors[i]);
@@ -313,7 +314,6 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     }
     std::vector<storage::ScoreMember> score_members;
     s = db->storage()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
-    LOG(INFO) << s.ToString() << std::endl;
     if (!s.ok() && !s.IsNotFound()) {
       if (s.IsInvalidArgument()){
         res.SetRes(CmdRes::kMultiKey);
@@ -565,6 +565,10 @@ void GeoRadiusByMemberCmd::DoInitial() {
 void GeoRadiusByMemberCmd::Do() {
   double score = 0.0;
   rocksdb::Status s = db_->storage()->ZScore(key_, range_.member, &score);
+  if (s.IsNotFound() && !s.ToString().compare("NotFound: Invaild member")) {
+    res_.SetRes(CmdRes::kErrOther, "could not decode requested zset member");
+    return;
+  }
   if (s.ok()) {
     double xy[2];
     GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
