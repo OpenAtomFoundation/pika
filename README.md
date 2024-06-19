@@ -252,9 +252,16 @@ Users can directly download the latest binary version package from [releases](ht
 
 * #### 3.1 Running with Docker
 
-  Modify the conf/pika.conf file, change log-path value to /data/log/, db-path value to /data/db/, dump-path value to /data/dump/, and db-sync-path value to /data/dbsync/, and then execute the following statement to start pika in docker:
+  Modify the following configuration items of the conf file:
+ ```
+log-path : /data/log/
+db-path : /data/db/
+db-sync-path : /data/dbsync/
+dump-path : /data/dump/
+ ```
 
-  ```bash
+  And then execute the following statement to start pika in docker:
+ ```bash
   docker run -d \
     --restart=always \
     -p 9221:9221 \
