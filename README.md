@@ -254,10 +254,10 @@ Users can directly download the latest binary version package from [releases](ht
 
   Modify the following configuration items of the conf file:
  ```
-log-path : /data/log/
-db-path : /data/db/
-db-sync-path : /data/dbsync/
-dump-path : /data/dump/
+  log-path : /data/log/
+  db-path : /data/db/
+  db-sync-path : /data/dbsync/
+  dump-path : /data/dump/
  ```
 
   And then execute the following statement to start pika in docker:
