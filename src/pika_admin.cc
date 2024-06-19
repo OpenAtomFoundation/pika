@@ -2313,7 +2313,6 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     bool SlowCmdPool;
     if (value == "yes") {
       SlowCmdPool = true;
-      g_pika_server->SetSlowCmdThreadPoolFlag(SlowCmdPool);
     } else if (value == "no") {
       SlowCmdPool = false;
     } else {
@@ -2321,6 +2320,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetSlowCmdPool(SlowCmdPool);
+    g_pika_server->SetSlowCmdThreadPoolFlag(SlowCmdPool);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-log-slower-than") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

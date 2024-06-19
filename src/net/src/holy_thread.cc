@@ -75,7 +75,6 @@ int HolyThread::StartThread() {
   if (ret) {
     return ret;
   }
-  set_thread_name("HolyThread");
   return ServerThread::StartThread();
 }
 
