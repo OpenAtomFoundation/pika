@@ -252,14 +252,14 @@ Users can directly download the latest binary version package from [releases](ht
 
 * #### 3.1 Running with Docker
 
+  Modify the conf/pika.conf file, change log-path value to /data/log/, db-path value to /data/db/, dump-path value to /data/dump/, and db-sync-path value to /data/dbsync/, and then execute the following statement to start pika in docker:
+
   ```bash
   docker run -d \
     --restart=always \
     -p 9221:9221 \
-    -v <log_dir>:/pika/log \
-    -v <db_dir>:/pika/db \
-    -v <dump_dir>:/pika/dump \
-    -v <dbsync_dir>:/pika/dbsync \
+    -v "$(pwd)/conf":"/pika/conf" \
+    -v "/tmp/pika-data":"/data" \
     pikadb/pika:v3.3.6
 
   redis-cli -p 9221 "info"
