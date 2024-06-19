@@ -238,9 +238,8 @@ Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   Status s;
   for (const auto& kv : kvs) {
     auto& inst = GetDBInstance(kv.key);
-    std::string value;
-    s = inst->Get(Slice(kv.key), &value);
-    if (s.ok() || !s.IsNotFound()) {
+    s = inst->IsExist(Slice(kv.key));
+    if (!s.IsNotFound()) {
       return s;
     }
   }
