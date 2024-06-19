@@ -37,11 +37,12 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
      * The field designs of the remaining zset,set,hash and stream in meta-value
      * are the same, so the same filtering strategy is used
      */
+    ParsedBaseKey parsed_key(key);
     auto type = static_cast<enum DataType>(static_cast<uint8_t>(value[0]));
     DEBUG("==========================START==========================");
     if (type == DataType::kStrings) {
       ParsedStringsValue parsed_strings_value(value);
-      DEBUG("[string type]  key: {}, value = {}, timestamp: {}, cur_time: {}", key.ToString().c_str(),
+      DEBUG("[string type]  key: %s, value = %s, timestamp: %llu, cur_time: %llu", parsed_key.Key().ToString().c_str(),
             parsed_strings_value.UserValue().ToString().c_str(), parsed_strings_value.Etime(), cur_time);
       if (parsed_strings_value.Etime() != 0 && parsed_strings_value.Etime() < cur_time) {
         DEBUG("Drop[Stale]");
@@ -52,14 +53,15 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
       }
     } else if (type == DataType::kStreams) {
       ParsedStreamMetaValue parsed_stream_meta_value(value);
-      DEBUG("[stream meta type], key: {}, entries_added = {}, first_id: {}, last_id: {}, version: {}",
-            key.ToString().c_str(), parsed_stream_meta_value.entries_added(),
-            parsed_stream_meta_value.first_id(), parsed_stream_meta_value.last_id(),
+      DEBUG("[stream meta type], key: %s, entries_added = %llu, first_id: %s, last_id: %s, version: %llu",
+            parsed_key.Key().ToString().c_str(), parsed_stream_meta_value.entries_added(),
+            parsed_stream_meta_value.first_id().ToString().c_str(),
+            parsed_stream_meta_value.last_id().ToString().c_str(),
             parsed_stream_meta_value.version());
       return false;
     } else if (type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(value);
-      DEBUG("[list meta type], key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
+      DEBUG("[list meta type], key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu", parsed_key.Key().ToString().c_str(),
             parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
             parsed_lists_meta_value.Version());
 
@@ -76,8 +78,9 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
       return false;
     } else {
       ParsedBaseMetaValue parsed_base_meta_value(value);
-      DEBUG("[hashe/set/zset meta type]  key: {}, count = {}, timestamp: {}, cur_time: {}, version: {}", key.ToString().c_str(),
-            parsed_base_meta_value.Count(), parsed_base_meta_value.Etime(), cur_time, parsed_base_meta_value.Version());
+      DEBUG("[%s meta type]  key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu",
+            DataTypeToString(type), parsed_key.Key().ToString().c_str(), parsed_base_meta_value.Count(),
+            parsed_base_meta_value.Etime(), cur_time, parsed_base_meta_value.Version());
 
       if (parsed_base_meta_value.Etime() != 0 && parsed_base_meta_value.Etime() < cur_time &&
           parsed_base_meta_value.Version() < cur_time) {
