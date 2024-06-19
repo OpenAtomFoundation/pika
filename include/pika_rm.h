@@ -117,6 +117,7 @@ class SyncSlaveDB : public SyncDB {
   void StopRsync();
   pstd::Status ActivateRsync();
   bool IsRsyncRunning() { return rsync_cli_->IsRunning(); }
+  bool IsRsyncErrorStopped() { return rsync_cli_->IsErrorStopped(); }
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;

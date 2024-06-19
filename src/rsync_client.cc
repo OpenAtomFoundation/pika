@@ -48,7 +48,9 @@ void RsyncClient::Copy(const std::set<std::string>& file_set, int index) {
       break;
     }
   }
-  LOG(INFO) << "work_thread index: " << index << " copy remote files done";
+  if (!error_stopped_.load()) {
+    LOG(INFO) << "work_thread index: " << index << " copy remote files done";
+  }
   finished_work_cnt_.fetch_add(1);
   cond_.notify_all();
 }
@@ -58,6 +60,7 @@ bool RsyncClient::Init() {
     LOG(WARNING) << "State should be IDLE when Init";
     return false;
   }
+  error_stopped_.store(false);
   master_ip_ = g_pika_server->master_ip();
   master_port_ = g_pika_server->master_port() + kPortShiftRsync2;
   file_set_.clear();
@@ -143,7 +146,9 @@ void* RsyncClient::ThreadMain() {
   }
   finished_work_cnt_.store(0);
   state_.store(STOP);
-  LOG(INFO) << "RsyncClient copy remote files done";
+  if (!error_stopped_.load()) {
+    LOG(INFO) << "RsyncClient copy remote files done";
+  }
   return nullptr;
 }
 
@@ -215,9 +220,10 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       Throttle::GetInstance().ReturnUnusedThroughput(count, ret_count, elaspe_time_us);
 
       if (resp->snapshot_uuid() != snapshot_uuid_) {
-        LOG(WARNING) << "receive newer dump, reset state to STOP, local_snapshot_uuid:"
+        LOG(WARNING) << "receive newer dump, reset RsyncClient state to STOP, local_snapshot_uuid:"
                      << snapshot_uuid_ << "remote snapshot uuid: " << resp->snapshot_uuid();
         state_.store(STOP);
+        error_stopped_.store(true);
         return s;
       }
 
