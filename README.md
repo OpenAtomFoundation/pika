@@ -252,7 +252,7 @@ Users can directly download the latest binary version package from [releases](ht
 
 * #### 3.1 Running with Docker
 
-  Modify the following configuration items of the conf file:
+  Modify the following configuration items of conf/pika.conf file:
  ```
   log-path : /data/log/
   db-path : /data/db/
