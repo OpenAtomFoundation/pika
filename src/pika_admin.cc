@@ -1602,6 +1602,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, g_pika_conf->slotmigrate() ? "yes" : "no");
   }
 
+  if (pstd::stringmatch(pattern.data(), "slow-cmd-pool", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "slow-cmd-pool");
+    EncodeString(&config_body, g_pika_conf->slow_cmd_pool() ? "yes" : "no");
+  }
+
   if (pstd::stringmatch(pattern.data(), "slotmigrate-thread-num", 1)!= 0) {
     elements += 2;
     EncodeString(&config_body, "slotmigrate-thread-num");
@@ -2143,6 +2149,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "requirepass",
         "masterauth",
         "slotmigrate",
+        "slow-cmd-pool",
         "slotmigrate-thread-num",
         "thread-migrate-keys-num",
         "userpass",
@@ -2301,6 +2308,19 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetSlotMigrate(slotmigrate);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "slow_cmd_pool") {
+    bool SlowCmdPool;
+    if (value == "yes") {
+      SlowCmdPool = true;
+    } else if (value == "no") {
+      SlowCmdPool = false;
+    } else {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slow-cmd-pool'\r\n");
+      return;
+    }
+    g_pika_conf->SetSlowCmdPool(SlowCmdPool);
+    g_pika_server->SetSlowCmdThreadPoolFlag(SlowCmdPool);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slowlog-log-slower-than") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

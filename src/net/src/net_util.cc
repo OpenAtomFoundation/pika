@@ -126,6 +126,7 @@ int TimerTaskThread::StartThread() {
     // if there is no timer task registered, no need of start the thread
     return -1;
   }
+  set_thread_name("TimerTask");
   LOG(INFO) << "TimerTaskThread Starting...";
   return Thread::StartThread();
 }
