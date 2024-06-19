@@ -119,21 +119,20 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
 uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
 
 
-bool IsHyperloglogObj(std::string *internal_value_str) {
+bool IsHyperloglogObj(const std::string* internal_value_str) {
     size_t offset = 0;
     size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
     char reserve[16] = {0};
     offset += kTypeLength;
-    rocksdb::Slice user_value_;
     offset += (rocksdb::Slice(internal_value_str->data() + offset,
                               internal_value_str->size() - kStringsValueSuffixLength - offset)).size();
     memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
 
     //if first bit in reserve is 0 , then this obj is string; else the obj is hll
-    return (reserve[0] & 0x80) != 0;;
+    return (reserve[0] & hyperloglog_reserve_flag) != 0;;
 }
 
-Status Redis::HyperloglogGet(const Slice &key, std::string *value) {
+Status Redis::HyperloglogGet(const Slice &key, std::string* value) {
     value->clear();
 
     BaseKey base_key(key);

@@ -11,11 +11,15 @@
 #include "src/base_value_format.h"
 #include "storage/storage_define.h"
 
+
 namespace storage {
 /*
 * | type | value | reserve | cdate | timestamp |
 * |  1B  |       |   16B   |   8B  |     8B    |
+*  The first bit in reservse field is used to isolate string and hyperloglog  
 */
+
+#define hyperloglog_reserve_flag 0x80
 class StringsValue : public InternalValue {
  public:
   explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
@@ -51,7 +55,7 @@ class HyperloglogValue : public InternalValue {
 
     memcpy(dst, user_value_.data(), usize);
     dst += usize;
-    reserve_[0] = 0x80;
+    reserve_[0] |= hyperloglog_reserve_flag;
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
     EncodeFixed64(dst, ctime_);
