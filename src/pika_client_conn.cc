@@ -278,7 +278,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
 
     if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()){
-      if ( c_ptr && c_ptr->is_cacheread() ){
+      if ( c_ptr && c_ptr->isCacheRead() ){
         // read in cache
         if (BatchReadCmdInCache(argvs)){
           return;
