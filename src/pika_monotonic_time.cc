@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifdef __APPLE__  // Mac
+#if defined(__APPLE__)  // Mac
 #include <mach/mach_time.h>
 
 #include "include/pika_monotonic_time.h"
@@ -17,7 +17,18 @@ monotime getMonotonicUs() {
   return nanos / 1000;
 }
 
-#elif __linux__  // Linux
+#elif defined(__FreeBSD__)  // FreeBSD
+#include <time.h>
+
+#include "include/pika_monotonic_time.h"
+
+monotime getMonotonicUs() {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
+}
+
+#elif defined(__linux__)  // Linux
 
 #ifdef __x86_64__  // x86_64
 

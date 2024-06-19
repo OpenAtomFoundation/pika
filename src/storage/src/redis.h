@@ -156,6 +156,7 @@ class Redis {
   Status Get(const Slice& key, std::string* value);
   Status MGet(const Slice& key, std::string* value);
   Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
