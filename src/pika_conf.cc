@@ -71,6 +71,11 @@ int PikaConf::Load() {
   GetConfStr("slotmigrate", &smgrt);
   slotmigrate_.store(smgrt == "yes" ? true : false);
 
+  // slow cmd thread pool
+  std::string slowcmdpool;
+  GetConfStr("slow-cmd-pool", &slowcmdpool);
+  slow_cmd_pool_.store(slowcmdpool == "yes" ? true : false);
+
   int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
   if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
@@ -150,11 +155,11 @@ int PikaConf::Load() {
   }
 
   GetConfInt("slow-cmd-thread-pool-size", &slow_cmd_thread_pool_size_);
-  if (slow_cmd_thread_pool_size_ <= 0) {
-    slow_cmd_thread_pool_size_ = 12;
+  if (slow_cmd_thread_pool_size_ < 0) {
+    slow_cmd_thread_pool_size_ = 8;
   }
-  if (slow_cmd_thread_pool_size_ > 100) {
-    slow_cmd_thread_pool_size_ = 100;
+  if (slow_cmd_thread_pool_size_ > 50) {
+    slow_cmd_thread_pool_size_ = 50;
   }
 
   std::string slow_cmd_list;

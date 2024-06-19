@@ -48,6 +48,8 @@ int BackendThread::StartThread() {
   if (res) {
     return res;
   }
+  set_thread_name("BackendThread");
+
   return Thread::StartThread();
 }
 
