@@ -108,8 +108,10 @@ class ThreadPool : public pstd::noncopyable {
   Node* CreateMissingNewerLinks(Node* head, int* cnt);
   bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
 
-  int task_idx_;
-std::vector<std::atomic<void*>> asd;
+  uint16_t task_idx_;
+
+  const uint8_t nworkers_per_link_ = 2;  // numer of workers per link
+  const uint8_t nlinks_;                 // number of links (upper around)
   std::vector<std::atomic<Node*>> newest_node_;
   std::atomic<int> node_cnt_;  // for task
   std::vector<std::atomic<Node*>> time_newest_node_;
