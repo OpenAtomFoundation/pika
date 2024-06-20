@@ -123,10 +123,6 @@ int geohashBoundingBox(double longitude, double latitude, double radius_meters, 
   bounds[1] = latitude - lat_delta;
   bounds[3] = latitude + lat_delta;
 
-  // bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
-  // bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
-  // bounds[1] = latitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
-  // bounds[3] = latitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS);
   return 1;
 }
 
@@ -154,7 +150,7 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   steps = geohashEstimateStepsByRadius(radius_meters, latitude);
   
   geohashGetCoordRange(&long_range, &lat_range);
-  geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);//hash->bit is used to represent long and lat
+  geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);
   geohashNeighbors(&hash, &neighbors);
   geohashDecode(long_range, lat_range, hash, &area);
   /* Check if the step is enough at the limits of the covered area.
@@ -176,7 +172,6 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
 
     if (north.latitude.max < max_lat) {
       decrease_step = 1;
-
     }
     if (south.latitude.min > min_lat) {
       decrease_step = 1;

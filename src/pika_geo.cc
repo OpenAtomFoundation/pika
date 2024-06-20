@@ -49,11 +49,11 @@ void GeoAddCmd::Do() {
     // Convert coordinates to geohash
     GeoHashBits hash;
     geohashEncodeWGS84(geo_point.longitude, geo_point.latitude, GEO_STEP_MAX, &hash);
-    GeoHashFix52Bits bits = geohashAlign52Bits(hash);//use 52 bits to reprsent lon and lat
+    GeoHashFix52Bits bits = geohashAlign52Bits(hash);
     // Convert uint64 to double
     double score;
     std::string str_bits = std::to_string(bits);
-    pstd::string2d(str_bits.data(), str_bits.size(), &score);//score is lon and lat
+    pstd::string2d(str_bits.data(), str_bits.size(), &score);
     score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
@@ -315,15 +315,13 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     std::vector<storage::ScoreMember> score_members;
     s = db->storage()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
     if (!s.ok() && !s.IsNotFound()) {
-      if (s.IsInvalidArgument()){
+      if (s.IsInvalidArgument()) {
         res.SetRes(CmdRes::kMultiKey);
         return;
-      }
-      else{
+      } else {
         res.SetRes(CmdRes::kErrOther, s.ToString());
         return;
       }
-      
     }
     // Insert into result only if the point is within the search area.
     for (auto & score_member : score_members) {
@@ -349,14 +347,13 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     count_limit = static_cast<int32_t>(result.size());
   }
   // If using sort option
-  if (range.sort != Unsort){
+  if (range.sort != Unsort) {
     if (range.sort == Asc) {
       std::sort(result.begin(), result.end(), sort_distance_asc);
     } else if (range.sort == Desc) {
       std::sort(result.begin(), result.end(), sort_distance_desc);
     }
   }
-  
   
   if (range.store || range.storedist) {
     // Target key, create a sorted set with the results.
@@ -368,7 +365,7 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     }
     int32_t count = 0;
     int32_t card = db->storage()->Exists({range.storekey});
-    if (card){
+    if (card) {
       db->storage()->Del({range.storekey});
       db->cache()->Del({range.storekey});
     }
@@ -379,7 +376,6 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     } else {
       s = db->cache()->ZAdd(range.storekey, score_members);
     }
-
     res.AppendInteger(count_limit);
     return;
   } else {

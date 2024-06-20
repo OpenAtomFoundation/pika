@@ -251,7 +251,6 @@ void ZRangeCmd::Do() {
 
 void ZRangeCmd::ReadCache() {
   std::vector<storage::ScoreMember> score_members;
-  LOG(INFO) << "read cache";
   auto s = db_->cache()->ZRange(key_, start_, stop_, &score_members, db_);
   if (s.ok()) {
     if (is_ws_) {
