@@ -349,12 +349,15 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     count_limit = static_cast<int32_t>(result.size());
   }
   // If using sort option
-  if (range.sort == Asc) {
-    std::sort(result.begin(), result.end(), sort_distance_asc);
-  } else if (range.sort == Desc) {
-    std::sort(result.begin(), result.end(), sort_distance_desc);
+  if (range.sort != Unsort){
+    if (range.sort == Asc) {
+      std::sort(result.begin(), result.end(), sort_distance_asc);
+    } else if (range.sort == Desc) {
+      std::sort(result.begin(), result.end(), sort_distance_desc);
+    }
   }
-
+  
+  
   if (range.store || range.storedist) {
     // Target key, create a sorted set with the results.
     std::vector<storage::ScoreMember> score_members;
@@ -364,11 +367,19 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
       score_members.push_back({score, result[i].member});
     }
     int32_t count = 0;
+    int32_t card = db->storage()->Exists({range.storekey});
+    if (card){
+      db->storage()->Del({range.storekey});
+      db->cache()->Del({range.storekey});
+    }
     s = db->storage()->ZAdd(range.storekey, score_members, &count);
     if (!s.ok()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
+    } else {
+      s = db->cache()->ZAdd(range.storekey, score_members);
     }
+
     res.AppendInteger(count_limit);
     return;
   } else {
@@ -436,6 +447,7 @@ void GeoRadiusCmd::DoInitial() {
     return;
   }
   size_t pos = 6;
+  range_.sort = Asc;
   while (pos < argv_.size()) {
     if (strcasecmp(argv_[pos].c_str(), "withdist") == 0) {
       range_.withdist = true;

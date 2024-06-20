@@ -473,7 +473,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
       return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kZSets)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
-  if (s.ok()) {
+    if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -491,7 +491,6 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
       }
       int32_t cur_index = 0;
       ScoreMember score_member;
-
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
       KeyStatisticsDurationGuard guard(this, DataType::kZSets, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kZsetsScoreCF]);

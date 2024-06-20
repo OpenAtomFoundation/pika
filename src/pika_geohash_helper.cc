@@ -38,7 +38,6 @@
 #include "include/pika_geohash_helper.h"
 // #include "debugmacro.h"
 #include <cmath>
-#include "glog/logging.h"
 #define D_R (M_PI / 180.0)
 #define R_MAJOR 6378137.0
 #define R_MINOR 6356752.3142
@@ -152,17 +151,12 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   min_lat = bounds[1];
   max_lon = bounds[2];
   max_lat = bounds[3];
-  LOG(INFO) << " bound " << bounds[0] << " " << bounds[1] << " " 
-  << bounds[2] << " " << bounds[3]; 
   steps = geohashEstimateStepsByRadius(radius_meters, latitude);
   
   geohashGetCoordRange(&long_range, &lat_range);
   geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);//hash->bit is used to represent long and lat
-  LOG(INFO) << " hash.bits "<<hash.bits;
   geohashNeighbors(&hash, &neighbors);
   geohashDecode(long_range, lat_range, hash, &area);
-  LOG(INFO) << " area lon: " << area.longitude.max << " " << area.longitude.min
-   << " area lat: " << area.latitude.min << " " << area.latitude.max; 
   /* Check if the step is enough at the limits of the covered area.
    * Sometimes when the search area is near an edge of the
    * area, the estimated step is not small enough, since one of the
@@ -194,7 +188,6 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
       decrease_step = 1;
     }
   }
-  LOG(INFO) << "decrease_step = " << decrease_step << " steps = " << steps;
   if (steps > 1 && (decrease_step != 0)) {
     steps--;
     geohashEncode(&long_range, &lat_range, longitude, latitude, steps, &hash);
@@ -205,25 +198,21 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
   /* Exclude the search areas that are useless. */
   if (steps >= 2) {
     if (area.latitude.min < min_lat) {
-      LOG(INFO) << "area.latitude.min < min_lat";
       GZERO(neighbors.south);
       GZERO(neighbors.south_west);
       GZERO(neighbors.south_east);
     }
     if (area.latitude.max > max_lat) {
-      LOG(INFO) << "area.latitude.max > max_lat";
       GZERO(neighbors.north);
       GZERO(neighbors.north_east);
       GZERO(neighbors.north_west);
     }
     if (area.longitude.min < min_lon) {
-      LOG(INFO) << "area.longitude.min < min_lon";
       GZERO(neighbors.west);
       GZERO(neighbors.south_west);
       GZERO(neighbors.north_west);
     }
     if (area.longitude.max > max_lon) {
-      LOG(INFO) << "area.longitude.max > max_lon";
       GZERO(neighbors.east);
       GZERO(neighbors.south_east);
       GZERO(neighbors.north_east);
@@ -244,22 +233,28 @@ GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits& hash) {
   bits <<= (52 - hash.step * 2);
   return bits;
 }
-
-/* Calculate distance using haversin great circle distance formula. */
+/* Calculate distance using simplified haversine great circle distance formula.
+ * Given longitude diff is 0 the asin(sqrt(a)) on the haversine is asin(sin(abs(u))).
+ * arcsin(sin(x)) equal to x when x ∈[−𝜋/2,𝜋/2]. Given latitude is between [−𝜋/2,𝜋/2]
+ * we can simplify arcsin(sin(x)) to x.
+ */
+double geohashGetLatDistance(double lat1d, double lat2d) {
+    return EARTH_RADIUS_IN_METERS * fabs(deg_rad(lat2d) - deg_rad(lat1d));
+}
+/* Calculate distance using haversine great circle distance formula. */
 double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d) {
-  double lat1r;
-  double lon1r;
-  double lat2r;
-  double lon2r;
-  double u;
-  double v;
-  lat1r = deg_rad(lat1d);
-  lon1r = deg_rad(lon1d);
-  lat2r = deg_rad(lat2d);
-  lon2r = deg_rad(lon2d);
-  u = sin((lat2r - lat1r) / 2);
-  v = sin((lon2r - lon1r) / 2);
-  return 2.0 * EARTH_RADIUS_IN_METERS * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+    double lat1r, lon1r, lat2r, lon2r, u, v, a;
+    lon1r = deg_rad(lon1d);
+    lon2r = deg_rad(lon2d);
+    v = sin((lon2r - lon1r) / 2);
+    /* if v == 0 we can avoid doing expensive math when lons are practically the same */
+    if (v == 0.0)
+        return geohashGetLatDistance(lat1d, lat2d);
+    lat1r = deg_rad(lat1d);
+    lat2r = deg_rad(lat2d);
+    u = sin((lat2r - lat1r) / 2);
+    a = u * u + cos(lat1r) * cos(lat2r) * v * v;
+    return 2.0 * EARTH_RADIUS_IN_METERS * asin(sqrt(a));
 }
 
 int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance) {

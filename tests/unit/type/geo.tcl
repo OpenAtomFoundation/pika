@@ -291,17 +291,15 @@ start_server {tags {"geo"}} {
     #     r geosearch nyc fromlonlat -73.9798091 40.7598464 bybox 6 6 km withdist asc
     # } {{{central park n/q/r} 0.7750} {4545 2.3651} {{union square} 2.7697} {{lic market} 3.1991}}
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORADIUS with COUNT} {
-    #     r georadius nyc -73.9798091 40.7598464 10 km COUNT 3
-    # } {{central park n/q/r} 4545 {union square}}
+    test {GEORADIUS with COUNT} {
+        r georadius nyc -73.9798091 40.7598464 10 km COUNT 3
+    } {{central park n/q/r} 4545 {union square}}
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORADIUS with multiple WITH* tokens} {
-    #     # assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHCOORD WITHHASH COUNT 2]
-    #     # assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHHASH WITHCOORD COUNT 2]
-    #     assert_match {{{central park n/q/r} 0.7750 1791875761332224 {-73.97334* 40.76480*}} {4545 2.3651 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHDIST WITHHASH WITHCOORD COUNT 2]
-    # }
+    test {GEORADIUS with multiple WITH* tokens} {
+        assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHCOORD WITHHASH COUNT 2]
+        assert_match {{{central park n/q/r} 1791875761332224 {-73.97334* 40.76480*}} {4545 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHHASH WITHCOORD COUNT 2]
+        assert_match {{{central park n/q/r} 0.7750 1791875761332224 {-73.97334* 40.76480*}} {4545 2.3651 1791875796750882 {-73.95641* 40.74809*}}} [r georadius nyc -73.9798091 40.7598464 10 km WITHDIST WITHHASH WITHCOORD COUNT 2]
+    }
 
     # Pika does not support the command
     # test {GEORADIUS with ANY not sorted by default} {
@@ -360,7 +358,6 @@ start_server {tags {"geo"}} {
         assert_equal $ret3 {n5 n6}
     }
 
-    # The return value of Pika is inconsistent with Redis
     test {GEORADIUSBYMEMBER crossing pole search} {
         r del k1
         r geoadd k1 45 65 n1 -135 85.05 n2
@@ -509,21 +506,20 @@ start_server {tags {"geo"}} {
         assert_equal [r zrange points{t} 0 -1] [r zrange points2{t} 0 -1]
     }
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORADIUSBYMEMBER STORE/STOREDIST option: plain usage} {
-    #     r del points{t}
-    #     r geoadd points{t} 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"
+    test {GEORADIUSBYMEMBER STORE/STOREDIST option: plain usage} {
+        r del points{t}
+        r geoadd points{t} 13.361389 38.115556 "Palermo" 15.087269 37.502669 "Catania"
 
-    #     r georadiusbymember points{t} Palermo 500 km store points2{t}
-    #     assert_equal {Palermo Catania} [r zrange points2{t} 0 -1]
+        r georadiusbymember points{t} Palermo 500 km store points2{t}
+        assert_equal {Palermo Catania} [r zrange points2{t} 0 -1]
 
-    #     r georadiusbymember points{t} Catania 500 km storedist points2{t}
-    #     assert_equal {Catania Palermo} [r zrange points2{t} 0 -1]
+        r georadiusbymember points{t} Catania 500 km storedist points2{t}
+        assert_equal {Catania Palermo} [r zrange points2{t} 0 -1]
 
-    #     set res [r zrange points2{t} 0 -1 withscores]
-    #     assert {[lindex $res 1] < 1}
-    #     assert {[lindex $res 3] > 166}
-    # }
+        set res [r zrange points2{t} 0 -1 withscores]
+        assert {[lindex $res 1] < 1}
+        assert {[lindex $res 3] > 166}
+    }
 
     # Pika does not support the command
     # test {GEOSEARCHSTORE STORE option: plain usage} {
@@ -531,17 +527,16 @@ start_server {tags {"geo"}} {
     #     assert_equal [r zrange points{t} 0 -1] [r zrange points2{t} 0 -1]
     # }
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORANGE STOREDIST option: plain usage} {
-    #     r del points{t}
-    #     r geoadd points{t} 13.361389 38.115556 "Palermo" \
-    #                        15.087269 37.502669 "Catania"
-    #     r georadius points{t} 13.361389 38.115556 500 km storedist points2{t}
-    #     set res [r zrange points2{t} 0 -1 withscores]
-    #     assert {[lindex $res 1] < 1}
-    #     assert {[lindex $res 3] > 166}
-    #     assert {[lindex $res 3] < 167}
-    # }
+    test {GEORANGE STOREDIST option: plain usage} {
+        r del points{t}
+        r geoadd points{t} 13.361389 38.115556 "Palermo" \
+                           15.087269 37.502669 "Catania"
+        r georadius points{t} 13.361389 38.115556 500 km storedist points2{t}
+        set res [r zrange points2{t} 0 -1 withscores]
+        assert {[lindex $res 1] < 1}
+        assert {[lindex $res 3] > 166}
+        assert {[lindex $res 3] < 167}
+    }
 
     # Pika does not support the command
     # test {GEOSEARCHSTORE STOREDIST option: plain usage} {
@@ -552,21 +547,20 @@ start_server {tags {"geo"}} {
     #     assert {[lindex $res 3] < 167}
     # }
 
-    # The return value of Pika is inconsistent with Redis
-    # test {GEORANGE STOREDIST option: COUNT ASC and DESC} {
-    #     r del points{t}
-    #     r geoadd points{t} 13.361389 38.115556 "Palermo" \
-    #                        15.087269 37.502669 "Catania"
-    #     r georadius points{t} 13.361389 38.115556 500 km storedist points2{t} asc count 1
-    #     assert {[r zcard points2{t}] == 1}
-    #     set res [r zrange points2{t} 0 -1 withscores]
-    #     assert {[lindex $res 0] eq "Palermo"}
+    test {GEORANGE STOREDIST option: COUNT ASC and DESC} {
+        r del points{t}
+        r geoadd points{t} 13.361389 38.115556 "Palermo" \
+                           15.087269 37.502669 "Catania"
+        r georadius points{t} 13.361389 38.115556 500 km storedist points2{t} asc count 1
+        assert {[r zcard points2{t}] == 1}
+        set res [r zrange points2{t} 0 -1 withscores]
+        assert {[lindex $res 0] eq "Palermo"}
 
-    #     r georadius points{t} 13.361389 38.115556 500 km storedist points2{t} desc count 1
-    #     assert {[r zcard points2{t}] == 1}
-    #     set res [r zrange points2{t} 0 -1 withscores]
-    #     assert {[lindex $res 0] eq "Catania"}
-    # }
+        r georadius points{t} 13.361389 38.115556 500 km storedist points2{t} desc count 1
+        assert {[r zcard points2{t}] == 1}
+        set res [r zrange points2{t} 0 -1 withscores]
+        assert {[lindex $res 0] eq "Catania"}
+    }
 
     # Pika does not support the command
     # test {GEOSEARCH the box spans -180° or 180°} {
