@@ -1202,6 +1202,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       key_infos = key_scan_info.key_infos;
       duration = key_scan_info.duration;
       if (key_infos.size() != (size_t)(storage::DataTypeNum)) {
+        LOG(ERROR) << "key_infos size is not equal with expected, potential data inconsistency";
         info.append("info keyspace error\r\n");
         return;
       }
@@ -2912,7 +2913,7 @@ void DbsizeCmd::Do() {
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != (size_t)(storage::DataTypeNum)) {
-      res_.SetRes(CmdRes::kErrOther, "keyspace error");
+      res_.SetRes(CmdRes::kErrOther, "Mismatch in expected data types and actual key info count");
       return;
     }
     uint64_t dbsize = 0;
