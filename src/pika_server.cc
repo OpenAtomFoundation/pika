@@ -1433,8 +1433,8 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
 
 void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   // Only one thread can go through
-  std::lock_guard ml(bgslots_protector_);
   {
+    std::lock_guard ml(bgslots_protector_);
     if (bgslots_reload_.reloading || db->IsBgSaving()) {
       return;
     }
