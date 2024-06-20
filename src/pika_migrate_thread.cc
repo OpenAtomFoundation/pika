@@ -635,7 +635,7 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
   return false;
 }
 
-int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
+int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<DB> &db) {
   std::unique_lock lm(migrator_mutex_);
 
   int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
@@ -653,12 +653,14 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
   }
   key_type = storage::DataTypeToTag(type);
   if (type == storage::DataType::kNones) {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type) << " is  illegal";
-    return -1;
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type)
+                 << " is  illegal";
+    return 0;
   }
+
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
-    return -2;
+    return -1;
   }
 
   // if the migrate thread exit, start it
@@ -675,17 +677,16 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       is_migrating_ = true;
       usleep(100);
     }
+  }
+  // check the key is migrating
+  std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
+  if (IsMigrating(kpair)) {
+    LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " is migrating ! ";
+    return 1;
   } else {
-    // check the key is migrating
-    std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
-    if (IsMigrating(kpair)) {
-      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " is migrating ! ";
-      return 1;
-    } else {
-      std::unique_lock lo(mgrtone_queue_mutex_);
-      mgrtone_queue_.emplace_back(kpair);
-      NotifyRequestMigrate();
-    }
+    std::unique_lock lo(mgrtone_queue_mutex_);
+    mgrtone_queue_.emplace_back(kpair);
+    NotifyRequestMigrate();
   }
 
   return 1;
@@ -934,7 +935,9 @@ void *PikaMigrateThread::ThreadMain() {
     {
       std::unique_lock lw(workers_mutex_);
       while (!should_exit_ && is_task_success_ && send_num_ != response_num_) {
-        workers_cond_.wait(lw);
+        if (workers_cond_.wait_for(lw, std::chrono::seconds(60)) == std::cv_status::timeout) {
+          break;
+        }
       }
     }
     LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;

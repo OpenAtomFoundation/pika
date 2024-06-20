@@ -792,6 +792,8 @@ class PKSetexAtCmd : public Cmd {
     return res;
   }
   void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKSetexAtCmd(*this); }

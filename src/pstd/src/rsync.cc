@@ -8,6 +8,11 @@
 #include "pstd/include/rsync.h"
 #include "pstd/include/xdebug.h"
 
+#ifdef __FreeBSD__
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#endif
+
 namespace pstd {
 // Clean files for rsync info, such as the lock, log, pid, conf file
 static bool CleanRsyncInfo(const std::string& path) { return pstd::DeleteDirIfExist(path + kRsyncSubDir); }

@@ -130,7 +130,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePadding, std::move(paddingptr)));
 
   std::unique_ptr<Cmd> pkpatternmatchdelptr =
-      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, 3, kCmdFlagsWrite | kCmdFlagsAdmin);
+      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKPatternMatchDel, std::move(pkpatternmatchdelptr)));
   std::unique_ptr<Cmd> dummyptr = std::make_unique<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
@@ -370,7 +370,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScanx, std::move(scanxptr)));
   ////PKSetexAtCmd
   std::unique_ptr<Cmd> pksetexatptr = std::make_unique<PKSetexAtCmd>(
-      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsSlow);
+      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKSetexAt, std::move(pksetexatptr)));
   ////PKScanRange
   std::unique_ptr<Cmd> pkscanrangeptr = std::make_unique<PKScanRangeCmd>(
