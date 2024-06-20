@@ -991,11 +991,6 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
           g_pika_server->GetDB(p_info.db_name_);
       if (db) {
         if (!s_db->IsRsyncRunning()) {
-          if (s_db->IsRsyncErrorStopped()) {
-            s_db->SetReplState(ReplState::kError);
-            LOG(WARNING) << "Rsync Client Error Stopped, Slave DB:" << s_db->DBName() << " sinking into Error state.";
-            continue;
-          }
           db->TryUpdateMasterOffset();
         }
       } else {
