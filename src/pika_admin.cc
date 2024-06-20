@@ -1190,9 +1190,9 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (argv_.size() > 1 && strcasecmp(argv_[1].data(), kAllSection.data()) == 0) {
     tmp_stream << "# Start async statistics\r\n";
   } else if (argv_.size() == 3 && strcasecmp(argv_[1].data(), kKeyspaceSection.data()) == 0) {
-    tmp_stream << "# Start async statistics\r\n";    
+    tmp_stream << "# Start async statistics\r\n";
   } else {
-    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";  
+    tmp_stream << "# Use \"info keyspace 1\" to do async statistics\r\n";
   }
   std::shared_lock rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
@@ -1201,7 +1201,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
       duration = key_scan_info.duration;
-      if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
+      if (key_infos.size() != (size_t)(storage::DataTypeNum)) {
         info.append("info keyspace error\r\n");
         return;
       }
@@ -1216,7 +1216,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
         tmp_stream << "# Duration: " << std::to_string(duration) + "s"
                    << "\r\n";
       }
-      
+
       tmp_stream << db_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires
                  << ", invalid_keys=" << key_infos[0].invaild_keys << "\r\n";
       tmp_stream << db_name << " Hashes_keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires
@@ -2911,7 +2911,7 @@ void DbsizeCmd::Do() {
     }
     KeyScanInfo key_scan_info = dbs->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
-    if (key_infos.size() != (size_t)(storage::DataType::kNones)) {
+    if (key_infos.size() != (size_t)(storage::DataTypeNum)) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
     }
