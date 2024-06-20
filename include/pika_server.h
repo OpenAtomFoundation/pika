@@ -319,8 +319,7 @@ class PikaServer : public pstd::noncopyable {
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
-  std::shared_mutex bgsave_protector_;
-  BgSaveInfo bgsave_info_;
+  std::shared_mutex bgslots_protector_;
 
   /*
    * BGSlotsReload used
@@ -346,28 +345,28 @@ class PikaServer : public pstd::noncopyable {
   BGSlotsReload bgslots_reload_;
 
   BGSlotsReload bgslots_reload() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_;
   }
   bool GetSlotsreloading() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_.reloading;
   }
   void SetSlotsreloading(bool reloading) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.reloading = reloading;
   }
   void SetSlotsreloadingCursor(int64_t cursor) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.cursor = cursor;
   }
   int64_t GetSlotsreloadingCursor() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_.cursor;
   }
 
   void SetSlotsreloadingEndTime() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.end_time = time(nullptr);
   }
   void Bgslotsreload(const std::shared_ptr<DB>& db);
@@ -408,33 +407,33 @@ class PikaServer : public pstd::noncopyable {
   net::BGThread bgslots_cleanup_thread_;
 
   BGSlotsCleanup bgslots_cleanup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_;
   }
   bool GetSlotscleaningup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_.cleaningup;
   }
   void SetSlotscleaningup(bool cleaningup) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleaningup = cleaningup;
   }
   void SetSlotscleaningupCursor(int64_t cursor) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cursor = cursor;
   }
   void SetCleanupSlots(std::vector<int> cleanup_slots) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
   std::vector<int> GetCleanupSlots() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
 
   void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<DB>& db);
   void StopBgslotscleanup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleaningup = false;
     std::vector<int> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
