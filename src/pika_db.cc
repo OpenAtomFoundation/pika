@@ -407,16 +407,18 @@ Status DB::GetBgSaveUUID(std::string* snapshot_uuid) {
 // 2, Replace the old db
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
 bool DB::TryUpdateMasterOffset() {
-  std::string info_path = dbsync_path_ + kBgsaveInfoFile;
-  if (!pstd::FileExists(info_path)) {
-    LOG(WARNING) << "info path: " << info_path << " not exist";
-    return false;
-  }
-
   std::shared_ptr<SyncSlaveDB> slave_db =
       g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name_));
   if (!slave_db) {
-    LOG(WARNING) << "Slave DB: " << db_name_ << " not exist";
+    LOG(ERROR) << "Slave DB: " << db_name_ << " not exist";
+    return false;
+  }
+
+  std::string info_path = dbsync_path_ + kBgsaveInfoFile;
+  if (!pstd::FileExists(info_path)) {
+    LOG(WARNING) << "info path: " << info_path << " not exist";
+    // May failed in RsyncClient, thus the complete snapshot dir got deleted
+    slave_db->SetReplState(kTryConnect);
     return false;
   }
 
