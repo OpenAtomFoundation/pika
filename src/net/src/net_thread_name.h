@@ -26,7 +26,7 @@ inline bool SetThreadName(pthread_t id, const std::string& name) {
 #else
 inline bool SetThreadName(pthread_t id, const std::string& name) {
   // printf ("no pthread_setname\n");
-  return false;
+  return pthread_setname_np(name.c_str()) == 0;
 }
 #endif
 }  // namespace net

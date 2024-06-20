@@ -110,6 +110,7 @@ class BackendThread : public Thread {
    */
   int StartThread() override;
   int StopThread() override;
+  void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
   pstd::Status Write(int fd, const std::string& msg);
   pstd::Status Close(int fd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
