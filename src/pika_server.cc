@@ -807,7 +807,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
   std::string logger_filename = sync_db->Logger()->filename();
   if (pstd::IsDir(bgsave_info.path) != 0 ||
       !pstd::FileExists(NewFileName(logger_filename, bgsave_info.offset.b_offset.filenum)) ||
-      top - static_cast<int32_t>(bgsave_info.offset.b_offset.filenum) > static_cast<int32_t>(kDBSyncMaxGap)) {
+      static_cast<int64_t>(top) - static_cast<int64_t>(bgsave_info.offset.b_offset.filenum) >
+          static_cast<int64_t>(kDBSyncMaxGap)) {
     // Need Bgsave first
     db->BgSaveDB();
   }
