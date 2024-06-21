@@ -238,9 +238,8 @@ Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   Status s;
   for (const auto& kv : kvs) {
     auto& inst = GetDBInstance(kv.key);
-    std::string value;
-    s = inst->Get(Slice(kv.key), &value);
-    if (s.ok() || !s.IsNotFound()) {
+    s = inst->IsExist(Slice(kv.key));
+    if (!s.IsNotFound()) {
       return s;
     }
   }
@@ -1402,11 +1401,14 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
 
 Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
   Status s;
+  *ret = 0;
   for (const auto& inst : insts_) {
-    s = inst->PKPatternMatchDel(pattern, ret);
+    int32_t tmp_ret = 0;
+    s = inst->PKPatternMatchDel(pattern, &tmp_ret);
     if (!s.ok()) {
       return s;
     }
+    *ret += tmp_ret;
   }
   return s;
 }
@@ -1829,7 +1831,7 @@ uint64_t Storage::GetProperty(const std::string& property) {
 
 Status Storage::GetKeyNum(std::vector<KeyInfo>* key_infos) {
   KeyInfo key_info;
-  key_infos->resize(size_t(DataType::kNones));
+  key_infos->resize(DataTypeNum);
   for (const auto& db : insts_) {
     std::vector<KeyInfo> db_key_infos;
     // check the scanner was stopped or not, before scanning the next db

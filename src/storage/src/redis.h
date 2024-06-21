@@ -117,36 +117,36 @@ class Redis {
   Status ScanStreamsKeyNum(KeyInfo* key_info);
 
   // Keys Commands
-  virtual Status StringsExpire(const Slice& key, int64_t ttl);
-  virtual Status HashesExpire(const Slice& key, int64_t ttl);
-  virtual Status ListsExpire(const Slice& key, int64_t ttl);
-  virtual Status ZsetsExpire(const Slice& key, int64_t ttl);
-  virtual Status SetsExpire(const Slice& key, int64_t ttl);
+  virtual Status StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status ListsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
 
-  virtual Status StringsDel(const Slice& key);
-  virtual Status HashesDel(const Slice& key);
-  virtual Status ListsDel(const Slice& key);
-  virtual Status ZsetsDel(const Slice& key);
-  virtual Status SetsDel(const Slice& key);
-  virtual Status StreamsDel(const Slice& key);
+  virtual Status StringsDel(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status HashesDel(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status ListsDel(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status ZsetsDel(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status SetsDel(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status StreamsDel(const Slice& key, std::string&& prefetch_meta = {});
 
-  virtual Status StringsExpireat(const Slice& key, int64_t timestamp);
-  virtual Status HashesExpireat(const Slice& key, int64_t timestamp);
-  virtual Status ListsExpireat(const Slice& key, int64_t timestamp);
-  virtual Status SetsExpireat(const Slice& key, int64_t timestamp);
-  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp);
+  virtual Status StringsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status HashesExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status ListsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status SetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
 
-  virtual Status StringsPersist(const Slice& key);
-  virtual Status HashesPersist(const Slice& key);
-  virtual Status ListsPersist(const Slice& key);
-  virtual Status ZsetsPersist(const Slice& key);
-  virtual Status SetsPersist(const Slice& key);
+  virtual Status StringsPersist(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status HashesPersist(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status ListsPersist(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status ZsetsPersist(const Slice& key, std::string&& prefetch_meta = {});
+  virtual Status SetsPersist(const Slice& key, std::string&& prefetch_meta = {});
 
-  virtual Status StringsTTL(const Slice& key, int64_t* timestamp);
-  virtual Status HashesTTL(const Slice& key, int64_t* timestamp);
-  virtual Status ListsTTL(const Slice& key, int64_t* timestamp);
-  virtual Status ZsetsTTL(const Slice& key, int64_t* timestamp);
-  virtual Status SetsTTL(const Slice& key, int64_t* timestamp);
+  virtual Status StringsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status HashesTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status ListsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status ZsetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
 
   // Strings Commands
   Status Append(const Slice& key, const Slice& value, int32_t* ret);
@@ -202,7 +202,7 @@ class Redis {
   Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
   Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
-  Status HLen(const Slice& key, int32_t* ret);
+  Status HLen(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
   Status HMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss);
   Status HMSet(const Slice& key, const std::vector<FieldValue>& fvs);
   Status HSet(const Slice& key, const Slice& field, const Slice& value, int32_t* res);
@@ -248,7 +248,7 @@ class Redis {
 
   // Sets Commands
   Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
-  Status SCard(const Slice& key, int32_t* ret);
+  Status SCard(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
   Status SDiff(const std::vector<std::string>& keys, std::vector<std::string>* members);
   Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
   Status SInter(const std::vector<std::string>& keys, std::vector<std::string>* members);
@@ -271,7 +271,7 @@ class Redis {
   Status LIndex(const Slice& key, int64_t index, std::string* element);
   Status LInsert(const Slice& key, const BeforeOrAfter& before_or_after, const std::string& pivot,
                  const std::string& value, int64_t* ret);
-  Status LLen(const Slice& key, uint64_t* len);
+  Status LLen(const Slice& key, uint64_t* len, std::string&& prefetch_meta = {});
   Status LPop(const Slice& key, int64_t count, std::vector<std::string>* elements);
   Status LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
   Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
@@ -287,7 +287,7 @@ class Redis {
 
   // Zsets Commands
   Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members, int32_t* ret);
-  Status ZCard(const Slice& key, int32_t* card);
+  Status ZCard(const Slice& key, int32_t* card, std::string&& prefetch_meta = {});
   Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
   Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
@@ -325,7 +325,7 @@ class Redis {
   Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
   Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& count);
   Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
-  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages, std::string&& prefetch_meta = {});
   Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
   Status XLen(const Slice& key, int32_t& len);
   Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<IdMessage>>& results,
@@ -335,7 +335,7 @@ class Redis {
                     rocksdb::ReadOptions& read_options);
   // get and parse the stream meta if found
   // @return ok only when the stream meta exists
-  Status GetStreamMeta(StreamMetaValue& tream_meta, const rocksdb::Slice& key, rocksdb::ReadOptions& read_options);
+  Status GetStreamMeta(StreamMetaValue& tream_meta, const rocksdb::Slice& key, rocksdb::ReadOptions& read_options, std::string&& prefetch_meta = {});
 
   // Before calling this function, the caller should ensure that the ids are valid
   Status DeleteStreamMessages(const rocksdb::Slice& key, const StreamMetaValue& stream_meta,

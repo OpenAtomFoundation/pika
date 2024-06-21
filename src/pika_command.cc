@@ -370,7 +370,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScanx, std::move(scanxptr)));
   ////PKSetexAtCmd
   std::unique_ptr<Cmd> pksetexatptr = std::make_unique<PKSetexAtCmd>(
-      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsSlow);
+      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKSetexAt, std::move(pksetexatptr)));
   ////PKScanRange
   std::unique_ptr<Cmd> pkscanrangeptr = std::make_unique<PKScanRangeCmd>(
