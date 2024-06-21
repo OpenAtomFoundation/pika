@@ -928,7 +928,7 @@ bool Cmd::DoReadCommandInCache(const HintKeys& hint_keys) {
       if (IsNeedReadCache()) {
         ReadCache();
       }
-      // 只有读命令且返回值为命中的情况才返回true
+      // return true only the read command hit
       if (is_read() && !res().CacheMiss()) {
         return true;
       }

@@ -277,13 +277,13 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     bool read_status = false;
     std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
 
-    if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()){
-      if ( c_ptr && c_ptr->isCacheRead() ){
+    if (PIKA_CACHE_NONE != g_pika_conf->cache_mode() && c_ptr && c_ptr->isCacheRead()){
         // read in cache
         if (BatchReadCmdInCache(argvs)){
+          delete arg;
+          arg = nullptr;
           return;
         }
-      }
     }
 
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
