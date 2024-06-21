@@ -468,6 +468,7 @@ private:
   Storage* const storage_;
   std::shared_ptr<LockMgr> lock_mgr_;
   rocksdb::DB* db_ = nullptr;
+  std::shared_ptr<rocksdb::Statistics> db_statistics_ = nullptr;
   //TODO(wangshaoyi): seperate env for each rocksdb instance
   // rocksdb::Env* env_ = nullptr;
 
