@@ -19,12 +19,10 @@ class PikaClientProcessor {
   int Start();
   void Stop();
   void SchedulePool(net::TaskFunc func, void* arg);
-  void ScheduleBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   size_t ThreadPoolCurQueueSize();
   size_t ThreadPoolMaxQueueSize();
 
  private:
   std::unique_ptr<net::ThreadPool> pool_;
-  std::vector<std::unique_ptr<net::BGThread>> bg_threads_;
 };
 #endif  // PIKA_CLIENT_PROCESSOR_H_

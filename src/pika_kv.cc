@@ -533,7 +533,7 @@ void MgetCmd::Do() {
     cache_miss_keys_ = keys_;
   }
   db_value_status_array_.clear();
-  s_ = db_->storage()->MGet(cache_miss_keys_, &db_value_status_array_);
+  s_ = db_->storage()->MGetWithTTL(cache_miss_keys_, &db_value_status_array_);
   if (!s_.ok()) {
     if (s_.IsInvalidArgument()) {
       res_.SetRes(CmdRes::kMultiKey);
@@ -1701,6 +1701,21 @@ void PKSetexAtCmd::Do() {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void PKSetexAtCmd::DoThroughDB() {
+  Do();
+}
+
+void PKSetexAtCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    auto expire = time_stamp_ - static_cast<int64_t>(std::time(nullptr));
+    if (expire <= 0) [[unlikely]] {
+      db_->cache()->Del({key_});
+      return;
+    }
+    db_->cache()->Setxx(key_, value_, expire);
   }
 }
 

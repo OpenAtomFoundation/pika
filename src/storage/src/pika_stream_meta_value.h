@@ -82,7 +82,8 @@ class StreamMetaValue {
     value_ = std::move(value);
     assert(value_.size() == kDefaultStreamValueLength);
     if (value_.size() != kDefaultStreamValueLength) {
-      LOG(ERROR) << "Invalid stream meta value length: ";
+      LOG(ERROR) << "Invalid stream meta value length: " << value_.size()
+                 << " expected: " << kDefaultStreamValueLength;
       return;
     }
     char* pos = &value_[0];
@@ -215,7 +216,8 @@ class ParsedStreamMetaValue {
   ParsedStreamMetaValue(const Slice& value) {
     assert(value.size() == kDefaultStreamValueLength);
     if (value.size() != kDefaultStreamValueLength) {
-      LOG(ERROR) << "Invalid stream meta value length: ";
+      LOG(ERROR) << "Invalid stream meta value length: " << value.size()
+                 << " expected: " << kDefaultStreamValueLength;
       return;
     }
     char* pos = const_cast<char*>(value.data());
@@ -294,7 +296,7 @@ class StreamCGroupMetaValue {
     uint64_t needed = kDefaultStreamCGroupValueLength;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
-      LOG(FATAL) << "Init on a existed stream cgroup meta value!";
+      LOG(ERROR) << "Init on a existed stream cgroup meta value!";
       return;
     }
     value_.resize(needed);
@@ -314,7 +316,8 @@ class StreamCGroupMetaValue {
     value_ = std::move(value);
     assert(value_.size() == kDefaultStreamCGroupValueLength);
     if (value_.size() != kDefaultStreamCGroupValueLength) {
-      LOG(FATAL) << "Invalid stream cgroup meta value length: ";
+      LOG(ERROR) << "Invalid stream cgroup meta value length: " << value_.size()
+                 << " expected: " << kDefaultStreamValueLength;
       return;
     }
     if (value_.size() == kDefaultStreamCGroupValueLength) {
@@ -373,7 +376,7 @@ class StreamConsumerMetaValue {
     value_ = std::move(value);
     assert(value_.size() == kDefaultStreamConsumerValueLength);
     if (value_.size() != kDefaultStreamConsumerValueLength) {
-      LOG(FATAL) << "Invalid stream consumer meta value length: " << value_.size()
+      LOG(ERROR) << "Invalid stream consumer meta value length: " << value_.size()
                  << " expected: " << kDefaultStreamConsumerValueLength;
       return;
     }
@@ -391,7 +394,7 @@ class StreamConsumerMetaValue {
     pel_ = pel;
     assert(value_.size() == 0);
     if (value_.size() != 0) {
-      LOG(FATAL) << "Invalid stream consumer meta value length: " << value_.size() << " expected: 0";
+      LOG(ERROR) << "Invalid stream consumer meta value length: " << value_.size() << " expected: 0";
       return;
     }
     uint64_t needed = kDefaultStreamConsumerValueLength;

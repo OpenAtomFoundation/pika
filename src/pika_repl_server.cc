@@ -17,7 +17,7 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) {
-  server_tp_ = std::make_unique<net::ThreadPool>(PIKA_REPL_SERVER_TP_SIZE, 100000);
+  server_tp_ = std::make_unique<net::ThreadPool>(PIKA_REPL_SERVER_TP_SIZE, 100000, "PikaReplServer");
   pika_repl_server_thread_ = std::make_unique<PikaReplServerThread>(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
 }
@@ -27,6 +27,7 @@ PikaReplServer::~PikaReplServer() {
 }
 
 int PikaReplServer::Start() {
+  pika_repl_server_thread_->set_thread_name("PikaReplServer");
   int res = pika_repl_server_thread_->StartThread();
   if (res != net::kSuccess) {
     LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res

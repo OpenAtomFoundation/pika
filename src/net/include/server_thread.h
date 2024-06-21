@@ -150,6 +150,8 @@ class ServerThread : public Thread {
   // Move into server thread
   virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) = 0;
 
+  void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
+
   virtual void KillAllConns() = 0;
   virtual bool KillConn(const std::string& ip_port) = 0;
 
