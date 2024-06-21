@@ -115,7 +115,7 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
   return result;
 }
 
-// ::__builtin_ctz(x): 返回右起第一个‘1’之后的0的个数
+// ::__builtin_ctz(x): return the first number of '0' after the first '1' from the right
 uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
 
 
@@ -128,7 +128,7 @@ bool IsHyperloglogObj(const std::string* internal_value_str) {
                               internal_value_str->size() - kStringsValueSuffixLength - offset)).size();
     memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
 
-    //if first bit in reserve is 0 , then this obj is string; else the obj is hll
+    //if first bit in reserve is 0 , then this obj is string; else the obj is hyperloglog
     return (reserve[0] & hyperloglog_reserve_flag) != 0;;
 }
 

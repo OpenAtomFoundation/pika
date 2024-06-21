@@ -18,8 +18,8 @@ namespace storage {
 * |  1B  |       |   16B   |   8B  |     8B    |
 *  The first bit in reservse field is used to isolate string and hyperloglog  
 */
-
-#define hyperloglog_reserve_flag 0x80
+ // 80H = 1000000B
+constexpr uint8_t hyperloglog_reserve_flag = 0x80;
 class StringsValue : public InternalValue {
  public:
   explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
