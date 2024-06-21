@@ -34,7 +34,7 @@ class Thread : public pstd::noncopyable {
 
   std::string thread_name() const { return thread_name_; }
 
-  void set_thread_name(const std::string& name) { thread_name_ = name; }
+  virtual void set_thread_name(const std::string& name) { thread_name_ = name; }
 
  protected:
   std::atomic_bool should_stop_;

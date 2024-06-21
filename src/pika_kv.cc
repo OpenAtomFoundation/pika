@@ -1704,6 +1704,21 @@ void PKSetexAtCmd::Do() {
   }
 }
 
+void PKSetexAtCmd::DoThroughDB() {
+  Do();
+}
+
+void PKSetexAtCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    auto expire = time_stamp_ - static_cast<int64_t>(std::time(nullptr));
+    if (expire <= 0) [[unlikely]] {
+      db_->cache()->Del({key_});
+      return;
+    }
+    db_->cache()->Setxx(key_, value_, expire);
+  }
+}
+
 void PKScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKScanRange);

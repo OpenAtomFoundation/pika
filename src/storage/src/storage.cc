@@ -1828,7 +1828,7 @@ uint64_t Storage::GetProperty(const std::string& property) {
 
 Status Storage::GetKeyNum(std::vector<KeyInfo>* key_infos) {
   KeyInfo key_info;
-  key_infos->resize(size_t(DataType::kNones));
+  key_infos->resize(DataTypeNum);
   for (const auto& db : insts_) {
     std::vector<KeyInfo> db_key_infos;
     // check the scanner was stopped or not, before scanning the next db

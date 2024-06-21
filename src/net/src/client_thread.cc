@@ -47,6 +47,8 @@ int ClientThread::StartThread() {
   if (res) {
     return res;
   }
+  set_thread_name("ClientThread");
+
   return Thread::StartThread();
 }
 
