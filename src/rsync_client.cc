@@ -232,7 +232,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
       if (resp->snapshot_uuid() != snapshot_uuid_) {
         LOG(WARNING) << "receive newer dump, reset state to STOP, local_snapshot_uuid:"
-                     << snapshot_uuid_ << "remote snapshot uuid: " << resp->snapshot_uuid();
+                     << snapshot_uuid_ << ", remote snapshot uuid: " << resp->snapshot_uuid();
         state_.store(STOP);
         error_stopped_.store(true);
         return s;

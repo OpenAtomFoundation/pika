@@ -416,7 +416,7 @@ bool DB::TryUpdateMasterOffset() {
 
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
   if (!pstd::FileExists(info_path)) {
-    LOG(WARNING) << "info path: " << info_path << " not exist";
+    LOG(WARNING) << "info path: " << info_path << " not exist, Slave DB:" << GetDBName() << " will restart the sync process...";
     // May failed in RsyncClient, thus the complete snapshot dir got deleted
     slave_db->SetReplState(kTryConnect);
     return false;
