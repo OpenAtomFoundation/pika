@@ -171,11 +171,11 @@ Status Redis::XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& 
       return s;
     }
   }
-  
+
   return db_->Put(default_write_options_, handles_[kMetaCF], BaseMetaKey(key).Encode(), stream_meta.value());
 }
 
-Status Redis::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values) {
+Status Redis::XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& field_values, std::string&& prefetch_meta) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -184,7 +184,7 @@ Status Redis::XRange(const Slice& key, const StreamScanArgs& args, std::vector<I
   // 1 get stream meta
   rocksdb::Status s;
   StreamMetaValue stream_meta;
-  s = GetStreamMeta(stream_meta, key, read_options);
+  s = GetStreamMeta(stream_meta, key, read_options, std::move(prefetch_meta));
   if (!s.ok()) {
     return s;
   }
@@ -360,15 +360,24 @@ Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::StreamsDel(const Slice& key) {
-  std::string meta_value;
+Status Redis::StreamsDel(const Slice& key, std::string&& prefetch_meta) {
+  std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
-  Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
-  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, meta_value)) {
-    if (ExpectedStale(meta_value)) {
-      s = Status::NotFound();
-    } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+  Status s;
+
+  // value is empty means no meta value get before,
+  // we should get meta first
+  if (meta_value.empty()) {
+    s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
+    if (s.ok() && !ExpectedMetaValue(DataType::kStreams, meta_value)) {
+      if (ExpectedStale(meta_value)) {
+        s = Status::NotFound();
+      } else {
+        return Status::InvalidArgument(
+          "WRONGTYPE, key: " + key.ToString() + ", expected type: " +
+          DataTypeStrings[static_cast<int>(DataType::kStreams)] + ", get type: " +
+          DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+      }
     }
   }
   if (s.ok()) {
@@ -387,15 +396,24 @@ Status Redis::StreamsDel(const Slice& key) {
 }
 
 Status Redis::GetStreamMeta(StreamMetaValue& stream_meta, const rocksdb::Slice& key,
-                            rocksdb::ReadOptions& read_options) {
-  std::string value;
+                            rocksdb::ReadOptions& read_options, std::string&& prefetch_meta) {
+  std::string value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
-  auto s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &value);
-  if (s.ok() && !ExpectedMetaValue(DataType::kStreams, value)) {
-    if (ExpectedStale(value)) {
-      s = Status::NotFound();
-    } else {
-      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() + ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStreams)] + "get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(value))]);
+  Status s;
+
+  // value is empty means no meta value get before,
+  // we should get meta first
+  if (value.empty()) {
+    s = db_->Get(read_options, handles_[kMetaCF], base_meta_key.Encode(), &value);
+    if (s.ok() && !ExpectedMetaValue(DataType::kStreams, value)) {
+      if (ExpectedStale(value)) {
+        s = Status::NotFound();
+      } else {
+        return Status::InvalidArgument(
+          "WRONGTYPE, key: " + key.ToString() + ", expected type: " +
+          DataTypeStrings[static_cast<int>(DataType::kStreams)] + ", got type: " +
+          DataTypeStrings[static_cast<int>(GetMetaValueType(value))]);
+      }
     }
   }
   if (s.ok()) {

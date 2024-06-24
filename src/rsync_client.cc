@@ -28,6 +28,7 @@ RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name)
       parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
   client_thread_ = std::make_unique<RsyncClientThread>(3000, 60, wo_mgr_.get());
+  client_thread_->set_thread_name("RsyncClientThread");
   work_threads_.resize(GetParallelNum());
   finished_work_cnt_.store(0);
 }

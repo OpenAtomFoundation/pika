@@ -80,6 +80,7 @@ class TimerTaskThread : public Thread {
   ~TimerTaskThread() override;
   int StartThread() override;
   int StopThread() override;
+  void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
 
   uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
       return timer_task_manager_.AddTimerTask(task_name, interval_ms, repeat_exec, task);
