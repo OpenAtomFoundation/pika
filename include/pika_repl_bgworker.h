@@ -28,6 +28,9 @@ class PikaReplBgWorker {
   void QueueClear();
   static void HandleBGWorkerWriteBinlog(void* arg);
   static void HandleBGWorkerWriteDB(void* arg);
+  void SetThreadName(const std::string& thread_name) {
+    bg_thread_.set_thread_name(thread_name);
+  }
 
   BinlogItem binlog_item_;
   net::RedisParser redis_parser_;

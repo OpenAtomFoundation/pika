@@ -16,7 +16,7 @@ jobs:
         include:
           - os: ubuntu-latest
             name: ${{ github.event.repository.name }}-${{ github.ref_name }}-ubuntu-amd64.tar.gz
-          - os: macos-latest
+          - os: macos-12
             name: ${{ github.event.repository.name }}-${{ github.ref_name }}-macos-amd64.tar.gz
 
     runs-on: ${{ matrix.os }}
