@@ -120,12 +120,9 @@ uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::
 
 
 bool IsHyperloglogObj(const std::string* internal_value_str) {
-    size_t offset = 0;
     size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
     char reserve[16] = {0};
-    offset += kTypeLength;
-    offset += (rocksdb::Slice(internal_value_str->data() + offset,
-                              internal_value_str->size() - kStringsValueSuffixLength - offset)).size();
+    size_t offset = internal_value_str->size() - kStringsValueSuffixLength;
     memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
 
     //if first bit in reserve is 0 , then this obj is string; else the obj is hyperloglog
