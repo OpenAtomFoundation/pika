@@ -472,6 +472,102 @@ class PosixMmapFile : public WritableFile {
   uint64_t Filesize() override { return write_len_ + file_offset_ + (dst_ - base_); }
 };
 
+class BufferedWritableFile : public WritableFile {
+ private:
+  std::string filename_;
+  FILE* file_;
+  int32_t user_space_buf_size_;
+  uint64_t curr_file_size_;
+  char* buffer_;
+
+ public:
+  BufferedWritableFile() = delete;
+  BufferedWritableFile(const BufferedWritableFile&) = delete;
+  BufferedWritableFile& operator=(const BufferedWritableFile&) = delete;
+
+  // caller must ensure passing-in 'file' is not nullptr
+  BufferedWritableFile(std::string file_name, FILE* file, int32_t user_space_buf_size, int32_t curr_file_size, char* buf)
+      : filename_(std::move(file_name)),
+        file_(file),
+        user_space_buf_size_(user_space_buf_size),
+        curr_file_size_(curr_file_size),
+        buffer_(buf) {
+    assert(file_ && "file_ can not be nullptr");
+  }
+
+  ~BufferedWritableFile() override {
+    if (file_) {
+      BufferedWritableFile::Close();
+    }
+    if(buffer_) {
+      free(buffer_);
+    }
+  }
+
+  int32_t GetUserSpaceBufSize() const { return user_space_buf_size_; }
+
+  Status Append(const Slice& data) override {
+    if (!file_) {
+      return IOError("fwrite target: " + filename_ + " is not opened", errno);
+    }
+    const char* src = data.data();
+    size_t left = data.size();
+    int32_t max_retries = 4;
+    int retry_count = 0;
+
+    while (left > 0) {
+      size_t written = fwrite(src, sizeof(char), left, file_);
+      if (written == 0) {
+        if (ferror(file_)) {
+          int err_num = errno;
+          clearerr(file_);
+          return IOError("fwrite error with " + filename_, err_num);
+        }
+        if (errno == ENOSPC || ++retry_count > max_retries) {
+          return IOError(filename_, errno);
+        }
+      }
+      src += written;
+      left -= written;
+      curr_file_size_ += written;
+      retry_count = 0;
+    }
+
+    return Status::OK();
+  }
+
+  Status Close() override {
+    if (fclose(file_) != 0) {
+      return IOError("fclose failed: " + filename_, errno);
+    }
+    file_ = nullptr;
+    return Status::OK();
+  }
+
+  Status Flush() override {
+    if (fflush(file_) != 0) {
+      return IOError("fflush failed: " + filename_, errno);
+    }
+    return Status::OK();
+  }
+
+  Status Sync() override {
+    auto s = BufferedWritableFile::Flush();
+    if (!s.ok()) {
+      return s;
+    }
+    int32_t file_fd = fileno(file_);
+    if (fsync(file_fd) != 0) {
+      return IOError("fsync failed: " + filename_, errno);
+    }
+    return Status::OK();
+  }
+
+  Status Trim(uint64_t target) override { return Status::OK(); }
+
+  uint64_t Filesize() override { return curr_file_size_; }
+};
+
 RWFile::~RWFile() = default;
 
 class MmapRWFile : public RWFile {
@@ -646,6 +742,89 @@ Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& 
     result = std::make_unique<PosixMmapFile>(fname, fd, kPageSize);
   }
   return s;
+}
+
+Status BufferedAppendableFile(const std::string& fname, std::unique_ptr<WritableFile>& result,
+                               int32_t user_space_buf_size_bytes, int64_t offset) {
+  const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
+  if (fd < 0) {
+    return IOError(fname, errno);
+  }
+
+  FILE* file = fdopen(fd, "r+");
+  if (file == nullptr) {
+    close(fd);
+    return IOError("Error converting file descriptor to FILE* when NewBufferedWritableFile for file:" + fname, errno);
+  }
+
+  if (user_space_buf_size_bytes < 0) {
+    fclose(file);
+    return Status::Error("user_space_buf_size_bytes must not be negative when NewBufferedAppendableFile");
+  }
+  char* buf = nullptr;
+  int32_t r = 0;
+  if (user_space_buf_size_bytes != 0) {
+    buf = (char*)malloc(user_space_buf_size_bytes);
+    if (!buf) {
+      fclose(file);
+      return Status::Error("Failed to allocate buffer when BufferedAppendableFile");
+    }
+    r = setvbuf(file, buf, _IOFBF, user_space_buf_size_bytes);
+  } else {
+    r = setvbuf(file, nullptr, _IONBF, 0);
+  }
+  if (r != 0) {
+    fclose(file);
+    return IOError("Failed to set user space buffer for " + fname, errno);
+  }
+
+  // Move the file pointer to the specified offset
+  if (fseek(file, offset, SEEK_SET) != 0) {
+    fclose(file);
+    return IOError("Failed to seek to the specified offset in " + fname, errno);
+  }
+
+  result = std::make_unique<BufferedWritableFile>(fname, file, user_space_buf_size_bytes, offset, buf);
+  return Status::OK();
+}
+
+Status NewBufferedWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result,
+                               int32_t user_space_buf_size_bytes) {
+  const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
+  if (fd < 0) {
+    return IOError(fname, errno);
+  }
+
+  FILE* file = fdopen(fd, "w+");
+  if (file == nullptr) {
+    close(fd);
+    return IOError("Error converting file descriptor to FILE* when NewBufferedWritableFile for file:" + fname, errno);
+  }
+
+  if (user_space_buf_size_bytes < 0) {
+    fclose(file);
+    return Status::Error("user_space_buf_size_bytes must not be negative when NewBufferedWritableFile");
+  }
+  char* buf = nullptr;
+  int32_t r = 0;
+  if (user_space_buf_size_bytes != 0) {
+    buf = (char*)malloc(user_space_buf_size_bytes);
+    if (!buf) {
+      fclose(file);
+      return Status::Error("Failed to allocate buffer when BufferedAppendableFile");
+    }
+    r = setvbuf(file, buf, _IOFBF, user_space_buf_size_bytes);
+  } else {
+    r = setvbuf(file, nullptr, _IONBF, 0);
+  }
+  if (r != 0) {
+    fclose(file);
+    return IOError("Failed to set user space buffer for " + fname, errno);
+  }
+
+  // the file was trancated if it was existing for syscall open use flag "O_TRUNC"，
+  result = std::make_unique<BufferedWritableFile>(fname, file, user_space_buf_size_bytes, 0, buf);
+  return Status::OK();
 }
 
 Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
