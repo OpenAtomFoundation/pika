@@ -68,6 +68,12 @@ Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFil
 
 Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result);
 
+Status NewBufferedWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result,
+                               int32_t user_space_buf_size_bytes);
+
+Status BufferedAppendableFile(const std::string& fname, std::unique_ptr<WritableFile>& result,
+                              int32_t user_space_buf_size_bytes, int64_t offset);
+
 Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result);
 
 Status AppendSequentialFile(const std::string& fname, SequentialFile** result);
@@ -100,7 +106,7 @@ class SequentialFile {
   // virtual Status Read(size_t n, char *&result, char *scratch) = 0;
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;
   virtual Status Skip(uint64_t n) = 0;
-  // virtual Status Close() = 0;
+  // virtual Status Close() = 0;F
   virtual char* ReadLine(char* buf, int n) = 0;
 };
 
