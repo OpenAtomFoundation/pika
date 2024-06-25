@@ -48,7 +48,7 @@ func (s *Topom) CheckStateAndSwitchSlavesAndMasters(filter func(index int, g *mo
 
 	if len(recoveredGroupServersState) > 0 {
 		// offline GroupServer's service has recovered, check and fix it's master-slave replication relationship
-		s.tryFixReplicationRelationships(ctx, recoveredGroupServersState,len(masterOfflineGroups))
+		s.tryFixReplicationRelationships(ctx, recoveredGroupServersState, len(masterOfflineGroups))
 	}
 
 	return nil
@@ -92,6 +92,7 @@ func (s *Topom) checkAndUpdateGroupServerState(conf *Config, group *models.Group
 			groupServer.Role = models.GroupServerRole(state.Replication.Role)
 			groupServer.DbBinlogFileNum = state.Replication.DbBinlogFileNum
 			groupServer.DbBinlogOffset = state.Replication.DbBinlogOffset
+			groupServer.ReplicationID = state.Replication.ReplicationID
 			groupServer.Action.State = models.ActionSynced
 		}
 	}

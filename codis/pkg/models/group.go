@@ -31,7 +31,7 @@ func (g *Group) SelectNewMaster() (string, int) {
 	var newMasterIndex = -1
 
 	for index, server := range g.Servers {
-		if index == 0 || server.State != GroupServerStateNormal {
+		if index == 0 || server.State != GroupServerStateNormal || server.ReplicationID == "" {
 			continue
 		}
 
@@ -86,6 +86,7 @@ type GroupServer struct {
 	// If it is a master node, take the master_repl_offset field, otherwise take the slave_repl_offset field
 	DbBinlogFileNum uint64 `json:"binlog_file_num"` // db0
 	DbBinlogOffset  uint64 `json:"binlog_offset"`   // db0
+	ReplicationID   string `json:"ReplicationID"`
 
 	// Monitoring status, 0 normal, 1 subjective offline, 2 actual offline
 	// If marked as 2 , no service is provided
